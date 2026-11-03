@@ -40,8 +40,9 @@ Own the install-policy files AGENTO-002/A named, plus `checkpoints/B.md` and `re
 - Branch: `feat/002-b-install-scripts`
 - Base: `origin/main` `75e293b8da799e8300c299e07c410a48c43c3d3f`
 - Decision: empty `allowScripts` allowlist, enforced with `strict-allow-scripts=true`, `allow-git=none`, and `allow-remote=none` in `.npmrc`. No root `allowScripts` field.
-- Pull request: recorded in the delivery commit
-- Head SHA: recorded in the delivery commit
+- Implementation commit: `52deda6bb7c811b730cab7a5432c07a9b67e8781`
+- Pull request: https://github.com/exones/braid/pull/2
+- Head SHA: `52deda6bb7c811b730cab7a5432c07a9b67e8781` is the parent of the delivery commit. The pull request head is that delivery commit. Its object id is in the pull request body.
 - Status: `in-review`. Not Done. Hosted CI, review, and human merge remain.
 
 ## Report and resume

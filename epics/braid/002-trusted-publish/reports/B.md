@@ -1,7 +1,7 @@
 # Task B: fail unreviewed install scripts
 
 Status: partly proven. Date: 2026-11-03.
-Backlog item: `epics/braid/002-trusted-publish/backlog/B-install-scripts.md`. Checkout/branch/HEAD: `C:\worktrees\agento\t3-4b07542d`; `feat/002-b-install-scripts`; delivery commit records the pull request head.
+Backlog item: `epics/braid/002-trusted-publish/backlog/B-install-scripts.md`. Checkout/branch/HEAD: `C:\worktrees\agento\t3-4b07542d`; `feat/002-b-install-scripts`. The pull request head is the delivery commit that contains this sentence.
 
 ## Outcome
 
@@ -65,6 +65,7 @@ Do not mark B Done. Epic row B becomes `in-review`. Evidence: this report and th
 
 - Branch: `feat/002-b-install-scripts`
 - Base: `origin/main` `75e293b8da799e8300c299e07c410a48c43c3d3f`
-- Pull request: recorded in the delivery commit
-- Head SHA: recorded in the delivery commit
+- Implementation commit: `52deda6bb7c811b730cab7a5432c07a9b67e8781`
+- Pull request: https://github.com/exones/braid/pull/2
+- Head SHA: `52deda6bb7c811b730cab7a5432c07a9b67e8781` is the parent of this delivery commit. The pull request head is this commit. Its object id is in the pull request body.
 - Done: no

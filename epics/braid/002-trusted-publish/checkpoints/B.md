@@ -34,7 +34,7 @@ Cited in `reports/B.md`. The packed-install probe in that verify run was dirty, 
 
 ## Next concrete action
 
-Open the pull request, then record its URL and head SHA in this checkpoint and `reports/B.md`. Coordinator takes hosted CI, review, and human merge. Do not mark Done. Do not start AGENTO-002/C from this worker.
+Pull request: https://github.com/exones/braid/pull/2. Implementation commit `52deda6bb7c811b730cab7a5432c07a9b67e8781` is the parent of the delivery commit that stores this sentence, and that delivery commit is the pull request head. Its object id is in the pull request body. Coordinator takes hosted CI, review, and human merge. Do not mark Done. Do not start AGENTO-002/C from this worker.
 
 ## Blockers
 
