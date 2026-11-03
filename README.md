@@ -26,7 +26,7 @@ npm run verify
 
 `node --version` should print `v26.13.0`. The installer writes progress to stderr and writes only the toolchain directory to stdout. It downloads `https://nodejs.org/dist/v26.13.0/`, checks the archive SHA-256 against that directory's `SHASUMS256.txt`, and also requires the checksum pinned in `scripts/Install-NodeToolchain.ps1`. A later run reuses the extracted toolchain.
 
-`.npmrc` sets `engine-strict=true`. `npm ci` refuses a Node.js older than 26.13.0, including this machine's default 24.x install. `npm run verify` can be launched by that older npm; `scripts/Verify.ps1` still selects the pinned toolchain, or a Node.js 26 already on `PATH`, and runs the npm that shipped with it.
+`.npmrc` sets `engine-strict=true`, `strict-allow-scripts=true`, `allow-git=none`, and `allow-remote=none`. `npm ci` refuses a Node.js older than 26.13.0, including this machine's default 24.x install. It also refuses an unreviewed dependency install script, a git dependency, and a remote URL dependency. `npm run verify` can be launched by that older npm; `scripts/Verify.ps1` still selects the pinned toolchain, or a Node.js 26 already on `PATH`, and runs the npm that shipped with it.
 
 `npm run verify` runs `scripts/Verify.ps1`. That script selects the project toolchain when it is installed, otherwise a Node.js already on `PATH` that satisfies `>=26.13.0 <27`, and then runs, in order:
 
