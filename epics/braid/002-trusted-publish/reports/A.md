@@ -106,6 +106,7 @@ Do not mark A Done. Epic row A becomes `in-review`. Evidence: this report and th
 - Branch: `feat/002-a-publish-facts`
 - Base: `origin/main` `1766865e192871cca2559ce51e11810b09abade3`
 - Research commit: `c27a9afd4763faf1f143d46959934743893d7441`
+- URL commit: `605fc745f17aa8410f4405ec7aaf017771ca7dc6`
 - Pull request: https://github.com/exones/braid/pull/1
-- Head SHA: `c27a9afd4763faf1f143d46959934743893d7441` is the research commit. This delivery-record commit is the pull request head; its object id is the head SHA GitHub reports for that pull request after this push.
+- Head SHA: `605fc745f17aa8410f4405ec7aaf017771ca7dc6` is the parent of this delivery commit. The pull request head is this commit. Its object id is in the pull request body.
 - Done: no

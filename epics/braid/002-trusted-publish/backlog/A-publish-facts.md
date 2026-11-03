@@ -45,7 +45,8 @@ Own `checkpoints/A.md` and `reports/A.md`. Propose shared-status updates in the 
 - Decision: empty `allowScripts` allowlist. AGENTO-002/B uses strict allow-scripts on current npm 11.20.0 (`strict-allow-scripts=true`, `allow-git=none`, `allow-remote=none` in `.npmrc`). No separate npm 12 install.
 - Pull request: https://github.com/exones/braid/pull/1
 - Research commit: `c27a9afd4763faf1f143d46959934743893d7441`
-- Head SHA: the delivery-record commit on `feat/002-a-publish-facts`, which is the pull request head after this record is pushed. The research commit is the parent above.
+- URL commit: `605fc745f17aa8410f4405ec7aaf017771ca7dc6`
+- Head SHA: the commit that records this line. It is the pull request head. The URL commit above is its parent.
 - Status: `in-review`. Not Done. Hosted CI, review, and human merge remain.
 
 ## Report and resume
