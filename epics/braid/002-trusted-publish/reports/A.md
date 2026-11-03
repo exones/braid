@@ -1,7 +1,7 @@
 # Task A: publish and install-script facts
 
 Status: partly proven. Date: 2026-11-03.
-Backlog item: `epics/braid/002-trusted-publish/backlog/A-publish-facts.md`. Checkout/branch/HEAD: `C:\worktrees\agento\t3-73ebd7cf`; `feat/002-a-publish-facts`; parent `origin/main` `1766865e192871cca2559ce51e11810b09abade3`. The pull request URL and head SHA are in the delivery record below once this spike's push exists.
+Backlog item: `epics/braid/002-trusted-publish/backlog/A-publish-facts.md`. Checkout/branch/HEAD: `C:\worktrees\agento\t3-73ebd7cf`; `feat/002-a-publish-facts`. Base: `origin/main` `1766865e192871cca2559ce51e11810b09abade3`. Research commit: `c27a9afd4763faf1f143d46959934743893d7441`. Pull request: https://github.com/exones/braid/pull/1. The delivery record names the pull request head.
 
 ## Outcome
 
@@ -105,6 +105,7 @@ Do not mark A Done. Epic row A becomes `in-review`. Evidence: this report and th
 
 - Branch: `feat/002-a-publish-facts`
 - Base: `origin/main` `1766865e192871cca2559ce51e11810b09abade3`
-- Pull request: recorded after `gh pr create`
-- Head SHA: the commit that contains this report
+- Research commit: `c27a9afd4763faf1f143d46959934743893d7441`
+- Pull request: https://github.com/exones/braid/pull/1
+- Head SHA: `c27a9afd4763faf1f143d46959934743893d7441` is the research commit. This delivery-record commit is the pull request head; its object id is the head SHA GitHub reports for that pull request after this push.
 - Done: no

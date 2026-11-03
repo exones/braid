@@ -34,7 +34,7 @@ Cited in `reports/A.md`. `scripts/Verify.ps1` was not re-run because this spike 
 
 ## Next concrete action
 
-Push `feat/002-a-publish-facts`, open the pull request against `main`, and record its URL and head SHA in the report and the backlog delivery record. Coordinator then watches hosted CI and review. Do not mark Done. Do not start AGENTO-002/B from this worker.
+Pull request: https://github.com/exones/braid/pull/1. Research commit: `c27a9afd4763faf1f143d46959934743893d7441`. The delivery-record commit on `feat/002-a-publish-facts` is the pull request head. Coordinator takes hosted CI, review, and human merge. Do not mark Done. Do not start AGENTO-002/B from this worker.
 
 ## Blockers
 
