@@ -39,7 +39,9 @@ Own `checkpoints/E.md` and `reports/E.md`. The coordinator assigns fixes as a se
 - Base: `origin/main` `acd87301c8c267b7b89651c1e2b01913d6c84692`
 - Reviewed: AGENTO-002/B head `ab57b4d668aaf8271fa7d6ac73ef8550e721a173`, merge `126145278c3d9aae7df82d4f5252d97a39057931`; AGENTO-002/C head `ade7b918247b571cdd441071965cf07a0baf4c0f`, base `acd87301c8c267b7b89651c1e2b01913d6c84692`
 - Findings: none
-- Pull request: recorded in the delivery commit that contains the pull request URL
+- Review commit: `57a8c6f076b3b54e7603be029788dcf5ca1e35ca`
+- Pull request: https://github.com/exones/braid/pull/5
+- Head: the commit that contains this pull request URL
 - Status: `in-review`. Not Done. This record is not a GitHub approval and does not claim a published package.
 
 ## Report and resume

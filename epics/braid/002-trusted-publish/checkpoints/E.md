@@ -35,7 +35,7 @@ Local OIDC guard re-run: exit 0, cited in `reports/E.md`. Install-policy npm ins
 
 ## Next concrete action
 
-Push `feat/002-e-review`, open the pull request against `main`, and wait for the required checks on that head. Do not mark E Done. No product fix is assigned by this pass.
+Pull request: https://github.com/exones/braid/pull/5. Review commit `57a8c6f076b3b54e7603be029788dcf5ca1e35ca` is the parent of the commit that stores this sentence, and that commit is the pull request head. Wait for hosted CI on that head. Do not mark E Done. No product fix is assigned by this pass.
 
 ## Blockers
 

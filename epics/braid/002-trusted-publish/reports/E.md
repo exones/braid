@@ -55,5 +55,7 @@ Coordinator: use this review's pull request for hosted CI and human merge. Do no
 
 - Branch: `feat/002-e-review`
 - Base: `origin/main` `acd87301c8c267b7b89651c1e2b01913d6c84692`
-- Pull request: recorded in the delivery commit that contains the pull request URL
+- Review commit: `57a8c6f076b3b54e7603be029788dcf5ca1e35ca`
+- Pull request: https://github.com/exones/braid/pull/5
+- Head: the commit that contains this pull request URL. Hosted CI for that head is not stored in git.
 - Done: no
