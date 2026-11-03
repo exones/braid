@@ -1,7 +1,7 @@
 # N: use braid for the tool and local storage
 
 Kind: task. Epic: AGENTO-001. Feature: F1.
-Status: in progress. The active rename and local verification are in this change. The new Git repository and npm publish follow that commit.
+Status: done. The tool is `braid`, the Git repository is `https://github.com/exones/braid`, and the public package is `@exones/braid@0.1.0`.
 Owner: one Grok 4.7 Extra High implementation worker. Depends on: C. The earlier correction was human-merged in PR #1 as `afc05074a27da2cb1a3c225bc9d42d10f184e504`; see `reports/bootstrap-delivery.md`.
 
 ## Selected name
@@ -31,12 +31,10 @@ No state-schema, transition, locking, or durability change. No alias and no sile
 
 ## Implementation tasks
 
-None of these are done.
-
 - [x] Rename the active tool to `braid`: command, package name, `.braid/` storage, help, errors, tests, Git ignore, README, seed contract, and current instructions. Leave historical records that quote the former name unchanged.
-- [ ] Create `https://github.com/exones/braid`, push the existing commit history there (including the rename commit), and point this project at that repository. Leave `https://github.com/exones/agento` in place.
-- [ ] Publish public `@exones/braid@0.1.0` with `scripts/Publish-Npm.ps1`. The script reads `npm_braid_access_token` from Infisical and does not print it. The user chose the scoped name after npm refused unscoped `braid` as too similar to `brace`. Record the registry result.
-- [x] Run `pwsh -NoProfile -File ./scripts/Verify.ps1`. Check a fresh root uses only `.braid/`, and that existing `.crew/` and `.agento/` directories are left in place. Local result: 40 tests passed, then the packed-install proof passed. That proof ran on a dirty tree, so it is a pre-commit probe. A clean proof follows the commit.
+- [x] Create `https://github.com/exones/braid`, push the existing commit history there (including the rename commit), and point this project at that repository. Leave `https://github.com/exones/agento` in place.
+- [x] Publish public `@exones/braid@0.1.0` with `scripts/Publish-Npm.ps1`. The script read `npm_braid_access_token` from Infisical and did not print it. The user chose the scoped name after npm refused unscoped `braid` as too similar to `brace`. Registry `latest` is `0.1.0`. npm also created `0.0.0-stage` while processing the new package.
+- [x] Run `pwsh -NoProfile -File ./scripts/Verify.ps1`. Check a fresh root uses only `.braid/`, and that existing `.crew/` and `.agento/` directories are left in place. Local result: 40 tests passed. The clean proof of `cba9b0f` passed before publish.
 
 ## Earlier correction
 
@@ -48,4 +46,4 @@ The worker owns the affected product, test, and docs files, `checkpoints/N.md`, 
 
 ## Report and resume
 
-The user accepted this plan. Finish the GitHub repository and the public npm publish, then record both results here.
+The rename, the GitHub repository, and the public npm package are recorded above. Automatic release stays off until `BRAID_RELEASE` is set to `enabled` and someone dispatches `release.yml`.
