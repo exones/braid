@@ -6,7 +6,7 @@ Updated: 2026-11-03. Selected by the user: project and CLI name are both `braid`
 
 Use `braid` as the executable: `braid --version`, `braid init`, `braid new`, and `braid status`. Configure the npm package's `bin` entry and installed-package smoke checks for `braid`. No short alias is selected.
 
-Use `.braid/` for local state as well. The package is public `@exones/braid` at `0.1.0`, and the Git repository is `https://github.com/exones/braid`. The command remains `braid`. Unscoped `braid` was refused by npm as too similar to `brace`. The user selected this name on 2026-11-03 after the former unscoped name `agento` was found to be a different npm package. Storage follows the tool name. This supersedes `.agento/` and the earlier `.crew/` directory. The CLI does not migrate, alias, or delete a pre-existing `.agento/` or `.crew/` directory.
+Use `.braid/` for local state as well. The package is public `@exones/braid`. The published version is `0.1.0`. This source is `0.1.1`. The Git repository is `https://github.com/exones/braid`. The command remains `braid`. Unscoped `braid` was refused by npm as too similar to `brace`. The user selected this name on 2026-11-03 after the former unscoped name `agento` was found to be a different npm package. Storage follows the tool name. This supersedes `.agento/` and the earlier `.crew/` directory. The CLI does not migrate, alias, or delete a pre-existing `.agento/` or `.crew/` directory.
 
 ## Naming history
 

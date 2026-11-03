@@ -12,7 +12,7 @@ The machine ledger and the Markdown epic files are separate. Ledger commands rea
 | --- | --- | --- |
 | Node.js | Active LTS 26, `engines.node` `>=26.13.0 <27`. GitHub Actions `node-version: "26"`. | [Release schedule](https://github.com/nodejs/Release/blob/main/schedule.json): 26 entered LTS on 2026-10-28, maintenance 2027-10-20, end 2029-04-30. [Release index](https://nodejs.org/en/about/previous-releases) lists 26 as LTS. [latest-v26.x](https://nodejs.org/dist/latest-v26.x/) lists `node-v26.13.0` dated 2026-10-28. |
 | PowerShell | `pwsh` 7.6 LTS, minimum 7.6.0. Workflow jobs set `shell: pwsh`. | [PowerShell support lifecycle](https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle?view=powershell-7.6): 7.6 LTS, released 2026-03-18, supported through 2028-11-14 on .NET 10. The 7.4 LTS and 7.5 stable lines end support on 2026-11-10. |
-| Package | One package. `name` `braid`, `version` `0.1.0`, `private` true, `type` `module`. `bin` maps `braid` to the compiled entry. Repository target is now known: `https://github.com/exones/braid.git`. | npm is the selected registry; account/scope/name are still release setup decisions. `0.1.0` names the local candidate; keep the publication guard until the release configuration is deliberately enabled. |
+| Package | One package. `name` `@exones/braid`, `version` `0.1.1`, `private` false, `type` `module`. `bin` maps `braid` to the compiled entry. Repository is `https://github.com/exones/braid.git`. | npm is the selected registry. Registry `latest` is `0.1.0`. This source is the unpublished `0.1.1` candidate. |
 | Product code | Strict TypeScript, ESM source, compiled JavaScript. Product tests use `node:test`. | Matches `docs/decisions.md`. Pester is absent unless a later task adds PowerShell behavior that TypeScript tests cannot host. |
 | Version probe | `braid --version` prints the version shipped inside the installed package. | Required so D's packed executable works outside the source checkout. |
 
@@ -34,7 +34,7 @@ Until C lands, `braid init` and the other ledger commands fail as unknown comman
 
 Flags may appear before or after positionals. A valued flag accepts `--flag value` and `--flag=value`. Argument checks finish before any ledger directory is created. Tests pass an argument array to the executable.
 
-`--help` or `-h` with no command, or with a known command, prints help to stdout, writes nothing, and exits 0. Help for a known subcommand describes that command. `--help` with an unknown command word exits 1 with the unknown-command error. When help is absent, `--version` or `-v` prints one stdout line, `braid 0.1.0`, writes nothing, and exits 0, including when other arguments are present. With no arguments, behavior matches `--help`.
+`--help` or `-h` with no command, or with a known command, prints help to stdout, writes nothing, and exits 0. Help for a known subcommand describes that command. `--help` with an unknown command word exits 1 with the unknown-command error. When help is absent, `--version` or `-v` prints one stdout line, `braid 0.1.1`, writes nothing, and exits 0, including when other arguments are present. With no arguments, behavior matches `--help`.
 
 ```text
 braid [--root <dir>] [--help|-h] [--version|-v]
