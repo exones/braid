@@ -4,7 +4,7 @@ Updated: 2026-11-03. Coordinator-owned resume point.
 
 ## Task and checkout
 
-The active tool is `braid`: command, public package `braid@0.1.0`, and storage `.braid/`. Source repository target is `https://github.com/exones/braid`. `https://github.com/exones/agento` remains the old repository. Historical notes below keep the former name where they quote that work.
+The active tool is `braid`: command, public package `@exones/braid@0.1.0`, and storage `.braid/`. Source repository target is `https://github.com/exones/braid`. `https://github.com/exones/agento` remains the old repository. Historical notes below keep the former name where they quote that work.
 
 D1 is Done. Policy merged in [PR #4](https://github.com/exones/agento/pull/4) at `3a46c9e10399502fe1b9c27aa0840632d3da8c66`. Planning proof merged in [PR #5](https://github.com/exones/agento/pull/5) at `ecf0d7c0f4cb717e63b469ce0bd9625c12d2ee74`; the reviewed head is `d22b4bbccd4f38f6fb66c1e03c4cc56570060036`. Independent review found no actionable findings, and it returned after that merge. A/B/C/N/D/D1 are Done. No release, controller promotion, or stage 2 start.
 

@@ -41,6 +41,6 @@ Not edited: `epic.md`, `checkpoints/current.md`, historical reports and checkpoi
 
 Updated: 2026-11-03. The user accepted the later plan in `backlog/N-storage-name.md`.
 
-The active command, package, and storage directory are `braid` and `.braid/`. `package.json` is public (`private: false`) at `braid@0.1.0`, with repository `git+https://github.com/exones/braid.git`. Pre-existing `.agento/` and `.crew/` directories are not migrated. Historical reports and sealed validation files still quote the former name.
+The active command, package, and storage directory are `braid` and `.braid/`. `package.json` is public (`private: false`) at `@exones/braid@0.1.0`, with repository `git+https://github.com/exones/braid.git`. Pre-existing `.agento/` and `.crew/` directories are not migrated. Historical reports and sealed validation files still quote the former name.
 
 Local `scripts/Verify.ps1` passed on Node v26.13.0: 40 tests, then a dirty-tree packed-install probe. Digest of that probe is not the publish identity. A clean proof follows the commit. GitHub repository creation and npm publish are the remaining steps.

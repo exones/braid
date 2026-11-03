@@ -2,7 +2,7 @@
 
 braid is a TypeScript/Node.js CLI for tracking epics and work items in a local manual ledger. PowerShell provides build and verification automation. GitHub hosts source and Actions; npm is the selected package registry. T3 dispatch and automated coordination are planned capabilities.
 
-Project and CLI name: **braid**. Use `braid` as the executable, for example `braid --help` and `braid --version`. See the [naming decision](docs/cli-name.md). The package is public unscoped `braid` at `0.1.0`. Source is [exones/braid](https://github.com/exones/braid). The former unscoped name `agento` is a different public package, version 0.1.2 on 2026-11-03.
+Project and CLI name: **braid**. Use `braid` as the executable, for example `braid --help` and `braid --version`. See the [naming decision](docs/cli-name.md). The package is public `@exones/braid` at `0.1.0`. The command remains `braid`. Source is [exones/braid](https://github.com/exones/braid). The former unscoped name `agento` is a different public package, version 0.1.2 on 2026-11-03.
 
 ## Start here
 

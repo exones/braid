@@ -10,11 +10,11 @@ Owner: one Grok 4.7 Extra High implementation worker. Depends on: C. The earlier
 
 The former unscoped name is a different public package, version 0.1.2 when checked on 2026-11-03. `braid` has no live version and no maintainers. Its only published version, `0.0.1` from 2012, was unpublished on 2025-10-16. That version number cannot be published again. npm allows a new version of a fully unpublished name after 24 hours, and that window has passed. `braid@0.1.0` is not on the unpublished list. Nobody has published this project under `braid` yet, so the claim is not proven.
 
-2026-11-03, user: make the package public in the same change as the rename. Set `private` to false and publish unscoped `braid@0.1.0`. That publish needs the user's authenticated npm session. Do not publish the manifest that still carries the former name.
+2026-11-03, user: make the package public in the same change as the rename. npm refused unscoped `braid` as too similar to `brace`. The user then chose scoped `@exones/braid@0.1.0`. The command stays `braid`. Do not publish the manifest that still carries the former name.
 
 ## Current plan
 
-Use `braid` for the command, the package name, and the storage directory `.braid/`. Apply that in runtime, help, errors, tests, Git ignore, README, the seed contract, and current implementation instructions. Create `https://github.com/exones/braid`, push the existing commit history there, and point this project at that repository. Leave `https://github.com/exones/agento` in place so its existing pull requests stay valid.
+Use `braid` for the command and the storage directory `.braid/`. The npm package is `@exones/braid`. Apply that in runtime, help, errors, tests, Git ignore, README, the seed contract, and current implementation instructions. Create `https://github.com/exones/braid`, push the existing commit history there, and point this project at that repository. Leave `https://github.com/exones/agento` in place so its existing pull requests stay valid.
 
 Leave recorded history accurate where it quotes the former name, including the occupied npm package and the merged PR #1 correction from `.crew/` to `.agento/`. Do not rewrite those observations into `braid`.
 
@@ -27,7 +27,7 @@ No state-schema, transition, locking, or durability change. No alias and no sile
 3. Existing failure, concurrency, path/link safety, and manual-evidence checks still pass with the renamed paths. Do not weaken their expectations.
 4. Pre-existing `.crew/` and `.agento/` directories are left untouched. Document that this correction does not migrate old disposable ledgers.
 5. `pwsh -NoProfile -File ./scripts/Verify.ps1` passes. Report local evidence separately from hosted CI, review, and merge.
-6. The published package is public unscoped `braid@0.1.0`, created from the user's authenticated npm session after the rename. The former manifest is not published.
+6. The published package is public `@exones/braid@0.1.0`. The command remains `braid`. The former manifest is not published.
 
 ## Implementation tasks
 
@@ -35,7 +35,7 @@ None of these are done.
 
 - [x] Rename the active tool to `braid`: command, package name, `.braid/` storage, help, errors, tests, Git ignore, README, seed contract, and current instructions. Leave historical records that quote the former name unchanged.
 - [ ] Create `https://github.com/exones/braid`, push the existing commit history there (including the rename commit), and point this project at that repository. Leave `https://github.com/exones/agento` in place.
-- [ ] Publish the public package with `scripts/Publish-Npm.ps1`. The script reads `npm_braid_access_token` from Infisical and does not print it. On 2026-11-03 the registry refused unscoped `braid` with 403: the name is too similar to `brace`, and suggested `@exones/braid`. That scoped name is not currently published. Do not publish until the user chooses it.
+- [ ] Publish public `@exones/braid@0.1.0` with `scripts/Publish-Npm.ps1`. The script reads `npm_braid_access_token` from Infisical and does not print it. The user chose the scoped name after npm refused unscoped `braid` as too similar to `brace`. Record the registry result.
 - [x] Run `pwsh -NoProfile -File ./scripts/Verify.ps1`. Check a fresh root uses only `.braid/`, and that existing `.crew/` and `.agento/` directories are left in place. Local result: 40 tests passed, then the packed-install proof passed. That proof ran on a dirty tree, so it is a pre-commit probe. A clean proof follows the commit.
 
 ## Earlier correction

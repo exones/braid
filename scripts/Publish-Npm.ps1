@@ -78,15 +78,15 @@ if ($pkg.private -eq $true) {
   Write-Error 'package.json private is true. npm publish was not run.'
   exit 1
 }
-if ($pkg.name -ne 'braid' -or $pkg.version -ne '0.1.0') {
-  Write-Error "Refusing to publish $($pkg.name)@$($pkg.version). This script publishes public braid@0.1.0."
+if ($pkg.name -ne '@exones/braid' -or $pkg.version -ne '0.1.0') {
+  Write-Error "Refusing to publish $($pkg.name)@$($pkg.version). This script publishes public @exones/braid@0.1.0."
   exit 1
 }
 
 $tarballDir = Join-Path $repoRoot 'artifacts/package'
-$tarballs = @(Get-ChildItem -LiteralPath $tarballDir -Filter 'braid-0.1.0.tgz' -File -ErrorAction SilentlyContinue)
+$tarballs = @(Get-ChildItem -LiteralPath $tarballDir -Filter 'exones-braid-0.1.0.tgz' -File -ErrorAction SilentlyContinue)
 if ($tarballs.Count -ne 1) {
-  Write-Error 'Expected artifacts/package/braid-0.1.0.tgz from a clean package proof. npm publish was not run.'
+  Write-Error 'Expected artifacts/package/exones-braid-0.1.0.tgz from a clean package proof. npm publish was not run.'
   exit 1
 }
 
