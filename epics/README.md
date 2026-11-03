@@ -4,6 +4,7 @@ Record what was asked, done, proven, and left so work can resume without chat hi
 
 - [braid 001: seed](braid/001-seed/epic.md): first CLI, manual progress, PowerShell verification, GitHub Actions, packaged installation.
 - [braid 002: trusted npm publishing](braid/002-trusted-publish/epic.md): GitHub Actions OIDC publish and the npm 12 install-script policy. Planning only until execution is requested.
+- [braid 003: worker skill](braid/003-worker-skill/epic.md): approved execution-skill plan, complete assignments, resumable checkpoints, and worker-owned PR delivery through passing checks. Begin with the CI-wait capability spike.
 
 Each epic has an `epic.md`, a `backlog/` of stories/tasks/spikes, a resumable `checkpoints/current.md`, completion `reports/`, and a stage `retro.md`. Backlog items exist before work starts. Reports link actual evidence and distinguish local checks from remote results. Keep binaries small and exclude secrets and scratch data. Use the [Agile workflow](../docs/agile-workflow.md) for work division and Ready/Done criteria.
 
