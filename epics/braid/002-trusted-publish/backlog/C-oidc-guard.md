@@ -1,7 +1,7 @@
 # C: guard the OIDC release workflow
 
 Kind: story. Epic: [AGENTO-002](../epic.md). Feature: public npm release.
-Status: backlog. Owner: one implementation worker. Depends on: AGENTO-002/A, AGENTO-002/B, and [AGENTO-001/D](../../001-seed/backlog/D-package.md) merged.
+Status: in-review. Owner: one implementation worker. Depends on: AGENTO-002/A, AGENTO-002/B, and [AGENTO-001/D](../../001-seed/backlog/D-package.md) merged. Not Done.
 
 ## Read first
 
@@ -37,10 +37,10 @@ Keep `npm publish --ignore-scripts` on the packed tarball as the publish control
 
 ## Implementation or research tasks
 
-- [ ] Confirm `release.yml` on `main` is the workflow merged with AGENTO-001/D before editing.
-- [ ] Add the regression check without dispatching.
-- [ ] Add the decision-log entry and the one roadmap sentence.
-- [ ] Write `checkpoints/C.md` and `reports/C.md`. Stop after this item.
+- [x] Confirm `release.yml` on `main` is the workflow merged with AGENTO-001/D before editing.
+- [x] Add the regression check without dispatching.
+- [x] Add the decision-log entry and the one roadmap sentence.
+- [x] Write `checkpoints/C.md` and `reports/C.md`. Stop after this item.
 
 ## Ownership and verification
 
@@ -48,7 +48,13 @@ Own the regression check, the two documentation sentences, `checkpoints/C.md`, a
 
 ## Delivery record
 
-Empty until assigned.
+- Branch: `feat/002-c-oidc-guard`
+- Base: `origin/main` `acd87301c8c267b7b89651c1e2b01913d6c84692`
+- Guard: `release.yml` must keep job `id-token: write`, no `NPM_TOKEN` or `NODE_AUTH_TOKEN`, Node.js 26, an npm 11.5.1 gate, `workflow_dispatch` with `confirm` equal to `publish`, and `npm publish` of that job's tarball only when `private` is not true and `BRAID_RELEASE` is `enabled`.
+- Implementation commit: `9a4617e9f5d2857cbece000c6700d45069ae44f4`
+- Pull request: https://github.com/exones/braid/pull/4
+- Head SHA: `9a4617e9f5d2857cbece000c6700d45069ae44f4` is the parent of the delivery commit. The pull request head is that delivery commit. Its object id is in the pull request body.
+- Status: `in-review`. Not Done. Hosted CI, review, and human merge remain.
 
 ## Report and resume
 
