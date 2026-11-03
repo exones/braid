@@ -40,7 +40,7 @@ The coordinator owns `epic.md` and `checkpoints/current.md`. Workers own `checkp
 
 Provider/model choices come from current project instructions, not this skill's metadata. When cross-provider work is authorized and T3 tools are available, read [delegation mechanics](references/delegation.md). Otherwise prepare one complete manual worker assignment; clearly state why automatic delegation is unavailable. Do not silently substitute another model or provider.
 
-Give a worker its role, exact backlog path, read-first paths, dependency reports, boundaries, acceptance/evidence requirements, and output paths. Do not assume it inherits this chat. Workers stop after their item. Keep one seed implementation worker at a time.
+There is no separate builder skill. The worker's duties are this section plus [delivery](references/delivery.md) and [delegation](references/delegation.md). Give a worker its role, exact backlog path, read-first paths, dependency reports, boundaries, acceptance/evidence requirements, and output paths. Do not assume it inherits this chat. Include the handoff rule: after the pull request is open, the worker stays with it until the required checks on that head have finished, then hands off with the pass or fail result and the head SHA. A handoff while checks are still running is incomplete. Workers stop after their item. Keep one seed implementation worker at a time.
 
 Inspect the actual changes and check relevant evidence before moving In Review to Done. Run independent checks where the item's gate requires them. A worker report is a claim, not automatic acceptance. Preserve blockers and failed gates; return actionable findings as scoped fixes. Request fresh reviews at the declared milestone.
 
@@ -74,6 +74,16 @@ You: <None, or the exact input/decision/action needed and what it affects>
 Next: <one recommended next step>
 ```
 
-When an item produces a reviewable delivery or completes, give a fuller release-note-style briefing: introduced capabilities and operator value, important behavior/implementation changes, relevant usage examples, meaningful validation, known limits/release status, user involvement, and next action. Scale detail to the change; do not force substantive completion reports into three lines or a 60-word cap. Link the PR and detailed evidence when useful. Distinguish implemented, locally checked, reviewed, merged, and released states.
+When an item is ready for the user, after the worker has handed off with finished checks and the coordinator has looked at the actual change, send one rundown of about half a page. Write it for a person, not for another agent. Use short lists.
+
+Start with one or two sentences that say what is now true. Then:
+
+- **What changed.** The behavior or record a person would notice. One fact per bullet.
+- **Why.** The problem that made the change worth doing, including what went wrong or stayed risky without it.
+- **Left for you.** The decision or action that is still theirs, such as a merge. Say what did not happen, including publish or automatic release, when that would be easy to assume.
+
+Follow that with **Technical record**. This part may name files, commands, exit codes, the pull request, the head SHA, and check results. Keep it to the evidence that supports the lists above. Do not repeat the lists in jargon.
+
+Routine `Done / You / Next` updates stay short and do not use this rundown. Distinguish implemented, locally checked, reviewed, merged, and released states. Link the pull request.
 
 This report format does not create a new approval gate: continue already authorized work unless the user sets a stopping boundary. If the user requests a report and says they will choose the next action, finish the requested edits/checks, checkpoint, and stop before dispatching the next item. The user should be able to start with a goal and later say "continue" without reconstructing a long prompt.
