@@ -120,7 +120,7 @@ async function ensureStorageForInit(paths: LedgerPaths): Promise<void> {
 async function ensureRealStorage(paths: LedgerPaths): Promise<void> {
   const kind = await pathKind(paths.dir);
   if (kind === "absent") {
-    throw new LedgerFailure(1, "error: not initialized; run agento init");
+    throw new LedgerFailure(1, "error: not initialized; run braid init");
   }
   if (kind !== "directory") {
     throw new LedgerFailure(3, STORAGE_MUST_BE_REAL);

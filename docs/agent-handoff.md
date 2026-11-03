@@ -4,7 +4,7 @@ This is a reusable operating guide, not an epic dashboard. Examples below use pl
 
 ## Start from a goal
 
-Use the [coordinator skill](../.agents/skills/agento-coordinate/SKILL.md) for goal-level planning, delivery, and resumption. Example requests:
+Use the [coordinator skill](../.agents/skills/braid-coordinate/SKILL.md) for goal-level planning, delivery, and resumption. Example requests:
 
 ```text
 Plan <goal>.
@@ -12,7 +12,7 @@ Build <goal>.
 Continue <epic>.
 ```
 
-For explicit Codex selection, prefix the goal with `$agento-coordinate`. In Cursor, select `agento-coordinate` from the skill picker. If discovery is unavailable, ask the agent to read the skill file directly. Model/provider settings come from [AGENTS.md](../AGENTS.md) and [decisions](decisions.md), not from this guide or the skill's invocation text.
+For explicit Codex selection, prefix the goal with `$braid-coordinate`. In Cursor, select `braid-coordinate` from the skill picker. If discovery is unavailable, ask the agent to read the skill file directly. Model/provider settings come from [AGENTS.md](../AGENTS.md) and [decisions](decisions.md), not from this guide or the skill's invocation text.
 
 ## Find actual work state
 
@@ -44,7 +44,7 @@ Workers do not inherit another provider's conversation automatically. Include th
 
 ## Delivery and verification
 
-Follow the [Agile workflow](agile-workflow.md) and the skill's [delivery rules](../.agents/skills/agento-coordinate/references/delivery.md) for scoped commits, PRs, CI, review, and merge authority. Do not duplicate that policy here.
+Follow the [Agile workflow](agile-workflow.md) and the skill's [delivery rules](../.agents/skills/braid-coordinate/references/delivery.md) for scoped commits, PRs, CI, review, and merge authority. Do not duplicate that policy here.
 
 A prepared workflow, a passing local gate, and a passing hosted CI run are different evidence. Record actual revisions, run URLs, findings, and results in the epic/report. The workflow file defines when CI runs; this guide does not track whether a particular run happened.
 

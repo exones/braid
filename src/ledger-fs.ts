@@ -7,7 +7,7 @@ import { errnoCode, LedgerFailure } from "./errors.js";
 const LOCK_RETRY_MS = 100;
 const LOCK_BUDGET_MS = 5000;
 
-export const STORAGE_DIRECTORY = ".agento";
+export const STORAGE_DIRECTORY = ".braid";
 
 export interface LedgerPaths {
   readonly dir: string;

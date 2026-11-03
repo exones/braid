@@ -43,7 +43,7 @@ Routine progress/waiting updates can remain short. The earlier three-line/60-wor
 
 ## Review records
 
-Read and follow the authoritative [review conventions](../docs/agile-workflow.md#review-gates-and-indexing) for names, paths, numbering, and existing records. Use the [review template](../.agents/skills/agento-coordinate/assets/review.md) to record the exact checked revision, scope, findings/acceptance assessment, checks, limits, and subsequent triage.
+Read and follow the authoritative [review conventions](../docs/agile-workflow.md#review-gates-and-indexing) for names, paths, numbering, and existing records. Use the [review template](../.agents/skills/braid-coordinate/assets/review.md) to record the exact checked revision, scope, findings/acceptance assessment, checks, limits, and subsequent triage.
 
 ## Current checkpoint
 

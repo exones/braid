@@ -116,7 +116,7 @@ export async function runInProcess(
 }
 
 export async function withRoot(check: (root: string) => Promise<void>): Promise<void> {
-  const root = await mkdtemp(join(tmpdir(), "agento c "));
+  const root = await mkdtemp(join(tmpdir(), "braid c "));
   assert.match(root, / /u);
   try {
     await check(root);
@@ -138,8 +138,8 @@ async function readOptional(path: string): Promise<Buffer | null> {
 
 export async function snapshotLedger(root: string): Promise<LedgerSnapshot> {
   return {
-    state: await readOptional(join(root, ".agento", "state.json")),
-    events: await readOptional(join(root, ".agento", "events.jsonl")),
+    state: await readOptional(join(root, ".braid", "state.json")),
+    events: await readOptional(join(root, ".braid", "events.jsonl")),
   };
 }
 
@@ -164,5 +164,5 @@ export function expectErr(result: RunResult, code: number, stderr: string): void
 }
 
 export function unknown(words: string): string {
-  return `error: unknown command: ${words}\nRun agento --help.\n`;
+  return `error: unknown command: ${words}\nRun braid --help.\n`;
 }

@@ -70,3 +70,13 @@ Set N to `in-review`. Suggested epic row:
 ```
 
 In `checkpoints/current.md`, record HEAD `3283807afee076d2d4cf1ee24c44ba1df20576da`, uncommitted N rename plus the existing planning and C files, local gate passed (39 tests), index unchanged, remote CI not run, Linux not run, and the next action as review of `reports/N.md` before assigning D. Leave D at `backlog`.
+
+## Later rename to braid
+
+2026-11-03. The user selected `braid` because unscoped npm `agento` is another package (version 0.1.2). This section does not replace the `.crew/` to `.agento/` record above.
+
+Active runtime, help, errors, tests, Git ignore, README, seed contract, current instructions, and the coordinator skill now use `braid` and `.braid/`. Epic files moved from `epics/agento/` to `epics/braid/`. The skill moved to `.agents/skills/braid-coordinate/`. Historical reports, review outputs, and sealed validation files were not rewritten. `package.json` name is `braid`, version `0.1.0`, `private` false, repository `git+https://github.com/exones/braid.git`.
+
+`pwsh -NoProfile -File ./scripts/Verify.ps1` passed: Node v26.13.0, npm 11.20.0, pwsh 7.6.9, 40 tests, then the packed-install proof. The proof ran on a dirty tree (`candidate: false`). Its tarball digest was `f485fdee7c6006b1159a6642eb511553a2dc40355e9148fd727fca98c0a7b100`. That digest is a pre-commit probe. The publish identity is a later clean pack of the rename commit.
+
+Remaining: create `https://github.com/exones/braid`, push this history, and publish public `braid@0.1.0` from the user's npm session. Leave `https://github.com/exones/agento` in place.

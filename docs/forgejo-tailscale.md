@@ -7,7 +7,7 @@ Status: **superseded, not planned**, 2026-11-03. The user confirmed npm as the r
 1. GitHub keeps the repository, PRs, and Actions builds.
 2. A trusted release job joins the tailnet temporarily.
 3. It reaches Forgejo's HTTPS npm endpoint and publishes the exact verified tarball.
-4. A clean consumer job/session installs the exact version through the same private path and checks `agento --version` plus a small ledger exercise.
+4. A clean consumer job/session installs the exact version through the same private path and checks `braid --version` plus a small ledger exercise.
 5. Keep versioned release tarballs as a bootstrap fallback.
 
 The Tailscale GitHub Action supports temporary tagged runners. Its current documentation recommends workload identity federation; confirm availability and configure trust to the intended repository/release environment. OAuth is a fallback if federation is unavailable. Source: [Tailscale GitHub Action](https://tailscale.com/docs/integrations/github/github-action) and [federated identity configuration](https://tailscale.com/docs/features/workload-identity-federation).
@@ -22,7 +22,7 @@ Forgejo's documented npm endpoint is `https://<forgejo-host>/api/packages/<owner
 
 ## Build and release separation
 
-Ordinary PR checks run without private-network access or publishing credentials. Initially, project dependencies come from the normal npm registry; Forgejo hosts agento release packages. Do not turn it into an npm proxy or migrate dependencies as part of the seed.
+Ordinary PR checks run without private-network access or publishing credentials. Initially, project dependencies come from the normal npm registry; Forgejo hosts braid release packages. Do not turn it into an npm proxy or migrate dependencies as part of the seed.
 
 The publish job accepts artifacts from an identified, successful trusted revision and verifies their recorded digest. Grant tailnet membership and package writes only to authorized release execution. Do not execute arbitrary PR code inside a credentialed tailnet publishing job, including through `pull_request_target`.
 
@@ -42,7 +42,7 @@ Reusable scripts should take nonsecret configuration as parameters and credentia
 - Forgejo package owner/scope, publishing identity, read access requirements, and credential delivery.
 - GitHub repository and release environment; available federation configuration and identity restrictions.
 
-Do not deploy, create identities, open network access, or rotate secrets from this document alone. Complete [task I](../epics/agento/001-seed/backlog/I-registry-discovery.md) first and turn its evidence into an implementation backlog item.
+Do not deploy, create identities, open network access, or rotate secrets from this document alone. Complete [task I](../epics/braid/001-seed/backlog/I-registry-discovery.md) first and turn its evidence into an implementation backlog item.
 
 ## Infrastructure acceptance gate
 

@@ -71,13 +71,13 @@ jobs:
       - name: Verify
         shell: pwsh
         env:
-          AGENTO_REQUIRE_CLEAN: "1"
-          AGENTO_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BRAID_REQUIRE_CLEAN: "1"
+          BRAID_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: npm run verify
 
       - name: Upload packed tarball
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: agento-package-${{ matrix.os }}
+          name: braid-package-${{ matrix.os }}
           path: artifacts/package/
           if-no-files-found: error

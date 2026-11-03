@@ -1,13 +1,13 @@
-# Working on agento
+# Working on braid
 
 ## Read and resume
 
 Read `README.md`, `docs/decisions.md`, the assigned epic, `checkpoints/current.md`, and the assigned backlog item before acting. Read the backlog item's dependency reports. Treat current files as the handoff; historical chat and `inspiration/` are supporting context.
 
-Current epic: `epics/agento/001-seed/epic.md`.
-Current checkpoint: `epics/agento/001-seed/checkpoints/current.md`.
+Current epic: `epics/braid/001-seed/epic.md`.
+Current checkpoint: `epics/braid/001-seed/checkpoints/current.md`.
 
-For a goal-level planning or orchestration request, use `.agents/skills/agento-coordinate/SKILL.md`. It analyzes the request, writes/refines the epic and backlog, and coordinates delivery within the user's requested scope. Read it directly if the host has not discovered it yet. Assigned workers execute their backlog item; they do not enter the coordinator workflow. Routine coding questions do not need the skill.
+For a goal-level planning or orchestration request, use `.agents/skills/braid-coordinate/SKILL.md`. It analyzes the request, writes/refines the epic and backlog, and coordinates delivery within the user's requested scope. Read it directly if the host has not discovered it yet. Assigned workers execute their backlog item; they do not enter the coordinator workflow. Routine coding questions do not need the skill.
 
 Use the Agile vocabulary in `docs/agile-workflow.md`: epic, optional feature grouping, story, task, spike, backlog, acceptance criteria, Definition of Ready, and Definition of Done. Keep existing backlog IDs stable. The original MVP and inspiration retain historical terminology.
 
@@ -29,7 +29,7 @@ In standalone mode, the assigned agent maintains the epic and current checkpoint
 
 ## Decisions and implementation
 
-- Project, CLI, and local state directory names are `agento`, `agento`, and `.agento/`. Use them consistently in commands, package `bin`, storage, and checks. See `docs/cli-name.md`. The superseded pre-release directory `.crew/` is not read, written, migrated, or deleted. Do not infer an npm scope from the project name.
+- Project, CLI, and local state directory names are `braid`, `braid`, and `.braid/`. Use them consistently in commands, package `bin`, storage, and checks. See `docs/cli-name.md`. The superseded pre-release directory `.crew/` is not read, written, migrated, or deleted. Do not infer an npm scope from the project name.
 - Product CLI and core: modern TypeScript on Node.js, strict checking, compiled JavaScript, one npm package initially.
 - Automation and operational scripts: PowerShell 7 (`pwsh`), including substantive logic where useful. Do not replace it merely because it is a shell language.
 - Source, PRs, build: GitHub and GitHub Actions.
@@ -41,7 +41,7 @@ In standalone mode, the assigned agent maintains the epic and current checkpoint
 
 ## State, gates, and release discipline
 
-Keep machine state authoritative and human status derived or clearly descriptive. Agents do not hand-edit future `.agento/run.json` files. State and event records must have documented revision and failure behavior; do not claim crash guarantees that have not been tested.
+Keep machine state authoritative and human status derived or clearly descriptive. Agents do not hand-edit future `.braid/run.json` files. State and event records must have documented revision and failure behavior; do not claim crash guarantees that have not been tested.
 
 The first release records manual progress. A human/agent marking an item complete is not independent gate evidence. Later gate evidence must identify the exact revision checked.
 
@@ -51,7 +51,7 @@ Develop future versions under a pinned, released controller installed outside th
 
 ## Shared and external actions
 
-Respect user changes. Inspect git status before editing. Work only in the assigned checkout and branch. A scoped delivery request authorizes scoped Conventional Commits, pushes to an owned feature branch, and PR creation after relevant local gates pass; follow `.agents/skills/agento-coordinate/references/delivery.md`. Human merge authority remains unchanged. Do not create a remote repository, merge, publish a release/package, deploy infrastructure, or change tailnet policy unless the task authorizes that action.
+Respect user changes. Inspect git status before editing. Work only in the assigned checkout and branch. A scoped delivery request authorizes scoped Conventional Commits, pushes to an owned feature branch, and PR creation after relevant local gates pass; follow `.agents/skills/braid-coordinate/references/delivery.md`. Human merge authority remains unchanged. Do not create a remote repository, merge, publish a release/package, deploy infrastructure, or change tailnet policy unless the task authorizes that action.
 
 Spikes also deliver through PR, applicable CI, and review. Local acceptance is distinct from Done after CI/review/approved merge. Preserve existing user commits/index, and do not stage/commit/switch a shared checkout while a worker is running. Workers follow their assigned Git boundaries; the coordinator handles a Git transition only at a safe handoff boundary.
 

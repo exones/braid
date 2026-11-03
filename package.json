@@ -1,11 +1,11 @@
 {
-  "name": "agento",
+  "name": "braid",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "CLI for staged, recoverable agent work.",
   "type": "module",
   "bin": {
-    "agento": "dist/cli.js"
+    "braid": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -13,7 +13,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/exones/agento.git"
+    "url": "git+https://github.com/exones/braid.git"
   },
   "engines": {
     "node": ">=26.13.0 <27"

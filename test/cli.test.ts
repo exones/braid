@@ -6,19 +6,19 @@ import { describe, test } from "node:test";
 import { expectErr, repoRoot, runCli, unknown, withRoot } from "./helpers.ts";
 
 const packageMetadata = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")) as { version: string };
-const versionLine = `agento ${packageMetadata.version}`;
+const versionLine = `braid ${packageMetadata.version}`;
 const helpText = [
   versionLine,
   "",
   "Usage:",
-  "  agento [--root <dir>] [--help|-h] [--version|-v]",
-  "  agento [--root <dir>] init",
-  "  agento [--root <dir>] new <epic-id> --title <text> --outcome <text>",
-  "  agento [--root <dir>] status [epic-id] [--json]",
-  "  agento [--root <dir>] story add <epic-id> <item-id> --title <text> [--kind story|task|spike] [--note <text>] [--next <text>]",
-  "  agento [--root <dir>] story start <epic-id> <item-id> [--note <text>] [--next <text>]",
-  "  agento [--root <dir>] story block <epic-id> <item-id> --reason <text> [--note <text>] [--next <text>]",
-  "  agento [--root <dir>] story complete <epic-id> <item-id> --evidence <text> [--note <text>] [--next <text>]",
+  "  braid [--root <dir>] [--help|-h] [--version|-v]",
+  "  braid [--root <dir>] init",
+  "  braid [--root <dir>] new <epic-id> --title <text> --outcome <text>",
+  "  braid [--root <dir>] status [epic-id] [--json]",
+  "  braid [--root <dir>] story add <epic-id> <item-id> --title <text> [--kind story|task|spike] [--note <text>] [--next <text>]",
+  "  braid [--root <dir>] story start <epic-id> <item-id> [--note <text>] [--next <text>]",
+  "  braid [--root <dir>] story block <epic-id> <item-id> --reason <text> [--note <text>] [--next <text>]",
+  "  braid [--root <dir>] story complete <epic-id> <item-id> --evidence <text> [--note <text>] [--next <text>]",
   "",
   "Options:",
   "  --root <dir>     Project root. Defaults to the working directory.",
@@ -26,7 +26,7 @@ const helpText = [
   "  -v, --version    Print the version from this package.",
   "",
   "Commands:",
-  "  init       Create an empty schema 1 ledger at .agento/.",
+  "  init       Create an empty schema 1 ledger at .braid/.",
   "  new        Create an epic.",
   "  status     Show epic and item status.",
   "  story      Record manual progress for a story, task, or spike.",
@@ -38,12 +38,12 @@ const helpText = [
 async function withClean(check: (cwd: string) => Promise<void>): Promise<void> {
   await withRoot(async (cwd) => {
     await check(cwd);
-    assert.equal(existsSync(join(cwd, ".agento")), false);
+    assert.equal(existsSync(join(cwd, ".braid")), false);
     assert.equal(existsSync(join(cwd, ".crew")), false);
   });
 }
 
-describe("agento help, version, and unknown commands", () => {
+describe("braid help, version, and unknown commands", () => {
   test("the test process uses Node.js 26.13 or newer, below 27", () => {
     const match = /^v(\d+)\.(\d+)\.(\d+)/.exec(process.version);
     assert.ok(match);
@@ -53,7 +53,7 @@ describe("agento help, version, and unknown commands", () => {
     assert.ok(minor >= 13);
   });
 
-  test("package metadata declares an ESM agento executable independently of registry identity", async () => {
+  test("package metadata declares an ESM braid executable independently of registry identity", async () => {
     const parsed: unknown = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"));
     assert.equal(typeof parsed, "object");
     assert.ok(parsed !== null);
@@ -62,7 +62,7 @@ describe("agento help, version, and unknown commands", () => {
       version: string;
       private: boolean;
       type: string;
-      bin: { agento: string };
+      bin: { braid: string };
       engines: { node: string };
       repository: { url: string };
     };
@@ -72,9 +72,9 @@ describe("agento help, version, and unknown commands", () => {
     assert.ok(pkg.version.length > 0);
     assert.equal(typeof pkg.private, "boolean");
     assert.equal(pkg.type, "module");
-    assert.equal(pkg.bin.agento, "dist/cli.js");
+    assert.equal(pkg.bin.braid, "dist/cli.js");
     assert.equal(pkg.engines.node, ">=26.13.0 <27");
-    assert.equal(pkg.repository.url, "git+https://github.com/exones/agento.git");
+    assert.equal(pkg.repository.url, "git+https://github.com/exones/braid.git");
 
     const source = await readFile(join(repoRoot, "dist", "cli.js"), "utf8");
     assert.equal(source.startsWith("#!/usr/bin/env node\n"), true);
@@ -173,7 +173,7 @@ describe("agento help, version, and unknown commands", () => {
   });
 
   test("the repository root gains no ledger directory", () => {
-    assert.equal(existsSync(join(repoRoot, ".agento")), false);
+    assert.equal(existsSync(join(repoRoot, ".braid")), false);
     assert.equal(existsSync(join(repoRoot, ".crew")), false);
   });
 });

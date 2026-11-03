@@ -36,3 +36,11 @@ Coordinator: review `reports/N.md` and the local gate. On acceptance, mark N in 
 Edited: `src/ledger-fs.ts`, `src/ledger.ts`, `src/help.ts`, `test/helpers.ts`, `test/cli.test.ts`, `test/ledger.test.ts`, `test/ledger-failures.test.ts`, `.gitignore`, `README.md` (storage, usage, and ignore wording), `docs/seed-contract.md`, `docs/cli-name.md`, `AGENTS.md` (storage sentence), and the implementation checklist in `backlog/N-storage-name.md`.
 Created: this checkpoint and `reports/N.md`.
 Not edited: `epic.md`, `checkpoints/current.md`, historical reports and checkpoints, `docs/decisions.md`, backlog items B and C, inspiration, and the original MVP plan. The index was not changed.
+
+## braid rename
+
+Updated: 2026-11-03. The user accepted the later plan in `backlog/N-storage-name.md`.
+
+The active command, package, and storage directory are `braid` and `.braid/`. `package.json` is public (`private: false`) at `braid@0.1.0`, with repository `git+https://github.com/exones/braid.git`. Pre-existing `.agento/` and `.crew/` directories are not migrated. Historical reports and sealed validation files still quote the former name.
+
+Local `scripts/Verify.ps1` passed on Node v26.13.0: 40 tests, then a dirty-tree packed-install probe. Digest of that probe is not the publish identity. A clean proof follows the commit. GitHub repository creation and npm publish are the remaining steps.

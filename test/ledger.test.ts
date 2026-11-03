@@ -48,11 +48,11 @@ interface StateRecord {
 }
 
 async function readState(root: string): Promise<StateRecord> {
-  return JSON.parse(await readFile(join(root, ".agento", "state.json"), "utf8")) as StateRecord;
+  return JSON.parse(await readFile(join(root, ".braid", "state.json"), "utf8")) as StateRecord;
 }
 
 async function readEvents(root: string): Promise<Array<Record<string, unknown>>> {
-  const raw = await readFile(join(root, ".agento", "events.jsonl"), "utf8");
+  const raw = await readFile(join(root, ".braid", "events.jsonl"), "utf8");
   assert.equal(raw.includes("\r"), false);
   if (raw.length === 0) {
     return [];
@@ -261,7 +261,7 @@ describe("manual ledger lifecycle", () => {
       assert.equal(events[6]?.kind, "task");
       assert.equal(events[11]?.action, "story.add");
       assert.equal(events[11]?.kind, "spike");
-      const eventText = await readFile(join(root, ".agento", "events.jsonl"), "utf8");
+      const eventText = await readFile(join(root, ".braid", "events.jsonl"), "utf8");
       assertKeyOrder(eventText.slice(0, eventText.indexOf("\n")), [
         "schemaVersion",
         "revision",
@@ -277,14 +277,14 @@ describe("manual ledger lifecycle", () => {
         "reason",
         "evidenceNote",
       ]);
-      const stateText = await readFile(join(root, ".agento", "state.json"), "utf8");
+      const stateText = await readFile(join(root, ".braid", "state.json"), "utf8");
       assert.equal(stateText.includes("\r"), false);
       assert.equal(stateText.endsWith("\n"), true);
       assert.equal(stateText.charCodeAt(0), "{".charCodeAt(0));
       assertKeyOrder(stateText, ["schemaVersion", "revision", "epics", "id", "title", "outcome", "createdAt", "updatedAt", "items"]);
-      assert.deepEqual((await readdir(join(root, ".agento"))).sort(), ["events.jsonl", "state.json"]);
+      assert.deepEqual((await readdir(join(root, ".braid"))).sort(), ["events.jsonl", "state.json"]);
       assert.equal(existsSync(join(root, ".crew")), false);
-      assert.deepEqual(await readdir(root), [".agento"]);
+      assert.deepEqual(await readdir(root), [".braid"]);
     });
   });
 
@@ -343,7 +343,7 @@ describe("manual ledger lifecycle", () => {
     await withRoot(async (root) => {
       await initDemo(root);
       await expectOk(root, ["story", "add", "DEMO-001", "S", "--title", "Ship", "--note", "kept"], "added story S backlog\n");
-      const eventsPath = join(root, ".agento", "events.jsonl");
+      const eventsPath = join(root, ".braid", "events.jsonl");
       const original = await readFile(eventsPath);
       await writeFile(eventsPath, Buffer.concat([original, Buffer.from("{")]));
       const before = await snapshotLedger(root);
@@ -387,7 +387,7 @@ describe("manual ledger lifecycle", () => {
       for (const [args, stderr] of cases) {
         const result = await runCli(args, root);
         expectErr(result, 1, stderr);
-        assert.equal(existsSync(join(root, ".agento")), false, args.join(" "));
+        assert.equal(existsSync(join(root, ".braid")), false, args.join(" "));
       }
       assert.deepEqual(await readdir(root), []);
     });
@@ -400,13 +400,13 @@ describe("manual ledger lifecycle", () => {
         root,
       );
       expectErr(result, 1, "error: invalid option: --outcome\n");
-      assert.equal(existsSync(join(root, ".agento")), false);
+      assert.equal(existsSync(join(root, ".braid")), false);
       assert.equal(existsSync(join(root, ".crew")), false);
       assert.deepEqual(await readdir(root), []);
     });
   });
 
-  test("commands that need a ledger do not create .agento when it is absent", async () => {
+  test("commands that need a ledger do not create .braid when it is absent", async () => {
     await withRoot(async (root) => {
       for (const args of [
         ["new", "DEMO-001", "--title", "Title", "--outcome", "Outcome"],
@@ -416,8 +416,8 @@ describe("manual ledger lifecycle", () => {
         ["story", "start", "DEMO-001", "S"],
       ]) {
         const result = await runCli(args, root);
-        expectErr(result, 1, "error: not initialized; run agento init\n");
-        assert.equal(existsSync(join(root, ".agento")), false);
+        expectErr(result, 1, "error: not initialized; run braid init\n");
+        assert.equal(existsSync(join(root, ".braid")), false);
         assert.equal(existsSync(join(root, ".crew")), false);
       }
       assert.deepEqual(await readdir(root), []);
@@ -426,13 +426,13 @@ describe("manual ledger lifecycle", () => {
 
   test("accepted text boundaries, flag forms, defaults, and a second epic are stored", async () => {
     await withRoot(async (root) => {
-      const elsewhere = await mkdtemp(join(tmpdir(), "agento cwd "));
+      const elsewhere = await mkdtemp(join(tmpdir(), "braid cwd "));
       try {
         await expectOk(elsewhere, ["--root", root, "init"], "initialized schema 1\n");
-        assert.equal(existsSync(join(elsewhere, ".agento")), false);
+        assert.equal(existsSync(join(elsewhere, ".braid")), false);
         assert.equal(existsSync(join(elsewhere, ".crew")), false);
         assert.equal(existsSync(join(root, ".crew")), false);
-        assert.equal(existsSync(join(root, ".agento", "state.json")), true);
+        assert.equal(existsSync(join(root, ".braid", "state.json")), true);
         await expectOk(
           root,
           ["--title", "  Trimmed title  ", "--outcome=Track one story by hand", "new", "DEMO-001"],
@@ -541,9 +541,9 @@ describe("manual ledger lifecycle", () => {
       await mkdir(real);
       await symlink(real, link, "dir");
       await expectOk(root, ["--root", link, "init"], "initialized schema 1\n");
-      assert.equal(existsSync(join(real, ".agento", "state.json")), true);
+      assert.equal(existsSync(join(real, ".braid", "state.json")), true);
       assert.equal(existsSync(join(real, ".crew")), false);
-      assert.deepEqual(await readdir(real), [".agento"]);
+      assert.deepEqual(await readdir(real), [".braid"]);
       const result: RunResult = await runCli(["--root", link, "status"], root);
       assert.equal(result.code, 0);
       assert.match(result.stdout, /epics 0/u);
@@ -577,21 +577,26 @@ describe("manual ledger lifecycle", () => {
     });
   });
 
-  test("a pre-existing .crew directory is left untouched and is not the ledger", async () => {
+  test("pre-existing .crew and .agento directories are left untouched and are not the ledger", async () => {
     await withRoot(async (root) => {
       const oldDir = join(root, ".crew");
+      const formerDir = join(root, ".agento");
       await mkdir(oldDir);
+      await mkdir(formerDir);
       const stateBytes = Buffer.from('{"schemaVersion":1,"revision":9,"kept":true}\n');
       const eventBytes = Buffer.from('{"revision":9}\n');
       const noteBytes = Buffer.from("disposable ledger\n");
       await writeFile(join(oldDir, "state.json"), stateBytes);
       await writeFile(join(oldDir, "events.jsonl"), eventBytes);
       await writeFile(join(oldDir, "notes.txt"), noteBytes);
+      await writeFile(join(formerDir, "state.json"), stateBytes);
+      await writeFile(join(formerDir, "notes.txt"), noteBytes);
 
       const status = await runCli(["status"], root);
-      expectErr(status, 1, "error: not initialized; run agento init\n");
-      assert.equal(existsSync(join(root, ".agento")), false);
+      expectErr(status, 1, "error: not initialized; run braid init\n");
+      assert.equal(existsSync(join(root, ".braid")), false);
       assert.deepEqual(await readFile(join(oldDir, "state.json")), stateBytes);
+      assert.deepEqual(await readFile(join(formerDir, "state.json")), stateBytes);
 
       await expectOk(root, ["init"], "initialized schema 1\n");
       await expectOk(
@@ -603,8 +608,11 @@ describe("manual ledger lifecycle", () => {
       assert.deepEqual(await readFile(join(oldDir, "state.json")), stateBytes);
       assert.deepEqual(await readFile(join(oldDir, "events.jsonl")), eventBytes);
       assert.deepEqual(await readFile(join(oldDir, "notes.txt")), noteBytes);
+      assert.deepEqual(await readFile(join(formerDir, "state.json")), stateBytes);
+      assert.deepEqual(await readFile(join(formerDir, "notes.txt")), noteBytes);
       assert.deepEqual((await readdir(oldDir)).sort(), ["events.jsonl", "notes.txt", "state.json"]);
-      assert.deepEqual((await readdir(root)).sort(), [".agento", ".crew"]);
+      assert.deepEqual((await readdir(formerDir)).sort(), ["notes.txt", "state.json"]);
+      assert.deepEqual((await readdir(root)).sort(), [".agento", ".braid", ".crew"]);
 
       const fresh = await readState(root);
       assert.equal(fresh.schemaVersion, 1);
@@ -616,7 +624,7 @@ describe("manual ledger lifecycle", () => {
         [1],
       );
       assert.equal(events[0]?.action, "epic.new");
-      assert.equal(existsSync(join(root, ".agento", "lock")), false);
+      assert.equal(existsSync(join(root, ".braid", "lock")), false);
     });
   });
 });

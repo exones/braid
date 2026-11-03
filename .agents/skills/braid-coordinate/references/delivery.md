@@ -23,7 +23,7 @@ type(scope): short imperative summary
 
 Optional body explaining why and relevant constraints.
 
-Refs: AGENTO-001/C
+Refs: BRAID-001/C
 ```
 
 `feat` introduces capability; `fix` corrects behavior. Our additional types include `docs`, `test`, `ci`, `build`, `refactor`, and `chore`; these are project conventions permitted by the specification. Scope is optional. Mark a breaking interface change with `!` before the colon or a `BREAKING CHANGE:` footer describing the migration. Types can support later release tooling, but commit naming alone does not publish a package.

@@ -35,7 +35,7 @@ async function initDemo(root: string): Promise<void> {
 }
 
 async function plant(root: string, name: string, contents: string | Buffer): Promise<void> {
-  await writeFile(join(root, ".agento", name), contents);
+  await writeFile(join(root, ".braid", name), contents);
 }
 
 describe("ledger preservation and failure boundaries", () => {
@@ -54,34 +54,34 @@ describe("ledger preservation and failure boundaries", () => {
     });
   });
 
-  test("a junction or directory symlink at .agento is not followed", async () => {
+  test("a junction or directory symlink at .braid is not followed", async () => {
     await withRoot(async (root) => {
       for (const kind of ["junction", "dir"] as const) {
         const outside = join(root, `outside-${kind}`);
         await mkdir(outside);
         await writeFile(join(outside, "marker.txt"), "keep");
-        await symlink(outside, join(root, ".agento"), kind);
+        await symlink(outside, join(root, ".braid"), kind);
         const init = await runCli(["init"], root);
-        expectErr(init, 1, "error: .agento must be a real directory inside the project root\n");
+        expectErr(init, 1, "error: .braid must be a real directory inside the project root\n");
         assert.equal(await readFile(join(outside, "marker.txt"), "utf8"), "keep");
         assert.deepEqual(await readdir(outside), ["marker.txt"]);
-        await rm(join(root, ".agento"));
+        await rm(join(root, ".braid"));
         await rm(outside, { recursive: true });
       }
     });
   });
 
-  test("a later command rejects a linked .agento and leaves the target ledger unchanged", async () => {
+  test("a later command rejects a linked .braid and leaves the target ledger unchanged", async () => {
     await withRoot(async (root) => {
       await initDemo(root);
       const before = await snapshotLedger(root);
       const moved = join(root, "ledger-data");
-      await rename(join(root, ".agento"), moved);
-      await symlink(moved, join(root, ".agento"), "junction");
+      await rename(join(root, ".braid"), moved);
+      await symlink(moved, join(root, ".braid"), "junction");
       const status = await runCli(["status"], root);
-      expectErr(status, 3, "error: .agento must be a real directory inside the project root\n");
+      expectErr(status, 3, "error: .braid must be a real directory inside the project root\n");
       const add = await runCli(["story", "add", "DEMO-001", "S", "--title", "Ship"], root);
-      expectErr(add, 3, "error: .agento must be a real directory inside the project root\n");
+      expectErr(add, 3, "error: .braid must be a real directory inside the project root\n");
       assert.deepEqual(await readFile(join(moved, "state.json")), before.state);
       assert.deepEqual(await readFile(join(moved, "events.jsonl")), before.events);
       assert.deepEqual((await readdir(moved)).sort(), ["events.jsonl", "state.json"]);
@@ -91,36 +91,36 @@ describe("ledger preservation and failure boundaries", () => {
   test("linked state, events, and temp files are preserved and not opened", async () => {
     await withRoot(async (root) => {
       await initDemo(root);
-      const statePath = join(root, ".agento", "state.json");
-      const realState = join(root, ".agento", "state.real");
+      const statePath = join(root, ".braid", "state.json");
+      const realState = join(root, ".braid", "state.real");
       const stateBytes = await readFile(statePath);
       await rename(statePath, realState);
       await symlink(realState, statePath, "file");
       const stateResult = await runCli(["status"], root);
-      expectErr(stateResult, 3, "error: state file must be a regular file inside .agento\n");
+      expectErr(stateResult, 3, "error: state file must be a regular file inside .braid\n");
       assert.deepEqual(await readFile(realState), stateBytes);
       assert.equal((await lstat(statePath)).isSymbolicLink(), true);
       await unlink(statePath);
       await rename(realState, statePath);
 
-      const eventsPath = join(root, ".agento", "events.jsonl");
-      const realEvents = join(root, ".agento", "events.real");
+      const eventsPath = join(root, ".braid", "events.jsonl");
+      const realEvents = join(root, ".braid", "events.real");
       const eventBytes = await readFile(eventsPath);
       await rename(eventsPath, realEvents);
       await symlink(realEvents, eventsPath, "file");
       const eventsResult = await runCli(["story", "add", "DEMO-001", "S", "--title", "Ship"], root);
-      expectErr(eventsResult, 3, "error: events file must be a regular file inside .agento\n");
+      expectErr(eventsResult, 3, "error: events file must be a regular file inside .braid\n");
       assert.deepEqual(await readFile(realEvents), eventBytes);
       await unlink(eventsPath);
       await rename(realEvents, eventsPath);
 
       const target = join(root, "do-not-delete.txt");
       await writeFile(target, "keep");
-      await symlink(target, join(root, ".agento", "state.json.tmp"), "file");
+      await symlink(target, join(root, ".braid", "state.json.tmp"), "file");
       const tempResult = await runCli(["status"], root);
       expectErr(tempResult, 3, "error: temporary state file is not a regular file; preserved\n");
       assert.equal(await readFile(target, "utf8"), "keep");
-      assert.equal((await lstat(join(root, ".agento", "state.json.tmp"))).isSymbolicLink(), true);
+      assert.equal((await lstat(join(root, ".braid", "state.json.tmp"))).isSymbolicLink(), true);
     });
   });
 
@@ -165,16 +165,16 @@ describe("ledger preservation and failure boundaries", () => {
       assert.equal(status.code, 0);
       assert.match(status.stdout, /revision 0/u);
       assert.equal(status.stdout.includes("999"), false);
-      assert.equal(await readFile(join(root, ".agento", "state.json.tmp"), "utf8"), '{"revision":999}\n');
-      assert.equal(await readFile(join(root, ".agento", "state.json.bak"), "utf8"), "operator backup\n");
+      assert.equal(await readFile(join(root, ".braid", "state.json.tmp"), "utf8"), '{"revision":999}\n');
+      assert.equal(await readFile(join(root, ".braid", "state.json.bak"), "utf8"), "operator backup\n");
 
       await expectOk(
         root,
         ["new", "DEMO-001", "--title", "Demo ledger", "--outcome", "Track one story by hand"],
         "created epic DEMO-001\n",
       );
-      assert.equal(existsSync(join(root, ".agento", "state.json.tmp")), false);
-      assert.equal(await readFile(join(root, ".agento", "state.json.bak"), "utf8"), "operator backup\n");
+      assert.equal(existsSync(join(root, ".braid", "state.json.tmp")), false);
+      assert.equal(await readFile(join(root, ".braid", "state.json.bak"), "utf8"), "operator backup\n");
     });
   });
 
@@ -186,55 +186,55 @@ describe("ledger preservation and failure boundaries", () => {
       const rejected = await runCli(["new", "DEMO-001", "--title", "Other", "--outcome", "Other"], root);
       expectErr(rejected, 2, "error: epic DEMO-001 already exists\n");
       assertSameBytes(before, await snapshotLedger(root));
-      assert.equal(await readFile(join(root, ".agento", "state.json.tmp"), "utf8"), "diagnostic\n");
+      assert.equal(await readFile(join(root, ".braid", "state.json.tmp"), "utf8"), "diagnostic\n");
 
       await plant(root, "state.json", '{"schemaVersion":2}\n');
       await plant(root, "state.json.tmp", "still here\n");
       const invalid = await runCli(["status"], root);
       expectErr(invalid, 3, "error: unsupported schema version 2; supported schema 1; state preserved\n");
-      assert.equal(await readFile(join(root, ".agento", "state.json.tmp"), "utf8"), "still here\n");
-      assert.equal(await readFile(join(root, ".agento", "state.json"), "utf8"), '{"schemaVersion":2}\n');
+      assert.equal(await readFile(join(root, ".braid", "state.json.tmp"), "utf8"), "still here\n");
+      assert.equal(await readFile(join(root, ".braid", "state.json"), "utf8"), '{"schemaVersion":2}\n');
     });
   });
 
   test("init does not repair or empty a ledger that is not ready", async () => {
     await withRoot(async (root) => {
-      await mkdir(join(root, ".agento"));
-      await writeFile(join(root, ".agento", "notes.bak"), "keep");
+      await mkdir(join(root, ".braid"));
+      await writeFile(join(root, ".braid", "notes.bak"), "keep");
       const occupied = await runCli(["init"], root);
-      expectErr(occupied, 3, "error: .agento is not an empty ledger directory; state preserved\n");
-      assert.equal(await readFile(join(root, ".agento", "notes.bak"), "utf8"), "keep");
-      assert.equal(existsSync(join(root, ".agento", "state.json")), false);
+      expectErr(occupied, 3, "error: .braid is not an empty ledger directory; state preserved\n");
+      assert.equal(await readFile(join(root, ".braid", "notes.bak"), "utf8"), "keep");
+      assert.equal(existsSync(join(root, ".braid", "state.json")), false);
 
-      await rm(join(root, ".agento"), { recursive: true });
-      await mkdir(join(root, ".agento"));
+      await rm(join(root, ".braid"), { recursive: true });
+      await mkdir(join(root, ".braid"));
       await expectOk(root, ["init"], "initialized schema 1\n");
-      await rm(join(root, ".agento", "events.jsonl"));
-      await mkdir(join(root, ".agento", "events.jsonl"));
-      await writeFile(join(root, ".agento", "events.jsonl", "marker.txt"), "keep");
+      await rm(join(root, ".braid", "events.jsonl"));
+      await mkdir(join(root, ".braid", "events.jsonl"));
+      await writeFile(join(root, ".braid", "events.jsonl", "marker.txt"), "keep");
       await expectOk(root, ["init"], "already initialized schema 1\n");
-      assert.equal(await readFile(join(root, ".agento", "events.jsonl", "marker.txt"), "utf8"), "keep");
+      assert.equal(await readFile(join(root, ".braid", "events.jsonl", "marker.txt"), "utf8"), "keep");
       const status = await runCli(["status"], root);
-      expectErr(status, 3, "error: events file must be a regular file inside .agento\n");
-      assert.equal(await readFile(join(root, ".agento", "events.jsonl", "marker.txt"), "utf8"), "keep");
+      expectErr(status, 3, "error: events file must be a regular file inside .braid\n");
+      assert.equal(await readFile(join(root, ".braid", "events.jsonl", "marker.txt"), "utf8"), "keep");
     });
   });
 
   test("a missing state file is not recovered from temp, backup, or events", async () => {
     await withRoot(async (root) => {
       await initDemo(root);
-      const events = await readFile(join(root, ".agento", "events.jsonl"));
-      await unlink(join(root, ".agento", "state.json"));
+      const events = await readFile(join(root, ".braid", "events.jsonl"));
+      await unlink(join(root, ".braid", "state.json"));
       await plant(root, "state.json.tmp", '{"revision":999}\n');
       await plant(root, "state.json.bak", "backup\n");
       const status = await runCli(["status"], root);
       expectErr(status, 3, "error: state file missing; not recovered automatically\n");
       const add = await runCli(["story", "add", "DEMO-001", "S", "--title", "Ship"], root);
       expectErr(add, 3, "error: state file missing; not recovered automatically\n");
-      assert.equal(existsSync(join(root, ".agento", "state.json")), false);
-      assert.equal(await readFile(join(root, ".agento", "state.json.tmp"), "utf8"), '{"revision":999}\n');
-      assert.equal(await readFile(join(root, ".agento", "state.json.bak"), "utf8"), "backup\n");
-      assert.deepEqual(await readFile(join(root, ".agento", "events.jsonl")), events);
+      assert.equal(existsSync(join(root, ".braid", "state.json")), false);
+      assert.equal(await readFile(join(root, ".braid", "state.json.tmp"), "utf8"), '{"revision":999}\n');
+      assert.equal(await readFile(join(root, ".braid", "state.json.bak"), "utf8"), "backup\n");
+      assert.deepEqual(await readFile(join(root, ".braid", "events.jsonl")), events);
     });
   });
 
@@ -243,7 +243,7 @@ describe("ledger preservation and failure boundaries", () => {
       await initDemo(root);
       await expectOk(root, ["story", "add", "DEMO-001", "S", "--title", "Ship"], "added story S backlog\n");
       await expectOk(root, ["story", "add", "DEMO-001", "T", "--title", "Next"], "added story T backlog\n");
-      const eventsPath = join(root, ".agento", "events.jsonl");
+      const eventsPath = join(root, ".braid", "events.jsonl");
       const healthy = await readFile(eventsPath);
       const lines = healthy.toString("utf8").split("\n").filter((line) => line.length > 0);
 
@@ -333,7 +333,7 @@ describe("ledger preservation and failure boundaries", () => {
   test("a missing event file at revision 0 warns and the first mutation may create it", async () => {
     await withRoot(async (root) => {
       await expectOk(root, ["init"], "initialized schema 1\n");
-      await unlink(join(root, ".agento", "events.jsonl"));
+      await unlink(join(root, ".braid", "events.jsonl"));
       const status = await runCli(["status", "--json"], root);
       assert.equal(status.code, 0);
       assert.equal(status.stderr, "warning: events file missing; not repaired\n");
@@ -346,7 +346,7 @@ describe("ledger preservation and failure boundaries", () => {
         ["new", "DEMO-001", "--title", "Demo ledger", "--outcome", "Track one story by hand"],
         "created epic DEMO-001\n",
       );
-      const events = await readFile(join(root, ".agento", "events.jsonl"), "utf8");
+      const events = await readFile(join(root, ".braid", "events.jsonl"), "utf8");
       assert.equal(events.endsWith("\n"), true);
       assert.equal(JSON.parse(events.trim()).revision, 1);
     });
@@ -358,11 +358,11 @@ describe("ledger preservation and failure boundaries", () => {
       assert.equal(first.code, 0, first.stderr);
       assert.equal(second.code, 0, second.stderr);
       assert.deepEqual([first.stdout, second.stdout].sort(), ["already initialized schema 1\n", "initialized schema 1\n"]);
-      const state = JSON.parse(await readFile(join(root, ".agento", "state.json"), "utf8")) as { schemaVersion: number; revision: number };
+      const state = JSON.parse(await readFile(join(root, ".braid", "state.json"), "utf8")) as { schemaVersion: number; revision: number };
       assert.equal(state.schemaVersion, 1);
       assert.equal(state.revision, 0);
-      assert.equal((await readFile(join(root, ".agento", "events.jsonl"))).length, 0);
-      assert.equal(existsSync(join(root, ".agento", "lock")), false);
+      assert.equal((await readFile(join(root, ".braid", "events.jsonl"))).length, 0);
+      assert.equal(existsSync(join(root, ".braid", "lock")), false);
     });
   });
 
@@ -375,13 +375,13 @@ describe("ledger preservation and failure boundaries", () => {
       ]);
       assert.equal(first.code, 0, first.stderr);
       assert.equal(second.code, 0, second.stderr);
-      const state = JSON.parse(await readFile(join(root, ".agento", "state.json"), "utf8")) as {
+      const state = JSON.parse(await readFile(join(root, ".braid", "state.json"), "utf8")) as {
         revision: number;
         epics: Array<{ items: Array<{ id: string }> }>;
       };
       assert.equal(state.revision, 3);
       assert.deepEqual(state.epics[0]?.items.map((item) => item.id).sort(), ["A", "B"]);
-      const events = (await readFile(join(root, ".agento", "events.jsonl"), "utf8"))
+      const events = (await readFile(join(root, ".braid", "events.jsonl"), "utf8"))
         .trim()
         .split("\n")
         .map((line) => JSON.parse(line) as { revision: number });
@@ -392,16 +392,16 @@ describe("ledger preservation and failure boundaries", () => {
   test("a held lock times out without stealing it or changing state", { timeout: 20_000 }, async () => {
     await withRoot(async (root) => {
       await initDemo(root);
-      await mkdir(join(root, ".agento", "lock"));
+      await mkdir(join(root, ".braid", "lock"));
       const before = await snapshotLedger(root);
       const started = Date.now();
       const result = await runCli(["story", "add", "DEMO-001", "S", "--title", "Ship"], root);
       const elapsed = Date.now() - started;
-      expectErr(result, 4, "error: state lock held at .agento/lock\n");
+      expectErr(result, 4, "error: state lock held at .braid/lock\n");
       assert.ok(elapsed >= 5000, `elapsed ${elapsed}`);
       assert.ok(elapsed < 15_000, `elapsed ${elapsed}`);
       assertSameBytes(before, await snapshotLedger(root));
-      assert.equal((await lstat(join(root, ".agento", "lock"))).isDirectory(), true);
+      assert.equal((await lstat(join(root, ".braid", "lock"))).isDirectory(), true);
     });
   });
 
@@ -409,14 +409,14 @@ describe("ledger preservation and failure boundaries", () => {
     await withRoot(async (root) => {
       await initDemo(root);
       const before = await snapshotLedger(root);
-      const statePath = join(root, ".agento", "state.json");
+      const statePath = join(root, ".braid", "state.json");
       await chmod(statePath, 0o444);
       try {
         const result = await runCli(["story", "add", "DEMO-001", "S", "--title", "Ship"], root);
         if (process.platform === "win32") {
           expectErr(result, 5, "error: cannot write state\n");
           assertSameBytes(before, await snapshotLedger(root));
-          const temp = await readFile(join(root, ".agento", "state.json.tmp"), "utf8");
+          const temp = await readFile(join(root, ".braid", "state.json.tmp"), "utf8");
           assert.match(temp, /"revision": 2/u);
           assert.match(temp, /Ship/u);
         } else {
@@ -444,7 +444,7 @@ describe("ledger preservation and failure boundaries", () => {
     await withRoot(async (root) => {
       await initDemo(root);
       const before = await snapshotLedger(root);
-      const eventsPath = join(root, ".agento", "events.jsonl");
+      const eventsPath = join(root, ".braid", "events.jsonl");
       await chmod(eventsPath, 0o444);
       try {
         const result = await runCli(["story", "add", "DEMO-001", "S", "--title", "Ship"], root);
@@ -493,7 +493,7 @@ describe("ledger preservation and failure boundaries", () => {
       expectErr(result, 5, "error: cannot write state\n");
       assert.equal(result.stderr.includes("injected"), false);
       assertSameBytes(before, await snapshotLedger(root));
-      const temp = await readFile(join(root, ".agento", "state.json.tmp"), "utf8");
+      const temp = await readFile(join(root, ".braid", "state.json.tmp"), "utf8");
       assert.match(temp, /"revision": 2/u);
     });
   });
@@ -510,8 +510,8 @@ describe("ledger preservation and failure boundaries", () => {
       });
       expectErr(result, 5, "error: state updated to revision 2 but the event append failed; not rolled back\n");
       assert.equal(result.stderr.includes("injected"), false);
-      const state = JSON.parse(await readFile(join(root, ".agento", "state.json"), "utf8")) as { revision: number };
-      const events = (await readFile(join(root, ".agento", "events.jsonl"), "utf8"))
+      const state = JSON.parse(await readFile(join(root, ".braid", "state.json"), "utf8")) as { revision: number };
+      const events = (await readFile(join(root, ".braid", "events.jsonl"), "utf8"))
         .trim()
         .split("\n")
         .map((line) => JSON.parse(line) as { revision: number });
@@ -534,8 +534,8 @@ describe("ledger preservation and failure boundaries", () => {
         },
       });
       expectErr(created, 5, "error: state updated to revision 0 but the event append failed; not rolled back\n");
-      assert.equal(existsSync(join(root, ".agento", "events.jsonl")), false);
-      const state = JSON.parse(await readFile(join(root, ".agento", "state.json"), "utf8")) as { revision: number };
+      assert.equal(existsSync(join(root, ".braid", "events.jsonl")), false);
+      const state = JSON.parse(await readFile(join(root, ".braid", "state.json"), "utf8")) as { revision: number };
       assert.equal(state.revision, 0);
       const status = await runCli(["status", "--json"], root);
       assert.equal(status.code, 0);
@@ -556,13 +556,13 @@ describe("ledger preservation and failure boundaries", () => {
         },
       });
       expectErr(failed, 5, "error: cannot write state\n");
-      assert.equal(existsSync(join(root, ".agento", "state.json")), false);
-      assert.equal(existsSync(join(root, ".agento", "events.jsonl")), false);
-      assert.equal(existsSync(join(root, ".agento", "state.json.tmp")), true);
+      assert.equal(existsSync(join(root, ".braid", "state.json")), false);
+      assert.equal(existsSync(join(root, ".braid", "events.jsonl")), false);
+      assert.equal(existsSync(join(root, ".braid", "state.json.tmp")), true);
       const again = await runCli(["init"], root);
-      expectErr(again, 3, "error: .agento is not an empty ledger directory; state preserved\n");
-      assert.equal(existsSync(join(root, ".agento", "state.json")), false);
-      assert.equal(existsSync(join(root, ".agento", "lock")), false);
+      expectErr(again, 3, "error: .braid is not an empty ledger directory; state preserved\n");
+      assert.equal(existsSync(join(root, ".braid", "state.json")), false);
+      assert.equal(existsSync(join(root, ".braid", "lock")), false);
     });
   });
 });

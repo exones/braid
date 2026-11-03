@@ -1,10 +1,10 @@
 # Seed CLI contract
 
-Updated: 2026-11-03. Schema: 1. Executable: `agento`. State directory: `.agento/`.
+Updated: 2026-11-03. Schema: 1. Executable: `braid`. State directory: `.braid/`.
 
 This is the behavior backlog B, C, and D implement for the 0.1 seed. Schema 1 is a manual epic ledger. It records an epic's intended outcome and the manual progress of its stories, tasks, and spikes. A later execution run is an attempt to deliver work; schema 1 has no run, attempt, agent, or dispatch record.
 
-The machine ledger and the Markdown epic files are separate. Ledger commands read and write only the files named in [Storage](#storage). They leave `epics/`, checkpoints, and reports untouched. Narrative files stay human-edited. `.agento/state.json` is authoritative for ledger status.
+The machine ledger and the Markdown epic files are separate. Ledger commands read and write only the files named in [Storage](#storage). They leave `epics/`, checkpoints, and reports untouched. Narrative files stay human-edited. `.braid/state.json` is authoritative for ledger status.
 
 ## Toolchain
 
@@ -12,42 +12,42 @@ The machine ledger and the Markdown epic files are separate. Ledger commands rea
 | --- | --- | --- |
 | Node.js | Active LTS 26, `engines.node` `>=26.13.0 <27`. GitHub Actions `node-version: "26"`. | [Release schedule](https://github.com/nodejs/Release/blob/main/schedule.json): 26 entered LTS on 2026-10-28, maintenance 2027-10-20, end 2029-04-30. [Release index](https://nodejs.org/en/about/previous-releases) lists 26 as LTS. [latest-v26.x](https://nodejs.org/dist/latest-v26.x/) lists `node-v26.13.0` dated 2026-10-28. |
 | PowerShell | `pwsh` 7.6 LTS, minimum 7.6.0. Workflow jobs set `shell: pwsh`. | [PowerShell support lifecycle](https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle?view=powershell-7.6): 7.6 LTS, released 2026-03-18, supported through 2028-11-14 on .NET 10. The 7.4 LTS and 7.5 stable lines end support on 2026-11-10. |
-| Package | One package. `name` `agento`, `version` `0.1.0`, `private` true, `type` `module`. `bin` maps `agento` to the compiled entry. Repository target is now known: `https://github.com/exones/agento.git`. | npm is the selected registry; account/scope/name are still release setup decisions. `0.1.0` names the local candidate; keep the publication guard until the release configuration is deliberately enabled. |
+| Package | One package. `name` `braid`, `version` `0.1.0`, `private` true, `type` `module`. `bin` maps `braid` to the compiled entry. Repository target is now known: `https://github.com/exones/braid.git`. | npm is the selected registry; account/scope/name are still release setup decisions. `0.1.0` names the local candidate; keep the publication guard until the release configuration is deliberately enabled. |
 | Product code | Strict TypeScript, ESM source, compiled JavaScript. Product tests use `node:test`. | Matches `docs/decisions.md`. Pester is absent unless a later task adds PowerShell behavior that TypeScript tests cannot host. |
-| Version probe | `agento --version` prints the version shipped inside the installed package. | Required so D's packed executable works outside the source checkout. |
+| Version probe | `braid --version` prints the version shipped inside the installed package. | Required so D's packed executable works outside the source checkout. |
 
 Node 24 and 22 were still supported LTS lines on 2026-11-03. Node 24 entered maintenance on 2026-10-20. Node 27 was Alpha. The seed pins Active LTS 26 and keeps that pin when a workstation or runner image is older. `scripts/Verify.ps1`, exposed as `npm run verify`, is the local and Actions gate. It runs typecheck, build, and tests, and it stops on the first failed native command.
 
-`agento` ledger commands perform no network calls and do not invoke Git. Evidence text is stored as text. The CLI does not check it against a commit, a test run, or a review.
+`braid` ledger commands perform no network calls and do not invoke Git. Evidence text is stored as text. The CLI does not check it against a commit, a test run, or a review.
 
 ## Delivery split
 
 | Backlog | Implements | Stops before |
 | --- | --- | --- |
-| B | Package, toolchain pin, `agento --help`, `agento --version`, and a non-zero failure for every command that B has not implemented. Smoke checks cover those three behaviors and create no `.agento/` directory. | `init`, `new`, `status`, and `story`. |
+| B | Package, toolchain pin, `braid --help`, `braid --version`, and a non-zero failure for every command that B has not implemented. Smoke checks cover those three behaviors and create no `.braid/` directory. | `init`, `new`, `status`, and `story`. |
 | C | The ledger commands, storage rules, and scenarios below. Help then lists the full surface and includes the sentence `Completion is a manual record, not gate acceptance.` | Dispatch, messaging, scheduling, and any command that sets an arbitrary state. |
-| D | The same C scenario through the packed `agento` executable in a clean directory, including a root path that contains a space and a second process. | Publishing, tagging, and starting stage 2. |
+| D | The same C scenario through the packed `braid` executable in a clean directory, including a root path that contains a space and a second process. | Publishing, tagging, and starting stage 2. |
 
-Until C lands, `agento init` and the other ledger commands fail as unknown commands. B's help describes the commands B implements.
+Until C lands, `braid init` and the other ledger commands fail as unknown commands. B's help describes the commands B implements.
 
 ## Command grammar
 
 Flags may appear before or after positionals. A valued flag accepts `--flag value` and `--flag=value`. Argument checks finish before any ledger directory is created. Tests pass an argument array to the executable.
 
-`--help` or `-h` with no command, or with a known command, prints help to stdout, writes nothing, and exits 0. Help for a known subcommand describes that command. `--help` with an unknown command word exits 1 with the unknown-command error. When help is absent, `--version` or `-v` prints one stdout line, `agento 0.1.0`, writes nothing, and exits 0, including when other arguments are present. With no arguments, behavior matches `--help`.
+`--help` or `-h` with no command, or with a known command, prints help to stdout, writes nothing, and exits 0. Help for a known subcommand describes that command. `--help` with an unknown command word exits 1 with the unknown-command error. When help is absent, `--version` or `-v` prints one stdout line, `braid 0.1.0`, writes nothing, and exits 0, including when other arguments are present. With no arguments, behavior matches `--help`.
 
 ```text
-agento [--root <dir>] [--help|-h] [--version|-v]
-agento [--root <dir>] init
-agento [--root <dir>] new <epic-id> --title <text> --outcome <text>
-agento [--root <dir>] status [epic-id] [--json]
-agento [--root <dir>] story add <epic-id> <item-id> --title <text> [--kind story|task|spike] [--note <text>] [--next <text>]
-agento [--root <dir>] story start <epic-id> <item-id> [--note <text>] [--next <text>]
-agento [--root <dir>] story block <epic-id> <item-id> --reason <text> [--note <text>] [--next <text>]
-agento [--root <dir>] story complete <epic-id> <item-id> --evidence <text> [--note <text>] [--next <text>]
+braid [--root <dir>] [--help|-h] [--version|-v]
+braid [--root <dir>] init
+braid [--root <dir>] new <epic-id> --title <text> --outcome <text>
+braid [--root <dir>] status [epic-id] [--json]
+braid [--root <dir>] story add <epic-id> <item-id> --title <text> [--kind story|task|spike] [--note <text>] [--next <text>]
+braid [--root <dir>] story start <epic-id> <item-id> [--note <text>] [--next <text>]
+braid [--root <dir>] story block <epic-id> <item-id> --reason <text> [--note <text>] [--next <text>]
+braid [--root <dir>] story complete <epic-id> <item-id> --evidence <text> [--note <text>] [--next <text>]
 ```
 
-`--root` defaults to the process working directory. `--json` is valid only on `status`. The command family for every work item is `story`. `--kind` selects the record kind and defaults to `story`. `agento task`, `agento spike`, `agento story resume`, `agento story cancel`, and `agento story set` are unknown commands.
+`--root` defaults to the process working directory. `--json` is valid only on `status`. The command family for every work item is `story`. `--kind` selects the record kind and defaults to `story`. `braid task`, `braid spike`, `braid story resume`, `braid story cancel`, and `braid story set` are unknown commands.
 
 There is one epic-selection rule: the epic id is an explicit argument. Schema 1 stores no current-epic pointer.
 
@@ -55,7 +55,7 @@ There is one epic-selection rule: the epic id is an explicit argument. Schema 1 
 
 | Input | Rule |
 | --- | --- |
-| Epic id | `^[A-Z][A-Z0-9]{0,20}-[0-9]{3}$`. `DEMO-001` and `AGENTO-001` match. |
+| Epic id | `^[A-Z][A-Z0-9]{0,20}-[0-9]{3}$`. `DEMO-001` and `BRAID-001` match. |
 | Item id | `^[A-Z][A-Z0-9]{0,15}$`. Unique inside its epic. The same id may exist in another epic. |
 | `--kind` | `story`, `task`, or `spike`. Immutable after add. |
 | `--title`, `--outcome` | Required, trimmed, 1–200 characters for a title and 1–2000 for an outcome. |
@@ -92,8 +92,8 @@ error: invalid item id
 error: invalid option: <flag>
 error: root does not exist
 error: root is not a directory
-error: .agento must be a real directory inside the project root
-error: not initialized; run agento init
+error: .braid must be a real directory inside the project root
+error: not initialized; run braid init
 error: epic <id> already exists
 error: item <id> already exists
 error: epic <id> not found
@@ -105,22 +105,22 @@ error: unsupported schema version <value-or-missing>; supported schema 1; state 
 error: state file is invalid JSON; preserved for diagnosis
 error: state file is invalid; preserved for diagnosis
 error: state file missing; not recovered automatically
-error: .agento is not an empty ledger directory; state preserved
-error: state file must be a regular file inside .agento
-error: events file must be a regular file inside .agento
+error: .braid is not an empty ledger directory; state preserved
+error: state file must be a regular file inside .braid
+error: events file must be a regular file inside .braid
 error: temporary state file is not a regular file; preserved
 error: events log is invalid; state preserved
 error: events log has a partial trailing line; state preserved
 error: events are ahead of state; preserved for diagnosis
 error: events lag state; mutation refused; state preserved
-error: state lock held at .agento/lock
+error: state lock held at .braid/lock
 error: cannot write state
 error: state updated to revision <n> but the event append failed; not rolled back
 ```
 
-Unknown-command stderr has a second line: `Run agento --help.`
+Unknown-command stderr has a second line: `Run braid --help.`
 
-`init` is the only command that creates `.agento`. `new`, `status`, and `story` leave an absent `.agento` untouched and exit 1 with `error: not initialized; run agento init`. After `lstat` shows that `.agento` is a real directory and `state.json` is absent, those commands exit 3 with `error: state file missing; not recovered automatically`. A link is rejected before that lookup.
+`init` is the only command that creates `.braid`. `new`, `status`, and `story` leave an absent `.braid` untouched and exit 1 with `error: not initialized; run braid init`. After `lstat` shows that `.braid` is a real directory and `state.json` is absent, those commands exit 3 with `error: state file missing; not recovered automatically`. A link is rejected before that lookup.
 
 ### Success stdout
 
@@ -255,15 +255,15 @@ Status exits 3, with empty stdout, when state is unreadable, complete events are
 ## Storage
 
 ```text
-<resolved-root>/.agento/state.json
-<resolved-root>/.agento/events.jsonl
-<resolved-root>/.agento/state.json.tmp
-<resolved-root>/.agento/lock/
+<resolved-root>/.braid/state.json
+<resolved-root>/.braid/events.jsonl
+<resolved-root>/.braid/state.json.tmp
+<resolved-root>/.braid/lock/
 ```
 
-`state.json` is a regular file. `events.jsonl` is a regular file. `lock` is a directory. `state.json.tmp` is a transient regular file. Schema 1 creates no backup file and none of `run.json`, `config.json`, `stream.json`, inbox, outbox, or checkpoint files. Git ignores `.agento/` and does not ignore epic evidence. The superseded pre-release directory `.crew/` is not a ledger path. The CLI does not create, read, alias, migrate, or delete it. This unreleased correction does not move old disposable ledgers.
+`state.json` is a regular file. `events.jsonl` is a regular file. `lock` is a directory. `state.json.tmp` is a transient regular file. Schema 1 creates no backup file and none of `run.json`, `config.json`, `stream.json`, inbox, outbox, or checkpoint files. Git ignores `.braid/` and does not ignore epic evidence. The superseded pre-release directory `.crew/` is not a ledger path. The CLI does not create, read, alias, migrate, or delete it. This unreleased correction does not move old disposable ledgers.
 
-The resolved root is `realpath` of `--root`. `.agento` is `path.join(root, ".agento")`. Before following `.agento`, `lstat` must show a real directory. A symbolic link or a Windows junction exits 1 on init and 3 when a later command finds the ledger path linked. `state.json`, `events.jsonl`, and `state.json.tmp` must each be a regular file when present. The CLI does not open a linked path to read or write ledger contents.
+The resolved root is `realpath` of `--root`. `.braid` is `path.join(root, ".braid")`. Before following `.braid`, `lstat` must show a real directory. A symbolic link or a Windows junction exits 1 on init and 3 when a later command finds the ledger path linked. `state.json`, `events.jsonl`, and `state.json.tmp` must each be a regular file when present. The CLI does not open a linked path to read or write ledger contents.
 
 UTF-8 without a BOM. Automated checks decode piped stdout and stderr as UTF-8.
 
@@ -312,7 +312,7 @@ A file that does not end in `\n` has a partial trailing line. Status ignores tha
 ### Init
 
 1. Resolve `--root`. Missing or non-directory roots exit 1 and are not created.
-2. `lstat` `.agento`. A link exits 1. A non-directory exits 1. An absent path is created as a real directory.
+2. `lstat` `.braid`. A link exits 1. A non-directory exits 1. An absent path is created as a real directory.
 3. Acquire the lock.
 4. Re-read under the lock. Valid schema 1 exits 0 with `already initialized schema 1` and writes nothing.
 5. Invalid existing state exits 3 and writes nothing.
@@ -323,7 +323,7 @@ Two concurrent init processes both exit 0 and leave one schema-1 ledger.
 
 ### Writes and failure boundaries
 
-Every `init`, `new`, `status`, and `story` command that reaches the ledger acquires `.agento/lock` by creating that directory. The first try is immediate. Retries are every 100 ms until 5000 ms after the first try. The directory's existence is the lock. The process removes it on every exit path after acquiring it. A process that ends while holding the lock leaves the directory in place. Schema 1 does not inspect process ids, steal a lock, or delete a stale lock. An operator may remove `.agento/lock` only after confirming that no `agento` process is using that root. That cleanup is outside the CLI.
+Every `init`, `new`, `status`, and `story` command that reaches the ledger acquires `.braid/lock` by creating that directory. The first try is immediate. Retries are every 100 ms until 5000 ms after the first try. The directory's existence is the lock. The process removes it on every exit path after acquiring it. A process that ends while holding the lock leaves the directory in place. Schema 1 does not inspect process ids, steal a lock, or delete a stale lock. An operator may remove `.braid/lock` only after confirming that no `braid` process is using that root. That cleanup is outside the CLI.
 
 Under the lock, a mutation reads `state.json` and the event file, validates them, and only then builds the next document. A second process therefore bases its write on the latest accepted document.
 
@@ -360,7 +360,7 @@ These outcomes are the seed's consistency target, which C must implement and tes
 
 ### 1. Normal lifecycle
 
-Given an absent `.agento` directory, when separate processes run `init`, `new DEMO-001 --title "Demo ledger" --outcome "Track one story by hand"`, `story add DEMO-001 S --title "Ship the ledger" --kind story --note "operator note"`, `story start DEMO-001 S --next "Write the ledger."`, `story block DEMO-001 S --reason "Waiting on review notes"`, `story start DEMO-001 S`, and `story complete DEMO-001 S --evidence "Reviewed the manual record"` in that order, then each command exits 0. The outputs are `initialized schema 1`, `created epic DEMO-001`, `added story S backlog`, `started story S in-progress`, `blocked story S`, `resumed story S in-progress`, and `completed story S manual`. A following `status DEMO-001` shows state `done`, the note, next `None. Manual record only.`, and `evidence: manual record; not gate acceptance`. The finished root contains `.agento/` and does not contain `.crew/`. State, events, the temporary state file, and the lock stay under `.agento/`.
+Given an absent `.braid` directory, when separate processes run `init`, `new DEMO-001 --title "Demo ledger" --outcome "Track one story by hand"`, `story add DEMO-001 S --title "Ship the ledger" --kind story --note "operator note"`, `story start DEMO-001 S --next "Write the ledger."`, `story block DEMO-001 S --reason "Waiting on review notes"`, `story start DEMO-001 S`, and `story complete DEMO-001 S --evidence "Reviewed the manual record"` in that order, then each command exits 0. The outputs are `initialized schema 1`, `created epic DEMO-001`, `added story S backlog`, `started story S in-progress`, `blocked story S`, `resumed story S in-progress`, and `completed story S manual`. A following `status DEMO-001` shows state `done`, the note, next `None. Manual record only.`, and `evidence: manual record; not gate acceptance`. The finished root contains `.braid/` and does not contain `.crew/`. State, events, the temporary state file, and the lock stay under `.braid/`.
 
 The same add/start/block/resume/complete sequence succeeds for `story add DEMO-001 T --kind task --title "Prepare the package"` and for `story add DEMO-001 K --kind spike --title "Check a limit"`.
 
@@ -378,18 +378,18 @@ Given a ledger that already contains `DEMO-001` and item `S`, when a new process
 
 ### 5. Safe paths
 
-Given any root, when item id `..`, epic id `DEMO-001/../NO`, or epic id `DEMO-001\NO` is submitted, then the command exits 1 and creates no ledger file. When `--root` names a missing path, the command exits 1 and that path remains absent. When `.agento` is a symbolic link or a Windows directory junction, `init` exits 1 and the link target's marker file is unchanged. When a `.crew` directory is already present, the command leaves that directory and its contents unchanged and does not use it as the ledger. A successful command creates or changes files only in the storage list for that root.
+Given any root, when item id `..`, epic id `DEMO-001/../NO`, or epic id `DEMO-001\NO` is submitted, then the command exits 1 and creates no ledger file. When `--root` names a missing path, the command exits 1 and that path remains absent. When `.braid` is a symbolic link or a Windows directory junction, `init` exits 1 and the link target's marker file is unchanged. When a `.crew` directory is already present, the command leaves that directory and its contents unchanged and does not use it as the ledger. A successful command creates or changes files only in the storage list for that root.
 
 ### 6. Preservation of accepted data
 
-Given `state.json` contains `"schemaVersion": 2` and otherwise readable bytes, when `story add` runs, then it exits 3, stderr begins `error: unsupported schema version 2`, and the file bytes are unchanged. Given a valid ledger and a `state.json.tmp` whose text contains `"revision": 999`, when `status` runs, then it reports the revision from `state.json`. Given a valid ledger whose event file ends in `{` with no newline, when `status` runs, it exits 0 and warns; when `story add` runs, it exits 3 and `state.json` is unchanged. Given `.agento/lock` already exists, when `story add` runs, then it exits 4 after the 5000 ms budget, before 15 seconds have elapsed, and `state.json` is unchanged. Given two processes both exit 0 after adding different item ids, the stored document contains both items and its revision has increased by 2.
+Given `state.json` contains `"schemaVersion": 2` and otherwise readable bytes, when `story add` runs, then it exits 3, stderr begins `error: unsupported schema version 2`, and the file bytes are unchanged. Given a valid ledger and a `state.json.tmp` whose text contains `"revision": 999`, when `status` runs, then it reports the revision from `state.json`. Given a valid ledger whose event file ends in `{` with no newline, when `status` runs, it exits 0 and warns; when `story add` runs, it exits 3 and `state.json` is unchanged. Given `.braid/lock` already exists, when `story add` runs, then it exits 4 after the 5000 ms budget, before 15 seconds have elapsed, and `state.json` is unchanged. Given two processes both exit 0 after adding different item ids, the stored document contains both items and its revision has increased by 2.
 
 Given a committed state whose event log is a shorter contiguous prefix (including a missing log past revision 0), when status runs, then it warns about lag and shows committed state; when a mutation runs, then it exits 3 and both files remain unchanged. Given an event sequence that skips or repeats a revision, status and mutations exit 3. Given a replacement failure before commit, the previous state and events remain unchanged; an event-append failure after replacement must instead report that state is already committed. These failure paths require focused fault-injection or planted-layout tests in C; no product implementation is claimed by this spike.
 
 ## Outside schema 1
 
-Schema 1 stops at the manual ledger. Stage 2 and later own T3 dispatch, execution runs, `.agento/run.json`, automated gate decisions, messaging, scheduling, lock stealing, replay, and automatic promotion/recovery of temp or operator backup files. A human or agent completion recorded here is a manual record. Independent verification remains a separate gate that names the revision it checked.
+Schema 1 stops at the manual ledger. Stage 2 and later own T3 dispatch, execution runs, `.braid/run.json`, automated gate decisions, messaging, scheduling, lock stealing, replay, and automatic promotion/recovery of temp or operator backup files. A human or agent completion recorded here is a manual record. Independent verification remains a separate gate that names the revision it checked.
 
 ## Coordinator acceptance corrections
 
-2026-11-03: replaced the worker's rename-away/backup sequence with direct same-directory replacement, preserving C's atomic-replacement requirement. Required contiguous event prefixes and refusal of mutations behind state, so a later write cannot hide a missing event. These are correctness corrections before implementation; they do not add a new command, replay subsystem, or recovery feature. The original worker report remains the record of its submission; `epics/agento/001-seed/reports/A-review.md` records acceptance of this corrected contract.
+2026-11-03: replaced the worker's rename-away/backup sequence with direct same-directory replacement, preserving C's atomic-replacement requirement. Required contiguous event prefixes and refusal of mutations behind state, so a later write cannot hide a missing event. These are correctness corrections before implementation; they do not add a new command, replay subsystem, or recovery feature. The original worker report remains the record of its submission; `epics/braid/001-seed/reports/A-review.md` records acceptance of this corrected contract.

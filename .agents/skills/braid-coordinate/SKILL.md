@@ -1,11 +1,11 @@
 ---
-name: agento-coordinate
-description: Analyze a goal, create or refine Agile epics and backlog items, and coordinate staged agento delivery or resumption from checkpoints. Use for goal-level planning and orchestration in this project; assigned implementation workers follow their backlog item instead.
+name: braid-coordinate
+description: Analyze a goal, create or refine Agile epics and backlog items, and coordinate staged braid delivery or resumption from checkpoints. Use for goal-level planning and orchestration in this project; assigned implementation workers follow their backlog item instead.
 ---
 
-# Agento coordinator
+# Braid coordinator
 
-Turn a short goal into an evidence-backed epic and actionable backlog, then coordinate only the delivery the user requested. Support planning-only requests and resumption. Keep the first implementation small and use accepted agento releases to organize later milestones.
+Turn a short goal into an evidence-backed epic and actionable backlog, then coordinate only the delivery the user requested. Support planning-only requests and resumption. Keep the first implementation small and use accepted braid releases to organize later milestones.
 
 ## Load the right context
 

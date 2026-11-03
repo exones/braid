@@ -11,15 +11,15 @@ function Write-ToolchainNote {
   [Console]::Error.WriteLine($Message)
 }
 
-$Script:AgentoRepoRoot = Split-Path -Parent $PSScriptRoot
-$Script:AgentoNodeVersion = '26.13.0'
+$Script:BraidRepoRoot = Split-Path -Parent $PSScriptRoot
+$Script:BraidNodeVersion = '26.13.0'
 # Official SHA-256 lines from SHASUMS256.txt for node-v26.13.0, fetched 2026-11-03.
-$Script:AgentoNodeZipHash = @{
+$Script:BraidNodeZipHash = @{
   'win-x64'   = 'dcc60d59a0746999f99064a01c020445d54d84228c691cdbf25b49ac3b59150a'
   'win-arm64' = 'a9427139595156ef484e1fb08957676e09d4232368dd1743a2a9f93f3d241b14'
 }
 
-function Get-AgentoNodePlatform {
+function Get-BraidNodePlatform {
   if (-not $IsWindows) {
     return $null
   }
@@ -31,7 +31,7 @@ function Get-AgentoNodePlatform {
   }
 }
 
-function Test-AgentoNodeInRange {
+function Test-BraidNodeInRange {
   param([Parameter(Mandatory = $true)][string]$NodeExe)
   $raw = (& $NodeExe --version)
   if ($LASTEXITCODE -ne 0) {
@@ -45,12 +45,12 @@ function Test-AgentoNodeInRange {
   return $minor -ge 13
 }
 
-function Get-AgentoPinnedToolchainPath {
-  $platform = Get-AgentoNodePlatform
+function Get-BraidPinnedToolchainPath {
+  $platform = Get-BraidNodePlatform
   if ($null -eq $platform) {
     return $null
   }
-  $dest = Join-Path $Script:AgentoRepoRoot ".tools/node/node-v$($Script:AgentoNodeVersion)-$platform"
+  $dest = Join-Path $Script:BraidRepoRoot ".tools/node/node-v$($Script:BraidNodeVersion)-$platform"
   $node = Join-Path $dest 'node.exe'
   if (-not (Test-Path -LiteralPath $node)) {
     return $null
@@ -59,33 +59,33 @@ function Get-AgentoPinnedToolchainPath {
   if ($LASTEXITCODE -ne 0) {
     return $null
   }
-  if ("$raw".Trim() -ne "v$($Script:AgentoNodeVersion)") {
+  if ("$raw".Trim() -ne "v$($Script:BraidNodeVersion)") {
     return $null
   }
   return $dest
 }
 
-function Install-AgentoNodeToolchain {
-  $platform = Get-AgentoNodePlatform
+function Install-BraidNodeToolchain {
+  $platform = Get-BraidNodePlatform
   if ($null -eq $platform) {
     throw 'The project toolchain download supports Windows. Put Node.js >=26.13.0 <27 on PATH instead.'
   }
-  $existing = Get-AgentoPinnedToolchainPath
+  $existing = Get-BraidPinnedToolchainPath
   if ($null -ne $existing) {
     Write-ToolchainNote "Using Node.js toolchain: $existing"
     return $existing
   }
 
-  $pinnedHash = $Script:AgentoNodeZipHash[$platform]
+  $pinnedHash = $Script:BraidNodeZipHash[$platform]
   if ([string]::IsNullOrWhiteSpace($pinnedHash)) {
     throw "No pinned SHA-256 is recorded for $platform."
   }
 
-  $version = $Script:AgentoNodeVersion
+  $version = $Script:BraidNodeVersion
   $zipName = "node-v$version-$platform.zip"
   $base = "https://nodejs.org/dist/v$version"
-  $cache = Join-Path $Script:AgentoRepoRoot '.tools/cache'
-  $destParent = Join-Path $Script:AgentoRepoRoot '.tools/node'
+  $cache = Join-Path $Script:BraidRepoRoot '.tools/cache'
+  $destParent = Join-Path $Script:BraidRepoRoot '.tools/node'
   $dest = Join-Path $destParent "node-v$version-$platform"
   if (Test-Path -LiteralPath $dest) {
     throw "Existing toolchain directory does not contain the expected Node.js v${version}: $dest. It was preserved; inspect or repair it before retrying."
@@ -128,23 +128,23 @@ function Install-AgentoNodeToolchain {
   return $dest
 }
 
-function Resolve-AgentoNodeToolchain {
-  $pinned = Get-AgentoPinnedToolchainPath
+function Resolve-BraidNodeToolchain {
+  $pinned = Get-BraidPinnedToolchainPath
   if ($null -ne $pinned) {
     return $pinned
   }
 
   $command = Get-Command node -ErrorAction SilentlyContinue
-  if ($null -ne $command -and (Test-AgentoNodeInRange -NodeExe $command.Source)) {
+  if ($null -ne $command -and (Test-BraidNodeInRange -NodeExe $command.Source)) {
     return (Split-Path -Parent $command.Source)
   }
 
   if (-not $IsWindows) {
     throw 'Node.js >=26.13.0 <27 is not on PATH. GitHub Actions supplies it with actions/setup-node; a Windows checkout can download the official toolchain.'
   }
-  return Install-AgentoNodeToolchain
+  return Install-BraidNodeToolchain
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-  Write-Output (Install-AgentoNodeToolchain)
+  Write-Output (Install-BraidNodeToolchain)
 }

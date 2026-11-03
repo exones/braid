@@ -6,11 +6,11 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 Set-StrictMode -Version Latest
 
-if ($env:AGENTO_VERIFY_DEPTH -eq '1') {
+if ($env:BRAID_VERIFY_DEPTH -eq '1') {
   Write-Error 'scripts/Verify.ps1 must not invoke itself.'
   exit 1
 }
-$env:AGENTO_VERIFY_DEPTH = '1'
+$env:BRAID_VERIFY_DEPTH = '1'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $repoRoot
@@ -28,7 +28,7 @@ function Invoke-VerifiedNative {
   }
 }
 
-$bin = Resolve-AgentoNodeToolchain
+$bin = Resolve-BraidNodeToolchain
 $separator = [System.IO.Path]::PathSeparator
 $env:PATH = "$bin$separator$env:PATH"
 

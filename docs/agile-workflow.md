@@ -1,4 +1,4 @@
-# Agile work organization for agento
+# Agile work organization for braid
 
 ## Work hierarchy
 
@@ -29,7 +29,7 @@ Choose `<ID>` in [Backlog item IDs](#backlog-item-ids). A file under `backlog/` 
 
 ## Backlog item IDs
 
-This section is the authoritative source for backlog item IDs. Planning instructions and templates link here. Epic directories stay `epics/<project>/<NNN>-<slug>/`, and epic IDs such as `AGENTO-001` stay as they are. Review names, numbering, and evidence paths stay in [Review gates and indexing](#review-gates-and-indexing). Creating a review does not take a backlog ID.
+This section is the authoritative source for backlog item IDs. Planning instructions and templates link here. Epic directories stay `epics/<project>/<NNN>-<slug>/`, and epic IDs such as `BRAID-001` stay as they are. Review names, numbering, and evidence paths stay in [Review gates and indexing](#review-gates-and-indexing). Creating a review does not take a backlog ID.
 
 ### Initial sequence
 
@@ -45,19 +45,19 @@ Optional feature labels group related work inside the epic. They are not backlog
 
 After the backlog is recorded, keep every assigned ID, filename, and valid link. Reordering priority or dependencies leaves filenames and references unchanged. A cancelled item keeps its ID. A later item receives the earliest sequence ID that no file in that epic's `backlog/` directory already uses. Existing filenames stay in place, including IDs chosen outside this sequence.
 
-AGENTO-001 keeps `A` (spike), `B` (enabler task), `C` and `D` (stories), `N` (storage naming task), `D1` (this follow-up story), and `I` (cancelled infrastructure spike). `D1` stays this item's ID. The token before the hyphen in `backlog/D1-sequential-backlog-ids.md` is `D1`. Later additions in this epic continue with the letter sequence above, and a new epic starts at `A`. Legacy `R` remains the review alias in the review section. `backlog/R-review.md` already occupies `R`.
+BRAID-001 keeps `A` (spike), `B` (enabler task), `C` and `D` (stories), `N` (storage naming task), `D1` (this follow-up story), and `I` (cancelled infrastructure spike). `D1` stays this item's ID. The token before the hyphen in `backlog/D1-sequential-backlog-ids.md` is `D1`. Later additions in this epic continue with the letter sequence above, and a new epic starts at `A`. Legacy `R` remains the review alias in the review section. `backlog/R-review.md` already occupies `R`.
 
 ## Review gates and indexing
 
 This section is the authoritative source for review naming, numbering, evidence paths, and compatibility. Other instructions and templates link here rather than restating the convention.
 
-Routine implementation reviews belong to the item being reviewed. Name the review agent and assignment `<item-stem>-review-<NNN>`, using the backlog filename without `.md`: `A-preflight-review-001`, then `A-preflight-review-002` for a new independent recheck. For `backlog/D-package.md`, use `D-package-review-001`. A milestone review spanning several items uses the epic ID, for example `AGENTO-001-review-001`. Use that same name in the delegation title and report heading. Reviewers are roles; their assignment does not create another story/task letter or a separate delivery PR. Item letters are assigned in [Backlog item IDs](#backlog-item-ids).
+Routine implementation reviews belong to the item being reviewed. Name the review agent and assignment `<item-stem>-review-<NNN>`, using the backlog filename without `.md`: `A-preflight-review-001`, then `A-preflight-review-002` for a new independent recheck. For `backlog/D-package.md`, use `D-package-review-001`. A milestone review spanning several items uses the epic ID, for example `BRAID-001-review-001`. Use that same name in the delegation title and report heading. Reviewers are roles; their assignment does not create another story/task letter or a separate delivery PR. Item letters are assigned in [Backlog item IDs](#backlog-item-ids).
 
 Store new passes at `reports/reviews/<parent>/<review-name>.md` and their optional resumable reviewer checkpoints at `checkpoints/reviews/<parent>/<review-name>.md`, for example `reports/reviews/A/A-preflight-review-001.md`. Record parent, pass, reviewer, exact checked SHA, PR/artifact identity, scope/acceptance, findings, checks, and limits. Findings can be referenced as `A-preflight-review-001/F1`; keep those labels stable through triage. The parent epic/item links the gate and its result. Preserve prior passes rather than overwriting evidence for another revision.
 
-Record fixes/refutations/deferrals against the parent and exact revision. Start numbering at `001` and increment for each new independent review/recheck of that parent, including earlier legacy passes; do not reset it for a new revision or review scope. Thus an epic with legacy passes 01 and 02 next uses `AGENTO-001-review-003`. A coordinator's evidence update is not automatically another independent review. Reviews remain required for Done; naming does not change acceptance, model selection, or human merge authority.
+Record fixes/refutations/deferrals against the parent and exact revision. Start numbering at `001` and increment for each new independent review/recheck of that parent, including earlier legacy passes; do not reset it for a new revision or review scope. Thus an epic with legacy passes 01 and 02 next uses `BRAID-001-review-003`. A coordinator's evidence update is not automatically another independent review. Reviews remain required for Done; naming does not change acceptance, model selection, or human merge authority.
 
-Preserve existing IDs, filenames, links, and finding labels as historical evidence. Earlier `<parent>/review-<NN>` IDs and `reports/reviews/<parent>/<NN>.md` paths remain valid; legacy R still maps to `AGENTO-001/review-01`. Existing unnumbered review reports also remain in place; inspect the parent's review history before choosing the next unused number. A running assignment keeps its assigned name/output paths until it returns. Do not rename or restart it merely to apply this convention.
+Preserve existing IDs, filenames, links, and finding labels as historical evidence. Earlier `<parent>/review-<NN>` IDs and `reports/reviews/<parent>/<NN>.md` paths remain valid; legacy R still maps to `BRAID-001/review-01`. Existing unnumbered review reports also remain in place; inspect the parent's review history before choosing the next unused number. A running assignment keeps its assigned name/output paths until it returns. Do not rename or restart it merely to apply this convention.
 
 ## Analysis and refinement
 
@@ -87,4 +87,4 @@ Sol High is the preferred coordinator; Grok 4.7 Extra High through Cursor is the
 
 Every stage ends with an evidence review and short retrospective. Turn observed problems into a small fix, regression check, or backlog item; preserve the user's original outcome. No skill or status label grants permission to publish, merge, deploy, or change private infrastructure.
 
-The canonical [delivery rules](../.agents/skills/agento-coordinate/references/delivery.md) define semantic commits, PR/head/CI/review evidence, the local-only bootstrap transition, and README boundaries. README describes usable project state; all operational progress belongs in epic/checkpoint/report files.
+The canonical [delivery rules](../.agents/skills/braid-coordinate/references/delivery.md) define semantic commits, PR/head/CI/review evidence, the local-only bootstrap transition, and README boundaries. README describes usable project state; all operational progress belongs in epic/checkpoint/report files.

@@ -1,6 +1,0 @@
-interface:
-  display_name: "Agento Coordinator"
-  short_description: "Analyze goals, plan epics, and coordinate delivery"
-  default_prompt: "Use $agento-coordinate to analyze my goal, refine an epic and backlog, and coordinate the requested work."
-policy:
-  allow_implicit_invocation: true

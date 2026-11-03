@@ -132,7 +132,7 @@ function identify(positionals: readonly string[]): IdentifiedCommand {
 }
 
 function unknownCommand(words: readonly string[]): Fail {
-  return fail(`error: unknown command: ${words.join(" ")}\nRun agento --help.`);
+  return fail(`error: unknown command: ${words.join(" ")}\nRun braid --help.`);
 }
 
 function requiredText(flag: string, max: number, values: ReadonlyMap<string, string>): string | Fail {

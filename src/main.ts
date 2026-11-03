@@ -38,7 +38,7 @@ export async function run(argv: readonly string[], options: RunOptions = {}): Pr
       return 0;
     }
     if (args.version) {
-      writeOut(`agento ${version}\n`);
+      writeOut(`braid ${version}\n`);
       return 0;
     }
     if (args.command === null) {
