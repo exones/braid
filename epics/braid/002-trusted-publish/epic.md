@@ -1,6 +1,6 @@
 # Epic AGENTO-002: trusted publishing to public npm
 
-Owner: user. Coordinator: planning session, 2026-11-03. Status: analysis.
+Owner: user. Coordinator: resumed delivery, 2026-11-03. Status: in-progress; A/B/C delivered, E's review-record PR open. D's 0.1.1 candidate passed local checks, candidate CI, and no-findings independent preparation review. Final evidence-head CI, human merge, and separately authorized OIDC publication remain. See [current checkpoint](checkpoints/current.md); original planning analysis below is historical.
 Release target: none. Controller: bootstrap `agento-coordinate` skill and manual files.
 
 ## Problem and beneficiary
@@ -18,13 +18,15 @@ Merging the plan does not publish a package and does not satisfy outcomes 1–3.
 
 ## Scope and non-goals
 
-Scope now is the plan. Execution later is AGENTO-002/A, then B, then C, then E, with one worker, only after the user asks and [AGENTO-001/D](../001-seed/backlog/D-package.md) is merged. AGENTO-002/D stays with the user.
+Delivery was authorized and A/B/C have merged. User reports D's trust/access settings saved and asked the coordinator to continue. Prepare and validate the next patch release candidate, 0.1.1, through one isolated implementation worker. Public 0.1.0 already exists; successful OIDC publish of a new version is the remaining integration proof. Preparation does not authorize publication by the agent. E's review-record merge is separate.
 
-Exclusions: publish, workflow dispatch, setting `AGENTO_RELEASE`, `private: false`, tags, GitHub Releases, bypass-2FA tokens, staged publish as the primary path, Forgejo, self-hosted runners, a Node.js 24 downgrade, and edits to `feat/package-bootstrap`. `ignore-scripts=true` is not an allowlist substitute. `dangerously-allow-all-scripts` is excluded. `npm publish --ignore-scripts` on the packed tarball stays a separate publish control and is not the install allowlist.
+Current D exclusions: agent publication, workflow dispatch, enabling `BRAID_RELEASE`, privacy changes, tags, GitHub Releases, bypass-2FA tokens, paid services, and infrastructure changes. The authorized candidate preparation may update version metadata and directly necessary documentation/tests. Install and OIDC controls from B/C remain as delivered.
 
-This PR does not edit `docs/decisions.md`, `docs/roadmap.md`, `README.md`, AGENTO-001 epic files, workflows, or `package.json`. Story AGENTO-002/C adds the decision-log line and one roadmap sentence after AGENTO-001/D is on `main`.
+This D preflight updates only its checklist and coordinator status/evidence. Product, workflow, package, and release settings are not changed.
 
 ## Analysis
+
+Original planning baseline follows. Use the current checkpoint, backlog D, and dated delivery evidence for present package/repository/PR state; the old name, branch, and absent-workflow observations below are not current blockers.
 
 Checked 2026-11-03. Facts below were already verified; this planning pass did not probe a live npm account and did not run `npm approve-scripts`.
 
@@ -67,17 +69,17 @@ IDs in this table run A, B, C, D, E. [AGENTO-001/D](../001-seed/backlog/D-packag
 
 | ID | Kind | Outcome | Depends on | Owner | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| A | spike | [Publish and install-script facts](backlog/A-publish-facts.md) | AGENTO-001/D merged and an explicit execute request | assigned later | backlog | [planning report](reports/planning.md) |
-| B | story | [Fail unreviewed install scripts](backlog/B-install-scripts.md) | AGENTO-002/A | one implementation worker | backlog | |
-| C | story | [Guard the OIDC release workflow](backlog/C-oidc-guard.md) | AGENTO-002/A, AGENTO-002/B, and AGENTO-001/D merged | one implementation worker | backlog | |
-| D | task | [npm account and trusted publisher](backlog/D-npm-account.md) | user npm session | user | blocked | |
-| E | review task | [Review B and C](backlog/E-review.md) | AGENTO-002/B and AGENTO-002/C | separate reviewer | backlog | |
+| A | spike | [Publish and install-script facts](backlog/A-publish-facts.md) | seed D merged and execution authorized | implementation worker | done | [PR #1](https://github.com/exones/braid/pull/1), merge `75e293b`, Windows/Ubuntu CI passed |
+| B | story | [Fail unreviewed install scripts](backlog/B-install-scripts.md) | AGENTO-002/A | implementation worker | done | [PR #2](https://github.com/exones/braid/pull/2), merge `1261452`, Windows/Ubuntu CI passed; review record in PR #5 |
+| C | story | [Guard the OIDC release workflow](backlog/C-oidc-guard.md) | A/B and seed D merged | implementation worker | done | [PR #4](https://github.com/exones/braid/pull/4), merge `0f2dd86`; no-findings review record in PR #5 |
+| D | task | [npm account and trusted publisher](backlog/D-npm-account.md) | user settings and verified release candidate | user/coordinator | in-review | [PR #7](https://github.com/exones/braid/pull/7), reviewed payload `625d2557`; [inspection/artifact/CI](reports/D-release-assignment.md), [no-findings review](reports/reviews/D/D-npm-account-review-001.md). Final delivery CI/merge and OIDC publication pending |
+| E | review task | [Review B and C](backlog/E-review.md) | B/C candidate exists | separate reviewer | in-review | [PR #5](https://github.com/exones/braid/pull/5), no findings, head `9451cf5`, Windows/Ubuntu CI passed; human merge pending |
 
-Order and WIP: limit one. Worker order is AGENTO-002/A, then B, then C, then E. B and C both touch CI and docs, so C starts after B. AGENTO-002/D stays blocked on the user and does not take a worker slot. This branch does not contain AGENTO-001/D. Nothing in the table is Ready or in progress. This PR does not make AGENTO-002/A Ready.
+Order and WIP: one implementation worker. A/B/C have delivered; E's review is complete and its record awaits human merge. D remains user-owned and does not require an implementation worker. Continue D only after authenticated account setup evidence arrives.
 
 ## Definition of Ready and Definition of Done
 
-Use [the project workflow](../../../docs/agile-workflow.md). A backlog item is Ready only when its outcome, boundaries, dependencies, ownership, inputs, and evidence method are clear. AGENTO-002/A is not Ready: it still needs AGENTO-001/D on `main` and an explicit request to execute.
+Use [the project workflow](../../../docs/agile-workflow.md). D's public package prerequisites are met; authenticated trust setup and first successful OIDC publishing evidence are still missing. Keep it blocked until those user-owned steps are complete.
 
 Item Done needs the acceptance criteria, a PR, hosted CI on that head, review, and human merge. Local notes are not Done. Epic Done is not a published package. Publication remains a separate authorization outside this plan.
 
@@ -92,14 +94,16 @@ Dated 2026-11-03, planning:
 
 Open:
 
-- The user still chooses the npm account and a package name other than unscoped `agento`. That blocks AGENTO-002/D only.
-- AGENTO-002/A chooses the script-enforcement mechanism: strict allow-scripts on the current npm, or a separate npm 12 install.
+- User must configure the trusted publisher in their npm session and confirm account 2FA. Package identity and initial publication are already complete. D remains blocked on that setup and the separately authorized first OIDC publication.
+- A selected strict allow-scripts on current npm; B delivered it. No npm 12 migration is pending here.
 
 ## Delivery evidence and release checklist
 
 - [x] Analysis: inspected `docs/npm-distribution.md` and `docs/decisions.md` on `main` `afc05074a27da2cb1a3c225bc9d42d10f184e504`, confirmed `release.yml` is absent there and on this branch, and confirmed AGENTO-001/D `10ff911294a72957fe7fc689757bb33d3c72b38d` contains `release.yml` and is not in this branch. See [the planning report](reports/planning.md).
 - [ ] Planning PR linked: https://github.com/exones/agento/pull/3 at plan head `ac4e2cf53208d72d8b50a3149e64d85930fb385f`. Review and human merge are still open. Hosted CI is not recorded in this report.
 - [x] No publish is claimed. This change does not dispatch, set `AGENTO_RELEASE`, or set `private` to false.
-- [ ] AGENTO-002 items A, B, C, D, and E remain unexecuted.
+- [x] A/B/C implementation merged; current evidence is in the backlog table above.
+- [ ] E review-record PR #5 human merge recorded.
+- [ ] D authenticated setup, first OIDC publication, and remaining user-owned security settings verified.
 
 No `reports/final.md` and no `retro.md` are part of this change.

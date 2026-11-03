@@ -38,4 +38,20 @@ An earlier commit on this branch had edited `docs/decisions.md`, `docs/roadmap.m
 
 ## Resume
 
-Stop. Implementation is not authorized. Do not start AGENTO-002/A until the user asks to execute and AGENTO-001/D is merged. The planning PR is https://github.com/exones/agento/pull/3.
+Original planning stop: implementation was not authorized at that boundary. Subsequent delivery was authorized; use the dated D resumption below and the shared checkpoint for current state. The original planning PR was https://github.com/exones/agento/pull/3.
+
+## D account setup resumption
+
+2026-11-03, user requested continuation with D. Local checkout `C:\code\agento`, branch `main`, HEAD `acd87301c8c267b7b89651c1e2b01913d6c84692`; preserve existing local preference/checkpoint edits and untracked Git-handoff analysis files. No Git/index/branch changes made in this preflight.
+
+The name/initial-publication blockers are resolved. With pinned Node v26.13.0 and npm 11.20.0, `npm view @exones/braid name version repository.url dist.attestations --json` returned public `@exones/braid@0.1.0` and `git+https://github.com/exones/braid.git`. No attestation value was returned; this is not proof of trusted publishing. `npm whoami` returned `ENEEDAUTH`; `npm trust list @exones/braid --json` returned 401. The user confirmed that the trusted publisher is not configured. Account 2FA is unverified. `gh variable list --repo exones/braid --json name,value` returned an empty list.
+
+The remaining exact setup fields are maintained in [the distribution guide](../../../../docs/npm-distribution.md#user-actions-before-any-publication). The user must configure npm through their authenticated account. D remains blocked until setup/readback and first successful OIDC publication are evidenced; no agent publish or dispatch is authorized by this task. Because 0.1.0 already exists, any later real release needs a separately selected, verified new version. [npm's trusted-publishing documentation](https://docs.npmjs.com/trusted-publishers/) requires a newly created binding to complete its first successful publish within two days. No secret, account write, registry write, `BRAID_RELEASE` change, or workflow dispatch occurred.
+
+Verified existing GitHub delivery: braid PR #1/A merged at `75e293b`, PR #2/B at `1261452`, and PR #4/C at `0f2dd86`. PR #5 is the completed no-findings review record, open at `9451cf5` with Windows/Ubuntu CI passed. Its human merge is separate from D's authenticated npm setup. Updated the epic and shared checkpoint to reflect that current state rather than the original planning baseline. D-specific `reports/D.md` and `checkpoints/D.md` remain unwritten until the user-owned checklist is complete, as the task requires.
+
+Local validation passed: all 15 local links/anchors across the four D status/checklist/report files resolve, and `git diff --check` passed. Product checks were not rerun for account-status notes. The result is an actionable blocked checklist, not D Done. Changes remain local alongside the preserved preference edits; nothing was staged, committed, or pushed during account preflight.
+
+### Subsequent release candidate preparation
+
+User subsequently reported saving npm publisher/access settings and chose token-free OIDC. The isolated 0.1.1 candidate is [PR #7](https://github.com/exones/braid/pull/7), reviewed payload `625d2557a322a345eb5580569dd69b79cfd7f408`, with clean local package proof, passing Windows/Ubuntu CI, and [no-findings independent preparation review](reviews/D/D-npm-account-review-001.md). [Candidate inspection and triage](D-release-assignment.md#preparation-review-and-release-handback) record the artifact/digest, exact evidence, and limits. Initial missing-configuration statements above describe that earlier preflight. D is now In Review for delivery, not blocked on another token or repeated setup. Human merge and explicit authority for the first OIDC publish remain; no registry/variable/dispatch operation has occurred.
