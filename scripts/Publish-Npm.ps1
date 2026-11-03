@@ -11,8 +11,7 @@ Set-Location -LiteralPath $repoRoot
 . (Join-Path $PSScriptRoot 'Install-NodeToolchain.ps1')
 
 $environment = if ($env:BRAID_INFISICAL_ENV) { $env:BRAID_INFISICAL_ENV } else { 'prod' }
-$secretName = if ($env:BRAID_INFISICAL_SECRET) { $env:BRAID_INFISICAL_SECRET } else { 'NPM_TOKEN' }
-$folder = if ($env:BRAID_INFISICAL_PATH) { $env:BRAID_INFISICAL_PATH } else { '/' }
+$secretName = if ($env:BRAID_INFISICAL_SECRET) { $env:BRAID_INFISICAL_SECRET } else { 'npm_braid_access_token' }
 $projectId = $env:BRAID_INFISICAL_PROJECT_ID
 
 if ([string]::IsNullOrWhiteSpace($projectId)) {
@@ -46,16 +45,20 @@ if ($null -eq $infisical) {
   exit 1
 }
 
-$fetch = & $infisical.Source @('sm', 'secrets', 'get', $secretName, '--env', $environment, '--path', $folder, '--projectId', $projectId, '--output', 'json', '--silent') 2>&1
+$fetch = & $infisical.Source @('sm', 'secrets', '--env', $environment, '--projectId', $projectId, '--output', 'json', '--silent', '--recursive') 2>$null
 if ($LASTEXITCODE -ne 0) {
-  Write-Error "Infisical could not read $secretName from project $projectId, environment $environment, path $folder. The value was not printed."
+  Write-Error "Infisical could not read secrets from project $projectId, environment $environment. The values were not printed."
   exit 1
 }
 $parsed = ($fetch | Out-String) | ConvertFrom-Json
-$record = @($parsed) | Where-Object { $_.secretKey -eq $secretName } | Select-Object -First 1
-$token = if ($null -ne $record) { [string]$record.secretValue } else { '' }
-if ([string]::IsNullOrWhiteSpace($token)) {
-  Write-Error "Infisical returned no value for $secretName. The value was not printed."
+$records = @($parsed | Where-Object { $_.secretKey -eq $secretName })
+if ($records.Count -ne 1) {
+  Write-Error "Expected one Infisical secret named $secretName in environment $environment. Found $($records.Count)."
+  exit 1
+}
+$token = [string]$records[0].secretValue
+if ([string]::IsNullOrWhiteSpace($token) -or $token.Length -lt 20) {
+  Write-Error "Infisical secret $secretName is missing or too short to be an npm access token. The value was not printed."
   exit 1
 }
 

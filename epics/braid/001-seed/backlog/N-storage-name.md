@@ -35,7 +35,7 @@ None of these are done.
 
 - [x] Rename the active tool to `braid`: command, package name, `.braid/` storage, help, errors, tests, Git ignore, README, seed contract, and current instructions. Leave historical records that quote the former name unchanged.
 - [ ] Create `https://github.com/exones/braid`, push the existing commit history there (including the rename commit), and point this project at that repository. Leave `https://github.com/exones/agento` in place.
-- [ ] Publish public unscoped `braid@0.1.0` with `scripts/Publish-Npm.ps1`. The script reads `NPM_TOKEN` from Infisical and does not print it. Do not publish the manifest that still carries the former name. Record the registry result.
+- [ ] Publish public unscoped `braid@0.1.0` with `scripts/Publish-Npm.ps1`. The script reads `npm_braid_access_token` from Infisical and does not print it. Do not publish the manifest that still carries the former name. Record the registry result.
 - [x] Run `pwsh -NoProfile -File ./scripts/Verify.ps1`. Check a fresh root uses only `.braid/`, and that existing `.crew/` and `.agento/` directories are left in place. Local result: 40 tests passed, then the packed-install proof passed. That proof ran on a dirty tree, so it is a pre-commit probe. A clean proof follows the commit.
 
 ## Earlier correction
