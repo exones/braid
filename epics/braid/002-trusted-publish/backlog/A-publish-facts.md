@@ -1,7 +1,7 @@
 # A: publish and install-script facts
 
 Kind: spike. Epic: [AGENTO-002](../epic.md). Feature: public npm release.
-Status: backlog. Owner: assigned later. Depends on: [AGENTO-001/D](../../001-seed/backlog/D-package.md) merged and an explicit execute request.
+Status: in-review. Owner: implementation worker. Depends on: [AGENTO-001/D](../../001-seed/backlog/D-package.md) merged and an explicit execute request. Both are satisfied on `origin/main` `1766865e192871cca2559ce51e11810b09abade3`.
 
 ## Read first
 
@@ -29,10 +29,10 @@ Do not publish. Do not add a workflow feature. Do not change the Node.js engine.
 
 ## Implementation or research tasks
 
-- [ ] Confirm AGENTO-001/D is on `main` and the assignment says to execute.
-- [ ] Run the inventory and version commands. Cite the output.
-- [ ] Record the allowlist decision and the AGENTO-002/B enforcement choice.
-- [ ] Write `checkpoints/A.md` and `reports/A.md`. Stop after this item.
+- [x] Confirm AGENTO-001/D is on `main` and the assignment says to execute.
+- [x] Run the inventory and version commands. Cite the output.
+- [x] Record the allowlist decision and the AGENTO-002/B enforcement choice.
+- [x] Write `checkpoints/A.md` and `reports/A.md`. Stop after this item.
 
 ## Ownership and verification
 
@@ -40,8 +40,15 @@ Own `checkpoints/A.md` and `reports/A.md`. Propose shared-status updates in the 
 
 ## Delivery record
 
-Empty until assigned.
+- Branch: `feat/002-a-publish-facts`
+- Base: `origin/main` `1766865e192871cca2559ce51e11810b09abade3`
+- Decision: empty `allowScripts` allowlist. AGENTO-002/B uses strict allow-scripts on current npm 11.20.0 (`strict-allow-scripts=true`, `allow-git=none`, `allow-remote=none` in `.npmrc`). No separate npm 12 install.
+- Pull request: https://github.com/exones/braid/pull/1
+- Research commit: `c27a9afd4763faf1f143d46959934743893d7441`
+- URL commit: `605fc745f17aa8410f4405ec7aaf017771ca7dc6`
+- Head SHA: the commit that records this line. It is the pull request head. The URL commit above is its parent.
+- Status: `in-review`. Not Done. Hosted CI, review, and human merge remain.
 
 ## Report and resume
 
-Write `epics/agento/002-trusted-publish/checkpoints/A.md` and `epics/agento/002-trusted-publish/reports/A.md`. In coordinated mode the coordinator owns shared status. Stop after this item.
+Evidence: [checkpoint](../checkpoints/A.md) and [report](../reports/A.md). In coordinated mode the coordinator owns shared status. Stop after this item.
