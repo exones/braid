@@ -49,7 +49,7 @@ Keep commits coherent and passing their relevant gates; use separate commits whe
 
 Dependencies already satisfied by local acceptance may proceed with explicitly documented branch/base ordering while PR delivery is pending; never pretend the dependency is merged. For the running seed, C retains its accepted local B dependency. Reconcile existing A/B commits into honest bootstrap PR coverage after C returns; preserve user history instead of manufacturing earlier PRs.
 
-Use host PR watches for required check/review waits, follow their end-turn instructions, and never implement polling loops. Respect a user's instruction to wait for a running delegate: do not launch another or interrupt it merely to adopt a new Git workflow.
+The implementation worker opens the pull request and then waits until the required checks on that head have finished. The handoff to the coordinator includes the head SHA and whether those checks passed or failed. A handoff while checks are still running is incomplete. Use the host's wait for those checks, follow its end-of-turn instructions, and do not poll in a loop. The coordinator reviews the returned head. The coordinator does not take over a pull request whose required checks are still pending. Respect a user's instruction to wait for a running delegate: do not launch another or interrupt it merely to adopt a new Git workflow.
 
 ## README boundary
 
