@@ -1,6 +1,9 @@
-# Local and Actions gate: typecheck, build, tests, then the packed-install proof.
+# Local and Actions gate: install policy, typecheck, build, tests, then the packed-install proof.
+# Root dependencies stay on `npm ci`, which reads .npmrc. The install-policy fixture is a
+# separate project and is not a root dependency.
 # Stops on the first failed native command and returns that exit code.
 # Does not call npm run verify. scripts/Test-Package.ps1 does not call this script.
+# test/fixtures/install-policy/Test-InstallPolicy.ps1 does not call this script.
 #Requires -Version 7.6
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -67,6 +70,13 @@ if (-not (Test-Path -LiteralPath $typescript)) {
   Write-Error "Dependencies are not installed. Prepend '$bin' to PATH and run 'npm ci' from the repository root."
   exit 1
 }
+
+Write-Host "install-policy: unreviewed scripts, git specs, and remote specs"
+Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
+  '-NoProfile',
+  '-File',
+  (Join-Path $repoRoot 'test/fixtures/install-policy/Test-InstallPolicy.ps1')
+)
 
 Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'typecheck')
 Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'build')

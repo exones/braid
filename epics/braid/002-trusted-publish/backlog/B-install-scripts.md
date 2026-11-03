@@ -1,7 +1,7 @@
 # B: fail unreviewed install scripts
 
 Kind: story. Epic: [AGENTO-002](../epic.md). Feature: public npm release.
-Status: backlog. Owner: one implementation worker. Depends on: AGENTO-002/A.
+Status: in-review. Owner: one implementation worker. Depends on: AGENTO-002/A. Not Done.
 
 ## Read first
 
@@ -26,10 +26,10 @@ Do not set `ignore-scripts=true`. Do not set `dangerously-allow-all-scripts`. Do
 
 ## Implementation or research tasks
 
-- [ ] Read the AGENTO-002/A decision and apply that mechanism only.
-- [ ] Keep the real lockfile green.
-- [ ] Add the unreviewed-`postinstall` fixture failure.
-- [ ] Write `checkpoints/B.md` and `reports/B.md`. Stop after this item.
+- [x] Read the AGENTO-002/A decision and apply that mechanism only.
+- [x] Keep the real lockfile green.
+- [x] Add the unreviewed-`postinstall` fixture failure.
+- [x] Write `checkpoints/B.md` and `reports/B.md`. Stop after this item.
 
 ## Ownership and verification
 
@@ -37,8 +37,14 @@ Own the install-policy files AGENTO-002/A named, plus `checkpoints/B.md` and `re
 
 ## Delivery record
 
-Empty until assigned.
+- Branch: `feat/002-b-install-scripts`
+- Base: `origin/main` `75e293b8da799e8300c299e07c410a48c43c3d3f`
+- Decision: empty `allowScripts` allowlist, enforced with `strict-allow-scripts=true`, `allow-git=none`, and `allow-remote=none` in `.npmrc`. No root `allowScripts` field.
+- Implementation commit: `52deda6bb7c811b730cab7a5432c07a9b67e8781`
+- Pull request: https://github.com/exones/braid/pull/2
+- Head SHA: `52deda6bb7c811b730cab7a5432c07a9b67e8781` is the parent of the delivery commit. The pull request head is that delivery commit. Its object id is in the pull request body.
+- Status: `in-review`. Not Done. Hosted CI, review, and human merge remain.
 
 ## Report and resume
 
-Write `epics/agento/002-trusted-publish/checkpoints/B.md` and `epics/agento/002-trusted-publish/reports/B.md`. Stop after this item. AGENTO-002/C is next and starts only after AGENTO-002/B is handed back, because both touch CI and docs.
+Evidence: [checkpoint](../checkpoints/B.md) and [report](../reports/B.md). In coordinated mode the coordinator owns shared status. Stop after this item. AGENTO-002/C is next and starts only after AGENTO-002/B is handed back, because both touch CI and docs.
