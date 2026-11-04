@@ -85,14 +85,15 @@ Non-goals: a separate records branch or out-of-git state (later roadmap), moving
 6. Status has one home: a search of AGENTS.md, README, `epics/README.md`, skills, templates and `docs/` (excluding the dated decision log) finds no current-epic pointer, session-reported fact or progress wording; the backlog template has no status line; the status rule is stated once and linked.
 7. The main-sync routine (when, merge not rebase, conflicting sync via PR, final sync before the main PR, open item PR after a sync) is stated once in the delivery rules and referenced from the coordinator skill's boundary step.
 8. The skill-pinning mechanism is documented, the packet asset has a field for the skill revision and source path, and the walkthrough shows one dispatch naming them.
-9. `npm run verify` (H's single gate) passes locally and in all four CI jobs on the current head; both skill validators pass; independent review and human merge into the epic.
+9. Text budget: the combined word count of AGENTS.md, both `SKILL.md` files and the assignment packet asset does not grow (baseline at J's dispatch tip; at the main-sync tip `02e3a5c` it was 5,278 words). New rules live once in `docs/agile-workflow.md` or `delivery.md`, and skills link to them instead of restating them. `reports/J.md` lists before/after word counts for those four files and for every other changed policy file.
+10. `npm run verify` (H's single gate) passes locally and in all four CI jobs on the current head; both skill validators pass; independent review and human merge into the epic.
 
 ## Implementation tasks
 
 - [ ] Add the matrix and the status rule to `docs/agile-workflow.md`; reduce other mentions to links.
 - [ ] Add the main-sync routine and skill pinning to `delivery.md`; add the boundary step to the coordinator skill and the skill-revision field to the packet asset.
 - [ ] Update worker skill, coordinator skill, delegation, packet asset, delivery, report format, directory map, epic and backlog templates, `epics/README.md`, AGENTS.
-- [ ] Write the lifecycle walkthrough in `reports/J.md`.
+- [ ] Write the lifecycle walkthrough and the before/after word counts in `reports/J.md`.
 - [ ] Run gates; deliver through PR into the epic.
 
 ## Ownership and verification
