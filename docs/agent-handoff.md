@@ -16,7 +16,7 @@ For explicit Codex selection, prefix the goal with `$braid-coordinate`. In Curso
 
 ## Find actual work state
 
-Start at the [epic index](../epics/README.md), then read the selected epic's files:
+For goal-level coordination, start at the [epic index](../epics/README.md), then read the selected epic's files. Assigned workers start at the exact filled packet; resumed workers open their named checkpoint first. The records are:
 
 - `epic.md`: outcomes, prioritized backlog, dependencies, status, decisions, and PR/CI/review links.
 - `checkpoints/current.md`: the coordinator's exact resume point and in-flight work.
@@ -30,9 +30,9 @@ Do not copy current IDs, completion states, next assignments, or dated runtime/p
 
 Use [braid-worker](../.agents/skills/braid-worker/SKILL.md) for one assigned implementation item or its resumption. Explicit Codex selection is `$braid-worker`; in Cursor select it from the skill picker, or read its file directly when discovery is unavailable. Goal-level work uses the coordinator entrypoint above; independent review uses its separately assigned scope and [review conventions](agile-workflow.md#review-gates-and-indexing).
 
-Fill the [canonical assignment packet](../.agents/skills/braid-worker/assets/assignment-packet.md) for manual delivery exactly as for automatic dispatch. It is the maintained template for task/context/dependencies, Git/base/remote/index, ownership, check set, supported continuation, outputs and return facts. Read the provider authority at dispatch time; do not copy live settings into reusable examples.
+Coordinators fill the [canonical assignment packet](../.agents/skills/braid-worker/assets/assignment-packet.md) for manual delivery exactly as for automatic dispatch. Workers consume the filled packet at its supplied path, not the blank authoring template. Separate read-now project/policy sections, verified dependency facts with exact evidence references, and on-demand history; name entry mode, first action, outputs and expected upstream state. Applicable target-project instructions remain mandatory; installed workflow references resolve from the skill installation. Read the provider authority at dispatch time; do not copy live settings into reusable examples.
 
-For isolation, every required file must be committed at the supplied revision or explicitly supplied; no parent chat or dirty parent checkpoint is inherited. The normal item checkout is a named branch from the accepted epic tip, in its own worktree, with the pull request targeting the epic branch. Let the host bind that checkout and return the actual root and attached branch. Confirm the binding before writes. A missing, detached, or mismatched checkout stops the affected writes. Do not create the worktree in the shell or guess its path. For expressly shared work, name existing dirty/index ownership and allowed operations instead of cleaning it. On resume supply the last checkpoint, pull request, and head and the interrupted action; follow the worker skill's reconciliation before retrying effects. Keep the worker prompt short and step-explicit.
+For isolation, every required file must be committed at the supplied revision or explicitly supplied; no parent chat or dirty parent checkpoint is inherited. The normal item checkout is a named branch from the accepted epic tip, in its own worktree, with the pull request targeting the epic branch. Let the host bind that checkout and return the actual root and attached branch. Confirm the binding before writes. A missing, detached, or mismatched checkout stops the affected writes. Do not create the worktree in the shell or guess its path. For expressly shared work, name existing dirty/index ownership and allowed operations instead of cleaning it. On resume supply the worker checkpoint/phase/PR/head, continuation generation and interrupted action; open that checkpoint first, refresh applicable instructions and reconcile relevant actual effects before retrying. Continue the recorded action rather than replaying initial discovery. Keep the worker prompt short and step-explicit.
 
 ## Delivery and verification
 
