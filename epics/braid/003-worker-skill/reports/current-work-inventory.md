@@ -4,11 +4,11 @@ Snapshot: 2026-11-04T20:56:22 local. Derived from actual T3 thread reads/list, G
 
 ## Immediate position
 
-- Only open PR: [#13](https://github.com/exones/braid/pull/13), G docs into epic branch. Blocked by Windows push package-proof failure. Do not merge/resume G now.
-- [#14](https://github.com/exones/braid/pull/14), worker startup/resume/stalled-yield skill changes, already human merged into main at1dd5cb735c4614b75d96c0694c8c6d0a939f2605, 2026-11-04T19:53:11Z. All four candidate jobs green; independent review completed after that merge, no actionable findings. No further user merge action on14.
-- Windows investigation returned INCONCLUSIVE: 30/30 local installed-shim pairs passed; no evidence-supported fix, new PR or hosted rerun. Instrumentation/environment limits retained. [Report](C:/Users/exon/AppData/Local/Temp/braid-windows-concurrent-write-20261104/report.md).
-- No new dispatch, G restart, F/D work, experiment or cleanup while reconciling. Independent review has now returned no findings; no new work has been dispatched. Choose one next action for G's CI blocker.
-- Main root and epic have not yet integrated newly merged PR14; they include earlier main c803fb5. Do not confuse fetched origin/main with checked-out files. Safe synchronization belongs to the next explicit coordinator transition.
+- Only open PR: [#13](https://github.com/exones/braid/pull/13), G docs into epic branch. Current four jobs/artifacts verified green after one rerun. Independent G review is now the only next active job; no merge request yet.
+- [#14](https://github.com/exones/braid/pull/14), skill startup/resume improvements, merged and independently reviewed with no findings. Complete.
+- Windows local investigation finished inconclusive,30/30 pairs passed. User deferred additional native-error investigation unless recurrence. No repair/new PR.
+- G worker replacement completed artifact proof. Runtime own-watch success wake/unassisted continuity remain unproven; independent review must assess the actual spike outcome rather than equate CI with continuation viability.
+- F/D stopped; no new trial/cleanup/parallel implementation. Older rows below are historical snapshots; current paragraph governs next action.
 
 ## Who did what
 

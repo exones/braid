@@ -1,7 +1,8 @@
 # G: verify an independent T3 worker owns its PR wait and completion
 
 Kind: spike. Epic: [BRAID-003](../epic.md).
-Status: in-progress. Approved independent G thread owns final current-head artifact verification after one user-authorized successful CI rerun. No successful GREEN/review/merge claimed yet. Original Windows failure and manual runtime interventions remain recorded; no automatic successor.
+Status: in-review. Fresh replacement worker delivered current-head green proof. Independent G review must assess both artifacts and bounded continuation outcome; no Done/merge or F readiness claim. Original Windows failure and manual interruptions/replacement remain limits.
+
 Depends on: user approval of this bounded full-thread trial and [execution policy](../execution-policy-proposal.md); prepared meaningful epic branch/committed assignment. Priority before F/D, existing IDs unchanged.
 
 ## Question, value and bound
