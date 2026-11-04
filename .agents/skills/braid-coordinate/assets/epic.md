@@ -41,4 +41,4 @@ Order/WIP/resource ownership: <reasoning and limits>.
 <Dated decisions, unresolved inputs, and owner/impact.>
 
 ## Delivery evidence and release checklist
-<Outcome-to-proof links, local vs remote proof, final report, retrospective, remaining blockers.>
+<Outcome-to-proof links, local versus remote proof, final report, retrospective, remaining blockers. Copy acceptance facts as in the [acceptance record](../../../../epics/report-format.md#acceptance-record). Rewrite `checkpoints/current.md` and append `checkpoints/log.md` per [Now and the log](../../../../docs/agile-workflow.md#now-and-the-log). Item status in the table above is [One home for status](../../../../docs/agile-workflow.md#one-home-for-status).>

@@ -1,6 +1,6 @@
 # Staged bootstrap roadmap
 
-Status: planning baseline, 2026-11-03. Only the seed epic has executable backlog items today. Future stages are capability boundaries, not permission to start them.
+These stages are capability boundaries for later releases. Live status is [One home for status](agile-workflow.md#one-home-for-status).
 
 | Stage | Candidate | Delivered capability | Built using | Promotion proof |
 | --- | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ Status: planning baseline, 2026-11-03. Only the seed epic has executable backlog
 | 5 | 0.5 recovery | Scheduled tick, bounded retry/nudge, pause/resume, thread replacement, export | Pinned 0.4, at most two workers | Interruption/restart exercises preserve work and prevent duplicate actions; fresh context resumes. |
 | 6 | Pilot | Real project proof, compatibility fixes, operating guide, revised defaults | Pinned 0.5 | Evidence-backed final report and retro; limitations explicitly handed over. |
 
-The coordinator skill is delivered in stage 0, before the CLI. Stage 4 adds deterministic coordination in the product; it is not the first time we use a coordinator. Later milestones refine the bootstrap skill using real delivery evidence. Agile work division follows `docs/agile-workflow.md`; the seed backlog contains spikes, an enabler, and stories, with parent-scoped review gates rather than a new work item for each review.
+The coordinator skill is delivered in stage 0, before the CLI. Stage 4 adds deterministic coordination in the product; it is not the first time a coordinator is used. Later milestones refine the bootstrap skill using delivery evidence. Agile work division follows `docs/agile-workflow.md`, with parent-scoped review gates rather than a new work item for each review.
 
 ## Bootstrap rules
 
@@ -22,7 +22,7 @@ Promotion means deterministic checks passed, the actual packed artifact was exer
 
 Before stage 2 work begins, install accepted 0.1 in a separate location and create the stage 2 work ledger with it. Update Markdown checkpoints alongside it. The machine ledger owns execution status; narrative files reference that status rather than becoming a competing database.
 
-Stage 2 doctor should compare the actual checkout, attached branch, initial revision, origin and PR base with the assignment packet. Its independent gate reports should also check the candidate diff against the packet's allowed paths. These checks turn the manual startup and scope checks into recorded evidence. The temporary `scripts/Test-PrProof.ps1` planned in BRAID-003/I supplies current-head CI proof until stage 2 gate reports replace it; it is not a new product command.
+Stage 2 doctor should compare the actual checkout, attached branch, initial revision, origin and PR base with the assignment packet. Its independent gate reports should also check the candidate diff against the packet's allowed paths. These checks turn the manual startup and scope checks into recorded evidence. A proof script may supply current-head CI evidence until stage 2 gate reports replace it; it is not a new product command.
 
 Stage 4 DAG readiness must verify each required human dependency merge into the declared integration branch before dispatch. Green CI, a review, or a narrative Done label alone cannot satisfy that dependency. This is future automation of the existing human merge stop, not new merge authority.
 
@@ -37,7 +37,7 @@ Milestone review uses a fresh context. Start cross-provider review when configur
 
 ## Infrastructure lane
 
-npm is the confirmed release registry. Settle package account/scope/name and access settings before publication, then prepare GitHub Actions trusted publishing where supported. Keep B/C independent of registry setup and surface any user-owned publishing steps during D. The Forgejo discovery spike is cancelled; no self-hosted package infrastructure or tailnet CI access is planned. `.github/workflows/release.yml` is the prepared manual dispatch. It uploads the verified tarball and skips `npm publish` until the package is deliberately made publishable and the GitHub variable `BRAID_RELEASE` is `enabled`. Preparing that file does not authorize publication. The plan for that trusted-publishing path is [epics/braid/002-trusted-publish/epic.md](../epics/braid/002-trusted-publish/epic.md). Pinned-controller install steps are in the README.
+npm is the confirmed release registry. Settle package account/scope/name and access settings before publication, then prepare GitHub Actions trusted publishing where supported. Install-policy and OIDC work stay independent of registry account setup. Surface user-owned publishing steps when release work needs them. No self-hosted package infrastructure or tailnet CI access is planned. `.github/workflows/release.yml` is the prepared manual dispatch. It uploads the verified tarball and skips `npm publish` until the package is deliberately made publishable and the GitHub variable `BRAID_RELEASE` is `enabled`. Preparing that file does not authorize publication. The plan for that trusted-publishing path is [epics/braid/002-trusted-publish/epic.md](../epics/braid/002-trusted-publish/epic.md). Pinned-controller install steps are in the README.
 
 Until publication proof exists, retain and install exact versioned tarballs. Release assets provide a durable bootstrap fallback once authorized publishing is configured. Ordinary PR CI should not depend on the private registry or tailnet.
 

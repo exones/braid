@@ -18,9 +18,9 @@ For explicit Codex selection, prefix the goal with `$braid-coordinate`. In Curso
 
 For goal-level coordination, start at the [epic index](../epics/README.md), then read the selected epic's files. Assigned workers start at the exact filled packet; resumed workers open their named checkpoint first. The records are:
 
-- `epic.md`: outcomes, prioritized backlog, dependencies, status, decisions, and PR/CI/review links.
-- `checkpoints/current.md`: the coordinator's exact resume point and in-flight work.
-- `backlog/<ID>-<slug>.md`: the assigned story/task/spike and its acceptance criteria.
+- `epic.md`: outcomes, prioritized backlog, dependencies, the status home, decisions, and PR/CI/review links.
+- `checkpoints/current.md`: the resume file in [Now and the log](agile-workflow.md#now-and-the-log). `checkpoints/log.md` is not read on resume.
+- `backlog/<ID>-<slug>.md`: scope, acceptance, and dependencies. Item status is not stored in this file.
 - `assignments/<ID>.md`: the committed packet for a new item. Historical `reports/<ID>-assignment.md` files remain evidence.
 - `checkpoints/<ID>.md` and `reports/<ID>.md`: worker handoff and evidence.
 
