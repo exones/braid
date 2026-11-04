@@ -1,7 +1,7 @@
 # F: integrate epic delivery, workspace ownership and assignment locations
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: backlog. User approved scope/order on 2026-11-04; await G's accepted human merge into the epic before assignment. No worker yet.
+Status: ready. User approved scope/order on 2026-11-04; G merged into the epic 2026-11-04 (5c9f38f). G contract: `validation/G/operator-reference.md` "What F can take". No worker yet.
 Depends on: user agreement on [execution policy](../execution-policy-proposal.md), G's supported direct-thread contract and accepted human merge into the declared epic branch. Priority after G, before D; existing IDs retained.
 
 ## Value and read first
