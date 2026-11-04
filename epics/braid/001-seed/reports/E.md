@@ -6,7 +6,7 @@ The skills now direct workers to use approved briefs and investigate incremental
 
 - Coordinator records architecture once and supplies paths, decisions, constraints and verification; interventions focus on dependencies, blockers, contradictions and meaningful failures.
 - Worker starts with a small meaningful action after required startup checks; reasoning scales to risk, and further investigation needs a concrete question.
-- Both prefer targeted searches, independent-operation batching, reused context and relevant output. Assignment packet gains an implementation brief field.
+- Both prefer targeted searches, independent-operation batching, reused context and relevant output. Assignment packet gains an implementation brief field. One shared directory map covers source, skills, epic records and generated/local outputs without duplicating detailed policy.
 
 ## Why
 
@@ -16,13 +16,13 @@ Counts include frontmatter/blank lines; words are whitespace-delimited against b
 
 | File | Lines before / after | Words before / after |
 | --- | --- | --- |
-| Coordinator SKILL.md | 75 / 51 | 1449 / 816 |
-| Worker SKILL.md | 57 / 56 | 1163 / 1139 |
+| Coordinator SKILL.md | 75 / 52 | 1449 / 828 |
+| Worker SKILL.md | 57 / 58 | 1163 / 1150 |
 | Assignment packet | 13 / 14 | 319 / 350 |
 
-Original files were already below 100 lines, with dense paragraphs. Main skill words fall about 25%. Worker size stays nearly flat because execution guidance replaces repeated setup rules while detailed proof/recovery instructions remain intact.
+Original files were already below 100 lines, with dense paragraphs. Main skill words fall about 24%. Worker size stays nearly flat because execution guidance replaces repeated setup rules while detailed proof/recovery instructions remain intact.
 
-Consolidated mode selection, report triggers, README boundaries and shared-checkout warnings. Removed explanations duplicated by existing AGENTS/delivery/report authorities, retaining links. No new references or relocated bulk. Existing delegation and T3 relay protocols remain unchanged and conditional on dispatch/wait.
+Consolidated mode selection, report triggers, README boundaries and shared-checkout warnings. Removed explanations duplicated by existing AGENTS/delivery/report authorities, retaining links. No relocated bulk. The user follow-up adds one concise shared directory map, linked by both skills only for unfamiliar paths and from README. Existing delegation and T3 relay protocols remain unchanged and conditional on dispatch/wait.
 
 Static before/after scenarios:
 
@@ -42,3 +42,5 @@ Review the PR and decide on merge after applicable checks/review. No live agent 
 - Scoped link/anchor checks and `git diff --check` pass. Static consistency inspection preserves Ready/Done, ownership, full current-head checks, nonterminal waits, security, checkpoint/resume and merge stops.
 - No product tests for prose-only changes. Applicable Windows/Linux CI and independent review remain pending; no hosted success claimed.
 - Next: user reviews PR; author handles scoped fixes. E remains in-review pending CI/review/human merge.
+
+Directory-map follow-up: 26 scoped outbound links/anchors and both skill validators passed (exit 0), plus formatting. Map is 31 lines, loaded only when needed. README and skill links resolve; required CI/review state must be checked on the new pushed head.

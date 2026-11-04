@@ -133,6 +133,7 @@ The workflow uses pinned checkout, setup-node, and upload-artifact actions and t
 
 ## Durable context
 
+- [Directory map](docs/directory-structure.md): source, skills, work records and local outputs.
 - [Decisions](docs/decisions.md): current requirements and their rationale.
 - [Roadmap](docs/roadmap.md): capability stages and bootstrap promotion gates.
 - [Agile workflow](docs/agile-workflow.md): epics, stories, tasks, spikes, and readiness/completion criteria.

@@ -9,6 +9,7 @@ Turn goals into implementation-ready backlog items; coordinate only the requeste
 
 ## Context and mode
 
+- Locate unfamiliar paths with the shared [directory map](../../../docs/directory-structure.md), only as needed.
 - Read project `AGENTS.md` and its mandatory context, `docs/agile-workflow.md`, `epics/README.md`, and the relevant epic/checkpoint/items/dependency reports. Use `docs/roadmap.md` for release boundaries. Paths are project-relative; report missing context rather than inventing it.
 - Read required context once per assignment. On resume refresh changed policy, checkpoint, relevant files and actual in-flight state; reuse valid decisions and evidence.
 - **Plan:** produce a reviewable epic/backlog and stop before implementation. **Deliver:** advance Ready items within authorized scope. **Resume:** reconcile actual revisions, reviews and processes; continue the earliest actionable item within the existing stop boundary.

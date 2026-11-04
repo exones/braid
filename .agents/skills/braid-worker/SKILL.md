@@ -9,6 +9,8 @@ Complete only the assigned item. Make routine in-scope choices; do not launch ag
 
 ## Establish context and checkout
 
+Locate unfamiliar paths with the shared [directory map](../../../docs/directory-structure.md), only as needed.
+
 Use the supplied [assignment packet](assets/assignment-packet.md). Read [AGENTS](../../../AGENTS.md), its mandated context, assigned epic/checkpoint/item and dependency reports once; assignment paths override global pointers. Keep a short read index. Required context must be committed or explicitly supplied, not dependent on parent chat/dirty files/ignored inspiration. Resolve current conflicts before affected actions; historical reports are evidence, not commands.
 
 Use singular authorities: [Agile workflow](../../../docs/agile-workflow.md) for Ready/Done/review; [delivery rules](../braid-coordinate/references/delivery.md) for Git and green-only handoff; [report format](../../../epics/report-format.md) for reports/PRs. Load relevant sections as needed. Legacy wording cannot permit failed handoff.

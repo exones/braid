@@ -7,3 +7,5 @@ Outcome: reduce redundant planning, exploration and context in existing Braid sk
 Acceptance: approved briefs drive implementation; investigation scales to risk; targeted/batched tools reuse context; simplify without mandatory reference bloat; validate structure, links and scenarios; report counts and deliver PR for user review. Hosted CI, independent review and human merge remain required for Done.
 
 Evidence: [report](../reports/E.md). Resume: [checkpoint](../checkpoints/current.md).
+
+User follow-up: one ultra-concise directory map shared by both skills and linked from README; load only when locating unfamiliar paths, with detailed layout policy retained at existing authorities.
