@@ -66,7 +66,7 @@ Do not put secrets in chat, git, reports, fixtures, or logs. Reference secret na
 
 ## Checkpoint and finish
 
-At a useful boundary, before switching context, and before ending a task:
+At a useful boundary, before switching context, and before ending a task, apply [Commit boundary](docs/agile-workflow.md#commit-boundary): workers update record files before push; afterward report checks and blockers in the PR comment and result message without editing those files.
 
 1. Update the owned checkpoint (`checkpoints/<task>.md` for a coordinated worker, `checkpoints/current.md` for the coordinator or standalone agent): task, checkout/branch/HEAD when available, completed work, in-flight commands, next concrete action, blockers, checks, and changed files. The coordinator rewrites `checkpoints/current.md` and appends `checkpoints/log.md` ([Now and the log](docs/agile-workflow.md#now-and-the-log)).
 2. Coordinator/standalone agent: update the assigned row in `epic.md` with status and evidence/report links. Coordinated workers return proposed status updates in their report.

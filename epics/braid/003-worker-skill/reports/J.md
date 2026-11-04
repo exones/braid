@@ -39,20 +39,20 @@ Walkthrough against the changed text, including one review-fix round. File names
 
 ## Word counts
 
-Whitespace-separated tokens at dispatch tip `2b823f9fb7918b8db04d8cf985be327cdad28f70`, then after these edits. Combined growth is 1,156 words, 9.22 percent, under the about-10-percent cap.
+Whitespace-separated tokens at dispatch tip `2b823f9fb7918b8db04d8cf985be327cdad28f70`, then after the review001 repairs. Combined growth is 1196 words, 9.54 percent, under the about-10-percent cap.
 
 | File | Before | After | Delta |
 | --- | ---: | ---: | ---: |
-| `AGENTS.md` | 1688 | 1689 | 1 |
-| `.agents/skills/braid-worker/SKILL.md` | 1665 | 1670 | 5 |
+| `AGENTS.md` | 1688 | 1714 | 26 |
+| `.agents/skills/braid-worker/SKILL.md` | 1665 | 1688 | 23 |
 | `.agents/skills/braid-coordinate/SKILL.md` | 1347 | 1360 | 13 |
 | `.agents/skills/braid-worker/assets/assignment-packet.md` | 804 | 839 | 35 |
-| `.agents/skills/braid-worker/references/t3-continuation.md` | 1683 | 1692 | 9 |
-| `.agents/skills/braid-coordinate/references/delivery.md` | 1941 | 2166 | 225 |
+| `.agents/skills/braid-worker/references/t3-continuation.md` | 1683 | 1687 | 4 |
+| `.agents/skills/braid-coordinate/references/delivery.md` | 1941 | 2168 | 227 |
 | `.agents/skills/braid-coordinate/references/delegation.md` | 719 | 732 | 13 |
 | `docs/agile-workflow.md` | 1692 | 2459 | 767 |
 | `epics/report-format.md` | 1004 | 1092 | 88 |
-| **Total** | **12543** | **13699** | **1156** |
+| **Total** | **12543** | **13739** | **1196** |
 
 ## Status search
 
@@ -65,3 +65,15 @@ Hosted proof is not claimed here. The docs gate reads the Git index, so this rep
 - `npm ci` with the pinned toolchain, then `npm run verify`: exit 0. Node `v26.13.0`, npm `11.20.0`, pwsh `7.6.9`. Docs gate passed (`text=233`). Tests: 40 pass, 0 fail. The pack is a dirty pre-commit probe, not a clean candidate: tarball SHA-256 `16bb1e4957258317830c2d78cdaaeed116cf46f479dec99c96fc30aefdb7fa36`, source revision `2b823f9fb7918b8db04d8cf985be327cdad28f70`, `worktree-dirty True`, `candidate False`.
 - `python -X utf8 -B C:/Users/exon/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/braid-worker`: exit 0, `Skill is valid!`
 - The same command on `.agents/skills/braid-coordinate`: exit 0, `Skill is valid!`
+
+## Review001 repair
+
+Review001 at `ed03974840664d8580af2f998c9046d9562a66bd` found three timing contradictions. All are accepted for repair. The Sol coordinator made these small wording fixes directly after confirming both the Grok author and reviewer had completed and the author branch was clean; no worker was restarted or replaced.
+
+- F1: the AGENTS finish list now explicitly applies the commit boundary to worker files: before push update them, after push send checks/blockers through the PR comment and result. Worker waiting/blocker guidance names that message route, including transport failures, without modifying committed records.
+- F2: the legacy relay includes head/check facts in its waiting result. A repair includes record updates in its repair commit before push, then yields. The later evidence-only commit sentence is removed.
+- F3: fixes stay on the item PR; review files follow the singular ownership table into the coordinator's next epic commit.
+
+Lifecycle check after repair: a green completion and a post-push access/transport blocker leave the worker report/checkpoint unchanged and report the new facts through the assigned channel (and PR comment when accessible). A code or policy repair includes report/checkpoint changes before the new push, with fresh current-head proof afterward. Review files remain outside the item head. Human merge and release authority are unchanged. The original review and old-head green proof remain historical; this repair requires new local/hosted proof and independent recheck before acceptance.
+
+Repair local proof: full `npm run verify` exited 0 with Node v26.13.0/npm11.20.0/pwsh7.6.9, docs gate `suppressed=7 exclusions=7 text=235`, cross-drive/negative fixtures and all40 tests passed, packed install passed. This was a dirty pre-commit probe from source `ed039748`, candidate false, tarball SHA256 `16bb1e4957258317830c2d78cdaaeed116cf46f479dec99c96fc30aefdb7fa36`; no clean-candidate claim. Both external skill validators exited0. New-head hosted checks and independent recheck remain required after this repair push. Post-push proof goes in the PR comment/result rather than another file commit.
