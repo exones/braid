@@ -2,7 +2,7 @@
 
 Kind: spike. Epic: [BRAID-003](../epic.md).
 Status: backlog. Owner: one evaluator/trial worker at a time; coordinator selects assignments after approval.
-Depends on: C delivered/reviewed; A's supported continuation available; committed context and an explicitly authorized low-impact trial scope.
+Depends on: C technically accepted; approved E reporting/merge rules and B/C integration delivered/reviewed/human-merged to main; A's supported continuation available; committed context and an explicitly authorized low-impact trial scope. User's E-only request does not dispatch D.
 
 ## Read first
 

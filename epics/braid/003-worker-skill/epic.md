@@ -1,7 +1,7 @@
 # Epic BRAID-003: a focused, resumable worker skill
 
 Created: 2026-11-03. Owner: user. Coordinator: this planning session.
-Status: in-progress. **A and B are technically accepted with no-findings independent reviews; C is Ready for integration from B's exact reviewed head. Human merges remain open.**
+Status: in-progress. **E approved for Grok Extra High. #9/#10 were human-merged into feature bases, not main; E will reconcile the accepted B/C result with main and deliver its reporting/merge-gate changes in one main-targeted PR. Stop before D until E's human merge.**
 Release target: workflow improvement for the current manual bootstrap; no CLI release.
 Controller/schema: coordinator skill and Markdown files; no new machine ledger or released-controller adoption.
 
@@ -49,12 +49,15 @@ IDs follow the [backlog convention](../../../docs/agile-workflow.md#backlog-item
 
 | ID | Kind | Outcome | Depends on | Owner | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| A | spike | [Prove worker-owned CI waiting](backlog/A-worker-ci-wait.md) | technically accepted; human merge outstanding | Sol High worker; separate reviewer | in-review | [PR #8](https://github.com/exones/braid/pull/8), reviewed `c86bc3990a63a5b18d582782e54f9a3cffa18928`; [no-findings pass 001](reports/reviews/A/A-worker-ci-wait-review-001.md); [acceptance](reports/A-acceptance.md); all four jobs/uploads/artifacts and teardown verified |
-| B | story | [Create the worker execution skill](backlog/B-worker-skill.md) | technically accepted; human merge outstanding | Sol High author; separate reviewer | in-review | [PR #9](https://github.com/exones/braid/pull/9), exact `01838178e67e4aa7fdb382587d15527c8cd3402b`; [no-findings pass 001](reports/reviews/B/B-worker-skill-review-001.md); [acceptance](reports/B-acceptance.md); four jobs/uploads/artifacts and teardown verified |
-| C | task | [Integrate assignments and remove duplicated duties](backlog/C-assignment-integration.md) | B technically accepted/reviewed; explicit stack order | one Sol High worker | ready | [B acceptance and committed context](reports/B-acceptance.md); preserve existing profile edits; PR base `t3/fa4ebcc5` |
-| D | spike | [Prove startup, recovery, and green handoff](backlog/D-worker-behavior-proof.md) | C delivered/reviewed; A mechanism available | one evaluator/trial worker at a time | backlog | scenario matrix defined; unexecuted |
+| A | spike | [Prove worker-owned CI waiting](backlog/A-worker-ci-wait.md) | accepted and human merged | Sol High worker; separate reviewer | done | [PR #8](https://github.com/exones/braid/pull/8), reviewed `c86bc3990a63a5b18d582782e54f9a3cffa18928`; [no-findings pass 001](reports/reviews/A/A-worker-ci-wait-review-001.md); merged `a2120bfa084a32212a780a0fdc095c38d8869ef5` on 2026-11-04; all four jobs/uploads/artifacts and teardown verified |
+| B | story | [Create the worker execution skill](backlog/B-worker-skill.md) | technically accepted; main integration pending | author/reviewer stopped | in-review | [PR #9](https://github.com/exones/braid/pull/9) merged `71071ef4bbf380213a5f5cd1b74eb458016b14e3` into A feature branch; reviewed `0183817`, no findings; [acceptance](reports/B-acceptance.md); E carries reviewed result to main |
+| C | task | [Integrate assignments and remove duplicated duties](backlog/C-assignment-integration.md) | technically accepted; main integration pending | author/reviewer stopped | in-review | [PR #10](https://github.com/exones/braid/pull/10) merged `4e7e976a4030f23d63b846f156a307a7b70fc870` into B feature branch; reviewed `6c3fcc1`, [no findings](reports/reviews/C/C-assignment-integration-review-001.md); [acceptance](reports/C-acceptance.md) |
+| E | task | [Consistent reports, PR human/technical parts and merge stopping gates](backlog/E-reporting-and-merge-gates.md) | approved; explicit B/C/main integration | Grok 4.7 Extra High worker | ready | [committed assignment inputs](reports/E-assignment.md); actual #9/#10 merges inspected, descriptions reformatted; no implementation yet; priority before D |
+| D | spike | [Prove startup, recovery, and green handoff](backlog/D-worker-behavior-proof.md) | reviewed E/main integration and human merge; A mechanism available | one evaluator/trial worker at a time | backlog | scenario matrix defined; unexecuted; no dispatch before merge boundary |
 
 Order: A -> B -> C -> D. A answers a delivery-blocking capability question. B is a usable explicitly loaded worker skill. C makes it the normal assignment path and removes conflicting worker prose. D tests the resulting behavior rather than merely its wording. Keep checklist work within these items; do not add a letter for each review or scenario.
+
+Approved user follow-up, 2026-11-04: `$braid-coordinate go BRAID-003 / E` authorizes the clarified human report triggers, PR human/technical records and merge stopping rules, using Grok 4.7 Extra High/500K for E only. Original IDs and global profile retained. Actual #9/#10 feature-base merges do not deliver to main; the [E assignment](reports/E-assignment.md) pins local integration inputs and preserves main history. E's main-targeted PR will explicitly group accepted B/C integration/evidence with new E instructions and receive new integrated-head proof/review/human merge before D. No remote PR merge authorized.
 
 WIP/resource conflicts: B/C share skill and policy paths and must not overlap. A/D must not control an existing worker or PR from another epic. A trial occupying the worker slot prevents a simultaneous implementation assignment. Coordinator owns this table and `checkpoints/current.md`; workers own their item implementation/report/checkpoint only.
 
@@ -78,6 +81,8 @@ Approved on 2026-11-03: the complete [rule set](proposed-rules.md), retaining th
 
 The user requested committing the plan and proceeding, and authorized Sol High for this work as a task-specific exception to the default implementation profile. Verified route: Codex `gpt-6.1-sol`, explicit `reasoningEffort: high`; preserve the global AGENTS profile. Start A in tool-managed isolation. Another epic's release assignment occupies the implementation lane; A's independent contract research may proceed, but it must not start a live implementation/PR trial until that lane is free. No merge/publication authority is granted.
 
+2026-11-04 user update: stop at PRs whose human merge is required before continuing dependent work. Do not use technical acceptance alone to start further successor items under the earlier stack allowance. Existing C worker continues its already-running assignment; no D dispatch before required merges. GitHub confirms plan #6 merge `762f9712bcc90f24016ce355df19943860e66d2e` and A #8 merge `a2120bfa084a32212a780a0fdc095c38d8869ef5`. Reconcile B/C bases safely after worker handoff, preserving reviewed heads and requiring relevant revalidation.
+
 ## Delivery evidence and release checklist
 
 - [x] Current guidance, prior Git analysis, CI entrypoints, and representative ignored inspiration material inspected; rationale retained in [planning report](reports/planning.md).
@@ -87,6 +92,7 @@ The user requested committing the plan and proceeding, and authorized Sol High f
 - [x] A proves a viable bounded worker wait/continuation; independent pass 001 no findings, coordinator accepted. A remains In Review pending human merge.
 - [x] A worker handed off green final H3 `c86bc39` after one controlled failure/repair and cleanup; coordinator stopped its watch (`wasWatching: true`, `watching: false`). Independent review accepted; human merge pending; no arbitrary restart/cross-provider guarantee.
 - [x] B green handoff at `0183817`, four job/upload/artifact proofs, parent teardown and no-findings independent review accepted; human merge pending. C's technical dependency is satisfied under explicit #6 -> #8 -> #9 -> C branch ordering.
+- [x] C green handoff at `6c3fcc1`, independent pass 001 no actionable findings, coordinator accepted; provider profile/source ownership and four hosted job/upload/artifact proofs verified. B/C human merges remain outstanding; stop before D under user's later merge boundary.
 - [ ] B/C skill and integration pass local, hosted CI, independent review, and human merge.
 - [ ] D behavioral proof and milestone review accepted; outcome report and retrospective written.
 - No worker skill implemented, PR created, CI run, merge, release, or deployment is claimed by this planning change.

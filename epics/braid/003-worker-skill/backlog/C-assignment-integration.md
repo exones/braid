@@ -1,7 +1,7 @@
 # C: integrate assignments and remove duplicated worker duties
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: ready. Owner: one Sol High implementation worker under the user's epic-specific override; preserve the global provider profile.
+Status: in-review. Owner: author/reviewer stopped; exact `6c3fcc112a344daed36b8d782426d65509ff35db` accepted. PR #10 human-merged as `4e7e976a4030f23d63b846f156a307a7b70fc870` into B's feature branch; main integration tracked in [E assignment](../reports/E-assignment.md). See [original acceptance](../reports/C-acceptance.md).
 Depends on: B delivered/reviewed; A mechanism available; approved rule set; safe ownership boundary for shared policy edits.
 
 Readiness: [B accepted](../reports/B-acceptance.md) at exact `01838178e67e4aa7fdb382587d15527c8cd3402b`, independent pass 001 no findings; [A accepted](../reports/A-acceptance.md). No predecessor merge is asserted. Start from committed C context based on B, retain the generated owned branch and target PR base `t3/fa4ebcc5`; explicit human merge order #6 -> #8 -> #9 -> C. Four existing provider-profile edits are retained verbatim as input context; preserve them during integration. No other active implementation owner remains.
