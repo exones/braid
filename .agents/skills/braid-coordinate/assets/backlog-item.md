@@ -5,7 +5,8 @@ Workflow links resolve from this template's Braid installation; rewrite them to 
 Choose `<ID>` using the [backlog item ID convention](../../../../docs/agile-workflow.md#backlog-item-ids).
 
 Kind: story | task | spike. Epic: <ID/path>. Feature: <optional group>.
-Status: backlog. Owner: <role>. Depends on: <IDs or none>.
+Owner: <role>. Depends on: <IDs or none>.
+Item status is only the epic backlog table. See [One home for status](../../../../docs/agile-workflow.md#one-home-for-status).
 
 ## Read first
 <AGENTS.md, relevant decisions, epic, checkpoint, and dependency reports.>
