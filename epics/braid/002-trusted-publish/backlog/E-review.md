@@ -1,7 +1,7 @@
 # E: review the install policy and OIDC guard
 
 Kind: review task. Epic: [AGENTO-002](../epic.md). Feature: public npm release.
-Status: backlog. Owner: a reviewer other than the AGENTO-002/B and AGENTO-002/C author. Depends on: AGENTO-002/B and AGENTO-002/C.
+Status: in-review. Owner: a reviewer other than the AGENTO-002/B and AGENTO-002/C author. Depends on: AGENTO-002/B and AGENTO-002/C. Not Done.
 
 This item is AGENTO-002/E. The seed review item is AGENTO-001/R.
 
@@ -25,9 +25,9 @@ Examine the diff and the evidence after both candidates exist. Return findings a
 
 ## Implementation or research tasks
 
-- [ ] Read the AGENTO-002/B and AGENTO-002/C diffs and their reports.
-- [ ] Write findings or an explicit none in `reports/E.md`.
-- [ ] Hand scoped fixes back. Stop after this item.
+- [x] Read the AGENTO-002/B and AGENTO-002/C diffs and their reports.
+- [x] Write findings or an explicit none in `reports/E.md`.
+- [x] Hand scoped fixes back. No product correction. Stop after this item.
 
 ## Ownership and verification
 
@@ -35,7 +35,14 @@ Own `checkpoints/E.md` and `reports/E.md`. The coordinator assigns fixes as a se
 
 ## Delivery record
 
-Empty until assigned.
+- Branch: `feat/002-e-review`
+- Base: `origin/main` `acd87301c8c267b7b89651c1e2b01913d6c84692`
+- Reviewed: AGENTO-002/B head `ab57b4d668aaf8271fa7d6ac73ef8550e721a173`, merge `126145278c3d9aae7df82d4f5252d97a39057931`; AGENTO-002/C head `ade7b918247b571cdd441071965cf07a0baf4c0f`, base `acd87301c8c267b7b89651c1e2b01913d6c84692`
+- Findings: none
+- Review commit: `57a8c6f076b3b54e7603be029788dcf5ca1e35ca`
+- Pull request: https://github.com/exones/braid/pull/5
+- Head: the commit that contains this pull request URL
+- Status: `in-review`. Not Done. This record is not a GitHub approval and does not claim a published package.
 
 ## Report and resume
 
