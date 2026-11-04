@@ -21,7 +21,13 @@ The coordinator, workers, reviewers and the maintainer get one table that answer
 
 ## Scope and non-goals
 
-Adopt this agreed ownership matrix (user agreed 2026-11-04) as the single authority in `docs/agile-workflow.md`, replacing the per-file owner comments in its Files section, and link to it from other places rather than restating it:
+The user agreed three rules on 2026-11-04; J adopts all three:
+
+- **Ownership matrix:** every record has one writer, branch, write moment and committer (table below).
+- **Before push in the PR, after push by the coordinator:** an item PR carries the code plus the worker's report and checkpoint as they stand at candidate time. Everything learned after the push (hosted CI proof, review passes, triage, acceptance, merge) is written on the epic by the coordinator, ending with one acceptance commit after the human merge. The PR head never changes for paperwork.
+- **Post-push evidence on GitHub, facts copied into files:** between push and merge, the worker's current-head proof lives in a PR comment and its result message, and the reviewer posts a short PR summary comment. These comments are transport, not the durable record. The coordinator's acceptance file copies the verified facts themselves, not just links: checked head SHA, base, workflow run/attempt/job IDs with conclusions, required steps, merge SHA, review pass name, reviewed head, findings and triage. Hosted logs and artifacts expire and comments can be edited, so a link alone never counts as the record. A PR closed without merge gets a coordinator triage note on the epic saying why.
+
+Adopt the ownership matrix as the single authority in `docs/agile-workflow.md`, replacing the per-file owner comments in its Files section, and link to it from other places rather than restating it:
 
 | File | Writer | Branch | When | Committed by |
 | --- | --- | --- | --- | --- |
@@ -32,7 +38,7 @@ Adopt this agreed ownership matrix (user agreed 2026-11-04) as the single author
 | current-head CI proof and result | worker | none: PR comment and result message | after green | not a file |
 | `reports/reviews/<ID>/*`, `checkpoints/reviews/<ID>/*` | reviewer | none: returned files plus a PR summary comment | after the green head | coordinator copies into its next epic commit |
 | `reports/<ID>-coordinator-triage.md` | coordinator | epic | after review returns | coordinator |
-| `reports/<ID>-acceptance.md` | coordinator | epic | after human merge: merge SHA, accepted head, run IDs, review link | coordinator, one acceptance commit |
+| `reports/<ID>-acceptance.md` | coordinator | epic | after human merge: copied facts listed above, not only links | coordinator, one acceptance commit |
 | `reports/final.md`, `retro.md` | coordinator | epic | epic close, before the main PR | coordinator |
 | maintenance/audit records | that session | its own branch/worktree | never inside a live checkout | that session, via its own PR |
 
@@ -51,9 +57,10 @@ Non-goals: a separate records branch or out-of-git state (later roadmap), moving
 
 1. Given any file type in the matrix, the maintained docs name exactly one writer, branch, write moment and committer, and every other policy file links to that one table instead of restating it.
 2. Given the full item lifecycle (dispatch, implement, push, CI green, review, fix, merge, acceptance), no step in the skills, packet asset, delivery rules or report format requires a commit to a green PR head for records, or leaves a record uncommitted in any worktree. Shown with a written walkthrough of the lifecycle against the changed text, including one review-fix round.
-3. The review-report contradiction in `delivery.md` is gone; the records-only coordinator commit exemption and the "project docs only via item PRs" rule are stated once and linked.
-4. The `current.md`/`history/` split is described in the epic template and checkpoint guidance with a short placeholder example; AGENTS.md has no stale current-epic pointer.
-5. `npm run verify` (H's single gate) passes locally and in all four CI jobs on the current head; both skill validators pass; independent review and human merge into the epic.
+3. The acceptance-file contract lists the facts to copy (head, base, run/attempt/job IDs and conclusions, required steps, merge SHA, review pass, reviewed head, findings, triage) and states that a link to a comment or run alone is not the record; the epic template or report format shows a short placeholder example.
+4. The review-report contradiction in `delivery.md` is gone; the records-only coordinator commit exemption and the "project docs only via item PRs" rule are stated once and linked.
+5. The `current.md`/`history/` split is described in the epic template and checkpoint guidance with a short placeholder example; AGENTS.md has no stale current-epic pointer.
+6. `npm run verify` (H's single gate) passes locally and in all four CI jobs on the current head; both skill validators pass; independent review and human merge into the epic.
 
 ## Implementation tasks
 
