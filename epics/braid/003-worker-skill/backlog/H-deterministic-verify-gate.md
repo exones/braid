@@ -1,7 +1,7 @@
 # H: make `npm run verify` the single deterministic gate, including docs
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: in-review; ready for human merge. PR18 at `7b56b82ae0b259a5e1e9a326786b1da286f5c10f` has all four CI jobs/required steps green and [independent review 001](../reports/reviews/H/H-deterministic-verify-gate-review-001.md) has no actionable findings. Human merge into the epic remains before I; see [coordinator account](../reports/H-coordinator-triage.md).
+Status: done. Human PR18 merge `2b6c2f407d275ed1faa2dc2768278fcfa302aaf9` verified; accepted `7b56b82` and no-findings review001 retained. See [acceptance](../reports/H-acceptance.md). User selected J before I/D.
 Depends on: F merged into the epic.
 
 ## Value
