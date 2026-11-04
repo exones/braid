@@ -9,20 +9,20 @@ Status: selected registry, 2026-11-03. This supersedes the Forgejo/Tailscale reg
 3. D builds the exact tarball, installs it outside the source checkout, and verifies its behavior. Prepare npm publication from GitHub Actions after those checks, with a manual/reviewed release trigger.
 4. Complete the account/package bootstrap and trusted-publisher setup, then perform an explicitly authorized release. Keep an exact versioned tarball as the bootstrap artifact/fallback.
 
-Keep `private: true` on the provisional local package until release configuration deliberately enables publication. The executable remains `braid` even if the package is scoped as `@<owner>/braid`. Package ownership/name availability must be verified; the local development name is not a registry reservation.
+The package is public `@exones/braid` with `"private": false`. The executable remains `braid`. Registry `latest` is `0.1.0`. This source is `0.1.1` and stays unpublished until a separate authorization.
 
 ## Prepared release workflow
 
-Checked against npm's docs on 2026-11-03. This repository has not published a package, created a tag, or created a GitHub Release.
+Checked against npm's docs on 2026-11-03. Public `@exones/braid@0.1.0` is on the registry, along with `0.0.0-stage`. This source is the unpublished `0.1.1` candidate. This change does not publish, tag, or create a GitHub Release.
 
-`.github/workflows/release.yml` runs only on `workflow_dispatch`. The required input `confirm` must be the word `publish`. The job checks out the selected ref, runs the same verify gate as pull requests, and uploads `artifacts/package/` as the workflow artifact `braid-release-tarball`. That file is the verified tarball plus `braid-0.1.0.provenance.json`. The workflow does not create a git tag or a GitHub Release.
+`.github/workflows/release.yml` runs only on `workflow_dispatch`. The required input `confirm` must be the word `publish`. The job checks out the selected ref, runs the same verify gate as pull requests, and uploads `artifacts/package/` as the workflow artifact `braid-release-tarball`. For this candidate that directory holds `exones-braid-0.1.1.tgz` and `exones-braid-0.1.1.provenance.json`. The workflow does not create a git tag or a GitHub Release.
 
 `npm publish` runs only when both of these are true:
 
 - `package.json` `private` is not `true`
 - the GitHub Actions repository variable `BRAID_RELEASE` is exactly `enabled`
 
-Until then the publish step is skipped. `npm publish` is not executed. The package in this revision stays `private: true`, so a dispatch cannot publish. Do not dispatch the workflow to test it; the pull-request CI workflow already packs and uploads the tarball.
+Until `BRAID_RELEASE` is exactly `enabled`, the publish step is skipped. `npm publish` is not executed by preparing this candidate. `private` is `false`. Do not dispatch the workflow to test it; the pull-request CI workflow already packs and uploads the tarball.
 
 The publish step publishes the tarball produced by that same job (`npm publish --ignore-scripts <tarball>`). A scoped name also gets `--access public`, which matches the selected public-package route. A paid private npm package is not this workflow. The job uses GitHub-hosted `ubuntu-latest`, `contents: read`, `actions: write`, and `id-token: write`. It does not set `NODE_AUTH_TOKEN` or `registry-url`.
 

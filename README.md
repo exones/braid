@@ -2,7 +2,7 @@
 
 braid is a TypeScript/Node.js CLI for tracking epics and work items in a local manual ledger. PowerShell provides build and verification automation. GitHub hosts source and Actions; npm is the selected package registry. T3 dispatch and automated coordination are planned capabilities.
 
-Project and CLI name: **braid**. Use `braid` as the executable, for example `braid --help` and `braid --version`. See the [naming decision](docs/cli-name.md). The package is public `@exones/braid` at `0.1.0`. The command remains `braid`. Source is [exones/braid](https://github.com/exones/braid). The former unscoped name `agento` is a different public package, version 0.1.2 on 2026-11-03.
+Project and CLI name: **braid**. Use `braid` as the executable, for example `braid --help` and `braid --version`. See the [naming decision](docs/cli-name.md). The package is public `@exones/braid`. This source is version `0.1.1`. The registry `latest` is still `0.1.0`. The command remains `braid`. Source is [exones/braid](https://github.com/exones/braid). The former unscoped name `agento` is a different public package, version 0.1.2 on 2026-11-03.
 
 ## Start here
 
@@ -45,7 +45,7 @@ pwsh -NoProfile -File .\scripts\Verify.ps1
 
 ## CLI
 
-Verification compiles the executable to `dist/cli.js`. `package.json` maps the `braid` bin to that file. This checkout does not put `braid` on `PATH` and does not install a global copy. The package stays `private: true`. To run from source, use the compiled entry:
+Verification compiles the executable to `dist/cli.js`. `package.json` maps the `braid` bin to that file. This checkout does not put `braid` on `PATH` and does not install a global copy. `package.json` sets `"private": false` for public `@exones/braid`. This checkout does not publish `0.1.1`. To run from source, use the compiled entry:
 
 ```powershell
 node .\dist\cli.js --help
@@ -55,7 +55,7 @@ node .\dist\cli.js --root "C:\work\demo project" init
 
 In the examples below, `braid` means that compiled entry unless a section says the command is the installed executable. Ledger commands do not call T3, Git, or the network.
 
-`--help` and `-h` print help to stdout and exit 0. With no arguments, behavior matches `--help`. Help lists the ledger commands and includes `Completion is a manual record, not gate acceptance.` Help for a known command describes that command. `--help` with an unknown command word exits 1. When help is absent, `--version` and `-v` print one stdout line, `braid 0.1.0`, and exit 0, including when other arguments are present. The version text is the `version` field of the `package.json` shipped beside the compiled entry.
+`--help` and `-h` print help to stdout and exit 0. With no arguments, behavior matches `--help`. Help lists the ledger commands and includes `Completion is a manual record, not gate acceptance.` Help for a known command describes that command. `--help` with an unknown command word exits 1. When help is absent, `--version` and `-v` print one stdout line, `braid 0.1.1`, and exit 0, including when other arguments are present. The version text is the `version` field of the `package.json` shipped beside the compiled entry.
 
 ### Manual ledger
 
@@ -101,11 +101,9 @@ A kill or power loss during the rename or sync is not tested. Same-directory rep
 
 ## Install a pinned controller
 
-The package stays `private: true`. That field blocks `npm publish`. It does not reserve a registry name, and it is not an npm paid private package. Nothing from this repository has been published.
+Development runs pin the published `@exones/braid@0.1.0` controller. Install that verified tarball outside the source checkout. Keep the sibling `braid-0.1.0.provenance.json` with the tarball. That file records version `0.1.0`, the git revision that was packed, whether the worktree was dirty, and the tarball's SHA-256. `braid --version` prints `braid 0.1.0`. It does not print the git revision. Do not use `npm link`, and do not install from a path inside the checkout.
 
-Install a verified tarball outside the source checkout. Keep the sibling `braid-0.1.0.provenance.json` with the tarball. That file records version `0.1.0`, the git revision that was packed, whether the worktree was dirty, and the tarball's SHA-256. `braid --version` prints `braid 0.1.0`. It does not print the git revision. Do not use `npm link`, and do not install from a path inside the checkout.
-
-`private: true` in `package.json` means the package cannot be published yet. The examples below use disposable directories and do not start a later development stage.
+The examples below install that `0.1.0` controller. They do not publish this source's `0.1.1` candidate.
 
 ```powershell
 $prefix = "C:\tools\braid 0.1.0"
