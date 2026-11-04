@@ -1,5 +1,10 @@
 # BRAID-003 current coordinator checkpoint
 
+## Current visibility boundary — supersedes earlier next-action text
+
+User stopped G and requested clarity. Read [current work inventory](../reports/current-work-inventory.md) first. G has no active run; stale ordinal3 notification remains queued; do not restart. Only PR13 open, blocked. PR14 human merged as1dd5cb735c4614b75d96c0694c8c6d0a939f2605; independent exact-head review running (post-merge). Windows investigator returned30/30 local pairs passing, native cause inconclusive, no fix/PR/process. No new dispatch/experiment/F/D/cleanup. Await only the already-running review and consolidate its result. All29 worktrees inventoried; old report/review evidence retained. Main and epic checked-out files still earlierc803 baseline; fetched remote main includes14. No automatic source/base transition at this visibility boundary.
+
+
 Date: 2026-11-04. Role: coordinator. State: approved execution setup; G is next, not yet launched.
 
 ## Workspace and authority
