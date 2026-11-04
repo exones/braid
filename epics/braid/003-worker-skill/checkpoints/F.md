@@ -4,7 +4,7 @@ Date: 2026-11-04. Task: integrate epic delivery, workspace ownership, and assign
 
 ## Checkout
 
-Root `C:\worktrees\agento\item-braid-003-f-epic-workspaces`. Branch `item/braid-003-f-epic-workspaces`. Origin `https://github.com/exones/braid.git`. Startup HEAD `3b9e92b4c8686fef50ba177bfa9821dd8d9182cf` matched the packet. The commit that contains this file is the candidate head. This file does not name that SHA. Index at authoring: the policy files plus this checkpoint and `reports/F.md`.
+Root `C:\worktrees\agento\item-braid-003-f-epic-workspaces`. Branch `item/braid-003-f-epic-workspaces`. Origin `https://github.com/exones/braid.git`. The packet named `0bb0ca0b37079fa047596288ea7e44fc8c880b0d` (its parent). The coordinator launch prompt supplied the actual start `3b9e92b4c8686fef50ba177bfa9821dd8d9182cf` (the epic tip that contains the packet), which matched. The commit that contains this file is the candidate head. This file does not name that SHA. Index at authoring: the policy files plus this checkpoint and `reports/F.md`.
 
 ## Read index
 
@@ -12,15 +12,13 @@ Assignment `assignments/F.md`, backlog F, execution policy, G operator reference
 
 ## Completed
 
-Policy is in the maintained authorities. Local validators, link/anchor check, and `git diff --check` passed on the dirty tree before commit. Details and the authored scenario trace are in [reports/F.md](../reports/F.md).
+Policy is in the maintained authorities. Review 001 fixes for F1, F2, and F3 are in the commit that contains this file. Local validators, the link/anchor check, and `git diff --check` for that commit are in [reports/F.md](../reports/F.md).
 
 ## Next action
 
-If no pull request exists yet: commit the owned paths, push `HEAD` to `refs/heads/item/braid-003-f-epic-workspaces`, open one pull request into `epic/braid-003-worker-skill`, call `link_pull_request`, call `watch_pull_request`, and end the turn. If the push or pull request already exists, reuse it. Do not open a second pull request.
+Stop after the review-fix push. The result for head `54028a4cc8f6cbdca1a25b9c339eeb0622fe39ac` was sent once. Do not send it again. The coordinator rechecks the new head. This worker does not watch, link, or merge.
 
-On a watch wake: pending checks end the turn; an in-scope failure is fixed and pushed; a green current head is confirmed with `gh run list --commit <head>` for both `push` and `pull_request`, then `unwatch_pull_request`, then one `t3_thread_send` to coordinator thread `8a3c206a-9192-498f-b90a-19b5bf807c8c`. Do not send twice for the same head.
-
-Frozen set: push and pull_request, Ubuntu and Windows `verify`, Install dependencies, Verify, and Upload packed tarball successful. A post-green note of run IDs stays in the coordinator message. Do not commit a self-SHA supplement.
+Pull request https://github.com/exones/braid/pull/16. Earlier proof at `54028a4cc8f6cbdca1a25b9c339eeb0622fe39ac`: push run `41917069166` verify (windows-latest) `126879434383` and verify (ubuntu-latest) `126879434947`; pull-request run `41917100486` verify (ubuntu-latest) `126879543969` and verify (windows-latest) `126879544385`. Install dependencies, Verify, and Upload packed tarball succeeded on all four. Unwatch returned `watching: false`, `wasWatching: true`. Coordinator send `message:mcp:ba8e206d-8cab-4229-af60-fe2189f643b6:thread-send:f-result-54028a4cc8f6cbdca1a25b9c339eeb0622fe39ac`, run `run:thread:8a3c206a-9192-498f-b90a-19b5bf807c8c:ordinal:104`, delivery `started`. That proof does not cover the review-fix commit.
 
 ## Blockers
 
