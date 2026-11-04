@@ -1,8 +1,8 @@
 # Task B: a focused worker execution skill
 
-Status: partly proven; local candidate prepared, hosted delivery pending. Date: 2026-11-04.
+Status: **GREEN worker handoff**, ready for coordinator acceptance/independent review; not Done/merged/released. Date: 2026-11-04. Local structural/authored proof and declared current-head hosted evidence pass; independent behavioral evaluation remains separate.
 Backlog: [B-worker-skill](../backlog/B-worker-skill.md). Root: `C:\worktrees\agento\t3-fa4ebcc5`; branch: `t3/fa4ebcc5`.
-Initial/source HEAD: `16239f5f45685c568705c8f4aa43b8357135bb35`. Candidate head/PR are recorded after creation in the worker checkpoint and handoff, avoiding a self-SHA evidence push.
+Initial/source HEAD: `16239f5f45685c568705c8f4aa43b8357135bb35`. Current candidate full HEAD: **`01838178e67e4aa7fdb382587d15527c8cd3402b`**; [PR #9](https://github.com/exones/braid/pull/9), OPEN/base `t3/85fcb290`. Current post-push evidence in this report/checkpoint is a local unstaged supplement, distinct from the checked Git blobs, avoiding a self-SHA evidence push.
 
 ## Outcome
 
@@ -62,4 +62,38 @@ Metadata/link checks do not prove that a fresh worker follows the skill, host re
 
 Frozen set: **CI push AND pull_request**, EACH `verify (windows-latest)` and `verify (ubuntu-latest)` SUCCESS through `Verify` and `Upload packed tarball`, regardless of branch protection. Worker must inspect actual current PR head, workflow/event/run/attempt/job/step identities and required artifact/source mapping. PR merge-test source and PR-head identity stay distinct. Missing, pending, failed, skipped, cancelled, neutral, inaccessible or stale proof never passes.
 
-Next worker action at this pre-push boundary: final owned scope/diff validation, conventional commit, explicit push to `origin HEAD:refs/heads/t3/fa4ebcc5`, create one B PR against `t3/85fcb290`, immediately link as the next tool call, then checkpoint actual full HEAD/PR and yield **WAITING_CI_RELAY**, not successful delivery. Parent next queues one readiness reconciliation, registers its watch and immediately yields; it relays readiness/current observations and subsequent actual events to this same worker. Worker independently verifies/repairs and returns green only after all declared current-head proof. Coordinator acceptance/review and human merge remain separate. Stop after B.
+Actual delivery operations all exited 0: `git commit -m 'feat(skills): add focused braid worker execution skill'` with scoped body/`Refs: BRAID-003/B`; `git push origin HEAD:refs/heads/t3/fa4ebcc5`; `gh pr create --repo exones/braid --head t3/fa4ebcc5 --base t3/85fcb290 --title 'feat(skills): add resumable braid worker execution' --body-file .tools/B-pr-body.md`. The immediately next tool call `link_pull_request({url: 'https://github.com/exones/braid/pull/9'})` succeeded (`alreadyLinked: false`). The ignored PR body is not a tracked asset.
+
+One post-link pre-registration metadata observation (`gh pr view 9 --repo exones/braid --json url,state,headRefOid,headRefName,baseRefName,statusCheckRollup,reviews,reviewDecision`, exit 0) confirms actual current head/base/owned branch and four IN_PROGRESS jobs with empty conclusions. Runs: [41793621485](https://github.com/exones/braid/actions/runs/41793621485), Windows job `126452460767` / Ubuntu `126452461109`; [41793615798](https://github.com/exones/braid/actions/runs/41793615798), Windows `126452441303` / Ubuntu `126452441135`. Event/attempt/upload/artifact mapping is not yet independently inspected. Reviews empty/reviewDecision empty. No parent watch/readiness or green claim follows from this snapshot.
+
+The preceding IN_PROGRESS observation is historical. Parent readiness and final worker verification below supersede the waiting action; do not repeat registration, push or PR creation.
+
+## Final independent current-head proof and GREEN return
+
+Received parent readiness **PR9-ARM-001**: parent supplied its actual preceding registration response `watching: true, wasWatching: false`, followed by its single separately queued post-registration snapshot. All four jobs had already completed before registration. This is readiness/reconciliation, **not an actual watched-success notification** and not worker artifact proof. Parent retains task lineage and watch/teardown ownership. Same B/thread/worktree/branch resumed; no task IDs were supplied to this worker and none are invented. Dedupe subsequent same-head success/waiting updates against this generation unless new evidence warrants action.
+
+Worker independently reconciled actual local HEAD/branch/dirty index state and PR OPEN/head/base before verification, then queried `gh api repos/exones/braid/actions/runs/<run>`, `/jobs`, and `/artifacts` for both named runs. All calls exited 0. Actual workflow `CI`, path `.github/workflows/ci.yml`, attempt **1** for both events; run/job heads all equal **`01838178e67e4aa7fdb382587d15527c8cd3402b`**. Each job is completed/SUCCESS; Verify step 6 and Upload packed tarball step 7 are independently completed/SUCCESS:
+
+| Event / attempt-1 run | Windows job / artifact | Ubuntu job / artifact |
+| --- | --- | --- |
+| [push 41793615798](https://github.com/exones/braid/actions/runs/41793615798) | [126452441303](https://github.com/exones/braid/actions/runs/41793615798/job/126452441303) / [13304611385](https://github.com/exones/braid/actions/runs/41793615798/artifacts/13304611385) | [126452441135](https://github.com/exones/braid/actions/runs/41793615798/job/126452441135) / [13305210415](https://github.com/exones/braid/actions/runs/41793615798/artifacts/13305210415) |
+| [pull_request 41793621485](https://github.com/exones/braid/actions/runs/41793621485) | [126452460767](https://github.com/exones/braid/actions/runs/41793621485/job/126452460767) / [13304173514](https://github.com/exones/braid/actions/runs/41793621485/artifacts/13304173514) | [126452461109](https://github.com/exones/braid/actions/runs/41793621485/job/126452461109) / [13304382938](https://github.com/exones/braid/actions/runs/41793621485/artifacts/13304382938) |
+
+All four artifacts are non-expired and associated with the respective run/current full head; expected names `braid-package-windows-latest` and `braid-package-ubuntu-latest`. `python -X utf8 -` captures raw `gh api repos/exones/braid/actions/artifacts/<id>/zip` responses, verifies SHA-256 against the authoritative artifact metadata, parses each ZIP, and verifies its tarball against sibling provenance. All native downloads and assertions exit 0. Ignored retained ZIPs/members and machine-readable verification summary: `.tools/B-hosted/{push,pull_request}/{windows,ubuntu}/` and `.tools/B-hosted/verified-summary.json`.
+
+| Artifact | Verified ZIP SHA-256 |
+| --- | --- |
+| push Windows 13304611385 | `680d492b9b686e7df8ea2cf686cb2690e709a53bac608d94ddb61f8933c2ddc3` |
+| push Ubuntu 13305210415 | `090477fad18cac7c944c4e8bed45c2506b13d8e036b4e7d6626ad27708210baa` |
+| PR Windows 13304173514 | `98598d5f18f2135ab5f4da8a1c334df06db1731b80dc046d335e220bf10e2dca` |
+| PR Ubuntu 13304382938 | `fa455088d184994c169dd77f63b90affc0f6d99bd35a8c92fb986067fef18369` |
+
+Every provenance record has `candidate: true`, `worktreeDirty: false`, `installOutsideCheckout: true`, executable `braid`, Node `v26.13.0`, npm `11.20.0`, PowerShell `7.6.9`. Both events' Windows tarball digest is `67f88e4866005e691af8ee774afe90b5b69650fa01fcd53abe85e70ff9127351`; Ubuntu digest is `491f2aa7de5c303f302f92e4fa8d5b1c06fb951c8af6f86fb136cdc6f4b9adb0`. ZIP versus tarball digests remain distinct; observed per-OS equality is no reproducibility guarantee. Provenance records package `@exones/braid` 0.1.0, `released: false`, publication not performed; no B publication occurred.
+
+Push provenance sourceRevision/githubSha equals full B head with ref `refs/heads/t3/fa4ebcc5` and empty PR-head field. PR provenance sourceRevision/githubSha equals merge-test source **`5c204d40532078ee652e4a64faf4804148259613`**, ref `refs/pull/9/merge`, pullRequestHeadSha equals full B head. `gh api repos/exones/braid/git/commits/5c204d40532078ee652e4a64faf4804148259613 --jq '{sha: .sha, parents: [.parents[].sha]}'` exits 0 and confirms parents accepted A base `c86bc3990a63a5b18d582782e54f9a3cffa18928` and B head. The distinct merge-test source is therefore verified, not equated to PR head.
+
+Final current PR head is reconfirmed after all evidence/metadata work, identical to local full HEAD above; PR remains OPEN, reviews/reviewDecision empty. No failures, repairs, extra commits/pushes, trial injections or repeated passed local gates were needed. Only B report/checkpoint are modified/unstaged post-push; index empty. These final supplements are not checked Git blobs. Parent watch remains registered per supplied readiness; **teardown has not yet been observed and must not be claimed complete**.
+
+Updated the owned PR body with final run/artifact/source evidence using `gh pr edit 9 --repo exones/braid --body-file .tools/B-pr-final.md` (exit 0), without changing source/head. Final read-only validation checks current head, four rollup successes, exact seven-path candidate scope, two dirty evidence supplements/empty index and resolving final evidence links; supplement SHA-256 identities are returned separately for coordinator retention.
+
+Next coordinator action: record exact green head/run/job/artifact evidence and proposed In Review status, tear down/record its transport watch, and assign the separate parent-scoped `B-worker-skill-review-001` against this exact candidate plus final supplement identities. Human merge authority/stack order remain unchanged. This worker stops after B. Structural/walkthrough proof does not establish fresh-agent behavior, arbitrary restart/message durability, cross-provider support or speedup. Hosted artifacts can expire and ignored local evidence can be lost; preserve the portable identities here. No independent approval/Done, merge, release, C/D work or policy integration is claimed.

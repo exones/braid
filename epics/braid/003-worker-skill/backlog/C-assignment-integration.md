@@ -1,12 +1,14 @@
 # C: integrate assignments and remove duplicated worker duties
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: backlog. Owner: one implementation worker under the current provider profile.
+Status: ready. Owner: one Sol High implementation worker under the user's epic-specific override; preserve the global provider profile.
 Depends on: B delivered/reviewed; A mechanism available; approved rule set; safe ownership boundary for shared policy edits.
+
+Readiness: [B accepted](../reports/B-acceptance.md) at exact `01838178e67e4aa7fdb382587d15527c8cd3402b`, independent pass 001 no findings; [A accepted](../reports/A-acceptance.md). No predecessor merge is asserted. Start from committed C context based on B, retain the generated owned branch and target PR base `t3/fa4ebcc5`; explicit human merge order #6 -> #8 -> #9 -> C. Four existing provider-profile edits are retained verbatim as input context; preserve them during integration. No other active implementation owner remains.
 
 ## Read first
 
-[AGENTS](../../../../AGENTS.md), README, [workflow](../../../../docs/agile-workflow.md), [decisions](../../../../docs/decisions.md), [epic](../epic.md), [current checkpoint](../checkpoints/current.md), [rules](../proposed-rules.md), [source map](../reports/planning.md#instruction-ownership-and-migration), `reports/A.md`, `reports/B.md`, current worker/coordinator skills, their references, handoff guide, and report format.
+[AGENTS](../../../../AGENTS.md), README, [workflow](../../../../docs/agile-workflow.md), [decisions](../../../../docs/decisions.md), [epic](../epic.md), [current checkpoint](../checkpoints/current.md), [rules](../proposed-rules.md), [source map](../reports/planning.md#instruction-ownership-and-migration), [A acceptance](../reports/A-acceptance.md), [B acceptance](../reports/B-acceptance.md), `reports/A.md`, `reports/B.md`, current worker/coordinator skills, their relevant references, handoff guide, and report format. The accepted review reports are dependency evidence; historical relay snapshots need loading only for a specific unresolved fact.
 
 ## Value
 

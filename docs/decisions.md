@@ -16,7 +16,7 @@ Updated: 2026-11-03. User requirements take precedence over implementation propo
 | D08 | Preserve context in versioned backlog items, checkpoints, reports, and decisions. | A fresh session must continue without chat history. |
 | D09 | Project and command are `braid`. The npm package is public `@exones/braid`. Epic files live under `epics/braid/`. The Git repository is `https://github.com/exones/braid`. | User selected `braid` on 2026-11-03 because unscoped npm `agento` belongs to another package. npm then refused unscoped `braid` as too similar to `brace`, so the package is scoped. |
 | D10 | CLI executable is `braid`, in full. | User selected the full name after considering short alternatives. |
-| D11 | Sol High coordinates; Grok 4.7 Extra High implements, with one implementation worker at a time for the seed. | User's stated provider/model preference. Coordinator and worker have separate file ownership. |
+| D11 | Use the authoritative [provider profile](../AGENTS.md#providers-and-roles), with one implementation worker at a time for the seed. | User-selected model/settings; maintain the current configuration in one place. Coordinator and worker have separate file ownership. |
 | D12 | Use epics, optional features, stories, tasks, spikes, backlog refinement, acceptance criteria, Definition of Ready, and Definition of Done. Active files live under `epics/`. | User requested Agile terminology and work division. |
 | D13 | Provide the reusable `braid-coordinate` skill before implementation, with natural-language goal entry, analysis, epic/backlog planning, and scoped delivery/resume. | User does not want to repeat long coordinator prompts. |
 | D14 | Routine coordinator progress updates use concise `Done / You / Next`; substantive completion briefings follow D20. | Initial short-report preference retained for progress; user later requested more detail after items. |
@@ -72,6 +72,7 @@ Prepare GitHub Actions publishing through [npm trusted publishing](https://docs.
 
 ## Decision log
 
+- 2026-11-03, user: changed the implementation profile before the next assignment. Updated and capability-verified the authoritative [provider profile](../AGENTS.md#providers-and-roles); the coordinator skill must read it before dispatch. Earlier assignment settings remain historical evidence.
 - 2026-11-03, user: selected `braid` as the project, CLI, package, and storage name, and asked to publish it publicly and to put the history on `https://github.com/exones/braid`. The former name `agento` stays in historical records and remains the occupied npm package. `.agento/` and `.crew/` are not migrated.
 - 2026-11-03, user: requested one maintained source for review naming instead of copies across files. Consolidated the rule in the [review conventions](agile-workflow.md#review-gates-and-indexing); instructions, skills, templates, README, and current handoff now link there. Historical review evidence remains unchanged.
 - 2026-11-03, user: refined review-agent naming to follow the item being reviewed. Adopted in D19 and the review conventions; existing records/links/findings remain valid.
