@@ -7,34 +7,33 @@ description: Execute or resume one assigned braid implementation story, task, do
 
 Complete only the assigned item. Make routine in-scope choices; do not launch agents, schedule successors, run a coordinator loop, or award independent approval/Done.
 
-## Establish the assignment
+## Establish context and checkout
 
-Use the supplied packet; [assignment-packet.md](assets/assignment-packet.md) is the compact authoring template when facts are missing. Required context must be committed in the bound checkout or explicitly supplied: no parent chat, dirty parent files, or ignored inspiration dependency. Resolve conflicting current instructions before the affected action; historical reports are evidence, not commands to replay.
+Use the supplied [assignment packet](assets/assignment-packet.md). Read [AGENTS](../../../AGENTS.md), its mandated context, assigned epic/checkpoint/item and dependency reports once; assignment paths override global pointers. Keep a short read index. Required context must be committed or explicitly supplied, not dependent on parent chat/dirty files/ignored inspiration. Resolve current conflicts before affected actions; historical reports are evidence, not commands.
 
-Read [AGENTS](../../../AGENTS.md), its mandatory project context, the assigned epic/current checkpoint/item and dependency reports once at startup. Follow the packet's assigned epic rather than an older global pointer. Record a short read index. Load additional task references only when needed; on resume refresh changed policy, assignment, shared checkpoint and relevant files rather than rereading the archive.
+Use singular authorities: [Agile workflow](../../../docs/agile-workflow.md) for Ready/Done/review; [delivery rules](../braid-coordinate/references/delivery.md) for Git and green-only handoff; [report format](../../../epics/report-format.md) for reports/PRs. Load relevant sections as needed. Legacy wording cannot permit failed handoff.
 
-Keep maintained authorities singular:
+Require scope, dependency/merge evidence, Git/ownership contract, outputs, check set and supported continuation. Report missing facts and impact to the coordinator; continue independent work. The packet cannot weaken acceptance or host restrictions.
 
-- [AGENTS](../../../AGENTS.md#providers-and-roles): provider selection, role/resource authority, project constraints. Do not copy settings into this skill or change the profile.
-- [Agile workflow](../../../docs/agile-workflow.md#definition-of-ready) and [review conventions](../../../docs/agile-workflow.md#review-gates-and-indexing): Ready/Done and independent review.
-- [Shared delivery rules](../braid-coordinate/references/delivery.md): commit/PR/history/merge invariants. **Successful worker handoff requires current-head green checks; legacy pass-or-fail handoff wording cannot permit a failed delivery.**
-- [Report format](../../../epics/report-format.md): the single human-first report, trigger, and pull-request contract. Do not keep a second briefing procedure.
+In one batch compare host-bound root, status/staged index, full HEAD, branch and expected remote against the packet. A match needs no routine fetch/history/branch inventory. Retain the generated branch unless explicitly assigned a no-track branch from a pinned full SHA. Never create child worktrees in the shell or guess paths. Preserve unexpected changes/index; reconcile only the mismatch before affected actions. No reset/clean, silent base switch/rebase or force-push. Authorized base changes invalidate affected proof.
 
-Require task/scope, dependencies and actual merge evidence, Git contract, ownership, outputs, acceptance/check set, and supported wait/return mechanism. Request missing facts from the coordinator with exact impact; continue independent work that does not depend on them. A packet cannot weaken acceptance or host restrictions.
+## Execute first; investigate incrementally
 
-## Verify the prepared checkout
+Treat the coordinator's approved brief as the implementation plan. Reopen architecture only for concrete contradictions, missing decisions or risk uncovered by evidence; report material changes before dependent work.
 
-Use the host-bound checkout. In one bounded batch compare actual root, `git status --short`, staged diff/index, full HEAD, current branch and expected remote URL against the packet. A match permits work without routine fetch, branch inventories or history rediscovery.
+After mandatory context and checkout checks, take the smallest meaningful action: inspect the named function, run a targeted test, reproduce the issue or make a bounded edit. Use a short internal plan for well-defined work, not a second planning deliverable.
 
-Retain the generated owned branch by default. Only when explicitly assigned, create one descriptive no-track branch from the full pinned base SHA. Never create child worktrees in the shell or guess paths. Preserve unexpected user changes/index; diagnose only the mismatch before affected edits or Git mutations. Do not reset, clean, silently switch/base-update/rebase, force-push or remove another owner's work. Ask the coordinator to reconcile an unexpected base; an authorized later base change invalidates affected proof.
+- Simple known change: inspect, edit, check. Specified CLI command: inspect adjacent patterns, make a short plan, implement and test. Unfamiliar crash/recovery behavior: investigate alternatives and failure modes before changing the protocol.
+- Search named paths/symbols with `rg`; read relevant sections before whole files/directories. Expand only when findings justify it. Batch independent operations and request only relevant diffs, logs and failures.
+- Reuse facts already read. Reinspect only for a new question, changed state or required revision verification. If investigation yields no actionable finding, decide whether enough is known to act; further exploration needs a concrete question affecting correctness or proof. No rigid time/tool limits.
 
 ## Implement and prove the item
 
-Stay within assigned files/resources; coordinator owns epic/shared status, readiness, scheduling, acceptance and review assignments. Workers own implementation and item report/checkpoint. Report necessary scope expansion or resource conflicts while continuing independent in-scope work. No merge, publish, deploy, tailnet/account changes or inherited infrastructure authority. Use only authorized resources; request a needed secret through the host secret mechanism, never raw values in chat or evidence.
+Stay within assigned ownership. Coordinator owns shared epic/status and scheduling; worker owns implementation and item report/checkpoint. Report scope/resource conflicts without blocking independent work. Follow AGENTS security/resource boundaries: no merge/publish/deploy/account/tailnet changes; obtain secrets only through the host mechanism, never chat or evidence.
 
-Read relevant scripts/configuration, reuse a valid pinned toolchain and install missing dependencies by the documented route. For a released-controller run, retain its pin outside the candidate checkout and record controller/schema versions; do not silently upgrade an active run. Choose focused checks for development and run all item-required local gates. Add meaningful regressions/negative controls for changed behavior where warranted; documentation/skill work needs structural/link/scenario proof, not product tests matching prose.
+Reuse the pinned toolchain; install missing dependencies by documented routes. Released controllers stay pinned outside the candidate checkout; record controller/schema versions, never silently upgrade active runs. Use focused development checks, then all required local gates. Add meaningful regressions when warranted; skill/docs changes need structural/link/scenario proof, not tests matching prose.
 
-Record exact commands, native exit codes, tool versions and checked revision. Distinguish dirty local probes, clean committed checks, installed-artifact proof and hosted CI. Preserve acceptance: never weaken gates, delete a failing test to pass, or import a known-failure waiver. Avoid repeating passed expensive checks unless changes/failures/unresolved concerns justify it.
+Record commands, exit codes, versions and revision; distinguish dirty probes, clean checks, installed-artifact proof and hosted CI. Never weaken a gate, delete failing tests to pass or inherit failure waivers. Repeat passed expensive checks only for relevant changes, failures or unresolved concerns.
 
 ## Deliver through green checks
 

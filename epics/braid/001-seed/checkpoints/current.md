@@ -1,3 +1,16 @@
+# Current follow-up: E skill efficiency
+
+Updated 2026-11-04. Standalone user assignment; previous seed closeout retained below.
+
+- Checkout: C:/worktrees/agento/docs-skill-execution-efficiency; branch docs/skill-execution-efficiency. Base/full starting HEAD: 7707524a0b5a007794f22fab6ae1439d93458bb6 from remote main. Origin: https://github.com/exones/braid.git.
+- Completed: focused coordinator/worker/assignment edits; validators pass. Evidence and counts: [E report](../reports/E.md).
+- Owned changes: three skill files, E backlog/report, epic row and this checkpoint. Original shared checkout untouched. No controller/runtime changes.
+- Delivery: preparing commit/push/main-targeted PR after local documentation gates. Resolve actual candidate HEAD and PR from Git/host; no self-SHA commit. No live command/watch.
+- Next: create/link PR and hand review to user. CI and independent review remain separate; no merge/successor authorized.
+- Blockers: none for PR creation; user owns review/merge decision.
+
+---
+
 # braid 001 current checkpoint
 
 Updated: 2026-11-03. Coordinator-owned resume point.
