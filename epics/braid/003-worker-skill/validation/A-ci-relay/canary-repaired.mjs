@@ -4,7 +4,7 @@ import { test } from "node:test";
 
 // Disposable BRAID-003/A transport canary. It reads only its own control file.
 const controlUrl = new URL(
-  "../epics/braid/003-worker-skill/validation/A-ci-relay/control.json",
+  "./control.json",
   import.meta.url,
 );
 
