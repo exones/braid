@@ -41,7 +41,7 @@ Coordinator owns epic/shared checkpoint, readiness, scheduling and acceptance. W
 
 ## Delivery gates and stop conditions
 
-Use [delivery rules](references/delivery.md) for commits, PRs, current-head green checks, review and human merge, including spikes. Local success produces a scoped commit/PR, not Done. Record PR/head, hosted CI, review triage and actual merge; never fabricate retrospective proof.
+Use [delivery rules](references/delivery.md) for commits, PRs, current-head green checks, review and human merge, including spikes. For this repository, `npm run verify` is the deterministic offline pre-PR gate for code and docs. External skill validators stay separate when they cannot run in CI. Local success produces a scoped commit/PR, not Done. Record PR/head, hosted CI, review triage and actual merge; never fabricate retrospective proof.
 
 Before a dependent item requiring merge, apply the [human merge stop](references/delivery.md#human-merge-stop): report the exact human action, checkpoint and stop until actual merge is verified. Planning-only and user-defined report/choice boundaries also stop dispatch. General delivery authority does not authorize different providers, unrelated work, publication or deployment.
 

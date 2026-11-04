@@ -1,4 +1,6 @@
-# Local and Actions gate: OIDC release shape, install policy, typecheck, build, tests, then the packed-install proof.
+# Local and Actions gate: tracked Markdown links and anchors, tracked-text
+# LF/trailing whitespace, OIDC release shape, install policy, typecheck,
+# build, tests, then the packed-install proof.
 # Root dependencies stay on `npm ci`, which reads .npmrc. The install-policy fixture is a
 # separate project and is not a root dependency. The OIDC guard only reads release.yml.
 # Stops on the first failed native command and returns that exit code.
@@ -71,6 +73,20 @@ if (-not (Test-Path -LiteralPath $typescript)) {
   Write-Error "Dependencies are not installed. Prepend '$bin' to PATH and run 'npm ci' from the repository root."
   exit 1
 }
+
+Write-Host "docs-gate: tracked Markdown links and tracked text"
+Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
+  '-NoProfile',
+  '-File',
+  (Join-Path $repoRoot 'scripts/Test-DocsGate.ps1')
+)
+
+Write-Host "docs-gate: negative fixtures"
+Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
+  '-NoProfile',
+  '-File',
+  (Join-Path $repoRoot 'test/fixtures/docs-gate/Test-DocsGateNegatives.ps1')
+)
 
 Write-Host "oidc-release: trusted publishing shape"
 Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
