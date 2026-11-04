@@ -9,3 +9,5 @@ Acceptance: approved briefs drive implementation; investigation scales to risk; 
 Evidence: [report](../reports/E.md). Resume: [checkpoint](../checkpoints/current.md).
 
 User follow-up: one ultra-concise directory map shared by both skills and linked from README; load only when locating unfamiliar paths, with detailed layout policy retained at existing authorities.
+
+Clarification: the map describes Braid workflow records for any target project, not Braid product source layout. Keep project architecture/toolchain knowledge in target context and briefs.

@@ -1,31 +1,24 @@
-# Directory map
+# Braid workflow directory map
 
-Shared orientation for both skills; consult when locating files, not on every assignment.
+Braid organizes work for any project; it does not prescribe source, architecture, toolchain or documentation layout. Discover those from the target project's instructions; carry relevant paths and decisions in the assignment brief.
 
 ```text
-<checkout>/
-├── AGENTS.md                 # project rules and role ownership
-├── README.md                 # supported capabilities, setup and usage
-├── package*.json, tsconfig*   # package, dependencies and TypeScript config
-├── src/                      # CLI and ledger implementation
-├── test/                     # tests and fixtures
-├── scripts/                  # PowerShell build, verification and publishing
-├── .github/                  # Actions workflows and PR template
-├── .agents/skills/
-│   ├── braid-coordinate/     # SKILL.md, assets/, references/, agents/
-│   └── braid-worker/         # SKILL.md, assets/, references/, agents/
-├── docs/                     # decisions, contracts and contributor guides
-├── epics/
-│   ├── README.md, report-format.md
-│   └── braid/<NNN>-<slug>/
-│       ├── epic.md, retro.md
-│       ├── backlog/          # assigned work and acceptance criteria
-│       ├── checkpoints/      # current.md shared; item/reviewer handoffs
-│       ├── reports/          # item evidence and parent-scoped reviews
-│       └── validation/       # retained exercises, where needed
-└── inspiration/              # historical reference, not authority
+<target-project>/epics/<project>/<NNN>-<slug>/
+  epic.md                         # outcome, backlog index, gates; coordinator
+  backlog/<ID>-<slug>.md           # scope, dependencies, acceptance
+  checkpoints/
+    current.md                    # coordinator/standalone resume point
+    <ID>.md                       # assigned worker resume point
+    reviews/<parent>/             # reviewer-owned resume points
+  reports/
+    <ID>-assignment.md            # filled assignment packet, when retained
+    <ID>.md                       # item result and evidence
+    reviews/<parent>/             # exact-revision review passes
+    final.md                      # epic outcome and remaining gates
+  retro.md                        # lessons and follow-ups
+  validation/                     # retained exercises, when needed
 ```
 
-Generated/local: `node_modules/` dependencies, `dist/` compiled code, `.tools/` pinned tools, `artifacts/` package/proof outputs. A CLI target root (which may differ from the checkout) contains `.braid/` ledger state, events, temporary state and lock. Released controllers are installed outside candidate checkouts.
+Skills, templates and protocol references belong to the Braid skill installation; their location does not determine the target project's layout. The [assignment packet](../.agents/skills/braid-worker/assets/assignment-packet.md) binds context, checkout, ownership, checks and return boundary; the shared checkpoint identifies active work.
 
-Details stay authoritative in [epic layout and reviews](agile-workflow.md#files), [runtime storage](seed-contract.md#storage), and [build/install instructions](../README.md). This map describes current layout, not future roadmap components.
+Consult only for workflow navigation. Details: [IDs, reviews and ownership](agile-workflow.md), [reports and checkpoints](../epics/report-format.md). Project knowledge stays in project documentation; Braid records link it rather than duplicating architecture guides. This map adds no runtime directories or automation.

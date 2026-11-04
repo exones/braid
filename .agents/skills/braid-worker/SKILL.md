@@ -1,6 +1,6 @@
 ---
 name: braid-worker
-description: Execute or resume one assigned braid implementation story, task, documentation change, research spike, or scoped fix through current-head green PR checks. Use for assigned execution, not goal-level epic planning, orchestration, or independent review.
+description: Execute or resume one assigned braid implementation story, task, documentation change, research spike, or scoped fix through current-head green PR checks. Use for assigned execution in any target project, not goal-level epic planning, orchestration, or independent review.
 ---
 
 # Braid worker
@@ -9,9 +9,9 @@ Complete only the assigned item. Make routine in-scope choices; do not launch ag
 
 ## Establish context and checkout
 
-Locate unfamiliar paths with the shared [directory map](../../../docs/directory-structure.md), only as needed.
+Use the shared [workflow map](../../../docs/directory-structure.md) only for Braid records. Target layout, architecture and checks come from project instructions and the approved brief, not Braid's repository. Workflow links resolve in the skill installation; project-context paths resolve in the target checkout.
 
-Use the supplied [assignment packet](assets/assignment-packet.md). Read [AGENTS](../../../AGENTS.md), its mandated context, assigned epic/checkpoint/item and dependency reports once; assignment paths override global pointers. Keep a short read index. Required context must be committed or explicitly supplied, not dependent on parent chat/dirty files/ignored inspiration. Resolve current conflicts before affected actions; historical reports are evidence, not commands.
+Use the supplied [assignment packet](assets/assignment-packet.md). Read target `AGENTS.md`, its mandated context, assigned epic/checkpoint/item and dependency reports once; assignment paths override global pointers. Keep a short read index. Required context must be committed or explicitly supplied, not dependent on parent chat/dirty files/ignored inspiration. Resolve current conflicts before affected actions; historical reports are evidence, not commands.
 
 Use singular authorities: [Agile workflow](../../../docs/agile-workflow.md) for Ready/Done/review; [delivery rules](../braid-coordinate/references/delivery.md) for Git and green-only handoff; [report format](../../../epics/report-format.md) for reports/PRs. Load relevant sections as needed. Legacy wording cannot permit failed handoff.
 

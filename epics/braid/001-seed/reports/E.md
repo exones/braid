@@ -6,7 +6,7 @@ The skills now direct workers to use approved briefs and investigate incremental
 
 - Coordinator records architecture once and supplies paths, decisions, constraints and verification; interventions focus on dependencies, blockers, contradictions and meaningful failures.
 - Worker starts with a small meaningful action after required startup checks; reasoning scales to risk, and further investigation needs a concrete question.
-- Both prefer targeted searches, independent-operation batching, reused context and relevant output. Assignment packet gains an implementation brief field. One shared directory map covers source, skills, epic records and generated/local outputs without duplicating detailed policy.
+- Both prefer targeted searches, independent-operation batching, reused context and relevant output. Assignment packet gains an implementation brief field. One shared workflow map covers epic records, assignments and ownership for any target project; source architecture/toolchains stay in project context.
 
 ## Why
 
@@ -16,11 +16,11 @@ Counts include frontmatter/blank lines; words are whitespace-delimited against b
 
 | File | Lines before / after | Words before / after |
 | --- | --- | --- |
-| Coordinator SKILL.md | 75 / 52 | 1449 / 828 |
-| Worker SKILL.md | 57 / 58 | 1163 / 1150 |
+| Coordinator SKILL.md | 75 / 52 | 1449 / 856 |
+| Worker SKILL.md | 57 / 58 | 1163 / 1183 |
 | Assignment packet | 13 / 14 | 319 / 350 |
 
-Original files were already below 100 lines, with dense paragraphs. Main skill words fall about 24%. Worker size stays nearly flat because execution guidance replaces repeated setup rules while detailed proof/recovery instructions remain intact.
+Original files were already below 100 lines, with dense paragraphs. Main skill words remain lower overall; added portability guidance separates workflow from project facts. Worker size stays nearly flat because execution guidance replaces repeated setup rules while detailed proof/recovery instructions remain intact.
 
 Consolidated mode selection, report triggers, README boundaries and shared-checkout warnings. Removed explanations duplicated by existing AGENTS/delivery/report authorities, retaining links. No relocated bulk. The user follow-up adds one concise shared directory map, linked by both skills only for unfamiliar paths and from README. Existing delegation and T3 relay protocols remain unchanged and conditional on dispatch/wait.
 
@@ -43,4 +43,8 @@ Review the PR and decide on merge after applicable checks/review. No live agent 
 - No product tests for prose-only changes. Applicable Windows/Linux CI and independent review remain pending; no hosted success claimed.
 - Next: user reviews PR; author handles scoped fixes. E remains in-review pending CI/review/human merge.
 
-Directory-map follow-up: 26 scoped outbound links/anchors and both skill validators passed (exit 0), plus formatting. Map is 31 lines, loaded only when needed. README and skill links resolve; required CI/review state must be checked on the new pushed head.
+Directory-map follow-up: 26 scoped outbound links/anchors and both skill validators passed (exit 0), plus formatting. The initial map was 31 lines; the corrected workflow-only map is 24 lines, loaded only when needed. README and skill links resolve; required CI/review state must be checked on the new pushed head.
+
+Portability correction: the user clarified these skills serve any target project. Removed Braid source/build/runtime directories from the shared map and replaced the fixed `braid/` epic namespace with `<project>`. Both skills distinguish installation-relative workflow guidance from target-checkout context; coordinator reads target-named decisions/roadmap rather than requiring Braid filenames, and uses the target authorized provider profile. No provider settings, gates or transport protocols changed.
+
+Static portability scenario: an unrelated Python project with `app/` and project-named architecture notes uses its own instructions and check commands; Braid records live under `epics/<project>/...`. Neither the map nor startup requires TypeScript, npm, Braid CLI storage, or Braid development roadmap files. This is inspection proof, not an executed cross-project trial.

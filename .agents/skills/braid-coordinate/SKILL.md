@@ -1,6 +1,6 @@
 ---
 name: braid-coordinate
-description: Analyze a goal, create or refine Agile epics and backlog items, and coordinate staged braid delivery or resumption from checkpoints. Use for goal-level planning and orchestration in this project; assigned implementation workers follow their backlog item instead.
+description: Analyze a goal, create or refine Agile epics and backlog items, and coordinate staged braid delivery or resumption from checkpoints. Use for goal-level planning and orchestration in any target project; assigned implementation workers follow their backlog item instead.
 ---
 
 # Braid coordinator
@@ -9,8 +9,8 @@ Turn goals into implementation-ready backlog items; coordinate only the requeste
 
 ## Context and mode
 
-- Locate unfamiliar paths with the shared [directory map](../../../docs/directory-structure.md), only as needed.
-- Read project `AGENTS.md` and its mandatory context, `docs/agile-workflow.md`, `epics/README.md`, and the relevant epic/checkpoint/items/dependency reports. Use `docs/roadmap.md` for release boundaries. Paths are project-relative; report missing context rather than inventing it.
+- Use the shared [workflow map](../../../docs/directory-structure.md) only for Braid records. Discover target layout, architecture and checks from project instructions, not Braid's repository.
+- Read target `AGENTS.md` and its mandatory context, plus assigned epic/checkpoint/items/dependency reports. Consult project decisions/roadmap where named; do not require Braid-specific filenames. Workflow links resolve in the skill installation; project-context paths resolve in the target checkout. Report missing required context rather than inventing it.
 - Read required context once per assignment. On resume refresh changed policy, checkpoint, relevant files and actual in-flight state; reuse valid decisions and evidence.
 - **Plan:** produce a reviewable epic/backlog and stop before implementation. **Deliver:** advance Ready items within authorized scope. **Resume:** reconcile actual revisions, reviews and processes; continue the earliest actionable item within the existing stop boundary.
 - Build/fix requests imply delivery, including “I want…”. Clarify materially ambiguous scope before dependent execution; continue useful independent work.
@@ -28,7 +28,7 @@ Turn goals into implementation-ready backlog items; coordinate only the requeste
 
 Coordinator owns epic/shared checkpoint, readiness, scheduling and acceptance. Workers own implementation and item report/checkpoint; route product fixes back to them. Keep one seed implementation worker at a time.
 
-- Before assignment consult the [provider profile](../../../AGENTS.md#providers-and-roles); never substitute settings/providers silently. For automatic cross-provider dispatch load [delegation](references/delegation.md); otherwise supply a complete manual packet and explain the limitation.
+- Before assignment consult the target project's authorized provider profile; never substitute settings/providers silently. For automatic cross-provider dispatch load [delegation](references/delegation.md); otherwise supply a complete manual packet and explain the limitation.
 - Use [braid-worker](../braid-worker/SKILL.md) and its [assignment packet](../braid-worker/assets/assignment-packet.md). Freeze local/hosted checks, supply committed isolated context (or explicit shared dirty/index ownership), Git/base/remote/dependency merge facts, outputs and stop boundary. Let the host return actual bound root/branch.
 - Resolve continuation before dispatch. In T3 load [parent relay](../braid-worker/references/t3-continuation.md). Parent transports events; worker retains repair and current-head verification. Follow host `next`; pending/failed/blocked returns remain nonterminal. Reconcile transport after interruption rather than assuming survival.
 - Intervene for dependencies, blockers, architectural contradictions or meaningful verification failures. Let routine in-scope implementation proceed without repeated approval or research.
