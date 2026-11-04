@@ -32,7 +32,7 @@ Status: backlog. Owner: <role>. Depends on: <IDs or none>.
 [Review conventions](../../../../docs/agile-workflow.md#review-gates-and-indexing).
 
 ## Delivery record
-<Owned branch/PR, Conventional Commit messages, checked head SHA, local gate, hosted CI, reviewer findings/triage, human merge decision, and merge SHA. For a docs-only spike use applicable documentation/CI checks. Do not mark Done from local proof alone.>
+<Named item branch from the accepted epic tip, pull request into that epic, Conventional Commit messages, checked head SHA, local gate, hosted CI, reviewer findings/triage, human merge into the epic, and merge SHA. The epic pull request into main and any release stay separate. For a docs-only spike use applicable documentation/CI checks. Do not mark Done from local proof alone.>
 
 ## Report and resume
 Write <epic path>/checkpoints/<ID>.md and <epic path>/reports/<ID>.md. Follow [report format](../../../../epics/report-format.md): opening, What changed, Why, Left for you, and Technical record. In coordinated mode the coordinator owns shared status and translates child evidence into the user account. Stop after this item.

@@ -28,7 +28,7 @@ Scale the account to the new information. A completion briefing is normally abou
 
 A blocked item still gets this account. Describe the partial work and the blocker honestly. Do not call that outcome a successful delivery, Done, or a merge.
 
-The coordinator writes the user-facing account after inspecting the evidence. A worker report, review file, or child status packet does not itself discharge that briefing. Findings the worker can fix stay with the worker. Ask the user only for a decision that is actually theirs.
+The coordinator writes the user-facing account after inspecting the evidence. A worker report, review file, or child status packet does not itself discharge that briefing. A top-level worker sends one result for a head. Dedupe a later message for that same head, then still inspect the evidence before this account. See [T3 continuation](../.agents/skills/braid-worker/references/t3-continuation.md#top-level-item-thread). Findings the worker can fix stay with the worker. Ask the user only for a decision that is actually theirs.
 
 ## Report triggers
 
