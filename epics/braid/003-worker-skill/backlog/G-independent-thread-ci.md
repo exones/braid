@@ -1,7 +1,7 @@
 # G: verify an independent T3 worker owns its PR wait and completion
 
 Kind: spike. Epic: [BRAID-003](../epic.md).
-Status: ready. User approved this bounded trial, one independent T3 worker thread, named epic/item workspaces and G -> F -> D on 2026-11-04. Dispatch only after the named epic branch contains the committed plan and assignments/G.md. No automatic PR merge or successor.
+Status: in-progress. Approved independent G thread owns final current-head artifact verification after one user-authorized successful CI rerun. No successful GREEN/review/merge claimed yet. Original Windows failure and manual runtime interventions remain recorded; no automatic successor.
 Depends on: user approval of this bounded full-thread trial and [execution policy](../execution-policy-proposal.md); prepared meaningful epic branch/committed assignment. Priority before F/D, existing IDs unchanged.
 
 ## Question, value and bound
@@ -39,4 +39,4 @@ Worker owns bounded proof docs under `validation/G/` plus `reports/G.md`, `check
 
 Deliver one scoped item PR into the named epic, current-head green, independent `G-independent-thread-ci-review-001` and human merge. If direct transport cannot be completed legally, retain diagnostics/ownership and report the exact blocker; do not invent a bootstrap exemption for the spike's own PR.
 
-Current next action: user approves scope/rollout and coordinator prepares the actual named epic context. No new full thread, worktree, PR or trial has been created by this plan.
+Current next action: same worker verifies push attempt2 and PR attempt1 artifacts/provenance, tears down own watch and explicitly returns evidence. Coordinator then assigns independent G review and stops for human item-to-epic merge.

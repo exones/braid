@@ -1,8 +1,10 @@
 # BRAID-003 current coordinator checkpoint
 
-## Current visibility boundary — supersedes earlier next-action text
+## Current G continuation — authoritative next action
 
-User stopped G and requested clarity. Read [current work inventory](../reports/current-work-inventory.md) first. G has no active run; stale ordinal3 notification remains queued; do not restart. Only PR13 open, blocked. PR14 human merged as1dd5cb735c4614b75d96c0694c8c6d0a939f2605; independent exact-head review completed and accepted with no findings (post-merge). Windows investigator returned30/30 local pairs passing, native cause inconclusive, no fix/PR/process. No new dispatch/experiment/F/D/cleanup. Review result now consolidated; no new dispatch. Next decision is whether to authorize a bounded hosted Windows diagnostic, not resume G or launch F/D. All29 worktrees inventoried; old report/review evidence retained. Main and epic checked-out files still earlierc803 baseline; fetched remote main includes14. No automatic source/base transition at this visibility boundary.
+User explicitly requested continue with G, revoking its earlier stop for this scoped verification. Actual PR13 unchanged ccabae4df1f813317b8dd1247ea04878ee6ce023/base180f2e0b3cb6fc1a380a955e24a9580d0a4c85b8. Push41896581649 attempt2 now SUCCESS, both OS jobs; PR41896593015 attempt1 both OS jobs SUCCESS. CI rerun succeeded, no product fix; user accepts deferring further intermittent-failure investigation unless recurrence. Preserve failed attempt1 and inconclusive30/30 local result.
+
+G ordinal4 had been interrupted by user after own watch registration; resumed SAME thread via g-final-green-artifact-verification-001 for completed-job artifact/provenance/current-head verification, actual own-watch teardown and explicit final/blocker return. These are reconciliation facts, not a watched event. No more reruns/queues/startup discovery/push/base changes. G not yet GREEN or Done. Independent G review then human PR13 merge into epic remain; F/D stopped. Other side jobs complete: PR14 merged/reviewed no findings, Windows local investigation inconclusive/stopped. No new thread launched. See current inventory, whose older snapshot is superseded by this boundary.
 
 
 Date: 2026-11-04. Role: coordinator. State: approved execution setup; G is next, not yet launched.

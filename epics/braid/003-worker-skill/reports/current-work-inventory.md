@@ -69,3 +69,7 @@ Pass001 completed after the human merge, with no actionable findings. Coordinato
 ## Latest authorized action: one PR13 push rerun
 
 User requested one attempt to resolve CI blocker. Full push workflow41896581649 rerun requested once, exit0; head/base unchanged. Existing G resumed for CI/artifact proof and own wait, no new thread/source edit. Old cancelled queue empty at resume. No second automatic retry. GREEN, independent review and human epic merge still required; native error cause unresolved. This supersedes earlier frozen/no-rerun instructions only for this scoped recovery.
+
+## G resumed for final verification
+
+Latest user requested continue. Push attempt2 and PR attempt1 now green; SAME G thread resumed for full artifact/provenance/current-head proof and teardown. No new rerun/thread/source change. Original failure remains unresolved intermittent evidence; further investigation deferred by user unless recurrence. Independent review and human epic merge still pending. Earlier stopped/blocked rows above are historical snapshot.
