@@ -1,5 +1,9 @@
 # J coordinator account
 
+Review001 returned F1-F3 (Medium) on `ed039748`, all accepted. F1 is the unconditional task-end/post-push-blocker record write; F2 is the legacy relay checkpoint/evidence-commit wording; F3 is delivery's remaining instruction to attach review evidence to the item PR. Their shared intent is J criteria1/2/4, so no finding is waived and none requires scope expansion. Exact reviewer report/checkpoint copies are retained under reports/checkpoints/reviews/J with SHA256 equality to the untouched source.
+
+Host instruction requires small review fixes directly rather than a new delegate. Both author/reviewer were independently observed completed with no active run; author branch was clean at reviewed head. The Sol coordinator is making only these four-file wording fixes plus updated item repair report/checkpoint on the existing J branch, without restarting or replacing either worker. Current proof/review covers the old head; new local gates, hosted proof and review002 will be required. No merge or I/D request. Word-count recomputation after the initial repair: 12,543 -> 13,739 (+1,196/+9.54%), within the soft10% cap. J's policy is not yet adopted by coordinator.
+
 J is green at `ed03974840664d8580af2f998c9046d9562a66bd` for independent review. No merge is requested; I and D remain stopped.
 
 ## What changed
