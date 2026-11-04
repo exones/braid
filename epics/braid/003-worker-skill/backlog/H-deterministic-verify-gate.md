@@ -1,7 +1,7 @@
 # H: make `npm run verify` the single deterministic gate, including docs
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: backlog. User agreed 2026-11-04. After F merges; order relative to D decided by the coordinator.
+Status: ready. User agreed 2026-11-04 and requested continuation after F's verified merge `7ddc561`. Coordinator order H -> I -> D; [committed assignment](../assignments/H.md) supplies the execution contract.
 Depends on: F merged into the epic.
 
 ## Value

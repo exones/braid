@@ -1,5 +1,15 @@
 # BRAID-003 current coordinator checkpoint
 
+## Resume after F human merge — current authority, supersedes historical entries below
+
+Date: 2026-11-04. Role: coordinator, Sol High. Checkout `C:/worktrees/agento/epic-braid-003-worker-skill`, attached `epic/braid-003-worker-skill`. Verified PR16 MERGED at `2026-11-04T21:56:00Z`, merge `7ddc561501affe73fcd6fb29fe50a23c763f2dc2`; accepted/fixed `f8c1f5bdae5cbe251c3aea2e4f13c3362f363a17` is an ancestor. Fast-forwarded from `578ba07887dba974daf0c0bcbdca6f90ee61cc71`. See [F acceptance](../reports/F-acceptance.md). Prior current-G headings below are historical.
+
+User said merged, please continue. Remaining order H -> I -> D, one implementation worker; each item gets its own PR/review/human merge. Added agreed roadmap notes for stage 2 checkout-vs-packet doctor and scope validation, and stage 4 verified dependency merges. No product automation implemented by coordinator. Grok 4.7 via Cursor, reasoning_effort high/contextWindow 500k capability-verified; no provider substitution.
+
+Next action: commit and push [H packet](../assignments/H.md) plus coordinator status, then start H on its named item branch at the resulting full committed epic tip. Record returned actual binding separately. H frozen gate includes full npm verify plus all four CI jobs/required steps; artifact re-download explicitly not required. Worker owns implementation/repair. Review then human merge remain. I and D not dispatched. No in-flight command or parent PR watch at this boundary.
+
+F worker/fix/reviewer observed completed. Author evidence merged and reviewer copies hash-identical to retained epic files. Retired F's clean item worktree/local branch and the review worktree/local branch; removed only the two hash-matched untracked reviewer copies before non-forced retirement. Remote branches unchanged. Preserved unrelated untracked `checkpoints/worktree-cleanup.md`, `reports/worktree-cleanup.md` and evidence directory. Changed coordinator files: epic, F/H backlog, F acceptance, current checkpoint, H packet, roadmap. This is merge/assignment proof, not a new local/hosted product acceptance run.
+
 ## Current G state — GREEN candidate, independent review pending
 
 Fresh verifier delivered complete current-head four-job/artifact proof for PR13 ccabae4df1f813317b8dd1247ea04878ee6ce023/base180f2e0b3cb6fc1a380a955e24a9580d0a4c85b8. Coordinator verified actual OPEN/head/base and four SUCCESS check rollups, one-file candidate scope and final supplements. Snapshots pinned under C:/Users/exon/AppData/Local/Temp/braid-G-review-inputs-ksr4dtzo/: report8d19072491e8f31ce608dcf84a9f3d402478632974872a2bfe6ac207323f9481; checkpointb9b3f42037a25280514f8b4bddde3580def4884b83621922575d3c4175c4e0e5. Delivery lines are included, distinct from worker pre-send hashes. Author checkout untouched.

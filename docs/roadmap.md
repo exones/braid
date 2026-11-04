@@ -22,6 +22,10 @@ Promotion means deterministic checks passed, the actual packed artifact was exer
 
 Before stage 2 work begins, install accepted 0.1 in a separate location and create the stage 2 work ledger with it. Update Markdown checkpoints alongside it. The machine ledger owns execution status; narrative files reference that status rather than becoming a competing database.
 
+Stage 2 doctor should compare the actual checkout, attached branch, initial revision, origin and PR base with the assignment packet. Its independent gate reports should also check the candidate diff against the packet's allowed paths. These checks turn the manual startup and scope checks into recorded evidence. The temporary `scripts/Test-PrProof.ps1` planned in BRAID-003/I supplies current-head CI proof until stage 2 gate reports replace it; it is not a new product command.
+
+Stage 4 DAG readiness must verify each required human dependency merge into the declared integration branch before dispatch. Green CI, a review, or a narrative Done label alone cannot satisfy that dependency. This is future automation of the existing human merge stop, not new merge authority.
+
 ## Four gates
 
 1. Ready to start: backlog item, scope, dependencies, ownership, and expected proof exist.
