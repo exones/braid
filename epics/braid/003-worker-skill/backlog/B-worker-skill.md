@@ -1,8 +1,10 @@
 # B: create the worker execution skill
 
 Kind: story. Epic: [BRAID-003](../epic.md).
-Status: backlog. Owner: one implementation worker under the current provider profile.
+Status: in-progress. Owner: one Sol High implementation worker under the user's epic-specific override; global provider profile unchanged.
 Depends on: user-approved rules; A's viable, reviewed wait/continuation result; committed assignment context.
+
+Readiness: A reviewed at `c86bc3990a63a5b18d582782e54f9a3cffa18928` with no actionable findings; [coordinator acceptance](../reports/A-acceptance.md). A/plan PRs are not asserted merged. B starts from committed accepted-context based on that head and targets PR base `t3/85fcb290` while A is open; merge order #6 -> #8 -> B, with later safe retarget/revalidation. Use the generated worker branch; preserve human merge authority.
 
 ## Read first
 
@@ -29,8 +31,8 @@ Implement the approved R01–R12 behavior without adding product automation or i
 
 ## Tasks
 
-- [ ] Draft the minimal entrypoint, metadata, and assignment asset from the approved rules/A result.
-- [ ] Exercise the matching/mismatch, stale-head, blocker, and resume scenarios without external side effects.
+- [x] Draft the minimal entrypoint, metadata, and assignment asset from the approved rules/A result.
+- [x] Exercise the matching/mismatch, stale-head, blocker, and resume scenarios without external side effects.
 - [ ] Write `reports/B.md` and `checkpoints/B.md`; deliver the skill through current-head green CI.
 
 ## Ownership and verification
@@ -39,7 +41,7 @@ Own the new worker skill directory, this item's delivery fields, and B report/ch
 
 ## Review and delivery
 
-Independent parent-scoped pass `B-worker-skill-review-001` assesses the exact candidate against approved rules and A's contract. Follow [review naming](../../../../docs/agile-workflow.md#review-gates-and-indexing). Conventional Commit/PR, current-head hosted CI, triaged review, and human-approved merge are required. No delivery evidence exists yet.
+Independent parent-scoped pass `B-worker-skill-review-001` assesses the exact candidate against approved rules and A's contract. Follow [review naming](../../../../docs/agile-workflow.md#review-gates-and-indexing). Conventional Commit/PR, current-head hosted CI, triaged review, and human-approved merge are required. Local skill/link validation and bounded authored walkthroughs pass; see [B report](../reports/B.md) and [worker checkpoint](../checkpoints/B.md). Hosted green proof and independent review/merge remain outstanding.
 
 ## Report and resume
 
