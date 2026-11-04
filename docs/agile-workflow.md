@@ -16,6 +16,8 @@ The release roadmap groups capability milestones; an epic is not automatically a
 epics/<project>/<NNN>-<slug>/
   epic.md                  # epic outcome and prioritized backlog index
   backlog/<ID>-<slug>.md   # story, enabler/task, or spike; includes kind/acceptance
+  assignments/<ID>.md      # coordinator-authored packet, committed before launch
+  assignments/reviews/<parent>/<review-name>.md  # review assignment, when written
   checkpoints/current.md  # coordinator-owned handoff
   checkpoints/<ID>.md     # worker-owned handoff
   reports/<ID>.md         # evidence and proposed status update
@@ -24,6 +26,8 @@ epics/<project>/<NNN>-<slug>/
   reports/final.md        # epic outcome and release evidence
   retro.md                # observed lessons and follow-up backlog items
 ```
+
+Historical `reports/<ID>-assignment.md` files stay where they are. New packets use `assignments/`. Do not copy a live packet into both places.
 
 Choose `<ID>` in [Backlog item IDs](#backlog-item-ids). A file under `backlog/` is not necessarily a user story. Tasks within these items are checklists, not separate PR requirements.
 
@@ -53,7 +57,7 @@ This section is the authoritative source for review naming, numbering, evidence 
 
 Routine implementation reviews belong to the item being reviewed. Name the review agent and assignment `<item-stem>-review-<NNN>`, using the backlog filename without `.md`: `A-preflight-review-001`, then `A-preflight-review-002` for a new independent recheck. For `backlog/D-package.md`, use `D-package-review-001`. A milestone review spanning several items uses the epic ID, for example `BRAID-001-review-001`. Use that same name in the delegation title and report heading. Reviewers are roles; their assignment does not create another story/task letter or a separate delivery PR. Item letters are assigned in [Backlog item IDs](#backlog-item-ids).
 
-Store new passes at `reports/reviews/<parent>/<review-name>.md` and their optional resumable reviewer checkpoints at `checkpoints/reviews/<parent>/<review-name>.md`, for example `reports/reviews/A/A-preflight-review-001.md`. Record parent, pass, reviewer, exact checked SHA, PR/artifact identity, scope/acceptance, findings, checks, and limits. Findings can be referenced as `A-preflight-review-001/F1`; keep those labels stable through triage. The parent epic/item links the gate and its result. Preserve prior passes rather than overwriting evidence for another revision.
+Store new passes at `reports/reviews/<parent>/<review-name>.md` and their optional resumable reviewer checkpoints at `checkpoints/reviews/<parent>/<review-name>.md`, for example `reports/reviews/A/A-preflight-review-001.md`. A review assignment packet, when written, lives at `assignments/reviews/<parent>/<review-name>.md`. The pass itself stays under `reports/reviews/`. Record parent, pass, reviewer, exact checked SHA, PR/artifact identity, scope/acceptance, findings, checks, and limits. Findings can be referenced as `A-preflight-review-001/F1`; keep those labels stable through triage. The parent epic/item links the gate and its result. Preserve prior passes rather than overwriting evidence for another revision.
 
 Record fixes/refutations/deferrals against the parent and exact revision. Start numbering at `001` and increment for each new independent review/recheck of that parent, including earlier legacy passes; do not reset it for a new revision or review scope. Thus an epic with legacy passes 01 and 02 next uses `BRAID-001-review-003`. A coordinator's evidence update is not automatically another independent review. Reviews remain required for Done; naming does not change acceptance, model selection, or human merge authority.
 
@@ -71,11 +75,11 @@ Write `epic.md` and item files before dispatch. Assign item IDs from [Backlog it
 
 A backlog item is Ready when its outcome and boundaries are clear, dependencies are met, ownership is assigned, required inputs exist, acceptance criteria are testable, and the verification/evidence method is known. A spike is Ready when its question, limit, and required decision are clear. Unrelated external setup does not block local work.
 
-For implementation dispatch, fill the worker's [canonical assignment packet](../.agents/skills/braid-worker/assets/assignment-packet.md): committed or explicitly supplied context, exact dependency/merge and checkout/Git/ownership facts, declared check set and supported continuation. Assigned execution/resumption uses [braid-worker](../.agents/skills/braid-worker/SKILL.md); goal-level planning and independent review retain separate entrypoints.
+For implementation dispatch, fill the worker's [canonical assignment packet](../.agents/skills/braid-worker/assets/assignment-packet.md) and commit it at `assignments/<ID>.md`: committed context, exact dependency and merge facts, checkout and Git ownership, the declared check set, continuation, and outputs. Supply the resulting full context SHA at launch. Record the returned binding separately. Assigned execution/resumption uses [braid-worker](../.agents/skills/braid-worker/SKILL.md); goal-level planning and independent review retain separate entrypoints.
 
 ## Definition of Done
 
-For a delivery item: acceptance criteria satisfied, relevant local checks passed, scoped commit/PR exists, required hosted CI passes on its head, review findings are triaged, and human-approved merge is recorded. The report includes exact evidence and limitations; checkpoint/documentation reflect the outcome. Local acceptance alone stays In Review until the delivery gates are met. Hosted CI and independent review do not count as a human merge. When the next item requires that merge, apply the [human merge stop](../.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop): report the exact action, checkpoint, and do not dispatch the dependent item until the merge is verified. Item reports and user briefings use [report format](../epics/report-format.md).
+For a delivery item: acceptance criteria satisfied, relevant local checks passed, scoped commit and pull request exist, required hosted CI passes on its head, review findings are triaged, and the human-approved merge into the declared epic branch is recorded. That item Done is not epic completion and it is not a release. Epic completion is the final gates plus the human merge of one epic-branch pull request into main. Registry publication stays a separate action. See [Epic and item branches](../.agents/skills/braid-coordinate/references/delivery.md#epic-and-item-branches). The report includes exact evidence and limitations; checkpoint/documentation reflect the outcome. Local acceptance alone stays In Review until the delivery gates are met. Hosted CI and independent review do not count as a human merge. When the next item requires that merge, apply the [human merge stop](../.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop): report the exact action, checkpoint, and do not dispatch the dependent item until the merge is verified. Item reports and user briefings use [report format](../epics/report-format.md).
 
 For a spike: the question is answered with evidence or a concrete blocker, the next decision/action is recorded, and the research/report passes through PR, applicable CI, review, and approved merge. A useful spike need not produce code or artificial product tests.
 
@@ -85,7 +89,7 @@ Done for a story is distinct from a released epic. Missing remote CI/publication
 
 Backlog -> Ready -> In Progress -> In Review -> Done. Use `blocked` with a specific blocker/owner/next action when progress cannot continue; preserve the prior state for resumption. `cancelled` needs a recorded reason. Use lowercase persisted labels: `backlog`, `ready`, `in-progress`, `in-review`, `done`, `blocked`, `cancelled`.
 
-Provider/model/settings follow the authoritative [provider profile](../AGENTS.md#providers-and-roles). The coordinator owns epic/backlog status and shared checkpoint. Each worker owns its item checkpoint/report and implementation scope. Keep one seed worker at a time. Subsequent epics can raise WIP only when tool capabilities and boundaries support it.
+Provider/model/settings follow the authoritative [provider profile](../AGENTS.md#providers-and-roles). The coordinator owns epic/backlog status and shared checkpoint. Each worker owns its item checkpoint/report and implementation scope. Keep one seed worker at a time. The default checkout split is one epic worktree and one active item worktree, with one writer in a checkout. See [Workspaces](../.agents/skills/braid-coordinate/references/delivery.md#workspaces). Subsequent epics can raise WIP only when tool capabilities and boundaries support it.
 
 Every stage ends with an evidence review and short retrospective. Turn observed problems into a small fix, regression check, or backlog item; preserve the user's original outcome. No skill or status label grants permission to publish, merge, deploy, or change private infrastructure.
 

@@ -7,6 +7,7 @@ Read and apply the [review conventions](../../../../docs/agile-workflow.md#revie
 Parent: <existing item or epic ID>. Pass: <pass>. Reviewer: <role/session>.
 Agent/assignment name: <review-name>.
 Report/checkpoint: <paths chosen under the review conventions>.
+Assignment packet, when used: `assignments/reviews/<parent>/<review-name>.md`. The pass stays under `reports/reviews/`.
 Candidate: <exact commit>. PR/artifact: <URL and identity when applicable>.
 Status: requested | in-progress | findings | no-findings. Date: <date>.
 Legacy alias: <only if needed to preserve an existing reference>.

@@ -4,6 +4,7 @@ Workflow links resolve from this template's Braid installation; rewrite them to 
 
 Owner: <user>. Coordinator: <role/session reference>. Status: analysis | ready | in-progress | done | blocked | cancelled.
 Release target: <milestone or none>. Controller/schema: <version or manual>.
+Integration branch: `<epic/name>`, pinned from verified main `<full sha>` before the first plan commit. Item pull requests target this branch. The closing pull request targets main. See [Epic and item branches](../references/delivery.md#epic-and-item-branches).
 
 ## Problem and beneficiary
 <What needs to improve, for whom, and why now.>
