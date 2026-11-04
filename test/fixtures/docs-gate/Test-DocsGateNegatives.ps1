@@ -48,7 +48,8 @@ function Invoke-GitQuiet {
 }
 
 function Invoke-Gate {
-  $lines = @(& pwsh -NoProfile -File $script:Gate -RepositoryRoot $script:Work -ToolRoot $script:ToolRoot 2>&1)
+  param([string]$Root = $script:Work)
+  $lines = @(& pwsh -NoProfile -File $script:Gate -RepositoryRoot $Root -ToolRoot $script:ToolRoot 2>&1)
   return [pscustomobject]@{
     Code = $LASTEXITCODE
     Text = ((@($lines) | ForEach-Object { "$_" }) -join "`n")
@@ -56,8 +57,11 @@ function Invoke-Gate {
 }
 
 function Assert-Passes {
-  param([Parameter(Mandatory = $true)][string]$Label)
-  $result = Invoke-Gate
+  param(
+    [Parameter(Mandatory = $true)][string]$Label,
+    [string]$Root = $script:Work
+  )
+  $result = Invoke-Gate -Root $Root
   if ($result.Code -ne 0 -or $result.Text -notmatch 'docs-gate: passed') {
     Fail "$Label should pass (exit $($result.Code)): $($result.Text)"
   }
@@ -142,9 +146,31 @@ function Set-IndexBlob {
   Invoke-GitQuiet -GitArguments @('update-index', '--add', '--cacheinfo', "100644,$sha,$RelativePath")
 }
 
+function Assert-CrossDriveBaseline {
+  if (-not $IsWindows) {
+    Write-Host 'docs-gate negative cross-drive: skipped on this OS'
+    return
+  }
+  $used = @((Get-PSDrive -PSProvider FileSystem).Name)
+  $letter = @('X', 'Y', 'Z', 'W', 'V', 'U', 'T', 'S', 'R') | Where-Object { $used -notcontains $_ } | Select-Object -First 1
+  if (-not $letter) {
+    Fail 'no free drive letter for the cross-drive fixture'
+  }
+  & subst "${letter}:" $script:Work
+  if ($LASTEXITCODE -ne 0) {
+    Fail "subst ${letter}: failed"
+  }
+  try {
+    Assert-Passes -Label 'cross-drive-baseline' -Root "${letter}:\"
+  } finally {
+    & subst "${letter}:" /d | Out-Null
+  }
+}
+
 try {
   Reset-Fixture
   Assert-Passes -Label 'baseline'
+  Assert-CrossDriveBaseline
 
   $untracked = Join-Path $script:Work 'untracked.md'
   Write-Utf8 -Path $untracked -Bytes (Convert-ToLfBytes "# Hidden`n`n[missing](missing.md)`n")

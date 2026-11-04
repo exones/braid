@@ -1,6 +1,9 @@
 # Offline docs gate for tracked Markdown links and tracked text.
-# Links: remark-cli + remark-validate-links. External URLs are not checked
-# (repository is false in .remarkrc.mjs). inspiration/ is skipped there.
+# Links: remark-validate-links through unified-engine, with the engine cwd set
+# to the repository being scanned. Options live in .remarkrc.mjs (repository
+# false, so external URLs are not checked; inspiration/ is skipped). The
+# remark-cli binary is not pointed at absolute paths outside that root:
+# on Windows its ignore helper throws when path.relative crosses drives.
 # Text: index blobs and worktree bytes. An empty `git diff --check` is not
 # this check; a clean checkout still has to fail when a blob contains CR
 # or trailing whitespace.
@@ -294,10 +297,9 @@ function Add-TextFindings {
 
 function Get-RepoRelative {
   param([Parameter(Mandatory = $true)][string]$Reported)
-  # remark-cli prints paths relative to its cwd, which is ToolRoot.
   $candidate = $Reported.Trim()
   if (-not [System.IO.Path]::IsPathRooted($candidate)) {
-    $candidate = Join-Path $script:ToolRoot $candidate
+    return ($candidate -replace '\\', '/')
   }
   $full = [System.IO.Path]::GetFullPath($candidate)
   $rootFull = [System.IO.Path]::GetFullPath($script:RepoRoot).TrimEnd('\', '/')
@@ -305,7 +307,7 @@ function Get-RepoRelative {
   if ($full.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
     return ($full.Substring($prefix.Length) -replace '\\', '/')
   }
-  return ($Reported.Trim() -replace '\\', '/')
+  return ($candidate -replace '\\', '/')
 }
 
 function Get-LinkFindings {
@@ -322,10 +324,10 @@ function Get-LinkFindings {
   . (Join-Path $script:ToolRoot 'scripts/Install-NodeToolchain.ps1')
   $bin = Resolve-BraidNodeToolchain
   $node = Join-Path $bin $(if ($IsWindows) { 'node.exe' } else { 'node' })
-  $remark = Join-Path $script:ToolRoot 'node_modules/remark-cli/cli.js'
+  $checker = Join-Path $script:ToolRoot 'scripts/check-markdown-links.mjs'
   $plugin = Join-Path $script:ToolRoot 'node_modules/remark-validate-links/package.json'
-  $config = Join-Path $script:ToolRoot '.remarkrc.mjs'
-  foreach ($required in @($node, $remark, $plugin, $config)) {
+  $engine = Join-Path $script:ToolRoot 'node_modules/unified-engine/package.json'
+  foreach ($required in @($node, $checker, $plugin, $engine)) {
     if (-not (Test-Path -LiteralPath $required)) {
       Write-GateFailure "missing $required. Run npm ci from the repository root."
       Exit-Gate -Code 1
@@ -333,58 +335,51 @@ function Get-LinkFindings {
   }
 
   $arguments = [System.Collections.Generic.List[string]]::new()
-  $arguments.Add($remark)
-  foreach ($flag in @('--no-stdout', '--no-color', '--quiet', '--frail', '--no-ignore', '--rc-path', $config)) {
-    $arguments.Add($flag)
-  }
+  $arguments.Add($checker)
+  $arguments.Add($script:RepoRoot)
   foreach ($relative in $markdown) {
-    $absolute = [System.IO.Path]::GetFullPath((Join-Path $script:RepoRoot ($relative -replace '/', [System.IO.Path]::DirectorySeparatorChar)))
-    $arguments.Add($absolute)
+    $arguments.Add($relative)
   }
 
-  $previous = Get-Location
-  Set-Location -LiteralPath $script:ToolRoot
-  try {
-    $merged = & $node $arguments.ToArray() 2>&1
-    $code = $LASTEXITCODE
-  } finally {
-    Set-Location -LiteralPath $previous.Path
+  $start = [System.Diagnostics.ProcessStartInfo]::new()
+  $start.FileName = $node
+  $start.WorkingDirectory = $script:ToolRoot
+  $start.UseShellExecute = $false
+  $start.RedirectStandardOutput = $true
+  $start.RedirectStandardError = $true
+  $start.CreateNoWindow = $true
+  foreach ($argument in $arguments) {
+    $start.ArgumentList.Add($argument)
   }
-  $text = ((@($merged) | ForEach-Object {
-        if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.ToString() } else { "$_" }
-      }) -join "`n")
+  $process = [System.Diagnostics.Process]::Start($start)
+  $errorTask = $process.StandardError.ReadToEndAsync()
+  $stdout = $process.StandardOutput.ReadToEnd()
+  $process.WaitForExit()
+  $errorText = $errorTask.GetAwaiter().GetResult()
+  if ($process.ExitCode -ne 0) {
+    Write-GateFailure "markdown link check exited $($process.ExitCode)"
+    if (-not [string]::IsNullOrWhiteSpace($errorText)) {
+      [Console]::Error.WriteLine($errorText)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($stdout)) {
+      [Console]::Error.WriteLine($stdout)
+    }
+    Exit-Gate -Code $process.ExitCode
+  }
 
+  $parsed = @()
+  if (-not [string]::IsNullOrWhiteSpace($stdout)) {
+    $parsed = @($stdout | ConvertFrom-Json)
+  }
   $findings = [System.Collections.Generic.List[object]]::new()
-  $currentFile = ''
-  $pattern = '^\s*(\d+:\d+(?:-\d+:\d+)?)\s+(warning|error)\s+(.+)\s+(\S+)\s+(remark-validate-links:\S+)\s*$'
-  foreach ($line in @($text -split "`r?`n")) {
-    if ([string]::IsNullOrWhiteSpace($line)) {
+  foreach ($item in $parsed) {
+    if ($null -eq $item) {
       continue
     }
-    if ($line -match $pattern) {
-      $findings.Add([pscustomobject]@{
-          Source = Get-RepoRelative -Reported $currentFile
-          Reason = $Matches[3].Trim()
-        })
-      continue
-    }
-    if ($line -match '^[✖⚠×]\s+\d+\s+' -or $line -match '^\d+ messages \(') {
-      continue
-    }
-    $currentFile = $line.Trim()
-  }
-
-  if ($findings.Count -eq 0 -and $code -ne 0) {
-    Write-GateFailure "remark-cli exited $code and produced no parsed findings"
-    if (-not [string]::IsNullOrWhiteSpace($text)) {
-      [Console]::Error.WriteLine($text)
-    }
-    Exit-Gate -Code $(if ($code -eq 0) { 1 } else { $code })
-  }
-  if ($code -gt 1) {
-    Write-GateFailure "remark-cli exited $code"
-    [Console]::Error.WriteLine($text)
-    Exit-Gate -Code $code
+    $findings.Add([pscustomobject]@{
+        Source = Get-RepoRelative -Reported ([string]$item.file)
+        Reason = [string]$item.reason
+      })
   }
   return @($findings.ToArray())
 }
