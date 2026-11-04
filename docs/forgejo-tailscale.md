@@ -1,6 +1,6 @@
 # Self-hosted Forgejo reached from GitHub Actions
 
-Status: **superseded, not planned**, 2026-11-03. The user confirmed npm as the registry. Use [npm distribution](npm-distribution.md) and `docs/decisions.md` for the current plan. Do not deploy Forgejo or join CI runners to Tailscale for publishing. Spike I is cancelled. The remaining text is historical design rationale only; it is not an active backlog or authorization. Tailscale remains available for unrelated future private infrastructure.
+This design was superseded on 2026-11-03, when npm was confirmed as the registry. Use [npm distribution](npm-distribution.md) and `docs/decisions.md`. Do not deploy Forgejo or join CI runners to Tailscale for publishing. The remaining text is historical design rationale. Tailscale remains available for future private infrastructure.
 
 ## Proposed flow
 

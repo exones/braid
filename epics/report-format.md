@@ -22,9 +22,9 @@ Say whether the user needs to do anything. When the user is blocked, name the bl
 
 ### Technical record
 
-The exact evidence needed to resume: item and context links, checkout, branch, full head, pull request, base, checks, review, limits, and the next action. Link detailed logs instead of pasting them. Keep candidate Git blobs distinct from later uncommitted supplements. Do not add a commit whose only purpose is to record its own SHA.
+The exact evidence needed to resume: item and context links, checkout, branch, full head, pull request, base, checks, review, limits, and the next action. Link detailed logs instead of pasting them.
 
-Scale the account to the new information. A completion briefing is normally about half a page. Omit filler, and do not repeat raw logs as a requirement. A later substantive result uses the same sections with the changed facts and a short reminder of context.
+Scale the account to the new information. A completion briefing is normally about half a page. Omit filler, and do not repeat raw logs as a requirement. A later substantive result uses the same sections with the changed facts and a short reminder of context. Do not add a commit whose only purpose is to record its own SHA. See [Commit boundary](../docs/agile-workflow.md#commit-boundary).
 
 A blocked item still gets this account. Describe the partial work and the blocker honestly. Do not call that outcome a successful delivery, Done, or a merge.
 
@@ -61,11 +61,24 @@ When a dependent item requires a pull request to be merged, the coordinator's us
 
 ## Checkpoints
 
-Keep one current handoff per epic. In coordinated mode the coordinator owns `checkpoints/current.md`. Workers own `checkpoints/<task>.md` and propose shared-status updates in their report. In standalone mode the assigned agent owns the shared handoff.
+`checkpoints/current.md` and `checkpoints/log.md` follow [Now and the log](../docs/agile-workflow.md#now-and-the-log). Workers own `checkpoints/<task>.md` and propose shared-status updates in their report. In standalone mode the assigned agent owns the shared handoff.
 
-A checkpoint is the operational resume point, not a second human briefing. Record the date, active task, actual checkout, branch, and full HEAD, controller version when one applies, completed work, in-flight commands and logs, the last check, changed files, blockers, and one next action. Say whether changes are committed or pushed. Before replacing a long-running session, a dated snapshot is optional.
+A worker checkpoint is the operational resume point for that item, not a second human briefing. Record the date, active task, actual checkout, branch, and full HEAD, controller version when one applies, completed work, in-flight commands and logs, the last check, changed files, blockers, and one next action. Say whether changes are committed or pushed. Commit that file before the push. After the push, later proof follows [Commit boundary](../docs/agile-workflow.md#commit-boundary).
 
 Prefer a concrete action such as "inspect the returned head and assign the named review" over "continue implementation".
+
+## Acceptance record
+
+After the human merge, the coordinator writes `reports/<ID>-acceptance.md` in one epic commit. Copy the facts below. A link to a comment or a run is not the record. Hosted logs and artifacts expire, and comments can be edited. Who writes the file is [Record ownership](../docs/agile-workflow.md#record-ownership).
+
+```text
+Checked head: <full sha>
+Base: <full sha>
+Runs: <workflow> <event> run <id> attempt <n> job <id> <conclusion>
+Required steps: Install dependencies, Verify, Upload packed tarball: <conclusion>
+Merge: <full sha>
+Review: <pass name> reviewed <full sha>; findings <none or labels>; triage <disposition>
+```
 
 ## Review records
 
