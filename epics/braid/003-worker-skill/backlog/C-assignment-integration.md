@@ -30,9 +30,9 @@ Replace current pass-or-fail handoff wording with the approved green-only invari
 
 ## Tasks
 
-- [ ] Reconcile active ownership and re-read current policy, preserving concurrent user changes.
-- [ ] Apply the source-map migration and update the manual assignment to reference the canonical packet.
-- [ ] Validate links/routing and record changed authorities/removed duplication in `reports/C.md` and `checkpoints/C.md`.
+- [x] Reconcile active ownership and re-read current policy, preserving concurrent user changes.
+- [x] Apply the source-map migration and update the manual assignment to reference the canonical packet.
+- [x] Validate links/routing and record changed authorities/removed duplication in `reports/C.md` and `checkpoints/C.md`.
 
 ## Ownership and verification
 
@@ -41,6 +41,8 @@ Own the agreed policy/routing files listed above, necessary links to B's asset, 
 ## Review and delivery
 
 Independent parent-scoped pass `C-assignment-integration-review-001` checks preservation, authoritative links, complete packet, and policy consistency on the exact candidate. Follow the [review convention](../../../../docs/agile-workflow.md#review-gates-and-indexing). Scoped Conventional Commit/PR, green current-head CI, review/triage, and human-approved merge are required. No PR/revision/check result exists yet.
+
+Worker local implementation record (2026-11-04): normal routing/packet integration and source dispositions are in [C report](../reports/C.md), with actual binding/read index/next action in [C checkpoint](../checkpoints/C.md). Structural checks, both skill validators and bounded authored consistency walkthroughs pass; repository Verify and hosted current-head proof are recorded there as they complete. This is not coordinator acceptance, independent review, Done or merged evidence. Shared status remains coordinator-owned.
 
 ## Report and resume
 

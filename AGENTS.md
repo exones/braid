@@ -7,7 +7,7 @@ Read `README.md`, `docs/decisions.md`, the assigned epic, `checkpoints/current.m
 Current epic: `epics/braid/001-seed/epic.md`.
 Current checkpoint: `epics/braid/001-seed/checkpoints/current.md`.
 
-For a goal-level planning or orchestration request, use `.agents/skills/braid-coordinate/SKILL.md`. It analyzes the request, writes/refines the epic and backlog, and coordinates delivery within the user's requested scope. Read it directly if the host has not discovered it yet. Assigned workers execute their backlog item; they do not enter the coordinator workflow. Routine coding questions do not need the skill.
+For a goal-level planning or orchestration request, use [.agents/skills/braid-coordinate/SKILL.md](.agents/skills/braid-coordinate/SKILL.md). For execution or resumption of one assigned implementation item, use [.agents/skills/braid-worker/SKILL.md](.agents/skills/braid-worker/SKILL.md) and its [canonical assignment packet](.agents/skills/braid-worker/assets/assignment-packet.md); do not enter the coordinator workflow. Read the selected skill directly if discovery is unavailable. Independent reviewers follow their separately assigned review and the review conventions below. Routine coding questions need neither workflow. An assignment's named epic/checkpoint overrides the global pointers above.
 
 Use the Agile vocabulary in `docs/agile-workflow.md`: epic, optional feature grouping, story, task, spike, backlog, acceptance criteria, Definition of Ready, and Definition of Done. Keep existing backlog IDs stable. The original MVP and inspiration retain historical terminology.
 

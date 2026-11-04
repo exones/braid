@@ -40,7 +40,11 @@ The coordinator owns `epic.md` and `checkpoints/current.md`. Workers own `checkp
 
 Before each implementation assignment, read the authoritative [provider profile in AGENTS.md](../../../AGENTS.md#providers-and-roles) and pass its model and explicit options to T3. Keep the profile there rather than copying settings into this skill or templates. When cross-provider work is authorized and T3 tools are available, read [delegation mechanics](references/delegation.md). Otherwise prepare one complete manual worker assignment; clearly state why automatic delegation is unavailable. Do not silently substitute another model or provider.
 
-There is no separate builder skill. The worker's duties are this section plus [delivery](references/delivery.md) and [delegation](references/delegation.md). Give a worker its role, exact backlog path, read-first paths, dependency reports, boundaries, acceptance/evidence requirements, and output paths. Do not assume it inherits this chat. Include the handoff rule: after the pull request is open, the worker stays with it until the required checks on that head have finished, then hands off with the pass or fail result and the head SHA. A handoff while checks are still running is incomplete. Workers stop after their item. Keep one seed implementation worker at a time.
+Assign implementation through [braid-worker](../braid-worker/SKILL.md), using its [canonical assignment packet](../braid-worker/assets/assignment-packet.md) for both automatic and manual dispatch. Supply current task/context/dependency and actual merge evidence, Git/base/remote facts, ownership, frozen local/hosted check set, supported continuation, outputs and stop boundary. Required isolated context must be committed at the assigned revision; an expressly shared checkout must name dirty/index ownership and allowed operations. Let the host return the actual bound root/generated branch; do not guess them. Keep one seed implementation worker at a time. The worker skill owns execution/resume mechanics; [delivery](references/delivery.md) owns the shared green-only invariant.
+
+Resolve the supported wait/return mechanism before dispatch. For T3, use the worker's [parent-relay reference](../braid-worker/references/t3-continuation.md): parent transports events, worker retains diagnosis/repair/current-head verification. A pending/failing/blocker return is nonterminal progress, not successful delivery or a transfer of repairs to the coordinator. Reconcile actual task/transport state after interruption rather than assuming a surviving subscription.
+
+At a safe handoff boundary, use the returned actual checkout/branch/full HEAD/PR and independently inspect current-head green evidence for the entire assigned check set. Use `git -C <returned-root>` for inspection; do not blindly check out a branch occupied by another worktree. Preserve user index/dirty ownership. Reconcile a base change explicitly and revalidate affected proof before advancing.
 
 Inspect the actual changes and check relevant evidence before moving In Review to Done. Run independent checks where the item's gate requires them. A worker report is a claim, not automatic acceptance. Preserve blockers and failed gates; return actionable findings as scoped fixes. Request fresh reviews at the declared milestone.
 
@@ -74,7 +78,7 @@ You: <None, or the exact input/decision/action needed and what it affects>
 Next: <one recommended next step>
 ```
 
-When an item is ready for the user, after the worker has handed off with finished checks and the coordinator has looked at the actual change, send one rundown of about half a page. Write it for a person, not for another agent. Use short lists.
+When an item is ready for the user, after the worker has handed off with independently verified current-head green checks and the coordinator has looked at the actual change, send one rundown of about half a page. Write it for a person, not for another agent. Use short lists.
 
 Start with one or two sentences that say what is now true. Then:
 
