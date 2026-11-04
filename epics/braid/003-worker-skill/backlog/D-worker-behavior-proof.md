@@ -2,7 +2,13 @@
 
 Kind: spike. Epic: [BRAID-003](../epic.md).
 Status: backlog. Owner: one evaluator/trial worker at a time; coordinator selects assignments after approval.
-Depends on: C technically accepted; approved E reporting/merge rules and B/C integration delivered/reviewed/human-merged to main; A's supported continuation available; committed context and an explicitly authorized low-impact trial scope. User's E-only request does not dispatch D.
+Depends on: E/B/C main delivery verified at `7707524a0b5a007794f22fab6ae1439d93458bb6`; selected workflow/continuation baseline, committed context and explicitly authorized low-impact trial scope. D is held while the user discusses [new execution policy](../execution-policy-proposal.md), with proposed G/F before D; no evaluator has started.
+
+## Proposed refinement awaiting agreement
+
+The user confirmed item PRs into an epic branch with one final epic PR into main. Remaining proposed work is [G](G-independent-thread-ci.md) to establish direct top-level-thread PR waiting/result delivery, then [F](F-epic-workspaces-and-assignments.md) to integrate epic/worktree/assignment rules, before D evaluates the adopted model. Preserve this item's ID and original proof obligations; do not silently replace the approved parent-relay baseline or launch its controlled failure before the new scope is agreed.
+
+If adopted, D additionally checks attached meaningful branches, correct item/epic/final-main PR targets, committed `assignments/` packets and workspace ownership, direct worker-owned subscription/resume, explicit final coordinator message and human merge stopping. Reuse G's positive lifecycle; retain D's single separately approved failure/repair trial rather than duplicate A/G experiments. Freeze exact selected skill/packet/transport revisions before dispatch. Until then these are proposed changes, not performed evidence or a new trial authorization.
 
 ## Read first
 

@@ -1,37 +1,27 @@
 # BRAID-003 current coordinator checkpoint
 
-Date: 2026-11-04. Role: coordinator. Active item: E approved; prepare committed context and dispatch one Grok 4.7 Extra High worker. Stop after E's delivery/required human merge before D.
-Parent `C:\code\agento`, context branch `feat/003-e-reporting-gates`, input HEAD `af6e5d49232c3cbdf69ea5e557316483719598c5`; actual new context commit supplied at dispatch after validation. Branch creation preserved exact prior status, dirty binary diff, every untracked-file hash and empty index. Markdown coordination only, no controller/schema change.
+Date: 2026-11-04. Role: coordinator. State: approved execution setup; G is next, not yet launched.
 
-## User authority and E scope
+## Workspace and authority
 
-User explicitly authorized `$braid-coordinate go BRAID-003 / E`, approving [E](../backlog/E-reporting-and-merge-gates.md) with report triggers clarified: item outcomes, user-attention blockers, substantive subagent returns and milestones. Opening states current situation/next action, then What changed / Why / Left for you / Technical record. Coordinator interprets child evidence; overlapping triggers combine, routine CI waiting stays short. PRs have the same human account plus useful technical continuation evidence. Stop before dependent work needing a human merge; no automatic PR merge.
+Actual host-bound root `C:/worktrees/agento/epic-braid-003-worker-skill`; attached branch `epic/braid-003-worker-skill`, initial full HEAD `7707524a0b5a007794f22fab6ae1439d93458bb6`. T3 confirmed attached, project root `C:/code/agento`. Origin `https://github.com/exones/braid.git`. Initial index/tree clean. User-root dirty seed/epic002 files remain outside this worktree; no copy, clean or stash.
 
-Requested worker: T3 Cursor `grok-4.7`, explicit `reasoning_effort: xhigh`, `contextWindow: 500k`, capability verified after user named the provider/model. Global AGENTS Grok High profile unchanged. No provider substitution or new approval question for authorized routine E work. One implementation worker, no D/review yet.
+Coordinator thread `8a3c206a-9192-498f-b90a-19b5bf807c8c`. User approved named epic/item branches, coordinator-plus-active-item worktrees, item PRs into epic and one final epic PR into main, assignments folder and exactly one independent top-level G thread. Execution order **G -> F -> D**; verify each required human item merge into epic before its dependent. No repeated approval needed. No automatic merge, cleanup, release or provider substitution.
 
-## Actual merged dependencies and integration decision
+## Completed work and evidence
 
-- Main is `a2120bfa084a32212a780a0fdc095c38d8869ef5`, containing merged #6/#8 but not B/C.
-- #9 MERGED `71071ef4bbf380213a5f5cd1b74eb458016b14e3` at 2026-11-04T12:21:39Z INTO `t3/85fcb290`; reviewed B `01838178e67e4aa7fdb382587d15527c8cd3402b`.
-- #10 MERGED `4e7e976a4030f23d63b846f156a307a7b70fc870` at 12:22:05Z INTO `t3/fa4ebcc5`; reviewed C `6c3fcc112a344daed36b8d782426d65509ff35db`.
-- Main and merged C diverge from A `c86bc39`; GitHub comparison ahead 5/behind 12. Do not discard accepted main product/CI/epic002 history or claim feature merges delivered to main. Coordinator explicitly fetched only named main/B/C feature refs and inspected actual merge parents; objects are available locally.
-- [E assignment](../reports/E-assignment.md) authorizes pinned local integration preparation in the worker's generated branch (main, B merge, C merge), preserving context/final supplements and current main content, then new E policy/template work. One new PR targets main, transparently grouping accepted B/C integration/evidence plus E; all integrated-head local/hosted/review gates apply anew. No extra unmerged stack, remote merge or silent base update.
-- Unexpected product/CI conflict or changed main needing another base transition is a precise coordinator blocker; worker cannot invent product changes. No user action is currently needed for the approved scoped preparation. E's eventual main merge remains the user's gate before D.
+A/B/C/E delivered through human PR #11 main merge `7707524a0b5a007794f22fab6ae1439d93458bb6`; accepted E head `f6b136099889205545d3bfde2595f626a264efb2` is an ancestor. See [E acceptance](../reports/E-acceptance.md), [triage](../reports/E-coordinator-triage.md), [review](../reports/reviews/E/E-reporting-and-merge-gates-review-001.md). Earlier workers/reviewers stopped, watches torn down; D has not run.
 
-## Prior acceptance and retained evidence
+Materialized only the 16 epic003 paths named by planning commit `5571151220f9ecbbc663b2194749f0d2443bf750`, latest blobs from approval `0da5e5549c3f95f4916bb71f563c7c6715a04836`. Verified allowlist exactly 16 paths within this epic; main product/policy preserved. Updated this operational checkpoint and G/F status to supersede old proposal-only language. Earlier checkpoint/proposal statements remain historical in Git.
 
-A bounded relay and actual same-worker failure/repair technically accepted/merged. B and C have no-findings independent pass001 and complete four-job/upload/artifact/source proofs for their ORIGINAL base/head pairs. [B acceptance](../reports/B-acceptance.md), [C acceptance](../reports/C-acceptance.md), [C review](../reports/reviews/C/C-assignment-integration-review-001.md). Their former open/premerge observations are historical, superseded by actual merge facts above. No old proof is asserted for new integration.
+Retained E supplement SHA-256 identities verified unchanged: author report `b1ffc71f156ae62126e85c6402ecd84a42621fb68e3d50370141311d22abccc8`, author checkpoint `3bb0efea0fab0397bb1a36e4faa6a60bcf66d19c39621604fefd958956deeb51`, review report `b8628db0b53f25fff4b68836152a3f7b721daa04f91c2e6002e437407849286b`, review checkpoint `6aa2ac51f2a99a299e1be84a5b93a44196c2f242c0ee2bc449e3ec0fb6fd009e`. Supplements are distinct from reviewed candidate blobs; source worktrees untouched.
 
-C final author report/checkpoint retained byte-for-byte, SHA-256 `29487ccfb1bf4865c230d0a53a93a6b25a0428738254c4ce95b80fb31d75caf4` / `b1d3ce7e81be16627e259cd597c59ea004278929734a9138babcd05b5a38e527`. C review report/checkpoint `f851b25a3b8293fd30f1d0142125741933ea71a26002fd99c57e4dca3154e6e0` / `17d6b15dadc9bbfa8abb50fbaa494cec351487c4472131ac83900e3cdf4f73b1`. All are in this committed handoff, distinct from candidate blobs; original author/reviewer checkouts untouched. Full old lineage in [C relay archive](history/C-relay-2026-11-04.md), not current commands to replay.
+## Next action and ownership
 
-## Existing PR descriptions completed for E
+Validate/commit scoped plan on epic, then commit assignments/G.md with pinned source/planning context. Push epic and launch exactly one top-level G thread on `item/braid-003-g-independent-thread-ci` from actual full committed epic tip. T3 creates/binds checkout; no shell worktree/setup commands in prompt. Read actual returned binding and record link/root/branch/head/thread/run. Implementation profile Cursor `grok-4.7`, high, 500K; E Extra High override expired.
 
-Coordinator reformatted #9/#10 with human opening, What changed / Why / Left for you and Technical record. Preserved source/run/job/artifact/provenance/review/supplement identities; corrected present state and recorded feature-base merges/main integration need. Both `gh pr edit --body-file` succeeded; immediate next tool call linked each (`alreadyLinked:true`). No head/base/source changes. Before/after metadata under ignored parent `.tools/coord003/PR{9,10}-before-E.json`, `PR{9,10}-E-body.md`; worker may verify authoritative bodies once, no repeated edits. These PRs are merged, so no watch required.
+G owns own PR watch, finite readiness reconciliation, verification/repair, teardown and explicit final/blocker message to coordinator. No parent per-event relay, subordinate agents, deliberate failure or silent fallback. Scope: [G backlog](../backlog/G-independent-thread-ci.md), validation/G/ proof docs, reports/G.md and checkpoints/G.md only. Coordinator owns shared files. Separate review follows independently verified GREEN, then human item merge into epic; F/D stay stopped.
 
-## Ownership, checks and next action
+## Checks, limits and live state
 
-Coordinator owns epic/current, E packet and retained dependency evidence; worker owns E implementation/item report/checkpoint. All prior workers/reviewers stopped, PR watches previously torn down after GREEN (`wasWatching:true`, `watching:false`). No active delegate/watch/process at this pre-dispatch boundary. Parent unrelated dirty seed/epic002 files and untracked review/release records must remain untouched and unstaged; no secrets.
-
-Next: create the owned E context branch without disturbing prior files/index; validate links, exact supplement hashes and scoped whitespace; commit only named epic003 context/plan/evidence files. Supply actual full context SHA to one tool-managed isolated Grok Extra High worker with [assignment](../reports/E-assignment.md) and exact Git/CI/stop facts. Record returned task/thread and follow async next; no polling. Worker uses frozen CI push+PR Windows/Ubuntu Verify/upload/artifact/source set and finite parent relay, retains repair through current-head GREEN. NEW independent E-reporting-and-merge-gates-review-001 follows candidate/green handoff. Human merge to main required before any D dispatch.
-
-No E implementation or hosted proof yet; metadata preparation is complete. Structural/authored/old CI proof does not establish fresh-agent adherence, measured speedup, arbitrary restart/watch durability, exactly-once delivery or cross-provider reliability. D remains unexecuted and outside this E-only request.
+No live watch/delegate/worker or in-flight command at this setup boundary. Planning docs only; no new product tests/hosted proof claimed. Scope/link/whitespace validation and commit/launch identities recorded next. Full-thread watch/result behavior remains unproven until G. Restart durability, exactly-once delivery, universal provider behavior and measured speedup unproven. Braid remains 0.1.1/schema 1 manual ledger; no orchestration API/controller work here.

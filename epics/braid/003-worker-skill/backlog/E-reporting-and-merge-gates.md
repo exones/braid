@@ -1,7 +1,7 @@
 # E: consistent human reports, useful PR records and merge stopping gates
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: ready. User approved E with `$braid-coordinate go BRAID-003 / E` on 2026-11-04, including the clarified report triggers. Dispatch after committing the complete context below.
+Status: done. Exact `f6b136099889205545d3bfde2595f626a264efb2` accepted after green handoff/no-findings pass001; user merged [PR #11](https://github.com/exones/braid/pull/11) into main at `7707524a0b5a007794f22fab6ae1439d93458bb6`, 2026-11-04T13:29:13Z. Actual merge/ancestry verified. See [acceptance](../reports/E-acceptance.md). D is held for the new planning discussion, not E's former merge gate.
 Owner: one Grok 4.7 Extra High implementation worker, requested specifically for this task. Keep the global provider profile unchanged.
 Depends on: approved packet; B/C human merges confirmed on their original feature bases; committed context and explicit main-integration contract below. Priority: before D, retaining all existing IDs.
 
@@ -75,6 +75,4 @@ Scoped Conventional Commit/owned push/new PR after local gates; parent-only fini
 
 ## Report and resume
 
-Worker writes `reports/E.md` and `checkpoints/E.md` using the newly consolidated form, with exact candidate/checks/PR evidence and limits; proposes shared updates, then stops. The pre-dispatch next-action sentence is historical. Current worker state is the E checkpoint. Shared epic status remains a coordinator update.
-
-Worker delivery note: local reporting/merge-gate edits, bounded scenarios, and local gates are recorded in [E report](../reports/E.md) and [E checkpoint](../checkpoints/E.md). The worker checklist below stays open until current-head hosted green is independently verified. Checking it in a later commit would replace the checked head.
+Worker wrote `reports/E.md` and `checkpoints/E.md` and stopped after current-head green proof. Independent pass001 accepted; final author/reviewer supplements remain distinct from candidate blobs. Human main merge now verified and E delivered. Current next action: refine [execution policy](../execution-policy-proposal.md) with the user before any new assignment. No active worker/watch or D, release or automatic merge.
