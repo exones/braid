@@ -1,6 +1,6 @@
 # braid decisions
 
-Updated: 2026-11-03. User requirements take precedence over implementation proposals. Change this log with a dated reason; do not silently rewrite project direction.
+Updated: 2026-11-04. User requirements take precedence over implementation proposals. Change this log with a dated reason; do not silently rewrite project direction.
 
 ## Confirmed requirements
 
@@ -16,16 +16,18 @@ Updated: 2026-11-03. User requirements take precedence over implementation propo
 | D08 | Preserve context in versioned backlog items, checkpoints, reports, and decisions. | A fresh session must continue without chat history. |
 | D09 | Project and command are `braid`. The npm package is public `@exones/braid`. Epic files live under `epics/braid/`. The Git repository is `https://github.com/exones/braid`. | User selected `braid` on 2026-11-03 because unscoped npm `agento` belongs to another package. npm then refused unscoped `braid` as too similar to `brace`, so the package is scoped. |
 | D10 | CLI executable is `braid`, in full. | User selected the full name after considering short alternatives. |
-| D11 | Sol High coordinates; Grok 4.7 Extra High implements, with one implementation worker at a time for the seed. | User's stated provider/model preference. Coordinator and worker have separate file ownership. |
+| D11 | Use the authoritative [provider profile](../AGENTS.md#providers-and-roles), with one implementation worker at a time for the seed. | User-selected model/settings; maintain the current configuration in one place. Coordinator and worker have separate file ownership. |
 | D12 | Use epics, optional features, stories, tasks, spikes, backlog refinement, acceptance criteria, Definition of Ready, and Definition of Done. Active files live under `epics/`. | User requested Agile terminology and work division. |
 | D13 | Provide the reusable `braid-coordinate` skill before implementation, with natural-language goal entry, analysis, epic/backlog planning, and scoped delivery/resume. | User does not want to repeat long coordinator prompts. |
-| D14 | Routine coordinator progress updates use concise `Done / You / Next`; substantive completion briefings follow D20. | Initial short-report preference retained for progress; user later requested more detail after items. |
+| D14 | Routine coordinator progress updates use concise `Done / You / Next`; substantive reports follow the [report contract](../epics/report-format.md) (D22). | Initial short-report preference retained for progress; user later requested more detail after items. |
 | D15 | Passing local gates leads to scoped Conventional Commits and a PR, including spikes. Done requires applicable hosted CI, review, and human-approved merge. | User requested a real commit/PR/CI/review delivery loop instead of accumulating uncommitted work. |
 | D16 | README describes supported project state and usage; active work/progress belongs only in epics/checkpoints/reports. | User treats README as the repository frontend. |
 | D17 | Reusable handoff documentation contains mechanics and placeholder examples, not live assignments/progress or duplicate status tables. | User identified duplicate progress in `docs/agent-handoff.md`; keep one maintained source in the epic/checkpoints. |
 | D18 | Local state lives under `.braid/`. Pre-existing `.agento/` and `.crew/` directories are left untouched. | Storage follows the tool name. `.braid/` supersedes `.agento/`, which superseded `.crew/`. No alias or silent migration. |
 | D19 | Follow the authoritative [review conventions](agile-workflow.md#review-gates-and-indexing). | User wants item-bound review names and one maintained definition, discoverable through links from instructions, skills, templates, and README. |
-| D20 | Written item reports and user completion briefings explain introduced capabilities, important changes, validation, limits, user involvement, and next action. | User wants release-note detail after items; the three-line/60-word convention applies only to routine progress updates. |
+| D20 | Written item reports and user completion briefings explain introduced capabilities, important changes, validation, limits, user involvement, and next action. Structure and triggers are D22. | User wants release-note detail after items; the three-line/60-word convention applies only to routine progress updates. |
+| D21 | Assigned implementation/resumption uses [braid-worker](../.agents/skills/braid-worker/SKILL.md) and one [assignment packet](../.agents/skills/braid-worker/assets/assignment-packet.md); shared delivery policy requires independently verified current-head green handoff. | User approved R01–R12 on 2026-11-03. Singular policy ownership prevents drift; pending/blocked updates retain worker repair responsibility, with coordinator acceptance, independent review and human merge separate. |
+| D22 | Item reports, coordinator briefings, and PR bodies share one human-first contract in [report format](../epics/report-format.md): opening, What changed, Why, Left for you, and Technical record, with item-outcome, user-blocker, substantive-child-return, and milestone triggers. When a dependent item requires a merged PR, checkpoint the exact human merge and stop until that merge is verified. | User approved BRAID-003/E on 2026-11-04. One authority prevents briefing drift. Green CI and independent review are not a merge and do not start the dependent item or count as Done. |
 
 ## Adopted working defaults
 
@@ -34,7 +36,7 @@ These defaults implement the agreed staged approach. Adjust through an explicit 
 - One package, strict TypeScript, ESM, compiled JavaScript, npm lockfile. Select and pin a supported Node LTS during task A; document the PowerShell baseline too.
 - CLI executable is `braid` and local state lives under `.braid/`; update the package `bin` entry, paths, examples, and checks consistently. See the [naming decision](cli-name.md). Package name/scope remains separate.
 - PowerShell scripts own reusable build/verify/package automation. YAML wires jobs; npm scripts provide discoverable entry points. Avoid implementing the same orchestration twice.
-- The coordinator skill lives in the shared project location `.agents/skills/braid-coordinate/`; Codex and Cursor can discover the same source. Automatic selection remains enabled; root `AGENTS.md` routes goal-level coordination to it. Assigned workers follow their item without invoking a coordinator loop.
+- The coordinator and worker skills live in the shared project location `.agents/skills/`; Codex and Cursor can discover the same sources. Automatic selection remains enabled; root `AGENTS.md` routes goal-level coordination to `braid-coordinate` and assigned item execution/resumption to `braid-worker`. Independent reviews follow their own assignments and shared review authority.
 - Follow `docs/agile-workflow.md`; use `braid story ...` for the seed's work ledger. Keep implementation tasks as checklists where separate ownership is unnecessary. Do not add sprint ceremonies or point estimates without a scheduling need.
 - GitHub-hosted Windows and Linux jobs run deterministic checks. Live T3 exercises are separate and explicitly recorded.
 - Build and verify an installable tarball before npm publication. Keep the local package `private: true` until the publishing identity and release configuration are deliberately set. See `docs/npm-distribution.md`.
@@ -72,6 +74,9 @@ Prepare GitHub Actions publishing through [npm trusted publishing](https://docs.
 
 ## Decision log
 
+- 2026-11-04, user: approved `$braid-coordinate go BRAID-003 / E`, including the clarified report triggers and the required human-merge stop before dependent work. Adopted D22. The global provider profile is unchanged. No automatic merge is authorized.
+- 2026-11-04, BRAID-003/C integration: route normal assignments through the reviewed worker skill/canonical packet and replace active pass-or-fail handoff wording with the approved green-only invariant. Keep operational worker mechanics in the skill and shared delivery/review/reporting/provider authority at their maintained sources. This implements the approved rules without changing provider settings or claiming D behavioral proof, dependency merges or release.
+- 2026-11-03, user: changed the implementation profile before the next assignment. Updated and capability-verified the authoritative [provider profile](../AGENTS.md#providers-and-roles); the coordinator skill must read it before dispatch. Earlier assignment settings remain historical evidence.
 - 2026-11-03, user: selected `braid` as the project, CLI, package, and storage name, and asked to publish it publicly and to put the history on `https://github.com/exones/braid`. The former name `agento` stays in historical records and remains the occupied npm package. `.agento/` and `.crew/` are not migrated.
 - 2026-11-03, user: requested one maintained source for review naming instead of copies across files. Consolidated the rule in the [review conventions](agile-workflow.md#review-gates-and-indexing); instructions, skills, templates, README, and current handoff now link there. Historical review evidence remains unchanged.
 - 2026-11-03, user: refined review-agent naming to follow the item being reviewed. Adopted in D19 and the review conventions; existing records/links/findings remain valid.

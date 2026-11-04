@@ -7,19 +7,19 @@ Read `README.md`, `docs/decisions.md`, the assigned epic, `checkpoints/current.m
 Current epic: `epics/braid/001-seed/epic.md`.
 Current checkpoint: `epics/braid/001-seed/checkpoints/current.md`.
 
-For a goal-level planning or orchestration request, use `.agents/skills/braid-coordinate/SKILL.md`. It analyzes the request, writes/refines the epic and backlog, and coordinates delivery within the user's requested scope. Read it directly if the host has not discovered it yet. Assigned workers execute their backlog item; they do not enter the coordinator workflow. Routine coding questions do not need the skill.
+For a goal-level planning or orchestration request, use [.agents/skills/braid-coordinate/SKILL.md](.agents/skills/braid-coordinate/SKILL.md). For execution or resumption of one assigned implementation item, use [.agents/skills/braid-worker/SKILL.md](.agents/skills/braid-worker/SKILL.md) and its [canonical assignment packet](.agents/skills/braid-worker/assets/assignment-packet.md); do not enter the coordinator workflow. Read the selected skill directly if discovery is unavailable. Independent reviewers follow their separately assigned review and the review conventions below. Routine coding questions need neither workflow. An assignment's named epic/checkpoint overrides the global pointers above.
 
 Use the Agile vocabulary in `docs/agile-workflow.md`: epic, optional feature grouping, story, task, spike, backlog, acceptance criteria, Definition of Ready, and Definition of Done. Keep existing backlog IDs stable. The original MVP and inspiration retain historical terminology.
 
-Before assigning a review, read and follow the authoritative [review conventions](docs/agile-workflow.md#review-gates-and-indexing). Completed-item reports and user briefings follow `epics/report-format.md`; short progress updates are still appropriate between milestones.
+Before assigning a review, read and follow the authoritative [review conventions](docs/agile-workflow.md#review-gates-and-indexing). Item reports, user briefings, and pull-request accounts follow [report format](epics/report-format.md), including its trigger contract. Short progress updates stay short and do not replace an item briefing.
 
-Do only the assigned role and scope. A coordinator asked to deliver an epic may advance its ready backlog items within that scope; a worker stops after its assigned item and does not launch agents. Seed execution has one implementation worker at a time. A reviewer is assigned separately after the candidate exists. A planning-only request stops after the reviewable plan.
+Do only the assigned role and scope. A coordinator asked to deliver an epic may advance its ready backlog items within that scope. Do not dispatch a dependent item whose required human merge is unverified; the [human merge stop](.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop) applies. A worker stops after its assigned item and does not launch agents. Seed execution has one implementation worker at a time. A reviewer is assigned separately after the candidate exists. A planning-only request stops after the reviewable plan.
 
 ## Providers and roles
 
 These instructions are shared project guidance, regardless of model/provider. Start every assignment by explicitly reading them and its named context files; other Markdown files are not assumed to load automatically. Provider/model/reasoning selection is set in T3, not by this file.
 
-User preference: Sol High for coordination; Grok 4.7 Extra High for implementation. Current verified T3 worker route is Cursor model `grok-4.7` with option `reasoning_effort: xhigh`. The active Codex session reports model `gpt-6.1-sol` and `reasoningEffort: high`. Recheck capabilities before future delegation; do not substitute a different provider/model/settings without authorization.
+This section is the authoritative provider profile. User preference: Sol High for coordination; Grok 4.7 High with 500K context for implementation. The verified T3 implementation route is Cursor model `grok-4.7`, with `target.options` set to `{"reasoning_effort":"high","contextWindow":"500k"}`. The active Codex session reports model `gpt-6.1-sol` and `reasoningEffort: high`. Follow host rules for capability checks; do not substitute a different provider/model/settings without authorization. Historical assignments retain the settings actually used.
 
 When a coordinator is assigned, it owns `epic.md` and `checkpoints/current.md`, assigns the selected backlog item, checks evidence, and records the next action. Workers own `checkpoints/<task>.md` and `reports/<task>.md` plus their assigned implementation files. Interpret backlog items' shared-status update instructions as reporting those updates to the coordinator in this mode. Do not have both roles edit the shared checkpoint. Coordinator findings go back to the worker as scoped fixes; the coordinator does not implement product changes in that role.
 
@@ -51,7 +51,7 @@ Develop future versions under a pinned, released controller installed outside th
 
 ## Shared and external actions
 
-Respect user changes. Inspect git status before editing. Work only in the assigned checkout and branch. A scoped delivery request authorizes scoped Conventional Commits, pushes to an owned feature branch, and PR creation after relevant local gates pass; follow `.agents/skills/braid-coordinate/references/delivery.md`. Human merge authority remains unchanged. Do not create a remote repository, merge, publish a release/package, deploy infrastructure, or change tailnet policy unless the task authorizes that action.
+Respect user changes. Inspect git status before editing. Work only in the assigned checkout and branch. A scoped delivery request authorizes scoped Conventional Commits, pushes to an owned feature branch, and PR creation after relevant local gates pass; follow `.agents/skills/braid-coordinate/references/delivery.md`. Human merge authority remains unchanged. Green CI and independent review are not a merge. When later work requires one, stop at the [human merge stop](.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop). Do not create a remote repository, merge, publish a release/package, deploy infrastructure, or change tailnet policy unless the task authorizes that action.
 
 Spikes also deliver through PR, applicable CI, and review. Local acceptance is distinct from Done after CI/review/approved merge. Preserve existing user commits/index, and do not stage/commit/switch a shared checkout while a worker is running. Workers follow their assigned Git boundaries; the coordinator handles a Git transition only at a safe handoff boundary.
 
@@ -65,7 +65,7 @@ At a useful boundary, before switching context, and before ending a task:
 
 1. Update the owned checkpoint (`checkpoints/<task>.md` for a coordinated worker, `checkpoints/current.md` for the coordinator or standalone agent): task, checkout/branch/HEAD when available, completed work, in-flight commands, next concrete action, blockers, checks, and changed files.
 2. Coordinator/standalone agent: update the assigned row in `epic.md` with status and evidence/report links. Coordinated workers return proposed status updates in their report.
-3. Write `reports/<task>.md` with a useful account of introduced capabilities, important behavior/implementation changes, checks, evidence, decisions, and limits. Review passes use the parent-scoped report convention. Distinguish local proof from remote CI/release proof.
-4. At item delivery, give the user a substantive completion briefing with important changes, validation, limits, required involvement, and exact next action. Keep intermediate status updates concise. If blocked, record what input unblocks it and continue independent in-scope work.
+3. Write `reports/<task>.md` using [report format](epics/report-format.md). Review passes use the parent-scoped report convention. Distinguish local proof from remote CI/release proof.
+4. At an item outcome, a user-attention blocker, a substantive child return, or a milestone, give the user that same account. Keep routine progress concise. If blocked, name the exact input that unblocks the work and continue independent in-scope work.
 
 The checkpoint should let a fresh agent resume without the conversation.

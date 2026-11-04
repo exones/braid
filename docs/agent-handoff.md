@@ -27,25 +27,16 @@ Do not copy current IDs, completion states, next assignments, or dated runtime/p
 
 ## Manual worker assignment
 
-The coordinator normally generates this assignment. If handing work over manually, substitute real paths for the placeholders:
+Use [braid-worker](../.agents/skills/braid-worker/SKILL.md) for one assigned implementation item or its resumption. Explicit Codex selection is `$braid-worker`; in Cursor select it from the skill picker, or read its file directly when discovery is unavailable. Goal-level work uses the coordinator entrypoint above; independent review uses its separately assigned scope and [review conventions](agile-workflow.md#review-gates-and-indexing).
 
-```text
-Act as the worker for <epic>/<item>.
-Read AGENTS.md, the applicable decisions, <epic>/epic.md,
-<epic>/checkpoints/current.md, <item-path>, and its dependency reports.
-Execute only that item; do not launch other agents or successor items.
-Follow its acceptance criteria and agreed checkout/Git boundaries.
-Write <epic>/checkpoints/<ID>.md and <epic>/reports/<ID>.md.
-Leave shared epic status to the coordinator.
-Surface precise user-owned blockers and continue independent in-scope work.
-```
+Fill the [canonical assignment packet](../.agents/skills/braid-worker/assets/assignment-packet.md) for manual delivery exactly as for automatic dispatch. It is the maintained template for task/context/dependencies, Git/base/remote/index, ownership, check set, supported continuation, outputs and return facts. Read the provider authority at dispatch time; do not copy live settings into reusable examples.
 
-Workers do not inherit another provider's conversation automatically. Include the read-first paths and outputs even when project instructions are discovered by the host. Refresh the relevant files when resuming.
+For isolation, every required file must be committed at the supplied revision or explicitly supplied; no parent chat or dirty parent checkpoint is inherited. Let the host bind and return the actual root/generated branch. For expressly shared work, name existing dirty/index ownership and allowed operations instead of cleaning it. On resume supply the last checkpoint/PR/head and interrupted action; follow the worker skill's reconciliation before retrying effects.
 
 ## Delivery and verification
 
-Follow the [Agile workflow](agile-workflow.md) and the skill's [delivery rules](../.agents/skills/braid-coordinate/references/delivery.md) for scoped commits, PRs, CI, review, and merge authority. Do not duplicate that policy here.
+Follow the [Agile workflow](agile-workflow.md) and the skill's [delivery rules](../.agents/skills/braid-coordinate/references/delivery.md) for scoped commits, PRs, CI, review, and merge authority. A required human merge uses the [human merge stop](../.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop). Do not duplicate that policy here.
 
 A prepared workflow, a passing local gate, and a passing hosted CI run are different evidence. Record actual revisions, run URLs, findings, and results in the epic/report. The workflow file defines when CI runs; this guide does not track whether a particular run happened.
 
-Keep one owner for shared status. Do not switch/stage/commit a shared checkout while its worker is running. Ensure required context is committed before isolated worktree delegation. Before assigning a review, read and follow the [review conventions](agile-workflow.md#review-gates-and-indexing). Use short `Done / You / Next` progress updates and fuller completion briefings per [report guidance](../epics/report-format.md).
+Keep one owner for shared status. At a safe boundary, inspect using the worker's returned actual root/branch/full HEAD/PR and complete current-head green evidence; do not blindly check out a branch occupied by another worktree or take over pending/failing implementation. Shared Git/index boundaries and the green-only invariant are maintained in the delivery rules. For T3 use the [finite parent relay](../.agents/skills/braid-worker/references/t3-continuation.md) for transport; a waiting/blocker return retains worker ownership. Before assigning review follow the review conventions. Use the [report contract](../epics/report-format.md): short progress stays short, and item outcomes, user blockers, substantive child returns, and milestones use its human account. The coordinator translates child evidence; it does not forward the packet unchanged.

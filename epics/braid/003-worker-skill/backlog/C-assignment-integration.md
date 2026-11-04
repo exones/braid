@@ -1,12 +1,14 @@
 # C: integrate assignments and remove duplicated worker duties
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: backlog. Owner: one implementation worker under the current provider profile.
+Status: in-review. Owner: author/reviewer stopped; exact `6c3fcc112a344daed36b8d782426d65509ff35db` accepted. PR #10 human-merged as `4e7e976a4030f23d63b846f156a307a7b70fc870` into B's feature branch; main integration tracked in [E assignment](../reports/E-assignment.md). See [original acceptance](../reports/C-acceptance.md).
 Depends on: B delivered/reviewed; A mechanism available; approved rule set; safe ownership boundary for shared policy edits.
+
+Readiness: [B accepted](../reports/B-acceptance.md) at exact `01838178e67e4aa7fdb382587d15527c8cd3402b`, independent pass 001 no findings; [A accepted](../reports/A-acceptance.md). No predecessor merge is asserted. Start from committed C context based on B, retain the generated owned branch and target PR base `t3/fa4ebcc5`; explicit human merge order #6 -> #8 -> #9 -> C. Four existing provider-profile edits are retained verbatim as input context; preserve them during integration. No other active implementation owner remains.
 
 ## Read first
 
-[AGENTS](../../../../AGENTS.md), README, [workflow](../../../../docs/agile-workflow.md), [decisions](../../../../docs/decisions.md), [epic](../epic.md), [current checkpoint](../checkpoints/current.md), [rules](../proposed-rules.md), [source map](../reports/planning.md#instruction-ownership-and-migration), `reports/A.md`, `reports/B.md`, current worker/coordinator skills, their references, handoff guide, and report format.
+[AGENTS](../../../../AGENTS.md), README, [workflow](../../../../docs/agile-workflow.md), [decisions](../../../../docs/decisions.md), [epic](../epic.md), [current checkpoint](../checkpoints/current.md), [rules](../proposed-rules.md), [source map](../reports/planning.md#instruction-ownership-and-migration), [A acceptance](../reports/A-acceptance.md), [B acceptance](../reports/B-acceptance.md), `reports/A.md`, `reports/B.md`, current worker/coordinator skills, their relevant references, handoff guide, and report format. The accepted review reports are dependency evidence; historical relay snapshots need loading only for a specific unresolved fact.
 
 ## Value
 
@@ -28,9 +30,9 @@ Replace current pass-or-fail handoff wording with the approved green-only invari
 
 ## Tasks
 
-- [ ] Reconcile active ownership and re-read current policy, preserving concurrent user changes.
-- [ ] Apply the source-map migration and update the manual assignment to reference the canonical packet.
-- [ ] Validate links/routing and record changed authorities/removed duplication in `reports/C.md` and `checkpoints/C.md`.
+- [x] Reconcile active ownership and re-read current policy, preserving concurrent user changes.
+- [x] Apply the source-map migration and update the manual assignment to reference the canonical packet.
+- [x] Validate links/routing and record changed authorities/removed duplication in `reports/C.md` and `checkpoints/C.md`.
 
 ## Ownership and verification
 
@@ -39,6 +41,8 @@ Own the agreed policy/routing files listed above, necessary links to B's asset, 
 ## Review and delivery
 
 Independent parent-scoped pass `C-assignment-integration-review-001` checks preservation, authoritative links, complete packet, and policy consistency on the exact candidate. Follow the [review convention](../../../../docs/agile-workflow.md#review-gates-and-indexing). Scoped Conventional Commit/PR, green current-head CI, review/triage, and human-approved merge are required. No PR/revision/check result exists yet.
+
+Worker local implementation record (2026-11-04): normal routing/packet integration and source dispositions are in [C report](../reports/C.md), with actual binding/read index/next action in [C checkpoint](../checkpoints/C.md). Structural checks, both skill validators and bounded authored consistency walkthroughs pass; repository Verify and hosted current-head proof are recorded there as they complete. This is not coordinator acceptance, independent review, Done or merged evidence. Shared status remains coordinator-owned.
 
 ## Report and resume
 

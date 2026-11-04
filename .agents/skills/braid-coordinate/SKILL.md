@@ -38,9 +38,13 @@ Treat a request to build, fix, or implement as delivery even when phrased "I wan
 
 The coordinator owns `epic.md` and `checkpoints/current.md`. Workers own `checkpoints/<ID>.md`, `reports/<ID>.md`, and their assigned implementation scope. Stay in the coordinator role; route product changes through scoped worker assignments.
 
-Provider/model choices come from current project instructions, not this skill's metadata. When cross-provider work is authorized and T3 tools are available, read [delegation mechanics](references/delegation.md). Otherwise prepare one complete manual worker assignment; clearly state why automatic delegation is unavailable. Do not silently substitute another model or provider.
+Before each implementation assignment, read the authoritative [provider profile in AGENTS.md](../../../AGENTS.md#providers-and-roles) and pass its model and explicit options to T3. Keep the profile there rather than copying settings into this skill or templates. When cross-provider work is authorized and T3 tools are available, read [delegation mechanics](references/delegation.md). Otherwise prepare one complete manual worker assignment; clearly state why automatic delegation is unavailable. Do not silently substitute another model or provider.
 
-There is no separate builder skill. The worker's duties are this section plus [delivery](references/delivery.md) and [delegation](references/delegation.md). Give a worker its role, exact backlog path, read-first paths, dependency reports, boundaries, acceptance/evidence requirements, and output paths. Do not assume it inherits this chat. Include the handoff rule: after the pull request is open, the worker stays with it until the required checks on that head have finished, then hands off with the pass or fail result and the head SHA. A handoff while checks are still running is incomplete. Workers stop after their item. Keep one seed implementation worker at a time.
+Assign implementation through [braid-worker](../braid-worker/SKILL.md), using its [canonical assignment packet](../braid-worker/assets/assignment-packet.md) for both automatic and manual dispatch. Supply current task/context/dependency and actual merge evidence, Git/base/remote facts, ownership, frozen local/hosted check set, supported continuation, outputs and stop boundary. Required isolated context must be committed at the assigned revision; an expressly shared checkout must name dirty/index ownership and allowed operations. Let the host return the actual bound root/generated branch; do not guess them. Keep one seed implementation worker at a time. The worker skill owns execution/resume mechanics; [delivery](references/delivery.md) owns the shared green-only invariant.
+
+Resolve the supported wait/return mechanism before dispatch. For T3, use the worker's [parent-relay reference](../braid-worker/references/t3-continuation.md): parent transports events, worker retains diagnosis/repair/current-head verification. A pending/failing/blocker return is nonterminal progress, not successful delivery or a transfer of repairs to the coordinator. Reconcile actual task/transport state after interruption rather than assuming a surviving subscription.
+
+At a safe handoff boundary, use the returned actual checkout/branch/full HEAD/PR and independently inspect current-head green evidence for the entire assigned check set. Use `git -C <returned-root>` for inspection; do not blindly check out a branch occupied by another worktree. Preserve user index/dirty ownership. Reconcile a base change explicitly and revalidate affected proof before advancing. Before dispatching an item that requires a merged prerequisite, apply the [human merge stop](references/delivery.md#human-merge-stop).
 
 Inspect the actual changes and check relevant evidence before moving In Review to Done. Run independent checks where the item's gate requires them. A worker report is a claim, not automatic acceptance. Preserve blockers and failed gates; return actionable findings as scoped fixes. Request fresh reviews at the declared milestone.
 
@@ -60,30 +64,12 @@ If a worker is already running in a shared checkout, do not switch branches, sta
 
 ## Close or checkpoint
 
-Update epic/backlog status, decisions, shared checkpoint, and next action at meaningful boundaries. Record revision, controller version if one exists, in-flight commands/logs, completed evidence, blockers, and exact resume point. Plans and runtime state must not become two competing authorities. Follow `epics/report-format.md` for substantive item reports and completion briefings; include what was introduced and why it matters, not only check counts and status.
+Update epic/backlog status, decisions, shared checkpoint, and next action at meaningful boundaries. Record revision, controller version if one exists, in-flight commands/logs, completed evidence, blockers, and exact resume point. Plans and runtime state must not become two competing authorities. Follow [report format](../../../epics/report-format.md) for item reports and user briefings. Inspect child evidence and translate it; do not forward an opaque handoff as the user account.
 
 At epic completion, reconcile every outcome with evidence, write the final report and retrospective, and identify follow-up backlog items and release blockers. Describe local readiness separately from remote CI and publication. Improve skills/defaults through reviewable changes based on observations; do not silently relax acceptance.
 
-## Progress updates and completion briefings
+## Progress updates and human reports
 
-For routine progress or waiting updates, use a short `Done / You / Next` report:
+Routine progress, CI waiting, duplicate same-head notices, and transport housekeeping stay short `Done / You / Next` updates, as specified in [report format](../../../epics/report-format.md#report-triggers). They do not replace an item briefing.
 
-```text
-Done: <what this turn actually completed or started; include validation if relevant>
-You: <None, or the exact input/decision/action needed and what it affects>
-Next: <one recommended next step>
-```
-
-When an item is ready for the user, after the worker has handed off with finished checks and the coordinator has looked at the actual change, send one rundown of about half a page. Write it for a person, not for another agent. Use short lists.
-
-Start with one or two sentences that say what is now true. Then:
-
-- **What changed.** The behavior or record a person would notice. One fact per bullet.
-- **Why.** The problem that made the change worth doing, including what went wrong or stayed risky without it.
-- **Left for you.** The decision or action that is still theirs, such as a merge. Say what did not happen, including publish or automatic release, when that would be easy to assume.
-
-Follow that with **Technical record**. This part may name files, commands, exit codes, the pull request, the head SHA, and check results. Keep it to the evidence that supports the lists above. Do not repeat the lists in jargon.
-
-Routine `Done / You / Next` updates stay short and do not use this rundown. Distinguish implemented, locally checked, reviewed, merged, and released states. Link the pull request.
-
-This report format does not create a new approval gate: continue already authorized work unless the user sets a stopping boundary. If the user requests a report and says they will choose the next action, finish the requested edits/checks, checkpoint, and stop before dispatching the next item. The user should be able to start with a goal and later say "continue" without reconstructing a long prompt.
+After inspecting evidence, write the user account from that same authority: opening, What changed, Why, Left for you, and Technical record. Combine overlapping triggers into one report. The reporting contract does not add an approval question for work the user already authorized. A required human merge is a stopping gate: report the exact merge, checkpoint, and do not dispatch the dependent item. The worker still owns repair through current-head green on the item already assigned. If the user asks for a report and says they will choose the next action, finish the requested edits and checks, checkpoint, and stop before the next dispatch.
