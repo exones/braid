@@ -1,6 +1,6 @@
 # braid decisions
 
-Updated: 2026-11-03. User requirements take precedence over implementation proposals. Change this log with a dated reason; do not silently rewrite project direction.
+Updated: 2026-11-04. User requirements take precedence over implementation proposals. Change this log with a dated reason; do not silently rewrite project direction.
 
 ## Confirmed requirements
 
@@ -26,6 +26,7 @@ Updated: 2026-11-03. User requirements take precedence over implementation propo
 | D18 | Local state lives under `.braid/`. Pre-existing `.agento/` and `.crew/` directories are left untouched. | Storage follows the tool name. `.braid/` supersedes `.agento/`, which superseded `.crew/`. No alias or silent migration. |
 | D19 | Follow the authoritative [review conventions](agile-workflow.md#review-gates-and-indexing). | User wants item-bound review names and one maintained definition, discoverable through links from instructions, skills, templates, and README. |
 | D20 | Written item reports and user completion briefings explain introduced capabilities, important changes, validation, limits, user involvement, and next action. | User wants release-note detail after items; the three-line/60-word convention applies only to routine progress updates. |
+| D21 | Assigned implementation/resumption uses [braid-worker](../.agents/skills/braid-worker/SKILL.md) and one [assignment packet](../.agents/skills/braid-worker/assets/assignment-packet.md); shared delivery policy requires independently verified current-head green handoff. | User approved R01–R12 on 2026-11-03. Singular policy ownership prevents drift; pending/blocked updates retain worker repair responsibility, with coordinator acceptance, independent review and human merge separate. |
 
 ## Adopted working defaults
 
@@ -34,7 +35,7 @@ These defaults implement the agreed staged approach. Adjust through an explicit 
 - One package, strict TypeScript, ESM, compiled JavaScript, npm lockfile. Select and pin a supported Node LTS during task A; document the PowerShell baseline too.
 - CLI executable is `braid` and local state lives under `.braid/`; update the package `bin` entry, paths, examples, and checks consistently. See the [naming decision](cli-name.md). Package name/scope remains separate.
 - PowerShell scripts own reusable build/verify/package automation. YAML wires jobs; npm scripts provide discoverable entry points. Avoid implementing the same orchestration twice.
-- The coordinator skill lives in the shared project location `.agents/skills/braid-coordinate/`; Codex and Cursor can discover the same source. Automatic selection remains enabled; root `AGENTS.md` routes goal-level coordination to it. Assigned workers follow their item without invoking a coordinator loop.
+- The coordinator and worker skills live in the shared project location `.agents/skills/`; Codex and Cursor can discover the same sources. Automatic selection remains enabled; root `AGENTS.md` routes goal-level coordination to `braid-coordinate` and assigned item execution/resumption to `braid-worker`. Independent reviews follow their own assignments and shared review authority.
 - Follow `docs/agile-workflow.md`; use `braid story ...` for the seed's work ledger. Keep implementation tasks as checklists where separate ownership is unnecessary. Do not add sprint ceremonies or point estimates without a scheduling need.
 - GitHub-hosted Windows and Linux jobs run deterministic checks. Live T3 exercises are separate and explicitly recorded.
 - Build and verify an installable tarball before npm publication. Keep the local package `private: true` until the publishing identity and release configuration are deliberately set. See `docs/npm-distribution.md`.
@@ -72,6 +73,7 @@ Prepare GitHub Actions publishing through [npm trusted publishing](https://docs.
 
 ## Decision log
 
+- 2026-11-04, BRAID-003/C integration: route normal assignments through the reviewed worker skill/canonical packet and replace active pass-or-fail handoff wording with the approved green-only invariant. Keep operational worker mechanics in the skill and shared delivery/review/reporting/provider authority at their maintained sources. This implements the approved rules without changing provider settings or claiming D behavioral proof, dependency merges or release.
 - 2026-11-03, user: changed the implementation profile before the next assignment. Updated and capability-verified the authoritative [provider profile](../AGENTS.md#providers-and-roles); the coordinator skill must read it before dispatch. Earlier assignment settings remain historical evidence.
 - 2026-11-03, user: selected `braid` as the project, CLI, package, and storage name, and asked to publish it publicly and to put the history on `https://github.com/exones/braid`. The former name `agento` stays in historical records and remains the occupied npm package. `.agento/` and `.crew/` are not migrated.
 - 2026-11-03, user: requested one maintained source for review naming instead of copies across files. Consolidated the rule in the [review conventions](agile-workflow.md#review-gates-and-indexing); instructions, skills, templates, README, and current handoff now link there. Historical review evidence remains unchanged.
