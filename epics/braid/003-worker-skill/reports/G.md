@@ -1,0 +1,89 @@
+# BRAID-003/G continuation result is negative
+
+One top-level item thread did not watch, verify, repair, and deliver on its own. The original worker's runs were interrupted or cancelled, the user reran the failed push job, and a coordinator-launched replacement finished the hosted proof from an explicit recovery snapshot. That replacement then restarted inside the same run and sent duplicate results for one head. This negative, partial result is the limit G found. Review of the new documentation head, and the human merge of https://github.com/exones/braid/pull/13, still come next. This file ships in the documentation commit. Hosted proof of that commit is checked after push and is not stored in this blob.
+
+## What changed
+
+The operator reference now lets F adopt only what this trial observed: worktree binding, the watch registration payload, one catch-up readiness snapshot, the current-head CI and artifact verification recipe, and explicit coordinator message delivery. The reference states the blocker in place. F must not rely on same-thread completion driven by a watch wake, a watch surviving interruption, one result per head, or unassisted repair. The coordinator must expect duplicate results and must drive recovery with explicit snapshots.
+
+Delivery evidence for the earlier reference commit `ccabae4df1f813317b8dd1247ea04878ee6ce023` remains below. Push attempt 2 and the pull-request run met the frozen four-job set for that head, and the four archives matched their provenance. That evidence is green for that head's files. It does not answer the continuation question, and it is not proof of the commit that contains this report.
+
+## Why
+
+G asked whether one top-level item thread can bind a named worktree, keep the proof, and deliver the outcome to the existing coordinator. The trial did not show that path. A report that called the same evidence a green handoff would let F consume a contract the run contradicted.
+
+The replacement's repeated self-restarts show that delivery is not idempotent and is not single-shot. The receiver has to deduplicate by head. The unwatch result does not explain when the watch ended.
+
+## Continuation result
+
+The continuation question has a negative answer on this run. What follows is the partial result.
+
+### Original worker
+
+Thread `mcp:launch:b4318dded53b10790c1cb711c5a4496141347271c88ddce9a5892d38485b3a80`. Review 001 read the host record. None of the five runs completed. Times are UTC.
+
+| Ordinal | Requested | Started | Ended | Status |
+| --- | --- | --- | --- | --- |
+| 1 | 19:17:50 | 19:18:05 | 19:37:58 | interrupted |
+| 2 (readiness) | 19:24:45 | 19:38:00 | 19:51:36 | interrupted |
+| 3 | 19:27:39 | never | 20:02:13 | cancelled |
+| 4 | 20:05:20 | 20:05:20 | 20:07:41 | interrupted |
+| 5 | 20:09:57 | 20:09:57 | 20:10:01 | interrupted |
+
+Ordinal 1 registered `watch_pull_request` with `watching: true` and `wasWatching: false`, kept running about ten minutes after that call, and was then interrupted. The queued readiness turn, ordinal 2, started only after that interruption and was interrupted too. It found push attempt 1 red. Ordinal 3 was requested at 19:27:39Z, after both pull-request jobs had produced artifacts, and was cancelled before it started. No watch wake drove verification or completion.
+
+The user account `exones` reran the failed push job. GitHub records that actor on push attempt 2, starting at 20:04:47Z. The worker did not rerun it. Attempt 1 Windows job `126807600244` stays failed. Verify reported `package proof failed: concurrent adds failed` and `error: cannot write state`. Upload on that job was skipped. The cause stays unidentified.
+
+The coordinator launched the replacement. The original thread never verified a finished head.
+
+### Replacement self-restarts and duplicate results
+
+Replacement thread `mcp:launch:7c30a9962f5352a1d5b673802a04f5ac5c1e1b6a89514bc74427a8c7f08a3d53`, run ordinal 1, on the same attached item branch. After its first send, the same launch prompt was entered again inside that run, and it was entered again after later sends. Each pass re-verified head `ccabae4df1f813317b8dd1247ea04878ee6ce023` and sent another coordinator message for that same head. This is the same in-run restart pattern that stopped the original worker.
+
+| Message | Coordinator run | Role |
+| --- | --- | --- |
+| `g-final-ccabae4df1f813317b8dd1247ea04878ee6ce023` | `run:thread:8a3c206a-9192-498f-b90a-19b5bf807c8c:ordinal:78` | first explicit result for this head |
+| `g-reconfirm-ccabae4df1f813317b8dd1247ea04878ee6ce023` | `run:thread:8a3c206a-9192-498f-b90a-19b5bf807c8c:ordinal:80` | duplicate for the same head |
+| `g-verify-ccabae4df1f813317b8dd1247ea04878ee6ce023` | `run:thread:8a3c206a-9192-498f-b90a-19b5bf807c8c:ordinal:81` | duplicate for the same head |
+| `g-recheck-ccabae4df1f813317b8dd1247ea04878ee6ce023` | `run:thread:8a3c206a-9192-498f-b90a-19b5bf807c8c:ordinal:84` | duplicate for the same head |
+
+Each message id is prefixed `message:mcp:c249b90a-4546-49f3-9133-8ebe58e4297b:thread-send:`. Each return was `delivery: started` and `status: starting` on `<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/8a3c206a-9192-498f-b90a-19b5bf807c8c>`. Acceptance is delivery. It is not evidence the coordinator read the message. Ordinals 80 and 81 were stored and then failed on a provider usage limit before acting. That limit explains why those sends were not acted on. It does not explain the re-entry.
+
+Named limit for F: delivery is not one result per head. The coordinator must deduplicate by head.
+
+### Unwatch
+
+The replacement's launch prompt stated the prior unwatch as `watching: false` and `wasWatching: false`, with an empty queue and no active run. Label: no active subscription at unwatch; termination cause and time unobserved. The value is second-hand. This replacement thread did not call `unwatch_pull_request`, and the payload was not saved by the thread that called unwatch. Watch lifetime across interruption and cancellation is an open host question for F. The unwatch shows that nothing was left to stop. It does not show when or why the subscription ended.
+
+## Left for you
+
+No product repair is requested. The attempt-1 `cannot write state` result stays unidentified unless the same failure recurs.
+
+Coordinator: record G's continuation result as negative. Keep F to the observed subset in [validation/G/operator-reference.md](../validation/G/operator-reference.md). Review `G-independent-thread-ci-review-001` covered head `ccabae4df1f813317b8dd1247ea04878ee6ce023` and produced findings F1 to F4, which this commit addresses. A review of the new head is a separate assignment. Human merge of https://github.com/exones/braid/pull/13 into `epic/braid-003-worker-skill` remains the stop before F. F and D stay stopped. Done stays separate.
+
+Proposed shared status, for the coordinator to record: G continuation result negative/partial. Delivery evidence for `ccabae4df1f813317b8dd1247ea04878ee6ce023` passed and does not prove single-worker continuity. The limit is in the operator reference on the commit that contains this report. Not Done. Not merged.
+
+## Technical record
+
+- Item: [G](../backlog/G-independent-thread-ci.md). Assignment [assignments/G.md](../assignments/G.md). Reference [validation/G/operator-reference.md](../validation/G/operator-reference.md). This report and [checkpoints/G.md](../checkpoints/G.md) ship in the same documentation commit. That commit's parent is `ccabae4df1f813317b8dd1247ea04878ee6ce023`. This blob does not name its own SHA.
+- Root: `C:\worktrees\agento\item-braid-003-g-independent-thread-ci`. Branch: `item/braid-003-g-independent-thread-ci`. Origin: `https://github.com/exones/braid.git`. No upstream at authoring.
+- PR: https://github.com/exones/braid/pull/13. State OPEN at authoring. Base `epic/braid-003-worker-skill` `180f2e0b3cb6fc1a380a955e24a9580d0a4c85b8`.
+- Historical delivery head: `ccabae4df1f813317b8dd1247ea04878ee6ce023`. Parent of that commit: `180f2e0b3cb6fc1a380a955e24a9580d0a4c85b8`. The four-job table below proves that head only.
+- Replacement thread: `mcp:launch:7c30a9962f5352a1d5b673802a04f5ac5c1e1b6a89514bc74427a8c7f08a3d53`. Run `run:thread:mcp%3Alaunch%3A7c30a9962f5352a1d5b673802a04f5ac5c1e1b6a89514bc74427a8c7f08a3d53:ordinal:1`. `parentThreadId` null. Profile: Cursor `grok-4.7`, high reasoning, 500k context. This thread linked PR 13 (`alreadyLinked: false`) and did not watch.
+- Original thread: `mcp:launch:b4318dded53b10790c1cb711c5a4496141347271c88ddce9a5892d38485b3a80`. Registration payload `watching: true`, `wasWatching: false`. Readiness snapshot found attempt 1 red.
+- Verification label for the historical head: explicit recovery snapshot on the replacement. It is not a watched event.
+- Workflow `.github/workflows/ci.yml`, name CI. Required steps on each current job of that head: Install dependencies (step 5), Verify (step 6), Upload packed tarball (step 7), all success. Verify logs for the successful jobs showed typecheck, `tsc -p tsconfig.build.json`, `tests 40`, `pass 40`, `fail 0`, `skipped 0`, and packed-install proof.
+- Attempt 1 push Windows job `126807600244` remains failed evidence. Its upload was skipped. Its Ubuntu artifact is not the attempt-2 archive below. Attempt 2 is the push proof for `ccabae4df1f813317b8dd1247ea04878ee6ce023`.
+- Merge-test at the time of that proof: `fe91513892f02aa72ba6588215362c7741e4451b` at `refs/pull/13/merge`. Parents, in order, were the epic base and the item head. Its only file change was `epics/braid/003-worker-skill/validation/G/operator-reference.md`. This documentation commit replaces that merge-test. The new merge-test is part of the post-push proof, outside this blob.
+
+| Event | Run | Attempt | Job | Result | Artifact | Zip SHA-256 | Tarball SHA-256 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| push | [41896581649](https://github.com/exones/braid/actions/runs/41896581649) | 2 | verify (ubuntu-latest) `126830530443` | success | `13359641660` | `88a11012bde702d0e5cf2ebfc904db37414b52cc607d847815a022b9f45d91c8` | `b8a96b1baee9bad89259d05087e016f8889c94c8b0a6954d774e8835d4d880ec` |
+| push | 41896581649 | 2 | verify (windows-latest) `126830530560` | success | `13359736544` | `6d6c8f366251d9cdc3e35eb28e49b11c1fb3a3147fe3e4aa8e27bf4f2bf95fd0` | `8c434113e62663591c23faebcf35aeb13162a130446fa8423de514d92538f92d` |
+| pull_request | [41896593015](https://github.com/exones/braid/actions/runs/41896593015) | 1 | verify (ubuntu-latest) `126807638760` | success | `13355946835` | `fc64844cdd6293abb16d82616aaa93d3ee15b11d394248b17dcb6a66e803e48a` | `b8a96b1baee9bad89259d05087e016f8889c94c8b0a6954d774e8835d4d880ec` |
+| pull_request | 41896593015 | 1 | verify (windows-latest) `126807638492` | success | `13355987092` | `6ce14a1f55fedb61628ccbd00106fa33d5fe8815506735870a0728c7ca2dd82b` | `8c434113e62663591c23faebcf35aeb13162a130446fa8423de514d92538f92d` |
+
+- Provenance on all four historical archives: `@exones/braid` 0.1.1, `released` false, registry publication `not performed`, `installOutsideCheckout` true, executable `braid`, Node v26.13.0, npm 11.20.0, PowerShell 7.6.9, `candidate` true, `worktreeDirty` false. Push `sourceRevision` and `githubSha` were the item head, ref `refs/heads/item/braid-003-g-independent-thread-ci`, `pullRequestHeadSha` empty. Pull-request `sourceRevision` and `githubSha` were merge-test `fe91513892f02aa72ba6588215362c7741e4451b`, ref `refs/pull/13/merge`, `pullRequestHeadSha` equal to the item head. Same-OS tarball equality across the two events is an observation. The provenance text says cross-machine and cross-OS equality is not claimed.
+- Archives from that check stayed in ignored `.tools/G-hosted/`. They are not part of the commit.
+- Local dirty probe, recorded earlier and not re-run for this documentation edit: `npm run verify` exit 0, Node v26.13.0, npm 11.20.0, PowerShell 7.6.9, 40 tests passed, `candidate` false, `worktreeDirty` true, source `180f2e0b3cb6fc1a380a955e24a9580d0a4c85b8`. That probe is not hosted proof.
+- Next coordinator action: read this negative result, take the post-push four-job proof of the documentation commit from the worker return, and decide whether to assign a new review of that head. This worker does not launch a reviewer, merge, or start F or D.

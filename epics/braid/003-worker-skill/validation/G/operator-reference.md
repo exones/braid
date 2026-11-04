@@ -155,17 +155,28 @@ Not claimed: restart durability, exactly-once delivery, automatic reattachment, 
 | `unwatch_pull_request` payload | Unobserved at authoring |
 | Coordinator send identities | Unobserved at authoring |
 
-## What F can take from a green supplement
+## What F can take from this trial
 
-After the supplement records an actual registration, one readiness snapshot or a real wake, complete current-head proof, teardown, and a coordinator delivery identity, F can treat this procedure as the observed top-level contract:
+G's continuation result is negative. One top-level item thread did not bind a named worktree, carry a watch through interruption, verify, repair, and deliver on its own. That negative result is the blocker and limit this spike found. The committed [report](../../reports/G.md) and [checkpoint](../../checkpoints/G.md) record it. F may adopt only what this trial observed. The procedure above is the attempt, and it is not a proven same-thread contract.
 
-- Item pull requests target the epic branch.
-- The item thread links, queues one readiness turn, watches, and yields.
-- The same thread verifies and repairs.
-- The coordinator receives one explicit result or blocker, not each CI event.
-- Review `G-independent-thread-ci-review-001` and the human merge of this pull request into `epic/braid-003-worker-skill` still gate F. Green worker handoff is not Done and not a merge. See [review conventions](../../../../../docs/agile-workflow.md#review-gates-and-indexing) and the [human merge stop](../../../../../.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop).
+Observed, and available for F to adopt:
 
-Until that supplement exists, F stays unready. A useful procedure without the live registration, proof, and delivery identities does not answer the spike.
+- Worktree binding. `t3_thread_launch` attached a top-level thread to the named existing worktree and branch `item/braid-003-g-independent-thread-ci`. The replacement thread's host branch metadata was empty for `existing_worktree`. Local Git stayed on that named branch.
+- Watch registration payload. The original thread's `watch_pull_request` returned `watching: true` and `wasWatching: false`. A missing field is not success.
+- One catch-up readiness snapshot. One queued reconciliation on the original thread read checks that had already finished and found push attempt 1 red. That snapshot is a catch-up read. It is not a watch wake.
+- The current-head CI and artifact verification recipe in [Frozen hosted proof](#frozen-hosted-proof). Require push and `pull_request`, Ubuntu and Windows, successful Install dependencies, Verify, and Upload packed tarball, and match each archive digest to its provenance record.
+- Explicit coordinator message delivery. `t3_thread_send(mode: auto)` returned message, run, and thread identities. Acceptance means the transport took the message. It does not mean the coordinator read it.
+
+F must not rely on any of the following. This trial left them unobserved, or the run contradicted them:
+
+- Same-thread completion driven by a watch wake. The original thread's runs were interrupted or cancelled. No watch wake drove verification or completion. Proof and delivery happened on a coordinator-launched replacement, from an explicit recovery snapshot.
+- A watch surviving interruption. The unwatch result available to the replacement was `watching: false` and `wasWatching: false`. The time and cause are unknown, and that payload is second-hand.
+- One result per head. The replacement restarted inside its own run and sent more than one result for the same head.
+- Unassisted repair. The user account reran the failed push job. The worker did not repair it.
+
+The coordinator must expect duplicate results for one head and must deduplicate by head. The coordinator must drive recovery with an explicit snapshot. A watch wake is not the recovery path this trial demonstrated.
+
+Review `G-independent-thread-ci-review-001` and the human merge of this pull request into `epic/braid-003-worker-skill` still gate F. Green delivery evidence for a head is not Done and is not a merge. See [review conventions](../../../../../docs/agile-workflow.md#review-gates-and-indexing) and the [human merge stop](../../../../../.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop).
 
 ## Sources
 
