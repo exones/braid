@@ -49,6 +49,8 @@ The first release records manual progress. A human/agent marking an item complet
 
 Run the meaningful checks required by the backlog item. Report commands and results honestly, including checks that could not run. Never weaken a gate or delete a failing test simply to pass. Fixes to an incorrect test or gate require a documented reason and preserved acceptance intent.
 
+`npm run verify` is the deterministic offline pre-PR gate for code and docs. It keeps the OIDC release check, install-policy check, typecheck, build, test, and packed-install steps, and it checks tracked Markdown relative links and heading anchors (not `inspiration/` or external URLs) and tracked-text LF endings and trailing whitespace. External skill validators are not part of that command. Run them when a change edits skill content and report them separately; they may be unavailable in CI.
+
 Develop future versions under a pinned, released controller installed outside the candidate checkout. Record controller version and schema version; do not upgrade active runs silently.
 
 ## Shared and external actions

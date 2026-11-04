@@ -28,12 +28,19 @@ npm run verify
 
 `.npmrc` sets `engine-strict=true`, `strict-allow-scripts=true`, `allow-git=none`, and `allow-remote=none`. `npm ci` refuses a Node.js older than 26.13.0, including this machine's default 24.x install. It also refuses an unreviewed dependency install script, a git dependency, and a remote URL dependency. `npm run verify` can be launched by that older npm; `scripts/Verify.ps1` still selects the pinned toolchain, or a Node.js 26 already on `PATH`, and runs the npm that shipped with it.
 
-`npm run verify` runs `scripts/Verify.ps1`. That script selects the project toolchain when it is installed, otherwise a Node.js already on `PATH` that satisfies `>=26.13.0 <27`, and then runs, in order:
+`npm run verify` is the deterministic offline pre-PR gate for code and docs. It runs `scripts/Verify.ps1`. That script selects the project toolchain when it is installed, otherwise a Node.js already on `PATH` that satisfies `>=26.13.0 <27`, and then runs, in order:
 
-1. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`)
-2. `npm run build` (`tsc -p tsconfig.build.json`)
-3. `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`)
-4. `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable
+1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. `inspiration/` and external URLs are excluded. Historical evidence keeps a narrow exclusion list in `scripts/markdown-link-exclusions.json`.
+2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
+3. A disposable repository that must fail for a broken relative link, a broken heading anchor, a CR line ending, and trailing whitespace, then removes those fixtures. CR and trailing whitespace are checked in the index blob and in the worktree.
+4. The OIDC release-shape guard.
+5. The install-policy guard.
+6. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`)
+7. `npm run build` (`tsc -p tsconfig.build.json`)
+8. `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`)
+9. `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable
+
+External skill validators are not part of this command. Run them when a change edits skill content and report that result separately; they may be unavailable in CI.
 
 It stops on the first native command with a nonzero exit code and returns that code. It does not call `npm run verify`. `scripts/Test-Package.ps1` does not call it either. The same script is the GitHub Actions gate. Dependencies must already be installed with `npm ci`. A dirty worktree is a pre-commit probe. GitHub Actions sets `BRAID_REQUIRE_CLEAN=1`, so the hosted pack must come from a clean checkout. The tarball and its provenance file are written to `artifacts/package/` and are not committed.
 
@@ -142,7 +149,7 @@ The workflow uses pinned checkout, setup-node, and upload-artifact actions and t
 - [Agent handoff](docs/agent-handoff.md): task assignment, resumption, and reporting.
 - [npm distribution](docs/npm-distribution.md): selected release path and account/setup steps needed before publication.
 - [Epics](epics/README.md): work organization and report conventions.
-- [Original MVP plan](t3_multi-agent_mvp_86005e32.plan.md): longer-term design input. Its PowerShell-only implementation and original milestone order have been superseded by the decisions and roadmap above.
+- Original MVP plan `t3_multi-agent_mvp_86005e32.plan.md` (gitignored local input, not a tracked file): longer-term design input. Its PowerShell-only implementation and original milestone order have been superseded by the decisions and roadmap above.
 - [Inspiration](inspiration/README.md): reference material; its historical permissions, hosts, credentials, and deployment instructions do not authorize actions for this project.
 
 The next implementation agent should preserve these files and continue from the current checkpoint. A chat transcript must not be required to continue.

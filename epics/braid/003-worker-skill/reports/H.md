@@ -1,0 +1,32 @@
+# BRAID-003/H deterministic verify gate
+
+`npm run verify` now checks tracked Markdown links and tracked-text line endings as well as the existing code gate. Local proof passed, including the four required failures in a disposable repository. Hosted CI on the pull request head is still required and is not in this blob. Independent review and the human merge into the epic stay separate.
+
+## What changed
+
+- `scripts/Verify.ps1` still runs the OIDC guard, install-policy guard, typecheck, build, tests, and packed install. Before those steps it checks tracked Markdown and tracked text, then runs a disposable repository that must fail for a broken relative link, a broken heading anchor, a CR line ending, and trailing whitespace.
+- Tracked Markdown is checked with pinned `remark-cli` 12.0.1 and `remark-validate-links` 13.1.0. `repository: false` leaves external URLs, including hosted Git URLs, unchecked. `inspiration/` is skipped. Seven historical `agento-coordinate` links in the retained D1 validation plan stay as one-link exclusions. The README no longer links the gitignored MVP plan file.
+- Tracked text is checked from Git index blobs and from worktree bytes when they differ. `.gitattributes` sets `* text=auto eol=lf` and marks common archives and images binary. `.editorconfig` sets UTF-8, LF, a final newline, and trimmed trailing whitespace. Existing tracked files were already LF; renormalizing them did not show a CRLF or mixed-ending path.
+- AGENTS.md, both skills, the assignment-packet asset, and the README name `npm run verify` as the deterministic offline pre-PR gate. External skill validators stay outside that command.
+
+## Why
+
+Local and CI proof were drifting: agents re-derived link, anchor, and whitespace checks, and `git diff --check` on an empty worktree cannot see a bad blob. One offline command now fails closed for those docs defects without weakening the code gate. Package `0.1.1` and schema 1 are unchanged. No controller was run.
+
+## Left for you
+
+No user action is needed for this local delivery. The coordinator relays hosted checks for this head. After the worker verifies that current-head CI is green, the coordinator assigns independent review and then stops for the human merge into `epic/braid-003-worker-skill` before I. This report does not mark H Done and does not merge.
+
+## Technical record
+
+- Item: [H](../backlog/H-deterministic-verify-gate.md). Packet: [assignments/H.md](../assignments/H.md). Dependency: [F acceptance](F-acceptance.md) at merge `7ddc561501affe73fcd6fb29fe50a23c763f2dc2`.
+- Checkout: `C:\worktrees\agento\t3-b41c4990`. Branch: `t3/b41c4990`. Origin: `https://github.com/exones/braid.git`. Base: `epic/braid-003-worker-skill`. Startup HEAD matched `27b62e87fa00fa043e358500e47a33b12957371d`. This blob does not name its own SHA. The parent return has the pull request URL and head.
+- Gate pieces: [Verify.ps1](../../../../scripts/Verify.ps1), [Test-DocsGate.ps1](../../../../scripts/Test-DocsGate.ps1), [negative fixture](../../../../test/fixtures/docs-gate/Test-DocsGateNegatives.ps1), [.remarkrc.mjs](../../../../.remarkrc.mjs), [exclusions](../../../../scripts/markdown-link-exclusions.json), [.gitattributes](../../../../.gitattributes), [.editorconfig](../../../../.editorconfig).
+- Authorities pointed at the gate: [AGENTS.md](../../../../AGENTS.md), [README](../../../../README.md), [worker skill](../../../../.agents/skills/braid-worker/SKILL.md), [coordinator skill](../../../../.agents/skills/braid-coordinate/SKILL.md), [assignment packet](../../../../.agents/skills/braid-worker/assets/assignment-packet.md).
+- Local proof, dirty worktree, source revision `27b62e87fa00fa043e358500e47a33b12957371d`, candidate false. `npm ci` exit 0 (200 packages). `npm run verify` exit 0. Node v26.13.0, npm 11.20.0, PowerShell 7.6.9. Docs gate `suppressed=7 exclusions=7 text=214`. Disposable cases `broken-link`, `broken-anchor`, `crlf-index`, `crlf-worktree`, `trailing-index`, and `trailing-worktree` failed as required; an untracked broken link passed; the temp repository was removed. OIDC and install-policy guards passed. 40 tests passed, 0 failed. Packed tarball `exones-braid-0.1.1.tgz` sha256 `79d4a57f45aa030b394e860a9f94f85da1eb2e5aa41977e8e88022312c111c38`. That pack is a pre-commit probe, not the hosted artifact.
+- `git diff --check` exit 0 on the unstaged implementation diff. `git ls-files --eol` showed no `crlf` or `mixed` tracked path. Both `python -X utf8 -B` `quick_validate.py` runs on `.agents/skills/braid-coordinate` and `.agents/skills/braid-worker` exited 0 (`Skill is valid!`). Those validators are not in CI.
+- `npm audit --omit=dev` reported 0 production vulnerabilities. `npm audit` reported 9 moderate findings, all in the new dev toolchain through `glob` and `minimatch` (`remark-cli`, `remark-validate-links`, `unified-engine`, and related npm CLI packages). `npm audit fix` was not run. `npm approve-scripts --allow-scripts-pending --json` was `{"allowScripts":[]}`.
+- Exclusions, each required to match exactly one finding: `epics/braid/001-seed/validation/D1-fresh-plan/backlog/A-find-prerequisites.md`, `B-first-local-run.md`, and `C-troubleshoot-setup.md` (`agento-coordinate/references/delivery.md`); `epics/braid/001-seed/validation/D1-fresh-plan/reports/research.md` (`SKILL.md`, `assets/epic.md`, `assets/backlog-item.md`, `references/delivery.md`). Those files still name the skill directory from when the plan was written.
+- Frozen hosted set on this head: workflow `.github/workflows/ci.yml`, events `push` and `pull_request`, jobs `verify (ubuntu-latest)` and `verify (windows-latest)`, steps Install dependencies, Verify, and Upload packed tarball successful. Push source is this head. The pull_request run is the merge-test commit; record its base and head parents. Artifact download and digest verification are not required for H. Pending, failed, missing, skipped, cancelled, or stale results do not count. Re-read the pull request head before calling it green.
+- Continuation: [delegated-child parent relay](../../../../.agents/skills/braid-worker/references/t3-continuation.md#legacy-parent-relay-for-delegated-children). This worker does not watch. One snapshot after link; a pending set stays owned here.
+- Proposed shared status, for the coordinator: H is implemented and locally checked. Not accepted, not reviewed, not merged, not Done. Next coordinator action after the green current-head return: assign the independent review, then stop for the human merge into the epic before I.
