@@ -1,7 +1,7 @@
 # G: verify an independent T3 worker owns its PR wait and completion
 
 Kind: spike. Epic: [BRAID-003](../epic.md).
-Status: awaiting human merge. Negative/partial result: own-thread watch-wake completion was not observed; F may adopt only the observed subset in `validation/G/operator-reference.md`. PR13 head 9b043f0 four-job green; reviews 001 (F1-F4) and 002 (all resolved). Not Done until merged.
+Status: awaiting human merge. Original run negative; follow-up probe PR15 showed own-thread completion from a single watch wake for a short step-explicit prompt. F contract: `validation/G/operator-reference.md` "What F can take". PR13 head 90a5fe1 green; reviews 001-003 resolved. Not Done until merged.
 
 Depends on: user approval of this bounded full-thread trial and [execution policy](../execution-policy-proposal.md); prepared meaningful epic branch/committed assignment. Priority before F/D, existing IDs unchanged.
 
