@@ -73,3 +73,7 @@ User requested one attempt to resolve CI blocker. Full push workflow41896581649 
 ## G resumed for final verification
 
 Latest user requested continue. Push attempt2 and PR attempt1 now green; SAME G thread resumed for full artifact/provenance/current-head proof and teardown. No new rerun/thread/source change. Original failure remains unresolved intermittent evidence; further investigation deferred by user unless recurrence. Independent review and human epic merge still pending. Earlier stopped/blocked rows above are historical snapshot.
+
+## Current G replacement (supersedes prior same-worker resume)
+
+User requested a fresh worker, old G stopped/no active run/empty queue/watch off. New top-level <t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:7c30a9962f5352a1d5b673802a04f5ac5c1e1b6a89514bc74427a8c7f08a3d53> owns existing G checkout/branch and PR13, final verification only. No additional worktree or PR. CompletedCIgreen; artifact proof/review/humanmerge pending. Explicit replacement limits retained; no unassisted-continuity claim. Parent untracked worktree-cleanup-evidence/ was unexpected and left untouched.
