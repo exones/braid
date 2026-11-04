@@ -11,9 +11,9 @@ For a goal-level planning or orchestration request, use [.agents/skills/braid-co
 
 Use the Agile vocabulary in `docs/agile-workflow.md`: epic, optional feature grouping, story, task, spike, backlog, acceptance criteria, Definition of Ready, and Definition of Done. Keep existing backlog IDs stable. The original MVP and inspiration retain historical terminology.
 
-Before assigning a review, read and follow the authoritative [review conventions](docs/agile-workflow.md#review-gates-and-indexing). Completed-item reports and user briefings follow `epics/report-format.md`; short progress updates are still appropriate between milestones.
+Before assigning a review, read and follow the authoritative [review conventions](docs/agile-workflow.md#review-gates-and-indexing). Item reports, user briefings, and pull-request accounts follow [report format](epics/report-format.md), including its trigger contract. Short progress updates stay short and do not replace an item briefing.
 
-Do only the assigned role and scope. A coordinator asked to deliver an epic may advance its ready backlog items within that scope; a worker stops after its assigned item and does not launch agents. Seed execution has one implementation worker at a time. A reviewer is assigned separately after the candidate exists. A planning-only request stops after the reviewable plan.
+Do only the assigned role and scope. A coordinator asked to deliver an epic may advance its ready backlog items within that scope. Do not dispatch a dependent item whose required human merge is unverified; the [human merge stop](.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop) applies. A worker stops after its assigned item and does not launch agents. Seed execution has one implementation worker at a time. A reviewer is assigned separately after the candidate exists. A planning-only request stops after the reviewable plan.
 
 ## Providers and roles
 
@@ -51,7 +51,7 @@ Develop future versions under a pinned, released controller installed outside th
 
 ## Shared and external actions
 
-Respect user changes. Inspect git status before editing. Work only in the assigned checkout and branch. A scoped delivery request authorizes scoped Conventional Commits, pushes to an owned feature branch, and PR creation after relevant local gates pass; follow `.agents/skills/braid-coordinate/references/delivery.md`. Human merge authority remains unchanged. Do not create a remote repository, merge, publish a release/package, deploy infrastructure, or change tailnet policy unless the task authorizes that action.
+Respect user changes. Inspect git status before editing. Work only in the assigned checkout and branch. A scoped delivery request authorizes scoped Conventional Commits, pushes to an owned feature branch, and PR creation after relevant local gates pass; follow `.agents/skills/braid-coordinate/references/delivery.md`. Human merge authority remains unchanged. Green CI and independent review are not a merge. When later work requires one, stop at the [human merge stop](.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop). Do not create a remote repository, merge, publish a release/package, deploy infrastructure, or change tailnet policy unless the task authorizes that action.
 
 Spikes also deliver through PR, applicable CI, and review. Local acceptance is distinct from Done after CI/review/approved merge. Preserve existing user commits/index, and do not stage/commit/switch a shared checkout while a worker is running. Workers follow their assigned Git boundaries; the coordinator handles a Git transition only at a safe handoff boundary.
 
@@ -65,7 +65,7 @@ At a useful boundary, before switching context, and before ending a task:
 
 1. Update the owned checkpoint (`checkpoints/<task>.md` for a coordinated worker, `checkpoints/current.md` for the coordinator or standalone agent): task, checkout/branch/HEAD when available, completed work, in-flight commands, next concrete action, blockers, checks, and changed files.
 2. Coordinator/standalone agent: update the assigned row in `epic.md` with status and evidence/report links. Coordinated workers return proposed status updates in their report.
-3. Write `reports/<task>.md` with a useful account of introduced capabilities, important behavior/implementation changes, checks, evidence, decisions, and limits. Review passes use the parent-scoped report convention. Distinguish local proof from remote CI/release proof.
-4. At item delivery, give the user a substantive completion briefing with important changes, validation, limits, required involvement, and exact next action. Keep intermediate status updates concise. If blocked, record what input unblocks it and continue independent in-scope work.
+3. Write `reports/<task>.md` using [report format](epics/report-format.md). Review passes use the parent-scoped report convention. Distinguish local proof from remote CI/release proof.
+4. At an item outcome, a user-attention blocker, a substantive child return, or a milestone, give the user that same account. Keep routine progress concise. If blocked, name the exact input that unblocks the work and continue independent in-scope work.
 
 The checkpoint should let a fresh agent resume without the conversation.

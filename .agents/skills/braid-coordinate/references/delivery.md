@@ -8,7 +8,7 @@ Routine reviews are gates of their parent item/epic, not new lettered backlog en
 
 Once relevant local gates pass, inspect the diff and stage only owned changes, then commit, push the owned feature branch, and open a PR. These routine steps are authorized by a scoped delivery request. Do not use `git add .` to sweep unrelated changes into a commit. Preserve another person's index and never rewrite their commits or force-push their branch. Do not switch/stage/commit a shared checkout while its worker is running.
 
-The PR body explains the outcome, relevant validation, limits, epic/item reference, and evidence paths. Use Conventional Commit style for the title too. Immediately link each created/pushed PR through the host's required PR-link tool. Record its URL and head SHA in the epic/report.
+The PR body uses the same human account as an item report, then a Technical record for continuation. Follow [report format](../../../../epics/report-format.md#pull-request-records). [`.github/PULL_REQUEST_TEMPLATE.md`](../../../../.github/PULL_REQUEST_TEMPLATE.md) is only an authoring aid; a body supplied with `gh pr create --body-file` or `gh pr edit --body-file` still contains that account. Use Conventional Commit style for the title too. Immediately link each created/pushed PR through the host's required PR-link tool. Record its URL and head SHA in the epic/report.
 
 For docs-only spikes, commit the analysis/decision/report, validate links and skill/schema content where applicable, and let applicable CI run. Review the research evidence and conclusions. Do not create product-code tests merely to make a documentation PR look tested. A failed required build is not a docs exemption.
 
@@ -47,11 +47,15 @@ Keep commits coherent and passing their relevant gates; use separate commits whe
 4. If branch protection requires formal GitHub approval from another identity, obtain it; do not label an agent's local review as a platform approval or bypass protection.
 5. Obtain human merge approval under current policy; merge only the checked/reviewed head. Revalidate after relevant changes. Record merge SHA and mark Done. Until then use In Review with local/CI/review state visible.
 
-Dependencies already satisfied by local acceptance may proceed with explicitly documented branch/base ordering while PR delivery is pending; never pretend the dependency is merged. Record exact accepted revisions and actual merge evidence in the assignment. Reconcile outstanding bootstrap coverage from real history at a safe boundary, preserving user commits rather than manufacturing earlier PRs.
-
 **Successful implementation-worker handoff requires independently verified current-head green evidence for every declared check.** Freeze workflow/event/job/step/upload/artifact requirements before dispatch, including configured checks beyond branch protection. Missing, pending, failed, skipped, cancelled, neutral, inaccessible, inconclusive or stale evidence cannot silently count green. A new commit invalidates old-head proof; distinguish PR merge-test source from PR head and verify their relationship. Keep post-push evidence supplements distinct from checked blobs to avoid self-SHA evidence loops.
 
 The [worker skill](../../braid-worker/SKILL.md#deliver-through-green-checks) owns the operational PR/wait/diagnose/repair/verify/resume lifecycle. A supported parent event relay transports observations without transferring repair ownership. Waiting or blocked updates may end a turn but remain nonterminal; report exact blocker owner/action/impact rather than handing off a failed PR. Follow host continuation/end-of-turn rules, without child watches or polling loops. The coordinator checks the returned actual root/branch/full head and complete green evidence at a safe boundary before acceptance/review; it does not take over pending/failing implementation. Respect a user's instruction to wait for a running delegate rather than replacing or interrupting it merely to adopt a new Git workflow.
+
+## Human merge stop
+
+When a later item requires a prerequisite pull request to be merged, report that result and the exact human merge, checkpoint, and stop before dispatching the dependent item. Green CI and independent review are not a merge. Verify the actual merge commit and the current dependency facts before resuming. Prepare or revalidate a safe base transition when the recorded base is stale. Do not merge automatically, stack the dependent work silently, dispatch a successor automatically, or open a new approval loop inside work the user already authorized. The implementation worker still owns repair and current-head green proof for its own delivery.
+
+Record accepted revisions and actual merge evidence in the assignment. Reconcile outstanding bootstrap history at a safe boundary. Preserve user commits rather than manufacturing earlier pull requests.
 
 ## README boundary
 

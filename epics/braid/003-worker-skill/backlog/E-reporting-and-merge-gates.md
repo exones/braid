@@ -75,4 +75,6 @@ Scoped Conventional Commit/owned push/new PR after local gates; parent-only fini
 
 ## Report and resume
 
-Worker writes `reports/E.md` and `checkpoints/E.md` using the newly consolidated form, with exact candidate/checks/PR evidence and limits; proposes shared updates, then stops. Current next action: commit/validate context and dispatch the approved Grok worker. No implementation worker has started yet; external changes so far are description-only edits to already-merged #9/#10.
+Worker writes `reports/E.md` and `checkpoints/E.md` using the newly consolidated form, with exact candidate/checks/PR evidence and limits; proposes shared updates, then stops. The pre-dispatch next-action sentence is historical. Current worker state is the E checkpoint. Shared epic status remains a coordinator update.
+
+Worker delivery note: local reporting/merge-gate edits, bounded scenarios, and local gates are recorded in [E report](../reports/E.md) and [E checkpoint](../checkpoints/E.md). The worker checklist below stays open until current-head hosted green is independently verified. Checking it in a later commit would replace the checked head.

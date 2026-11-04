@@ -75,7 +75,7 @@ For implementation dispatch, fill the worker's [canonical assignment packet](../
 
 ## Definition of Done
 
-For a delivery item: acceptance criteria satisfied, relevant local checks passed, scoped commit/PR exists, required hosted CI passes on its head, review findings are triaged, and human-approved merge is recorded. The report includes exact evidence and limitations; checkpoint/documentation reflect the outcome. Local acceptance alone stays In Review until the delivery gates are met.
+For a delivery item: acceptance criteria satisfied, relevant local checks passed, scoped commit/PR exists, required hosted CI passes on its head, review findings are triaged, and human-approved merge is recorded. The report includes exact evidence and limitations; checkpoint/documentation reflect the outcome. Local acceptance alone stays In Review until the delivery gates are met. Hosted CI and independent review do not count as a human merge. When the next item requires that merge, apply the [human merge stop](../.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop): report the exact action, checkpoint, and do not dispatch the dependent item until the merge is verified. Item reports and user briefings use [report format](../epics/report-format.md).
 
 For a spike: the question is answered with evidence or a concrete blocker, the next decision/action is recorded, and the research/report passes through PR, applicable CI, review, and approved merge. A useful spike need not produce code or artificial product tests.
 

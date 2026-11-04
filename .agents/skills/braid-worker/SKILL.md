@@ -18,7 +18,7 @@ Keep maintained authorities singular:
 - [AGENTS](../../../AGENTS.md#providers-and-roles): provider selection, role/resource authority, project constraints. Do not copy settings into this skill or change the profile.
 - [Agile workflow](../../../docs/agile-workflow.md#definition-of-ready) and [review conventions](../../../docs/agile-workflow.md#review-gates-and-indexing): Ready/Done and independent review.
 - [Shared delivery rules](../braid-coordinate/references/delivery.md): commit/PR/history/merge invariants. **Successful worker handoff requires current-head green checks; legacy pass-or-fail handoff wording cannot permit a failed delivery.**
-- [Report format](../../../epics/report-format.md): substantive evidence, checkpoint and human briefing.
+- [Report format](../../../epics/report-format.md): the single human-first report, trigger, and pull-request contract. Do not keep a second briefing procedure.
 
 Require task/scope, dependencies and actual merge evidence, Git contract, ownership, outputs, acceptance/check set, and supported wait/return mechanism. Request missing facts from the coordinator with exact impact; continue independent work that does not depend on them. A packet cannot weaken acceptance or host restrictions.
 
@@ -38,7 +38,7 @@ Record exact commands, native exit codes, tool versions and checked revision. Di
 
 ## Deliver through green checks
 
-After local gates pass, inspect the scoped diff/index, stage only owned paths, make coherent Conventional Commits and push explicitly to the assigned remote and owned branch (for example `git push origin HEAD:refs/heads/<owned-branch>`). Create one PR against the assigned base and immediately call the host's PR-link tool as the next call; also link after a later push. Preserve real dependency ordering and pending merges. Reuse an existing assigned PR on resume.
+After local gates pass, inspect the scoped diff/index, stage only owned paths, make coherent Conventional Commits and push explicitly to the assigned remote and owned branch (for example `git push origin HEAD:refs/heads/<owned-branch>`). Create one PR against the assigned base and immediately call the host's PR-link tool as the next call; also link after a later push. Write the PR body with the [human account and technical record](../../../epics/report-format.md#pull-request-records), including when `--body-file` bypasses the repository template. Preserve real dependency ordering. Do not treat an unmerged prerequisite as merged, and do not start a successor. Reuse an existing assigned PR on resume.
 
 Before waiting, record actual root/branch/full HEAD/PR and the frozen check set. Require a supported host continuation; for T3 read [t3-continuation.md](references/t3-continuation.md) before PR waiting. Other hosts need their own supported mechanism supplied or a precise transport blocker, not an invented direct CI wait. No child watches, polling loops, schedulers or background watchers.
 
@@ -54,4 +54,4 @@ Update the owned checkpoint after initial verification, before waits/context rep
 
 On resume, compare the checkpoint to actual Git/PR/check/process/task/transport state before side effects. Determine whether interrupted commit/push/PR/check actions completed; reuse the existing branch/PR and valid proof rather than replaying mutations. Reconcile stale/duplicate events by current head/run/attempt; record observed state and explicit task lineage, never invent a surviving task or subscription. Refresh only relevant context.
 
-Successful green return follows the report format: introduced behavior/value, decisions, changed outputs, local and hosted evidence/limits, unresolved points, actual root/branch/full head, PR and run links, and exact next coordinator action. Propose shared-status updates instead of editing coordinator-owned files. Green means ready for coordinator acceptance/independent review; review/triage, human-approved merge and Done remain separate. Later assigned scoped fixes follow the same green rule. Stop after the item.
+Successful green return follows [report format](../../../epics/report-format.md#human-account): opening, What changed, Why, Left for you, and Technical record. Include decisions, changed outputs, local and hosted evidence, limits, actual root, branch, full head, PR and run links, and the exact next coordinator action. Propose shared-status updates instead of editing coordinator-owned files. Green means ready for coordinator acceptance and independent review. Review, triage, human-approved merge, and Done remain separate. Later assigned scoped fixes follow the same green rule. Stop after the item.

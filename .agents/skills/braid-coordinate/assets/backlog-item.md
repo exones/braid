@@ -33,4 +33,4 @@ Status: backlog. Owner: <role>. Depends on: <IDs or none>.
 <Owned branch/PR, Conventional Commit messages, checked head SHA, local gate, hosted CI, reviewer findings/triage, human merge decision, and merge SHA. For a docs-only spike use applicable documentation/CI checks. Do not mark Done from local proof alone.>
 
 ## Report and resume
-Write <epic path>/checkpoints/<ID>.md and <epic path>/reports/<ID>.md. Follow epics/report-format.md: explain introduced capability, important changes and operator impact, then checks/results, revision/artifact identity, limitations, and next action. In coordinated mode the coordinator owns shared status. Stop after this item.
+Write <epic path>/checkpoints/<ID>.md and <epic path>/reports/<ID>.md. Follow [report format](../../../../epics/report-format.md): opening, What changed, Why, Left for you, and Technical record. In coordinated mode the coordinator owns shared status and translates child evidence into the user account. Stop after this item.

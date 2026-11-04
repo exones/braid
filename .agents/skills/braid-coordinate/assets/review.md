@@ -19,7 +19,7 @@ Legacy alias: <only if needed to preserve an existing reference>.
 <For each relevant criterion/outcome: proven, unproven, or contradicted, with evidence.>
 
 ## Triage and gate
-<Coordinator records fixed/refuted/deferred findings with exact fix/check revisions; do not present a review as a GitHub approval or an automatic merge decision. A new independent recheck gets the next parent-scoped pass.>
+<Coordinator records fixed/refuted/deferred findings with exact fix/check revisions; do not present a review as a GitHub approval or an automatic merge decision. A new independent recheck gets the next parent-scoped pass. The coordinator's user briefing follows [report format](../../../../epics/report-format.md); this file stays the technical gate record.>
 
 ## Resume
 <Next concrete action, remaining limits, report/checkpoint paths, and shared-status proposal.>
