@@ -4,9 +4,9 @@ Updated 2026-11-04. Standalone user assignment; previous seed closeout retained 
 
 - Checkout: C:/worktrees/agento/docs-skill-execution-efficiency; branch docs/skill-execution-efficiency. Base/full starting HEAD: 7707524a0b5a007794f22fab6ae1439d93458bb6 from remote main. Origin: https://github.com/exones/braid.git.
 - Completed: focused coordinator/worker/assignment edits plus user-requested shared workflow-only map and README link for any target project; validators pass. Evidence and counts: [E report](../reports/E.md).
-- Owned changes: three skill files, shared directory map, README, E backlog/report, epic row and this checkpoint. Original shared checkout untouched. No controller/runtime changes.
-- Delivery: PR #12 https://github.com/exones/braid/pull/12 opened with candidate c4f826fca18ec900af9ae91872ad5a037526a941. Prior map commit 636d723 pushed. Preparing scoped portability correction commit/push after local documentation gates; resolve new HEAD from Git/PR rather than a self-SHA commit. No live command/watch.
-- Next: push/link PR update and hand review to user. CI and independent review remain separate; no merge/successor authorized.
+- Owned changes: three skill files, three coordinator templates, shared directory map, README, E backlog/report, epic row and this checkpoint. Original shared checkout untouched. No controller/runtime changes.
+- Delivery: [PR #12](https://github.com/exones/braid/pull/12) is open. Last reviewed pushed head: `f072a322fcda68e97c4661cb08e60da33ae41d3f`; its Windows/Linux checks passed. This follow-up aligns all three coordinator templates with installation-relative workflow references. The PR head identifies the resulting evidence commit; prior-head CI does not prove it. No live command/watch.
+- Next: review the latest PR head and its applicable CI, then obtain independent review and the human merge decision. No merge/successor authorized.
 - Blockers: none for PR creation; user owns review/merge decision.
 
 ---

@@ -48,3 +48,11 @@ Directory-map follow-up: 26 scoped outbound links/anchors and both skill validat
 Portability correction: the user clarified these skills serve any target project. Removed Braid source/build/runtime directories from the shared map and replaced the fixed `braid/` epic namespace with `<project>`. Both skills distinguish installation-relative workflow guidance from target-checkout context; coordinator reads target-named decisions/roadmap rather than requiring Braid filenames, and uses the target authorized provider profile. No provider settings, gates or transport protocols changed.
 
 Static portability scenario: an unrelated Python project with `app/` and project-named architecture notes uses its own instructions and check commands; Braid records live under `epics/<project>/...`. Neither the map nor startup requires TypeScript, npm, Braid CLI storage, or Braid development roadmap files. This is inspection proof, not an executed cross-project trial.
+
+### Author-review fixes
+
+Review of exact `f072a322fcda68e97c4661cb08e60da33ae41d3f` confirmed backlog paths, acceptance/dependency references and delivery/recovery gates remain present. Windows/Linux checks passed on that head. This is author review, not independent approval.
+
+- Aligned epic, backlog-item and review templates: workflow links resolve from the Braid installation and are rewritten for generated files; project/work-item links resolve in the target checkout. This includes report-format links, not only ID/review policy links.
+- Refreshed the checkpoint to review/CI as next action and labeled prior-head evidence explicitly. The new candidate is identified by PR metadata, avoiding a commit to record its own SHA.
+- Rechecked template targets/anchors, isolated-target link rewriting, both skill validators and formatting. No product tests for prose-only fixes; the new head needs its own hosted proof.
