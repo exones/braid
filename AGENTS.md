@@ -2,12 +2,14 @@
 
 ## Read and resume
 
-Read `README.md`, `docs/decisions.md`, the assigned epic, `checkpoints/current.md`, and the assigned backlog item before acting. Read the backlog item's dependency reports. Treat current files as the handoff; historical chat and `inspiration/` are supporting context.
+Read these instructions explicitly. For initial implementation, read the exact supplied filled assignment packet, worker skill, assigned item, and the packet's read-now context before acting. The packet names relevant sections of `README.md`, `docs/decisions.md`, and the assigned epic/current checkpoint; accepted dependency facts carry exact evidence references. Historical dependency reports are consulted when the task requires re-evaluation or facts conflict, not routinely reread. Verify your actual checkout and your own acceptance evidence independently.
+
+On worker resume, open the named worker checkpoint first, refresh applicable instructions and changed policy, reconcile relevant actual state and interrupted effects, then continue its recorded next action. Do not replay initial discovery. Coordinators read the assigned epic/current checkpoint/items and relevant decisions/dependency evidence to prepare that context. Independent reviewers retain their assigned evidence-reading requirements. Treat current files as the handoff; historical chat and `inspiration/` are supporting context.
 
 Current epic: `epics/braid/001-seed/epic.md`.
 Current checkpoint: `epics/braid/001-seed/checkpoints/current.md`.
 
-For a goal-level planning or orchestration request, use [.agents/skills/braid-coordinate/SKILL.md](.agents/skills/braid-coordinate/SKILL.md). For execution or resumption of one assigned implementation item, use [.agents/skills/braid-worker/SKILL.md](.agents/skills/braid-worker/SKILL.md) and its [canonical assignment packet](.agents/skills/braid-worker/assets/assignment-packet.md); do not enter the coordinator workflow. Read the selected skill directly if discovery is unavailable. Independent reviewers follow their separately assigned review and the review conventions below. Routine coding questions need neither workflow. An assignment's named epic/checkpoint overrides the global pointers above.
+For a goal-level planning or orchestration request, use [.agents/skills/braid-coordinate/SKILL.md](.agents/skills/braid-coordinate/SKILL.md). For execution or resumption of one assigned implementation item, use [.agents/skills/braid-worker/SKILL.md](.agents/skills/braid-worker/SKILL.md); consume the filled packet, not the blank [coordinator authoring template](.agents/skills/braid-worker/assets/assignment-packet.md). Do not enter the coordinator workflow. Read the selected skill directly if discovery is unavailable. Independent reviewers follow their separately assigned review and the review conventions below. Routine coding questions need neither workflow. An assignment's named epic/checkpoint overrides the global pointers above; an explicitly supplied standalone scope uses its named context and scoped records without creating an epic or backlog item.
 
 Use the Agile vocabulary in `docs/agile-workflow.md`: epic, optional feature grouping, story, task, spike, backlog, acceptance criteria, Definition of Ready, and Definition of Done. Keep existing backlog IDs stable. The original MVP and inspiration retain historical terminology.
 
@@ -19,7 +21,7 @@ A new epic uses a pinned named integration branch before planning or dispatch. I
 
 ## Providers and roles
 
-These instructions are shared project guidance, regardless of model/provider. Start every assignment by explicitly reading them and its named context files; other Markdown files are not assumed to load automatically. Provider/model/reasoning selection is set in T3, not by this file.
+These instructions are shared project guidance, regardless of model/provider. Load context according to the role and entry mode above; other Markdown files are not assumed to load automatically. Provider/model/reasoning selection is set in T3, not by this file.
 
 This section is the authoritative provider profile. User preference: Sol High for coordination; Grok 4.7 High with 500K context for implementation and for independent reviews (not Opus). The verified T3 implementation route is Cursor model `grok-4.7`, with `target.options` set to `{"reasoning_effort":"high","contextWindow":"500k"}`. The active Codex session reports model `gpt-6.1-sol` and `reasoningEffort: high`. Follow host rules for capability checks; do not substitute a different provider/model/settings without authorization. Historical assignments retain the settings actually used.
 
