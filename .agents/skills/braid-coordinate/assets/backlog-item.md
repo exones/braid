@@ -1,6 +1,8 @@
 # <ID>: <small outcome>
 
-Choose `<ID>` using the [backlog item ID convention](../../../../docs/agile-workflow.md#backlog-item-ids) (template reference; resolve against the project root when generating an item).
+Workflow links resolve from this template's Braid installation; rewrite them to that installed location in generated files. Project and work-item links resolve in the target checkout.
+
+Choose `<ID>` using the [backlog item ID convention](../../../../docs/agile-workflow.md#backlog-item-ids).
 
 Kind: story | task | spike. Epic: <ID/path>. Feature: <optional group>.
 Status: backlog. Owner: <role>. Depends on: <IDs or none>.
@@ -27,7 +29,7 @@ Status: backlog. Owner: <role>. Depends on: <IDs or none>.
 ## Review gates
 <Review assignments, exact candidate revision, reviewer/scope, report path, findings/triage, and gate result. Read and apply the authoritative review conventions linked below.>
 
-[Review conventions](../../../../docs/agile-workflow.md#review-gates-and-indexing) (template reference; resolve against the project root when generating an item).
+[Review conventions](../../../../docs/agile-workflow.md#review-gates-and-indexing).
 
 ## Delivery record
 <Owned branch/PR, Conventional Commit messages, checked head SHA, local gate, hosted CI, reviewer findings/triage, human merge decision, and merge SHA. For a docs-only spike use applicable documentation/CI checks. Do not mark Done from local proof alone.>

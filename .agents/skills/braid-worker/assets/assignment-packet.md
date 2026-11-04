@@ -3,6 +3,7 @@
 Use [braid-worker](../SKILL.md); execute only this item. Fill the facts below before dispatch. Paths are repository-relative unless explicitly absolute; required context must exist in the assigned revision or be supplied with the packet.
 
 - **Task:** backlog path, purpose/outcome, scope/non-goals, acceptance criteria; research question/time or effort bound/decision for a spike; exact findings/revision for a scoped fix.
+- **Implementation brief:** approved approach, relevant paths/patterns, settled decisions/rationale, constraints and remaining uncertainties. This is the worker's plan; repeat research only when evidence contradicts it or leaves a concrete decision unresolved.
 - **Context:** AGENTS and mandated files; assigned epic/current checkpoint/item; dependency reports/checkpoints, exact accepted revisions, current merge evidence and explicit branch ordering; extra references to load only as needed. No parent-chat/dirty-parent/inspiration dependency.
 - **Git contract:** actual bound root; expected initial full HEAD, clean/owned dirty tree and index; expected origin URL; generated owned branch to retain (or explicitly assigned no-track descriptive branch/full start SHA); explicit push destination; PR base and any existing PR URL.
 - **Ownership/authority:** allowed files/resources and exclusions; report/checkpoint paths; coordinator-owned shared files; other active owners/WIP; authorized external actions. Provider authority remains AGENTS plus explicit user overrides, not this reusable template.

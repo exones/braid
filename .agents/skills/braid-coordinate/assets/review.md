@@ -1,6 +1,8 @@
 # <review-name>: <review scope>
 
-Read and apply the [review conventions](../../../../docs/agile-workflow.md#review-gates-and-indexing) before filling in names/paths (template reference; resolve against the project root when generating a report).
+Workflow links resolve from this template's Braid installation; rewrite them to that installed location in generated files. Project and work-item links resolve in the target checkout.
+
+Read and apply the [review conventions](../../../../docs/agile-workflow.md#review-gates-and-indexing) before filling in names/paths.
 
 Parent: <existing item or epic ID>. Pass: <pass>. Reviewer: <role/session>.
 Agent/assignment name: <review-name>.

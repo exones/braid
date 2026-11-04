@@ -1,6 +1,6 @@
 # Epic AGENTO-001: a usable seed
 
-Created: 2026-11-03. Owner: user. Status: done for the expanded seed backlog. A/B/C/N Done in PR #1, D Done in human-merged PR #2, D1 Done in human-merged PR #4 and PR #5. Publication and stage 2 are not started.
+Created: 2026-11-03. Owner: user. Status: original expanded seed backlog done; skill follow-up E in review. A/B/C/N Done in PR #1, D Done in human-merged PR #2, D1 Done in human-merged PR #4 and PR #5. Publication and stage 2 are not started.
 Target: first 0.1 candidate. Controller: bootstrap `agento-coordinate` skill and manual files; no released CLI. Preferred roles: Sol High coordinator and one Grok 4.7 Extra High worker when assigned.
 Repository: `https://github.com/exones/agento.git`, public, current account ADMIN. PR #1 human-merged at `afc05074a27da2cb1a3c225bc9d42d10f184e504`; original branch deleted remotely. The user's bundled A/B commit `3283807` remains in history. Final PR head `e997381` passed Windows/Ubuntu CI; details are in [delivery evidence](reports/bootstrap-delivery.md). D uses owned branch `feat/package-bootstrap` from that merge.
 
@@ -36,6 +36,7 @@ Feature F1: a verified CLI for manual epic/story tracking. Feature F2: an instal
 | N | task | F1 | [Use agento for storage naming](backlog/N-storage-name.md) | C | done | [Worker evidence](reports/N.md), [local review](reports/N-review.md); [PR #1 delivery](reports/bootstrap-delivery.md), merge `afc0507` |
 | D | story | F2 | [Package and bootstrap proof](backlog/D-package.md) | C and N merged | done | [Candidate report](reports/final.md), [proof/fixes, CI and merge](reports/D-review.md), [review pass 02](reports/reviews/AGENTO-001/02.md); [PR #2](https://github.com/exones/agento/pull/2), final head `147a4bd` CI passed, merge `d81f4a5` |
 | D1 | story | coordinator follow-up | [Sequential backlog IDs](backlog/D1-sequential-backlog-ids.md) | D merged | done | [Worker report](reports/D1.md), [planning proof and closeout](reports/D1-validation.md), [review](reports/reviews/D1/D1-sequential-backlog-ids-review-001.md); policy [PR #4](https://github.com/exones/agento/pull/4) merge `3a46c9e`; proof [PR #5](https://github.com/exones/agento/pull/5) head `d22b4bb`, CI passed, merge `ecf0d7c` |
+| E | task | skill follow-up | [Execution efficiency](backlog/E-skill-efficiency.md) | Current remote main | in-review | [Report](reports/E.md); PR review pending |
 | I | spike | superseded infrastructure | [Registry discovery](backlog/I-registry-discovery.md) | None | cancelled | User selected npm; no Forgejo deployment |
 
 A -> B -> C -> N -> D -> D1 is sequential, with reviews as gates of those items and the seed epic. N applies the storage naming correction at C's safe handoff boundary. D1 is the user-requested next story after D; delivery resumed after D's merge. Review findings remain bound to their parent and are triaged before closure. I is documentation/discovery only, outside seed acceptance. No worker launches another agent from a backlog item.
