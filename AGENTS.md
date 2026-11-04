@@ -7,7 +7,7 @@ Read `README.md`, `docs/decisions.md`, the assigned epic, `checkpoints/current.m
 Current epic: `epics/braid/001-seed/epic.md`.
 Current checkpoint: `epics/braid/001-seed/checkpoints/current.md`.
 
-For a goal-level planning or orchestration request, use `.agents/skills/braid-coordinate/SKILL.md`. It analyzes the request, writes/refines the epic and backlog, and coordinates delivery within the user's requested scope. Read it directly if the host has not discovered it yet. Assigned workers execute their backlog item; they do not enter the coordinator workflow. Routine coding questions do not need the skill.
+For a goal-level planning or orchestration request, use [.agents/skills/braid-coordinate/SKILL.md](.agents/skills/braid-coordinate/SKILL.md). For execution or resumption of one assigned implementation item, use [.agents/skills/braid-worker/SKILL.md](.agents/skills/braid-worker/SKILL.md) and its [canonical assignment packet](.agents/skills/braid-worker/assets/assignment-packet.md); do not enter the coordinator workflow. Read the selected skill directly if discovery is unavailable. Independent reviewers follow their separately assigned review and the review conventions below. Routine coding questions need neither workflow. An assignment's named epic/checkpoint overrides the global pointers above.
 
 Use the Agile vocabulary in `docs/agile-workflow.md`: epic, optional feature grouping, story, task, spike, backlog, acceptance criteria, Definition of Ready, and Definition of Done. Keep existing backlog IDs stable. The original MVP and inspiration retain historical terminology.
 
@@ -19,7 +19,7 @@ Do only the assigned role and scope. A coordinator asked to deliver an epic may 
 
 These instructions are shared project guidance, regardless of model/provider. Start every assignment by explicitly reading them and its named context files; other Markdown files are not assumed to load automatically. Provider/model/reasoning selection is set in T3, not by this file.
 
-User preference: Sol High for coordination; Grok 4.7 Extra High for implementation. Current verified T3 worker route is Cursor model `grok-4.7` with option `reasoning_effort: xhigh`. The active Codex session reports model `gpt-6.1-sol` and `reasoningEffort: high`. Recheck capabilities before future delegation; do not substitute a different provider/model/settings without authorization.
+This section is the authoritative provider profile. User preference: Sol High for coordination; Grok 4.7 High with 500K context for implementation. The verified T3 implementation route is Cursor model `grok-4.7`, with `target.options` set to `{"reasoning_effort":"high","contextWindow":"500k"}`. The active Codex session reports model `gpt-6.1-sol` and `reasoningEffort: high`. Follow host rules for capability checks; do not substitute a different provider/model/settings without authorization. Historical assignments retain the settings actually used.
 
 When a coordinator is assigned, it owns `epic.md` and `checkpoints/current.md`, assigns the selected backlog item, checks evidence, and records the next action. Workers own `checkpoints/<task>.md` and `reports/<task>.md` plus their assigned implementation files. Interpret backlog items' shared-status update instructions as reporting those updates to the coordinator in this mode. Do not have both roles edit the shared checkpoint. Coordinator findings go back to the worker as scoped fixes; the coordinator does not implement product changes in that role.
 

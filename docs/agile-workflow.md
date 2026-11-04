@@ -71,6 +71,8 @@ Write `epic.md` and item files before dispatch. Assign item IDs from [Backlog it
 
 A backlog item is Ready when its outcome and boundaries are clear, dependencies are met, ownership is assigned, required inputs exist, acceptance criteria are testable, and the verification/evidence method is known. A spike is Ready when its question, limit, and required decision are clear. Unrelated external setup does not block local work.
 
+For implementation dispatch, fill the worker's [canonical assignment packet](../.agents/skills/braid-worker/assets/assignment-packet.md): committed or explicitly supplied context, exact dependency/merge and checkout/Git/ownership facts, declared check set and supported continuation. Assigned execution/resumption uses [braid-worker](../.agents/skills/braid-worker/SKILL.md); goal-level planning and independent review retain separate entrypoints.
+
 ## Definition of Done
 
 For a delivery item: acceptance criteria satisfied, relevant local checks passed, scoped commit/PR exists, required hosted CI passes on its head, review findings are triaged, and human-approved merge is recorded. The report includes exact evidence and limitations; checkpoint/documentation reflect the outcome. Local acceptance alone stays In Review until the delivery gates are met.
@@ -83,8 +85,8 @@ Done for a story is distinct from a released epic. Missing remote CI/publication
 
 Backlog -> Ready -> In Progress -> In Review -> Done. Use `blocked` with a specific blocker/owner/next action when progress cannot continue; preserve the prior state for resumption. `cancelled` needs a recorded reason. Use lowercase persisted labels: `backlog`, `ready`, `in-progress`, `in-review`, `done`, `blocked`, `cancelled`.
 
-Sol High is the preferred coordinator; Grok 4.7 Extra High through Cursor is the preferred worker. The coordinator owns epic/backlog status and shared checkpoint. Each worker owns its item checkpoint/report and implementation scope. Keep one seed worker at a time. Subsequent epics can raise WIP only when tool capabilities and boundaries support it.
+Provider/model/settings follow the authoritative [provider profile](../AGENTS.md#providers-and-roles). The coordinator owns epic/backlog status and shared checkpoint. Each worker owns its item checkpoint/report and implementation scope. Keep one seed worker at a time. Subsequent epics can raise WIP only when tool capabilities and boundaries support it.
 
 Every stage ends with an evidence review and short retrospective. Turn observed problems into a small fix, regression check, or backlog item; preserve the user's original outcome. No skill or status label grants permission to publish, merge, deploy, or change private infrastructure.
 
-The canonical [delivery rules](../.agents/skills/braid-coordinate/references/delivery.md) define semantic commits, PR/head/CI/review evidence, the local-only bootstrap transition, and README boundaries. README describes usable project state; all operational progress belongs in epic/checkpoint/report files.
+The canonical [delivery rules](../.agents/skills/braid-coordinate/references/delivery.md) define semantic commits, PR/head/CI/review evidence, green-only worker handoff, the local-only bootstrap transition, and README boundaries. Waiting/blocked worker updates are nonterminal ownership updates, not successful delivery or new persisted statuses. README describes usable project state; all operational progress belongs in epic/checkpoint/report files.
