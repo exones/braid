@@ -1,41 +1,37 @@
 # BRAID-003 current checkpoint
 
-Updated: 2026-11-03. Coordinator-owned. Mode: approved delivery; A ready for bounded research.
+Updated: 2026-11-04. Coordinator-owned. Mode: approved delivery; A technically accepted/In Review, B Ready.
 
-## Task and checkout
+## Checkout and authority
 
-Prepare an epic for a separate worker skill; analyze current/inspiration guidance; ask the user to review the proposed rules before implementation. The user explicitly requires worker ownership through passing PR checks and no failing-PR handoff.
+Coordinator root `C:\code\agento`, branch `feat/003-b-worker-skill`, based on reviewed A head `c86bc3990a63a5b18d582782e54f9a3cffa18928`. A scoped B handoff-context commit is next; its full object ID belongs in the dispatch packet. No product implementation was performed by the coordinator. Controller/schema: bootstrap skill/manual Markdown.
 
-Checkout: `C:\code\agento`. Branch: `docs/003-worker-skill-plan`. HEAD: `acd87301c8c267b7b89651c1e2b01913d6c84692`. Observed local `origin/main`: `0f2dd8637be8f87237c5622c8314aea28b9068ac`. At the user's explicit request, created this branch from the unchanged local HEAD, carrying all working-directory changes. No upstream, staging, commit, push, or base update. Controller/schema: bootstrap skill/manual Markdown; no new machine ledger/controller adoption.
+The user approved R01-R12, requested committing the plan and proceeding, and authorized Sol High for this epic's workers. Use Codex `gpt-6.1-sol`, explicit `reasoningEffort: high`, verified available; do not change/copy the global provider profile into reusable skills. Human merge/release authority is unchanged.
 
-## Completed
+## A accepted evidence and remaining delivery gate
 
-- Read project instructions/context/templates, dispersed worker duties, CI scripts, prior Git analysis, and representative ignored inspiration briefs/checkpoints.
-- Wrote [epic](../epic.md), [R01–R12 proposal](../proposed-rules.md), [motivated source/design analysis](../reports/planning.md), and backlog A–D.
-- Identified a concrete host conflict: delegated-child PR watching is forbidden and polling is forbidden. A must prove a supported worker wait/continuation or report the exact blocker. Coordinator takeover is not the default solution.
-- Scoped B to skill creation, C to routing/deduplication, D to bounded fresh-context/live proof. All remain backlog; no worker/reviewer assigned.
-- Moved the working directory from main to `docs/003-worker-skill-plan` at the user's request. Verified unchanged HEAD, staged/unstaged diffs, full status, and every untracked file's SHA-256 before updating this checkpoint/report. Rule approval and implementation authorization remain pending.
+- [Acceptance and B handoff](../reports/A-acceptance.md) is the concise dependency record. Retained [author report](../reports/A.md), [author checkpoint](A.md), [independent review](../reports/reviews/A/A-worker-ci-wait-review-001.md), and [review checkpoint](reviews/A/A-worker-ci-wait-review-001.md) are copied byte-for-byte. Exact supplement hashes are in acceptance/review.
+- A PR https://github.com/exones/braid/pull/8, reviewed H3 `c86bc3990a63a5b18d582782e54f9a3cffa18928`. Four push/PR Windows/Ubuntu jobs/uploads passed; worker and independent reviewer verified artifact bytes/digests/provenance and unchanged head. Pass 001 has no actionable findings; coordinator accepts the bounded result.
+- One controlled failure/repair/cleanup lifecycle proved parent watch, finite readiness reconciliation, message/fresh-task continuation and worker-owned diagnosis/repair/green handoff. Parent watch stopped after handoff: `wasWatching: true`, `watching: false`. No repeat trial or author continuation pending.
+- A remains In Review, not Done/merged. Plan PR #6 and A #8 still report OPEN with no merge identity. Merge is the user's action; no formal GitHub approval is claimed.
+- Limits: one observed host/provider lifecycle; no arbitrary restart/exactly-once/cross-provider guarantee. Initial host blocker was corrected. Do not replay earlier blocked/waiting actions.
 
-## In flight
+## B readiness and assignment boundary
 
-No command, delegate, review, PR watch, or live experiment belongs to this epic. Other epic work is outside this planning assignment; this checkpoint makes no assertion that those tasks are idle or finished.
+- [B-worker-skill](../backlog/B-worker-skill.md) is Ready: approved rules, viable reviewed A mechanism, free implementation slot, exact scope/checks/outputs and portable dependency context.
+- This B context branch was created from H3 at the safe author/reviewer completion boundary; prior dirty status/diffs/untracked hashes were unchanged. Delegate only after owned context is committed. The exact initial worker HEAD is the full dispatch commit, not the older source head quoted by historical reports.
+- Retain the T3-generated worker branch. PR base `t3/85fcb290` at A H3; stacked order plan #6 -> A #8 -> B. State pending merges honestly. After predecessor merges, reconcile/retarget and revalidate at a safe boundary; no silent history rewrite/merge authority.
+- B owns `.agents/skills/braid-worker/`, `reports/B.md`, `checkpoints/B.md`, and its item's assigned delivery fields only. C retains broad routing/deduplication. No existing policy/product/CI/README cleanup or successors in B.
+- Build a short execution skill, normal discovery metadata, one compact packet asset, and only A-justified host reference. Link shared delivery/report/review/provider authorities. Read mandatory context once; refresh relevant changes on resume. Keep green-only repair/handoff and precise nonterminal blockers. No current IDs/model settings in reusable content, product automation, child watches, polling, agents or merge/release.
+- Local validation: available skill-authoring validator, resolving references, bounded startup/mismatch/stale-head/blocker/resume walkthroughs. Hosted delivery requires both configured push/PR Windows+Ubuntu verify jobs through upload on the current head. No artificial prose-mirroring product tests. D retains later fresh-context live proof.
+- Ordinary B delivery uses the proved parent relay: worker creates/links its PR and checkpoints/yields pending; parent registers/arms/reconciles once and transports events; worker owns repairs and final current-head verification before handoff. No deliberate failure injection is authorized for B.
 
-## Checks and evidence
+## Preserved edits and work state
 
-Local plan validation passed: eight Markdown files; 63 resolving local links/anchors; sequential backlog IDs A-D; all items backlog; no worker-skill directory; no trailing whitespace. `git diff --check` passed for tracked changes. No product test/hosted CI/review/merge proof is claimed. The planning report fingerprints ignored sources and retains the relevant lessons so implementation need not read the archive.
+Only accepted A evidence/review copies and coordinator-owned epic-003 status/handoff/history are included in the context commit. Pre-existing dirty AGENTS/coordinator-skill/workflow/decision/seed-checkpoint and epic-002 edits/untracked review/release files remain separate and unstaged. Do not sweep them into commits. Source author/reviewer worktrees were untouched.
 
-## Changed files and preserved work
+No A command/watch/review is in flight. No B delegate started yet; record actual task/link after dispatch and follow next without polling. One implementation worker at a time; C/D remain backlog. A's relay/task/event history is preserved in [history](history/A-relay-2026-11-04.md) and triage; future workers need not load it except to investigate evidence.
 
-Owned changes: `epics/braid/003-worker-skill/` (epic, proposed rules, four backlog items, planning report, this checkpoint) and its new `epics/README.md` index entry only.
+## Exact next action
 
-Pre-existing modifications are outside scope: `.agents/skills/braid-coordinate/SKILL.md`, `AGENTS.md`, `docs/agile-workflow.md`, `docs/decisions.md`, `epics/braid/001-seed/checkpoints/current.md`. Earlier untracked git-handoff-analysis report/checkpoint under epic 002 remain separate. Do not stage/commit them incidentally. No active skill, shared policy, other epic status, or worker implementation was edited here.
-
-Additional unrelated edits appeared concurrently under epic 002: `backlog/D-npm-account.md`, `checkpoints/current.md`, `epic.md`, and `reports/planning.md`. They were left untouched. Re-read them if later needed; this plan does not own or certify that work.
-
-## Authorization, blockers, and next concrete action
-
-The user approved proceeding: "ok go, commit the current plan and go", and authorized Sol High for the worker. R01–R12 are approved. Verified T3 route: provider `codex`, model `gpt-6.1-sol`, `target.options.reasoningEffort: high`. This is an epic-specific user override; do not edit the global provider profile.
-
-Next: validate and commit only this plan/index plus the supporting Git-analysis report/checkpoint, then assign A in a T3-created isolated checkout at that committed revision. Leave unrelated policy/release-preparation changes unstaged. Another epic's release assignment is active in an isolated checkout: A may perform independent contract research, but no live PR/implementation trial until the implementation slot is free. The unproven host wait mechanism keeps B/C/D unready. No merge/publication authority is granted.
-
-The parent remains on its approved planning branch rather than merging the newer origin/main into a dirty shared checkout. A's base is the forthcoming plan commit, not an assertion that HEAD equals origin/main. Newer remote main includes merged story C, but A does not modify product/release files; integrate the current base later at a safe boundary if needed. A negative capability result keeps downstream work unready and must not weaken green-only delivery.
+Validate copied hashes/links, commit only owned handoff context, then dispatch B to a fresh isolated Sol High worker at that full commit with exact scope, stacked PR base and parent relay contract. Record task/link and end the turn per next. Keep A's checked PR head unchanged. Give the user the A result/limits and pending human merge action while B proceeds within authorized scope.
