@@ -98,7 +98,7 @@ Do not queue another readiness turn because the first snapshot is still pending.
 | Absent wake while pending | No turn arrives | Nothing about the jobs. Ownership stays here. It does not prove the watch is dead and it does not authorize polling. |
 | Coordinator send | `t3_thread_send` to the existing coordinator thread | The transport accepted the message and returned delivery identities. It does not prove the coordinator has read it, and it is not a child-completion callback. |
 
-At authoring time, registration, the snapshot, a watch wake, and the coordinator send are **unobserved**. The supplement names which of those branches actually occurred. An unobserved branch stays unobserved. This trial does not manufacture a second pull request to force a wake.
+At authoring time, registration, the snapshot, a watch wake, and the coordinator send are **unobserved**. The supplement names which of those branches actually occurred. An unobserved branch stays unobserved. The original trial did not open a second pull request to force a wake. A separate follow-up probe PR 15 was opened later by the coordinator (see [Follow-up watch probe (PR 15)](#follow-up-watch-probe-pr-15)).
 
 ## Frozen hosted proof
 

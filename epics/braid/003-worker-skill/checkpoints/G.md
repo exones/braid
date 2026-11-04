@@ -1,14 +1,14 @@
 # BRAID-003/G worker checkpoint
 
-Date: 2026-11-04. Role: worker. State: documentation head `9b043f0fadc381d2dfa173fe28d7fdfb4f76c920` has a verified four-job proof in the uncommitted section below. Continuation result remains negative/partial. Not Done. Not merged. A new review, human merge, F, and D are not started.
+Date: 2026-11-04. Role: worker. State: documentation head `9b043f0fadc381d2dfa173fe28d7fdfb4f76c920` has a verified four-job proof in the uncommitted section below. The original-run continuation result remains negative/partial and is superseded for the watch-wake part by the PR 15 probe. The current F contract allows own-thread completion from a single watch wake for a short step-explicit prompt. Watch survival, unassisted repair, and exactly-once delivery stay unproven. Not Done. Not merged. A new review, human merge, F, and D are not started.
 
 ## Scope
 
-Scoped fix for review `G-independent-thread-ci-review-001` findings F1 to F4. Coordinator triage: the spike outcome is negative/partial and must say so. F2 rewrites the F-intake section of the operator reference. F1, F3, and F4 are recorded in this checkpoint and `epics/braid/003-worker-skill/reports/G.md`. Both files ship in the pull request.
+Scoped fix for review `G-independent-thread-ci-review-001` findings F1 to F4. Coordinator triage of that review: the original-run spike outcome is negative/partial and the record must say so. F2 rewrites the F-intake section of the operator reference. F1, F3, and F4 are recorded in this checkpoint and `epics/braid/003-worker-skill/reports/G.md`. Both files ship in the pull request.
 
 ## Continuation result
 
-Negative. One top-level thread did not complete the contract.
+Original-run result, superseded for the watch-wake part by the PR 15 probe. Negative. One top-level thread did not complete the contract.
 
 - Original thread `mcp:launch:b4318dded53b10790c1cb711c5a4496141347271c88ddce9a5892d38485b3a80`. Runs, UTC, from review 001's host read: ordinal 1 interrupted (19:17:50 requested, 19:18:05–19:37:58); ordinal 2 readiness interrupted (19:24:45 requested, 19:38:00–19:51:36); ordinal 3 cancelled before start (19:27:39 requested, ended 20:02:13); ordinal 4 interrupted (20:05:20–20:07:41); ordinal 5 interrupted (20:09:57–20:10:01). None completed. Ordinal 1 registered `watching: true`, `wasWatching: false`, ran about ten minutes past that call, then was interrupted. Ordinal 2 started only after that interruption and found push attempt 1 red. No watch wake drove completion.
 - The user account `exones` reran the failed push job. Attempt 2 of run `41896581649` started at 20:04:47Z. The worker did not rerun it. Attempt 1 Windows job `126807600244` remains failed with `error: cannot write state`. Cause unidentified.
@@ -54,11 +54,11 @@ The four-job set for `ccabae4df1f813317b8dd1247ea04878ee6ce023` passed and is no
 
 ## F may adopt
 
-Only worktree binding, the watch registration payload, one catch-up readiness snapshot, the current-head CI and artifact recipe, and explicit coordinator message delivery. F must not rely on same-thread completion driven by a watch wake, a watch that survives interruption, one result per head, or unassisted repair.
+Worktree binding, the watch registration payload, one catch-up readiness snapshot, own-thread completion from a single watch wake for a short step-explicit prompt that ends its turn right after watching (proved by probe PR 15), the current-head CI and artifact recipe, and explicit coordinator message delivery. The original-run result, superseded by the PR 15 probe, was that F must not rely on same-thread completion driven by a watch wake. A watch that survives interruption, unassisted repair, and exactly-once delivery stay unproven.
 
 ## Next action recorded with the documentation proof
 
-Coordinator: record G's continuation result as negative/partial, take the verified four-job proof of `9b043f0fadc381d2dfa173fe28d7fdfb4f76c920` below, and decide whether to assign a review of that head. Human merge of https://github.com/exones/braid/pull/13 stays the stop before F. This worker does not watch, launch a reviewer, merge, or start F or D. The proof stays an uncommitted supplement. Do not add a commit whose only purpose is its own SHA.
+Coordinator: record G's original-run continuation result as negative/partial, superseded for the watch-wake part by the PR 15 probe, take the verified four-job proof of `9b043f0fadc381d2dfa173fe28d7fdfb4f76c920` below, and decide whether to assign a review of that head. Human merge of https://github.com/exones/braid/pull/13 stays the stop before F. This worker does not watch, launch a reviewer, merge, or start F or D. The proof stays an uncommitted supplement. Do not add a commit whose only purpose is its own SHA.
 
 ## Replacement collision
 
@@ -111,7 +111,7 @@ After that check, local HEAD and PR head were still `9b043f0fadc381d2dfa173fe28d
 
 ## Next action
 
-Coordinator: dedupe this re-entry with the ordinal-90 proof send, record the continuation result as negative/partial, and decide whether to assign a review of `9b043f0fadc381d2dfa173fe28d7fdfb4f76c920`. Human merge of https://github.com/exones/braid/pull/13 stays the stop before F. This worker does not watch, launch a reviewer, merge, or start F or D. Not Done.
+Coordinator: dedupe this re-entry with the ordinal-90 proof send, record the original-run continuation result as negative/partial, superseded for the watch-wake part by the PR 15 probe, and decide whether to assign a review of `9b043f0fadc381d2dfa173fe28d7fdfb4f76c920`. Human merge of https://github.com/exones/braid/pull/13 stays the stop before F. This worker does not watch, launch a reviewer, merge, or start F or D. Not Done.
 
 ## Recheck send
 
