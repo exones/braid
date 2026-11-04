@@ -6,7 +6,7 @@ Evidence and limits are the adopted subset in [What F can take from this trial](
 
 ## Top-level item thread
 
-`t3_thread_launch` with a workspace strategy binds a top-level thread to a named item worktree and branch. `delegate_task` has no branch field, and its child must not watch. `create_threads` inherits a checkout and is not the isolated item route. A top-level thread requires an explicit user-authorized thread assignment. It is not a renamed child.
+`t3_thread_launch` with a workspace strategy binds a top-level thread to a named item worktree and branch. `delegate_task` has no branch field, and its child must not watch. `create_threads` inherits a checkout and is not the isolated item route. A top-level thread requires an explicit user request, which may be a standing request for tasks within approved delivery scope. A continuation under that request needs no repeated thread-creation confirmation. Record the request in the project's maintained instructions and follow current host rules. Do not convert or replace an existing child without an authorized handoff.
 
 The launch prompt stays short and step-explicit. A long resume-oriented prompt can restart inside one run and send the result again. Name the steps. Do not paste a resume narrative into the prompt.
 
