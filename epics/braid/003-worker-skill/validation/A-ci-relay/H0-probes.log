@@ -1,0 +1,43 @@
+COMMAND: node --test --test-reporter spec test/worker-ci-relay.test.mjs; control=BAD
+✖ BRAID-003/A relay canary requires GOOD control (1.3359ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71.4366
+
+✖ failing tests:
+
+test at test\worker-ci-relay.test.mjs:11:1
+✖ BRAID-003/A relay canary requires GOOD control (1.3359ms)
+  AssertionError [ERR_ASSERTION]: relay canary control must be GOOD
+
+  'BAD' !== 'GOOD'
+
+      at TestContext.<anonymous> (file:///C:/worktrees/agento/t3-85fcb290/test/worker-ci-relay.test.mjs:13:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'BAD',
+    expected: 'GOOD',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+EXPECTED NEGATIVE EXIT: 1
+COMMAND: node --test --test-reporter spec test/worker-ci-relay.test.mjs; restored control=GOOD
+✔ BRAID-003/A relay canary requires GOOD control (0.7711ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 84.006
+RESTORED POSITIVE EXIT: 0
