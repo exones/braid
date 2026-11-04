@@ -38,7 +38,7 @@ Adopt it as the single authority in `docs/agile-workflow.md`, replacing the per-
 
 | File | Writer | Branch | When | Committed by |
 | --- | --- | --- | --- | --- |
-| `epic.md`, `checkpoints/current.md`, `checkpoints/history/`, `backlog/*.md` | coordinator | epic | planning, dispatch, triage, acceptance, close | coordinator, pushed at each step |
+| `epic.md`, `checkpoints/current.md`, `checkpoints/log.md`, `backlog/*.md` | coordinator | epic | planning, dispatch, triage, acceptance, close; log lines as events happen | coordinator, pushed at each step |
 | `assignments/<ID>.md`, `assignments/reviews/<ID>/*` | coordinator | epic | before the item or reviewer launches; a change is a new commit | coordinator |
 | product code, project docs, skills, `docs/decisions.md`, `docs/roadmap.md` | worker | item | implementation | worker, via item PR |
 | `reports/<ID>.md`, `checkpoints/<ID>.md`, `validation/<ID>/` | worker | item | before each push | worker, via item PR |
@@ -55,7 +55,7 @@ Also, in the owning authorities:
 - Coordinator: commit and push its own records immediately at each boundary; never carry uncommitted records. Coordinator commits to the epic are records-only (the files listed as coordinator-owned) and are explicitly exempt from independent review; any other path needs an item PR. A decision is recorded in `epic.md` and carried into `docs/decisions.md` by an item.
 - Reviewer: returns its files and posts a short PR summary comment; it does not commit to the item or epic branch.
 - Fix the `delivery.md` sentence placing review reports in the delivery PR.
-- `checkpoints/current.md` is a short overwritten "now" state (task, actual revisions, live handles, blockers, one next action); superseded entries move to `checkpoints/history/`. Update the epic template and report-format/checkpoint guidance to match.
+- **Separate "now" from the log.** `checkpoints/current.md` is a short "now" state, rewritten (not appended) at each step: task, actual revisions, live handles, blockers, one next action; about 15 lines. Resuming agents read only this file. `checkpoints/log.md` is an append-only event log for debugging: one timestamped line per event (launch, CI result, relay, intervention, decision, merge) with the identifiers needed to trace it (thread/task/clientRequestId, PR, head, run). Append without reading the file; never rewrite or reorder entries; resuming agents and packets do not load it by default. Earlier full versions of `current.md` remain in git history because the coordinator commits each step. No new `checkpoints/history/` snapshots; existing history files stay as historical records. Update the epic template and report-format/checkpoint guidance to match.
 
 ### One home for status
 
@@ -81,7 +81,7 @@ Non-goals: a separate records branch or out-of-git state (later roadmap), moving
 2. Given the full item lifecycle (dispatch, implement, push, CI green, review, fix, merge, acceptance), no step in the skills, packet asset, delivery rules or report format requires a commit to a green PR head for records, or leaves a record uncommitted in any worktree. Shown with a written walkthrough of the lifecycle against the changed text, including one review-fix round.
 3. The acceptance-file contract lists the facts to copy (head, base, run/attempt/job IDs and conclusions, required steps, merge SHA, review pass, reviewed head, findings, triage) and states that a link to a comment or run alone is not the record; the epic template or report format shows a short placeholder example.
 4. The review-report contradiction in `delivery.md` is gone; the records-only coordinator commit exemption and the "project docs only via item PRs" rule are stated once and linked.
-5. The `current.md`/`history/` split is described in the epic template and checkpoint guidance with a short placeholder example.
+5. The `current.md`/`log.md` split is described once with a short placeholder example of each: `current.md` is rewritten and is the only file read on resume; `log.md` is append-only, one line per event with exact identities, and not read on resume; both are coordinator-only, including with parallel items.
 6. Status has one home: a search of AGENTS.md, README, `epics/README.md`, skills, templates and `docs/` (excluding the dated decision log) finds no current-epic pointer, session-reported fact or progress wording; the backlog template has no status line; the status rule is stated once and linked.
 7. The main-sync routine (when, merge not rebase, conflicting sync via PR, final sync before the main PR, open item PR after a sync) is stated once in the delivery rules and referenced from the coordinator skill's boundary step.
 8. The skill-pinning mechanism is documented, the packet asset has a field for the skill revision and source path, and the walkthrough shows one dispatch naming them.
