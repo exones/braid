@@ -155,26 +155,32 @@ Not claimed: restart durability, exactly-once delivery, automatic reattachment, 
 | `unwatch_pull_request` payload | Unobserved at authoring |
 | Coordinator send identities | Unobserved at authoring |
 
+## Follow-up watch probe (PR 15)
+
+Coordinator-observed on 2026-11-04. A minimal top-level Cursor grok-4.7 high thread (`mcp:launch:ab2782589f6ef8f86490fdf9ff805925a5338ebbdbaaa1b1b466f89015fd2063`) opened throwaway pull request https://github.com/exones/braid/pull/15 at head `242b20cc76566b4db713a02c91c57f8d43e0efad`. It called `watch_pull_request` (`watching: true`, `wasWatching: false`) and ended its turn. Run 1 completed at 20:59:07Z. T3's watch wake, "All 2 checks passed on 242b20c", started run 2 at 21:01:49Z. The worker confirmed 4/4 checks pass, unwatched (`watching: false`, `wasWatching: true`), closed the pull request, and sent exactly one result to the coordinator. The probe is 2 runs, 1 wake, no re-entry, and the thread settled.
+
+The earlier G replacement thread's 46-minute loop happened inside one run: one Cursor native run, 42 assistant messages, about 8 cycles. Each cycle restarted with "I'll resume the assigned G item from the worker skill...", with no new input, an empty queue, and no scheduled task. The most likely cause is the long resume-oriented worker prompt and skill, not the watch mechanism. The exact trigger was unobserved.
+
 ## What F can take from this trial
 
-G's continuation result is negative. One top-level item thread did not bind a named worktree, carry a watch through interruption, verify, repair, and deliver on its own. That negative result is the blocker and limit this spike found. The committed [report](../../reports/G.md) and [checkpoint](../../checkpoints/G.md) record it. F may adopt only what this trial observed. The procedure above is the attempt, and it is not a proven same-thread contract.
+The original continuation run was negative. One top-level item thread did not bind a named worktree, carry a watch through interruption, verify, repair, and deliver on its own. The committed [report](../../reports/G.md) and [checkpoint](../../checkpoints/G.md) keep that history. The [follow-up watch probe (PR 15)](#follow-up-watch-probe-pr-15) revises the watch-wake part. F may now adopt own-thread completion driven by a single watch wake, for a worker with a short, step-explicit prompt that ends its turn right after watching.
 
 Observed, and available for F to adopt:
 
 - Worktree binding. `t3_thread_launch` attached a top-level thread to the named existing worktree and branch `item/braid-003-g-independent-thread-ci`. The replacement thread's host branch metadata was empty for `existing_worktree`. Local Git stayed on that named branch.
-- Watch registration payload. The original thread's `watch_pull_request` returned `watching: true` and `wasWatching: false`. A missing field is not success.
+- Watch registration payload. The original thread's `watch_pull_request` returned `watching: true` and `wasWatching: false`. The PR 15 probe returned the same pair. A missing field is not success.
 - One catch-up readiness snapshot. One queued reconciliation on the original thread read checks that had already finished and found push attempt 1 red. That snapshot is a catch-up read. It is not a watch wake.
+- Own-thread completion from a single watch wake, on the PR 15 probe. The worker ended its turn after watching. One wake started the next run. The worker confirmed 4/4 checks, unwatched, closed the pull request, and sent one result. The prompt was short and step-explicit.
 - The current-head CI and artifact verification recipe in [Frozen hosted proof](#frozen-hosted-proof). Require push and `pull_request`, Ubuntu and Windows, successful Install dependencies, Verify, and Upload packed tarball, and match each archive digest to its provenance record.
 - Explicit coordinator message delivery. `t3_thread_send(mode: auto)` returned message, run, and thread identities. Acceptance means the transport took the message. It does not mean the coordinator read it.
 
-F must not rely on any of the following. This trial left them unobserved, or the run contradicted them:
+Not proven. F must not treat these as settled:
 
-- Same-thread completion driven by a watch wake. The original thread's runs were interrupted or cancelled. No watch wake drove verification or completion. Proof and delivery happened on a coordinator-launched replacement, from an explicit recovery snapshot.
-- A watch surviving interruption. The unwatch result available to the replacement was `watching: false` and `wasWatching: false`. The time and cause are unknown, and that payload is second-hand.
-- One result per head. The replacement restarted inside its own run and sent more than one result for the same head.
-- Unassisted repair. The user account reran the failed push job. The worker did not repair it.
+- A watch surviving interruption. The unwatch result available to the replacement was `watching: false` and `wasWatching: false`. The time and cause are unknown, and that payload is second-hand. The original thread's runs were interrupted or cancelled, and proof then came from an explicit recovery snapshot.
+- Unassisted repair of a failing check. The user account reran the failed push job. The worker did not repair it. PR 15's checks were already passing when the wake arrived.
+- Restart and exactly-once guarantees. The PR 15 probe sent one result and did not re-enter. That is one observation. It is not a guarantee that a later run sends once, or that a restarted run resumes exactly once.
 
-The coordinator must expect duplicate results for one head and must deduplicate by head. The coordinator must drive recovery with an explicit snapshot. A watch wake is not the recovery path this trial demonstrated.
+Remaining risk: a long resume-oriented worker prompt can self-restart within one run and resend results. The replacement thread's 46-minute loop was one Cursor native run, not a series of watch wakes. F should keep worker prompts short. The coordinator should dedupe by head. The coordinator must drive recovery from interruption with an explicit snapshot. A watch wake is not that recovery path.
 
 Review `G-independent-thread-ci-review-001` and the human merge of this pull request into `epic/braid-003-worker-skill` still gate F. Green delivery evidence for a head is not Done and is not a merge. See [review conventions](../../../../../docs/agile-workflow.md#review-gates-and-indexing) and the [human merge stop](../../../../../.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop).
 
