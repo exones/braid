@@ -1,12 +1,12 @@
 # BRAID-003 current coordinator checkpoint
-Date: 2026-11-05. Role: coordinator. Task: I implementation, awaiting worker result.
+Date: 2026-11-05. Role: coordinator. Task: I repair for review001/F1 High.
 Root: C:/worktrees/agento/epic-braid-003-worker-skill; branch epic/braid-003-worker-skill.
-Dispatch: 0ff10050cf11503713037d07fdcd0afa59788be5, committed/pushed packet assignments/I.md; J acceptance/adoption recorded.
-Item: C:/worktrees/agento/item-braid-003-i-pr-proof; branch item/braid-003-i-pr-proof; clean initial HEAD matched dispatch once.
-Live: top-level mcp:launch:00e42668086fd894d8c3775bf342bf6a7f1fde893f7c176164a0594f02a57713, ordinal1, Grok4.7 high/500k.
-Launch key: braid003-i-pr-proof-top-level-001. No child completion wake; worker sends one coordinator result per head.
-Skill: external installation C:/Users/exon/.codex/braid-pins/d30e3a93a2a3690934d059357eb2ed9b1494d6ca, revision d30e3a9.
-Proof: full artifact mode required for I; worker owns own PR/watch/repair. No PR or parent watch at dispatch.
-Checks: direct user-authorized Test-CoordinatorRecordsGate implemented here, nine focused cases passed; scope plus Markdown/text, no full suite. See reports/coordinator-records-gate.md.
-Blockers: none. Unrelated untracked maintenance evidence untouched; status only in epic table; D awaits I's reviewed human merge.
-Next: await original I result without polling. Direct helper/rule pushed fcea930; completion message steered same ordinal1 via braid003-i-records-gate-direct-complete-001. I extra assignment withdrawn.
+Item: original I branch/checkout at ad0b1b6dc5bf434f487ba0605e269e79194ef1f9, clean; PR21 open. Reuse it.
+Finding: cached PR base4631970 differs from actual epic dd5b82f; current readiness withdrawn, historical archives retained.
+User decision: freeze epic after this fix-context push through I CI/review; later coordinator records committed locally until human merge.
+Packet: assignments/I-fix-001.md; live-ref before/after, stale-base FAIL, explicit historical scope, focused regressions.
+Live: author/reviewer previously stopped; same author thread mcp:launch:00e42668086fd894d8c3775bf342bf6a7f1fde893f7c176164a0594f02a57713 resumes after context push.
+Proof: full original local/hosted/artifact gate, new independent review002 and human merge before D. Operating pin d30e3a9 unchanged.
+Records: exact review001 files retained with hashes; scope-plus-Markdown gate for this records push, no full coordinator suite.
+Blockers: none for repair; remote base must stay frozen after dispatch. No parent watch or D.
+Next: commit/push fix context once, resume original worker with exact frozen tip, then hold base and await result without polling.
