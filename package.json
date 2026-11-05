@@ -23,6 +23,7 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "node --test --test-reporter spec test",
     "verify": "pwsh -NoProfile -File ./scripts/Verify.ps1",
+    "verify:full": "pwsh -NoProfile -File ./scripts/Verify.ps1 -Full",
     "package:proof": "pwsh -NoProfile -File ./scripts/Test-Package.ps1"
   },
   "devDependencies": {

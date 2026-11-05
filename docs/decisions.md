@@ -52,6 +52,7 @@ The user confirmed using npm directly. Public packages can use npm's free tier; 
 
 ## Decision log
 
+- 2026-11-05, user: split the gate. `npm run verify` (the `BRAID.md` gate, about 20 s) runs the docs gate, OIDC guard, typecheck, build and tests; `npm run verify:full` adds the tooling tests and the package proof and is what CI and releases run. CI's `push` trigger is limited to `main` and `epic/**`, because pull requests already cover PR branches.
 - 2026-11-05, user: asked for braid skills usable from other repositories, supervised and self-contained, with project facts in a conventional file, and for Pester tests of PowerShell code. Adopted D29. Existing PowerShell fixtures are converted to Pester later as separate work.
 - 2026-11-05, user: agreed the agent process had grown into its own product and was slowing simple work. Adopted D28, removed the PR-proof and workspace-binding helpers, and removed the records of epics 001–005; they remain in tag `archive/process-v1`. Only the user merges into `main`.
 - 2026-11-05, user: asked for a per-machine toolchain that can hold several Node.js versions, and for reuse of a suitable PATH Node.js. Adopted D26.
