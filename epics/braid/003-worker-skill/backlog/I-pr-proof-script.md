@@ -1,8 +1,7 @@
 # I: temporary script for current-head PR proof
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: backlog. User agreed 2026-11-04 as a temporary token-saving measure; superseded by roadmap stage 2 (0.2) gate reports.
-Depends on: F merged into the epic (it defines the declared check set and continuation route).
+Depends on: F and J human-merged into the epic; F defines the declared check set/continuation, and J supplies the adopted record workflow. The temporary command is superseded by roadmap stage2 gate reports.
 
 ## Value
 

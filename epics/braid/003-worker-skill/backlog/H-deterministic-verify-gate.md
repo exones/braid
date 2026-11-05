@@ -1,7 +1,6 @@
 # H: make `npm run verify` the single deterministic gate, including docs
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: done. Human PR18 merge `2b6c2f407d275ed1faa2dc2768278fcfa302aaf9` verified; accepted `7b56b82` and no-findings review001 retained. See [acceptance](../reports/H-acceptance.md). User selected J before I/D.
 Depends on: F merged into the epic.
 
 ## Value

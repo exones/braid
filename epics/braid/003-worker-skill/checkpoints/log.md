@@ -1,0 +1,3 @@
+# Coordinator event log
+2026-11-04T23:59:50Z merge-adopt J PR20 checked d28e052e26ac3a13dc2c34c3fa3cc1838864c8ca squash d30e3a93a2a3690934d059357eb2ed9b1494d6ca tree a5168f1558b4f6e56019a7044d39bac9370eb53a integration d66f7f8a68ca81ce71d433deb4732b5361287783 review002 F1-F3-resolved; migrate owned current/status; pin external d30e3a9; prepare I; main-ahead0.
+2026-11-05T00:02:57Z local-gate coordinator npm-run-verify exit0 source d66f7f8 dirty-probe docs245 tests40 package-proof; I packet prepared, J adopted d30e3a9; no product edits.

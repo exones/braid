@@ -1,7 +1,8 @@
 # J: clear record ownership, one home for status, and epic branch hygiene
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: ready. Coordinator verified H merge `2b6c2f4` and planning PR19 merge `c6d9e2f`; user selected J after H, before I/D. [Assignment](../assignments/J.md) prepared for one top-level worker. Depends on H's human merge, now satisfied.
+
+Depends on: H's human merge into the epic.
 
 ## Read first
 

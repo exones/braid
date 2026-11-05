@@ -1,7 +1,6 @@
 # D: prove startup, recovery, and green handoff
 
 Kind: spike. Epic: [BRAID-003](../epic.md).
-Status: backlog. Owner: one evaluator/trial worker at a time; coordinator selects assignments after approval.
 Depends on: E/B/C main delivery verified at `7707524a0b5a007794f22fab6ae1439d93458bb6`; selected workflow/continuation baseline, committed context and explicitly authorized low-impact trial scope. D is held while the user discusses [new execution policy](../execution-policy-proposal.md), with proposed G/F before D; no evaluator has started.
 
 ## Proposed refinement awaiting agreement

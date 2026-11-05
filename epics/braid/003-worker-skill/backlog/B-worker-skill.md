@@ -1,7 +1,6 @@
 # B: create the worker execution skill
 
 Kind: story. Epic: [BRAID-003](../epic.md).
-Status: done. Sol High author/reviewer stopped; exact B and independent pass001 accepted. Original PR #9 merged into A's feature branch; main delivery subsequently verified through PR #11 merge `7707524a0b5a007794f22fab6ae1439d93458bb6`. See [original acceptance](../reports/B-acceptance.md) and [E delivery](../reports/E-acceptance.md).
 Depends on: user-approved rules; A's viable, reviewed wait/continuation result; committed assignment context.
 
 Readiness: A reviewed at `c86bc3990a63a5b18d582782e54f9a3cffa18928` with no actionable findings; [coordinator acceptance](../reports/A-acceptance.md). A/plan PRs are not asserted merged. B starts from committed accepted-context based on that head and targets PR base `t3/85fcb290` while A is open; merge order #6 -> #8 -> B, with later safe retarget/revalidation. Use the generated worker branch; preserve human merge authority.

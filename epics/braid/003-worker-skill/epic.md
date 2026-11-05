@@ -1,7 +1,7 @@
 # Epic BRAID-003: a focused, resumable worker skill
 
 Created: 2026-11-03. Owner: user. Coordinator: this planning session.
-Status: in-progress; authorized delivery. **A/B/C/E are delivered to main through PR #11. G/F/H are human-merged into this epic. PR19 merged J's approved plan; remaining order J -> I -> D, then final epic gates and one PR into main. One implementation worker at a time.**
+Status: in-progress.
 Release target: workflow improvement for the current manual bootstrap; no CLI release.
 Controller/schema: coordinator skill and Markdown files; no new machine ledger or released-controller adoption.
 
@@ -9,7 +9,7 @@ Controller/schema: coordinator skill and Markdown files; no new machine ledger o
 
 Workers currently reconstruct their operating instructions from AGENTS, coordinator guidance, delivery/delegation references, task prompts, and older reports. The maintainer pays for repeated discovery, contradictory context, fragile resumes, and PRs returned before the worker has finished delivery. Workers need a small, explicit execution contract, and the coordinator needs a short assignment that carries current facts without copying an entire handbook.
 
-The [planning analysis](reports/planning.md) distinguishes observed Git overhead from document reading/design and derives stage-appropriate rules from ignored inspiration material. The [proposed rules](proposed-rules.md) are the concrete review surface. Neither document installs a skill or changes active policy.
+The [planning analysis](reports/planning.md) distinguishes observed Git overhead from document reading/design and derives stage-appropriate rules from ignored inspiration material. The [proposed rules](proposed-rules.md) are the concrete review surface. These files retain the original planning rationale; adopted revisions below govern delivery.
 
 ## Outcomes and success measures
 
@@ -30,7 +30,7 @@ Keep the current one-implementation-worker WIP limit. Follow the current [provid
 
 Excluded: CLI T3 dispatch/doctor/state/schema changes; messaging queues; scheduled tick/watchdogs; automatic retries/provider failover; concurrent workers; new reviewer skill; automatic merge/rebase/force-push; package publication; deployments; infrastructure/secret access copied from inspiration; cleanup of unrelated epic 001/002 history. Do not import advanced baseline-failure waivers.
 
-This planning turn owns only this epic directory and its index entry. Existing dirty policy files, other epic checkpoints, in-flight workers, and the Git index remain untouched. Before later delivery, reconcile the then-current branch/base and active file ownership at a safe handoff boundary.
+Records and implementation follow [Record ownership](../../../docs/agile-workflow.md#record-ownership). The historical planning scope is retained in Git history; approved delivery preserves user files and existing IDs.
 
 ## Analysis and design decisions
 
@@ -56,52 +56,28 @@ IDs follow the [backlog convention](../../../docs/agile-workflow.md#backlog-item
 | G | spike | [Verify independent-thread PR waiting and result delivery](backlog/G-independent-thread-ci.md) | user approved; committed context/packet before launch | positive for minimal watch-wake: probe PR15 showed one short-prompt top-level worker completing from a single watch wake; original run negative (self-restart loop, kept as history); watch survival/unassisted repair/exactly-once unproven. PR13 head 90a5fe1 green (push 41914429306, PR 41914439542); reviews [001](reports/reviews/G/G-independent-thread-ci-review-001.md), [002](reports/reviews/G/G-independent-thread-ci-review-002.md), [003](reports/reviews/G/G-independent-thread-ci-review-003.md) findings resolved (003 F1 wording fix checked by coordinator) | done | [execution policy](execution-policy-proposal.md); PR13 merged 2026-11-04 as 5c9f38f |
 | F | task | [Integrate epic/workspace and assignment policy](backlog/F-epic-workspaces-and-assignments.md) | G accepted and human merged into epic | worker/reviewer stopped | done | [PR16](https://github.com/exones/braid/pull/16) human-merged as `7ddc561`; [acceptance](reports/F-acceptance.md); [review 001](reports/reviews/F/F-epic-workspaces-and-assignments-review-001.md) findings fixed at `f8c1f5b` |
 | H | task | [Make `npm run verify` the single deterministic gate, including docs](backlog/H-deterministic-verify-gate.md) | F merged into epic | worker/reviewer stopped | done | [PR18](https://github.com/exones/braid/pull/18) human merge `2b6c2f4`; accepted `7b56b82`, [review 001](reports/reviews/H/H-deterministic-verify-gate-review-001.md) no findings; [acceptance](reports/H-acceptance.md) |
-| J | task | [Record ownership, timing and epic branch hygiene](backlog/J-record-ownership-and-timing.md) | H merged `2b6c2f4`; plan PR19 merged `c6d9e2f` | implementation/review stopped | in-review | [PR20](https://github.com/exones/braid/pull/20) green `d28e052`; [review002](reports/reviews/J/J-record-ownership-and-timing-review-002.md) no new findings, review001 F1-F3 resolved; [triage](reports/J-coordinator-triage.md); human merge remains separate, not requested |
-| I | task | [Temporary script for current-head PR proof](backlog/I-pr-proof-script.md) | F merged into epic | unassigned | backlog | user agreed 2026-11-04; superseded by roadmap stage 2 gate reports |
-| D | spike | [Prove startup, recovery, and green handoff](backlog/D-worker-behavior-proof.md) | selected workflow baseline; proposed G/F before evaluation | unassigned | backlog | original scenario matrix retained; conditional refinement documented; no trial started |
+| J | task | [Record ownership, timing and epic branch hygiene](backlog/J-record-ownership-and-timing.md) | H and plan PR19 merged | completed | done | [PR20](https://github.com/exones/braid/pull/20) squash merge `d30e3a9`, tree-identical to reviewed `d28e052`; [acceptance](reports/J-acceptance.md), review001 F1-F3 resolved in review002 |
+| I | task | [Temporary script for current-head PR proof](backlog/I-pr-proof-script.md) | F/J merged and J adopted | implementation worker | ready | [packet](assignments/I.md); temporary command superseded by stage2 gate reports |
+| D | spike | [Prove startup, recovery, and green handoff](backlog/D-worker-behavior-proof.md) | I reviewed and human-merged into epic | unassigned | backlog | original scenario matrix retained; conditional refinement documented; no trial started |
 
-Order: A -> B -> C -> D. A answers a delivery-blocking capability question. B is a usable explicitly loaded worker skill. C makes it the normal assignment path and removes conflicting worker prose. D tests the resulting behavior rather than merely its wording. Keep checklist work within these items; do not add a letter for each review or scenario.
+## Delivery sequence
 
-Approved user follow-up, 2026-11-04: `$braid-coordinate go BRAID-003 / E` authorizes the clarified human report triggers, PR human/technical records and merge stopping rules, using Grok 4.7 Extra High/500K for E only. Original IDs and global profile retained. Actual #9/#10 feature-base merges do not deliver to main; the [E assignment](reports/E-assignment.md) pins local integration inputs and preserves main history. E's main-targeted PR will explicitly group accepted B/C integration/evidence with new E instructions and receive new integrated-head proof/review/human merge before D. No remote PR merge authorized.
+G -> F -> H -> J -> I -> D, then the final milestone review, outcome report, retrospective and one epic PR into main. Keep the existing IDs. Each item follows the applicable CI/review/human merge gates before dependent work. Live execution handles and the next action live only in [current checkpoint](checkpoints/current.md).
 
-Latest planning refinement: PR #11 is now human-merged and verified; A/B/C/E delivered. The user confirmed item branches/PRs into one named epic integration branch and one final epic PR into main. [Execution policy proposal](execution-policy-proposal.md) recommends one epic coordinator worktree plus one active item checkout, host-managed creation, separate assignments, and top-level worker-owned PR waits. Proposed remaining order G -> F -> D, preserving IDs, followed by milestone review/final report/retro/final epic PR for the remainder. G/F scope and rollout need agreement; no silent application of advanced API automation, new thread, cleanup or changed release authority. Current local plan branch remains distinct from actual merged main; preserve dirty user files during later materialization.
+## Adopted workflow
 
-WIP/resource conflicts: B/C share skill and policy paths and must not overlap. A/D must not control an existing worker or PR from another epic. A trial occupying the worker slot prevents a simultaneous implementation assignment. Coordinator owns this table and `checkpoints/current.md`; workers own their item implementation/report/checkpoint only.
+J's D25 workflow is adopted from squash merge `d30e3a93a2a3690934d059357eb2ed9b1494d6ca`, exact tree identity `a5168f1558b4f6e56019a7044d39bac9370eb53a` with reviewed head `d28e052e26ac3a13dc2c34c3fa3cc1838864c8ca`. See [acceptance](reports/J-acceptance.md). The installed operating baseline is `C:/Users/exon/.codex/braid-pins/d30e3a93a2a3690934d059357eb2ed9b1494d6ca`, with worker source `.agents/skills/braid-worker/SKILL.md` at that Git revision. Its reference graph is preserved outside candidate checkouts. I uses this pinned installation; a later candidate's skill edits apply only after an explicit adoption record here.
+
+The coordinator migrates this epic's backlog status narratives into the table and rewrites `checkpoints/current.md` as now-state. Earlier checkpoint versions remain in Git history; [event log](checkpoints/log.md) is append-only and is not routine resume context. Authorities: [ownership and commit boundary](../../../docs/agile-workflow.md#record-ownership), [status](../../../docs/agile-workflow.md#one-home-for-status), [main sync and pinning](../../../.agents/skills/braid-coordinate/references/delivery.md#epic-branch-sync-and-skill-pinning).
 
 ## Review gates
 
-Execution order at this boundary: **H -> J -> I -> D**, then D/epic milestone review, final report/retrospective and the final epic PR into main. H is merged. J clarifies record ownership/timing, status, main sync and skill pinning; I shortens current-head hosted proof; D evaluates the adopted baseline. Keep one implementation worker at a time and integrate each item through CI/review/human merge before the next uses it. Item PRs target the epic branch. Preserve existing IDs.
-
-Apply the [authoritative review conventions](../../../docs/agile-workflow.md#review-gates-and-indexing). Each delivery receives independent review of its exact candidate. Proposed item pass names start `A-worker-ci-wait-review-001`, `B-worker-skill-review-001`, `C-assignment-integration-review-001`, and `D-worker-behavior-proof-review-001`; confirm no earlier pass before dispatch. A final milestone review uses `BRAID-003-review-001`. These are gates, not backlog items. Do not launch any review in this planning turn.
+Apply [review conventions](../../../docs/agile-workflow.md#review-gates-and-indexing). Item reviews check the exact candidate and have parent-scoped evidence. A final fresh-context milestone review uses `BRAID-003-review-001`. Human merge remains separate from technical review and hosted CI. Item PRs target the epic; the final epic PR targets main.
 
 ## Definition of Ready and Definition of Done
 
-Use [project Ready/Done](../../../docs/agile-workflow.md#definition-of-ready). Add to Ready: approved rule version; self-contained packet and committed context; verified current provider/host capabilities; named check set and workable wait ownership; actual checkout/branch boundaries; no conflicting running owner.
+Use [project Ready/Done](../../../docs/agile-workflow.md#definition-of-ready): scoped committed packet, verified dependency merges, explicit writer/checkout/skill baseline, declared proof and continuation before dispatch. D additionally needs the approved behavioral evidence and its limitations. Epic closure requires final integrated-head proof, milestone review, outcome report, retrospective and human merge into main; registry publication is separate and excluded here.
 
-A is ready only after approval. If it finds no supported worker wait, record the exact blocker and keep downstream items unready. A useful research result is distinct from delivery Done; the spike's own PR is subject to the same green-only rule, with no bootstrap exemption.
+## Historical planning and decisions
 
-Done requires item acceptance, relevant local checks, scoped Conventional Commit/PR, applicable hosted checks passing on the current head, independent review/triage, and human-approved merge. D also needs behavioral evidence and limitations. Local schema/link checks cannot stand in for live worker waiting. Epic completion needs a final outcome report and retrospective, not an npm release.
-
-## Decisions and approval boundary
-
-Confirmed by the user on 2026-11-03: workers wait for PR checks they create, repair failures, and do not hand off failing PRs. The user requested this epic and a motivated rule proposal before implementation.
-
-Approved on 2026-11-03: the complete [rule set](proposed-rules.md), retaining the T3-generated branch by default, treating blocker updates as nonterminal, keeping manual checkpointing, and the four-item sequence above. No rule here authorizes bypassing host restrictions or widening scope.
-
-The user requested committing the plan and proceeding, and authorized Sol High for this work as a task-specific exception to the default implementation profile. Verified route: Codex `gpt-6.1-sol`, explicit `reasoningEffort: high`; preserve the global AGENTS profile. Start A in tool-managed isolation. Another epic's release assignment occupies the implementation lane; A's independent contract research may proceed, but it must not start a live implementation/PR trial until that lane is free. No merge/publication authority is granted.
-
-2026-11-04 user update: stop at PRs whose human merge is required before continuing dependent work. Do not use technical acceptance alone to start further successor items under the earlier stack allowance. Existing C worker continues its already-running assignment; no D dispatch before required merges. GitHub confirms plan #6 merge `762f9712bcc90f24016ce355df19943860e66d2e` and A #8 merge `a2120bfa084a32212a780a0fdc095c38d8869ef5`. Reconcile B/C bases safely after worker handoff, preserving reviewed heads and requiring relevant revalidation.
-
-## Delivery evidence and release checklist
-
-- [x] Current guidance, prior Git analysis, CI entrypoints, and representative ignored inspiration material inspected; rationale retained in [planning report](reports/planning.md).
-- [x] Proposed rules and sequential backlog written with explicit ownership and acceptance.
-- [x] User reviewed rules and authorized execution; task-specific Sol High worker approved.
-- [x] Plan committed at `6dee471c3c0ac6574e153dcbfb39e428d8e9b9c5`, pushed, and opened as [PR #6](https://github.com/exones/braid/pull/6). Windows/Ubuntu push and PR checks all passed on that head. User reported merge; immediate GitHub check still returned OPEN with no merge timestamp/SHA, so merge remains unverified. A was notified without changing its pinned task/base.
-- [x] A proves a viable bounded worker wait/continuation; independent pass 001 no findings, coordinator accepted. A remains In Review pending human merge.
-- [x] A worker handed off green final H3 `c86bc39` after one controlled failure/repair and cleanup; coordinator stopped its watch (`wasWatching: true`, `watching: false`). Independent review accepted; human merge pending; no arbitrary restart/cross-provider guarantee.
-- [x] B green handoff at `0183817`, four job/upload/artifact proofs, parent teardown and no-findings independent review accepted; human merge pending. C's technical dependency is satisfied under explicit #6 -> #8 -> #9 -> C branch ordering.
-- [x] C green handoff at `6c3fcc1`, independent pass 001 no actionable findings, coordinator accepted; provider profile/source ownership and four hosted job/upload/artifact proofs verified. B/C human merges remain outstanding; stop before D under user's later merge boundary.
-- [ ] B/C skill and integration pass local, hosted CI, independent review, and human merge.
-- [ ] D behavioral proof and milestone review accepted; outcome report and retrospective written.
-- No worker skill implemented, PR created, CI run, merge, release, or deployment is claimed by this planning change.
+Original planning rationale is in [planning](reports/planning.md), [proposed rules](proposed-rules.md) and the [execution-policy proposal](execution-policy-proposal.md). Historical provider overrides and assignments retain their actual settings. [E acceptance](reports/E-acceptance.md) records the B/C/E integration into main; retained item reports and review passes preserve their exact local/hosted/merge evidence. Earlier dashboard versions remain in Git history rather than being repeated as current status.

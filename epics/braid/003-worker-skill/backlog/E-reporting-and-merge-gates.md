@@ -1,7 +1,6 @@
 # E: consistent human reports, useful PR records and merge stopping gates
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: done. Exact `f6b136099889205545d3bfde2595f626a264efb2` accepted after green handoff/no-findings pass001; user merged [PR #11](https://github.com/exones/braid/pull/11) into main at `7707524a0b5a007794f22fab6ae1439d93458bb6`, 2026-11-04T13:29:13Z. Actual merge/ancestry verified. See [acceptance](../reports/E-acceptance.md). D is held for the new planning discussion, not E's former merge gate.
 Owner: one Grok 4.7 Extra High implementation worker, requested specifically for this task. Keep the global provider profile unchanged.
 Depends on: approved packet; B/C human merges confirmed on their original feature bases; committed context and explicit main-integration contract below. Priority: before D, retaining all existing IDs.
 
