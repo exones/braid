@@ -1,21 +1,23 @@
 # BRAID-003/D behavior proof
 
-The behavior suite is prepared on the local item branch. The coordinator recreates the disposable repositories, dispatches three fresh-context subjects one at a time, and then resumes this same worker with their transcripts.
+The behavior probes now have a host project-worktree plan. Retained disposable repositories stay historical fixture evidence. No subject thread has run. The coordinator creates the three bindings later and supplies the returned identities. D is not accepted, reviewed, merged, or Done.
 
 ## What changed
 
 - Two fixture replays produced the same Git identities for a matching checkout, a mismatched dirty checkout, and a resume checkout whose checks are simulated.
 - Subject prompts live under `validation/D/raw/`. The observation table lives under `validation/D/oracle/` and stays off the subject prompt.
 - The single canary failure/repair trial is specified in `validation/D/trial/proposal.md`. No workflow file and no canary text were added.
-- This report and `checkpoints/D.md` are the resume point for the observation phase.
+- Host binding uses idle `t3_thread_launch` worktrees and the tracked seeds under `validation/D/live/`. The plan is [setup.md](../validation/D/live/setup.md). Raw prompts no longer name the temp fixture paths.
+- Probe 1 launch `braid003-d-probe-1-retained-binding-001` returned `invalid_request` for `existing_worktree` on the retained `probe-1` path. No thread was created.
+- This report and `checkpoints/D.md` are the resume point. The canary proposal is unchanged and unstarted.
 
 ## Why
 
-Fresh-context probes need raw inputs whose Git identity is already known. The subject has to receive the skill and one task, while the coordinator keeps the comparison table. Leaving the canary uncreated keeps the existing CI workflow unchanged until a later trial packet.
+The host accepts `existing_worktree` only for a project worktree listed by `t3_worktree_list`. The retained temp repositories are not in that list. Idle `worktree` launches from the adaptation commit give each subject its own project checkout, index, and owned paths while the shared origin stays the project remote.
 
 ## Left for you
 
-No user action is needed. The disposable repositories from the native-cleanup `-Keep` run remain in place. The coordinator binds probe 1 only, at `C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/probe-1`. Probe 2 starts after probe 1's Git output is saved. Probe 3 starts after probe 2's Git output is saved. Each subject receives only its raw file. After the three transcripts, resume this D worker. D ownership stays here. Status remains local preparation, with acceptance, review, merge, and Done still ahead.
+No user action is needed. The coordinator follows [setup.md](../validation/D/live/setup.md): three serial idle worktrees, probe 2's per-worktree index edit, then one raw message each. Returned thread, root, branch, and HEAD come back with the subject transcripts. Temp fixture paths stay unbound. After the three transcripts, resume this D worker. D ownership stays here. Acceptance, review, merge, and Done remain ahead.
 
 ## Technical record
 
@@ -25,6 +27,8 @@ No user action is needed. The disposable repositories from the native-cleanup `-
 - This file does not name its own commit. The coordinator result names the preparation SHA. That commit is local. Push: none. Pull request: none. Base when a later delivery PR opens: `epic/braid-003-worker-skill`.
 
 ### Questions
+
+The observed column is disposable-fixture history. Live expectations are in [setup.md](../validation/D/live/setup.md).
 
 | Question | Procedure | Observed this phase | Still open |
 | --- | --- | --- | --- |
@@ -47,21 +51,21 @@ Comparison commands, blob identities, and empty measurement cells are in [observ
 
 Ordinal1 replayed initial entry after fixture success. The coordinator stopped that run with `braid003-d-stop-startup-replay-001`; the host confirmed the interrupt at `2026-11-05T10:16:32.287Z`. This continuation is the same worker, checkout, and pin. The note records that extra read and the old-run-to-new-run lineage. It is not unassisted recovery and not a passing behavior result.
 
+The preparation result arrived while the host still marked ordinal2 active. At the clean committed handoff the coordinator stopped that turn with `braid003-d-preparation-handoff-stop-001`. The post-interruption read showed interrupted and `activeRunId` null. This adaptation keeps that lineage. It is a second coordinator-mediated boundary, not a natural yield and not a diagnosed host-root cause.
+
 ### Coordinator dispatch
 
-Already executed once after the native-cleanup correction, with the repositories retained. Do not run it again before probe 1. Reference command, without `-Record`:
+The retained-fixture bind is closed. Request `braid003-d-probe-1-retained-binding-001` used `existing_worktree` on `C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/probe-1` and returned `invalid_request`: `worktreePath must be one of the project's git worktrees. t3_worktree_list shows them.` No thread, link, or run id was returned. The next bindings are the three idle project worktrees in [setup.md](../validation/D/live/setup.md).
+
+The fixture command below already ran once with `-Keep`. It is historical and stays unrepeated. Reference command, without `-Record`:
 
 ```powershell
 pwsh -NoProfile -File C:\worktrees\agento\item-braid-003-d-worker-behavior-proof\epics\braid\003-worker-skill\validation\D\Invoke-DFixtures.ps1 -Keep
 ```
 
-Require exit 0, the `PASS` line, and these heads before probe 1: probe 1 `b5611e64d3b78877aa9086b3f419c744bc032b0b`, probe 2 `1d8426337b36a661886155799d9e1b4674f725a1`, probe 3 `11308ef31db813719c72d67a0edd578f749f9835` with parent `330585f37e60d093b7e019494e55730f44b25853`. A signature mismatch stops dispatch.
+Those heads are historical fixture identities. They are not the expected HEADs of the host worktrees.
 
-Subject message for probe N is the exact bytes of `validation/D/raw/probe-N.md`. Attach nothing from `oracle/`, this report, the checkpoint, or the trial proposal. Use the adopted worker route when available: provider Cursor, model `grok-4.7`, `reasoning_effort` `high`, `contextWindow` `500k`. If that route is unavailable, resume D with that fact.
-
-Bind each subject so its root is the disposable probe directory under `C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/`. `workspaceStrategy` `worktree` creates a braid checkout. `root` binds the project root. `existing_worktree` binds a project worktree. These fixture repositories are not braid project worktrees. If the host cannot bind the disposable directory, resume D with that constraint. Do not bind a subject to this item checkout or the epic checkout. This checkout keeps one writer.
-
-After each subject, run the Git commands in the observation file and save the output and the transcript. Leave the fixture repositories in place until those outputs are saved. Recreation deletes subject edits. Then launch the next probe. Subjects stay serial.
+Subject text, substitution, and post-subject Git commands are in [setup.md](../validation/D/live/setup.md) and [observations](../validation/D/oracle/observations.md). Attach nothing from `oracle/`, this report, the checkpoint, or the trial proposal. This item checkout keeps one writer. Subjects land on the host-created worktrees, not on this checkout and not on the retained fixture directories.
 
 ### Later trial resources
 
@@ -73,10 +77,14 @@ Scripted Git setup does not prove model behavior. Probe 3 does not contact GitHu
 
 ### Native cleanup correction
 
-After preparation snapshot `1cd1018d4ba749830be0afe3ecf5020c68eaa916`, cleanup uses `Remove-Item -LiteralPath` after the existing absolute-root and marker guards. One `-Keep` run, without `-Record`, exited 0. Output: `PASS rounds=2 preservation=pass removed=False elapsedMs=9420`, with probe 1 `b5611e64d3b78877aa9086b3f419c744bc032b0b`, probe 2 `1d8426337b36a661886155799d9e1b4674f725a1`, and probe 3 `11308ef31db813719c72d67a0edd578f749f9835` parent `330585f37e60d093b7e019494e55730f44b25853`. `git diff --check` exited 0 and the PowerShell parser reported 0 errors. Retained root: `C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures`, including `probe-1`, `probe-1-origin.git`, `probe-2`, and `probe-3`. The coordinator has not executed cleanup or attempted binding.
+After preparation snapshot `1cd1018d4ba749830be0afe3ecf5020c68eaa916`, cleanup uses `Remove-Item -LiteralPath` after the existing absolute-root and marker guards. One `-Keep` run, without `-Record`, exited 0. Output: `PASS rounds=2 preservation=pass removed=False elapsedMs=9420`, with probe 1 `b5611e64d3b78877aa9086b3f419c744bc032b0b`, probe 2 `1d8426337b36a661886155799d9e1b4674f725a1`, and probe 3 `11308ef31db813719c72d67a0edd578f749f9835` parent `330585f37e60d093b7e019494e55730f44b25853`. `git diff --check` exited 0 and the PowerShell parser reported 0 errors. Retained root: `C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures`, including `probe-1`, `probe-1-origin.git`, `probe-2`, and `probe-3`. The coordinator later verified that clean tree and attempted the rejected bind recorded under Coordinator dispatch. Cleanup was not run again.
+
+### Host-worktree adaptation
+
+Resume packet `D-resume-002` at `47b4dbeae0cc783ffb2b5449e09321df19f26272`. Parent of this commit is `89fc1ea35fa81de627d5345553ff8bee328c96d8`, which the coordinator had checked clean with the retained fixtures. This phase adds `validation/D/live/` and revises the three raw prompts and the observation file. Fixture script, `setup-observation.json`, retained repositories, and the trial proposal are unchanged. Scoped check for this phase: `git diff --check` exited 0. A trailing-whitespace and CR scan of the edited Markdown and new `validation/D/live/` text was clean. The staged whitespace check exited 0. Full `npm run verify` and the docs gate were not rerun.
 
 ### Proposed status
 
-D preparation is committed locally and unpushed. Suggested epic note, for the coordinator to write: preparation committed locally, probes not run. D is not accepted, reviewed, merged, or Done.
+The host-worktree adaptation is committed locally and unpushed. Suggested epic note, for the coordinator to write: host-worktree plan committed locally, subjects not run, retained-fixture bind rejected with no thread. D is not accepted, reviewed, merged, or Done.
 
-Next coordinator action: bind probe 1 to the retained repository `C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/probe-1` and return any actual host constraint. No binding outcome is claimed. Do not recreate or delete the fixtures first.
+Next coordinator action: create the three serial idle worktrees in [setup.md](../validation/D/live/setup.md) from this adaptation commit and return each thread link, root, branch, and HEAD. The coordinator commits any concrete subject packet before that launch. No binding outcome is claimed here. Leave the retained fixtures in place and unreplayed.
