@@ -6,6 +6,8 @@
 # on Windows its ignore helper throws when path.relative crosses drives.
 # Frozen paths in scripts/markdown-link-exclusions.json are closed records
 # whose links are not validated; their text is still checked.
+# Skills: a relative link in .agents/skills/<name>/ must stay inside that
+# folder, because skills are installed elsewhere and used from other projects.
 # Text: index blobs and worktree bytes. An empty `git diff --check` is not
 # this check; a clean checkout still has to fail when a blob contains CR
 # or trailing whitespace.
@@ -439,7 +441,40 @@ function Get-LinkConfig {
   return $config
 }
 
+function Add-SkillContainmentFindings {
+  param([Parameter(Mandatory = $true)][AllowEmptyCollection()][System.Collections.Generic.List[string]]$Findings)
+  $linkPattern = '\]\(\s*<?([^)\s>]+)|^\s*\[[^\]]+\]:\s*<?([^\s>]+)'
+  foreach ($file in (Get-IndexFiles)) {
+    if ($file.Path -notmatch '^\.agents/skills/([^/]+)/.+\.md$') {
+      continue
+    }
+    $skillRoot = [System.IO.Path]::GetFullPath((Join-Path $script:RepoRoot ".agents/skills/$($Matches[1])"))
+    $fullPath = Join-Path $script:RepoRoot $file.Path
+    if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+      continue
+    }
+    $text = [System.IO.File]::ReadAllText($fullPath)
+    foreach ($match in [regex]::Matches($text, $linkPattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)) {
+      $target = if ($match.Groups[1].Success) { $match.Groups[1].Value } else { $match.Groups[2].Value }
+      if ($target -match '^[A-Za-z][A-Za-z0-9+.-]*:' -or $target.StartsWith('#')) {
+        continue
+      }
+      $relative = ($target -split '[#?]', 2)[0]
+      if ([string]::IsNullOrEmpty($relative)) {
+        continue
+      }
+      $resolved = [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $fullPath) $relative))
+      $inside = $resolved.Equals($skillRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
+        $resolved.StartsWith($skillRoot + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)
+      if (-not $inside) {
+        $Findings.Add("skill link leaves its folder in $($file.Path): $target")
+      }
+    }
+  }
+}
+
 $failures = [System.Collections.Generic.List[string]]::new()
+Add-SkillContainmentFindings -Findings $failures
 $linkConfig = Get-LinkConfig
 $linkFindings = @(Get-LinkFindings -Frozen ([string[]]$linkConfig.Frozen))
 $exclusions = @($linkConfig.Exclusions)

@@ -8,11 +8,11 @@ Project and CLI name: **braid**. Use `braid` as the executable, for example `bra
 
 This build implements the schema 1 manual ledger: `init`, `new`, `status`, and `story add/start/block/complete`. See the [contract](docs/seed-contract.md). Completing an item records a manual note; independent verification remains a separate step.
 
-For how work is planned, assigned to agents, reviewed and merged, see the [workflow](docs/workflow.md) and [AGENTS.md](AGENTS.md).
+For how work is planned, assigned to agents, reviewed and merged, see the [workflow](.agents/skills/braid-coordinate/references/workflow.md) and [AGENTS.md](AGENTS.md).
 
 ## Build and verify
 
-The seed requires Node.js `>=26.13.0 <27` and PowerShell 7.6 or newer (`pwsh`). A compatible `node` already on `PATH`, with the npm that shipped in that same install, is used as-is. Otherwise, on Windows, the installer reuses or downloads the official Node.js `26.13.0` archive into `%LOCALAPPDATA%\braid\toolchains`. `BRAID_TOOLCHAIN_DIR` can name an absolute alternate root; it does not change the pin or the checksums. The installer does not replace the system Node.js, and it does not read, migrate, or delete a checkout-local `.tools/` directory. `.tools/`, `node_modules/`, `dist/`, and `.braid/` are gitignored. `.agents/` skills and `epics/` evidence stay tracked.
+The seed requires Node.js `>=26.13.0 <27`, PowerShell 7.6 or newer (`pwsh`), and Pester 5.5 or newer for the PowerShell tests (`Install-PSResource -Name Pester -Version 5.7.1 -Scope CurrentUser`; CI installs it when the runner lacks it). A compatible `node` already on `PATH`, with the npm that shipped in that same install, is used as-is. Otherwise, on Windows, the installer reuses or downloads the official Node.js `26.13.0` archive into `%LOCALAPPDATA%\braid\toolchains`. `BRAID_TOOLCHAIN_DIR` can name an absolute alternate root; it does not change the pin or the checksums. The installer does not replace the system Node.js, and it does not read, migrate, or delete a checkout-local `.tools/` directory. `.tools/`, `node_modules/`, `dist/`, and `.braid/` are gitignored. `.agents/` skills and `epics/` evidence stay tracked.
 
 From the repository root:
 
@@ -32,14 +32,15 @@ The installer writes progress to stderr and writes only the toolchain directory 
 
 1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Closed epic records are listed as frozen in `scripts/markdown-link-exclusions.json`; their links are not checked, but their text still is.
 2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
-3. A disposable repository that must fail for a broken relative link, a broken heading anchor, a CR line ending, and trailing whitespace, and must pass for a broken link under a frozen path, then removes those fixtures. CR and trailing whitespace are checked in the index blob and in the worktree.
+3. A disposable repository that must fail for a broken relative link, a broken heading anchor, a CR line ending, trailing whitespace, and a skill linking outside its own `.agents/skills/<name>/` folder, and must pass for a broken link under a frozen path, then removes those fixtures. CR and trailing whitespace are checked in the index blob and in the worktree.
 4. The OIDC release-shape guard.
 5. The install-policy guard.
 6. The shared Node.js toolchain fixture: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout, and interruption. It uses disposable roots and does not download Node.js.
-7. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`)
-8. `npm run build` (`tsc -p tsconfig.build.json`)
-9. `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`)
-10. `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable
+7. `scripts/Test-Pester.ps1`, which runs the Pester suites under `test/pester/`. New PowerShell tests go there.
+8. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`)
+9. `npm run build` (`tsc -p tsconfig.build.json`)
+10. `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`)
+11. `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable
 
 External skill validators are not part of this command. Run them when a change edits skill content and report that result separately; they may be unavailable in CI.
 
@@ -50,6 +51,21 @@ This also runs the gate directly:
 ```powershell
 pwsh -NoProfile -File .\scripts\Verify.ps1
 ```
+
+## Braid skills in other projects
+
+The agent skills `braid-coordinate` and `braid-worker` are developed in `.agents/skills/` and can drive work in any repository. Each skill folder is self-contained: the docs gate fails if a skill links outside its own folder.
+
+To make them available to Cursor, Codex and Claude in every project, install them from a committed ref:
+
+```powershell
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from main
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a branch
+```
+
+The script copies `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again. A folder of the same name that the script did not install is left alone unless `-Force` is given. `-Target` replaces the default folders.
+
+A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the `epics` folder, the required `ci` checks and the models per role. Start from the [template](.agents/skills/braid-coordinate/assets/braid-md.md); this repository's own [BRAID.md](BRAID.md) is an example. Add the repository as a T3 project and start the coordinator there.
 
 ## CLI
 
@@ -141,7 +157,7 @@ The workflow uses pinned checkout, setup-node, and upload-artifact actions and t
 
 ## Durable context
 
-- [Workflow](docs/workflow.md): epics, item briefs, tiers, branches, merges, and checks.
+- [Workflow](.agents/skills/braid-coordinate/references/workflow.md): epics, item briefs, tiers, branches, merges, and checks.
 - [Decisions](docs/decisions.md): current requirements and their rationale.
 - [Roadmap](docs/roadmap.md): capability stages and bootstrap promotion gates.
 - [Seed contract](docs/seed-contract.md): schema 1 command and storage behavior.

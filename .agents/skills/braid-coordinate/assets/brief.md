@@ -1,7 +1,7 @@
 # <ID>: <title>
 
 Tier: S | M | L. Expected size: about <N> lines in <K> files.
-Branch: `item/braid-<NNN>-<id>-<slug>` at `<short sha>`. PR into: `epic/braid-<NNN>-<slug>`. Result to: thread `<coordinator thread id>`.
+Branch: `item/<NNN>-<id>-<slug>` at `<short sha>`. PR into: `epic/<NNN>-<slug>`. Result to: thread `<coordinator thread id>`.
 
 ## Goal
 
@@ -30,7 +30,7 @@ Settled by the coordinator. Don't re-investigate.
 ## Done when
 
 - <Testable outcome.>
-- `npm run verify` passes and the PR checks are green.
+- The `gate` command from `BRAID.md` passes and the PR checks are green.
 
 ## Check with
 

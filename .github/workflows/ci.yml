@@ -57,6 +57,14 @@ jobs:
             exit 1
           }
 
+      - name: Require Pester 5.5
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -ge [version]'5.5.0' })) {
+            Install-PSResource -Name Pester -Version 5.7.1 -Repository PSGallery -TrustRepository -Scope CurrentUser
+          }
+          Get-Module -ListAvailable -Name Pester | Sort-Object Version -Descending | Select-Object -First 1 Name, Version
+
       - name: Setup Node.js 26
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

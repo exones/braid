@@ -1,6 +1,6 @@
 # Epics
 
-Each epic records what was asked, decided and delivered, so work can resume without chat history. How epics and items work is in the [workflow](../docs/workflow.md).
+Each epic records what was asked, decided and delivered, so work can resume without chat history. How epics and items work is in the [workflow](../.agents/skills/braid-coordinate/references/workflow.md).
 
 - [braid 001: seed](braid/001-seed/epic.md): first CLI, manual ledger, PowerShell verification, GitHub Actions, and packaged installation.
 - [braid 002: trusted npm publishing](braid/002-trusted-publish/epic.md): GitHub Actions OIDC publish and the npm 12 install-script policy.

@@ -1,7 +1,7 @@
-# BRAID-<NNN>: <title>
+# <NNN>: <title>
 
 Status: planning | in-progress | done | cancelled.
-Branch: `epic/braid-<NNN>-<slug>` from `main` at `<short sha>`.
+Branch: `epic/<NNN>-<slug>` from `main` at `<short sha>`.
 
 ## Goal
 

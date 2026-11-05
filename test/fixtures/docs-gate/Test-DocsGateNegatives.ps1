@@ -5,6 +5,8 @@
 # bad blob and a clean blob cannot see a local edit.
 # An untracked Markdown file with a broken link must not fail the gate.
 # A tracked broken link under a frozen path passes; outside it, it fails.
+# A skill linking inside its own folder passes; linking outside it fails,
+# even when the target exists.
 # Does not call scripts/Verify.ps1.
 #Requires -Version 7.6
 $ErrorActionPreference = 'Stop'
@@ -206,6 +208,15 @@ try {
   Write-Utf8 -Path (Join-Path $script:Work 'open/new.md') -Bytes (Convert-ToLfBytes "# New`n`n[gone](missing.md)`n")
   Invoke-GitQuiet -GitArguments @('add', '--', 'open/new.md')
   Assert-Fails -Label 'unfrozen-broken-link' -Pattern 'broken link in open/new\.md:.*missing\.md'
+
+  Reset-Fixture
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/demo/SKILL.md') -Bytes (Convert-ToLfBytes "# Demo`n`nSee [the template](assets/t.md).`n")
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/demo/assets/t.md') -Bytes (Convert-ToLfBytes "# Template`n")
+  Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/demo/SKILL.md', '.agents/skills/demo/assets/t.md')
+  Assert-Passes -Label 'skill-inside-link'
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/demo/SKILL.md') -Bytes (Convert-ToLfBytes "# Demo`n`nSee [other](../../../other.md).`n")
+  Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/demo/SKILL.md')
+  Assert-Fails -Label 'skill-outside-link' -Pattern 'skill link leaves its folder in \.agents/skills/demo/SKILL\.md'
 
   Reset-Fixture
   $brokenAnchor = @(
