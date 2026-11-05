@@ -1,13 +1,13 @@
 # BRAID-003 current coordinator checkpoint
-Date: 2026-11-05. Role: coordinator. Task: I merged/accepted, D preparation dispatch ready.
+Date: 2026-11-05. Role: coordinator. Task: single recheck verified; D guided live trial packet ready.
 Root: C:/worktrees/agento/epic-braid-003-worker-skill; branch epic/braid-003-worker-skill.
-I: PR21 human squash merge d66843cfb23b1c5c3891732c458d30d2b077fae1 at09:52:12Z, exact reviewed4fed09d tree74eac2da893d1fa1af1dd7a20b29c8f65ec65696; review003 no findings, prior findings resolved.
-Git: plain pull merge48fe75c724aca0ddf271661bc18f980e29f8fd4e preserved all local records. Fetched main; missing-main count0. I freeze complete; publish retained records now.
-Adoption: reports/I-acceptance.md; D skill pin d66843cfb23b1c5c3891732c458d30d2b077fae1 outside checkout, worker blob13c3cf9679f6abb78d242840a80574abeb5ecf9d verified.
-D: assignments/D.md, item/braid-003-d-worker-behavior-proof from committed epic tip. Phase1 raw fixtures/scenario preparation, no live trial yet.
-Roles: D worker never launches agents; coordinator serial fresh-context subject dispatch after preparation, same D owner resumes with observations.
-Live: no active D worker yet; launch after records scope/Markdown gate, commit and push. No parent PR watch.
-Checks: coordinator records scope/Markdown plus staged whitespace; no full coordinator product suite. All I current-head proof retained in acceptance.
-Deferred: K push timing backlog, no I/D dependency. Unrelated untracked maintenance records untouched.
-Blockers: none for D preparation; no user action now. One controlled trial packet still required before its live mutation.
-Next: publish records/context, launch top-level D Grok4.7 High/500K, then await nonterminal prepared-suite handoff without polling.
+D worker: clean local2591a5a8757134944be0c261257f17210c123741, item/braid-003-d-worker-behavior-proof; no upstream/push/PR yet. Same thread retained, ordinal4 interrupted at assessment handoff.
+Recheck: thread mcp:launch:288ba046bb1928501ce36429446e29ff17d772322dd1c40be8173884ecc11b1e naturally completed ordinal1; full stdout delivered, only allowed reads, no search/answers/GitHub, correct FAIL/non-current classification and unchanged HEAD/stimulus.
+Evidence: reports/D-recheck-001-coordinator.md and evidence/D/recheck-001-trace.json; source text comparison matched (two typographic quotes normalized). Original empty Reads/oracle-reaching search remain historical limits.
+Fixture: isolatedb738dd5 subject-only commit stays unpushed/unmerged; excluded files preserved externally. No more loading/blinding tests. Original temp/dirty subject workspaces retained.
+Trial: assignments/D-trial-001.md, SAME D branch/worker, one PR into epic; F BAD canary fails, R GOOD plus complete CI/canary proof, C removes passed temporary fixture and obtains final full proof.
+Freeze: publish this context once, then hold that exact epic target through D live CI/review using I's local-records tactic. NO FURTHER COORDINATOR PUSH or main sync until human D merge; actual frozen SHA supplied in resume and recorded locally afterward.
+Operating pin: immutable d66843cfb23b1c5c3891732c458d30d2b077fae1. Existing CI/Verify/proof/product/merge authority unchanged. Package0.1.1/schema1, no controller.
+Checks: records scope/Markdown/staged whitespace only; no full coordinator suite. D runs required full F/R/C gates. No parent PR watch or active subject.
+Limits: evaluator replay/four forced handoff stops retained; guided trial cannot prove general recovery/reliability. Audit disabled, K deferred.
+Next: publish trial context/frozen tip, resume SAME D checkpoint-first with exact tip to merge, then await worker-owned CI/watch/repair/final C proof without polling.
