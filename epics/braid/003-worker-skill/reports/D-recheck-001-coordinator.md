@@ -1,6 +1,6 @@
 # D single recheck coordinator observations
 
-State: the ONE allowed focused recheck subject started, no outcome yet. Packet `assignments/D-recheck-001.md` committed before idle creation at coordinator context `238787cb4426e25c0655e7fe6ae37ee189c049a8`. Same provider Cursor grok-4.7 high/500k and immutable operating skill d66843cfb23b1c5c3891732c458d30d2b077fae1; no provider fallback.
+State: the ONE allowed focused recheck completed; visible instruction delivery and unassisted classification of this isolated simulated input observed. Packet `assignments/D-recheck-001.md` committed before idle creation at coordinator context `238787cb4426e25c0655e7fe6ae37ee189c049a8`. Same provider Cursor grok-4.7 high/500k and immutable operating skill d66843cfb23b1c5c3891732c458d30d2b077fae1; no provider fallback.
 
 ## Binding and exclusion
 
@@ -20,4 +20,12 @@ D evaluator ordinal4 remained host-active after clean assessment return. Explici
 
 Start clientRequestId `braid003-d-loading-blinding-recheck-start-001`, messageId `message:mcp:ab6fbc15-674c-4410-b973-8683e8ed4334:thread-send:braid003-d-loading-blinding-recheck-start-001`, ordinal1 delivery started. Subject received only the root-filled packet after exclusions passed. No other subject active.
 
-Next: await one result, retain non-reasoning trace and compare full visible stdout, allowed reads, no oracle/history/search, classification and unchanged stimulus/HEAD. Empty/truncated stdout or answer access leaves the relevant claim unproven. This is the final loading/blinding recheck, regardless of result; no retry or second subject. Live canary remains unstarted.
+## Observed result
+
+Run started `2026-11-05T11:03:27.305Z`, ended naturally `11:04:31.908Z`, activeRunId null (64.603 seconds, host timestamps). Two separate bounded Get-Content command executions returned complete text through the closing sections, with no truncation flags; no retry. Coordinator compared captured stdout with actual source: AGENTS matches after line-ending normalization; the worker skill matches after line-ending normalization and normalization of exactly two typographic quote characters around the phrase checks passed. No substantive text omission or edit was found. This is delivered-text evidence, not proof of internal understanding or byte-identical terminal serialization.
+
+Only two subsequent file Reads occurred: the assigned checkpoint and simulated check list. One5-command read-only Git batch resolved root/CURRENT/PARENT/branch/status. No file search, history access, answer-file/other-path read, mutation, GitHub operation, commit, push, PR or coordinator intervention appears in the complete17-item trace. Non-reasoning primary evidence retained in [recheck-001-trace.json](evidence/D/recheck-001-trace.json), including both full stdout bodies.
+
+Classification correctly rejects current readiness: CURRENTb738dd5 has pending Ubuntu verify, failed Windows verify, cancelled PowerShell requirement and missing dependencies; PARENT2591a5a success is stale. One result sent, no self-queue. Coordinator independently verified unchanged isolated HEAD/parent, clean state, original stimulus hashes and continued absence of all five excluded path groups from HEAD/worktree after completion.
+
+For this controlled input, visible instruction text delivery and a correct answer without observed oracle/search access are established. The earlier three empty Read results and probe3 oracle-reaching search are not retroactively fixed. Shared Git history was not a security boundary; no inference about arbitrary access prevention, live PR reconciliation, watch survival, exactly-once or speedup. No second loading/blinding recheck will be run. Next: same D owner consolidates these results and executes the separately specified one guided live failure/repair trial.
