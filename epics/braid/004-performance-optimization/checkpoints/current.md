@@ -1,14 +1,11 @@
 # BRAID-004 current coordinator checkpoint
-Date: 2026-11-05. Role: coordinator. Task: C ready for human merge; stop before B.
-Root: C:/worktrees/agento/epic-braid-004-performance-optimization; branch epic/braid-004-performance-optimization.
-Human action: merge https://github.com/exones/braid/pull/24 into epic/braid-004-performance-optimization, checked head 5a25b09985f92b25a8037938ef27dddcde7389c0. Last PR snapshot OPEN, no merge commit.
-Proof: reports/C-coordinator-green-inspection.md records exact-head CI/jobs/steps and independently rehashed four tarballs/provenance; hosted proof base 099737095cf4e06114fc3f96a61a879d937e0b96.
-Review: reports/reviews/C/C-git-startup-check-review-001.md no actionable findings; disposition reports/C-coordinator-triage.md accepts bounded evidence with limits.
-Entry: reports/C-worker-entry-001.md and validation/C/worker-entry-001/observations.json preserve completed fresh-context sequence; one context batch/checker/source action, no search/retry/manual duplicate. Parent reconfirmed unchanged clean trial checkout.
-Trial: completed thread mcp:launch:db205b54c76a7662de0387eeecc3b1ee049a46912ff27d0f01485c571d85418e ordinal1; root C:/worktrees/agento/trial-braid-004-c-entry-001, branch trial/braid-004-c-entry-001 at candidate; no writes/installs/PR/watch.
-Packet 8ed344a3762e5975a5fd62615abc3026d8ad8998; filled initial contract 8657e043f75c04dcb706ac3e45e172accd05cf77. Trial validates disclosed procedural entry, not representative speedup.
-Skill authority: external pre-C e9a617fa60630327f161a78918f033e4461eb111 snapshot unchanged; candidate skill edits remain unadopted. No controller/schema run.
-C status only in epic table: in-review pending human merge. B undispatched; A already accepted. Original C worker retains any future same-item repair; no live trial/reviewer.
-Checks: run records-only gate against pre-push tip 7bb50d10f55c0f32afad91275ddcf68a7efbbbb2. No source/head changes or full code-gate repetition in this coordinator step.
-Blocker/owner: human merge gate. Do not merge automatically, dispatch B, mark C Done or adopt changed skills before actual merge is verified.
-Next: after actual PR24 merge, verify merge SHA/checked-head ancestry and latest main sync, write C acceptance plus explicit pinned-skill adoption, then prepare B. If head/base facts change, reconcile proof first.
+Date: 2026-11-05. Role: coordinator. Task: C accepted; awaiting user choice on B before main integration.
+Root: C:/worktrees/agento/epic-braid-004-performance-optimization; branch epic/braid-004-performance-optimization; tip before this records commit e456883255a7f44d3cd2c8c2e9ea2caaa0371c7c.
+Accepted: A (PR22 merge e9a617f, reports/A-acceptance.md) and C (PR24 merge e456883, user exones 2026-11-05T12:02:49Z, parents bc4d41b then checked head 5a25b09; reports/C-acceptance.md).
+Skill authority for later items: external snapshot C:/Users/exon/AppData/Local/braid/skill-pins/e456883255a7f44d3cd2c8c2e9ea2caaa0371c7c; worker blob 85964c7b3ab9fdf2cc04db710dac17ce5686409d, coordinator blob 75f074aad323d72bbdff61b4574a701cc7dbd9a7, checker blob 3fe177e44a3280ad15ff67be4ffd6aed1f9f6abc matched the merge tree.
+Main sync: origin/main 1dd5cb7 is an ancestor of the epic; count 0, no sync merge needed.
+Epic 003: PR25 (epic/braid-003-worker-skill into main) is OPEN at bb367c8; its tip is not contained in this epic. This epic's main PR would carry epic 003's changes until PR25 merges.
+B: backlog, undispatched, no packet. No live worker, reviewer or trial. C item checkout clean and level with origin; retained.
+Checks: records-only gate against base e456883 before push. No source changes in this step.
+Blocker/owner: user decision. Either dispatch B (measurement spike, then review and human merge) or explicitly defer B to a later epic; then PR25 must merge into main before this epic's closing PR.
+Next: on "run B", write and commit assignments/B.md with the e456883 skill pin and launch one top-level worker. On "defer B", record the deferral, then after PR25 merges sync main into the epic, run final integration gates and a fresh epic review, write the final report/retro, and open the epic PR into main for human merge.
