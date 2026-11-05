@@ -1,5 +1,9 @@
 # I coordinator account
 
+Review001 returned F1 High, accepted and unresolved: cached PR baseRefOid is not the live target branch tip. The command incorrectly returned current PASS for merge-test parent4631970 while the actual epic ref was dd5b82f. Current-base readiness is withdrawn; the earlier archive/CI facts below remain valid only for their recorded snapshot. Exact reviewer files are retained and hash-verified, source untouched. The review did not modify implementation or run a full local suite.
+
+The user approved a scoped base freeze for I: push this fix context once, then commit subsequent coordinator status/review records locally until the human merge. This reconciles J's immediate-push timing with exact-base proof without relaxing the proof standard. Original I worker resumes the substantive live-ref/schema/historical-scope repair via [fix packet](../assignments/I-fix-001.md); no new implementation worker/provider is substituted. It must resolve the actual branch tip before/after proof, fail an open PR with stale merge parents, and cover base advance/reread plus explicitly labelled historical merged snapshots. Original full/artifact checks, independent recheck002 and human merge before D remain required.
+
 I is green at `ad0b1b6dc5bf434f487ba0605e269e79194ef1f9` for independent review. D remains behind I's reviewed human merge.
 
 ## What changed
