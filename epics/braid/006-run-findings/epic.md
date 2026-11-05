@@ -26,8 +26,8 @@ then the user's merge. One worker at a time.
 
 | ID | Title | Kind | Tier | Depends on | Status | PR |
 | --- | --- | --- | --- | --- | --- | --- |
-| A | [Keep agents off real data; exact project facts for workers](items/A.md) | task | L | – | in-progress | |
-| B | [Quieter coordinator: milestone commits, questions, UI merges](items/B.md) | task | L | – | ready | |
+| A | [Keep agents off real data; exact project facts for workers](items/A.md) | task | L | – | done | [#32](https://github.com/exones/braid/pull/32) |
+| B | [Quieter coordinator: milestone commits, questions, UI merges](items/B.md) | task | L | – | in-progress | |
 
 ## Decisions
 
