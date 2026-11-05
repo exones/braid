@@ -54,9 +54,15 @@ When the worker reports green:
 2. Review by tier:
    - S: read the diff yourself. Send small problems back to the same worker to fix on the same PR.
    - M and L: launch a reviewer as a top-level thread in its own worktree on the PR branch, using the reviewer model (and skill, if named) for the item's kind, with [the review brief](assets/review.md) filled in. Send blocking findings to the worker; decide non-blocking ones yourself.
-3. S and M: when nothing blocking remains, read the PR's current check results once with `gh pr checks <pr>`. It only reads what CI already reported; it runs nothing. Epic branches aren't protected, so this read is what keeps a red or changed PR from being merged. If every required check is green on the latest commit, merge with `gh pr merge <pr> --merge`. Don't download artifacts or re-run the gate. L: tell the user the item is ready and wait for their merge.
+3. S and M: when nothing blocking remains, read the PR's current check results once with `gh pr checks <pr>`. It only reads what CI already reported; it runs nothing. Epic branches aren't protected, so this read is what keeps a red or changed PR from being merged. If every required check is green on the latest commit, merge with `gh pr merge <pr> --merge`. If a check failed, send the PR back to its worker; if checks are still running, wait. Either way the item stays `in-review`. Don't download artifacts or re-run the gate. L: tell the user the item is ready and wait for their merge.
 4. Once merged, set the item to `done`, and any items whose dependencies are now met to `ready`, then push. If an item gets stuck or dropped, set `blocked` or `cancelled` with the reason. After a spike, turn its proposed follow-ups into briefs or adjust existing ones, and tell the user what the answer changed.
 5. If `main` has moved, merge it into the epic branch before the next item.
+
+## Fixes
+
+- The worker that opened a PR fixes it: failed checks, review findings, anything else on that PR. Send the request to its existing thread with `t3_thread_send`, even if it has finished, so it keeps its context. Start a new worker on the same branch and brief only if that thread can't continue.
+- CI failing on the epic branch itself, or on the epic's PR into `main`, belongs to no worker. Add a tier S fix item with the next unused letter as the first row of the table, with no dependencies, and run it like any other item.
+- You don't fix product code yourself.
 
 ## Finish the epic
 
