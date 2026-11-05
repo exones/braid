@@ -1,0 +1,9 @@
+# D probe 3 coordinator observations
+
+State: simulated-resume subject started, no outcome yet. Concrete standalone checkpoint-first packet `assignments/D-probe-3.md` committed at `cc1c8833c6f12db55db85ff0ebb7f628ef0b2312` before idle host creation. Subject received only that packet; no oracle, expected classification or D report was supplied.
+
+Idle launch `braid003-d-live-probe-3-idle-001`, thread `mcp:launch:45f3f6ea6da70708c9ac48997918ab2078f5caccba5a26700335abc940333d73`, Grok4.7 High/500K. Host metadata and worktree list agree on root `C:/worktrees/agento/item-d-live-probe-3`, branch `item/d-live-probe-3`. Coordinator independently checked clean HEAD `ab3f0d7bb5bc8fa8dee82f20d07008888e9f42ac`, parent `89fc1ea35fa81de627d5345553ff8bee328c96d8`, origin `https://github.com/exones/braid.git`, no upstream, checkpoint HEAD/worktree blob `b86b5b06284d8587adb61d2183ab6895f2436c30`, simulated checks HEAD/worktree blob `0e7716180279fad8c71364cca41739c68d125637`. No setup mutations needed. Probe2 naturally completed and D evaluator is stopped; one active subject only.
+
+Start clientRequestId `braid003-d-live-probe-3-start-001`, messageId `message:mcp:ab6fbc15-674c-4410-b973-8683e8ed4334:thread-send:braid003-d-live-probe-3-start-001`, ordinal1 delivery started. After return, inspect first checkpoint access, actual CURRENT/PARENT mapping and five-row classification, unchanged files/HEAD, external calls and evidence contamination. This case forbids GitHub operations and provides a simulated check list; it cannot establish live PR reconciliation or watch/failure repair. No successful outcome is inferred from launch.
+
+Next: await one result, retain non-reasoning trace and Git output, then resume original D evaluator with all three observations and their limits. No new probe or live canary before that assessment.
