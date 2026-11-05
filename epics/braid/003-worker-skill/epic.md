@@ -58,7 +58,7 @@ IDs follow the [backlog convention](../../../docs/agile-workflow.md#backlog-item
 | H | task | [Make `npm run verify` the single deterministic gate, including docs](backlog/H-deterministic-verify-gate.md) | F merged into epic | worker/reviewer stopped | done | [PR18](https://github.com/exones/braid/pull/18) human merge `2b6c2f4`; accepted `7b56b82`, [review 001](reports/reviews/H/H-deterministic-verify-gate-review-001.md) no findings; [acceptance](reports/H-acceptance.md) |
 | J | task | [Record ownership, timing and epic branch hygiene](backlog/J-record-ownership-and-timing.md) | H and plan PR19 merged | completed | done | [PR20](https://github.com/exones/braid/pull/20) squash merge `d30e3a9`, tree-identical to reviewed `d28e052`; [acceptance](reports/J-acceptance.md), review001 F1-F3 resolved in review002 |
 | I | task | [Temporary script for current-head PR proof](backlog/I-pr-proof-script.md) | reviewed and human-merged | completed | done | [PR21](https://github.com/exones/braid/pull/21) squash merge `d66843c`, tree-identical to reviewed `4fed09d`; [review003](reports/reviews/I/I-pr-proof-script-review-003.md) no findings, prior findings resolved; [acceptance](reports/I-acceptance.md) |
-| D | spike | [Prove startup, recovery, and green handoff](backlog/D-worker-behavior-proof.md) | I reviewed and human-merged into epic | stopped | done | [PR23](https://github.com/exones/braid/pull/23) cleanup `faca856` current/full-artifact green on frozen `3101d84`; guided F/R/C and transport negatives retained in [triage](reports/D-coordinator-triage.md); [review packet](assignments/reviews/D/D-worker-behavior-proof-review-001.md), [review001: no actionable findings](reports/reviews/D/D-worker-behavior-proof-review-001.md); merged 2026-11-05 as `a7cbf76` |
+| D | spike | [Prove startup, recovery, and green handoff](backlog/D-worker-behavior-proof.md) | I reviewed and human-merged into epic | stopped | done | [PR23](https://github.com/exones/braid/pull/23) cleanup `faca856` current/full-artifact green on frozen `3101d84`; guided F/R/C and transport negatives retained in [triage](reports/D-coordinator-triage.md); [review packet](assignments/reviews/D/D-worker-behavior-proof-review-001.md), [review001: no actionable findings](reports/reviews/D/D-worker-behavior-proof-review-001.md); merged 2026-11-05 as `a7cbf76`; [acceptance](reports/D-acceptance.md) |
 | K | task | [Preserve proof while retaining coordinator records](backlog/K-coordinator-push-timing.md) | J/I evidence; later user priority decision | unassigned | backlog | deferred formulation only; outside the current delivery sequence, no dispatch |
 
 ## Delivery sequence
@@ -83,7 +83,7 @@ The coordinator migrates this epic's backlog status narratives into the table an
 
 ## Review gates
 
-Apply [review conventions](../../../docs/agile-workflow.md#review-gates-and-indexing). Item reviews check the exact candidate and have parent-scoped evidence. A final fresh-context milestone review uses `BRAID-003-review-001`. Human merge remains separate from technical review and hosted CI. Item PRs target the epic; the final epic PR targets main.
+Apply [review conventions](../../../docs/agile-workflow.md#review-gates-and-indexing). Item reviews check the exact candidate and have parent-scoped evidence. A final fresh-context milestone review uses `BRAID-003-final-review-001`. Human merge remains separate from technical review and hosted CI. Item PRs target the epic; the final epic PR targets main.
 
 ## Definition of Ready and Definition of Done
 

@@ -1,6 +1,6 @@
 # D coordinator account
 
-D's guided failure/repair/cleanup is hosted-green at `faca8568a0b22aba2a443d4ed2c2d28fd0783564` on [PR23](https://github.com/exones/braid/pull/23). Current proof is verified for independent review; no technical acceptance, human merge or Done is recorded yet. The experiment has mixed behavioral results and preserved transport failures.
+D's guided failure/repair/cleanup is hosted-green at `faca8568a0b22aba2a443d4ed2c2d28fd0783564` on [PR23](https://github.com/exones/braid/pull/23). Current proof was verified for independent review. This triage predates the merge; D was later merged and accepted, see [D acceptance](D-acceptance.md). The experiment has mixed behavioral results and preserved transport failures.
 
 ## What changed
 
