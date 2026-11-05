@@ -30,7 +30,7 @@ The installer writes progress to stderr and writes only the toolchain directory 
 
 `npm run verify` is the deterministic offline pre-PR gate for code and docs. It runs `scripts/Verify.ps1`. That script selects the toolchain, then runs, in order:
 
-1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Closed epic records are listed as frozen in `scripts/markdown-link-exclusions.json`; their links are not checked, but their text still is.
+1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Paths listed as frozen in `scripts/markdown-link-exclusions.json` (closed records kept as written) are not link-checked, but their text still is.
 2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
 3. A disposable repository that must fail for a broken relative link, a broken heading anchor, a CR line ending, trailing whitespace, and a skill linking outside its own `.agents/skills/<name>/` folder, and must pass for a broken link under a frozen path, then removes those fixtures. CR and trailing whitespace are checked in the index blob and in the worktree.
 4. The OIDC release-shape guard.

@@ -12,5 +12,5 @@ reviewer_model: cursor / grok-4.7 / reasoning_effort=high, contextWindow=500k
 
 - Setup before the gate works: see the README section "Build and verify" (shared Node.js toolchain, then `npm ci`).
 - Project facts and hard limits are in [AGENTS.md](AGENTS.md).
-- Epics 001–005 are closed history; new epics start at 006.
+- New epics start at 006. The records of epics 001–005 are in the Git tag `archive/process-v1`.
 - The braid skills are developed here in `.agents/skills/`. Other projects get them through `scripts/Install-Skills.ps1`.

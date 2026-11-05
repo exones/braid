@@ -1,14 +1,6 @@
 {
   "version": 2,
   "note": "frozen lists closed records whose links are not validated: a path ending in / covers that directory, any other entry is one file. Their text checks still run. exclusions suppresses one remark-validate-links finding each in a file that is still checked: source is repository-relative, reasonIncludes is matched after backslashes are normalized to slashes, and it must hit exactly one finding. inspiration/ is excluded by .remarkrc.mjs, not by this list.",
-  "frozen": [
-    "epics/braid/001-seed/",
-    "epics/braid/002-trusted-publish/",
-    "epics/braid/003-worker-skill/",
-    "epics/braid/004-performance-optimization/",
-    "epics/braid/005-coordinator-records/",
-    "epics/checkpoints/worker-startup-efficiency.md",
-    "epics/reports/worker-startup-efficiency.md"
-  ],
+  "frozen": [],
   "exclusions": []
 }

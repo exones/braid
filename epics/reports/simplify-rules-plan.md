@@ -1,6 +1,6 @@
 # Plan: replace braid's process rules with short common-sense guidance
 
-Date: 2026-11-05. Status: proposal for your approval. Background: [overhead diagnosis](braid-overhead-diagnosis.md).
+Date: 2026-11-05. Status: implemented in PR #31. Later in the same PR, the user chose to remove the records of epics 001–005 (kept in Git tag `archive/process-v1`) instead of freezing them. Background: [overhead diagnosis](braid-overhead-diagnosis.md).
 
 ## Goal
 

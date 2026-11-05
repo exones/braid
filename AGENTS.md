@@ -9,6 +9,7 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 - Setup is in the README under "Build and verify". [BRAID.md](BRAID.md) holds the facts braid agents read: the gate (`npm run verify`, before every PR), the CI checks, the epics folder and the models.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `docs:`, `build:`, `test:`, `chore:`). Merge with merge commits. Don't rebase or force-push shared branches.
 - Search with `rg`. In PowerShell, pass native command arguments as arrays and check `$LASTEXITCODE`.
+- Keep code and scripts cross-platform: CI runs on Windows and Ubuntu, and Windows-only path, line-ending or permission assumptions have broken Linux CI before.
 - New PowerShell tests are Pester 5 suites under `test/pester/` (`*.Tests.ps1`). The older hand-written fixtures under `test/fixtures/` stay until they are converted.
 - The README describes what the product does and how to use it. Work status belongs in `epics/`, not the README.
 

@@ -11,6 +11,8 @@ npm is the selected package registry, recorded 2026-11-03. This supersedes the F
 
 The package is public `@exones/braid` with `"private": false`. The executable remains `braid`. Published `latest` is `0.1.0`. This source is `0.1.1`. Publication of this source needs a separate authorization.
 
+Open release work, checked 2026-11-05: npm still lists only `0.0.0-stage` and `0.1.0`, so `0.1.1` has not been published. The first tokenless (OIDC) publish has not run. Whether the trusted publisher for `release.yml` is saved on npmjs.com, and whether two-factor authentication is enforced, was never verified; earlier reports conflict. Before the first OIDC release, confirm both in the npm package settings, set the `BRAID_RELEASE` repository variable, then dispatch `release.yml` as described below.
+
 ## Prepared release workflow
 
 Checked against npm's docs on 2026-11-03. Public `@exones/braid@0.1.0` is on the registry, along with `0.0.0-stage`. This source is `0.1.1`. Preparing this workflow does not publish, tag, or create a GitHub Release.
