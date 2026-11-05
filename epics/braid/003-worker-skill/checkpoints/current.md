@@ -1,14 +1,10 @@
 # BRAID-003 current coordinator checkpoint
-Date: 2026-11-05. Role: coordinator. Task: D done. PR23 merged 2026-11-05T12:10:28Z as a7cbf760a920db90c2dec34e5d9364161286232b (verified via gh).
+Date: 2026-11-05. Role: coordinator. Task: epic complete.
 Root: C:/worktrees/agento/epic-braid-003-worker-skill; branch epic/braid-003-worker-skill.
-Candidate: epic PR25 into main. D (PR23, head faca856) merged and accepted: reports/D-acceptance.md.
-Frozen target 3101d84 released after D merge; coordinator records rebased onto merged epic and pushed.
-C proof: root Test-PrProof full mode exit0/currentReady true/current/no SkipArtifacts; push42021303056/PR42021309845 attempt1 all required jobs/steps/archives/source proven; merge61277ce parents frozen base then C.
-Trial: F BAD canary failed (catch-up), R GOOD passed both canary events and full CI before C removed fixture; normal CI unchanged/net only D records/validation.
-Transport: ordinal5 replayed after final result with CI6-8 queued; green-handoff-stop-001 interrupted5, preserved and cancelled only handled6-8. Final read cancelled/no active worker. No watch-wake/reliability claim.
-Evidence: reports/D-coordinator-triage.md, evidence/D/cleanup-current-proof.json, worker-handoff-events.json, final-handoff-queue.json, prior probe/recheck traces.
-Packet: assignments/reviews/D/D-worker-behavior-proof-review-001.md, exact candidate, claims/evidence/fixture safety; no new experiments or author writes.
-Live: none. Reviewer thread mcp:launch:f1487c4ce721e29d34f1b29a633e49eb93e495112a33be97cb44224166a36fd6 returned (message braid003-d-review001-result-001): no actionable findings; outputs copied byte-identical to reports|checkpoints/reviews/D/. Coordinator PR23 watch removed (wasWatching true). Before merge PR23 was OPEN/CLEAN at head faca856 on base 3101d84 with push42021303056/PR42021309845 success; merged 12:10:28Z as a7cbf76.
-Checks: coordinator records scope/Markdown/staged whitespace only; no product suite repeated. Operating pin d66843c unchanged; K deferred; audit disabled.
-User action: none yet. Final epic review/main merge still separate.
-Next: epic PR25 (epic a6eecbd9cd62b33139f3af902a329418d3a94cf9 -> main 1dd5cb735c4614b75d96c0694c8c6d0a939f2605, main..epic sync count 0) opened, linked, watched by coordinator. Final review BRAID-003-final-review-001 (Grok 4.7 High) returned one Medium finding (stale D records, missing D acceptance), fixed by coordinator records commit; Test-PrProof PASS on a6eecbd before that commit. After push: rerun Test-PrProof on new head, then ask user to merge PR25 into main; unwatch before handback. Cleanup 2026-11-05: removed 003 worktrees for D item/review, I/J items and reviews, D probe-3 and recheck-1 (branch item/d-live-recheck-1 kept, b738dd5 not on origin); deleted merged item branches. Kept item-d-live-probe-1/2 (deliberately dirty D fixtures) pending user decision. Epic 004 worktrees untouched.
+Delivery: epic PR25 merged into main 2026-11-05T12:30:21Z as f4606f4c5d047f562aac5c2fa9aa38fc23189d0d (verified via gh); head bb367c8bf719fa5098d3b8dd30cad8fd0f0db755, Test-PrProof PASS, CLEAN. Final review BRAID-003-final-review-001: one Medium (stale D records) fixed in bb367c8.
+Items: A-J done (acceptance reports under reports/); K deferred (backlog, no dispatch). No release or publication.
+Unproven limits carried forward: watch survival across interruption, unassisted repair, exactly-once delivery.
+Cleanup: all 003 item/review/probe worktrees and merged branches removed; stale local t3/* branches removed except t3/ed62288c (9f5bf66, G-era checkpoint commit not on origin) restored. Epic 004 worktrees untouched. Unrelated untracked worktree-cleanup records in this checkout preserved.
+Live: none. No watches.
+User action: none.
+Next: this trailing record commit sits on the epic branch after the main merge; carry it to main with the next epic sync or a small records PR. Retrospective per docs/roadmap.md stage retrospectives if requested. Retire this worktree when no longer needed.
