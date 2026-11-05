@@ -47,15 +47,15 @@ Earlier chat estimated checkout sizes and CI/local timings. Those are motivation
 
 | ID | Kind | Outcome | Depends on | Owner | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| A | story | [Reuse a compatible or shared versioned Node toolchain](backlog/A-shared-node-toolchain.md) | None | Grok 4.7 High/500K implementation worker | in-progress | [Assignment](assignments/A.md); implementation proof pending |
+| A | story | [Reuse a compatible or shared versioned Node toolchain](backlog/A-shared-node-toolchain.md) | None | Grok 4.7 High/500K worker; independent review next | in-review | [Current-head green inspection](reports/A-coordinator-green-inspection.md), [PR 22](https://github.com/exones/braid/pull/22), [review packet](assignments/reviews/A/A-shared-node-toolchain-review-001.md); not Done |
 | B | spike | [Measure remaining setup and verification overhead](backlog/B-verification-cost.md) | A reviewed and human-merged into this epic | Research worker, not dispatched | backlog | Measurement pending |
-| C | story | [Use one reusable Git startup check](backlog/C-git-startup-check.md) | A reviewed and human-merged for sequential ownership; independent of B | Implementation worker, not dispatched | backlog | [Analysis](reports/git-startup-analysis.md); no implementation yet |
+| C | story | [Make startup checks and context loading repeatable](backlog/C-git-startup-check.md) | A reviewed and human-merged for sequential ownership; independent of B | Implementation worker, not dispatched | backlog | [Analysis](reports/git-startup-analysis.md), [probe and real-worker cross-check](reports/C-startup-probe-001.md); no implementation yet |
 
 One implementation worker at a time. A owns toolchain scripts, related tests and setup docs; B owns its measurement harness/evidence and recommendation; C owns the Git helper, fixture and focused skill/template integration. C's addition does not change A's running assignment. B and C can be prioritized after A's reviewed human merge; they have no functional dependency on each other. More user items receive the next unused ID, starting with D; later reprioritization preserves IDs. See [ID rules](../../../docs/agile-workflow.md#backlog-item-ids).
 
 ## Review gates
 
-No review assigned and no implementation candidate exists. A's first independent pass will be `A-shared-node-toolchain-review-001`; B's will be `B-verification-cost-review-001`. A reviewer checks the exact green candidate, including path resolution, integrity, concurrent/interrupted install behavior, and unchanged gates. B's reviewer checks measurement reproducibility, comparisons, limits, and recommendation.
+A's candidate is `151497ddd8e139e34655fb493b6edd6f306ec26a`, independently corroborated green against proof base `8265b4ee6eb4ea6ceed903c84c5a8e23d3e6892a`. Its first independent pass is [A-shared-node-toolchain-review-001](assignments/reviews/A/A-shared-node-toolchain-review-001.md), covering path resolution, integrity, concurrent/interrupted install behavior, evidence and unchanged gates. Review findings and human merge remain pending. B's first pass will be `B-verification-cost-review-001`, checking measurement reproducibility, comparisons, limits and recommendation.
 
 C's first pass is `C-git-startup-check-review-001`, checking local read-only behavior, mismatch/error semantics, initial/resume/reviewer revision distinctions and measured entry behavior.
 
@@ -77,6 +77,7 @@ Each item needs its local proof, PR into the epic, complete current-head Windows
 - Future additions are open. No input is needed to preserve or review this initial plan.
 - 2026-11-05, user: analyze repeated Git startup checks and add a backlog item. Added C for a local reusable checker plus explicit role entry instructions. Keep required verification, avoid Node/network setup, distinguish process time from agent/context overhead, and leave the current worker unchanged. This addition is planning, not a new dispatch.
 - 2026-11-05, user: requested a dummy worker with a null task to measure startup overhead and refine C. Authorized [read-only probe 001](assignments/C-startup-probe-001.md) in a separate host-bound workspace using the normal worker route. It stops at reading `package.json` engines.node, performs no implementation/CI/PR work, and leaves A's sole implementation ownership intact. This is an observation, not dispatch of C implementation or a replay of BRAID-003/D.
+- 2026-11-05, user: questioned null-task representativeness. Completed probe is diagnostic only: 222 ms Git versus 116.014 s to first task, with known instrumentation/binding interruption. Passive inspection of A's existing startup independently found PowerShell quoting failures, repeated Git batches and repeated context/discovery. [Evidence and limits](reports/C-startup-probe-001.md) refine C toward prepared context batches, safe script invocation and binding delivery, rather than promising savings from Git runtime alone. No additional worker or A message was used for the cross-check.
 
 These decisions live here during planning. A carries lasting toolchain behavior into `docs/decisions.md` through its reviewed item PR, rather than a coordinator editing product documentation.
 
