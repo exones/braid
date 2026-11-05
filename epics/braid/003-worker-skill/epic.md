@@ -1,7 +1,7 @@
 # Epic BRAID-003: a focused, resumable worker skill
 
 Created: 2026-11-03. Owner: user. Coordinator: this planning session.
-Status: in-progress.
+Status: complete. Epic PR [#25](https://github.com/exones/braid/pull/25) merged into main 2026-11-05T12:30:21Z as `f4606f4c5d047f562aac5c2fa9aa38fc23189d0d` (head `bb367c8`, Test-PrProof PASS, [final review](reports/reviews/epic/BRAID-003-final-review-001.md) F1 fixed). K deferred. No release.
 Release target: workflow improvement for the current manual bootstrap; no CLI release.
 Controller/schema: coordinator skill and Markdown files; no new machine ledger or released-controller adoption.
 
