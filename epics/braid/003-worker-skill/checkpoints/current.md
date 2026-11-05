@@ -11,3 +11,4 @@ Checks: records scope passed, Markdown/text gate passed text266, staged whitespa
 Deferred: K push timing backlog, no I/D dependency. Unrelated untracked maintenance records untouched.
 Blockers: none for D preparation; no user action now. One controlled trial packet still required before its live mutation.
 Next: await nonterminal D prepared-suite result without polling; inspect exact committed raw inputs/trial proposal, then dispatch serial fresh-context subjects within scope. No live failure yet.
+Monitoring: user-requested 15-minute read-only progress audits until 2026-11-05T11:43:34Z, or D completion/one blocker alert; schedule scheduled-task:command:mcp:ab6fbc15-674c-4410-b973-8683e8ed4334:schedule-task:braid003-d-bounded-progress-audit-001. First10:29:13Z; no PR polling or auto-restarts.
