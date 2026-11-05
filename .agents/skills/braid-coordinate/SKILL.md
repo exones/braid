@@ -9,9 +9,9 @@ Turn the user's goal into small items delivered by workers; don't write product 
 
 ## Project facts
 
-Read `BRAID.md` at the repository root first for its facts (`gate`, `main`, `epics`, `ci`, `run`, `models` and the optional ones). If it is missing, or not committed on the base of the epic branch, ask the user before launching anyone: they commit it to `main`, or you commit it on the epic branch.
+Read `BRAID.md` at the repository root first for its facts (`gate`, `main`, `epics`, `ci`, `run`, `models` and the optional ones). Before launching, require it committed at the epic tip workers inherit; if missing, ask the user to commit it to `main` or authorize your epic-only commit.
 
-Use `models.<role>.<kind>` if present, otherwise `models.<role>`; use any named skill. Use the exact provider, model and options; if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line. Follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
+Use `models.<role>.<kind>` if present, otherwise `models.<role>`; if neither exists, ask the user. Use any named skill. Use the exact provider, model and options; if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line. Follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
 Layout, tiers, branches and merges are in [the workflow](references/workflow.md).
 
@@ -57,8 +57,7 @@ When the worker reports green:
    - S: read the diff yourself. Send problems back, including small factual errors in docs, to the same worker to fix on the same PR.
    - M and L: launch an independent reviewer as a top-level thread in its own worktree on the PR branch with its model, any named skill, and [review brief](assets/review.md). Send blocking findings to the worker; decide non-blocking ones yourself. For L, if blocking fixes substantially changed failure or recovery behavior, have the reviewer check the fix again. Use a fresh review task when the host requires it, never resume a delegated reviewer with `t3_thread_send`.
 2. S and M without `UI: yes`: when nothing blocking remains, read the PR's checks once with `gh pr checks <pr>`; it only reads what CI reported, and it is what stops a red PR from being merged. Merge with `gh pr merge <pr> --merge` if every required check is green on the latest commit, or if `ci` is `none` and the worker's gate passed. If a check failed, send the PR back to its worker; if checks are still running, wait. Don't download artifacts or re-run the gate. L and `UI: yes`: give the user the recap, with screenshots of the final state for UI items, and wait for their merge.
-3. Once merged, interrupt the worker's top-level thread if still running (`t3_thread_interrupt`); for a delegated run use `task_cancel`, never its child thread ID. Set the item to `done` with its PR link, set newly unblocked items to `ready`, launch the next item, and commit all of that as one milestone. If an item gets stuck or dropped, set `blocked` or `cancelled` with the reason. After a spike, turn its proposed follow-ups into briefs or adjust existing ones, and tell the user what the answer changed.
-4. If `main` has moved, merge it into the epic branch before the next item.
+3. Once merged, interrupt the worker's top-level thread if still running (`t3_thread_interrupt`); for a delegated run use `task_cancel`, never its child thread ID. Set the item to `done` with its PR link, set newly unblocked items to `ready`, merge moved `main` into the epic branch before launching the next item, and commit all of that as one milestone. If an item gets stuck or dropped, set `blocked` or `cancelled` with the reason. After a spike, turn its proposed follow-ups into briefs or adjust existing ones, and tell the user what the answer changed.
 
 ## Fixes
 
