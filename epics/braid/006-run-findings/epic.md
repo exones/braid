@@ -1,6 +1,6 @@
 # 006: apply the run 001 findings without growing the skills
 
-Status: in-progress. Implementation approved by the user.
+Status: ready for main. Both items merged; the user's final merge completes the epic.
 Branch: `epic/006-run-findings` from `main` at `92c9feb`.
 
 ## Goal
@@ -27,7 +27,7 @@ then the user's merge. One worker at a time.
 | ID | Title | Kind | Tier | Depends on | Status | PR |
 | --- | --- | --- | --- | --- | --- | --- |
 | A | [Keep agents off real data; exact project facts for workers](items/A.md) | task | L | – | done | [#32](https://github.com/exones/braid/pull/32) |
-| B | [Quieter coordinator: milestone commits, questions, UI merges](items/B.md) | task | L | – | in-progress | |
+| B | [Quieter coordinator: milestone commits, questions, UI merges](items/B.md) | task | L | – | done | [#33](https://github.com/exones/braid/pull/33) |
 
 ## Decisions
 
