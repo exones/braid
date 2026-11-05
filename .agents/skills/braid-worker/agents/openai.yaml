@@ -1,6 +1,6 @@
 interface:
   display_name: "Braid Worker"
-  short_description: "Execute one assigned item through green PR checks"
-  default_prompt: "Use $braid-worker to execute or resume my assigned braid item through verified current-head green PR checks."
+  short_description: "Do one assigned item from its brief through a green PR"
+  default_prompt: "Use $braid-worker to do the braid item described in my brief."
 policy:
   allow_implicit_invocation: true

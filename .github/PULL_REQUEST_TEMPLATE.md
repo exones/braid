@@ -1,8 +1,4 @@
-<!-- Authoring aid. The maintained contract is epics/report-format.md. Keep this account when the body is supplied with gh --body-file. Delete these comments. -->
-
-<One or two sentences: what is true now, and what happens next.>
-
-## What changed
+## What
 
 -
 
@@ -10,17 +6,10 @@
 
 -
 
-## Left for you
+## How it was checked
 
-No user action is needed. Next: <owner and action>.
+-
 
-<!-- If the user is blocked, replace the line above with the exact decision or action, the impact of waiting, and a recommendation. -->
+## Notes
 
-## Technical record
-
-- Item and context:
-- Head / base:
-- Checks, runs, artifacts, and source:
-- Review:
-- Limits:
-- Next:
+<Anything left open, risks, or follow-ups. Write "None" if there are none.>

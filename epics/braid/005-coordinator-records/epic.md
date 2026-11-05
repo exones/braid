@@ -1,6 +1,6 @@
 # Epic BRAID-005: coordinator records without invalidating proof
 
-Owner: user. Coordinator: unassigned. Status: ready.
+Owner: user. Coordinator: unassigned. Status: cancelled 2026-11-05 before any work started. Its only item, coordinator push timing, is superseded by the simplified workflow (D28).
 Release target: none. Controller/schema: manual.
 Integration branch: `epic/braid-005-coordinator-records`, pinned from verified main `f4606f4c5d047f562aac5c2fa9aa38fc23189d0d` before the first plan commit. Item pull requests target this branch. The closing pull request targets main. See [Epic and item branches](../../../.agents/skills/braid-coordinate/references/delivery.md#epic-and-item-branches).
 

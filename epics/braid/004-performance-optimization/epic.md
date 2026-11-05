@@ -1,6 +1,6 @@
 # Epic BRAID-004: Performance optimization
 
-Owner: user. Coordinator: Sol High. Status: in-progress.
+Owner: user. Coordinator: Sol High. Status: closed 2026-11-05. A and C were merged to main through PR #30. B (verification-cost measurement) was never started and is dropped; carry it into a new epic if it is still wanted. Later work follows the simplified workflow (D28).
 Release target: none; development workflow improvements. Controller/schema: manual records; no controller run started.
 
 Integration branch: `epic/braid-004-performance-optimization`. Initial base: `4631970cc6e7ac6eec1e2da9dc3b95a8a502b579` on `origin/epic/braid-003-worker-skill`. The user explicitly authorized branching from epic 003 instead of main and requested its latest committed state be merged on 2026-11-05. Fetch and merge found the current branch already at that tip. Main observed at `1dd5cb735c4614b75d96c0694c8c6d0a939f2605`. Untracked epic 003 maintenance records were left in their checkout.

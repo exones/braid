@@ -1,6 +1,6 @@
 # Staged bootstrap roadmap
 
-These stages are capability boundaries for later releases. Live status is [One home for status](agile-workflow.md#one-home-for-status).
+These stages are capability boundaries for later releases. Live status is in each epic's item table; see the [workflow](workflow.md).
 
 | Stage | Candidate | Delivered capability | Built using | Promotion proof |
 | --- | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ These stages are capability boundaries for later releases. Live status is [One h
 | 5 | 0.5 recovery | Scheduled tick, bounded retry/nudge, pause/resume, thread replacement, export | Pinned 0.4, at most two workers | Interruption/restart exercises preserve work and prevent duplicate actions; fresh context resumes. |
 | 6 | Pilot | Real project proof, compatibility fixes, operating guide, revised defaults | Pinned 0.5 | Evidence-backed final report and retro; limitations explicitly handed over. |
 
-The coordinator skill is delivered in stage 0, before the CLI. Stage 4 adds deterministic coordination in the product; it is not the first time a coordinator is used. Later milestones refine the bootstrap skill using delivery evidence. Agile work division follows `docs/agile-workflow.md`, with parent-scoped review gates rather than a new work item for each review.
+The coordinator skill is delivered in stage 0, before the CLI. Stage 4 adds deterministic coordination in the product; it is not the first time a coordinator is used. Later milestones refine the bootstrap skill using delivery evidence. Work division follows the [workflow](workflow.md); a review is part of its item, not a new item.
 
 ## Bootstrap rules
 

@@ -8,7 +8,7 @@ Project and CLI name: **braid**. Use `braid` as the executable, for example `bra
 
 This build implements the schema 1 manual ledger: `init`, `new`, `status`, and `story add/start/block/complete`. See the [contract](docs/seed-contract.md). Completing an item records a manual note; independent verification remains a separate step.
 
-For contribution and agent assignment instructions, see the [handoff guide](docs/agent-handoff.md). Review naming and numbering are defined in the [review conventions](docs/agile-workflow.md#review-gates-and-indexing).
+For how work is planned, assigned to agents, reviewed and merged, see the [workflow](docs/workflow.md) and [AGENTS.md](AGENTS.md).
 
 ## Build and verify
 
@@ -30,9 +30,9 @@ The installer writes progress to stderr and writes only the toolchain directory 
 
 `npm run verify` is the deterministic offline pre-PR gate for code and docs. It runs `scripts/Verify.ps1`. That script selects the toolchain, then runs, in order:
 
-1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Historical evidence keeps a narrow exclusion list in `scripts/markdown-link-exclusions.json`.
+1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Closed epic records are listed as frozen in `scripts/markdown-link-exclusions.json`; their links are not checked, but their text still is.
 2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
-3. A disposable repository that must fail for a broken relative link, a broken heading anchor, a CR line ending, and trailing whitespace, then removes those fixtures. CR and trailing whitespace are checked in the index blob and in the worktree.
+3. A disposable repository that must fail for a broken relative link, a broken heading anchor, a CR line ending, and trailing whitespace, and must pass for a broken link under a frozen path, then removes those fixtures. CR and trailing whitespace are checked in the index blob and in the worktree.
 4. The OIDC release-shape guard.
 5. The install-policy guard.
 6. The shared Node.js toolchain fixture: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout, and interruption. It uses disposable roots and does not download Node.js.
@@ -144,15 +144,13 @@ The workflow uses pinned checkout, setup-node, and upload-artifact actions and t
 
 ## Durable context
 
-- [Braid workflow map](docs/directory-structure.md): epic records and ownership, independent of the target project's source layout.
+- [Workflow](docs/workflow.md): epics, item briefs, tiers, branches, merges, and checks.
 - [Decisions](docs/decisions.md): current requirements and their rationale.
 - [Roadmap](docs/roadmap.md): capability stages and bootstrap promotion gates.
-- [Agile workflow](docs/agile-workflow.md): epics, stories, tasks, spikes, and readiness/completion criteria.
 - [Seed contract](docs/seed-contract.md): schema 1 command and storage behavior.
-- [Coordinator skill](.agents/skills/braid-coordinate/SKILL.md): reusable goal-to-analysis-to-plan-to-delivery workflow.
-- [Agent handoff](docs/agent-handoff.md): task assignment, resumption, and reporting.
+- [Coordinator skill](.agents/skills/braid-coordinate/SKILL.md) and [worker skill](.agents/skills/braid-worker/SKILL.md): how agents plan epics and do items.
 - [npm distribution](docs/npm-distribution.md): selected release path and account/setup steps needed before publication.
-- [Epics](epics/README.md): work organization and report conventions.
+- [Epics](epics/README.md): current and past epics.
 - Original MVP plan `t3_multi-agent_mvp_86005e32.plan.md` (gitignored local input, not a tracked file): longer-term design input. Its PowerShell-only implementation and original milestone order have been superseded by the decisions and roadmap above.
 - [Inspiration](inspiration/README.md): reference material; its historical permissions, hosts, credentials, and deployment instructions do not authorize actions for this project.
 

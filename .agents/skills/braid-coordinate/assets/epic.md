@@ -1,44 +1,23 @@
-# Epic <ID>: <outcome>
+# BRAID-<NNN>: <title>
 
-Workflow links resolve from this template's Braid installation; rewrite them to that installed location in generated files. Project and work-item links resolve in the target checkout.
+Status: planning | in-progress | done | cancelled.
+Branch: `epic/braid-<NNN>-<slug>` from `main` at `<short sha>`.
 
-Owner: <user>. Coordinator: <role/session reference>. Status: analysis | ready | in-progress | done | blocked | cancelled.
-Release target: <milestone or none>. Controller/schema: <version or manual>.
-Integration branch: `<epic/name>`, pinned from verified main `<full sha>` before the first plan commit. Item pull requests target this branch. The closing pull request targets main. See [Epic and item branches](../references/delivery.md#epic-and-item-branches).
+## Goal
 
-## Problem and beneficiary
-<What needs to improve, for whom, and why now.>
+<What the user wants, and why.>
 
-## Outcomes and success measures
-1. <Observable outcome and evidence required.>
+## Scope
 
-## Scope and non-goals
-<Included behavior, exclusions, constraints, and authority.>
+In: <included work>.
+Out: <excluded work>.
 
-## Analysis
-<Relevant repository/CI facts, unknowns, risks, and reasonable defaults.>
+## Items
 
-## Features and prioritized backlog
-<Use feature headings only when useful.>
+| ID | Title | Tier | Status | PR |
+| --- | --- | --- | --- | --- |
+| A | <title> (`items/A.md`) | S | backlog | |
 
-Assign each backlog `<ID>` using the [backlog item ID convention](../../../../docs/agile-workflow.md#backlog-item-ids).
+## Decisions
 
-| ID | Kind | Outcome | Depends on | Owner | Status | Evidence |
-| --- | --- | --- | --- | --- | --- | --- |
-| <ID> | story/task/spike | <backlog file link> | <dependencies> | <role> | backlog | <when available> |
-
-Order/WIP/resource ownership: <reasoning and limits>.
-
-## Review gates
-<List reviews with their parent, scope, exact checked revisions, and report links. Read and apply the authoritative review conventions linked below.>
-
-[Review conventions](../../../../docs/agile-workflow.md#review-gates-and-indexing).
-
-## Definition of Ready and Definition of Done
-<Project criteria plus epic-specific acceptance and review/release gates.>
-
-## Decisions and open questions
-<Dated decisions, unresolved inputs, and owner/impact.>
-
-## Delivery evidence and release checklist
-<Outcome-to-proof links, local versus remote proof, final report, retrospective, remaining blockers. Copy acceptance facts as in the [acceptance record](../../../../epics/report-format.md#acceptance-record). Rewrite `checkpoints/current.md` and append `checkpoints/log.md` per [Now and the log](../../../../docs/agile-workflow.md#now-and-the-log). Item status in the table above is [One home for status](../../../../docs/agile-workflow.md#one-home-for-status).>
+- <date>: <decision and reason>

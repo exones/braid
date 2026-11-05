@@ -1,70 +1,41 @@
 ---
 name: braid-worker
-description: Execute or resume one assigned braid implementation story, task, documentation change, research spike, or scoped fix through current-head green PR checks. Use for assigned execution in any target project, not goal-level epic planning, orchestration, or independent review.
+description: Do one assigned braid item from its brief - implement it, run the checks, open a PR into the epic branch, get CI green, and report once to the coordinator. Use when you have been given a braid brief; not for planning epics or reviewing.
 ---
 
 # Braid worker
 
-Complete only the assigned item. Make routine in-scope choices; do not launch agents, schedule successors, run a coordinator loop, or award independent approval/Done.
+You are an engineer doing one task from a brief. Do it well, hand it back, and stop. Project facts and limits are in `AGENTS.md`.
 
-## Initial entry: context and checkout
+## Start
 
-Use the shared [workflow map](../../../docs/directory-structure.md) only for Braid records. Target layout, architecture and checks come from project instructions and the approved brief, not Braid's repository. Workflow links resolve in the skill installation; project-context paths resolve in the target checkout.
+1. Read your brief and the files it lists under "Start here".
+2. Check where you are with `git status -sb` and `git log -1 --oneline`. If the branch and commit match the brief, start working. If they don't, tell the coordinator what you see and don't write anything until it answers.
 
-Open the exact supplied filled-packet path; do not search for it or routinely load the blank [coordinator authoring template](assets/assignment-packet.md). Read applicable target-project instructions, this skill, the assigned item and read-now context once; assignment paths override global pointers. Keep a short read index. These skills cannot waive another project's mandatory instructions; unresolved conflicts go back to the coordinator before affected actions.
+## Work
 
-Use the packet's separate read-now context, verified dependency facts with exact evidence references, and on-demand history. Accept recorded dependency/merge facts unless inputs change or evidence contradicts them; independently verify your checkout and your own acceptance evidence. Required context must be committed or explicitly supplied, not dependent on parent chat/dirty files/ignored inspiration. Historical reports support re-evaluation when needed, not routine startup.
+- The brief is your plan. Treat "Already decided" as settled; don't re-investigate it.
+- Read the code you change and what it touches, then edit. Follow the patterns you find.
+- Stay near the brief's expected size. If the work heads past about twice that, or needs changes outside the brief's scope, ask the coordinator before going on.
+- Run focused tests while you work. Before opening the PR, run `npm run verify` and fix what fails. Don't weaken or delete a test to make it pass.
+- Make routine decisions yourself. Ask the coordinator only about scope, acceptance, or a real blocker.
 
-Use singular authorities: [Agile workflow](../../../docs/agile-workflow.md) for Ready/Done/review; [delivery rules](../braid-coordinate/references/delivery.md) for Git and green-only handoff; [report format](../../../epics/report-format.md) for reports/PRs. Load relevant sections as needed. Legacy wording cannot permit failed handoff.
+## Deliver
 
-Require scope, dependency/merge evidence, Git/ownership contract, outputs, check set and supported continuation. Report missing facts and impact to the coordinator; continue independent work. The packet cannot weaken acceptance or host restrictions.
+1. Commit your changes with Conventional Commit messages, staging only your files, and push: `git push -u origin <your branch>`.
+2. Open one PR into the epic branch named in the brief: `gh pr create --base <epic branch> --title "<type>: <summary>" --body-file <file>`. The description says what changed, why, how you checked it, and anything left open. Then call `link_pull_request` with the PR URL.
+3. Call `watch_pull_request`, then run `gh pr checks <pr>` once. If every check has already finished, go to step 5. Otherwise end your turn; the watch wakes you.
+4. When woken, run `gh pr checks <pr>`:
+   - Still pending: end the turn.
+   - A failure: read the failed log (`gh run view <run-id> --log-failed`), fix the cause, run `npm run verify`, push, and end the turn.
+   - A failure you can't fix (infrastructure, permissions, outside your scope): tell the coordinator what is wrong and who can fix it.
+5. When every check is green on your latest commit, call `unwatch_pull_request`, then send the coordinator one message with `t3_thread_send`: PR link, head commit, "checks green", and anything it should know. You're done.
 
-In one batch, compare the host-bound checkout with the packet's schema 1 workspace-binding contract. Invoke `pwsh -NoProfile -File scripts/Test-WorkspaceBinding.ps1 -ContractPath <contract.json> -RepositoryRoot <absolute-root>` ([schema](../../../scripts/workspace-binding.md)). Do that after opening the packet, the pinned skill, and applicable project instructions, and after the packet's one read-now batch. That batch names exact paths and line ranges verified at the pinned revision, or equivalent directly resolvable sections, plus the packet path, the candidate or context revision, and the first source path. Do not search headings first when those references match. A new branch with `"upstream": null` is normal; use the explicit first push destination. Exit 0 is a match and needs no routine fetch, upstream repair, history, or branch inventory: perform the packet's concrete first useful action. Stay on the packet's named item branch, started from the accepted epic tip. Retain a generated branch only when the packet explicitly assigns that legacy route. On the initial batch, a missing checkout, a detached HEAD, or a branch or head that differs from the packet stops the affected writes. Exit 1 names the mismatched fields or branch/HEAD drift during the inspection; reconcile only those fields and recheck. Exit 2 is invalid input or a failed inspection and is not a match. Never create child worktrees in the shell, guess a path, rename the bound branch, or repair the binding. Preserve unexpected changes and index state. A dirty result is evidence of the declared or unexpected state, not permission to stage someone else's work. No reset, clean, silent base switch, rebase, or force-push. Authorized base changes invalidate affected proof. The JSON result is one time-bounded observation, not durable permission for later mutations.
+If the coordinator later sends review findings, fix them on the same branch and PR and repeat steps 3–5.
 
-Initial entry uses the supplied dispatch HEAD and the initial clean or declared dirty contract. Resume uses the checkpoint's expected revision and owned changes; do not rewind to the launch HEAD, and a declared missing upstream is not a defect. Review entry compares the exact candidate: `expected.head` and `candidateHead` are that SHA, and `packetRevision` is only the commit that supplied the review packet. Coordinator entry uses the coordinator's current epic contract, not a worker dispatch contract. If the pinned helper is unavailable, one equivalent manual Git batch may record the same facts. Name why, and do not repeat a successful manual check only to obtain helper output. Do not use nested `pwsh -Command` for that batch, and do not pass unquoted `@{upstream}` through PowerShell. Where the host supports it, create the idle thread bound to the checkout and then send one initial assignment containing the returned root, attached branch, and full HEAD. That is the supported pre-execution binding route. It is one sequencing scenario, not a durability guarantee, and it is not a reason to restart a live worker.
+## Habits
 
-## Resumed entry: checkpoint first
-
-Open the named worker checkpoint first to recover phase, ownership, existing PR/head, continuation generation and next action. Recheck with the workspace-binding helper using that checkpoint revision and the owned dirty contract before further writes. Refresh applicable instructions and changed policy as needed. Before side effects, reconcile only relevant actual Git/PR/check/process/task/transport state, including whether interrupted commit/push/PR/check operations completed. Reuse the existing branch/PR and valid proof; continue the recorded action without replaying the original implementation prompt or architecture research.
-
-Reconcile stale/duplicate events by current head/run/attempt; record observed state and explicit task lineage. Do not assume a subscription or process survived, create another PR, or repeat readiness registration without a demonstrated need. Concrete contradictions, changed dependencies and high-risk ambiguity still warrant investigation before affected work.
-
-Naturally observed repeated apparent final/yield responses while the same host run stays active and its intended continuation remains queued are a host/transport blocker, not ordinary pending CI. Preserve state, send one explicit blocker through the assigned return channel, report it and stop ordinary execution under host rules; do not replay startup or add readiness generations. For T3 use [stalled yield recovery](references/t3-continuation.md#stalled-yield-recovery).
-
-## Execute first; investigate incrementally
-
-Treat the coordinator's approved brief as the implementation plan. Reopen architecture only for concrete contradictions, missing decisions or risk uncovered by evidence; report material changes before dependent work.
-
-After mandatory context and checkout checks, take the smallest meaningful action: inspect the named function, run a targeted test, reproduce the issue or make a bounded edit. Use a short internal plan for well-defined work, not a second planning deliverable.
-
-- Simple known change: inspect, edit, check. Specified CLI command: inspect adjacent patterns, make a short plan, implement and test. Unfamiliar crash/recovery behavior: investigate alternatives and failure modes before changing the protocol.
-- Search named paths/symbols with `rg`; read relevant sections before whole files/directories. Expand only when findings justify it. Batch independent operations and request only relevant diffs, logs and failures.
-- Reuse facts already read. Reinspect only for a new question, changed state or required revision verification. If investigation yields no actionable finding, decide whether enough is known to act; further exploration needs a concrete question affecting correctness or proof. No rigid time/tool limits.
-
-## Implement and prove the item
-
-Stay within assigned ownership. Coordinator owns shared epic/status and scheduling; worker owns implementation and item report/checkpoint. Report scope/resource conflicts without blocking independent work. Follow AGENTS security/resource boundaries: no merge/publish/deploy/account/tailnet changes; obtain secrets only through the host mechanism, never chat or evidence.
-
-Reuse the pinned toolchain; install missing dependencies by documented routes. Released controllers stay pinned outside the candidate checkout; record controller/schema versions, never silently upgrade active runs. Use focused development checks, then all required local gates. For this repository, `npm run verify` is the deterministic offline pre-PR gate for code and docs. Run it before opening the pull request. External skill validators stay separate: when a change edits skill content, run them and report that result on its own, including when they are unavailable in CI. Add meaningful regressions when warranted; skill/docs changes need structural/link/scenario proof, not tests matching prose.
-
-Record commands, exit codes, versions and revision; distinguish dirty probes, clean checks, installed-artifact proof and hosted CI. Never weaken a gate, delete failing tests to pass or inherit failure waivers. Repeat passed expensive checks only for relevant changes, failures or unresolved concerns.
-
-## Deliver through green checks
-
-After local gates pass, inspect the scoped diff/index, stage only owned paths, make coherent Conventional Commits and push explicitly to the assigned remote and owned branch (for example `git push origin HEAD:refs/heads/<owned-branch>`). Create one PR against the assigned base and immediately call the host's PR-link tool as the next call; also link after a later push. Write the PR body with the [human account and technical record](../../../epics/report-format.md#pull-request-records), including when `--body-file` bypasses the repository template. Preserve real dependency ordering. Do not treat an unmerged prerequisite as merged, and do not start a successor. Reuse an existing assigned PR on resume.
-
-Before waiting, include actual root/branch/full HEAD/PR and the frozen check set in the return message. Require a supported host continuation; for T3 read [t3-continuation.md](references/t3-continuation.md) before PR waiting. A top-level item thread links its pull request and watches it, then runs the one catch-up snapshot in that reference. If every declared check has already finished, verify and deliver in that same turn; otherwise end the turn. One watch wake drives verification and a single result to the coordinator. A delegated child does not watch or poll; the legacy parent relay applies only when the packet explicitly selects it. Other hosts need their own supported mechanism supplied or a precise transport blocker, not an invented direct CI wait. No polling loops, schedulers, or background watchers.
-
-Retain item ownership while checks are pending or blocked, even when a conversational turn/task ends. These returns are **nonterminal progress**, never successful handoff. On a failure wake/resume, independently inspect current PR/head, exact run/attempt/job/step logs and scope. Repair in-scope causes yourself, run relevant local gates, commit/push/link and wait for new-head proof. The coordinator dedupes results by head and does not inherit repair ownership. No blind retries; a diagnosed transient rerun needs appropriate authority and a recorded reason. Do not send another result for a head already reported.
-
-On a real event or explicit reconciliation, verify **every check the packet declares** independently: actual PR head, workflow/event/run/attempt/job identities, successful conclusions, and required steps and uploads, including artifact digest and provenance when the packet declares them. A packet may explicitly declare artifact verification not required (for example a docs-only change); the report then says so. PR merge-test source can differ from PR head; preserve both and verify their relationship. Branch protection or a “checks passed” hint cannot shrink the packet's check set. Pending, failed, missing, skipped, cancelled, neutral, inaccessible, inconclusive or stale evidence never silently counts green. Reconfirm current head after proof before handoff. When the target checkout provides `scripts/Test-PrProof.ps1`, produce this proof by running that command. It is a finite snapshot: one `PASS`, `FAIL`, or `PENDING` line plus JSON, and it exits 0 only for `PASS`. Full artifact mode is the default. Pass `-SkipArtifacts` only when the packet explicitly waives artifact verification; the JSON records that limitation, and a download or proof failure never selects the switch. The prose check set above remains the definition. The command is outside `npm run verify` and does not watch or poll. Accept a PASS for an active pull request only when `proofScope` is `current` and the final view is still open on the same target ref. A historical PASS is a merged snapshot and is not current readiness. Every added commit, including docs or evidence, invalidates old-head hosted proof. Record files after that push follow [Commit boundary](../../../docs/agile-workflow.md#commit-boundary).
-
-For infrastructure, access, trigger, transport or out-of-scope failure: preserve diagnostics and state; promptly report exact nonsecret owner/action/impact and a resume action. Continue useful independent work; if none remains, yield blocked under host rules without abandoning ownership or claiming completion. Post-push blockers use the PR comment and result, without editing committed records ([Commit boundary](../../../docs/agile-workflow.md#commit-boundary)).
-
-## Checkpoint, resume and return
-
-Update the owned checkpoint before the push that publishes it. A later update belongs only in a repair commit ([Commit boundary](../../../docs/agile-workflow.md#commit-boundary)). Keep it actionable: task/scope; actual root/branch/full HEAD and dirty/index ownership; read index; changed paths; PR/current checks and proof; controller/schema if applicable; live task/process handles and log locations; unresolved findings/blockers; one exact next action. Put detail in the report, not a second transcript. Do not checkpoint every read or assume a process survives restart.
-
-Use the resumed-entry procedure above after continuation or context replacement; fewer history reads never reduce required current-head checks. If this run already sent the result for the current head, stop without sending another. A repeated reading of the launch prompt inside the same run is not a new assignment. The launch prompt stays short and step-explicit; do not expand it into a resume narrative.
-
-Successful green return follows [report format](../../../epics/report-format.md#human-account): opening, What changed, Why, Left for you, and Technical record. Include decisions, changed outputs, local and hosted evidence, limits, actual root, branch, full head, PR and run links, and the exact next coordinator action. Propose shared-status updates instead of editing files the coordinator writes ([Record ownership](../../../docs/agile-workflow.md#record-ownership)). Green means ready for coordinator acceptance and independent review. Review, triage, human-approved merge, and Done remain separate. Later assigned scoped fixes follow the same green rule. Stop after the item.
+- Trust what you have already checked and what the user or coordinator tells you. Check again only when something fails or changes.
+- If you see your task prompt again in the same session, carry on from where you are. Don't start over.
+- If you must stop before finishing, write `checkpoints/<ID>.md` in the epic folder (where you are and the next step) and commit it with your work.
+- Don't merge, publish, or start other items.
