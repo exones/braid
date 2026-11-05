@@ -50,11 +50,11 @@ One implementation worker at a time, on the first `ready` row of the item table.
 
 When the worker reports green:
 
-1. Run `gh pr checks <pr>`. Green on the head commit is the CI result; don't download artifacts or re-run the gate. Set the item to `in-review` with the PR link.
+1. Set the item to `in-review` with the PR link.
 2. Review by tier:
    - S: read the diff yourself. Send small problems back to the same worker to fix on the same PR.
    - M and L: launch a reviewer as a top-level thread in its own worktree on the PR branch, using the reviewer model (and skill, if named) for the item's kind, with [the review brief](assets/review.md) filled in. Send blocking findings to the worker; decide non-blocking ones yourself.
-3. S and M: once checks are green and nothing blocking remains, merge with `gh pr merge <pr> --merge`. L: tell the user the item is ready and wait for their merge.
+3. S and M: when nothing blocking remains, read the PR's current check results once with `gh pr checks <pr>`. It only reads what CI already reported; it runs nothing. Epic branches aren't protected, so this read is what keeps a red or changed PR from being merged. If every required check is green on the latest commit, merge with `gh pr merge <pr> --merge`. Don't download artifacts or re-run the gate. L: tell the user the item is ready and wait for their merge.
 4. Once merged, set the item to `done`, and any items whose dependencies are now met to `ready`, then push. If an item gets stuck or dropped, set `blocked` or `cancelled` with the reason. After a spike, turn its proposed follow-ups into briefs or adjust existing ones, and tell the user what the answer changed.
 5. If `main` has moved, merge it into the epic branch before the next item.
 
