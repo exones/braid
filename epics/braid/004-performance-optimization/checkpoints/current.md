@@ -13,6 +13,7 @@ Proof: focused offline fixture plus npm run verify; push/PR Windows+Ubuntu jobs/
 Continuation: worker owns PR/watch/repair and sends one green result per head to this coordinator; no parent watch.
 Checks: assignment/binding gates passed; C planning records gate passed (5 paths, 256 tracked text files), including Markdown/text. No worker local/hosted proof accepted yet.
 Added: backlog/C-git-startup-check.md and reports/git-startup-analysis.md; one offline shared Git checker plus role entry instructions, queued without altering A.
-Probe: assignments/C-startup-probe-001.md, read-only null worker; not launched yet. Commit packet before host checkout; expected branch probe/braid-004-c-startup-001, normal Grok high/500K route.
+Probe: assignments/C-startup-probe-001.md committed/pushed a5d194997d24e98b2f8ffd2f340a3b05bf9e1b95; top-level mcp:launch:f86bad23ff306a1fad12ce7941935b80d41e5ba427e06b0444abb5694115f9da ordinal 1, Grok high/500K.
 Blockers: none; B awaits A's reviewed human merge; no merge/release authority.
-Next: commit/push probe packet, launch once and record binding, then consume its result/tool timeline to refine C. A retains PR/CI/repair; inspect its green return when sent.
+Probe binding: C:/worktrees/agento/probe-braid-004-c-startup-001; attached probe/braid-004-c-startup-001; expected context a5d194997d24e98b2f8ffd2f340a3b05bf9e1b95; launch key braid004-c-startup-probe-top-level-001, binding steer 001. No parent writes to probe tree.
+Next: consume probe result and completed tool timeline, preserve raw timings and refine C. Use host completion wait/return, no status polling. A retains PR/CI/repair.
