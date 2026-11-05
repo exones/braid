@@ -889,6 +889,16 @@ function Test-OverrideAndRoot {
       }
       Assert-True $failed 'relative override was accepted'
       Assert-True (-not (Test-Path -LiteralPath (Join-Path $cwd 'rel-store'))) 'relative override created a directory'
+
+      $failed = $false
+      try {
+        Resolve-BraidNodeToolchain -ForWindows:$false | Out-Null
+      } catch {
+        $failed = $true
+        Assert-Match "$_" 'absolute' 'non-Windows relative override'
+      }
+      Assert-True $failed 'non-Windows relative override was accepted'
+      Assert-True (-not (Test-Path -LiteralPath (Join-Path $cwd 'rel-store'))) 'non-Windows relative override created a directory'
     } finally {
       Exit-Env
     }

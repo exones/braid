@@ -1,8 +1,9 @@
 # Selects a Node.js toolchain and writes its directory to stdout.
 # Order, for direct execution and for Resolve-BraidNodeToolchain:
 #   1. a compatible Node.js already on PATH whose bundled npm runs
-#   2. the selected pin already published in the shared store
-#   3. on Windows, install that pin into the shared store
+#   2. when PATH misses, a relative BRAID_TOOLCHAIN_DIR is rejected on every host
+#   3. the selected pin already published in the shared store
+#   4. on Windows, install that pin into the shared store
 # The shared root is %LOCALAPPDATA%/braid/toolchains, or an absolute
 # BRAID_TOOLCHAIN_DIR. The override does not change the version or hashes.
 # Checkout-local .tools is not read, migrated, or written.
@@ -422,6 +423,11 @@ function Resolve-BraidNodeToolchain {
 
   $platform = Get-BraidNodePlatform -ForWindows:$ForWindows -Architecture $Architecture
   if ($null -eq $platform) {
+    # Direct Unix invocation never reaches the Windows store. A relative
+    # override is still invalid, and it must fail before the PATH-only stop.
+    if (-not [string]::IsNullOrWhiteSpace($env:BRAID_TOOLCHAIN_DIR)) {
+      $null = Get-BraidToolchainRoot
+    }
     throw 'Node.js >=26.13.0 <27 with its bundled npm is not on PATH. This system does not download a Node.js archive. GitHub Actions supplies Node.js with actions/setup-node. On Windows, a checkout installs the pinned archive into the shared toolchain store.'
   }
 
