@@ -1,7 +1,7 @@
 # Epic BRAID-003: a focused, resumable worker skill
 
 Created: 2026-11-03. Owner: user. Coordinator: this planning session.
-Status: in-progress.
+Status: complete. Epic PR [#25](https://github.com/exones/braid/pull/25) merged into main 2026-11-05T12:30:21Z as `f4606f4c5d047f562aac5c2fa9aa38fc23189d0d` (head `bb367c8`, Test-PrProof PASS, [final review](reports/reviews/epic/BRAID-003-final-review-001.md) F1 fixed). K moved to BRAID-005. No release.
 Release target: workflow improvement for the current manual bootstrap; no CLI release.
 Controller/schema: coordinator skill and Markdown files; no new machine ledger or released-controller adoption.
 
@@ -59,7 +59,7 @@ IDs follow the [backlog convention](../../../docs/agile-workflow.md#backlog-item
 | J | task | [Record ownership, timing and epic branch hygiene](backlog/J-record-ownership-and-timing.md) | H and plan PR19 merged | completed | done | [PR20](https://github.com/exones/braid/pull/20) squash merge `d30e3a9`, tree-identical to reviewed `d28e052`; [acceptance](reports/J-acceptance.md), review001 F1-F3 resolved in review002 |
 | I | task | [Temporary script for current-head PR proof](backlog/I-pr-proof-script.md) | reviewed and human-merged | completed | done | [PR21](https://github.com/exones/braid/pull/21) squash merge `d66843c`, tree-identical to reviewed `4fed09d`; [review003](reports/reviews/I/I-pr-proof-script-review-003.md) no findings, prior findings resolved; [acceptance](reports/I-acceptance.md) |
 | D | spike | [Prove startup, recovery, and green handoff](backlog/D-worker-behavior-proof.md) | I reviewed and human-merged into epic | stopped | done | [PR23](https://github.com/exones/braid/pull/23) cleanup `faca856` current/full-artifact green on frozen `3101d84`; guided F/R/C and transport negatives retained in [triage](reports/D-coordinator-triage.md); [review packet](assignments/reviews/D/D-worker-behavior-proof-review-001.md), [review001: no actionable findings](reports/reviews/D/D-worker-behavior-proof-review-001.md); merged 2026-11-05 as `a7cbf76`; [acceptance](reports/D-acceptance.md) |
-| K | task | [Preserve proof while retaining coordinator records](backlog/K-coordinator-push-timing.md) | J/I evidence; later user priority decision | unassigned | backlog | deferred formulation only; outside the current delivery sequence, no dispatch |
+| K | task | [Preserve proof while retaining coordinator records](backlog/K-coordinator-push-timing.md) | J/I evidence; later user priority decision | moved | moved | moved to BRAID-005/A (`epics/braid/005-coordinator-records/backlog/A-coordinator-push-timing.md` on branch `epic/braid-005-coordinator-records`) on 2026-11-05 |
 
 ## Delivery sequence
 
