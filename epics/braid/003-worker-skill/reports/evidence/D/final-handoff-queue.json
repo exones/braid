@@ -1,0 +1,115 @@
+{
+  "description": "Post-final-head worker replay and preserved handled CI queue; coordinator intervention, no inferred root cause.",
+  "threadId": "mcp:launch:f9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3",
+  "postInterruptionStatus": "queued",
+  "activeRunId": null,
+  "recentRuns": [
+    {
+      "runId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:8",
+      "ordinal": 8,
+      "status": "queued",
+      "providerInstanceId": "cursor",
+      "model": "grok-4.7",
+      "requestedAt": "2026-11-05T11:47:04.005Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    {
+      "runId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:7",
+      "ordinal": 7,
+      "status": "queued",
+      "providerInstanceId": "cursor",
+      "model": "grok-4.7",
+      "requestedAt": "2026-11-05T11:34:57.794Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    {
+      "runId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:6",
+      "ordinal": 6,
+      "status": "queued",
+      "providerInstanceId": "cursor",
+      "model": "grok-4.7",
+      "requestedAt": "2026-11-05T11:24:50.360Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    {
+      "runId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:5",
+      "ordinal": 5,
+      "status": "interrupted",
+      "providerInstanceId": "cursor",
+      "model": "grok-4.7",
+      "requestedAt": "2026-11-05T11:12:51.776Z",
+      "startedAt": "2026-11-05T11:12:51.807Z",
+      "completedAt": "2026-11-05T11:52:07.141Z"
+    }
+  ],
+  "queue": {
+    "items": [
+      {
+        "queuedRunId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:6",
+        "text": "Update on pull request #23 (https://github.com/exones/braid/pull/23), which T3 Code is watching for you:\n- Checks failed on bf11570:\n  - d-trial-canary https://github.com/exones/braid/actions/runs/42018669987/job/127215536552\n\nLook into each item and act on it as your task requires. This PR stays linked and watched, so do not link, watch, or list it again. End your turn when you are done, and T3 Code wakes you on the next change. When you hand the work back to the user, call unwatch_pull_request first so the thread returns to their inbox.",
+        "truncated": false
+      },
+      {
+        "queuedRunId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:7",
+        "text": "Update on pull request #23 (https://github.com/exones/braid/pull/23), which T3 Code is watching for you:\n- All 3 checks passed on eaad417.\n\nLook into each item and act on it as your task requires. This PR stays linked and watched, so do not link, watch, or list it again. End your turn when you are done, and T3 Code wakes you on the next change. When you hand the work back to the user, call unwatch_pull_request first so the thread returns to their inbox.",
+        "truncated": false
+      },
+      {
+        "queuedRunId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:8",
+        "text": "Update on pull request #23 (https://github.com/exones/braid/pull/23), which T3 Code is watching for you:\n- All 2 checks passed on faca856.\n\nLook into each item and act on it as your task requires. This PR stays linked and watched, so do not link, watch, or list it again. End your turn when you are done, and T3 Code wakes you on the next change. When you hand the work back to the user, call unwatch_pull_request first so the thread returns to their inbox.",
+        "truncated": false
+      }
+    ],
+    "nextCursor": null
+  },
+  "cancellations": [
+    {
+      "queuedRunId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:6",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"sequence\":103833}"
+          }
+        ],
+        "structuredContent": {
+          "sequence": 103833
+        },
+        "isError": false
+      }
+    },
+    {
+      "queuedRunId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:7",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"sequence\":103840}"
+          }
+        ],
+        "structuredContent": {
+          "sequence": 103840
+        },
+        "isError": false
+      }
+    },
+    {
+      "queuedRunId": "run:thread:mcp%3Alaunch%3Af9d25e4f043e1b8851cb6f412f954724d55ee94982433152c079b8b5314f1ea3:ordinal:8",
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"sequence\":103847}"
+          }
+        ],
+        "structuredContent": {
+          "sequence": 103847
+        },
+        "isError": false
+      }
+    }
+  ]
+}
