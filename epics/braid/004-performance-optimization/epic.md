@@ -49,7 +49,7 @@ Earlier chat estimated checkout sizes and CI/local timings. Those are motivation
 | --- | --- | --- | --- | --- | --- | --- |
 | A | story | [Reuse a compatible or shared versioned Node toolchain](backlog/A-shared-node-toolchain.md) | None | Implementation worker and independent reviewer | done | [Acceptance](reports/A-acceptance.md): PR 22 human-merged e9a617f; exact-head CI/review, [triage](reports/A-coordinator-triage.md) |
 | B | spike | [Measure remaining setup and verification overhead](backlog/B-verification-cost.md) | A reviewed and human-merged into this epic | Research worker, not dispatched | backlog | Measurement pending |
-| C | story | [Make startup checks and context loading repeatable](backlog/C-git-startup-check.md) | A reviewed human merge verified; independent of B | Grok4.7 High/500K implementation worker | in-progress | [Assignment](assignments/C.md), [probe and real-worker cross-check](reports/C-startup-probe-001.md); implementation proof pending |
+| C | story | [Make startup checks and context loading repeatable](backlog/C-git-startup-check.md) | A reviewed human merge verified; independent of B | Worker green; independent review next | in-review | [Green inspection](reports/C-coordinator-green-inspection.md), [PR24](https://github.com/exones/braid/pull/24), [review packet](assignments/reviews/C/C-git-startup-check-review-001.md); live-entry evidence/merge pending |
 
 One implementation worker at a time. A owns toolchain scripts, related tests and setup docs; B owns its measurement harness/evidence and recommendation; C owns the Git helper, fixture and focused skill/template integration. C's addition does not change A's running assignment. B and C can be prioritized after A's reviewed human merge; they have no functional dependency on each other. More user items receive the next unused ID, starting with D; later reprioritization preserves IDs. See [ID rules](../../../docs/agile-workflow.md#backlog-item-ids).
 
@@ -57,7 +57,7 @@ One implementation worker at a time. A owns toolchain scripts, related tests and
 
 A's reviewed head is `151497ddd8e139e34655fb493b6edd6f306ec26a`, green against proof base `8265b4ee6eb4ea6ceed903c84c5a8e23d3e6892a`. [A-shared-node-toolchain-review-001](reports/reviews/A/A-shared-node-toolchain-review-001.md) returned no actionable findings; [triage](reports/A-coordinator-triage.md) preserves limits. PR 22's human merge `e9a617fa60630327f161a78918f033e4461eb111` is verified in [acceptance](reports/A-acceptance.md). B's first pass will be `B-verification-cost-review-001`, checking measurement reproducibility, comparisons, limits and recommendation.
 
-C's first pass is `C-git-startup-check-review-001`, checking local read-only behavior, mismatch/error semantics, initial/resume/reviewer revision distinctions and measured entry behavior.
+C's first pass is [C-git-startup-check-review-001](assignments/reviews/C/C-git-startup-check-review-001.md), exact candidate `5a25b09985f92b25a8037938ef27dddcde7389c0`, checking local read-only behavior, mismatch/error semantics, initial/resume/reviewer distinctions, policy integration and limits of entry evidence. The candidate skills are unadopted. Coordinator-owned bounded worker-entry evidence and actual human merge remain separate from worker CI green.
 
 Use [review conventions](../../../docs/agile-workflow.md#review-gates-and-indexing), parent-scoped reports, the authorized provider profile, and a fresh-context final epic review. A review is not human merge authority.
 

@@ -1,17 +1,15 @@
 # BRAID-004 current coordinator checkpoint
-Date: 2026-11-05. Role: coordinator. Task: A accepted after human merge; C implementation underway.
-Root: C:/worktrees/agento/epic-braid-004-performance-optimization; branch epic/braid-004-performance-optimization.
-Accepted epic base: e9a617fa60630327f161a78918f033e4461eb111; PR22 human-merged by exones 2026-11-05T10:14:37Z. Reviewed head 151497ddd8e139e34655fb493b6edd6f306ec26a.
-A records: review/checkpoint copied with matching hashes; reports/A-coordinator-triage.md and A-acceptance.md preserve CI/review/merge facts and limits. No GitHub approval/publication claim.
-Sync: origin/main 1dd5cb735c4614b75d96c0694c8c6d0a939f2605; missing main commits count 0. Local epic fast-forwarded cleanly to actual remote merge.
-Selected order: C then B; only one implementation worker. B is not dispatched.
-C assignment: assignments/C.md; initial entry; expected item/braid-004-c-git-startup-check; PR target epic/braid-004-performance-optimization.
-C skill: external snapshot C:/Users/exon/AppData/Local/braid/skill-pins/e9a617fa60630327f161a78918f033e4461eb111/.agents/skills/braid-worker/SKILL.md; revision e9a617f, blob 9c744ac8ea0688248cf6ba1f69ee224784af3769 verified; no self-adoption.
-Provider: Cursor grok-4.7, reasoning_effort high, contextWindow 500k. Live top-level mcp:launch:66599ea98e70440fa3fc3ac12f74965760e833f31cfb2e1a2dfd4a06b287869d, ordinal 1.
-Proof: focused workspace fixture, npm run verify, external skill validators separately; both CI events/OS/jobs/steps and artifact provenance/digests frozen in packet.
-C input: diagnostic null probe plus passive ordinary-A startup evidence already committed; do not repeat baseline research or infer normal latency from null task.
-Blockers: none for C dispatch. Human merge remains required after C green/review; no package release or automatic main integration.
-Checks: coordinator records gate passed against e9a617fa60630327f161a78918f033e4461eb111 (8 paths, Markdown/text 272 files); no skill content edited by coordinator.
-C binding: host root C:/worktrees/agento/item-braid-004-c-git-startup-check; attached item/braid-004-c-git-startup-check; expected initial/context HEAD 7d1994ba3d305ec1f9094446cff3a32bddf48b2a, supplied for worker independent verification.
-Launch: braid004-c-git-startup-top-level-001 created idle; one initial send braid004-c-initial-001 returned started with binding before execution. No mid-run binding steer or acknowledgment loop.
-Next: await C current-head green result without polling; inspect returned source/proof, coordinate remaining entry observations and independent review. Worker retains PR/watch/repair; human merge remains separate.
+Date: 2026-11-05. Role: coordinator. Task: C green inspection and independent review dispatch.
+Root: C:/worktrees/agento/epic-braid-004-performance-optimization; branch epic/braid-004-performance-optimization; pre-review tip 099737095cf4e06114fc3f96a61a879d937e0b96.
+A: accepted human merge e9a617fa60630327f161a78918f033e4461eb111, review/acceptance recorded. B not dispatched.
+C candidate: clean local/origin 5a25b09985f92b25a8037938ef27dddcde7389c0; PR https://github.com/exones/braid/pull/24; proof base 099737095cf4e06114fc3f96a61a879d937e0b96.
+Inspection: both current-head CI events/jobs/required steps and four downloaded tarball digests/provenance corroborated; merge-test parents checked. reports/C-coordinator-green-inspection.md.
+Skill authority: external e9a617fa60630327f161a78918f033e4461eb111 snapshot; candidate skill edits unadopted. No controller/schema run.
+Review packet: assignments/reviews/C/C-git-startup-check-review-001.md; no reviewer launched yet; commit before host-bound checkout.
+Review route: top-level Cursor grok-4.7 high/500K; candidate source at exact head, packet context supplied separately; idle create then one initial send with actual binding.
+Contract: coordinator will preserve a filled JSON review contract after actual host binding, before the first run. Candidate helper may be tested, not adopted as policy.
+Outstanding acceptance: bounded coordinator-owned worker-entry observation; reviewer must distinguish actual helper test from missing worker trial. No performance or transport guarantee.
+Worker: original C thread retains repair; same-item result for 5a25b09 deduped. No parent PR watch, no next implementation worker.
+Checks: run records-only Markdown/text gate before review-context push. No broad local code checks repeated by coordinator.
+Blockers: no user action now. C review/remaining evidence and human merge required before B; do not mark C Done or adopt skills.
+Next: commit/push review packet, create idle exact-candidate review checkout, write filled contract/binding record and send one initial review task; await its return without polling.
