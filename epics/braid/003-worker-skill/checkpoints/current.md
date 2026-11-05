@@ -7,6 +7,6 @@ Live: top-level mcp:launch:00e42668086fd894d8c3775bf342bf6a7f1fde893f7c176164a05
 Launch key: braid003-i-pr-proof-top-level-001. No child completion wake; worker sends one coordinator result per head.
 Skill: external installation C:/Users/exon/.codex/braid-pins/d30e3a93a2a3690934d059357eb2ed9b1494d6ca, revision d30e3a9.
 Proof: full artifact mode required for I; worker owns own PR/watch/repair. No PR or parent watch at dispatch.
-Checks: user amended records gate to epics-only scope plus existing Markdown/text subset; no full suite for records. Persistent wrapper/clause assigned to I.
+Checks: direct user-authorized Test-CoordinatorRecordsGate implemented here, nine focused cases passed; scope plus Markdown/text, no full suite. See reports/coordinator-records-gate.md.
 Blockers: none. Unrelated untracked maintenance evidence untouched; status only in epic table; D awaits I's reviewed human merge.
-Next: await I result without polling. Amendment d8221b4 delivered steered to same ordinal1 via braid003-i-records-gate-user-amendment-001; wrapper/clause implementation pending.
+Next: commit/push directly authorized helper/rule and records, notify I of revision, then await original I result without polling. Records addition withdrawn; I continues normal work.

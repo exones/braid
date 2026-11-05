@@ -57,7 +57,7 @@ The item pull request contains the implementation plus `reports/<ID>.md` and `ch
 
 Coordinator commits on the epic branch are records-only: the coordinator rows above. Those commits are exempt from independent review. Every other path, including project docs, skills, `docs/decisions.md`, and `docs/roadmap.md`, is an item pull request and is reviewed with that item. A decision is recorded in `epic.md` and carried into `docs/decisions.md` by an item.
 
-A reviewer does not commit. The coordinator copies the returned review files into its next epic commit. A pull request closed without merge gets a coordinator triage note on the epic that says why. The coordinator runs `npm run verify` before pushing its records.
+A reviewer does not commit. The coordinator copies the returned review files into its next epic commit. A pull request closed without merge gets a coordinator triage note on the epic that says why. Before a records-only push, the coordinator runs `pwsh -NoProfile -File scripts/Test-CoordinatorRecordsGate.ps1 -Base <remote-epic-tip-before-push>`. It checks committed, staged, unstaged and nonignored untracked paths are all under `epics/`, then reuses the offline Markdown/text gate. Outside paths stop the gate: show their concrete changes to the user and ask for review before proceeding as records-only. This does not require the full verification suite; implementation PRs retain `npm run verify`. The guard does not enforce ownership between individual epics or threads.
 
 ## Now and the log
 
