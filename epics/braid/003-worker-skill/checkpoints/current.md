@@ -7,6 +7,6 @@ Live: top-level mcp:launch:00e42668086fd894d8c3775bf342bf6a7f1fde893f7c176164a05
 Launch key: braid003-i-pr-proof-top-level-001. No child completion wake; worker sends one coordinator result per head.
 Skill: external installation C:/Users/exon/.codex/braid-pins/d30e3a93a2a3690934d059357eb2ed9b1494d6ca, revision d30e3a9.
 Proof: full artifact mode required for I; worker owns own PR/watch/repair. No PR or parent watch at dispatch.
-Checks: full coordinator gate passed before records push; launch metadata receives scoped docs/text check. No product edits.
+Checks: user amended records gate to epics-only scope plus existing Markdown/text subset; no full suite for records. Persistent wrapper/clause assigned to I.
 Blockers: none. Unrelated untracked maintenance evidence untouched; status only in epic table; D awaits I's reviewed human merge.
-Next: await explicit I result/blocker without polling; inspect exact current-head proof and assign independent review when green.
+Next: commit/push the authorized I packet amendment with lightweight scope/docs proof, steer the same worker once, then await its result without polling.
