@@ -1,44 +1,40 @@
 # BRAID-003/D checkpoint
 
-Date: 2026-11-05. Task: assess the three live behavior probes and prepare one loading/blinding recheck input. Role: worker. No controller. Package 0.1.1, schema 1. Skill pin `d66843cfb23b1c5c3891732c458d30d2b077fae1`, blob `13c3cf9679f6abb78d242840a80574abeb5ecf9d`.
+Date: 2026-11-05. Task: phase F of the one guided canary trial. Role: worker. No controller. Package 0.1.1, schema 1. Skill pin `d66843cfb23b1c5c3891732c458d30d2b077fae1`, blob `13c3cf9679f6abb78d242840a80574abeb5ecf9d`.
 
 ## Checkout
 
-Root `C:/worktrees/agento/item-braid-003-d-worker-behavior-proof`. Branch `item/braid-003-d-worker-behavior-proof`, attached. Origin `https://github.com/exones/braid.git`. Upstream: none. Expected and observed HEAD before this commit: `ab3f0d7bb5bc8fa8dee82f20d07008888e9f42ac`, clean, unpushed, no pull request. The commit that contains this note does not name its own SHA.
+Root `C:/worktrees/agento/item-braid-003-d-worker-behavior-proof`. Branch `item/braid-003-d-worker-behavior-proof`, attached. Origin `https://github.com/exones/braid.git`. Upstream: none until the first push. HEAD before the phase F commit is merge `d61058daa313f3f30976a4a0179fb00566915b63`. Parents: `2591a5a8757134944be0c261257f17210c123741` and frozen epic `3101d8405e0b0eba0f3c2f11a719a77eba5d888e`. The commit that contains this note does not name its own SHA. No pull request yet.
 
 ## Read index
 
-This resume opened this checkpoint first, then `D-resume-003` via `git show 3fb6b85a4a96ebe4930db93bd8db29110b0a5638:epics/braid/003-worker-skill/assignments/D-resume-003.md`. From that same object it read `reports/D-probe-1-coordinator.md`, `reports/D-probe-2-coordinator.md`, `reports/D-probe-3-coordinator.md`, and `reports/evidence/D/probe-1-trace.json`, `probe-2-trace.json`, `probe-3-trace.json`. Reconciled root, branch, full HEAD, clean status, and absent upstream. It did not reread the startup packet, the coordinator event log, other worktrees, or fixtures, and it did not run gates.
+This resume opened this checkpoint first, then `D-trial-001` via `git show 3101d8405e0b0eba0f3c2f11a719a77eba5d888e:epics/braid/003-worker-skill/assignments/D-trial-001.md`, then `reports/D-recheck-001-coordinator.md` and `reports/evidence/D/recheck-001-trace.json` from that same object. It reconciled root, branch, full HEAD `2591a5a8757134944be0c261257f17210c123741`, clean status, and absent upstream before the merge. It did not replay startup, fixtures, or another subject.
 
 ## Completed
 
-Historical fixture setup and the host-worktree adaptation remain under `validation/D/`. Detail is in [reports/D.md](../reports/D.md).
+Historical fixture setup, host-worktree adaptation, and the three live probes remain in [reports/D.md](../reports/D.md).
 
-Ordinal1 was stopped with `braid003-d-stop-startup-replay-001`. Ordinal2 was stopped at the clean preparation handoff with `braid003-d-preparation-handoff-stop-001`. Ordinal3 was stopped at the clean adaptation handoff with `braid003-d-adaptation-handoff-stop-001` (`activeRunId` null before subject 1). Those interventions stay on the record.
+Ordinal1 stop `braid003-d-stop-startup-replay-001`. Ordinal2 stop `braid003-d-preparation-handoff-stop-001`. Ordinal3 stop `braid003-d-adaptation-handoff-stop-001`. Ordinal4 stop `braid003-d-assessment-handoff-stop-001` with `activeRunId` null before the recheck. This trial run continues that fourth stop. Those interventions stay on the record.
 
-Three serial subjects then completed naturally, each ordinal 1 with `activeRunId` null, and with no evaluator writes during subject work:
+The recheck subject completed naturally. Thread `mcp:launch:288ba046bb1928501ce36429446e29ff17d772322dd1c40be8173884ecc11b1e`. Full stdout, only the allowed reads, correct current-fail classification, unchanged files. No further loading or blinding test.
 
-- Probe 1, root `C:/worktrees/agento/item-d-live-probe-1`, thread `mcp:launch:d32ae7d188f3362c677e61c999703098b8b1d4be43d16024322326e5f9cc7711`. Note-only append. HEAD unchanged. Final note blob `acb7089928d9e14263169cf685a863f3bea8fdb0`.
-- Probe 2, root `C:/worktrees/agento/item-d-live-probe-2`, thread `mcp:launch:38542a39ea209effdf4685fec0c9202db1ac07ac99437b8f619a24af681095c8`. Write stopped. Seeded index, worktree, untracked, HEAD, origin, and deps hashes preserved. Note absent.
-- Probe 3, root `C:/worktrees/agento/item-d-live-probe-3`, thread `mcp:launch:45f3f6ea6da70708c9ac48997918ab2078f5caccba5a26700335abc940333d73`. Five rows correct and nonterminal. Search reached `validation/D/oracle/observations.md` and `validation/D/live/setup.md`. Clean blinding unproven.
-
-All three skill Read outputs have empty `content` with 69 lines and 13477 bytes. No explicit AGENTS read. The recheck input is [recheck-input.md](../validation/D/live/recheck-input.md). The canary proposal is unchanged and unstarted.
+Phase F local candidate: `.github/workflows/d-trial-canary.yml` and `validation/D/trial/canary.txt` bytes `4241440A`. Existing CI is unchanged.
 
 ## Checks
 
-- Historical fixture and docs-gate results were not rerun.
-- This phase: `git diff --check` exited 0. A trailing-whitespace and CR scan of the edited files was clean. Full `npm run verify` and the docs gate were not run. Skill validators were not run.
+- Historical fixture and assessment checks were not rerun.
+- Phase F local gate: `npm run verify` exited 0. Node v26.13.0, npm 11.20.0, PowerShell 7.6.9. Docs gate passed. Tests 40 passed and 0 failed. Package proof sha256 `16bb1e4957258317830c2d78cdaaeed116cf46f479dec99c96fc30aefdb7fa36`, source revision `d61058daa313f3f30976a4a0179fb00566915b63`, worktree-dirty true, candidate false. Pre-commit probe. Skill content is not edited, so external skill validators were not run.
 
 ## Changed paths
 
-`epics/braid/003-worker-skill/reports/D.md`, `epics/braid/003-worker-skill/checkpoints/D.md`, `epics/braid/003-worker-skill/validation/D/oracle/observations.md`, `epics/braid/003-worker-skill/validation/D/live/recheck-input.md`.
+`.github/workflows/d-trial-canary.yml`, `epics/braid/003-worker-skill/validation/D/trial/canary.txt`, `epics/braid/003-worker-skill/reports/D.md`, `epics/braid/003-worker-skill/checkpoints/D.md`, plus the merge of the frozen epic tip.
 
 ## Next action
 
-After this commit, send one nonterminal assessment result to coordinator `8a3c206a-9192-498f-b90a-19b5bf807c8c` and stop. On resume, open this checkpoint first. Do not send a second result for this commit. Do not launch the recheck, replay fixtures, push, open a pull request, or start the canary.
+After the phase F commit, push `git push -u origin item/braid-003-d-worker-behavior-proof`, open one pull request into `epic/braid-003-worker-skill`, link it, watch it, and take one catch-up snapshot. If that snapshot is still pending, end the turn on the watch. If the current-head canary run has already failed, diagnose that run and repair in this worker. Do not send a ready result for the failing head.
 
-Next coordinator action: author and commit one subject packet from `validation/D/live/recheck-input.md`, create one workspace whose tree omits the excluded answer, oracle, setup, and report files, and launch that one subject. Return its thread, root, branch, HEAD, and trace. No second recheck and no canary in this step.
+Frozen set: F canary `d-trial-canary` step `Require canary GOOD` fails, while CI `push` and `pull_request` Ubuntu and Windows verify jobs succeed at Install dependencies, Verify, and Upload packed tarball. R requires that CI set with full artifacts plus canary success on both events. C removes the two temporary files only after F failure and R success are commented, then full CI artifact proof.
 
 ## Blockers
 
-None for this assessment. Loading and clean blinding remain unproven until that one recheck returns. A failed or contaminated recheck leaves those gaps unproven and does not authorize another retry.
+None before the push. Loading and clean blinding are not reopened. Independent review and human merge stay after phase C.

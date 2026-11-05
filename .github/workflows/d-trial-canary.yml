@@ -1,0 +1,74 @@
+# Temporary BRAID-003/D trial fixture. Phase C removes this file after the
+# guided failure and repair are proven. It does not replace CI.
+name: D controlled canary
+
+on:
+  push:
+    branches:
+      - item/braid-003-d-worker-behavior-proof
+    paths:
+      - .github/workflows/d-trial-canary.yml
+      - epics/braid/003-worker-skill/validation/D/trial/canary.txt
+  pull_request:
+    branches:
+      - epic/braid-003-worker-skill
+    paths:
+      - .github/workflows/d-trial-canary.yml
+      - epics/braid/003-worker-skill/validation/D/trial/canary.txt
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  d-trial-canary:
+    name: d-trial-canary
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/item/braid-003-d-worker-behavior-proof')
+      || (github.event_name == 'pull_request'
+        && github.head_ref == 'item/braid-003-d-worker-behavior-proof'
+        && github.base_ref == 'epic/braid-003-worker-skill')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Record canary source
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SHA_VALUE: ${{ github.sha }}
+          GITHUB_REF_VALUE: ${{ github.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          Write-Output "event=$env:EVENT_NAME"
+          Write-Output "github.sha=$env:GITHUB_SHA_VALUE"
+          Write-Output "github.ref=$env:GITHUB_REF_VALUE"
+          Write-Output "pr.head=$env:PR_HEAD_SHA"
+          Write-Output "pr.base=$env:PR_BASE_SHA"
+          Write-Output "checkedOut=$(git rev-parse HEAD)"
+          Write-Output "parents=$(git rev-parse 'HEAD^@')"
+
+      - name: Require canary GOOD
+        shell: pwsh
+        run: |
+          $path = 'epics/braid/003-worker-skill/validation/D/trial/canary.txt'
+          if (-not (Test-Path -LiteralPath $path)) {
+            Write-Error "Canary file is missing: $path"
+            exit 1
+          }
+          $full = (Resolve-Path -LiteralPath $path).Path
+          $bytes = [System.IO.File]::ReadAllBytes($full)
+          $hex = [System.BitConverter]::ToString($bytes).Replace('-', '')
+          $expected = '474F4F440A'
+          if (-not [string]::Equals($hex, $expected, [System.StringComparison]::Ordinal)) {
+            Write-Error "Canary bytes are $hex; required exactly UTF-8 GOOD plus one LF ($expected)."
+            exit 1
+          }
+          Write-Output "Canary bytes match $expected"
