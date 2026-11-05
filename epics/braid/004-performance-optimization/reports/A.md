@@ -1,0 +1,32 @@
+A compatible Node.js already on PATH is used immediately. Otherwise Windows reuses one verified Node.js 26.13.0 install for every checkout that asks for that pin. Hosted CI on the pull request is the remaining proof; independent review and the human merge into the epic are still separate.
+
+### What changed
+
+The direct installer and `Resolve-BraidNodeToolchain` now follow one order. A Node.js `>=26.13.0 <27` on PATH is returned when the npm that shipped with that same install runs. Otherwise the selected pin is reused from `%LOCALAPPDATA%/braid/toolchains`, or from an absolute `BRAID_TOOLCHAIN_DIR`. On Windows, a missing pin is downloaded, checked against the pinned SHA-256 and the official `SHASUMS256.txt`, validated, and published as `node-v<version>-<platform>`.
+
+Publication holds a per-key file lock for at most 120 seconds, writes `.braid-toolchain.json` only inside the staging directory, and renames that directory into place. A later run reuses a complete directory without contacting the network. A corrupt completed directory stays in place and the error names it. Checkout-local `.tools` is left untouched.
+
+`scripts/Verify.ps1` runs `test/fixtures/node-toolchain/Test-NodeToolchain.ps1` before typecheck. README setup and decision D26 describe the same behavior. The engine range, install policy, and the rest of the verification gate are unchanged.
+
+### Why
+
+Each new worktree was downloading Node.js into its own `.tools` directory even when a compatible runtime was already on the machine. Agents and developers can now share one verified pin, and a machine that already has a matching Node.js does not download anything. Isolated `npm ci` and the packed-install proof still run per checkout.
+
+### Left for you
+
+No user action. After current-head CI is green, the coordinator inspects the result and assigns the independent review. Merging the pull request into `epic/braid-004-performance-optimization` is the human gate before B. This candidate is not Done.
+
+### Technical record
+
+- Item: [A](../backlog/A-shared-node-toolchain.md). Packet: [assignments/A.md](../assignments/A.md). Epic: [BRAID-004](../epic.md).
+- Root: `C:/worktrees/agento/item-braid-004-a-shared-node-toolchain`. Branch: `item/braid-004-a-shared-node-toolchain`. Context HEAD: `8610548f9792072e2e70bb56f0d12e1783a9015e`. The candidate is the commit that contains this report.
+- Launch thread: `mcp:launch:a8ea3b557d4313ab62e717fee1c4b0b2d6a99bc22281ef29c7499e89c0a9b1f9`, run ordinal 1. Coordinator thread: `ae791527-bf56-41da-a7d9-30821a74cfc5`.
+- Skill: `.agents/skills/braid-worker/SKILL.md` at `7e7ea5a9cb60fa3f56c79bf44ff389e1e7442bf8`. No controller or schema run.
+- Local fixture: `pwsh -NoProfile -File test/fixtures/node-toolchain/Test-NodeToolchain.ps1` exited 0 on Windows x64, PowerShell 7.6.9. It covered PATH precedence, unusable npm, fallback, two roots, warm reuse with downloads disabled, two fixture pins, checksum failures, missing npm, wrong extracted version, preserved corruption, handled failure, relative override, default root, missing `LOCALAPPDATA`, non-Windows failure, direct warm fallback, concurrency, interruption, and a 2-second lock timeout against the 120-second default. Fixture hashes are not in the production table. Production `win-x64` and `win-arm64` hashes are unchanged.
+- Real installation, separate from the fixture: [observation](../validation/A/observation.md). Cold install exited 0 in 12.3 seconds and verified SHA-256 `dcc60d59a0746999f99064a01c020445d54d84228c691cdbf25b49ac3b59150a`. Node.js `v26.13.0`, npm `11.20.0`. Warm reuse with proxies pointed at `127.0.0.1:9` exited 0 in 1.2 seconds and did not download. `win-arm64` was not executed. The checkout `.tools` directory stayed absent.
+- `npm ci` exited 0 using the existing Node.js `v26.13.0` at `C:/worktrees/agento/epic-braid-003-worker-skill/.tools/node/node-v26.13.0-win-x64` on PATH (200 packages, npm `11.20.0`). That checkout was not modified.
+- `npm run verify` exited 0 as a dirty probe before this report existed: `candidate false`, source revision `8610548f9792072e2e70bb56f0d12e1783a9015e`, docs `text=254`, `node-toolchain: ok`, tests 40 passed, packed tarball SHA-256 `085f960417343e5bbb3ed95185e5c9e78f18a705f251ee69a33fc296036517ca`. A second dirty `npm run verify` including this report and checkpoint also exited 0 and remained a non-candidate. Hosted CI is the clean proof.
+- Pull request target: `epic/braid-004-performance-optimization`. Frozen set: `.github/workflows/ci.yml`, events `push` and `pull_request`, jobs `verify (windows-latest)` and `verify (ubuntu-latest)`, successful Install dependencies, Verify, and Upload packed tarball, plus each `braid-package-<os>` tarball digest and provenance. Not verified at this commit.
+- Limits: no Unix downloader, no shared `node_modules`, no engine change, no migration or deletion of `.tools`, arm64 install not observed.
+- Proposed epic status: keep A in progress and point its evidence at this report and the pull request. Do not mark Done and do not dispatch B.
+- Next: push, open the pull request, and after the current head is green, comment the run, job, artifact, and source evidence and send one result to the coordinator.
