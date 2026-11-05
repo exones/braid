@@ -4,6 +4,7 @@
 # separately, in the worktree, because an empty worktree diff cannot see a
 # bad blob and a clean blob cannot see a local edit.
 # An untracked Markdown file with a broken link must not fail the gate.
+# A tracked broken link under a frozen path passes; outside it, it fails.
 # Does not call scripts/Verify.ps1.
 #Requires -Version 7.6
 $ErrorActionPreference = 'Stop'
@@ -190,6 +191,23 @@ try {
   Assert-Fails -Label 'broken-link' -Pattern 'broken link in hello\.md:.*missing\.md'
 
   Reset-Fixture
+  $config = @(
+    '{',
+    '  "version": 2,',
+    '  "frozen": ["closed/"],',
+    '  "exclusions": []',
+    '}',
+    ''
+  ) -join "`n"
+  Write-Utf8 -Path (Join-Path $script:Work 'scripts/markdown-link-exclusions.json') -Bytes (Convert-ToLfBytes $config)
+  Write-Utf8 -Path (Join-Path $script:Work 'closed/old.md') -Bytes (Convert-ToLfBytes "# Old`n`n[gone](missing.md)`n")
+  Invoke-GitQuiet -GitArguments @('add', '--', 'scripts/markdown-link-exclusions.json', 'closed/old.md')
+  Assert-Passes -Label 'frozen-broken-link'
+  Write-Utf8 -Path (Join-Path $script:Work 'open/new.md') -Bytes (Convert-ToLfBytes "# New`n`n[gone](missing.md)`n")
+  Invoke-GitQuiet -GitArguments @('add', '--', 'open/new.md')
+  Assert-Fails -Label 'unfrozen-broken-link' -Pattern 'broken link in open/new\.md:.*missing\.md'
+
+  Reset-Fixture
   $brokenAnchor = @(
     '# Hello',
     '',
@@ -222,7 +240,7 @@ try {
   Write-Utf8 -Path (Join-Path $script:Work 'sample.txt') -Bytes $spaceBytes
   Assert-Fails -Label 'trailing-worktree' -Pattern 'trailing whitespace in worktree sample\.txt'
 
-  Write-Host 'docs-gate negatives: all four cases failed as required'
+  Write-Host 'docs-gate negatives: all cases behaved as required'
 } finally {
   if (Test-Path -LiteralPath $script:Work) {
     Remove-Item -LiteralPath $script:Work -Recurse -Force -ErrorAction SilentlyContinue

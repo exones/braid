@@ -4,6 +4,8 @@
 # false, so external URLs are not checked; inspiration/ is skipped). The
 # remark-cli binary is not pointed at absolute paths outside that root:
 # on Windows its ignore helper throws when path.relative crosses drives.
+# Frozen paths in scripts/markdown-link-exclusions.json are closed records
+# whose links are not validated; their text is still checked.
 # Text: index blobs and worktree bytes. An empty `git diff --check` is not
 # this check; a clean checkout still has to fail when a blob contains CR
 # or trailing whitespace.
@@ -310,10 +312,28 @@ function Get-RepoRelative {
   return ($candidate -replace '\\', '/')
 }
 
+function Test-Frozen {
+  param(
+    [Parameter(Mandatory = $true)][string]$Path,
+    [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Frozen
+  )
+  foreach ($entry in $Frozen) {
+    if ($entry.EndsWith('/')) {
+      if ($Path.StartsWith($entry, [System.StringComparison]::Ordinal)) {
+        return $true
+      }
+    } elseif ($Path -ceq $entry) {
+      return $true
+    }
+  }
+  return $false
+}
+
 function Get-LinkFindings {
+  param([Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Frozen)
   $markdown = @()
   foreach ($file in (Get-IndexFiles)) {
-    if ($file.Path -like '*.md' -and $file.Path -notlike 'inspiration/*' -and $file.Path -ne 'inspiration') {
+    if ($file.Path -like '*.md' -and $file.Path -notlike 'inspiration/*' -and $file.Path -ne 'inspiration' -and -not (Test-Frozen -Path $file.Path -Frozen $Frozen)) {
       $markdown += $file.Path
     }
   }
@@ -384,34 +404,45 @@ function Get-LinkFindings {
   return @($findings.ToArray())
 }
 
-function Get-Exclusions {
+function Get-LinkConfig {
+  $config = [pscustomobject]@{ Frozen = @(); Exclusions = @() }
   $path = Join-Path $script:RepoRoot 'scripts/markdown-link-exclusions.json'
   if (-not (Test-Path -LiteralPath $path)) {
-    return @()
+    return $config
   }
   $parsed = Get-Content -LiteralPath $path -Raw -Encoding utf8 | ConvertFrom-Json
-  if ($parsed.version -ne 1) {
-    Write-GateFailure "scripts/markdown-link-exclusions.json version must be 1"
+  if ($parsed.version -ne 2) {
+    Write-GateFailure "scripts/markdown-link-exclusions.json version must be 2"
     Exit-Gate -Code 1
   }
-  if (-not $parsed.exclusions) {
-    return @()
+  if ($parsed.PSObject.Properties.Name -contains 'frozen' -and $parsed.frozen) {
+    $config.Frozen = @($parsed.frozen | ForEach-Object {
+        $entry = [string]$_
+        if ([string]::IsNullOrWhiteSpace($entry) -or $entry.StartsWith('/') -or $entry.Contains('\')) {
+          Write-GateFailure "frozen entry must be a repository-relative path with forward slashes: '$entry'"
+          Exit-Gate -Code 1
+        }
+        $entry
+      })
   }
-  $entries = @($parsed.exclusions)
-  foreach ($entry in $entries) {
-    foreach ($field in @('source', 'reasonIncludes', 'because')) {
-      if ([string]::IsNullOrWhiteSpace([string]$entry.$field)) {
-        Write-GateFailure "a link exclusion is missing $field"
-        Exit-Gate -Code 1
+  if ($parsed.PSObject.Properties.Name -contains 'exclusions' -and $parsed.exclusions) {
+    $config.Exclusions = @($parsed.exclusions)
+    foreach ($entry in $config.Exclusions) {
+      foreach ($field in @('source', 'reasonIncludes', 'because')) {
+        if ([string]::IsNullOrWhiteSpace([string]$entry.$field)) {
+          Write-GateFailure "a link exclusion is missing $field"
+          Exit-Gate -Code 1
+        }
       }
     }
   }
-  return $entries
+  return $config
 }
 
 $failures = [System.Collections.Generic.List[string]]::new()
-$linkFindings = @(Get-LinkFindings)
-$exclusions = @(Get-Exclusions)
+$linkConfig = Get-LinkConfig
+$linkFindings = @(Get-LinkFindings -Frozen ([string[]]$linkConfig.Frozen))
+$exclusions = @($linkConfig.Exclusions)
 $exclusionHits = @{}
 for ($index = 0; $index -lt $exclusions.Count; $index++) {
   $exclusionHits[$index] = 0
@@ -484,5 +515,5 @@ if ($failures.Count -gt 0) {
   Exit-Gate -Code 1
 }
 
-Write-Output "docs-gate: passed suppressed=$($linkFindings.Count) exclusions=$($exclusions.Count) text=$($indexFiles.Count)"
+Write-Output "docs-gate: passed suppressed=$($linkFindings.Count) exclusions=$($exclusions.Count) frozen=$($linkConfig.Frozen.Count) text=$($indexFiles.Count)"
 Exit-Gate -Code 0
