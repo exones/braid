@@ -1,6 +1,6 @@
 # 006: apply the run 001 findings without growing the skills
 
-Status: planning. Implementation awaits the user's review of this plan.
+Status: in-progress. Implementation approved by the user.
 Branch: `epic/006-run-findings` from `main` at `92c9feb`.
 
 ## Goal
@@ -26,10 +26,14 @@ then the user's merge. One worker at a time.
 
 | ID | Title | Kind | Tier | Depends on | Status | PR |
 | --- | --- | --- | --- | --- | --- | --- |
-| A | [Keep agents off real data; exact project facts for workers](items/A.md) | task | L | – | ready | |
+| A | [Keep agents off real data; exact project facts for workers](items/A.md) | task | L | – | in-progress | |
 | B | [Quieter coordinator: milestone commits, questions, UI merges](items/B.md) | task | L | – | ready | |
 
 ## Decisions
+
+- 2026-11-05: User approved execution with an epic-specific model override: workers use
+  `codex / gpt-6-astra / reasoningEffort=medium`; reviewers use
+  `codex / gpt-6.1-sol / reasoningEffort=medium`. This supersedes the default models for 006.
 
 - 2026-11-05: Plan only; no workers until the user approves.
 - 2026-11-05: Two items instead of four. All changes touch the same few files, and one word budget
