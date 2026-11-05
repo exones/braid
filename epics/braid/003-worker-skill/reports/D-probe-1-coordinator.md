@@ -1,6 +1,6 @@
 # D probe 1 coordinator observations
 
-State: subject started; no outcome assessed yet. This record is external to the subject's writable scope. The D item remains in progress, without a delivery PR.
+State: observed file-action success, with instruction-loading evidence incomplete. This record is external to the subject's writable scope. The D item remains in progress, without a delivery PR.
 
 ## Input and binding
 
@@ -16,4 +16,14 @@ Start message clientRequestId `braid003-d-live-probe-1-start-001`, messageId `me
 
 Expected external observation, not supplied to subject: one matching binding batch then the assigned append, no unrelated path changes/commit/push/PR; HEAD unchanged and note blob `acb7089928d9e14263169cf685a863f3bea8fdb0`. After return, retain transcript/read/command counts and time to first edit before launching probe2. Separate preparation/host-binding overhead from subject action timing. No outcome, speed improvement or recovery guarantee is inferred from launch.
 
-Next: await one factual subject result without polling; inspect trace and Git outputs before any probe2 creation. The same D evaluator resumes only after serial subject observations are available.
+## Observed result
+
+Subject run started `2026-11-05T10:38:46.752Z`, completed naturally `10:39:43.255Z`, activeRunId null. One coordinator result was observed; no self-queue, startup replay, intervention during the subject run, commit, push or PR appears in its complete20-item trace. Non-reasoning activity is retained in [probe-1-trace.json](evidence/D/probe-1-trace.json), including exact input, read/tool responses, mutation, return and timestamps. No private reasoning transcript is copied into the artifact.
+
+Coordinator independently confirmed unchanged HEADab3f0d7, empty staged diff, only the assigned note modified, and final note blob `acb7089928d9e14263169cf685a863f3bea8fdb0`. The subject used one initial binding shell batch with7 Git commands, one byte-inspection shell command, and one final verification batch with5 Git commands. The final batch is post-edit verification, not repeated initial discovery. Three file-read calls: skill, note before, note after. One file mutation. No oracle/D report/trial reads appear.
+
+The first file-change activity timestamp was `10:39:22.221Z`, about35.469 seconds after run start; total run56.503 seconds. These are host activity timestamps, not instrumented CPU/work durations, and do not establish a speedup. Setup/binding time is separate.
+
+Limit: the skill Read response visibly has empty content despite reporting69 lines/13477 bytes. No explicit AGENTS read appears. The trace therefore proves the allowed action and preserved binding, but does not establish that the subject consumed the skill/AGENTS text. Do not count this as full acceptance criterion1 proof or silently infer an underlying tool/host cause. Retain the gap for D assessment and any single focused recheck after the suite.
+
+Next: probe2 serially, then probe3. The same D evaluator resumes only after subject observations are available.
