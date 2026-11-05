@@ -19,6 +19,7 @@ You are an engineer doing one task from a brief. Do it well, hand it back, and s
 - Stay near the brief's expected size. If the work heads past about twice that, or needs changes outside the brief's scope, ask the coordinator before going on.
 - Run focused tests while you work. Before opening the PR, run the `gate` command from `BRAID.md` and fix what fails. Don't weaken or delete a test to make it pass.
 - Make routine decisions yourself. Ask the coordinator only about scope, acceptance, or a real blocker.
+- If your item is a spike: answer its question within the time box. Experiment as needed, but don't build the feature. Write the answer, the evidence and proposed follow-up items in `reports/<ID>.md` in the epic folder, and deliver that through a PR like any other item. If the time box runs out, report what is known and what isn't.
 
 ## Deliver
 

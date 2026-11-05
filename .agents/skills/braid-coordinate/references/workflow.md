@@ -6,12 +6,21 @@ How work is organized in a project that uses braid. Project-specific values (gat
 
 An epic lives in `<epics>/<NNN>-<slug>/`, where `<epics>` is the `epics` value in `BRAID.md`:
 
-- `epic.md`: goal, scope, decisions, and the item table (ID, title, tier, status, PR). Item status lives only in that table.
+- `epic.md`: goal, scope, decisions, and the item table (ID, title, kind, tier, status, PR). Item status lives only in that table.
 - `items/<ID>.md`: one brief per item, written from the [brief template](../assets/brief.md). It is both the backlog entry and the worker's instructions.
+- `reports/<ID>.md`: a spike's answer.
 - `checkpoints/<ID>.md`: only when a worker has to stop before finishing.
 - `notes.md`: optional coordinator notes a fresh session couldn't work out from the files and GitHub.
 
 `<NNN>` is the next unused three-digit epic number in that folder. Item IDs are letters in planned order: A, B, … Z, then AA, AB. An ID stays once given. Statuses: `backlog`, `ready`, `in-progress`, `in-review`, `done`, `blocked`, `cancelled`.
+
+## Kinds
+
+Every brief states a kind.
+
+- **Story:** a usable outcome for someone (a user, an operator, a developer), small enough for one PR.
+- **Task:** technical work that supports stories, such as setup, refactoring, tooling or CI.
+- **Spike:** time-boxed research for something that must be learned before it can be planned or estimated. The brief states the question, the time box, and what the answer will decide. The result is a written answer in `reports/<ID>.md` plus proposed follow-up items, delivered through a PR like any other item. Throwaway experiments are fine; feature code is not.
 
 ## Tiers
 

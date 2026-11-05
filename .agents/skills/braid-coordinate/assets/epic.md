@@ -14,9 +14,9 @@ Out: <excluded work>.
 
 ## Items
 
-| ID | Title | Tier | Status | PR |
-| --- | --- | --- | --- | --- |
-| A | <title> (`items/A.md`) | S | backlog | |
+| ID | Title | Kind | Tier | Status | PR |
+| --- | --- | --- | --- | --- | --- |
+| A | <title> (`items/A.md`) | story | S | backlog | |
 
 ## Decisions
 
