@@ -408,14 +408,30 @@ function Get-FixtureModel {
   if ([string]::IsNullOrWhiteSpace($stateText)) {
     $stateText = 'open'
   }
+  $finalState = ([string](Get-Prop $raw 'finalState')).ToLowerInvariant()
+  if ([string]::IsNullOrWhiteSpace($finalState)) {
+    $finalState = $stateText
+  }
+  $baseRefName = [string](Get-Prop $raw 'baseRefName')
+  if ([string]::IsNullOrWhiteSpace($baseRefName)) {
+    $baseRefName = 'epic/fixture'
+  }
+  $finalBaseRefName = [string](Get-Prop $raw 'finalBaseRefName')
+  if ([string]::IsNullOrWhiteSpace($finalBaseRefName)) {
+    $finalBaseRefName = $baseRefName
+  }
   return @{
     mode = 'fixture'
     skipArtifacts = [bool]$SkipArtifacts
     state = $stateText
+    finalState = $finalState
+    baseRefName = $baseRefName
+    finalBaseRefName = $finalBaseRefName
     recordedBase = $recordedBase
     liveBase = $liveBase
     liveBaseAfter = $liveBaseAfter
     mergeTest = ConvertTo-Sha (Get-Prop $raw 'mergeTest')
+    finalMergeTest = ConvertTo-Sha (Get-Prop $raw 'finalMergeTest')
     pr = @{
       number = Get-Prop $pr 'number'
       url = [string](Get-Prop $pr 'url')
@@ -490,8 +506,13 @@ function Format-GhFailure {
   return "gh exited $($Result.Code): $line"
 }
 
+$script:PrProofTransport = $null
+
 function Invoke-GhJson {
   param([Parameter(Mandatory = $true)][string[]]$Arguments)
+  if ($null -ne $script:PrProofTransport) {
+    return (& $script:PrProofTransport $Arguments)
+  }
   $result = Invoke-GhProcess -Arguments $Arguments
   if ($result.Code -ne 0) {
     throw (Format-GhFailure $result)
@@ -750,15 +771,25 @@ function Get-LiveModel {
     }
   }
   $second = Get-PullRequestView -RepoName $repository -Number $PullRequestValue
-  $liveBaseAfter = Get-LiveTargetTip -RepoName $repository -BranchName $first.baseRefName
+  $liveBaseAfter = Get-LiveTargetTip -RepoName $repository -BranchName $second.baseRefName
+  $finalMergeTest = ''
+  if ($second.state -eq 'open') {
+    $finalMerge = Get-PullMergeParents -RepoName $repository -Number ([string]$first.number)
+    $finalMergeTest = $finalMerge.Sha
+    $commits[$finalMergeTest] = $finalMerge.Parents
+  }
   return @{
     mode = 'live'
     skipArtifacts = [bool]$SkipArtifacts
     state = $first.state
+    finalState = $second.state
+    baseRefName = $first.baseRefName
+    finalBaseRefName = $second.baseRefName
     recordedBase = $first.recordedBase
     liveBase = $liveBase
     liveBaseAfter = $liveBaseAfter
     mergeTest = $mergeTest
+    finalMergeTest = $finalMergeTest
     pr = @{
       number = $first.number
       url = $first.url
@@ -1012,13 +1043,29 @@ function Get-PrProofJudgment {
   } elseif ($Model.state -eq 'merged' -and ($pullPassed -or (Test-FullSha ([string]$Model.mergeTest)))) {
     $needParents = $true
   }
+  if ($Model.state -eq 'open' -and $Model.finalState -ne 'open') {
+    if ($Model.finalState -eq 'merged') {
+      Add-CleanReason -List $failures -Reason 'pull request merged during proof'
+    } else {
+      Add-CleanReason -List $failures -Reason 'pull request closed during proof'
+    }
+  } elseif ($Model.state -eq 'merged' -and $Model.finalState -ne 'merged') {
+    Add-CleanReason -List $failures -Reason 'pull request identity changed during proof'
+  }
+  if ($Model.finalBaseRefName -ne $Model.baseRefName) {
+    Add-CleanReason -List $failures -Reason 'pull request target changed during proof'
+  }
   if ($needParents) {
     $mergeKey = [string]$Model.mergeTest
+    $expectedBase = if ($Model.state -eq 'merged') { $Model.recordedBase } else { $Model.liveBase }
+    if ($Model.state -eq 'open' -and (Test-FullSha ([string]$Model.finalMergeTest))) {
+      $mergeKey = [string]$Model.finalMergeTest
+      $expectedBase = $Model.liveBaseAfter
+    }
     if (-not (Test-FullSha $mergeKey) -or -not $Model.commits.ContainsKey($mergeKey)) {
       Add-CleanReason -List $failures -Reason 'merge-test commit unavailable'
     } else {
       $mergeParents = $Model.commits[$mergeKey]
-      $expectedBase = if ($Model.state -eq 'merged') { $Model.recordedBase } else { $Model.liveBase }
       if ($mergeParents.Length -ne 2 -or $mergeParents[1] -ne $Model.pr.head -or $mergeParents[0] -ne $expectedBase) {
         if ($Model.state -eq 'merged') {
           Add-CleanReason -List $failures -Reason 'merge-test parents are not the recorded base then head'
@@ -1028,7 +1075,7 @@ function Get-PrProofJudgment {
       }
     }
   }
-  if ($Model.state -eq 'merged') {
+  if ($Model.state -eq 'merged' -and $Model.finalState -eq 'merged') {
     Add-CleanReason -List $limitations -Reason 'historical merged snapshot; not current pull-request readiness'
   }
   $unchanged = (Test-FullSha $Model.headAfter) -and (Test-FullSha $Model.liveBaseAfter) -and $Model.headAfter -eq $Model.pr.head -and $Model.liveBaseAfter -eq $Model.liveBase
@@ -1048,14 +1095,18 @@ function Get-PrProofJudgment {
     $verdict = 'PENDING'
     $reason = $pending[0]
   }
-  $proofScope = if ($Model.state -eq 'merged') { 'historical' } else { 'current' }
+  $proofScope = if ($Model.state -eq 'merged' -and $Model.finalState -eq 'merged') { 'historical' } else { 'current' }
+  $identityStable = $Model.finalState -eq $Model.state -and $Model.finalBaseRefName -eq $Model.baseRefName -and $Model.headAfter -eq $Model.pr.head -and $Model.liveBaseAfter -eq $Model.liveBase
   $payload = New-JsonObject
   $payload['verdict'] = $verdict
   $payload['reason'] = $reason
   $payload['mode'] = [string]$Model.mode
   $payload['proofScope'] = $proofScope
-  $payload['currentReady'] = [bool]($verdict -eq 'PASS' -and $proofScope -eq 'current')
+  $payload['currentReady'] = [bool]($verdict -eq 'PASS' -and $proofScope -eq 'current' -and $identityStable -and $Model.finalState -eq 'open')
   $payload['state'] = [string]$Model.state
+  $payload['finalState'] = [string]$Model.finalState
+  $payload['baseRefName'] = [string]$Model.baseRefName
+  $payload['finalBaseRefName'] = [string]$Model.finalBaseRefName
   $payload['recordedBase'] = [string]$Model.recordedBase
   $payload['liveBase'] = [string]$Model.liveBase
   $payload['skipArtifacts'] = [bool]$Model.skipArtifacts
@@ -1097,6 +1148,7 @@ function Write-PrProofContract {
   [Console]::Out.WriteLine($json)
 }
 
+if ($MyInvocation.InvocationName -ne '.') {
 $mode = 'live'
 try {
   $hasFixture = -not [string]::IsNullOrWhiteSpace($Fixture)
@@ -1142,4 +1194,5 @@ try {
   Add-CleanReason -List $payload['failures'] -Reason $message
   Write-PrProofContract -Verdict 'FAIL' -Reason $message -Payload $payload
   exit 1
+}
 }

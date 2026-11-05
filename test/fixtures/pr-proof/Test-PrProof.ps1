@@ -503,6 +503,95 @@ try {
     Fail "historical-merged scope was $($historical.proofScope) currentReady=$($historical.currentReady)"
   }
 
+  . $script:Proof
+  function Assert-LiveSeam {
+    param(
+      [Parameter(Mandatory = $true)][string]$Label,
+      [Parameter(Mandatory = $true)][string]$SecondState,
+      [string]$SecondBase = 'epic/braid-003-worker-skill',
+      [Parameter(Mandatory = $true)][int]$ExpectedCode,
+      [Parameter(Mandatory = $true)][string]$ExpectedVerdict,
+      [string]$ReasonMatch
+    )
+    $seamHead = 'd5fbbff821dbbd5f987aa2bc71a0a0296efb0777'
+    $seamTip = '7714587cfa7846c13560e0fd8c7f9a4c99b670f9'
+    $seamMerge = '89af138d2126bb1be824033c35cd1feb01552783'
+    $script:seamPrReads = 0
+    $steps = @(
+      [pscustomobject]@{ name = 'Install dependencies'; status = 'completed'; conclusion = 'success' }
+      [pscustomobject]@{ name = 'Verify'; status = 'completed'; conclusion = 'success' }
+      [pscustomobject]@{ name = 'Upload packed tarball'; status = 'completed'; conclusion = 'success' }
+    )
+    $jobs = @(
+      [pscustomobject]@{ id = 1; name = 'verify (ubuntu-latest)'; status = 'completed'; conclusion = 'success'; run_attempt = 1; head_sha = $seamHead; steps = $steps }
+      [pscustomobject]@{ id = 2; name = 'verify (windows-latest)'; status = 'completed'; conclusion = 'success'; run_attempt = 1; head_sha = $seamHead; steps = $steps }
+    )
+    $pushRun = [pscustomobject]@{ id = 11; name = 'CI'; path = '.github/workflows/ci.yml'; event = 'push'; status = 'completed'; conclusion = 'success'; run_attempt = 1; head_sha = $seamHead; created_at = '2026-11-05T00:00:00Z'; html_url = 'https://example.test/push' }
+    $pullRun = [pscustomobject]@{ id = 12; name = 'CI'; path = '.github/workflows/ci.yml'; event = 'pull_request'; status = 'completed'; conclusion = 'success'; run_attempt = 1; head_sha = $seamHead; created_at = '2026-11-05T00:01:00Z'; html_url = 'https://example.test/pull' }
+    $script:PrProofTransport = {
+      param($TransportArguments)
+      $endpoint = [string]$TransportArguments[-1]
+      if ($TransportArguments[0] -eq 'repo') {
+        return [pscustomobject]@{ nameWithOwner = 'exones/braid' }
+      }
+      if ($TransportArguments[0] -eq 'pr') {
+        $script:seamPrReads++
+        $state = 'OPEN'
+        $baseName = 'epic/braid-003-worker-skill'
+        if ($script:seamPrReads -ge 2) {
+          $state = $SecondState
+          $baseName = $SecondBase
+        }
+        return [pscustomobject]@{ number = 21; url = 'https://github.com/exones/braid/pull/21'; state = $state; headRefOid = $seamHead; baseRefName = $baseName; baseRefOid = $seamTip }
+      }
+      if ($endpoint -match '/git/ref/heads/') {
+        return [pscustomobject]@{ object = [pscustomobject]@{ type = 'commit'; sha = $seamTip } }
+      }
+      if ($endpoint -match '/commits/refs/pull/') {
+        return [pscustomobject]@{ sha = $seamMerge; parents = @([pscustomobject]@{ sha = $seamTip }, [pscustomobject]@{ sha = $seamHead }) }
+      }
+      if ($endpoint -match '/actions/runs\?') {
+        return [pscustomobject]@{ workflow_runs = @($pushRun, $pullRun) }
+      }
+      if ($endpoint -match '/jobs') {
+        return [pscustomobject]@{ jobs = $jobs }
+      }
+      if ($endpoint -match '/artifacts') {
+        return [pscustomobject]@{ artifacts = @() }
+      }
+      throw "unexpected gh $($TransportArguments -join ' ')"
+    }.GetNewClosure()
+    $previousSkip = $SkipArtifacts
+    $SkipArtifacts = $true
+    try {
+      $model = Get-LiveModel -PullRequestValue '21'
+      $judgment = Get-PrProofJudgment -Model $model
+    } finally {
+      $script:PrProofTransport = $null
+      $SkipArtifacts = $previousSkip
+    }
+    if ($judgment.Verdict -ne $ExpectedVerdict) {
+      Fail "$Label seam verdict $($judgment.Verdict) reason $($judgment.Reason)"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ReasonMatch) -and [string]$judgment.Reason -notmatch $ReasonMatch) {
+      Fail "$Label seam reason '$($judgment.Reason)' did not match $ReasonMatch"
+    }
+    $ready = [bool]$judgment.Payload['currentReady']
+    $scope = [string]$judgment.Payload['proofScope']
+    if ($ExpectedVerdict -eq 'PASS') {
+      if (-not $ready -or $scope -ne 'current') {
+        Fail "$Label seam passed without current readiness ($scope/$ready)"
+      }
+    } elseif ($ready -or $scope -eq 'historical') {
+      Fail "$Label seam stayed ready or became historical ($scope/$ready)"
+    }
+    Write-Host "pr-proof fixture ${Label}: $ExpectedVerdict"
+  }
+  Assert-LiveSeam -Label 'seam-open-unchanged' -SecondState 'OPEN' -ExpectedCode 0 -ExpectedVerdict 'PASS'
+  Assert-LiveSeam -Label 'seam-open-closed' -SecondState 'CLOSED' -ExpectedCode 1 -ExpectedVerdict 'FAIL' -ReasonMatch 'closed during proof'
+  Assert-LiveSeam -Label 'seam-open-merged' -SecondState 'MERGED' -ExpectedCode 1 -ExpectedVerdict 'FAIL' -ReasonMatch 'merged during proof'
+  Assert-LiveSeam -Label 'seam-retarget-same-sha' -SecondState 'OPEN' -SecondBase 'epic/other-target' -ExpectedCode 1 -ExpectedVerdict 'FAIL' -ReasonMatch 'target changed during proof'
+
   $missing = Invoke-Proof -Dir $greenDir -NoFixture
   if ($missing.Code -eq 0 -or $missing.Lines[0] -notmatch '^-PullRequest is required|PullRequest is required') {
     Fail "missing pull request was not rejected: $($missing.Lines -join ' | ') stderr=$($missing.Stderr)"
