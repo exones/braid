@@ -9,4 +9,4 @@ Skill: external installation C:/Users/exon/.codex/braid-pins/d30e3a93a2a3690934d
 Proof: full artifact mode required for I; worker owns own PR/watch/repair. No PR or parent watch at dispatch.
 Checks: user amended records gate to epics-only scope plus existing Markdown/text subset; no full suite for records. Persistent wrapper/clause assigned to I.
 Blockers: none. Unrelated untracked maintenance evidence untouched; status only in epic table; D awaits I's reviewed human merge.
-Next: commit/push the authorized I packet amendment with lightweight scope/docs proof, steer the same worker once, then await its result without polling.
+Next: await I result without polling. Amendment d8221b4 delivered steered to same ordinal1 via braid003-i-records-gate-user-amendment-001; wrapper/clause implementation pending.
