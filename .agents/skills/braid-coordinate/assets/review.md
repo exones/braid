@@ -4,7 +4,7 @@ You are reviewing someone else's change with fresh eyes. Don't push to their bra
 
 - Brief: `<path>`
 - Head commit: `<sha>`
-- Focus: <what matters most here, for example failure handling or state-format compatibility>
+- Focus: <what matters most here, for example failure handling or state-format compatibility> For a second look after fixes: the commits since `<sha>`.
 - Skill: <the review skill to use, if `BRAID.md` names one; otherwise delete this line>
 - Result to: thread `<coordinator thread id>`
 
