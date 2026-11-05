@@ -36,10 +36,13 @@ The installer writes progress to stderr and writes only the toolchain directory 
 4. The OIDC release-shape guard.
 5. The install-policy guard.
 6. The shared Node.js toolchain fixture: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout, and interruption. It uses disposable roots and does not download Node.js.
-7. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`)
-8. `npm run build` (`tsc -p tsconfig.build.json`)
-9. `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`)
-10. `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable
+7. The workspace-binding fixture: a read-only JSON contract against disposable repositories, including mismatch, drift, and failed inspection. It does not use Node.js.
+8. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`)
+9. `npm run build` (`tsc -p tsconfig.build.json`)
+10. `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`)
+11. `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable
+
+`scripts/Test-WorkspaceBinding.ps1` is the offline checkout check used before assigned work. Its contract and exit codes are [workspace binding](scripts/workspace-binding.md). It is not a product doctor command.
 
 External skill validators are not part of this command. Run them when a change edits skill content and report that result separately; they may be unavailable in CI.
 

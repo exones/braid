@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "route": "idle-create-then-one-initial-send",
+  "observed": "One A reviewer launch used idle thread creation, then one initial send that included the actual binding before first execution. This file checks that order. It does not prove that a later host run will keep the watch, repair itself, or deliver exactly once.",
+  "steps": [
+    "create-idle-thread-bound-to-named-worktree",
+    "host-returns-root-branch-and-full-head",
+    "one-initial-send-contains-that-binding",
+    "open-packet-pinned-skill-and-agents",
+    "one-read-now-batch",
+    "one-workspace-binding-invocation",
+    "named-first-action"
+  ],
+  "forbiddenBeforeFirstAction": [
+    "heading-search",
+    "nested-pwsh-command",
+    "unquoted-at-upstream",
+    "upstream-repair",
+    "restart-live-worker",
+    "assignment-inventory"
+  ],
+  "limits": [
+    "Scenario sequencing only.",
+    "A fresh-context worker or reviewer observation is coordinator-owned and is not started here.",
+    "The null probe's elapsed time is diagnostic and is not a baseline."
+  ]
+}
