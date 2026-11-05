@@ -47,9 +47,10 @@ Use this wording. Adjust grammar to fit the surrounding text, but don't add sent
 
 2. `braid-worker/SKILL.md`:
    - Start, step 1: list `setup`, `shell` and `test` among the facts read from `BRAID.md`.
-   - Start, new step 3: "In a new worktree, run `setup` before building or testing. Write commands
-     for the `shell` that `BRAID.md` names."
-   - Work, new bullet: "Never read or write the user's real data, and stay inside your worktree.
+   - Start, new step 3: "Use `setup`, `shell` and `test` when provided; otherwise follow project
+     conventions. In a new worktree, run setup before building or testing."
+   - Work, new bullet: "Keep project edits in your worktree. Installed-skill reads and documented
+     setup/toolchain use are allowed; installed-skill edits are not. Protect real application data.
      Tests and your own runs use temporary folders: in the test process, point `HOME`,
      `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` and `XDG_*` there as well as the app's own settings,
      so a test of default paths stays inside. A read-only look at real data needs the brief's
@@ -81,16 +82,19 @@ Use this wording. Adjust grammar to fit the surrounding text, but don't add sent
    test: node --test test/<file>.test.ts; Pester suites: pwsh -NoProfile -File scripts/Test-Pester.ps1
    ```
 
-   In the body, delete the "Setup before the gate works" bullet and add: "Real user data: the
-   installed skills under `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and
-   `~/.braid/skills`, and the shared toolchain under `%LOCALAPPDATA%\braid`. Tests use temporary
-   folders."
+   In the body, delete the "Setup before the gate works" bullet and add: "Read installed skills;
+   don't edit them. Documented setup may install/reuse the shared Node.js toolchain. Tests use
+   temporary skill destinations and toolchain stores, never the real installations."
 
 5. README, "Braid skills in other projects": add `shell`, `setup` and `test` to the list of facts
    `BRAID.md` holds, and one sentence: "Agents keep screenshots and scratch files in
    `~/.braid/artifacts/`, outside every checkout."
 
 ## Already decided
+
+- Review correction: distinguish real application data from authorized skill reads and toolchain
+  setup/use. Keep test isolation and the word caps; compress existing prose as needed. Replace any
+  U+FFFD corruption with ASCII `...`. Optional fields fall back to project conventions.
 
 - Artifacts live outside every checkout; no `artifacts:` field and no `.gitignore` change.
 - `shell`, `setup` and `test` are optional; a project without them works as today.
