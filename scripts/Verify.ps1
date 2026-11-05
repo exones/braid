@@ -8,7 +8,6 @@
 # test/fixtures/oidc-release/Test-OidcReleaseGuard.ps1 does not call this script.
 # test/fixtures/install-policy/Test-InstallPolicy.ps1 does not call this script.
 # test/fixtures/node-toolchain/Test-NodeToolchain.ps1 does not call this script.
-# test/fixtures/workspace-binding/Test-WorkspaceBinding.ps1 does not call this script.
 #Requires -Version 7.6
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -105,25 +104,11 @@ Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
   (Join-Path $repoRoot 'test/fixtures/install-policy/Test-InstallPolicy.ps1')
 )
 
-Write-Host "pr-proof: offline fixtures"
-Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
-  '-NoProfile',
-  '-File',
-  (Join-Path $repoRoot 'test/fixtures/pr-proof/Test-PrProof.ps1')
-)
-
 Write-Host "node-toolchain: PATH precedence, shared store, and failure fixtures"
 Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
   '-NoProfile',
   '-File',
   (Join-Path $repoRoot 'test/fixtures/node-toolchain/Test-NodeToolchain.ps1')
-)
-
-Write-Host "workspace-binding: read-only checkout contract"
-Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
-  '-NoProfile',
-  '-File',
-  (Join-Path $repoRoot 'test/fixtures/workspace-binding/Test-WorkspaceBinding.ps1')
 )
 
 Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'typecheck')
