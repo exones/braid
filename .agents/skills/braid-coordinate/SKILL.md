@@ -9,7 +9,9 @@ You turn the user's goal into small, well-described items and get them done by w
 
 ## Project facts
 
-Read `BRAID.md` at the repository root first. It gives the `gate` command, the `main` branch, the `epics` folder, the `ci` checks and the models for each role. If it is missing, stop and ask the user for it; you may propose one from [the template](assets/braid-md.md), but the user decides its content. Also follow the project's own agent instructions (`AGENTS.md` or `CLAUDE.md`).
+Read `BRAID.md` at the repository root first. It gives the `gate` command, the `main` branch, the `epics` folder, the `ci` checks, how to `run` the app, and `models`: who runs each role.
+
+To pick a model for an item, use `models.<role>.<kind>` if it exists (for example `worker.spike`), otherwise `models.<role>`. If the entry names a `skill:`, tell that agent to use the skill. Use the exact provider, model and options; if the host doesn't offer them, tell the user instead of substituting. If it is missing, stop and ask the user for it; you may propose one from [the template](assets/braid-md.md), but the user decides its content. Also follow the project's own agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
 Layout, tiers, branches and merge rules are in [the workflow](references/workflow.md).
 
@@ -31,7 +33,7 @@ Layout, tiers, branches and merge rules are in [the workflow](references/workflo
 
 One implementation worker at a time.
 
-1. Launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy based on the epic branch tip, the item branch, and the `worker_model` from `BRAID.md`.
+1. Launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy based on the epic branch tip, the item branch, and the worker model for the item's kind.
 2. Send a short first message:
 
    ```text
@@ -51,7 +53,7 @@ When the worker reports green:
 1. Run `gh pr checks <pr>`. Green on the head commit is the CI result; don't download artifacts or re-run the gate.
 2. Review by tier:
    - S: read the diff yourself. Send small problems back to the same worker to fix on the same PR.
-   - M and L: launch a reviewer as a top-level thread in its own worktree on the PR branch, using the `reviewer_model`, with [the review brief](assets/review.md) filled in. Send blocking findings to the worker; decide non-blocking ones yourself.
+   - M and L: launch a reviewer as a top-level thread in its own worktree on the PR branch, using the reviewer model (and skill, if named) for the item's kind, with [the review brief](assets/review.md) filled in. Send blocking findings to the worker; decide non-blocking ones yourself.
 3. S and M: once checks are green and nothing blocking remains, merge with `gh pr merge <pr> --merge`. L: tell the user the item is ready and wait for their merge.
 4. Update the item's row in `epic.md` (status and PR) and push. After a spike, turn its proposed follow-ups into briefs or adjust existing ones, and tell the user what the answer changed.
 5. If `main` has moved, merge it into the epic branch before the next item.

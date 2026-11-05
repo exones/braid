@@ -4,9 +4,10 @@ main: main
 epics: epics/braid/
 ci: [verify (ubuntu-latest), verify (windows-latest)]
 run: npm run build, then node dist/cli.js --help (a CLI; no UI)
-coordinator_model: codex / gpt-6.1-sol / reasoningEffort=high
-worker_model: cursor / grok-4.7 / reasoning_effort=high, contextWindow=500k
-reviewer_model: cursor / grok-4.7 / reasoning_effort=high, contextWindow=500k
+models:
+  coordinator: codex / gpt-6.1-sol / reasoningEffort=high
+  worker: cursor / grok-4.7 / reasoning_effort=high, contextWindow=500k
+  reviewer: cursor / grok-4.7 / reasoning_effort=high, contextWindow=500k
 ---
 
 # braid for braid agents
