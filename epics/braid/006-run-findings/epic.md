@@ -1,50 +1,47 @@
-# 006: apply the real-run findings without restoring process overhead
+# 006: apply the run 001 findings without growing the skills
 
 Status: planning. Implementation awaits the user's review of this plan.
 Branch: `epic/006-run-findings` from `main` at `92c9feb`.
 
 ## Goal
 
-Make the successful simplified workflow safer and quieter: workers can start
-and finish predictably, coordinator commits carry useful milestones, and the
-user retains visual acceptance. See the [triage](../../reports/run-001-triage.md)
-for every finding's disposition and rationale.
+Fix what the first real run (chinese-trainer epic 001) showed: agents could reach real user data,
+workers guessed setup and shell commands, and the coordinator committed far too often, without
+Conventional Commits, and decided things it should have asked about. Keep the workflow that worked
+and keep the skills about the same size. See the [triage](../../reports/run-001-triage.md) and the
+[run report](../../reports/run-001-chinese-trainer.md).
 
 ## Scope
 
-In: existing skills, workflow, templates, braid's setup facts and minimal usage
-documentation. Preserve the [run evidence](../../reports/run-001-chinese-trainer.md).
+In: the two braid skills, their templates and workflow, braid's own `BRAID.md`, and the README
+section "Braid skills in other projects".
 
-Out: product/ledger code, trainer fixes, new automation or policy gates, provider
-bug fixes, model changes, credentials, author identities, repository settings,
-history rewriting, release/publish, and automatic worktree cleanup.
+Out: product or ledger code, new scripts or tests, sandboxing, model changes, author identities,
+T3 or provider fixes, history rewriting, releases.
 
 ## Items
 
-Rows are in run order. Each item is independently useful; no artificial
-dependency is needed. One implementation worker at a time. All are tier L
-because they edit agent instructions: independent review and the user's merge.
-The branch/head and result-thread metadata in each brief are bound at launch to
-the actual epic tip and coordinator; workers are not being launched now.
+Rows are in run order. Both are tier L because they change agent instructions: independent review,
+then the user's merge. One worker at a time.
 
 | ID | Title | Kind | Tier | Depends on | Status | PR |
 | --- | --- | --- | --- | --- | --- | --- |
-| A | [Isolate user data and review material risk fixes](items/A.md) | task | L | – | ready | |
-| B | [Batch coordinator records and decisions](items/B.md) | task | L | – | ready | |
-| C | [Make startup and completion reproducible](items/C.md) | task | L | – | ready | |
-| D | [Require visual acceptance with retained screenshots](items/D.md) | task | L | – | ready | |
+| A | [Keep agents off real data; exact project facts for workers](items/A.md) | task | L | – | ready | |
+| B | [Quieter coordinator: milestone commits, questions, UI merges](items/B.md) | task | L | – | ready | |
 
 ## Decisions
 
-- 2026-11-05: Plan only. Do not edit the skills or start workers until the user
-  approves execution. The trainer epic is now merged according to the user.
-- 2026-11-05: User-data isolation is P0; commit cadence and Conventional Commits
-  are an explicit high user priority and follow immediately as B.
-- 2026-11-05: Keep one worker, top-level T3 worktree threads, existing models,
-  risk tiers, review comments on PRs and human merges into `main`.
-- 2026-11-05: Prefer replacing instructions over adding rules. No new required
-  records beyond the existing brief/table/PR and thread links in that table.
-- 2026-11-05: Host replay causes remain unconfirmed. Recovery is bounded and
-  event-driven; provider substitution and polling are outside this plan.
-- 2026-11-05: After the epic is merged and skills reinstalled, validate during
-  the next ordinary product run. No separate monitoring or benchmark item.
+- 2026-11-05: Plan only; no workers until the user approves.
+- 2026-11-05: Two items instead of four. All changes touch the same few files, and one word budget
+  per file is easier to hold with fewer authors. A carries the data-safety fix (P0), so it runs first.
+- 2026-11-05: Briefs give the exact wording to use. Workers place it, delete what it replaces and
+  keep each file within its word cap; they don't add explanation.
+- 2026-11-05: Screenshots and scratch files live outside every checkout, in
+  `~/.braid/artifacts/<repo>/<epic>/<ID>/`, so removing a worktree loses nothing. No config field.
+- 2026-11-05: `in-review` is dropped as a recorded status: it was only ever committed on its own,
+  and the PR shows it. The epic gets `ready for main`; the user's merge marks it done, with no
+  commit afterwards.
+- 2026-11-05: Not changed: the final report and recap formats, one worker at a time, tiers,
+  same-thread fixes, review comments on the PR, the user's merge into `main`, the models.
+- 2026-11-05: Deferred: bot identity for agent commits, T3 checkpoint refs, a supervisor or
+  `braid status`, sandboxed workers.
