@@ -426,10 +426,40 @@ public class Program {
     }
   } else {
     $script:StubExe = Join-Path $stubDir 'node-stub'
+    # Builtins only. The fixture clears PATH, so dirname, pwd, and tr are absent.
     [System.IO.File]::WriteAllText($script:StubExe, @'
 #!/bin/sh
-dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-version=$(tr -d '\r\n' < "$dir/fixture-version.txt")
+self=$0
+case $self in
+  */*) ;;
+  *)
+    saved_ifs=$IFS
+    IFS=:
+    found=
+    for entry in $PATH; do
+      if [ -z "$entry" ]; then
+        entry=.
+      fi
+      if [ -f "$entry/$self" ]; then
+        found=$entry/$self
+        break
+      fi
+    done
+    IFS=$saved_ifs
+    if [ -n "$found" ]; then
+      self=$found
+    fi
+    ;;
+esac
+case $self in
+  /*) ;;
+  *) self=$(CDPATH= cd -- . && pwd)/$self ;;
+esac
+dir=${self%/*}
+version=
+IFS= read -r version < "$dir/fixture-version.txt" || true
+cr=$(printf '\r')
+version=${version%"$cr"}
 if [ "$1" = "--version" ]; then
   printf '%s\n' "$version"
   exit 0
