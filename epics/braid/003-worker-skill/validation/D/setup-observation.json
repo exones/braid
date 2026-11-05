@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "limit": "Disposable local Git fixtures. Probe-3 checks are simulated and do not contact GitHub. Probe-1 origin is a local bare repository.",
+  "gitVersion": "git version 2.55.0.windows.3",
+  "cleanupRoot": "C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures",
+  "removedAfterExercise": true,
+  "rounds": 2,
+  "preservation": "pass",
+  "replaySignature": "b5611e64d3b78877aa9086b3f419c744bc032b0b|638fb914f973cb4497e0f9d7871615f2fe2c27b7|item/d-probe-match|e31de1f3a235fd5e8f97207b8e43cd2aa06a6417|1d8426337b36a661886155799d9e1b4674f725a1|topic/user-scratch|https://example.invalid/not-braid.git|MM user-owned/keep.txt\n?? user-owned/untracked.txt|908ab55823a4d821ad4ad026df0095560ad14db8|f334c4a673b8f38f54df5e31968da715c64e3e06|bada98847e6995ddb5ca4d254c87b5a8b7e9b497|6758f3ba76196b3fe917e46183e624c351720503|f510327578a4562e26a7c64bdf061e4a49f85ee6|664f23cf3ee0d2084ef638594d68fa0c36550840|11308ef31db813719c72d67a0edd578f749f9835|330585f37e60d093b7e019494e55730f44b25853|item/d-probe-resume|https://example.invalid/d-probe-resume.git|37a523f4d2b75090ef9f05f7a54cd53b521778fb|0e7716180279fad8c71364cca41739c68d125637|180e9389acd3162b868ee2e362d20e248419403e",
+  "elapsedMs": 9455,
+  "probes": {
+    "probe1": {
+      "path": "C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/probe-1",
+      "branch": "item/d-probe-match",
+      "head": "b5611e64d3b78877aa9086b3f419c744bc032b0b",
+      "tree": "638fb914f973cb4497e0f9d7871615f2fe2c27b7",
+      "originAbsolute": "C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/probe-1-origin.git",
+      "upstream": null,
+      "porcelain": "",
+      "noteBlob": "e31de1f3a235fd5e8f97207b8e43cd2aa06a6417"
+    },
+    "probe2": {
+      "path": "C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/probe-2",
+      "branch": "topic/user-scratch",
+      "head": "1d8426337b36a661886155799d9e1b4674f725a1",
+      "origin": "https://example.invalid/not-braid.git",
+      "upstream": null,
+      "porcelain": "MM user-owned/keep.txt\n?? user-owned/untracked.txt",
+      "headBlob": "908ab55823a4d821ad4ad026df0095560ad14db8",
+      "indexBlob": "f334c4a673b8f38f54df5e31968da715c64e3e06",
+      "worktreeBlob": "bada98847e6995ddb5ca4d254c87b5a8b7e9b497",
+      "untrackedBlob": "6758f3ba76196b3fe917e46183e624c351720503",
+      "depsBlob": "f510327578a4562e26a7c64bdf061e4a49f85ee6",
+      "indexTree": "664f23cf3ee0d2084ef638594d68fa0c36550840"
+    },
+    "probe3": {
+      "path": "C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/probe-3",
+      "branch": "item/d-probe-resume",
+      "head": "11308ef31db813719c72d67a0edd578f749f9835",
+      "parent": "330585f37e60d093b7e019494e55730f44b25853",
+      "commitCount": 2,
+      "origin": "https://example.invalid/d-probe-resume.git",
+      "upstream": null,
+      "porcelain": "",
+      "checkpointBlob": "37a523f4d2b75090ef9f05f7a54cd53b521778fb",
+      "checksBlob": "0e7716180279fad8c71364cca41739c68d125637",
+      "pushedBlob": "180e9389acd3162b868ee2e362d20e248419403e"
+    }
+  }
+}
