@@ -47,5 +47,6 @@ Every brief states a tier. Pick the lowest one that fits.
 
 ## Reports
 
-- The PR description is the item's report: what changed, why, how it was checked, and anything left open.
-- The coordinator tells the user when an item is merged, when it needs a decision, and when an epic is ready for `main`. A few sentences, with PR links.
+- The PR description is the item's record: what changed, why, how it was checked, and anything left open.
+- The worker ends each item with a final report in chat (done, decisions, and when relevant deviations, actions for the user, screenshots) and sends it to the coordinator.
+- The coordinator gives the user the same recap, checked against the diff and with the merge status and next step, when an item is merged, ready for the user's merge, or blocked. It also reports decisions it needs and when an epic is ready for `main`.

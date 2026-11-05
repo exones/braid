@@ -62,7 +62,20 @@ When every item is done, open one PR from the epic branch into `main` with a sho
 
 ## Talking to the user
 
-Report when an item is merged, when you need a decision, and when the epic is ready for `main`. A few sentences: what happened, what's next, and whether they need to do anything. Link the PRs.
+The user mostly follows you, not the workers. When an item is merged, waiting for the user's merge, or blocked, give them a recap in this format, based on the worker's final report and checked against the diff:
+
+```markdown
+**<ID>: <title>** — merged | ready for your merge | blocked. PR: <link>
+
+**Done:** 1–5 bullets on what changed and what it means for the project.
+**Decisions:** choices made that the brief didn't settle, each with a one-line reason. "None" if none.
+**Deviations:** only if the work departed from the brief: what and why.
+**You:** only if the user must act: the exact steps.
+**Screenshots:** only for UI work: the worker's key screens.
+**Next:** the next item, or what you are waiting for.
+```
+
+Also tell the user, in a few sentences, when you need a decision and when the epic is ready for `main`.
 
 ## Limits
 

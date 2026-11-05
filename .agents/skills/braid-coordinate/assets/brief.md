@@ -1,7 +1,11 @@
 # <ID>: <title>
 
-Kind: story | task | spike. Tier: S | M | L. Expected size: about <N> lines in <K> files.
-Branch: `item/<NNN>-<id>-<slug>` at `<short sha>`. PR into: `epic/<NNN>-<slug>`. Result to: thread `<coordinator thread id>`.
+- Kind: story | task | spike.
+- Tier: S | M | L.
+- Expected size: about <N> lines in <K> files.
+- Branch: `item/<NNN>-<id>-<slug>` at `<short sha>`.
+- PR into: `epic/<NNN>-<slug>`.
+- Result to: thread `<coordinator thread id>`.
 
 ## Goal
 

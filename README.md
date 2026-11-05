@@ -65,7 +65,7 @@ pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a bra
 
 The script copies `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again. A folder of the same name that the script did not install is left alone unless `-Force` is given. `-Target` replaces the default folders.
 
-A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the `epics` folder, the required `ci` checks and the models per role. Start from the [template](.agents/skills/braid-coordinate/assets/braid-md.md); this repository's own [BRAID.md](BRAID.md) is an example. Add the repository as a T3 project and start the coordinator there.
+A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the `epics` folder, the required `ci` checks, how to `run` the app, and the models per role. Start from the [template](.agents/skills/braid-coordinate/assets/braid-md.md); this repository's own [BRAID.md](BRAID.md) is an example. Add the repository as a T3 project and start the coordinator there.
 
 ## CLI
 

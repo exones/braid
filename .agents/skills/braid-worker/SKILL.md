@@ -30,9 +30,23 @@ You are an engineer doing one task from a brief. Do it well, hand it back, and s
    - Still pending: end the turn.
    - A failure: read the failed log (`gh run view <run-id> --log-failed`), fix the cause, run the gate, push, and end the turn.
    - A failure you can't fix (infrastructure, permissions, outside your scope): tell the coordinator what is wrong and who can fix it.
-5. When every required check is green on your latest commit, call `unwatch_pull_request`, then send the coordinator one message with `t3_thread_send`: PR link, head commit, "checks green", and anything it should know. You're done.
+5. When every required check is green on your latest commit, call `unwatch_pull_request`, then write the final report below as your last chat message and send the same text to the coordinator with `t3_thread_send`, adding the head commit. You're done.
 
 If the coordinator later sends review findings, fix them on the same branch and PR and repeat steps 3–5.
+
+## Final report
+
+Plain language, for a person who didn't watch you work. Use the same format when you are blocked; then "Done" lists what got done and "You" or "Deviations" explains the blocker.
+
+```markdown
+**<ID>: <title>** — done | blocked. PR: <link>
+
+**Done:** 1–5 bullets on what changed and what it means for the project.
+**Decisions:** choices you made that the brief didn't settle, each with a one-line reason. "None" if none.
+**Deviations:** only if you departed from the brief: what and why.
+**You:** only if the user must act: the exact steps.
+**Screenshots:** only for UI work: the key screens, embedded as images. Start the app with `run` from `BRAID.md`.
+```
 
 ## Habits
 
