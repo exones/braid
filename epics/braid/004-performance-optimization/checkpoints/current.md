@@ -1,11 +1,11 @@
 # BRAID-004 current coordinator checkpoint
-Date: 2026-11-05. Role: coordinator. Task: C accepted; awaiting user choice on B before main integration.
-Root: C:/worktrees/agento/epic-braid-004-performance-optimization; branch epic/braid-004-performance-optimization; tip before this records commit e456883255a7f44d3cd2c8c2e9ea2caaa0371c7c.
-Accepted: A (PR22 merge e9a617f, reports/A-acceptance.md) and C (PR24 merge e456883, user exones 2026-11-05T12:02:49Z, parents bc4d41b then checked head 5a25b09; reports/C-acceptance.md).
-Skill authority for later items: external snapshot C:/Users/exon/AppData/Local/braid/skill-pins/e456883255a7f44d3cd2c8c2e9ea2caaa0371c7c; worker blob 85964c7b3ab9fdf2cc04db710dac17ce5686409d, coordinator blob 75f074aad323d72bbdff61b4574a701cc7dbd9a7, checker blob 3fe177e44a3280ad15ff67be4ffd6aed1f9f6abc matched the merge tree.
-Main sync: origin/main 1dd5cb7 is an ancestor of the epic; count 0, no sync merge needed.
-Epic 003: PR25 (epic/braid-003-worker-skill into main) is OPEN at bb367c8; its tip is not contained in this epic. This epic's main PR would carry epic 003's changes until PR25 merges.
-B: backlog, undispatched, no packet. No live worker, reviewer or trial. C item checkout clean and level with origin; retained.
-Checks: records-only gate against base e456883 before push. No source changes in this step.
-Blocker/owner: user decision. Either dispatch B (measurement spike, then review and human merge) or explicitly defer B to a later epic; then PR25 must merge into main before this epic's closing PR.
-Next: on "run B", write and commit assignments/B.md with the e456883 skill pin and launch one top-level worker. On "defer B", record the deferral, then after PR25 merges sync main into the epic, run final integration gates and a fresh epic review, write the final report/retro, and open the epic PR into main for human merge.
+Date: 2026-11-05. Role: coordinator. Task: sync main into the epic after epic 003 merged; then B decision and closure.
+Root: C:/worktrees/agento/epic-braid-004-performance-optimization; branch sync/braid-004-main-into-epic (switch back to epic/braid-004-performance-optimization after PR27 merges). Epic tip c773d3ad01092ee6a347ff5c740009a2bfaa5a05.
+Accepted: A (PR22 merge e9a617f, reports/A-acceptance.md) and C (PR24 merge e456883, reports/C-acceptance.md).
+Epic 003: PR25 merged into main by the user at f4606f4c5d047f562aac5c2fa9aa38fc23189d0d (2026-11-05T12:30:21Z). Main sync count was 49.
+Sync: merge commit 6e18c201eeae2f3555366a313a1f0c8b50576069 (parents c773d3a epic, f4606f4 main). One conflict in scripts/Verify.ps1, resolved as the union of the pr-proof, node-toolchain and workspace-binding fixture steps. Four skill files merged automatically with additive Test-PrProof guidance. Full npm run verify passed locally on the merge result. PR27 https://github.com/exones/braid/pull/27 targets the epic; this records commit sits on top of the merge.
+Skill authority: the e456883 pin covers C's adoption only. The sync changes the epic's skill files, so any later dispatch needs a fresh external pin at the merged epic tip.
+    10|B: backlog, undispatched, no packet. No live worker, reviewer or trial.
+Checks: PR27 hosted CI pending on its current head. Records gate against 6e18c20 before this push.
+Blocker/owner: user. Merge PR27 into the epic after green CI. Choose to run B (measurement spike) or defer it to a later epic.
+Next: verify PR27's merge commit and switch this worktree back to the epic branch. On "run B", pin skills at the merged tip, write and commit assignments/B.md, and launch one top-level worker. On "defer B", record the deferral, run final integration gates, launch a fresh-context final epic review, write the final report and retrospective, and open the epic PR into main for human merge.

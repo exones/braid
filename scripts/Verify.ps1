@@ -105,6 +105,13 @@ Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
   (Join-Path $repoRoot 'test/fixtures/install-policy/Test-InstallPolicy.ps1')
 )
 
+Write-Host "pr-proof: offline fixtures"
+Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
+  '-NoProfile',
+  '-File',
+  (Join-Path $repoRoot 'test/fixtures/pr-proof/Test-PrProof.ps1')
+)
+
 Write-Host "node-toolchain: PATH precedence, shared store, and failure fixtures"
 Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
   '-NoProfile',
