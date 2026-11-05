@@ -121,6 +121,11 @@ Use this wording. Adjust grammar to fit, but don't add sentences.
 
 ## Already decided
 
+- Review correction: require `BRAID.md` committed on the epic tip used to launch the worker,
+  not on the epic's original base; an authorized epic-only commit satisfies this. Ask for missing
+  role model entries. Sync moved `main` before the next launch, not after. Both template rows
+  must contain all nine cells, including UI and Threads. Keep existing word caps.
+
 - `in-review` is no longer a recorded status. "Ready for your merge" exists only in the recap.
 - About one coordinator commit per item is the target, not a quota. A blocker or a settled
   decision is committed when it happens.
