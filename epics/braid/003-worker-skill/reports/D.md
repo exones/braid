@@ -1,12 +1,13 @@
 # BRAID-003/D behavior proof
 
-The one focused recheck completed naturally. Its stdout contained the full AGENTS and pinned-skill text, the only file reads were the assigned checkpoint and simulated checks, the classification correctly rejected current readiness, and the subject files stayed unchanged. The three earlier probes stay as recorded, including their empty skill reads and probe 3's search. Phase F of the one guided trial is the local candidate: the extra canary is `BAD` and must fail on this branch while existing CI still passes. D is not accepted, reviewed, merged, or Done.
+The one focused recheck completed naturally. Its stdout contained the full AGENTS and pinned-skill text, the only file reads were the assigned checkpoint and simulated checks, the classification correctly rejected current readiness, and the subject files stayed unchanged. The three earlier probes stay as recorded, including their empty skill reads and probe 3's search. Phase F's extra canary failed on the current head, seen in the catch-up snapshot rather than a watch wake. Phase R changes only the canary bytes to `GOOD` plus LF and keeps the same success condition. Existing CI on F was still pending at that snapshot. D is not accepted, reviewed, merged, or Done.
 
 ## What changed
 
 - Assessed the finished recheck from `3101d8405e0b0eba0f3c2f11a719a77eba5d888e`: [D-recheck-001-coordinator.md](D-recheck-001-coordinator.md) and [recheck-001-trace.json](evidence/D/recheck-001-trace.json). Visible instruction text and a correct non-current classification are established for that controlled input. The earlier empty Reads and the probe 3 search remain historical limits. No second recheck is authorized.
 - Merged that exact published epic tip once. The merge parents are local `2591a5a8757134944be0c261257f17210c123741` and epic `3101d8405e0b0eba0f3c2f11a719a77eba5d888e`. Coordinator epic, current, and log files stay coordinator-owned.
-- Phase F adds `.github/workflows/d-trial-canary.yml` and [canary.txt](../validation/D/trial/canary.txt). The canary bytes are UTF-8 `BAD` plus one LF (`4241440A`). The extra job is branch-guarded. Existing `ci.yml` is unchanged. This local tree is the candidate. Hosted F proof does not exist yet.
+- Phase F added `.github/workflows/d-trial-canary.yml` and [canary.txt](../validation/D/trial/canary.txt) at `bf11570c483aae0c84e613266cd894f64e3324b3`. The canary bytes were `4241440A`. Pull request [23](https://github.com/exones/braid/pull/23) is open. The catch-up snapshot, not a watch wake, showed `Require canary GOOD` failing on both events because the bytes were `4241440A` rather than `474F4F440A`.
+- Phase R changes only those bytes to `474F4F440A`. The workflow success condition is unchanged. Existing `ci.yml` is unchanged. Hosted R proof does not exist yet. F CI success is not claimed from the pending snapshot.
 - The three serial subjects, the fixture rows, and the host-worktree adaptation remain below. The canary proposal text is unchanged. This report and `checkpoints/D.md` are the resume point.
 
 ## Why
@@ -17,15 +18,15 @@ The host accepts `existing_worktree` only for a project worktree listed by `t3_w
 
 ## Left for you
 
-No user action is needed. This worker owns the phase F push, the one pull request, the watch, and any in-scope canary repair. Independent review `D-worker-behavior-proof-review-001` and the human merge come after phase C proof. Acceptance and Done stay with the coordinator after that review and merge.
+No user action is needed. This worker owns the phase R push on the same pull request and watch. Independent review `D-worker-behavior-proof-review-001` and the human merge come after phase C proof. Acceptance and Done stay with the coordinator after that review and merge.
 
 ## Technical record
 
 - Item: [D](../backlog/D-worker-behavior-proof.md). Packet: [assignments/D.md](../assignments/D.md). Prerequisite: [I acceptance](I-acceptance.md). Planning matrix: [Behavioral validation design](planning.md#behavioral-validation-design).
 - Checkout: `C:/worktrees/agento/item-braid-003-d-worker-behavior-proof`. Branch: `item/braid-003-d-worker-behavior-proof`, attached. Origin: `https://github.com/exones/braid.git`. Upstream: none, as declared for this new branch. Launch HEAD: `da4232deece99110e0f3b3f5f5d80442409b3edf`. The index was clean. The untracked path at start was `epics/braid/003-worker-skill/validation/D/`.
 - Skill pin `d66843cfb23b1c5c3891732c458d30d2b077fae1`, source `C:/Users/exon/.codex/braid-pins/d66843cfb23b1c5c3891732c458d30d2b077fae1/.agents/skills/braid-worker/SKILL.md`, blob `13c3cf9679f6abb78d242840a80574abeb5ecf9d` (`git hash-object` matched). No product controller. Package 0.1.1, schema 1.
-- This file does not name its own commit. HEAD before the phase F commit is merge `d61058daa313f3f30976a4a0179fb00566915b63`. Push: none yet. Pull request: none yet. Base: `epic/braid-003-worker-skill` at frozen `3101d8405e0b0eba0f3c2f11a719a77eba5d888e`. The first push is `git push -u origin item/braid-003-d-worker-behavior-proof`.
-- Local probe versus hosted candidate: `npm run verify` on this tree is the local gate and does not execute the canary job. The hosted candidate is the phase F head after push. A dirty local probe is not that proof.
+- This file does not name its own commit. HEAD before the phase R commit is `bf11570c483aae0c84e613266cd894f64e3324b3`. Pull request: https://github.com/exones/braid/pull/23. Base: `epic/braid-003-worker-skill` at frozen `3101d8405e0b0eba0f3c2f11a719a77eba5d888e`. The same branch is pushed again. The existing watch stays registered.
+- Local probe versus hosted candidate: `npm run verify` on this tree is the local gate and does not execute the canary job. The hosted candidate is the phase R head after push. A dirty local probe is not that proof. F's hosted canary failure is recorded below. F CI was pending in the catch-up and is not marked successful here.
 - Frozen hosted set. F: workflow `D controlled canary`, job `d-trial-canary`, step `Require canary GOOD` fails; workflow `CI`, events `push` and `pull_request`, jobs `verify (ubuntu-latest)` and `verify (windows-latest)`, steps Install dependencies, Verify, and Upload packed tarball succeed. F artifact download is not required. R: that same CI set with full artifacts from `scripts/Test-PrProof.ps1` (`proofScope=current`), plus both events' latest canary attempts and named steps succeeding. Push source is R. Pull-request source is the merge-test whose parents are the frozen target, then R. C: remove the two temporary files only after that F failure and R success are on the pull request, then the standard CI set and full artifacts on the cleanup head. The canary is absent on C by design. Its required historical R success stays in the pull-request record.
 
 ### Questions
@@ -37,7 +38,7 @@ The fixture column is disposable-repository history. Live results are in [Live a
 | Matching checkout: one binding batch, then the owned edit | [Probe 1](../validation/D/raw/probe-1.md) | Head `b5611e64d3b78877aa9086b3f419c744bc032b0b`, tree `638fb914f973cb4497e0f9d7871615f2fe2c27b7`, branch `item/d-probe-match`, clean, no upstream | Note-only append on `ab3f0d7bb5bc8fa8dee82f20d07008888e9f42ac`. Note blob `acb7089928d9e14263169cf685a863f3bea8fdb0`. | Instruction text |
 | Wrong branch, head, and origin, plus a dirty user index | [Probe 2](../validation/D/raw/probe-2.md) | Head `1d8426337b36a661886155799d9e1b4674f725a1`, branch `topic/user-scratch`, origin `https://example.invalid/not-braid.git`, porcelain `MM user-owned/keep.txt` and `?? user-owned/untracked.txt` | Mismatch stop. Seeded index, worktree, untracked, HEAD, origin, and deps hashes preserved. Note absent. | Stale dependency Q. Instruction text |
 | Resume after a completed push and an open PR, with stale, pending, failed, cancelled, and missing checks | [Probe 3](../validation/D/raw/probe-3.md) | Head `11308ef31db813719c72d67a0edd578f749f9835`, parent `330585f37e60d093b7e019494e55730f44b25853`, two commits, clean | Five rows match the simulated file and the return is nonterminal. Search reached the oracle and setup notes. | Clean blinding. Live pull request and watch. Instruction text |
-| Same worker repairs one in-scope failure and returns on current-head green | [Trial packet](../assignments/D-trial-001.md) | The proposal did not add `.github/` | Phase F candidate. Canary bytes `BAD` plus LF. Hosted failure not observed yet | Repair, watch, and phase C |
+| Same worker repairs one in-scope failure and returns on current-head green | [Trial packet](../assignments/D-trial-001.md) | The proposal did not add `.github/` | F head `bf11570c483aae0c84e613266cd894f64e3324b3` failed `Require canary GOOD` on push and pull_request. R candidate bytes are `GOOD` plus LF. | R hosted proof and phase C |
 
 Comparison commands, blob identities, and empty measurement cells are in [observations](../validation/D/oracle/observations.md). Recorded fixture JSON is [setup-observation.json](../validation/D/setup-observation.json).
 
@@ -50,6 +51,7 @@ Comparison commands, blob identities, and empty measurement cells are in [observ
 - Those fixture and docs-gate passes preceded the ordinal1 interrupt below. They are not a run of this commit. The adaptation resume reconciliation was short `git status` (19 owned paths staged) and `git diff --cached --check` with no whitespace errors.
 - Assessment phase: `git diff --check` exited 0. The edited Markdown has no CR bytes and no trailing whitespace. Full `npm run verify` and the docs gate were not rerun. Skill content was not edited, so external skill validators were not run.
 - Phase F local gate: `npm run verify` exited 0. Node v26.13.0, npm 11.20.0, PowerShell 7.6.9. Docs gate passed. Tests 40 passed and 0 failed. Package proof sha256 `16bb1e4957258317830c2d78cdaaeed116cf46f479dec99c96fc30aefdb7fa36`, source revision `d61058daa313f3f30976a4a0179fb00566915b63`, worktree-dirty true, candidate false. That is a pre-commit probe. Skill content is not edited, so external skill validators were not run.
+- Phase R local gate: `npm run verify` exited 0. Node v26.13.0, npm 11.20.0, PowerShell 7.6.9. Docs gate passed. Tests 40 passed and 0 failed. Package proof sha256 `16bb1e4957258317830c2d78cdaaeed116cf46f479dec99c96fc30aefdb7fa36`, source revision `bf11570c483aae0c84e613266cd894f64e3324b3`, worktree-dirty true, candidate false. That is a pre-commit probe. Skill content is not edited, so external skill validators were not run.
 
 ### Intervention
 
@@ -124,14 +126,23 @@ The coordinator verified the isolated HEAD, parent, clean status, stimulus hashe
 
 ### Trial phase F
 
-Packet [D-trial-001.md](../assignments/D-trial-001.md). One branch `item/braid-003-d-worker-behavior-proof`. One pull request into `epic/braid-003-worker-skill`, not opened by this commit. Workflow name `D controlled canary`. Permissions `contents: read`. One Ubuntu job named `d-trial-canary`. Checkout pin `3d3c42e5aac5ba805825da76410c181273ba90b1`, `persist-credentials: false`, shell `pwsh`. Push is limited to this item branch. `pull_request` targets only the epic branch. Both events are path-filtered to the workflow and `canary.txt`. The job `if` also requires that head branch. There is no schedule, `pull_request_target`, or secret. Steps are Checkout, `Record canary source`, and `Require canary GOOD`. Success bytes are `474F4F440A`. Any other bytes, including a missing file, exit 1. The seeded bytes are `4241440A`.
+Packet [D-trial-001.md](../assignments/D-trial-001.md). Pull request https://github.com/exones/braid/pull/23. Head `bf11570c483aae0c84e613266cd894f64e3324b3`. The watch returned `watching: true`. The failure below is the one catch-up snapshot, not a watch wake. Workflow name `D controlled canary`. Job `d-trial-canary`. Success bytes remain `474F4F440A`.
 
-Phase F local `npm run verify` is recorded under Checks after it runs. Hosted run ids are not invented here.
+| Event | Run | Attempt | Job | Failed step | Checked-out SHA |
+| --- | --- | --- | --- | --- | --- |
+| push | [42018659597](https://github.com/exones/braid/actions/runs/42018659597) | 1 | 127215502534 | Require canary GOOD | `bf11570c483aae0c84e613266cd894f64e3324b3` |
+| pull_request | [42018669987](https://github.com/exones/braid/actions/runs/42018669987) | 1 | 127215536552 | Require canary GOOD | `a8968c26f4c9a1fd3f0967161a59311c835650b2` |
 
-Next action after this commit: push the named branch, open one pull request, link it, watch it, and take one catch-up snapshot. A pending snapshot ends the turn. A finished canary failure on that snapshot is diagnosed from the current-head run before any repair.
+Both logs say `Canary bytes are 4241440A; required exactly UTF-8 GOOD plus one LF (474F4F440A).` and exit 1. Checkout and `Record canary source` succeeded. The pull_request ref was `refs/pull/23/merge`. Its recorded base is `3101d8405e0b0eba0f3c2f11a719a77eba5d888e` and its recorded head is `bf11570c483aae0c84e613266cd894f64e3324b3`. The commit API lists those parents in that order. The log line `parents=` is empty on both events; the shallow checkout did not resolve `HEAD^@`. F CI runs 42018659429 (push) and 42018669998 (pull_request) were still pending in that snapshot. Their success is not claimed here, and their archives were not downloaded.
+
+### Trial phase R
+
+This commit changes only [canary.txt](../validation/D/trial/canary.txt) from `4241440A` to `474F4F440A`. The workflow file and its success condition stay as published. Phase R local `npm run verify` is the pre-push probe. Hosted R run ids are not invented here. The existing watch is not registered again.
+
+Next action after this commit: push the same branch, link pull request 23, and end the turn if the new head's checks are pending. A real watch event drives the R proof. The F/R comment is posted only after that proof, and phase C comes after the comment.
 
 ### Proposed status
 
-Recheck evidence is merged from the frozen epic tip and assessed here. Phase F is the local candidate with the failing canary and is not yet pushed. Suggested epic note, for the coordinator to write: recheck completed naturally with full stdout, allowed reads, a correct non-current classification, and unchanged files; historical probe limits remain; guided trial phase F is in progress on one item pull request. D is not accepted, reviewed, merged, or Done.
+Phase F's canary failure is observed. Phase R is the local repair candidate and is not yet hosted-green. Suggested epic note, for the coordinator to write: recheck remains as previously recorded; guided trial F failed as designed on head `bf11570c483aae0c84e613266cd894f64e3324b3`; repair is in progress on pull request 23. D is not accepted, reviewed, merged, or Done.
 
-Next action is this worker's phase F push and watch. The coordinator does not repair the canary and does not merge this branch. Independent review follows phase C.
+Next action is this worker's phase R proof. The coordinator does not repair the canary and does not merge this branch. Independent review follows phase C.
