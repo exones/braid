@@ -76,6 +76,7 @@ Each item needs its local proof, PR into the epic, complete current-head Windows
 - 2026-11-05, coordinator: A adopts the unchanged checkout worker skill at `7e7ea5a9cb60fa3f56c79bf44ff389e1e7442bf8`, path `.agents/skills/braid-worker/SKILL.md`. A does not edit skills. Capability check confirmed the requested Cursor `grok-4.7`, high reasoning and 500K context route. The filled packet freezes proof and continuation before launch.
 - Future additions are open. No input is needed to preserve or review this initial plan.
 - 2026-11-05, user: analyze repeated Git startup checks and add a backlog item. Added C for a local reusable checker plus explicit role entry instructions. Keep required verification, avoid Node/network setup, distinguish process time from agent/context overhead, and leave the current worker unchanged. This addition is planning, not a new dispatch.
+- 2026-11-05, user: requested a dummy worker with a null task to measure startup overhead and refine C. Authorized [read-only probe 001](assignments/C-startup-probe-001.md) in a separate host-bound workspace using the normal worker route. It stops at reading `package.json` engines.node, performs no implementation/CI/PR work, and leaves A's sole implementation ownership intact. This is an observation, not dispatch of C implementation or a replay of BRAID-003/D.
 
 These decisions live here during planning. A carries lasting toolchain behavior into `docs/decisions.md` through its reviewed item PR, rather than a coordinator editing product documentation.
 

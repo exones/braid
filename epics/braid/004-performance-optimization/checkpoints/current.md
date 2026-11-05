@@ -1,5 +1,5 @@
 # BRAID-004 current coordinator checkpoint
-Date: 2026-11-05. Role: coordinator. Task: A implementation; await the original worker's green result.
+Date: 2026-11-05. Role: coordinator. Task: preserve A implementation ownership; launch user-requested C null startup observation.
 Root: C:/worktrees/agento/epic-braid-004-performance-optimization; branch epic/braid-004-performance-optimization.
 Dispatch context: 8610548f9792072e2e70bb56f0d12e1783a9015e committed/pushed packet; origin/main 1dd5cb735c4614b75d96c0694c8c6d0a939f2605.
 Sync: main commits missing from epic = 0; epic 003 4631970cc6e7ac6eec1e2da9dc3b95a8a502b579 inherited by explicit authorization.
@@ -13,5 +13,6 @@ Proof: focused offline fixture plus npm run verify; push/PR Windows+Ubuntu jobs/
 Continuation: worker owns PR/watch/repair and sends one green result per head to this coordinator; no parent watch.
 Checks: assignment/binding gates passed; C planning records gate passed (5 paths, 256 tracked text files), including Markdown/text. No worker local/hosted proof accepted yet.
 Added: backlog/C-git-startup-check.md and reports/git-startup-analysis.md; one offline shared Git checker plus role entry instructions, queued without altering A.
+Probe: assignments/C-startup-probe-001.md, read-only null worker; not launched yet. Commit packet before host checkout; expected branch probe/braid-004-c-startup-001, normal Grok high/500K route.
 Blockers: none; B awaits A's reviewed human merge; no merge/release authority.
-Next: await A result without polling; inspect returned root/branch/head/PR and complete proof, then assign independent review. Worker owns pending CI and repair.
+Next: commit/push probe packet, launch once and record binding, then consume its result/tool timeline to refine C. A retains PR/CI/repair; inspect its green return when sent.
