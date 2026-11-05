@@ -15,7 +15,7 @@ Fresh-context probes need raw inputs whose Git identity is already known. The su
 
 ## Left for you
 
-No user action is needed. The coordinator runs the fixture command in the technical record, requires the recorded heads, and launches probe 1 only. Probe 2 starts after probe 1's Git output is saved. Probe 3 starts after probe 2's Git output is saved. Each subject receives only its raw file. After the three transcripts, resume this D worker. D ownership stays here. Status remains local preparation, with acceptance, review, merge, and Done still ahead.
+No user action is needed. The disposable repositories from the native-cleanup `-Keep` run remain in place. The coordinator binds probe 1 only, at `C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/probe-1`. Probe 2 starts after probe 1's Git output is saved. Probe 3 starts after probe 2's Git output is saved. Each subject receives only its raw file. After the three transcripts, resume this D worker. D ownership stays here. Status remains local preparation, with acceptance, review, merge, and Done still ahead.
 
 ## Technical record
 
@@ -49,7 +49,7 @@ Ordinal1 replayed initial entry after fixture success. The coordinator stopped t
 
 ### Coordinator dispatch
 
-From any directory, without `-Record`:
+Already executed once after the native-cleanup correction, with the repositories retained. Do not run it again before probe 1. Reference command, without `-Record`:
 
 ```powershell
 pwsh -NoProfile -File C:\worktrees\agento\item-braid-003-d-worker-behavior-proof\epics\braid\003-worker-skill\validation\D\Invoke-DFixtures.ps1 -Keep
@@ -71,8 +71,12 @@ Do not launch this now. The coordinator commits the concrete trial packet first.
 
 Scripted Git setup does not prove model behavior. Probe 3 does not contact GitHub. The fixture row is two setups, matching signatures, elapsed 9455 ms, and no subject action. No performance threshold is defined. Watch survival, unassisted repair, and exactly-once delivery stay unproved. G's accepted fact remains a minimal positive watch-wake lifecycle.
 
+### Native cleanup correction
+
+After preparation snapshot `1cd1018d4ba749830be0afe3ecf5020c68eaa916`, cleanup uses `Remove-Item -LiteralPath` after the existing absolute-root and marker guards. One `-Keep` run, without `-Record`, exited 0. Output: `PASS rounds=2 preservation=pass removed=False elapsedMs=9420`, with probe 1 `b5611e64d3b78877aa9086b3f419c744bc032b0b`, probe 2 `1d8426337b36a661886155799d9e1b4674f725a1`, and probe 3 `11308ef31db813719c72d67a0edd578f749f9835` parent `330585f37e60d093b7e019494e55730f44b25853`. `git diff --check` exited 0 and the PowerShell parser reported 0 errors. Retained root: `C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures`, including `probe-1`, `probe-1-origin.git`, `probe-2`, and `probe-3`. The coordinator has not executed cleanup or attempted binding.
+
 ### Proposed status
 
 D preparation is committed locally and unpushed. Suggested epic note, for the coordinator to write: preparation committed locally, probes not run. D is not accepted, reviewed, merged, or Done.
 
-Next coordinator action: run the `-Keep` command, confirm the three heads, and dispatch probe 1 under the binding constraint above.
+Next coordinator action: bind probe 1 to the retained repository `C:/Users/exon/AppData/Local/Temp/braid-003-d-fixtures/probe-1` and return any actual host constraint. No binding outcome is claimed. Do not recreate or delete the fixtures first.

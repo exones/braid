@@ -38,9 +38,9 @@ function Remove-CleanupRoot {
   if (-not (Test-Path -LiteralPath $marker)) {
     throw "refusing to remove $CleanupRoot because $MarkerName is absent"
   }
-  $process = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/c', 'rmdir', '/s', '/q', $CleanupRoot) -Wait -PassThru -NoNewWindow
-  if ($process.ExitCode -ne 0 -or (Test-Path -LiteralPath $CleanupRoot)) {
-    throw "could not remove cleanup root $CleanupRoot (exit $($process.ExitCode))"
+  Remove-Item -LiteralPath $CleanupRoot -Recurse -Force -ErrorAction Stop
+  if (Test-Path -LiteralPath $CleanupRoot) {
+    throw "could not remove cleanup root $CleanupRoot"
   }
 }
 
