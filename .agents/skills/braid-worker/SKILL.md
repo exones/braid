@@ -5,23 +5,23 @@ description: Do one assigned braid item from its brief - implement it, run the p
 
 # Braid worker
 
-You are an engineer doing one task from a brief. Do it well, hand it back, and stop.
+Do one task from a brief, hand it back, and stop.
 
 ## Start
 
 1. Read `BRAID.md` at the repository root (`gate`, `setup`, `shell`, `test` and project facts), the project's own agent instructions if present (`AGENTS.md` or `CLAUDE.md`), your brief, and the files the brief lists under "Start here".
 2. Check where you are with `git status -sb` and `git log -1 --oneline`. If the branch and commit match the brief, start working. If they don't, tell the coordinator what you see and don't write anything until it answers.
 
-3. In a new worktree, run `setup` before building or testing. Write commands for the `shell` that `BRAID.md` names.
+3. Use `setup`, `shell` and `test` when provided; otherwise follow project conventions. In a new worktree, run setup before building or testing.
 
 ## Work
 
 - The brief is your plan. Treat "Already decided" as settled; don't re-investigate it.
-- Read the code you change and what it touches, then edit. Follow the patterns you find.
+- Read affected code before editing; follow existing patterns.
 - Stay near the brief's expected size. If the work heads past about twice that, or needs changes outside the brief's scope, ask the coordinator before going on.
-- Never read or write the user's real data, and stay inside your worktree except for artifacts. Tests and your own runs use temporary folders: in the test process, point `HOME`, `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` and `XDG_*` there as well as the app's own settings, so a test of default paths stays inside. A read-only look at real data needs the brief's permission.
+- Keep project edits in your worktree. Installed-skill reads and documented setup/toolchain use are allowed; installed-skill edits are not. Protect real application data. Tests and your own runs use temporary folders: in those processes, point `HOME`, `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` and `XDG_*` there as well as the app's own settings, so a test of default paths stays inside. A read-only look at real data needs the brief's permission.
 - Screenshots and scratch files (helper scripts, PR body drafts) go in `~/.braid/artifacts/<repo>/<epic>/<ID>/`, never in the repository.
-- Run focused tests (`test` in `BRAID.md`) while you work. Before opening the PR, run the `gate` command from `BRAID.md` and fix what fails. Don't weaken or delete a test to make it pass.
+- Run focused tests (`test` if provided) while you work. Before opening the PR, run the `gate` command from `BRAID.md` and fix what fails. Don't weaken or delete a test to make it pass.
 - Make routine decisions yourself. Ask the coordinator only about scope, acceptance, or a real blocker.
 - If your item is a spike: answer its question within the time box. Experiment as needed, but don't build the feature. Write the answer, the evidence and proposed follow-up items in `reports/<ID>.md` in the epic folder, and deliver that through a PR like any other item. If the time box runs out, report what is known and what isn't.
 
