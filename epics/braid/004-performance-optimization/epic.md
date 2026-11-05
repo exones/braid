@@ -1,6 +1,6 @@
 # Epic BRAID-004: Performance optimization
 
-Owner: user. Coordinator: Sol High. Status: ready.
+Owner: user. Coordinator: Sol High. Status: in-progress.
 Release target: none; development workflow improvements. Controller/schema: manual records; no controller run started.
 
 Integration branch: `epic/braid-004-performance-optimization`. Initial base: `4631970cc6e7ac6eec1e2da9dc3b95a8a502b579` on `origin/epic/braid-003-worker-skill`. The user explicitly authorized branching from epic 003 instead of main and requested its latest committed state be merged on 2026-11-05. Fetch and merge found the current branch already at that tip. Main observed at `1dd5cb735c4614b75d96c0694c8c6d0a939f2605`. Untracked epic 003 maintenance records were left in their checkout.
@@ -44,7 +44,7 @@ Earlier chat estimated checkout sizes and CI/local timings. Those are motivation
 
 | ID | Kind | Outcome | Depends on | Owner | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| A | story | [Reuse a compatible or shared versioned Node toolchain](backlog/A-shared-node-toolchain.md) | None | Implementation worker, not dispatched | ready | Source analysis above; implementation proof pending |
+| A | story | [Reuse a compatible or shared versioned Node toolchain](backlog/A-shared-node-toolchain.md) | None | Grok 4.7 High/500K implementation worker | in-progress | [Assignment](assignments/A.md); implementation proof pending |
 | B | spike | [Measure remaining setup and verification overhead](backlog/B-verification-cost.md) | A reviewed and human-merged into this epic | Research worker, not dispatched | backlog | Measurement pending |
 
 One implementation worker at a time. A owns toolchain scripts, related tests and setup docs; B owns its measurement harness/evidence and recommendation. More user items receive the next unused ID, starting with C; later reprioritization preserves IDs. See [ID rules](../../../docs/agile-workflow.md#backlog-item-ids).
@@ -66,7 +66,8 @@ Each item needs its local proof, PR into the epic, complete current-head Windows
 - 2026-11-05, user: prefers a per-machine toolchain supporting several versions, plus reuse of a suitable PATH Node. A implements these together as one usable outcome.
 - 2026-11-05, coordinator: use a per-user store by default, since installation must not require administrator rights. `BRAID_TOOLCHAIN_DIR` overrides its root. Version/platform keys, validation and publication behavior are settled in A.
 - 2026-11-05, coordinator: retain existing local/full hosted gates. B measures before proposing a split; any relaxation needs the user's explicit decision. A does not wait for that research.
-- 2026-11-05, user: create the epic now and add other items later. Current authorization is planning only; no implementation/review thread or worker packet is created.
+- 2026-11-05, user: initially requested planning and later additions; the later request to implement the epic authorizes staged delivery. A is assigned first; B retains its reviewed-human-merge dependency. No automatic merge or publication is authorized.
+- 2026-11-05, coordinator: A adopts the unchanged checkout worker skill at `7e7ea5a9cb60fa3f56c79bf44ff389e1e7442bf8`, path `.agents/skills/braid-worker/SKILL.md`. A does not edit skills. Capability check confirmed the requested Cursor `grok-4.7`, high reasoning and 500K context route. The filled packet freezes proof and continuation before launch.
 - Future additions are open. No input is needed to preserve or review this initial plan.
 
 These decisions live here during planning. A carries lasting toolchain behavior into `docs/decisions.md` through its reviewed item PR, rather than a coordinator editing product documentation.
