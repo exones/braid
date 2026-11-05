@@ -9,4 +9,4 @@ Skill: external installation C:/Users/exon/.codex/braid-pins/d30e3a93a2a3690934d
 Proof: full artifact mode required for I; worker owns own PR/watch/repair. No PR or parent watch at dispatch.
 Checks: direct user-authorized Test-CoordinatorRecordsGate implemented here, nine focused cases passed; scope plus Markdown/text, no full suite. See reports/coordinator-records-gate.md.
 Blockers: none. Unrelated untracked maintenance evidence untouched; status only in epic table; D awaits I's reviewed human merge.
-Next: commit/push directly authorized helper/rule and records, notify I of revision, then await original I result without polling. Records addition withdrawn; I continues normal work.
+Next: await original I result without polling. Direct helper/rule pushed fcea930; completion message steered same ordinal1 via braid003-i-records-gate-direct-complete-001. I extra assignment withdrawn.
