@@ -11,6 +11,7 @@ Binding: C:/worktrees/agento/item-braid-004-a-shared-node-toolchain; attached it
 Binding message: braid004-a-binding-001 steered same ordinal 1; no acknowledgment requested; worker retains assignment at dispatch context.
 Proof: focused offline fixture plus npm run verify; push/PR Windows+Ubuntu jobs/steps/uploads and tarball digest/provenance required.
 Continuation: worker owns PR/watch/repair and sends one green result per head to this coordinator; no parent watch.
-Checks: assignment records gate passed (4 paths, 254 tracked text files); binding records require the same gate before push. No worker local/hosted proof yet.
+Checks: assignment/binding gates passed; C planning records gate passed (5 paths, 256 tracked text files), including Markdown/text. No worker local/hosted proof accepted yet.
+Added: backlog/C-git-startup-check.md and reports/git-startup-analysis.md; one offline shared Git checker plus role entry instructions, queued without altering A.
 Blockers: none; B awaits A's reviewed human merge; no merge/release authority.
 Next: await A result without polling; inspect returned root/branch/head/PR and complete proof, then assign independent review. Worker owns pending CI and repair.

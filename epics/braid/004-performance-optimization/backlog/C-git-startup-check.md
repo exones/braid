@@ -1,0 +1,56 @@
+# C: Use one reusable Git startup check
+
+Kind: story. Epic: [BRAID-004](../epic.md). Owner: implementation worker, not dispatched.
+Depends on: A's reviewed human merge for sequential delivery and shared `scripts/Verify.ps1` ownership; no functional dependency on B.
+Item status lives only in the epic backlog table.
+
+## Read first
+
+Read [AGENTS.md](../../../../AGENTS.md), the eventual filled packet, [epic analysis and decisions](../epic.md#analysis), and [current checkpoint](../checkpoints/current.md). Relevant authorities: [worker initial and resumed entry](../../../../.agents/skills/braid-worker/SKILL.md#initial-entry-context-and-checkout), the [packet Git contract](../../../../.agents/skills/braid-worker/assets/assignment-packet.md), [workspace binding rules](../../../../.agents/skills/braid-coordinate/references/delivery.md#workspaces), [review template](../../../../.agents/skills/braid-coordinate/assets/review.md), [review conventions](../../../../docs/agile-workflow.md#review-gates-and-indexing), and [stage 2 doctor boundary](../../../../docs/roadmap.md#bootstrap-rules).
+
+Planning evidence is [the Git startup analysis](../reports/git-startup-analysis.md). Earlier [startup-efficiency work](../../../reports/worker-startup-efficiency.md) removed redundant context-reading requirements; do not redo that work. BRAID-003 [D's behavior trial](../../003-worker-skill/backlog/D-worker-behavior-proof.md) already measures broader startup/recovery behavior; this item supplies the missing shared check and proves its bounded entry path, not that entire trial.
+
+## Value and evidence
+
+Workers, reviewers and coordinators should invoke a maintained check instead of inventing roughly the same Git commands and interpreting them anew. Keep independent checkout verification and preserve user work. The screenshot supplied on 2026-11-05 shows a batched Git check followed by several policy/context searches. Its displayed elapsed time includes other activity and is not a Git-command benchmark.
+
+## Scope and settled design
+
+1. Add `scripts/Test-WorkspaceBinding.ps1`, using PowerShell and local Git only. It needs neither Node, npm dependencies, GitHub credentials nor a network connection. One script invocation runs a bounded set of explicit native Git reads and reports the comparison; it need not reduce all facts to one Git subprocess.
+2. Accept explicit expected values through a small versioned JSON contract (`-ContractPath`) and the actual checkout (`-RepositoryRoot`). Do not parse arbitrary Markdown, infer expectations from observed Git state, or create a second execution ledger. Required expectations identify absolute host-bound root, attached branch, full expected current HEAD, origin fetch/push identity, upstream state (explicitly absent or an exact tracking ref), and clean versus an explicitly described dirty/index state. Specify the minimal schema and literal invocation in the packet template. Launch-only values are supplied after the host returns them; do not guess roots or put a packet's own future commit SHA in it.
+3. Validate real repository root, attached branch, full HEAD, origin and upstream configuration, and index/worktree status including nonignored untracked paths. Use structured argument lists and NUL-safe Git output so spaces, Unicode, renames and unusual filenames are not misparsed. Report root/branch/head mismatches and command/input failures without treating failed Git reads as empty success. Compare canonical Windows paths with correct case/separator behavior, but do not accept a different linked worktree merely because it shares the common Git directory. Do not equate arbitrary remote URLs by broad string normalization.
+4. Emit one schema-versioned JSON result on stdout: outcome, expected/actual facts, field-level mismatches, local command failures, check timestamp, and phase. Optional short human diagnostics use stderr. Exit 0 for a match, 1 for a mismatch, 2 for invalid input or failed inspection. Handle expected no-upstream explicitly. Diagnostics must not expose credentials embedded in a remote URL.
+5. Initial entry compares the supplied dispatch HEAD and initial dirty/index contract. Resume uses the checkpoint's expected current revision and owned changes, not the original launch HEAD; owned implementation commits or a declared missing upstream are not defects. Review entry distinguishes the exact candidate being reviewed from the commit supplying the review packet. Coordinator entry uses its own current epic contract rather than a worker's dispatch contract. Dirty-state matching is evidence of the declared state, not proof of authorship or permission to stage someone else's work. Unexpected changes remain visible and stop affected writes.
+6. A match leads directly to the packet's named first useful action. A mismatch leads to focused reconciliation of those fields only. The checker never fetches, checks hosted PRs, installs tools, repairs upstreams, lists unrelated branches/history, switches branches, stages, cleans, resets, commits, writes `.braid/` or mutates any repository. A result is a time-bounded observation, not durable authorization for later mutations; detect branch/HEAD movement during inspection and require recheck after known relevant changes or interrupted effects.
+7. Integrate the invocation into future worker/coordinator/reviewer packets and relevant entry instructions. For reviewer setup, supply exact policy anchors, packet/candidate revisions and first source path rather than leaving agents to search for them. Retain required independent evidence reading; do not bundle or silently waive it. Avoid adding another overlapping startup handbook. Permit the equivalent one-batch manual check when the selected pinned helper is unavailable, naming the reason and preserving the same facts; do not download it or rerun a successful manual check just to obtain a helper result.
+8. Keep helper provenance explicit: use a named accepted revision. C must run under an externally pinned pre-C worker skill because it edits skills; its candidate helper tests are not independent acceptance of its own execution environment. Adopt changed skills/helper only for later assignments after the coordinator records that adoption. Do not alter A's running packet or any existing review.
+
+## Non-goals
+
+No removal of checkout checks, remote freshness/merge/protection checks, required context or independent review. No implementation of product `braid doctor`, dispatch, durable ownership/state, automatic Git recovery, generic context indexing, agent monitoring, or a new toolchain installer. The script is a local maintenance helper that stage 2 doctor may reuse later; it is not a delivered product command. CI/current-head/diff-scope checks remain separate gates.
+
+## Acceptance criteria
+
+1. Matching worker, coordinator and reviewer contracts each produce one successful structured result with one invocation and no setup/network dependency. Report the actual bounded Git reads, not an unmeasured claim that Git is faster.
+2. Offline disposable-repository fixtures cover wrong root/linked worktree, detached/wrong branch, wrong HEAD, absent/wrong origin, fetch/push mismatch, expected absent/present/mismatched upstream, staged/unstaged/untracked/unmerged state, spaces/Unicode/renames, malformed/incomplete contracts, failed Git calls and observed HEAD/branch drift. Failures produce the declared exit/result and preserve all source/index/config/ref bytes and user files.
+3. A declared resumed head and dirty state pass without rewinding to launch; an unexpected dirty state fails without cleanup. Review tests do not confuse the candidate SHA with a later packet/context SHA. Missing checks or command errors cannot count as a match.
+4. Worker, reviewer and coordinator entry examples use exact supplied contracts and context anchors, continue after a match and reconcile only mismatches. Record one bounded fresh-context worker entry and one reviewer entry observation when host routing permits; stop the observation at the named first useful source action. Report reads, invocations and elapsed segments separately. If only scenario/fixture evidence is available, say so; do not claim demonstrated agent speedup or universal behavior.
+5. The report distinguishes helper process time, command-construction/interpretation turns, context reading and substantive work. No before/after percentage or hard elapsed-time target without comparable measurements. The screenshot's 3m10s is not an acceptance baseline.
+6. Focused fixtures, full local verification, required current-head Windows/Linux CI and independent review pass. Existing verification, ownership, host binding, human merge and released-controller rules are retained.
+
+## Implementation tasks and ownership
+
+- [ ] Implement the helper and document its small contract/result schema beside the script or in an existing contributor guide; use the same contract in examples and fixtures.
+- [ ] Add `test/fixtures/workspace-binding/Test-WorkspaceBinding.ps1` and wire it into `scripts/Verify.ps1`. Assert read-only behavior with before/after repository state; use disposable roots, never live agent worktrees.
+- [ ] Update worker/coordinator skill entry sections, worker assignment and review templates, and `docs/agent-handoff.md`/README contributor usage only where needed. Put lasting decisions in `docs/decisions.md` through this reviewed item PR. Do not turn README into a dashboard or change the broader roadmap.
+- [ ] Record focused scenario/fresh-context observations and limits in `validation/C/` and the item report. Honor one implementation worker and host rules; any observation thread is explicitly scoped in C's packet, not an additional implementation worker.
+
+Worker owns the helper/fixture, Verify integration, scoped skills/templates/contributor docs and its `checkpoints/C.md`, `reports/C.md`, `validation/C/`. Coordinator owns epic/backlog/assignments/shared checkpoint/log. Coordinator supplies the external pinned execution skill and freezes observations/routing before dispatch. Keep A's pin and original assignments intact.
+
+## Verification, review and delivery
+
+Local: `pwsh -NoProfile -File test/fixtures/workspace-binding/Test-WorkspaceBinding.ps1`, then `npm run verify`. Run relevant external skill validators separately and report availability/results. No Node bootstrap is needed merely to run the helper; full repository gates retain the supported runtime/dependencies.
+
+Use `item/braid-004-c-git-startup-check` from the accepted epic tip, with one PR into `epic/braid-004-performance-optimization`. Freeze push/pull_request Windows/Ubuntu jobs, required install/Verify/upload and artifact requirements in the filled packet. Independent review checks safety, schema/error handling, resume/candidate semantics, unchanged gates and actual startup observations. First pass name: `C-git-startup-check-review-001`; follow [review conventions](../../../../docs/agile-workflow.md#review-gates-and-indexing).
+
+Done requires the reviewed human merge into the epic and an acceptance record. No implementation is launched by this backlog-addition request. Follow [report format](../../../report-format.md); return proposed shared status and stop after C.

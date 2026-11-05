@@ -20,10 +20,11 @@ The epic can accept more performance items later. Its initial scope addresses to
 3. Different selected pins occupy different directories without replacing another branch's runtime. Concurrent or interrupted installs never expose a partial installation as ready.
 4. Archive checksum verification, engine requirements, npm install policy, offline verification, packed-install proof, and current-head hosted evidence retain their acceptance intent.
 5. A bounded timing report separates cold setup, warm resolution, dependency installation, documentation checks, and full verification. It recommends any further change using observations, with limits, rather than assumed savings.
+6. Workers, reviewers and coordinators can invoke one shared offline Git binding check, receive explicit mismatches, and proceed to their named first action after a match. Initial/resumed/candidate revisions remain distinct and unexpected user changes are preserved.
 
 ## Scope and non-goals
 
-Initial scope: a shared versioned Windows Node store, PATH-first resolution, matching setup documentation and regression fixtures, then measurement of verification overhead.
+Initial scope: a shared versioned Windows Node store, PATH-first resolution, matching setup documentation and regression fixtures, then measurement of verification overhead. The user added reusable Git startup verification and focused entry instructions as C on 2026-11-05.
 
 No system-wide Node upgrade, runtime-version change, shared `node_modules`, dependency-install shortcut, cache eviction, existing-worktree cleanup, release, or publication. Keep `npm ci` per checkout. The install-policy fixture and tarball installation are acceptance proof, not disposable setup. CI-first verification and reduced local gates are proposals requiring a later explicit acceptance-policy decision; this epic does not adopt them.
 
@@ -40,18 +41,23 @@ Source inspection at the initial base establishes:
 
 Earlier chat estimated checkout sizes and CI/local timings. Those are motivation, not an acceptance baseline: B records fresh measurements with exact revisions. New agents should consume these source findings instead of repeating the original investigation.
 
+[Git startup analysis](reports/git-startup-analysis.md) distinguishes necessary local identity/status checks from repeated command construction and context discovery. The worker policy already requires one batch; C supplies its missing executable helper and covers reviewer/coordinator entry. The supplied screenshot's total elapsed time does not measure Git-command time. Broader BRAID-003/D behavioral proof and future product doctor remain separate.
+
 ## Features and prioritized backlog
 
 | ID | Kind | Outcome | Depends on | Owner | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | A | story | [Reuse a compatible or shared versioned Node toolchain](backlog/A-shared-node-toolchain.md) | None | Grok 4.7 High/500K implementation worker | in-progress | [Assignment](assignments/A.md); implementation proof pending |
 | B | spike | [Measure remaining setup and verification overhead](backlog/B-verification-cost.md) | A reviewed and human-merged into this epic | Research worker, not dispatched | backlog | Measurement pending |
+| C | story | [Use one reusable Git startup check](backlog/C-git-startup-check.md) | A reviewed and human-merged for sequential ownership; independent of B | Implementation worker, not dispatched | backlog | [Analysis](reports/git-startup-analysis.md); no implementation yet |
 
-One implementation worker at a time. A owns toolchain scripts, related tests and setup docs; B owns its measurement harness/evidence and recommendation. More user items receive the next unused ID, starting with C; later reprioritization preserves IDs. See [ID rules](../../../docs/agile-workflow.md#backlog-item-ids).
+One implementation worker at a time. A owns toolchain scripts, related tests and setup docs; B owns its measurement harness/evidence and recommendation; C owns the Git helper, fixture and focused skill/template integration. C's addition does not change A's running assignment. B and C can be prioritized after A's reviewed human merge; they have no functional dependency on each other. More user items receive the next unused ID, starting with D; later reprioritization preserves IDs. See [ID rules](../../../docs/agile-workflow.md#backlog-item-ids).
 
 ## Review gates
 
 No review assigned and no implementation candidate exists. A's first independent pass will be `A-shared-node-toolchain-review-001`; B's will be `B-verification-cost-review-001`. A reviewer checks the exact green candidate, including path resolution, integrity, concurrent/interrupted install behavior, and unchanged gates. B's reviewer checks measurement reproducibility, comparisons, limits, and recommendation.
+
+C's first pass is `C-git-startup-check-review-001`, checking local read-only behavior, mismatch/error semantics, initial/resume/reviewer revision distinctions and measured entry behavior.
 
 Use [review conventions](../../../docs/agile-workflow.md#review-gates-and-indexing), parent-scoped reports, the authorized provider profile, and a fresh-context final epic review. A review is not human merge authority.
 
@@ -69,6 +75,7 @@ Each item needs its local proof, PR into the epic, complete current-head Windows
 - 2026-11-05, user: initially requested planning and later additions; the later request to implement the epic authorizes staged delivery. A is assigned first; B retains its reviewed-human-merge dependency. No automatic merge or publication is authorized.
 - 2026-11-05, coordinator: A adopts the unchanged checkout worker skill at `7e7ea5a9cb60fa3f56c79bf44ff389e1e7442bf8`, path `.agents/skills/braid-worker/SKILL.md`. A does not edit skills. Capability check confirmed the requested Cursor `grok-4.7`, high reasoning and 500K context route. The filled packet freezes proof and continuation before launch.
 - Future additions are open. No input is needed to preserve or review this initial plan.
+- 2026-11-05, user: analyze repeated Git startup checks and add a backlog item. Added C for a local reusable checker plus explicit role entry instructions. Keep required verification, avoid Node/network setup, distinguish process time from agent/context overhead, and leave the current worker unchanged. This addition is planning, not a new dispatch.
 
 These decisions live here during planning. A carries lasting toolchain behavior into `docs/decisions.md` through its reviewed item PR, rather than a coordinator editing product documentation.
 
@@ -77,6 +84,7 @@ These decisions live here during planning. A carries lasting toolchain behavior 
 - [Planning account](reports/planning.md) records the base reconciliation and planning checks; [current checkpoint](checkpoints/current.md) is the resume entry.
 - [ ] A implementation, exact-head local/hosted proof, independent review, human merge and acceptance record.
 - [ ] B observations, recommendation, applicable local/hosted proof, independent review and human merge.
+- [ ] C shared startup checker, role entry integration, focused proof, independent review and human merge.
 - [ ] Add/refine any further authorized items; reconcile scope before epic closure.
 - [ ] Final integration proof, fresh review, final report/retro and human merge into main.
 - No package release is required or performed. No implementation savings are claimed yet.
