@@ -14,9 +14,12 @@ Out: <excluded work>.
 
 ## Items
 
-| ID | Title | Kind | Tier | Status | PR |
-| --- | --- | --- | --- | --- | --- |
-| A | <title> (`items/A.md`) | story | S | backlog | |
+Rows are in run order: the next item to run is the first `ready` row. Reorder by moving rows; IDs never change.
+
+| ID | Title | Kind | Tier | Depends on | Status | PR |
+| --- | --- | --- | --- | --- | --- | --- |
+| A | <title> (`items/A.md`) | spike | S | – | ready | |
+| B | <title> (`items/B.md`) | story | M | A | backlog | |
 
 ## Decisions
 

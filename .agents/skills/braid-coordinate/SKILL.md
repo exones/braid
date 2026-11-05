@@ -19,7 +19,7 @@ Layout, tiers, branches and merge rules are in [the workflow](references/workflo
 
 1. Understand the goal. Read whatever code you need to plan well. Exploration belongs here, so the worker doesn't have to repeat it. Ask the user only about things that change scope or acceptance.
 2. Create the epic branch from `main` and write `epic.md` from [the epic template](assets/epic.md).
-3. Split the work into stories, tasks and spikes (see the workflow), each small enough for one PR, in a sensible order, noting real dependencies. Use a spike when something must be learned before it can be planned or estimated, and plan the items that depend on its answer only roughly until it returns.
+3. Split the work into stories, tasks and spikes (see the workflow), each small enough for one PR. Put the table rows in run order and fill "Depends on" with the IDs each item really needs first. Use a spike when something must be learned before it can be planned or estimated, and plan the items that depend on its answer only roughly until it returns.
 4. Write one brief per item in `items/<ID>.md` from [the brief template](assets/brief.md). A good brief:
    - names the files to read first and the files to change;
    - records the facts and choices you have already settled;
@@ -31,7 +31,7 @@ Layout, tiers, branches and merge rules are in [the workflow](references/workflo
 
 ## Run an item
 
-One implementation worker at a time. Keep each item's status in `epic.md` current as the [workflow](references/workflow.md) describes; a status change is a small commit pushed on the epic branch.
+One implementation worker at a time, on the first `ready` row of the item table. Keep each item's status in `epic.md` current as the [workflow](references/workflow.md) describes; a status change is a small commit pushed on the epic branch.
 
 1. Set the item to `in-progress` and launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy based on the epic branch tip, the item branch, and the worker model for the item's kind.
 2. Send a short first message:

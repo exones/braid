@@ -6,13 +6,13 @@ How work is organized in a project that uses braid. Project-specific values (gat
 
 An epic lives in `<epics>/<NNN>-<slug>/`, where `<epics>` is the `epics` value in `BRAID.md`:
 
-- `epic.md`: goal, scope, decisions, and the item table (ID, title, kind, tier, status, PR). Item status lives only in that table.
+- `epic.md`: goal, scope, decisions, and the item table (ID, title, kind, tier, depends on, status, PR). Rows are in run order; the next item is the first `ready` row. Item status lives only in that table.
 - `items/<ID>.md`: one brief per item, written from the [brief template](../assets/brief.md). It is both the backlog entry and the worker's instructions.
 - `reports/<ID>.md`: a spike's answer.
 - `checkpoints/<ID>.md`: only when a worker has to stop before finishing.
 - `notes.md`: optional coordinator notes a fresh session couldn't work out from the files and GitHub.
 
-`<NNN>` is the next unused three-digit epic number in that folder. Item IDs are letters in planned order: A, B, … Z, then AA, AB. An ID stays once given.
+`<NNN>` is the next unused three-digit epic number in that folder. Item IDs are letters in planned order: A, B, … Z, then AA, AB. An ID stays once given; to change the order, move the row. A new item takes the next unused letter and goes where it should run.
 
 Only the coordinator changes an item's status, in the `epic.md` table, committed and pushed on the epic branch:
 
