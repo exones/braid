@@ -7,11 +7,16 @@ Read and apply the [review conventions](../../../../docs/agile-workflow.md#revie
 Parent: <existing item or epic ID>. Pass: <pass>. Reviewer: <role/session>.
 Agent/assignment name: <review-name>.
 Report/checkpoint: <paths chosen under the review conventions>.
+Assignment packet, when used: `assignments/reviews/<parent>/<review-name>.md`. The pass stays under `reports/reviews/`.
 Candidate: <exact commit>. PR/artifact: <URL and identity when applicable>.
-Status: requested | in-progress | findings | no-findings. Date: <date>.
+Pass state: requested | findings | no-findings. Date: <date>.
+Item status is not copied here. See [One home for status](../../../../docs/agile-workflow.md#one-home-for-status).
 Legacy alias: <only if needed to preserve an existing reference>.
 
 ## Scope and evidence
+
+When the target checkout provides `scripts/Test-PrProof.ps1`, run it for current-head CI proof. The script implements the packet's declared check set; that prose set remains the definition. `-SkipArtifacts` is valid only when the packet explicitly waives artifact verification, and that limitation stays in the review record. Accept a PASS for an active pull request only when `proofScope` is `current` and the final view is still open on the same target ref. A historical PASS is a merged snapshot and is not current readiness.
+
 <Acceptance criteria/outcomes examined, sources read, checks actually run, and coverage limits.>
 
 ## Findings

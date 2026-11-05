@@ -1,7 +1,6 @@
 # A: prove worker-owned CI waiting
 
 Kind: spike. Epic: [BRAID-003](../epic.md).
-Status: in-review (green worker handoff and no-findings independent review accepted; human merge pending). Owner: Sol High worker; coordinator owns gate/merge status.
 Depends on: user approval/execution request received on 2026-11-03; live PR trial additionally requires a free implementation slot.
 
 Current result: [PR #8](https://github.com/exones/braid/pull/8) has green worker handoff at exact `c86bc3990a63a5b18d582782e54f9a3cffa18928`, after the one [controlled trial](../reports/A-trial-assignment.md). Same-worker diagnosis/repair, H2 enabled-canary proof, H3 archival cleanup and final four-job/upload/artifact proof are recorded. Parent watch teardown confirmed. Source report/checkpoint and post-push supplements remain in the worker checkout, with hashes in the shared checkpoint. Independent review and human merge remain pending; B/C/D remain unstarted, no Done claim. Original task-ID survival was not an added acceptance standard.

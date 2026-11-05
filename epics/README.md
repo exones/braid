@@ -2,12 +2,10 @@
 
 Record what was asked, done, proven, and left so work can resume without chat history. Structure is loosely based on `inspiration/`.
 
-- [braid 001: seed](braid/001-seed/epic.md): first CLI, manual progress, PowerShell verification, GitHub Actions, packaged installation.
-- [braid 002: trusted npm publishing](braid/002-trusted-publish/epic.md): GitHub Actions OIDC publish and the npm 12 install-script policy. Planning only until execution is requested.
-- [braid 003: worker skill](braid/003-worker-skill/epic.md): approved execution-skill plan, complete assignments, resumable checkpoints, and worker-owned PR delivery through passing checks. Begin with the CI-wait capability spike.
+- [braid 001: seed](braid/001-seed/epic.md): first CLI, manual ledger, PowerShell verification, GitHub Actions, and packaged installation.
+- [braid 002: trusted npm publishing](braid/002-trusted-publish/epic.md): GitHub Actions OIDC publish and the npm 12 install-script policy.
+- [braid 003: worker skill](braid/003-worker-skill/epic.md): worker skill, assignment packets, resumable checkpoints, and worker-owned pull-request delivery.
 
-Each epic has an `epic.md`, a `backlog/` of stories/tasks/spikes, a resumable `checkpoints/current.md`, completion `reports/`, and a stage `retro.md`. Backlog items exist before work starts. Reports link actual evidence and distinguish local checks from remote results. Keep binaries small and exclude secrets and scratch data. Use the [Agile workflow](../docs/agile-workflow.md) for work division and Ready/Done criteria.
+Each epic has an `epic.md`, a `backlog/` of stories, tasks, and spikes, committed `assignments/`, `checkpoints/current.md`, `checkpoints/log.md`, `reports/`, and a `retro.md`. Who writes them is [Record ownership](../docs/agile-workflow.md#record-ownership). Item status has [one home](../docs/agile-workflow.md#one-home-for-status). Reports distinguish local checks from remote results. Keep binaries small and exclude secrets and scratch data.
 
-Until braid is adopted as the controller, the epic's prioritized backlog table owns work status. After adopting a released controller, machine state owns execution status and the epic references it. Avoid two independently maintained authorities. The [coordinator skill](../.agents/skills/braid-coordinate/SKILL.md) analyzes goals, refines this backlog, and coordinates requested delivery.
-
-Backlog flow: `backlog`, `ready`, `in-progress`, `in-review`, `done`; also `blocked` and `cancelled` with reasons. A Done story is not a released milestone; release gates remain separate.
+The [coordinator skill](../.agents/skills/braid-coordinate/SKILL.md) analyzes goals, refines backlog items, and coordinates requested delivery. Item Done is the human merge into the declared epic branch. That is not the epic's pull request into main, and it is not a release.

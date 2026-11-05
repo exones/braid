@@ -1,21 +1,21 @@
 # npm distribution
 
-Status: selected registry, 2026-11-03. This supersedes the Forgejo/Tailscale registry proposal. GitHub hosts source, PRs, and Actions; npm hosts release packages. No publishing has been performed or authorized by selecting this registry.
+npm is the selected package registry, recorded 2026-11-03. This supersedes the Forgejo/Tailscale registry proposal. GitHub hosts source, PRs, and Actions; npm hosts release packages. Selecting this registry does not authorize publishing.
 
 ## Delivery sequence
 
-1. B implements the TypeScript foundation and prepares deterministic Windows/Linux Actions checks. No npm account is needed for local package installation and build verification with public dependencies.
-2. C implements the manual epic/story ledger.
-3. D builds the exact tarball, installs it outside the source checkout, and verifies its behavior. Prepare npm publication from GitHub Actions after those checks, with a manual/reviewed release trigger.
-4. Complete the account/package bootstrap and trusted-publisher setup, then perform an explicitly authorized release. Keep an exact versioned tarball as the bootstrap artifact/fallback.
+1. The TypeScript foundation and the deterministic Windows and Linux Actions checks do not need an npm account. Local package installation and build verification use public dependencies.
+2. The manual epic and story ledger is separate from publication.
+3. Build the exact tarball, install it outside the source checkout, and verify its behavior. Prepare npm publication from GitHub Actions after those checks, with a manual reviewed release trigger.
+4. Complete the account and package bootstrap and the trusted-publisher setup, then perform an explicitly authorized release. Keep an exact versioned tarball as the bootstrap artifact.
 
-The package is public `@exones/braid` with `"private": false`. The executable remains `braid`. Registry `latest` is `0.1.0`. This source is `0.1.1` and stays unpublished until a separate authorization.
+The package is public `@exones/braid` with `"private": false`. The executable remains `braid`. Published `latest` is `0.1.0`. This source is `0.1.1`. Publication of this source needs a separate authorization.
 
 ## Prepared release workflow
 
-Checked against npm's docs on 2026-11-03. Public `@exones/braid@0.1.0` is on the registry, along with `0.0.0-stage`. This source is the unpublished `0.1.1` candidate. This change does not publish, tag, or create a GitHub Release.
+Checked against npm's docs on 2026-11-03. Public `@exones/braid@0.1.0` is on the registry, along with `0.0.0-stage`. This source is `0.1.1`. Preparing this workflow does not publish, tag, or create a GitHub Release.
 
-`.github/workflows/release.yml` runs only on `workflow_dispatch`. The required input `confirm` must be the word `publish`. The job checks out the selected ref, runs the same verify gate as pull requests, and uploads `artifacts/package/` as the workflow artifact `braid-release-tarball`. For this candidate that directory holds `exones-braid-0.1.1.tgz` and `exones-braid-0.1.1.provenance.json`. The workflow does not create a git tag or a GitHub Release.
+`.github/workflows/release.yml` runs only on `workflow_dispatch`. The required input `confirm` must be the word `publish`. The job checks out the selected ref, runs the same verify gate as pull requests, and uploads `artifacts/package/` as the workflow artifact `braid-release-tarball`. For source `0.1.1` that directory holds `exones-braid-0.1.1.tgz` and `exones-braid-0.1.1.provenance.json`. The workflow does not create a git tag or a GitHub Release.
 
 `npm publish` runs only when both of these are true:
 

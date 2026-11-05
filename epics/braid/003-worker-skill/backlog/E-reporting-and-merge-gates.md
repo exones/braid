@@ -1,7 +1,6 @@
 # E: consistent human reports, useful PR records and merge stopping gates
 
 Kind: task. Epic: [BRAID-003](../epic.md).
-Status: ready. User approved E with `$braid-coordinate go BRAID-003 / E` on 2026-11-04, including the clarified report triggers. Dispatch after committing the complete context below.
 Owner: one Grok 4.7 Extra High implementation worker, requested specifically for this task. Keep the global provider profile unchanged.
 Depends on: approved packet; B/C human merges confirmed on their original feature bases; committed context and explicit main-integration contract below. Priority: before D, retaining all existing IDs.
 
@@ -75,6 +74,4 @@ Scoped Conventional Commit/owned push/new PR after local gates; parent-only fini
 
 ## Report and resume
 
-Worker writes `reports/E.md` and `checkpoints/E.md` using the newly consolidated form, with exact candidate/checks/PR evidence and limits; proposes shared updates, then stops. The pre-dispatch next-action sentence is historical. Current worker state is the E checkpoint. Shared epic status remains a coordinator update.
-
-Worker delivery note: local reporting/merge-gate edits, bounded scenarios, and local gates are recorded in [E report](../reports/E.md) and [E checkpoint](../checkpoints/E.md). The worker checklist below stays open until current-head hosted green is independently verified. Checking it in a later commit would replace the checked head.
+Worker wrote `reports/E.md` and `checkpoints/E.md` and stopped after current-head green proof. Independent pass001 accepted; final author/reviewer supplements remain distinct from candidate blobs. Human main merge now verified and E delivered. Current next action: refine [execution policy](../execution-policy-proposal.md) with the user before any new assignment. No active worker/watch or D, release or automatic merge.

@@ -1,0 +1,18 @@
+# Check in and check out text as LF. text=auto does not mark real binaries as text.
+* text=auto eol=lf
+
+# Archives and images stay byte-for-byte. The docs gate skips paths whose text
+# attribute is unset.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.tar binary
+*.woff binary
+*.woff2 binary
