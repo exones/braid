@@ -55,7 +55,7 @@ Every brief states a tier. Pick the lowest one that fits.
 ## Checks
 
 - The `gate` command in `BRAID.md` must pass before every PR.
-- CI's own result is the CI evidence: green `gh pr checks` on the PR's latest commit, limited to the `ci` names in `BRAID.md` when it lists them.
+- CI evidence is CI's own result: green `gh pr checks` on the PR's latest commit, limited to the `ci` names in `BRAID.md` if it lists any. A required check that never reports isn't green. With `ci: none` the gate run before the PR is the evidence.
 
 ## Reports
 
