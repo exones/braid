@@ -2,6 +2,7 @@
 
 - Kind: story | task | spike.
 - Tier: S | M | L.
+- UI: yes | no (yes: new or noticeably changed user-facing UI; the user merges it).
 - Expected size: about <N> lines in <K> files.
 - Branch: `item/<NNN>-<id>-<slug>` at `<short sha>`.
 - PR into: `epic/<NNN>-<slug>`.
