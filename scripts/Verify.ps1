@@ -102,6 +102,13 @@ Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
   (Join-Path $repoRoot 'test/fixtures/install-policy/Test-InstallPolicy.ps1')
 )
 
+Write-Host "pr-proof: offline fixtures"
+Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
+  '-NoProfile',
+  '-File',
+  (Join-Path $repoRoot 'test/fixtures/pr-proof/Test-PrProof.ps1')
+)
+
 Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'typecheck')
 Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'build')
 Write-Host "test: every suite under test/"
