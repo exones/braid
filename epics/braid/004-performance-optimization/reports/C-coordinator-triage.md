@@ -19,3 +19,7 @@ No action now. Coordinator runs [worker-entry observation 001](../assignments/C-
 ## Technical record
 
 Checked head `5a25b09985f92b25a8037938ef27dddcde7389c0`; proof base `099737095cf4e06114fc3f96a61a879d937e0b96`; source merge-base `7d1994ba3d305ec1f9094446cff3a32bddf48b2a`; packet revision `de31aa8bf0c2a0f36b5b35f4ddc3650a3265fa01`. [Review comment](https://github.com/exones/braid/pull/24#issuecomment-6657221246). Local review fixture exit 0, 25 cases; explicit helper review test exit 0. Hosted run/job/step/source facts unchanged from the green inspection. Pre-C external pin remains `e9a617fa60630327f161a78918f033e4461eb111`. Candidate skills unadopted; no findings waived and no fresh later-base merge-test proof claimed.
+
+## Subsequent worker-entry disposition
+
+[Observation 001 outcome](C-worker-entry-001.md) now supplies the previously unproven fresh-context worker sequence at the unchanged reviewed head. The coordinator inspected raw helper result/tool metadata and independently confirmed the unchanged clean checkout. This closes the bounded functional observation, not a representative speedup claim. C is ready for the human merge gate of PR24; it remains in review until actual merge, and no candidate skill is adopted here. This supplements the no-findings pass without changing its original report or claiming a second code review.

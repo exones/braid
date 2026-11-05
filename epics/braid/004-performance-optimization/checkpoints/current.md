@@ -1,15 +1,14 @@
 # BRAID-004 current coordinator checkpoint
-Date: 2026-11-05. Role: coordinator. Task: C review returned; complete bounded worker-entry observation.
-Root: C:/worktrees/agento/epic-braid-004-performance-optimization; branch epic/braid-004-performance-optimization; pre-trial tip cd87ba771ea305dd5a6f54f06832e36af7fb99dd.
-C: PR https://github.com/exones/braid/pull/24 open at 5a25b09985f92b25a8037938ef27dddcde7389c0; proof base 099737095cf4e06114fc3f96a61a879d937e0b96; no merge/adoption/Done.
-Review: C-git-startup-check-review-001 no actionable findings, exact head; report/checkpoint copied with equal source/destination hashes. reports/C-coordinator-triage.md.
-Review evidence: focused fixture exit0; real review-contract helper match; retained CI/API facts. Worker-entry observation explicitly unproven; old speed measurements not representative.
-Trial packet: assignments/C-worker-entry-001.md; read-only standalone source-verification task, candidate checker sequence tested under external pre-C e9a617f worker policy.
-Trial host: live top-level mcp:launch:db205b54c76a7662de0387eeecc3b1ee049a46912ff27d0f01485c571d85418e, Cursor grok-4.7 high/500K; root C:/worktrees/agento/trial-braid-004-c-entry-001, branch trial/braid-004-c-entry-001 at candidate.
-Packet context: 8ed344a3762e5975a5fd62615abc3026d8ad8998. Contract assignments/C-worker-entry-001.binding.json filled from actual host binding; commit before first task. One context batch/helper/source read; no manual duplicate.
-Skill authority: C:/Users/exon/AppData/Local/braid/skill-pins/e9a617fa60630327f161a78918f033e4461eb111/.agents/skills/braid-worker/SKILL.md. Candidate skills unadopted.
-Original C implementation worker retains any repair; reviewer is stopped; trial performs no implementation, fixtures, installs, PR/watch or source/index writes.
-Checks: run coordinator records-only gate before trial-context push. No new CI/full-suite repetition required for these records.
-Blockers: no user action now; remaining trial evidence then human merge. B undispatched; A already accepted.
-Trial start: braid004-c-worker-entry-001-initial-001 returned started, ordinal1, after filled contract commit8657e04. One initial message, no mid-run binding steer.
-Next: consume trial result through host completion/return, inspect observable tool evidence and exact candidate before reporting merge readiness. No status polling or policy adoption.
+Date: 2026-11-05. Role: coordinator. Task: C ready for human merge; stop before B.
+Root: C:/worktrees/agento/epic-braid-004-performance-optimization; branch epic/braid-004-performance-optimization.
+Human action: merge https://github.com/exones/braid/pull/24 into epic/braid-004-performance-optimization, checked head 5a25b09985f92b25a8037938ef27dddcde7389c0. Last PR snapshot OPEN, no merge commit.
+Proof: reports/C-coordinator-green-inspection.md records exact-head CI/jobs/steps and independently rehashed four tarballs/provenance; hosted proof base 099737095cf4e06114fc3f96a61a879d937e0b96.
+Review: reports/reviews/C/C-git-startup-check-review-001.md no actionable findings; disposition reports/C-coordinator-triage.md accepts bounded evidence with limits.
+Entry: reports/C-worker-entry-001.md and validation/C/worker-entry-001/observations.json preserve completed fresh-context sequence; one context batch/checker/source action, no search/retry/manual duplicate. Parent reconfirmed unchanged clean trial checkout.
+Trial: completed thread mcp:launch:db205b54c76a7662de0387eeecc3b1ee049a46912ff27d0f01485c571d85418e ordinal1; root C:/worktrees/agento/trial-braid-004-c-entry-001, branch trial/braid-004-c-entry-001 at candidate; no writes/installs/PR/watch.
+Packet 8ed344a3762e5975a5fd62615abc3026d8ad8998; filled initial contract 8657e043f75c04dcb706ac3e45e172accd05cf77. Trial validates disclosed procedural entry, not representative speedup.
+Skill authority: external pre-C e9a617fa60630327f161a78918f033e4461eb111 snapshot unchanged; candidate skill edits remain unadopted. No controller/schema run.
+C status only in epic table: in-review pending human merge. B undispatched; A already accepted. Original C worker retains any future same-item repair; no live trial/reviewer.
+Checks: run records-only gate against pre-push tip 7bb50d10f55c0f32afad91275ddcf68a7efbbbb2. No source/head changes or full code-gate repetition in this coordinator step.
+Blocker/owner: human merge gate. Do not merge automatically, dispatch B, mark C Done or adopt changed skills before actual merge is verified.
+Next: after actual PR24 merge, verify merge SHA/checked-head ancestry and latest main sync, write C acceptance plus explicit pinned-skill adoption, then prepare B. If head/base facts change, reconcile proof first.

@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "kind": "bounded-fresh-context-worker-entry",
+  "candidate": "5a25b09985f92b25a8037938ef27dddcde7389c0",
+  "packetRevision": "8ed344a3762e5975a5fd62615abc3026d8ad8998",
+  "contractRevision": "8657e043f75c04dcb706ac3e45e172accd05cf77",
+  "executionSkillRevision": "e9a617fa60630327f161a78918f033e4461eb111",
+  "threadLink": "<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:db205b54c76a7662de0387eeecc3b1ee049a46912ff27d0f01485c571d85418e>",
+  "run": {
+    "runId": "run:thread:mcp%3Alaunch%3Adb205b54c76a7662de0387eeecc3b1ee049a46912ff27d0f01485c571d85418e:ordinal:1",
+    "ordinal": 1,
+    "status": "completed",
+    "providerInstanceId": "cursor",
+    "model": "grok-4.7",
+    "requestedAt": "2026-11-05T11:53:39.286Z",
+    "startedAt": "2026-11-05T11:53:40.748Z",
+    "completedAt": "2026-11-05T11:55:15.262Z"
+  },
+  "helperExitCodeWorkerReported": 0,
+  "helperStderr": "workspace-binding: match",
+  "helperResult": {
+    "schemaVersion": 1,
+    "outcome": "match",
+    "phase": "initial",
+    "checkedAt": "2026-11-05T11:54:27.118Z",
+    "elapsedMilliseconds": 1079,
+    "gitReads": [
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "rev-parse",
+        "--is-inside-work-tree"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "rev-parse",
+        "--path-format=absolute",
+        "--show-toplevel"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-dir"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "symbolic-ref",
+        "--quiet",
+        "HEAD"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "rev-parse",
+        "--verify",
+        "--end-of-options",
+        "HEAD"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "remote"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "remote",
+        "get-url",
+        "origin"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "remote",
+        "get-url",
+        "--push",
+        "origin"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "rev-parse",
+        "--verify",
+        "--symbolic-full-name",
+        "--end-of-options",
+        "@{upstream}"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "for-each-ref",
+        "--format=%(upstream)",
+        "refs/heads/trial/braid-004-c-entry-001"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--untracked-files=all"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "symbolic-ref",
+        "--quiet",
+        "HEAD"
+      ],
+      [
+        "--no-optional-locks",
+        "-C",
+        "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+        "rev-parse",
+        "--verify",
+        "--end-of-options",
+        "HEAD"
+      ]
+    ],
+    "expected": {
+      "repositoryRoot": "C:/worktrees/agento/trial-braid-004-c-entry-001",
+      "branch": "trial/braid-004-c-entry-001",
+      "head": "5a25b09985f92b25a8037938ef27dddcde7389c0",
+      "origin": {
+        "fetch": "https://github.com/exones/braid.git",
+        "push": "https://github.com/exones/braid.git"
+      },
+      "upstream": null,
+      "worktree": {
+        "clean": true
+      }
+    },
+    "actual": {
+      "invocationRoot": "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+      "repositoryRoot": "C:\\worktrees\\agento\\trial-braid-004-c-entry-001",
+      "branch": "trial/braid-004-c-entry-001",
+      "head": "5a25b09985f92b25a8037938ef27dddcde7389c0",
+      "origin": {
+        "fetch": "https://github.com/exones/braid.git",
+        "push": "https://github.com/exones/braid.git"
+      },
+      "upstream": null,
+      "worktree": {
+        "clean": true,
+        "entries": []
+      },
+      "gitDir": "C:\\code\\agento\\.git\\worktrees\\trial-braid-004-c-entry-001",
+      "gitCommonDir": "C:\\code\\agento\\.git"
+    },
+    "mismatches": [],
+    "failures": [],
+    "drift": null,
+    "context": {
+      "launchHead": null,
+      "candidateHead": null,
+      "packetRevision": null
+    }
+  },
+  "contextBatchStartedAt": "2026-11-05T11:54:17.1942468Z",
+  "sourceActionStartedAt": "2026-11-05T11:54:35.8109153Z",
+  "sourceResult": {
+    "parameters": [
+      {
+        "name": "ContractPath",
+        "type": "string",
+        "hasExplicitDefault": false
+      },
+      {
+        "name": "RepositoryRoot",
+        "type": "string",
+        "hasExplicitDefault": false
+      }
+    ],
+    "linesRead": 23
+  },
+  "counts": {
+    "skillRead": 1,
+    "packetGitShow": 1,
+    "contextBatch": 1,
+    "checkerInvocation": 1,
+    "checkerNativeGitReads": 14,
+    "sourceRead": 1,
+    "searches": 0,
+    "retries": 0,
+    "manualGitIdentityBatches": 0
+  },
+  "workerReportedShellMilliseconds": {
+    "packetRead": 5292,
+    "contextBatch": 5305,
+    "checkerCall": 6129,
+    "sourceRead": 4435
+  },
+  "parentPostCheck": {
+    "clean": true,
+    "head": "5a25b09985f92b25a8037938ef27dddcde7389c0",
+    "branch": "trial/braid-004-c-entry-001",
+    "pr24": "OPEN",
+    "candidateSkillsAdopted": false
+  },
+  "limits": [
+    "Prescribed disclosed read-only trial, not an ordinary full assignment or representative speed benchmark.",
+    "Helper native GitReads is an argument-vector array; the worker's concise returned JSON replaced it with a count. This file preserves the actual observed array.",
+    "Host shell durations are worker-reported and include harness time; no pure reasoning-time or speedup claim.",
+    "Candidate code tested under pre-C execution policy; no global skill adoption."
+  ],
+  "events": [
+    {
+      "position": 0,
+      "itemId": "turn-item:message:message%3Amcp%3A51f42695-88de-4b08-b04a-7aab985ac5ac%3Athread-send%3Abraid004-c-worker-entry-001-initial-001",
+      "type": "user_message",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:53:39.286Z"
+    },
+    {
+      "position": 2,
+      "itemId": "turn-item:provider:cursor:native-item:assistant%3Arun-d1040968-ee6b-443c-bc11-550a750cd4a6%3A1",
+      "type": "assistant_message",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:54:02.270Z"
+    },
+    {
+      "position": 3,
+      "itemId": "turn-item:provider:cursor:native-item:call-d1e44290-131b-433e-90ed-3d51cebd2f0f-0%0Afc_37ea163f-46d2-9850-b2b5-5172de9bf561_0",
+      "type": "dynamic_tool",
+      "status": "completed",
+      "title": "Read C:\\Users\\exon\\AppData\\Local\\braid\\skill-pins\\e9a617fa60630327f161a78918f033e4461eb111\\.agents\\skills\\braid-worker\\SKILL.md",
+      "updatedAt": "2026-11-05T11:54:03.250Z"
+    },
+    {
+      "position": 4,
+      "itemId": "turn-item:provider:cursor:native-item:call-d1e44290-131b-433e-90ed-3d51cebd2f0f-2%0Afc_37ea163f-46d2-9850-b2b5-5172de9bf561_2",
+      "type": "command_execution",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:54:07.783Z",
+      "command": "$ git show 8ed344a3762e5975a5fd62615abc3026d8ad8998:epics/braid/004-performance-optimization/assignments/C-worker-entry-001.md"
+    },
+    {
+      "position": 6,
+      "itemId": "turn-item:provider:cursor:native-item:assistant%3Arun-d1040968-ee6b-443c-bc11-550a750cd4a6%3A2",
+      "type": "assistant_message",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:54:16.259Z"
+    },
+    {
+      "position": 7,
+      "itemId": "turn-item:provider:cursor:native-item:call-0ea8d994-6f43-4b1e-a2f5-e78567cfdff8-3%0Afc_77190483-1d31-92af-960f-56324247b642_0",
+      "type": "command_execution",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:54:21.678Z",
+      "command": "$ Write-Output ('ENTRY_CONTEXT_START ' + [DateTime]::UtcNow.ToString('o'))"
+    },
+    {
+      "position": 9,
+      "itemId": "turn-item:provider:cursor:native-item:assistant%3Arun-d1040968-ee6b-443c-bc11-550a750cd4a6%3A3",
+      "type": "assistant_message",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:54:25.688Z"
+    },
+    {
+      "position": 10,
+      "itemId": "turn-item:provider:cursor:native-item:call-85368b20-35f8-48eb-8411-3e01a719eaa7-4%0Afc_ab98fbaa-6672-9616-a9d1-f57075da1305_0",
+      "type": "command_execution",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:54:31.918Z",
+      "command": "$ pwsh -NoProfile -File scripts/Test-WorkspaceBinding.ps1 -ContractPath \"C:/worktrees/agento/epic-braid-004-performance-optimization/epics/braid/004-performance-optimization/assignments/C-worker-entry-001.binding.json\" -RepositoryRoot \"C:/worktrees/agento/trial-braid-004-c-entry-001\""
+    },
+    {
+      "position": 12,
+      "itemId": "turn-item:provider:cursor:native-item:assistant%3Arun-d1040968-ee6b-443c-bc11-550a750cd4a6%3A4",
+      "type": "assistant_message",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:54:34.879Z"
+    },
+    {
+      "position": 13,
+      "itemId": "turn-item:provider:cursor:native-item:call-bc103d37-e00a-42c1-95ac-1060902c9577-5%0Afc_75dd6d7e-2ac1-9cc7-8710-5daad4f3f1b0_0",
+      "type": "command_execution",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:54:39.420Z",
+      "command": "$ Write-Output ('ENTRY_SOURCE_START ' + [DateTime]::UtcNow.ToString('o'))"
+    },
+    {
+      "position": 15,
+      "itemId": "turn-item:provider:cursor:native-item:call-2c54b021-283b-4e07-aff3-3b04154b39b8-6%0Afc_f1e763bf-e403-95e4-9fcb-7af949f7f872_0",
+      "type": "dynamic_tool",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:55:09.836Z"
+    },
+    {
+      "position": 17,
+      "itemId": "turn-item:provider:cursor:native-item:assistant%3Arun-d1040968-ee6b-443c-bc11-550a750cd4a6%3A5",
+      "type": "assistant_message",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:55:14.419Z"
+    },
+    {
+      "position": 18,
+      "itemId": "turn-item:provider:cursor:native-item:checkpoint%3Acheckpoint%3Ascope%3Acheckpoint-scope%253Athread%253Amcp%25253Alaunch%25253Adb205b54c76a7662de0387eeecc3b1ee049a46912ff27d0f01485c571d85418e%253Aname%253Aroot%3Aname%3A1",
+      "type": "checkpoint",
+      "status": "completed",
+      "title": null,
+      "updatedAt": "2026-11-05T11:55:15.262Z"
+    }
+  ]
+}
