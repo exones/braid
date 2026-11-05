@@ -8,11 +8,11 @@ Project and CLI name: **braid**. Use `braid` as the executable, for example `bra
 
 This build implements the schema 1 manual ledger: `init`, `new`, `status`, and `story add/start/block/complete`. See the [contract](docs/seed-contract.md). Completing an item records a manual note; independent verification remains a separate step.
 
-For contribution and agent assignment instructions, see the [handoff guide](docs/agent-handoff.md). Review naming and numbering are defined in the [review conventions](docs/agile-workflow.md#review-gates-and-indexing).
+For how work is planned, assigned to agents, reviewed and merged, see the [workflow](.agents/skills/braid-coordinate/references/workflow.md) and [AGENTS.md](AGENTS.md).
 
 ## Build and verify
 
-The seed requires Node.js `>=26.13.0 <27` and PowerShell 7.6 or newer (`pwsh`). A compatible `node` already on `PATH`, with the npm that shipped in that same install, is used as-is. Otherwise, on Windows, the installer reuses or downloads the official Node.js `26.13.0` archive into `%LOCALAPPDATA%\braid\toolchains`. `BRAID_TOOLCHAIN_DIR` can name an absolute alternate root; it does not change the pin or the checksums. The installer does not replace the system Node.js, and it does not read, migrate, or delete a checkout-local `.tools/` directory. `.tools/`, `node_modules/`, `dist/`, and `.braid/` are gitignored. `.agents/` skills and `epics/` evidence stay tracked.
+The seed requires Node.js `>=26.13.0 <27`, PowerShell 7.6 or newer (`pwsh`), and Pester 5.5 or newer for the PowerShell tests (`Install-PSResource -Name Pester -Version 5.7.1 -Scope CurrentUser`; CI installs it when the runner lacks it). A compatible `node` already on `PATH`, with the npm that shipped in that same install, is used as-is. A version-manager launcher such as Volta's counts too: the runtime it points to (`process.execPath`) is what gets checked and used. With Volta, `package.json` pins `"volta": { "node": "26.13.0" }`, so `node` inside this checkout is already the right version. Otherwise, on Windows, the installer reuses or downloads the official Node.js `26.13.0` archive into `%LOCALAPPDATA%\braid\toolchains`. `BRAID_TOOLCHAIN_DIR` can name an absolute alternate root; it does not change the pin or the checksums. The installer does not replace the system Node.js, and it does not read, migrate, or delete a checkout-local `.tools/` directory. `.tools/`, `node_modules/`, `dist/`, and `.braid/` are gitignored. `.agents/` skills and `epics/` evidence stay tracked.
 
 From the repository root:
 
@@ -28,31 +28,41 @@ The installer writes progress to stderr and writes only the toolchain directory 
 
 `.npmrc` sets `engine-strict=true`, `strict-allow-scripts=true`, `allow-git=none`, and `allow-remote=none`. `npm ci` refuses a Node.js older than 26.13.0, including this machine's default 24.x install. It also refuses an unreviewed dependency install script, a git dependency, and a remote URL dependency. `npm run verify` can be launched by that older npm; `scripts/Verify.ps1` uses the same resolution as the installer and runs the npm that shipped with the selected Node.js.
 
-`npm run verify` is the deterministic offline pre-PR gate for code and docs. It runs `scripts/Verify.ps1`. That script selects the toolchain, then runs, in order:
+Both gates run `scripts/Verify.ps1`, which selects the toolchain first.
 
-1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Historical evidence keeps a narrow exclusion list in `scripts/markdown-link-exclusions.json`.
+`npm run verify` is the quick offline pre-PR gate (about 20 seconds) and the `gate` in [BRAID.md](BRAID.md):
+
+1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Paths listed as frozen in `scripts/markdown-link-exclusions.json` (closed records kept as written) are not link-checked, but their text still is. A skill under `.agents/skills/<name>/` must not link outside its own folder.
 2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
-3. A disposable repository that must fail for a broken relative link, a broken heading anchor, a CR line ending, and trailing whitespace, then removes those fixtures. CR and trailing whitespace are checked in the index blob and in the worktree.
-4. The OIDC release-shape guard.
-5. The install-policy guard.
-6. The shared Node.js toolchain fixture: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout, and interruption. It uses disposable roots and does not download Node.js.
-7. The workspace-binding fixture: a read-only JSON contract against disposable repositories, including mismatch, drift, and failed inspection. It does not use Node.js.
-8. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`)
-9. `npm run build` (`tsc -p tsconfig.build.json`)
-10. `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`)
-11. `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable
+3. The OIDC release-shape guard.
+4. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`), `npm run build` (`tsc -p tsconfig.build.json`) and `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`).
 
-`scripts/Test-WorkspaceBinding.ps1` is the offline checkout check used before assigned work. Its contract and exit codes are [workspace binding](scripts/workspace-binding.md). It is not a product doctor command.
+`npm run verify:full` (`Verify.ps1 -Full`) is what CI and the release workflow run. It adds the tooling tests and the package proof:
 
-External skill validators are not part of this command. Run them when a change edits skill content and report that result separately; they may be unavailable in CI.
+- The docs-gate negatives: a disposable repository that must fail for a broken link or anchor, a CR line ending, trailing whitespace, and a skill linking outside its folder, and must pass for a broken link under a frozen path.
+- The install-policy guard: real installs that `.npmrc` must refuse.
+- The shared Node.js toolchain fixture: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout, and interruption, in disposable roots without downloading Node.js.
+- `scripts/Test-Pester.ps1`, which runs the Pester suites under `test/pester/`. New PowerShell tests go there.
+- `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable.
 
-It stops on the first native command with a nonzero exit code and returns that code. It does not call `npm run verify`. `scripts/Test-Package.ps1` does not call it either. The same script is the GitHub Actions gate. Dependencies must already be installed with `npm ci`. A dirty worktree is a pre-commit probe. GitHub Actions sets `BRAID_REQUIRE_CLEAN=1`, so the hosted pack must come from a clean checkout. The tarball and its provenance file are written to `artifacts/package/` and are not committed.
+Run `verify:full` locally when you change those tools, `.npmrc`, packaging or the release workflow. External skill validators are not part of either gate; run them when a change edits skill content.
 
-This also runs the gate directly:
+Both stop on the first native command with a nonzero exit code and return that code. Dependencies must already be installed with `npm ci`. A dirty worktree is a pre-commit probe. GitHub Actions sets `BRAID_REQUIRE_CLEAN=1`, so the hosted pack must come from a clean checkout. The tarball and its provenance file are written to `artifacts/package/` and are not committed.
+
+## Braid skills in other projects
+
+The agent skills `braid-coordinate` and `braid-worker` are developed in `.agents/skills/` and can drive work in any repository. Each skill folder is self-contained: the docs gate fails if a skill links outside its own folder.
+
+To make them available to Cursor, Codex and Claude in every project, install them from a committed ref:
 
 ```powershell
-pwsh -NoProfile -File .\scripts\Verify.ps1
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from main
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a branch
 ```
+
+The script copies `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again. A folder of the same name that the script did not install is left alone unless `-Force` is given. `-Target` replaces the default folders.
+
+A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the `epics` folder, the required `ci` checks, how to `run` the app, and `models`: the provider, model and options for each role, with optional per-kind overrides such as `worker.spike` and an optional skill such as a review skill. Start from the [template](.agents/skills/braid-coordinate/assets/braid-md.md); this repository's own [BRAID.md](BRAID.md) is an example. Add the repository as a T3 project and start the coordinator there.
 
 ## CLI
 
@@ -138,21 +148,19 @@ On Linux, the executable path is `node_modules/.bin/braid`. Publishing, tagging,
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs `npm ci` and `npm run verify` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`. Setup-node puts that runtime on `PATH`, so CI uses it instead of the shared Windows store. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
+`.github/workflows/ci.yml` runs `npm ci` and `npm run verify:full` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`, for pull requests and for pushes to `main` and `epic/**` branches. A push that only changes files under `epics/` (coordinator status records) doesn't run CI. Setup-node puts that runtime on `PATH`, so CI uses it instead of the shared Windows store. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
 
 The workflow uses pinned checkout, setup-node, and upload-artifact actions and the runner's PowerShell installation. It needs no T3 access, private infrastructure, or npm publishing credentials. `.github/workflows/release.yml` is a manual dispatch and is not part of this pull-request gate.
 
 ## Durable context
 
-- [Braid workflow map](docs/directory-structure.md): epic records and ownership, independent of the target project's source layout.
+- [Workflow](.agents/skills/braid-coordinate/references/workflow.md): epics, item briefs, tiers, branches, merges, and checks.
 - [Decisions](docs/decisions.md): current requirements and their rationale.
 - [Roadmap](docs/roadmap.md): capability stages and bootstrap promotion gates.
-- [Agile workflow](docs/agile-workflow.md): epics, stories, tasks, spikes, and readiness/completion criteria.
 - [Seed contract](docs/seed-contract.md): schema 1 command and storage behavior.
-- [Coordinator skill](.agents/skills/braid-coordinate/SKILL.md): reusable goal-to-analysis-to-plan-to-delivery workflow.
-- [Agent handoff](docs/agent-handoff.md): task assignment, resumption, and reporting.
+- [Coordinator skill](.agents/skills/braid-coordinate/SKILL.md) and [worker skill](.agents/skills/braid-worker/SKILL.md): how agents plan epics and do items.
 - [npm distribution](docs/npm-distribution.md): selected release path and account/setup steps needed before publication.
-- [Epics](epics/README.md): work organization and report conventions.
+- [Epics](epics/README.md): current and past epics.
 - Original MVP plan `t3_multi-agent_mvp_86005e32.plan.md` (gitignored local input, not a tracked file): longer-term design input. Its PowerShell-only implementation and original milestone order have been superseded by the decisions and roadmap above.
 - [Inspiration](inspiration/README.md): reference material; its historical permissions, hosts, credentials, and deployment instructions do not authorize actions for this project.
 

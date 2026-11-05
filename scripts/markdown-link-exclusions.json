@@ -1,41 +1,6 @@
 {
-  "version": 1,
-  "note": "Each entry suppresses one remark-validate-links finding in retained historical evidence. The source path is repository-relative. reasonIncludes is matched after backslashes are normalized to slashes, and it must hit exactly one finding. Do not add a directory-wide skip for epics, skills, or current docs. inspiration/ is excluded by .remarkrc.mjs, not by this list.",
-  "exclusions": [
-    {
-      "source": "epics/braid/001-seed/validation/D1-fresh-plan/backlog/A-find-prerequisites.md",
-      "reasonIncludes": ".agents/skills/agento-coordinate/references/delivery.md",
-      "because": "This retained validation plan names the skill path from when it was written. The directory was later renamed to braid-coordinate. The plan is evidence and is not rewritten."
-    },
-    {
-      "source": "epics/braid/001-seed/validation/D1-fresh-plan/backlog/B-first-local-run.md",
-      "reasonIncludes": ".agents/skills/agento-coordinate/references/delivery.md",
-      "because": "This retained validation plan names the skill path from when it was written. The directory was later renamed to braid-coordinate. The plan is evidence and is not rewritten."
-    },
-    {
-      "source": "epics/braid/001-seed/validation/D1-fresh-plan/backlog/C-troubleshoot-setup.md",
-      "reasonIncludes": ".agents/skills/agento-coordinate/references/delivery.md",
-      "because": "This retained validation plan names the skill path from when it was written. The directory was later renamed to braid-coordinate. The plan is evidence and is not rewritten."
-    },
-    {
-      "source": "epics/braid/001-seed/validation/D1-fresh-plan/reports/research.md",
-      "reasonIncludes": ".agents/skills/agento-coordinate/SKILL.md",
-      "because": "This retained validation note names the skill path from when it was written. The directory was later renamed to braid-coordinate. The note is evidence and is not rewritten."
-    },
-    {
-      "source": "epics/braid/001-seed/validation/D1-fresh-plan/reports/research.md",
-      "reasonIncludes": ".agents/skills/agento-coordinate/assets/epic.md",
-      "because": "This retained validation note names the skill path from when it was written. The directory was later renamed to braid-coordinate. The note is evidence and is not rewritten."
-    },
-    {
-      "source": "epics/braid/001-seed/validation/D1-fresh-plan/reports/research.md",
-      "reasonIncludes": ".agents/skills/agento-coordinate/assets/backlog-item.md",
-      "because": "This retained validation note names the skill path from when it was written. The directory was later renamed to braid-coordinate. The note is evidence and is not rewritten."
-    },
-    {
-      "source": "epics/braid/001-seed/validation/D1-fresh-plan/reports/research.md",
-      "reasonIncludes": ".agents/skills/agento-coordinate/references/delivery.md",
-      "because": "This retained validation note names the skill path from when it was written. The directory was later renamed to braid-coordinate. The note is evidence and is not rewritten."
-    }
-  ]
+  "version": 2,
+  "note": "frozen lists closed records whose links are not validated: a path ending in / covers that directory, any other entry is one file. Their text checks still run. exclusions suppresses one remark-validate-links finding each in a file that is still checked: source is repository-relative, reasonIncludes is matched after backslashes are normalized to slashes, and it must hit exactly one finding. inspiration/ is excluded by .remarkrc.mjs, not by this list.",
+  "frozen": [],
+  "exclusions": []
 }

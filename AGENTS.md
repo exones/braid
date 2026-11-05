@@ -1,76 +1,39 @@
 # Working on braid
 
-## Read and resume
+braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the project facts and limits an agent can't guess. It doesn't explain general engineering practice.
 
-Read these instructions explicitly. For initial implementation, read the exact supplied filled assignment packet, worker skill, assigned item, and the packet's read-now context before acting. The packet names relevant sections of `README.md`, `docs/decisions.md`, and the assigned epic/current checkpoint; accepted dependency facts carry exact evidence references. Historical dependency reports are consulted when the task requires re-evaluation or facts conflict, not routinely reread. Verify your actual checkout and your own acceptance evidence independently.
+## Project facts
 
-On worker resume, open the named worker checkpoint first, refresh applicable instructions and changed policy, reconcile relevant actual state and interrupted effects, then continue its recorded next action. Do not replay initial discovery. Coordinators read the assigned epic/current checkpoint/items and relevant decisions/dependency evidence to prepare that context. Independent reviewers retain their assigned evidence-reading requirements. Treat current files as the handoff; historical chat and `inspiration/` are supporting context.
+- Names: the project and CLI are `braid`, the npm package is `@exones/braid`, and local state lives in `.braid/`. Leave `.agento/` and `.crew/` directories alone.
+- Product code: strict TypeScript on Node.js `>=26.13.0 <27`, ESM, compiled to `dist/`. Automation and scripts: PowerShell 7.6+ (`pwsh`).
+- Setup is in the README under "Build and verify". [BRAID.md](BRAID.md) holds the facts braid agents read: the gate (`npm run verify`, before every PR), the CI checks, the epics folder and the models.
+- Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `docs:`, `build:`, `test:`, `chore:`). Merge with merge commits. Don't rebase or force-push shared branches.
+- Search with `rg`. In PowerShell, pass native command arguments as arrays and check `$LASTEXITCODE`.
+- Keep code and scripts cross-platform: CI runs on Windows and Ubuntu, and Windows-only path, line-ending or permission assumptions have broken Linux CI before.
+- New PowerShell tests are Pester 5 suites under `test/pester/` (`*.Tests.ps1`). The older hand-written fixtures under `test/fixtures/` stay until they are converted.
+- The README describes what the product does and how to use it. Work status belongs in `epics/`, not the README.
 
-For a goal-level planning or orchestration request, use [.agents/skills/braid-coordinate/SKILL.md](.agents/skills/braid-coordinate/SKILL.md). For execution or resumption of one assigned implementation item, use [.agents/skills/braid-worker/SKILL.md](.agents/skills/braid-worker/SKILL.md); consume the filled packet, not the blank [coordinator authoring template](.agents/skills/braid-worker/assets/assignment-packet.md). Do not enter the coordinator workflow. Read the selected skill directly if discovery is unavailable. Independent reviewers follow their separately assigned review and the review conventions below. Routine coding questions need neither workflow. An assignment names its epic and checkpoint. An explicitly supplied standalone scope uses its named context and scoped records without creating an epic or backlog item.
+## Hard limits
 
-Use the Agile vocabulary in `docs/agile-workflow.md`: epic, optional feature grouping, story, task, spike, backlog, acceptance criteria, Definition of Ready, and Definition of Done. Keep existing backlog IDs stable. The original MVP and inspiration retain historical terminology.
+- Don't publish packages, create releases or tags, deploy, or change repository settings unless the user asks for it.
+- Only the user merges into `main`. The coordinator may merge item PRs into an epic branch as [the workflow](.agents/skills/braid-coordinate/references/workflow.md) describes; workers and reviewers don't merge.
+- Changes to `.agents/skills/`, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` are made only when the user asks, and the user merges them.
+- One writer per checkout. Don't reset, clean, switch branches or commit in a checkout that the user or another agent is working in, and leave changes you didn't make alone.
+- No secrets in chat, files, commits or logs. Get credentials only through the host's secret mechanism.
+- Don't hand-edit `.braid/` state files.
+- `inspiration/` is reference material. Its permissions, hosts and credentials don't apply here.
 
-Before assigning a review, read and follow the authoritative [review conventions](docs/agile-workflow.md#review-gates-and-indexing). Item reports, user briefings, and pull-request accounts follow [report format](epics/report-format.md), including its trigger contract. Short progress updates stay short and do not replace an item briefing.
+## Where to look
 
-Do only the assigned role and scope. A coordinator asked to deliver an epic may advance its ready backlog items within that scope. Do not dispatch a dependent item whose required human merge is unverified; the [human merge stop](.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop) applies. A worker stops after its assigned item and does not launch agents. Keep one implementation worker at a time. A reviewer is assigned separately after the candidate exists. A planning-only request stops after the reviewable plan.
-
-A new epic uses a pinned named integration branch before planning or dispatch. Item branches start from the accepted epic tip, and their pull requests target that epic. One final epic pull request targets main. Item Done is the human merge into the epic. Epic completion and release stay separate. See [Epic and item branches](.agents/skills/braid-coordinate/references/delivery.md#epic-and-item-branches). Commit a new packet at `epics/<project>/<epic>/assignments/<ID>.md` before the item checkout exists. Historical packets under `reports/` stay as evidence. A top-level item thread watches its own pull request and sends one result; the coordinator dedupes by head. Follow [T3 continuation](.agents/skills/braid-worker/references/t3-continuation.md). Keep that worker prompt short and step-explicit. Watch survival across interruption, unassisted repair, and exactly-once delivery are unproven.
-
-The user explicitly requests top-level T3 threads for assigned tasks, including independent reviews where host rules permit, so each has its own listable identity and can own a PR watch when needed. This is standing authorization within the approved delivery scope; a request to continue carries it forward without another thread-creation question. Provider/model/settings differences alone do not change that requested route. Use a subagent only when the user explicitly selects it or a host rule requires it; explain a required exception rather than silently substituting. This preference does not expand scope, WIP, merge or release authority, or authorize replacing an existing run.
+- Planning and running an epic: [braid-coordinate](.agents/skills/braid-coordinate/SKILL.md).
+- Doing one assigned item from a brief: [braid-worker](.agents/skills/braid-worker/SKILL.md).
+- Ordinary questions and small direct edits need neither skill.
+- Epics, items, tiers, branches and merges: [the workflow](.agents/skills/braid-coordinate/references/workflow.md).
+- Using the skills in other projects: [README](README.md#braid-skills-in-other-projects).
+- Decisions and their reasons: [docs/decisions.md](docs/decisions.md). Later stages: [docs/roadmap.md](docs/roadmap.md).
 
 ## Providers and roles
 
-These instructions are shared project guidance, regardless of model/provider. Load context according to the role and entry mode above; other Markdown files are not assumed to load automatically. Provider/model/reasoning selection is set in T3, not by this file.
+The models per role are in [BRAID.md](BRAID.md): Sol High coordinates; Grok 4.7 High with 500K context implements and reviews. In T3 the worker route is Cursor model `grok-4.7` with `target.options` `{"reasoning_effort":"high","contextWindow":"500k"}`. Don't substitute another model or other settings without the user's agreement.
 
-This section is the authoritative provider profile. User preference: Sol High for coordination; Grok 4.7 High with 500K context for implementation and for independent reviews (not Opus). The verified coordination route is Sol High (`gpt-6.1-sol`, `reasoningEffort: high`). The verified T3 implementation route is Cursor model `grok-4.7`, with `target.options` set to `{"reasoning_effort":"high","contextWindow":"500k"}`. Follow host rules for capability checks; do not substitute a different provider/model/settings without authorization. Historical assignments retain the settings actually used.
-
-When a coordinator is assigned, it owns `epic.md` and `checkpoints/current.md`, assigns the selected backlog item, checks evidence, and records the next action. Workers own `checkpoints/<task>.md` and `reports/<task>.md` plus their assigned implementation files. Interpret backlog items' shared-status update instructions as reporting those updates to the coordinator in this mode. Do not have both roles edit the shared checkpoint. Coordinator findings go back to the worker as scoped fixes; the coordinator does not implement product changes in that role.
-
-Separately assigned reviewers own their parent-scoped review report/checkpoint, with exact reviewed revision and findings; the coordinator owns the parent's gate status and triage. Keep a running review's assigned output paths until it returns, then reconcile legacy filenames without restarting the review.
-
-In standalone mode, the assigned agent maintains the epic and current checkpoint itself as previously described. See `docs/agent-handoff.md` for exact role prompts and provider loading references.
-
-## Decisions and implementation
-
-- Project, CLI, and local state directory names are `braid`, `braid`, and `.braid/`. Use them consistently in commands, package `bin`, storage, and checks. See `docs/cli-name.md`. The superseded pre-release directory `.crew/` is not read, written, migrated, or deleted. Do not infer an npm scope from the project name.
-- Product CLI and core: modern TypeScript on Node.js, strict checking, compiled JavaScript, one npm package initially.
-- Automation and operational scripts: PowerShell 7 (`pwsh`), including substantive logic where useful. Do not replace it merely because it is a shell language.
-- Source, PRs, build: GitHub and GitHub Actions.
-- Package registry: npm, confirmed by the user. No Forgejo deployment is planned. Tailscale remains available for future private infrastructure. Registry selection does not authorize publishing; npm owner/scope/name and release setup are handled before release.
-- Adopt the backlog item/checkpoint/report workflow immediately. Add automation incrementally through the roadmap.
-- Choose routine implementation details and ordinary dependencies within the assigned scope; record material choices. Escalate scope expansion, paid services, missing credentials, or changes to acceptance standards.
-- Surface user-owned blockers promptly with the exact nonsecret action needed and its impact; workers report them to the coordinator, which includes them in the `You` turn report. Continue independent in-scope work instead of waiting on unrelated release setup. Never request raw secret values in chat.
-- Use `rg` for file/text discovery. Keep external command invocation explicit; propagate native exit codes in PowerShell. Avoid shell-interpolated command strings when structured argument lists suffice.
-
-## State, gates, and release discipline
-
-Keep machine state authoritative and human status derived or clearly descriptive. Agents do not hand-edit future `.braid/run.json` files. State and event records must have documented revision and failure behavior; do not claim crash guarantees that have not been tested.
-
-The first release records manual progress. A human/agent marking an item complete is not independent gate evidence. Later gate evidence must identify the exact revision checked.
-
-Run the meaningful checks required by the backlog item. Report commands and results honestly, including checks that could not run. Never weaken a gate or delete a failing test simply to pass. Fixes to an incorrect test or gate require a documented reason and preserved acceptance intent.
-
-`npm run verify` is the deterministic offline pre-PR gate for code and docs. It keeps the OIDC release check, install-policy check, typecheck, build, test, and packed-install steps, and it checks tracked Markdown relative links and heading anchors (not `inspiration/` or external URLs) and tracked-text LF endings and trailing whitespace. External skill validators are not part of that command. Run them when a change edits skill content and report them separately; they may be unavailable in CI.
-
-Develop future versions under a pinned, released controller installed outside the candidate checkout. Record controller version and schema version; do not upgrade active runs silently.
-
-## Shared and external actions
-
-Respect user changes. Inspect git status before editing. Work only in the assigned checkout and branch. A scoped delivery request authorizes scoped Conventional Commits, pushes to an owned feature branch, and PR creation after relevant local gates pass; follow `.agents/skills/braid-coordinate/references/delivery.md`. Human merge authority remains unchanged. Green CI and independent review are not a merge. When later work requires one, stop at the [human merge stop](.agents/skills/braid-coordinate/references/delivery.md#human-merge-stop). Do not create a remote repository, merge, publish a release/package, deploy infrastructure, or change tailnet policy unless the task authorizes that action.
-
-Spikes also deliver through PR, applicable CI, and review. Local acceptance is distinct from Done after CI/review/approved merge. Preserve existing user commits/index, and do not stage/commit/switch a shared checkout while a worker is running. Workers follow their assigned Git boundaries; the coordinator handles a Git transition only at a safe handoff boundary.
-
-README is the repository frontend for supported capabilities, setup, usage, architecture, and limits. Keep current backlog/progress and handoff details in the epic/checkpoints/reports. A stable link to contributor documentation is fine; do not use README as a coordinator dashboard.
-
-Do not put secrets in chat, git, reports, fixtures, or logs. Reference secret names and use the environment's secret mechanism when needed. Do not copy permissions or infrastructure identities from `inspiration/`.
-
-## Checkpoint and finish
-
-At a useful boundary, before switching context, and before ending a task, apply [Commit boundary](docs/agile-workflow.md#commit-boundary): workers update record files before push; afterward report checks and blockers in the PR comment and result message without editing those files.
-
-1. Update the owned checkpoint (`checkpoints/<task>.md` for a coordinated worker, `checkpoints/current.md` for the coordinator or standalone agent): task, checkout/branch/HEAD when available, completed work, in-flight commands, next concrete action, blockers, checks, and changed files. The coordinator rewrites `checkpoints/current.md` and appends `checkpoints/log.md` ([Now and the log](docs/agile-workflow.md#now-and-the-log)).
-2. Coordinator/standalone agent: update the assigned row in `epic.md` with status and evidence/report links. Coordinated workers return proposed status updates in their report.
-3. Write `reports/<task>.md` using [report format](epics/report-format.md). Review passes use the parent-scoped report convention. Distinguish local proof from remote CI/release proof.
-4. At an item outcome, a user-attention blocker, a substantive child return, or a milestone, give the user that same account. Keep routine progress concise. If blocked, name the exact input that unblocks the work and continue independent in-scope work.
-
-The checkpoint should let a fresh agent resume without the conversation.
+Workers and reviewers run as top-level T3 threads, each in its own worktree. That is the user's standing request for work inside an approved epic, so it needs no confirmation per item.

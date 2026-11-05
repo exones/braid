@@ -97,18 +97,39 @@ function Test-BraidBundledNpm {
   return -not [string]::IsNullOrWhiteSpace("$raw".Trim())
 }
 
+# Version managers such as Volta put a launcher named node on PATH; the runtime
+# and its bundled npm live where process.execPath points. Anything that can't
+# answer that query is checked as the file on PATH.
+function Get-BraidRealNodeExe {
+  param([Parameter(Mandatory = $true)][string]$NodeExe)
+  try {
+    $raw = (& $NodeExe -p 'process.execPath' 2>$null)
+  } catch {
+    return $NodeExe
+  }
+  if ($LASTEXITCODE -ne 0) {
+    return $NodeExe
+  }
+  $real = "$raw".Trim()
+  if ([string]::IsNullOrWhiteSpace($real) -or -not [System.IO.Path]::IsPathFullyQualified($real) -or -not (Test-Path -LiteralPath $real -PathType Leaf)) {
+    return $NodeExe
+  }
+  return [System.IO.Path]::GetFullPath($real)
+}
+
 function Get-BraidPathToolchain {
-  $command = Get-Command node -ErrorAction SilentlyContinue
+  $command = Get-Command node -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($null -eq $command -or [string]::IsNullOrWhiteSpace($command.Source)) {
     return $null
   }
-  if (-not (Test-BraidNodeInRange -NodeExe $command.Source)) {
+  $nodeExe = Get-BraidRealNodeExe -NodeExe $command.Source
+  if (-not (Test-BraidNodeInRange -NodeExe $nodeExe)) {
     return $null
   }
-  if (-not (Test-BraidBundledNpm -NodeExe $command.Source)) {
+  if (-not (Test-BraidBundledNpm -NodeExe $nodeExe)) {
     return $null
   }
-  return [System.IO.Path]::GetFullPath((Split-Path -Parent $command.Source))
+  return [System.IO.Path]::GetFullPath((Split-Path -Parent $nodeExe))
 }
 
 function Get-BraidToolchainRoot {

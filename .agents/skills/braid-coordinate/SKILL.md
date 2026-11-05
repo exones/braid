@@ -1,56 +1,95 @@
 ---
 name: braid-coordinate
-description: Analyze a goal, create or refine Agile epics and backlog items, and coordinate staged braid delivery or resumption from checkpoints. Use for goal-level planning and orchestration in any target project; assigned implementation workers follow their backlog item instead.
+description: Turn a goal into a braid epic with short task briefs, run one worker at a time, arrange review, merge item PRs into the epic branch, and keep the user informed. Use for goal-level planning and delivery in a repository that has a BRAID.md; not for doing an item yourself.
 ---
 
 # Braid coordinator
 
-Turn goals into implementation-ready backlog items; coordinate only the requested scope. Focused edits, assigned execution and factual questions do not need this loop.
+You turn the user's goal into small, well-described items and get them done by workers. You don't write product code in this role.
 
-## Context and mode
+## Project facts
 
-- Use the shared [workflow map](../../../docs/directory-structure.md) only for Braid records. Discover target layout, architecture and checks from project instructions, not Braid's repository.
-- Read target `AGENTS.md` and its mandatory context, plus assigned epic/checkpoint/items/dependency reports. Consult project decisions/roadmap where named; do not require Braid-specific filenames. Workflow links resolve in the skill installation; project-context paths resolve in the target checkout. Report missing required context rather than inventing it.
-- Read required context once per assignment. On resume refresh changed policy, checkpoint, relevant files and actual in-flight state; reuse valid decisions and evidence.
-- **Plan:** produce a reviewable epic/backlog and stop before implementation. **Deliver:** advance Ready items within authorized scope. **Resume:** reconcile actual revisions, reviews and processes; continue the earliest actionable item within the existing stop boundary.
-- Build/fix requests imply delivery, including “I want…”. Clarify materially ambiguous scope before dependent execution; continue useful independent work.
+Read `BRAID.md` at the repository root first. It gives the `gate` command, the `main` branch, the `epics` folder, the `ci` checks, how to `run` the app, and `models`: who runs each role.
 
-## Plan once, make briefs executable
+To pick a model for an item, use `models.<role>.<kind>` if it exists (for example `worker.spike`), otherwise `models.<role>`. If the entry names a `skill:`, tell that agent to use the skill. Use the exact provider, model and options; if the host doesn't offer them, tell the user instead of substituting. If it is missing, stop and ask the user for it; you may propose one from [the template](assets/braid-md.md), but the user decides its content. Also follow the project's own agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
-- Identify outcome, beneficiary, exclusions, constraints, unknowns and relevant build/CI facts. Scale analysis to uncertainty and risk; do substantial architecture work here once, recording decisions so workers can execute them.
-- Inspect named paths and targeted search results before broad exploration. Batch independent reads/checks, bound logs/diffs to the question, and reuse context. Further investigation needs a concrete unresolved question that affects implementation or proof; if none remains, proceed. No rigid time or tool-call budget.
-- Match an existing epic or use [epic](assets/epic.md) and [backlog](assets/backlog-item.md) templates for necessary new files. Preserve IDs and user work; follow [ID rules](../../../docs/agile-workflow.md#backlog-item-ids). Reviews are parent gates, not new backlog letters.
-- Split into small usable stories and necessary tasks or bounded spikes. Order dependencies and ownership/resource conflicts; enforce WIP and project Ready/Done criteria. Do not implement future roadmap automation incidentally.
-- Write implementation-ready briefs: relevant paths/patterns, settled decisions and rationale, constraints/non-goals, dependencies, acceptance examples and exact verification. Carry research forward; do not assign the same discovery again without changed facts or a specific unresolved question.
-- For bounded spikes, supply a small question/procedure/observation-table/result-and-limits outline. Record observations during the trial and derive conclusions afterward; do not require a long operating manual before observing behavior.
-- Ask only for missing facts that materially affect scope, acceptance or execution. Choose routine details within authority. Do not add acknowledgment loops or coordination messages without an actionable change.
+Layout, tiers, branches and merge rules are in [the workflow](references/workflow.md).
 
-## Dispatch and supervise
+## Plan
 
-File ownership is [Record ownership](../../../docs/agile-workflow.md#record-ownership). Keep one implementation worker at a time. Route product fixes back to that worker.
+1. Understand the goal. Read whatever code you need to plan well. Exploration belongs here, so the worker doesn't have to repeat it. Ask the user only about things that change scope or acceptance.
+2. Create the epic branch from `main` and write `epic.md` from [the epic template](assets/epic.md).
+3. Split the work into stories, tasks and spikes (see the workflow), each small enough for one PR. Put the table rows in run order and fill "Depends on" with the IDs each item really needs first. Use a spike when something must be learned before it can be planned or estimated, and plan the items that depend on its answer only roughly until it returns.
+4. Write one brief per item in `items/<ID>.md` from [the brief template](assets/brief.md). A good brief:
+   - names the files to read first and the files to change;
+   - records the facts and choices you have already settled;
+   - gives an honest expected size;
+   - states the outcome and a few testable "done when" points, not every edge case;
+   - states its kind and uses the lowest tier that fits;
+   - for a spike, states the question, the time box and the decision the answer feeds.
+5. Commit and push the plan to the epic branch. If the user asked only for a plan, stop and show them the item table and any open questions.
 
-- Before assignment consult the target project's authorized provider profile; never substitute settings/providers silently. For automatic cross-provider dispatch load [delegation](references/delegation.md); otherwise supply a complete manual packet and explain the limitation.
-- Author one filled [assignment packet](../braid-worker/assets/assignment-packet.md) for [braid-worker](../braid-worker/SKILL.md). Give its exact path, entry mode, concrete first action and exact outputs; separate read-now sections, verified dependency facts with evidence, and on-demand history. Name the execution-skill revision and source path. Reconcile mandatory target-project instructions before dispatch; installed skills cannot waive external AGENTS obligations. Commit the filled packet at `assignments/<ID>.md` and the required context before creating the item checkout. Supply the resulting full context SHA at launch. Do not embed that file's own commit SHA or an unknown thread or root. Record returned binding identities separately and supply remaining launch identities once in an actionable binding message, without acknowledgment loops. A change to a running assignment is a new committed revision, sent explicitly, not a dirty edit in the parent checkout.
-- Before dispatch align active epic/item/packet/checkpoint statements on approval, owner, phase and next action. Clearly separate obsolete instructions from active status while preserving original historical evidence. A resumed packet names the worker checkpoint first, existing PR/head/continuation generation and interrupted action, not a replay of initial discovery. The single active implementation worker includes CI waiting and same-item repair; independent review and human merge stay separate.
-- Freeze local/hosted checks, Git/base/remote/dependency merge facts, expected full HEAD/branch/origin/upstream state (including normal no-upstream), explicit first push destination, return channel, outputs and stop boundary. Put a verified read-now batch and a schema 1 workspace-binding contract in that packet ([schema](../../../scripts/workspace-binding.md)). Fill launch-only root, branch, full HEAD, origin, upstream, and dirty state after the host returns them. The supported binding route is idle thread creation, then one initial send that already contains that binding. Do not restart a live worker to use it, and do not treat that route as a durability guarantee. Resume keeps the checkpoint revision, review names the candidate SHA apart from the packet revision, and the coordinator uses its own epic contract. The normal item route is one top-level thread via `t3_thread_launch` with a workspace strategy: full base ref at the accepted epic tip, the explicit item branch, and origin policy. Honor the project's explicit standing thread request on continuation within authorized scope; do not ask again for each item. Provider/model/settings differences alone do not override a requested top-level route when the host permits it. Use `delegate_task` for a user-selected child or a host-required exception, and explain the exception. Follow host review routing. Let the host return the actual root and confirm the attached branch. Do not create the checkout in the shell or in the prompt.
-- Keep the worker prompt short and step-explicit: confirm the binding, implement, run local gates, commit, push, open one pull request into the epic, link, and watch. Right after `watch_pull_request`, run one catch-up snapshot (`gh pr checks` / `gh run list --commit <head>`). If every declared check has already finished, verify and deliver in that same turn; otherwise end the turn. On a wake, pending checks end the turn; the worker repairs an in-scope failure; green current-head proof unwatches and sends one result. Dedupe results by head. Drive recovery from an interrupted run with an explicit snapshot. A watch wake is not that recovery. Do not treat watch survival, unassisted repair, or exactly-once delivery as settled.
-- Resolve continuation before dispatch. In T3 load [T3 continuation](../braid-worker/references/t3-continuation.md). The top-level thread owns its watch and result message. Use the legacy parent relay only when the packet explicitly selects a delegated child. The worker retains repair and current-head verification. Follow host `next`; pending/failed/blocked returns remain nonterminal. Reconcile transport after interruption rather than assuming survival. Default to one epic worktree plus one active item checkout, with one writer in a checkout. See [Workspaces](references/delivery.md#workspaces).
-- Intervene for dependencies, blockers, architectural contradictions or meaningful verification failures. Let routine in-scope implementation proceed without repeated approval or research.
-- At a safe handoff inspect actual diff and full current-head check evidence using returned root/branch/HEAD/PR (`git -C <root>`). Do not switch to occupied branches or mutate a running worker's shared checkout/index/files. Reconcile base changes and invalidated proof explicitly.
-- Preserve failed gates; send scoped actionable fixes to the worker. Run independent checks required by acceptance. Before review/recheck read [review conventions](../../../docs/agile-workflow.md#review-gates-and-indexing) and use [review template](assets/review.md). A worker claim is not independent acceptance.
+## Run an item
 
-## Delivery gates and stop conditions
+One implementation worker at a time, on the first `ready` row of the item table. Keep each item's status in `epic.md` current as the [workflow](references/workflow.md) describes; a status change is a small commit pushed on the epic branch.
 
-Use [delivery rules](references/delivery.md) for commits, PRs, current-head green checks, review and human merge, including spikes. At an item boundary, before the next dispatch, apply [Epic branch sync and skill pinning](references/delivery.md#epic-branch-sync-and-skill-pinning). For this repository, implementation PRs use `npm run verify` for code and docs; coordinator records-only pushes follow [Commit boundary](../../../docs/agile-workflow.md#commit-boundary). External skill validators stay separate when they cannot run in CI. Local success produces a scoped commit/PR, not Done. Record PR/head, hosted CI, review triage and actual merge; never fabricate retrospective proof.
+1. Set the item to `in-progress` and launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy based on the epic branch tip, the item branch, and the worker model for the item's kind.
+2. Send a short first message:
 
-Before a dependent item requiring merge, apply the [human merge stop](references/delivery.md#human-merge-stop): report the exact human action, checkpoint and stop until actual merge is verified. Planning-only and user-defined report/choice boundaries also stop dispatch. General delivery authority does not authorize different providers, unrelated work, publication or deployment.
+   ```text
+   You are the braid worker for <epic>/<ID>. Use the braid-worker skill.
+   Brief: <path>. Branch: <branch> at <short sha>. Open the PR into <epic branch>.
+   Send your result to thread <your thread id>.
+   ```
 
-Keep README about supported capabilities and usage; live work belongs in epics/checkpoints/reports. Reusable guides contain mechanics and placeholder examples, not duplicate progress.
+   If the worker might not find the skill by name, add the absolute path of its `SKILL.md`; this skill folder's sibling `braid-worker` holds it.
+3. Wait for the worker's message without polling. If the user says the worker has finished, believe them and look at the PR.
+4. Answer the worker's questions promptly. If the scope must change, update the brief and tell the worker.
 
-## Checkpoint and report
+## Accept and merge
 
-At meaningful boundaries update epic/backlog, decisions when changed, and shared checkpoint: actual revision/checkout, completed evidence, in-flight commands/logs, blockers, controller/schema where applicable and exact next action. Do not duplicate machine authority or checkpoint every read.
+When the worker reports green:
 
-Use [report format](../../../epics/report-format.md) for item outcomes, substantive child returns, user blockers and milestones; inspect evidence and translate it for the user. Combine overlapping triggers; routine progress/unchanged waiting stays short Done / You / Next. Reporting adds no approval gate inside already authorized work.
+1. Set the item to `in-review` with the PR link.
+2. Review by tier:
+   - S: read the diff yourself. Send small problems back to the same worker to fix on the same PR.
+   - M and L: launch a reviewer as a top-level thread in its own worktree on the PR branch, using the reviewer model (and skill, if named) for the item's kind, with [the review brief](assets/review.md) filled in. Send blocking findings to the worker; decide non-blocking ones yourself.
+3. S and M: when nothing blocking remains, read the PR's current check results once with `gh pr checks <pr>`. It only reads what CI already reported; it runs nothing. Epic branches aren't protected, so this read is what keeps a red or changed PR from being merged. If every required check is green on the latest commit, merge with `gh pr merge <pr> --merge`. If a check failed, send the PR back to its worker; if checks are still running, wait. Either way the item stays `in-review`. Don't download artifacts or re-run the gate. L: tell the user the item is ready and wait for their merge.
+4. Once merged, set the item to `done`, and any items whose dependencies are now met to `ready`, then push. If an item gets stuck or dropped, set `blocked` or `cancelled` with the reason. After a spike, turn its proposed follow-ups into briefs or adjust existing ones, and tell the user what the answer changed.
+5. If `main` has moved, merge it into the epic branch before the next item.
 
-At epic closure reconcile outcomes against evidence, write final report/retrospective and identify follow-ups/release blockers. Distinguish local readiness, hosted CI, merge and publication.
+## Fixes
+
+- The worker that opened a PR fixes it: failed checks, review findings, anything else on that PR. Send the request to its existing thread with `t3_thread_send`, even if it has finished, so it keeps its context. Start a new worker on the same branch and brief only if that thread can't continue.
+- CI failing on the epic branch itself, or on the epic's PR into `main`, belongs to no worker. Add a tier S fix item with the next unused letter as the first row of the table, with no dependencies, and run it like any other item.
+- You don't fix product code yourself.
+
+## Finish the epic
+
+When every item is done, open one PR from the epic branch into `main` with a short summary of what the epic delivers, and tell the user it's ready. Only the user merges it.
+
+## Talking to the user
+
+The user mostly follows you, not the workers. When an item is merged, waiting for the user's merge, or blocked, give them a recap in this format, based on the worker's final report and checked against the diff:
+
+```markdown
+**<ID>: <title>** — merged | ready for your merge | blocked. PR: <link>
+
+**Done:** 1–5 bullets on what changed and what it means for the project.
+**Decisions:** choices made that the brief didn't settle, each with a one-line reason. "None" if none.
+**Deviations:** only if the work departed from the brief: what and why.
+**You:** only if the user must act: the exact steps.
+**Screenshots:** only for UI work: the worker's key screens.
+**Next:** the next item, or what you are waiting for.
+```
+
+Also tell the user, in a few sentences, when you need a decision and when the epic is ready for `main`.
+
+## Limits
+
+- Never edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless the user asks. Work that changes them is tier L.
+- Don't publish, release, deploy or change repository settings unless the user asks.
+
+## Resuming
+
+Read `BRAID.md`, `epic.md`, `notes.md` if present, open PRs, and the worker or reviewer threads, then continue with the next unfinished step. Write `notes.md` only for things a fresh session couldn't work out from the files and GitHub.

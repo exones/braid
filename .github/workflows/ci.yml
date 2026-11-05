@@ -21,8 +21,13 @@
 # Artifact upload needs actions: write. contents stays read. This workflow does not publish.
 name: CI
 
+# PR branches are covered by pull_request; push runs only for the shared branches,
+# so one push to a PR branch doesn't run the suite twice. A push that only changes
+# epics/ (coordinator status records) skips CI; pull requests always run.
 on:
   push:
+    branches: [main, 'epic/**']
+    paths-ignore: ['epics/**']
   pull_request:
 
 permissions:
@@ -57,6 +62,14 @@ jobs:
             exit 1
           }
 
+      - name: Require Pester 5.5
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -ge [version]'5.5.0' })) {
+            Install-PSResource -Name Pester -Version 5.7.1 -Repository PSGallery -TrustRepository -Scope CurrentUser
+          }
+          Get-Module -ListAvailable -Name Pester | Sort-Object Version -Descending | Select-Object -First 1 Name, Version
+
       - name: Setup Node.js 26
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -73,7 +86,7 @@ jobs:
         env:
           BRAID_REQUIRE_CLEAN: "1"
           BRAID_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: npm run verify
+        run: npm run verify:full
 
       - name: Upload packed tarball
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
