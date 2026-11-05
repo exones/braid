@@ -156,7 +156,19 @@ function New-Artifact {
 }
 
 function New-Evidence {
-  param($Runs, $Commits, [string]$HeadAfter = $script:Head, [string]$BaseAfter = $script:Base)
+  param(
+    $Runs,
+    $Commits,
+    [string]$HeadAfter = $script:Head,
+    [string]$BaseAfter = $script:Base,
+    [string]$State = 'open',
+    [string]$LiveBase = $script:Base,
+    [string]$LiveBaseAfter = '',
+    [string]$MergeTest = $script:Merge
+  )
+  if ([string]::IsNullOrWhiteSpace($LiveBaseAfter)) {
+    $LiveBaseAfter = $LiveBase
+  }
   return @{
     pr = @{
       number = 13
@@ -165,6 +177,10 @@ function New-Evidence {
       head = $script:Head
       base = $script:Base
     }
+    state = $State
+    liveBase = $LiveBase
+    liveBaseAfter = $LiveBaseAfter
+    mergeTest = $MergeTest
     headAfter = $HeadAfter
     baseAfter = $BaseAfter
     commits = $Commits
@@ -325,6 +341,9 @@ try {
   if ($green.runs.push.jobs.ubuntu.artifact.pullRequestHeadSha -ne '') {
     Fail 'green push provenance had a pull request head'
   }
+  if ([string]$green.proofScope -ne 'current' -or $green.currentReady -ne $true) {
+    Fail "green proof scope was $($green.proofScope) currentReady=$($green.currentReady)"
+  }
   $parents = @($green.runs.pull_request.jobs.ubuntu.artifact.parents)
   if ($parents.Count -ne 2 -or $parents[0] -ne $script:Base -or $parents[1] -ne $script:Head) {
     Fail "green merge parents were $($parents -join ',')"
@@ -405,7 +424,7 @@ try {
   )
   $reversed = @{ $script:Merge = @($script:Head, $script:Base) }
   Write-Evidence -Dir $parentDir -Evidence (New-Evidence -Runs $parentRuns -Commits $reversed)
-  Assert-Case -Label 'parent-order' -Result (Invoke-Proof -Dir $parentDir) -Code 1 -Verdict 'FAIL' -ReasonMatch 'parents are not base then head' | Out-Null
+  Assert-Case -Label 'parent-order' -Result (Invoke-Proof -Dir $parentDir) -Code 1 -Verdict 'FAIL' -ReasonMatch 'live target tip' | Out-Null
 
   $archiveDir = New-CaseDir 'archive-digest'
   $archivePackages = New-GreenPackages -Dir $archiveDir
@@ -443,6 +462,46 @@ try {
   )
   Write-Evidence -Dir $expiredDir -Evidence (New-Evidence -Runs $expiredRuns -Commits $commits)
   Assert-Case -Label 'expired' -Result (Invoke-Proof -Dir $expiredDir) -Code 1 -Verdict 'FAIL' -ReasonMatch 'expired' | Out-Null
+
+  $advancedDir = New-CaseDir 'live-base-advanced'
+  $advancedPackages = New-GreenPackages -Dir $advancedDir
+  $advancedRuns = @(
+    (New-Run -Id 100 -Event 'push' -Attempt 1 -CreatedAt '2026-11-04T00:00:00Z' -Jobs (New-SuccessJobs -Attempt 1 -UbuntuId 1001 -WindowsId 1002) -Artifacts (New-SuccessArtifacts -Packages $advancedPackages -Event 'push' -UbuntuId 5001 -WindowsId 5002))
+    (New-Run -Id 200 -Event 'pull_request' -Attempt 1 -CreatedAt '2026-11-04T00:01:00Z' -Jobs (New-SuccessJobs -Attempt 1 -UbuntuId 2001 -WindowsId 2002) -Artifacts (New-SuccessArtifacts -Packages $advancedPackages -Event 'pull_request' -UbuntuId 5003 -WindowsId 5004))
+  )
+  Write-Evidence -Dir $advancedDir -Evidence (New-Evidence -Runs $advancedRuns -Commits $commits -LiveBase $script:Other -LiveBaseAfter $script:Other)
+  $advanced = Assert-Case -Label 'live-base-advanced' -Result (Invoke-Proof -Dir $advancedDir) -Code 1 -Verdict 'FAIL' -ReasonMatch 'live target tip'
+  if ([string]$advanced.proofScope -ne 'current' -or [string]$advanced.runs.pull_request.jobs.ubuntu.artifact.archiveSha256 -eq '') {
+    Fail 'live-base-advanced dropped current scope or archive diagnostics'
+  }
+  Assert-Case -Label 'live-base-advanced-skip' -Result (Invoke-Proof -Dir $advancedDir -SkipArtifacts) -Code 1 -Verdict 'FAIL' -ReasonMatch 'live target tip' | Out-Null
+
+  $movingDir = New-CaseDir 'live-base-moved'
+  $movingPackages = New-GreenPackages -Dir $movingDir
+  $movingRuns = @(
+    (New-Run -Id 100 -Event 'push' -Attempt 1 -CreatedAt '2026-11-04T00:00:00Z' -Jobs (New-SuccessJobs -Attempt 1 -UbuntuId 1001 -WindowsId 1002) -Artifacts (New-SuccessArtifacts -Packages $movingPackages -Event 'push' -UbuntuId 5001 -WindowsId 5002))
+    (New-Run -Id 200 -Event 'pull_request' -Attempt 1 -CreatedAt '2026-11-04T00:01:00Z' -Jobs (New-SuccessJobs -Attempt 1 -UbuntuId 2001 -WindowsId 2002) -Artifacts (New-SuccessArtifacts -Packages $movingPackages -Event 'pull_request' -UbuntuId 5003 -WindowsId 5004))
+  )
+  Write-Evidence -Dir $movingDir -Evidence (New-Evidence -Runs $movingRuns -Commits $commits -LiveBase $script:Base -LiveBaseAfter $script:Other)
+  Assert-Case -Label 'live-base-moved' -Result (Invoke-Proof -Dir $movingDir) -Code 1 -Verdict 'FAIL' -ReasonMatch 'live target ref changed' | Out-Null
+
+  $match = Assert-Case -Label 'live-base-match' -Result (Invoke-Proof -Dir $greenDir) -Code 0 -Verdict 'PASS'
+  if ([string]$match.proofScope -ne 'current' -or $match.currentReady -ne $true -or [string]$match.liveBase -ne $script:Base) {
+    Fail "live-base-match scope was $($match.proofScope) liveBase=$($match.liveBase)"
+  }
+
+  $historicalDir = New-CaseDir 'historical-merged'
+  $historicalPackages = New-GreenPackages -Dir $historicalDir
+  $historicalRuns = @(
+    (New-Run -Id 100 -Event 'push' -Attempt 1 -CreatedAt '2026-11-04T00:00:00Z' -Jobs (New-SuccessJobs -Attempt 1 -UbuntuId 1001 -WindowsId 1002) -Artifacts (New-SuccessArtifacts -Packages $historicalPackages -Event 'push' -UbuntuId 5001 -WindowsId 5002))
+    (New-Run -Id 200 -Event 'pull_request' -Attempt 1 -CreatedAt '2026-11-04T00:01:00Z' -Jobs (New-SuccessJobs -Attempt 1 -UbuntuId 2001 -WindowsId 2002) -Artifacts (New-SuccessArtifacts -Packages $historicalPackages -Event 'pull_request' -UbuntuId 5003 -WindowsId 5004))
+  )
+  Write-Evidence -Dir $historicalDir -Evidence (New-Evidence -Runs $historicalRuns -Commits $commits -State 'merged' -LiveBase $script:Other -LiveBaseAfter $script:Other)
+  $historical = Assert-Case -Label 'historical-merged' -Result (Invoke-Proof -Dir $historicalDir) -Code 0 -Verdict 'PASS'
+  $historicalLimits = @($historical.limitations)
+  if ([string]$historical.proofScope -ne 'historical' -or $historical.currentReady -eq $true -or ($historicalLimits -notcontains 'historical merged snapshot; not current pull-request readiness')) {
+    Fail "historical-merged scope was $($historical.proofScope) currentReady=$($historical.currentReady)"
+  }
 
   $missing = Invoke-Proof -Dir $greenDir -NoFixture
   if ($missing.Code -eq 0 -or $missing.Lines[0] -notmatch '^-PullRequest is required|PullRequest is required') {

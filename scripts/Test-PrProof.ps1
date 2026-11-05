@@ -392,18 +392,39 @@ function Get-FixtureModel {
     }
   }
   $head = ConvertTo-Sha (Get-Prop $pr 'head')
+  $recordedBase = ConvertTo-Sha (Get-Prop $pr 'base')
+  $liveBase = ConvertTo-Sha (Get-Prop $raw 'liveBase')
+  if (-not (Test-FullSha $liveBase)) {
+    $liveBase = $recordedBase
+  }
+  $liveBaseAfter = ConvertTo-Sha (Get-Prop $raw 'liveBaseAfter')
+  if (-not (Test-FullSha $liveBaseAfter)) {
+    $liveBaseAfter = ConvertTo-Sha (Get-Prop $raw 'baseAfter')
+  }
+  if (-not (Test-FullSha $liveBaseAfter)) {
+    $liveBaseAfter = $liveBase
+  }
+  $stateText = ([string](Get-Prop $raw 'state')).ToLowerInvariant()
+  if ([string]::IsNullOrWhiteSpace($stateText)) {
+    $stateText = 'open'
+  }
   return @{
     mode = 'fixture'
     skipArtifacts = [bool]$SkipArtifacts
+    state = $stateText
+    recordedBase = $recordedBase
+    liveBase = $liveBase
+    liveBaseAfter = $liveBaseAfter
+    mergeTest = ConvertTo-Sha (Get-Prop $raw 'mergeTest')
     pr = @{
       number = Get-Prop $pr 'number'
       url = [string](Get-Prop $pr 'url')
       repository = [string](Get-Prop $pr 'repository')
       head = $head
-      base = ConvertTo-Sha (Get-Prop $pr 'base')
+      base = $recordedBase
     }
     headAfter = ConvertTo-Sha (Get-Prop $raw 'headAfter')
-    baseAfter = ConvertTo-Sha (Get-Prop $raw 'baseAfter')
+    baseAfter = $liveBaseAfter
     runs = $runs
     commits = $commits
   }
@@ -561,16 +582,55 @@ function ConvertTo-ApiArtifact {
 }
 
 function Get-PullRequestView {
-  param([Parameter(Mandatory = $true)][string]$Repository, [Parameter(Mandatory = $true)][string]$Number)
+  param([Parameter(Mandatory = $true)][string]$RepoName, [Parameter(Mandatory = $true)][string]$Number)
   $view = Invoke-GhJson -Arguments @(
-    'pr', 'view', $Number, '--repo', $Repository, '--json', 'number,url,headRefOid,baseRefOid'
+    'pr', 'view', $Number, '--repo', $RepoName, '--json', 'number,url,state,headRefOid,baseRefName,baseRefOid'
   )
+  $stateText = ([string](Get-Prop $view 'state')).ToLowerInvariant()
+  $proofState = switch ($stateText) {
+    'open' { 'open' }
+    'merged' { 'merged' }
+    default { 'closed' }
+  }
   return @{
     number = Get-Prop $view 'number'
     url = [string](Get-Prop $view 'url')
+    state = $proofState
     head = ConvertTo-Sha (Get-Prop $view 'headRefOid')
-    base = ConvertTo-Sha (Get-Prop $view 'baseRefOid')
+    baseRefName = [string](Get-Prop $view 'baseRefName')
+    recordedBase = ConvertTo-Sha (Get-Prop $view 'baseRefOid')
   }
+}
+
+function Get-LiveTargetTip {
+  param([Parameter(Mandatory = $true)][string]$RepoName, [Parameter(Mandatory = $true)][string]$BranchName)
+  if ([string]::IsNullOrWhiteSpace($BranchName) -or $BranchName.Contains('\') -or $BranchName.Contains('..') -or $BranchName.StartsWith('-') -or $BranchName.StartsWith('/')) {
+    throw 'github api schema: pull request base ref missing'
+  }
+  $ref = Invoke-GhJson -Arguments @(
+    'api', '--method', 'GET', '-H', 'Accept: application/vnd.github+json', "repos/$RepoName/git/ref/heads/$BranchName"
+  )
+  $sha = ConvertTo-Sha (Get-Prop (Get-Prop $ref 'object') 'sha')
+  if (-not (Test-FullSha $sha)) {
+    throw 'github api schema: target ref sha missing'
+  }
+  return $sha
+}
+
+function Get-PullMergeParents {
+  param([Parameter(Mandatory = $true)][string]$RepoName, [Parameter(Mandatory = $true)][string]$Number)
+  $commit = Invoke-GhJson -Arguments @(
+    'api', '--method', 'GET', '-H', 'Accept: application/vnd.github+json', "repos/$RepoName/commits/refs/pull/$Number/merge"
+  )
+  $sha = ConvertTo-Sha (Get-Prop $commit 'sha')
+  if (-not (Test-FullSha $sha)) {
+    throw 'merge-test commit schema mismatch'
+  }
+  $parents = @()
+  foreach ($parent in @(Get-ObjectList (Get-Prop $commit 'parents'))) {
+    $parents += (ConvertTo-Sha (Get-Prop $parent 'sha'))
+  }
+  return @{ Sha = $sha; Parents = [string[]]$parents }
 }
 
 function Get-LiveModel {
@@ -580,9 +640,17 @@ function Get-LiveModel {
   if ($repository -notmatch '^[^/\s]+/[^/\s]+$') {
     throw 'github api schema: repository name missing'
   }
-  $first = Get-PullRequestView -Repository $repository -Number $PullRequestValue
-  if (-not (Test-FullSha $first.head) -or -not (Test-FullSha $first.base)) {
-    throw 'github api schema: pull request head or base is not a full SHA'
+  $first = Get-PullRequestView -RepoName $repository -Number $PullRequestValue
+  if (-not (Test-FullSha $first.head)) {
+    throw 'github api schema: pull request head is not a full SHA'
+  }
+  $liveBase = Get-LiveTargetTip -RepoName $repository -BranchName $first.baseRefName
+  $mergeTest = ''
+  $commits = [System.Collections.Generic.Dictionary[string, string[]]]::new([StringComparer]::Ordinal)
+  if ($first.state -eq 'open') {
+    $mergeCommit = Get-PullMergeParents -RepoName $repository -Number ([string]$first.number)
+    $mergeTest = $mergeCommit.Sha
+    $commits[$mergeTest] = $mergeCommit.Parents
   }
   $apiRuns = @(Get-GhPages -Repository $repository -Endpoint "actions/runs?head_sha=$($first.head)" -Property 'workflow_runs')
   $runs = @()
@@ -644,7 +712,6 @@ function Get-LiveModel {
       $artifact.zipPath = $zipPath
     }
   }
-  $commits = [System.Collections.Generic.Dictionary[string, string[]]]::new([StringComparer]::Ordinal)
   if (-not $SkipArtifacts) {
     $pullRequestRun = $selected['pull_request']
     if ($null -ne $pullRequestRun) {
@@ -658,7 +725,13 @@ function Get-LiveModel {
           continue
         }
         $source = ConvertTo-Sha (Get-Prop $package.Provenance 'sourceRevision')
-        if (-not (Test-FullSha $source) -or $commits.ContainsKey($source)) {
+        if (-not (Test-FullSha $source)) {
+          continue
+        }
+        if ([string]::IsNullOrWhiteSpace($mergeTest)) {
+          $mergeTest = $source
+        }
+        if ($commits.ContainsKey($source)) {
           continue
         }
         $commit = Invoke-GhJson -Arguments @(
@@ -676,19 +749,25 @@ function Get-LiveModel {
       }
     }
   }
-  $second = Get-PullRequestView -Repository $repository -Number $PullRequestValue
+  $second = Get-PullRequestView -RepoName $repository -Number $PullRequestValue
+  $liveBaseAfter = Get-LiveTargetTip -RepoName $repository -BranchName $first.baseRefName
   return @{
     mode = 'live'
     skipArtifacts = [bool]$SkipArtifacts
+    state = $first.state
+    recordedBase = $first.recordedBase
+    liveBase = $liveBase
+    liveBaseAfter = $liveBaseAfter
+    mergeTest = $mergeTest
     pr = @{
       number = $first.number
       url = $first.url
       repository = $repository
       head = $first.head
-      base = $first.base
+      base = $first.recordedBase
     }
     headAfter = $second.head
-    baseAfter = $second.base
+    baseAfter = $liveBaseAfter
     runs = $runs
     selected = $selected
     commits = $commits
@@ -775,6 +854,9 @@ function Add-ArtifactProof {
   if ($source -ne $github -or $pullHead -ne $Model.pr.head) {
     Add-CleanReason -List $Failures -Reason "pull_request source mapping mismatch for $($Required.Artifact)"
   }
+  if ((Test-FullSha ([string]$Model.mergeTest)) -and $source -ne $Model.mergeTest) {
+    Add-CleanReason -List $Failures -Reason "pull_request source is not the merge-test commit for $($Required.Artifact)"
+  }
   if (-not $Model.commits.ContainsKey($source)) {
     Add-CleanReason -List $Failures -Reason "merge-test commit $source unavailable"
     return
@@ -785,9 +867,6 @@ function Add-ArtifactProof {
     [void]$parentOut.Add([string]$parent)
   }
   $artifactOut['parents'] = $parentOut
-  if ($parents.Length -ne 2 -or $parents[0] -ne $Model.pr.base -or $parents[1] -ne $Model.pr.head) {
-    Add-CleanReason -List $Failures -Reason 'merge-test parents are not base then head'
-  }
 }
 
 function Get-PrProofJudgment {
@@ -798,8 +877,15 @@ function Get-PrProofJudgment {
   if ($Model.skipArtifacts) {
     Add-CleanReason -List $limitations -Reason 'artifact verification skipped by caller assertion that the packet waived it'
   }
-  if (-not (Test-FullSha $Model.pr.head) -or -not (Test-FullSha $Model.pr.base)) {
-    Add-CleanReason -List $failures -Reason 'pull request head or base schema'
+  if (-not (Test-FullSha $Model.pr.head)) {
+    Add-CleanReason -List $failures -Reason 'pull request head schema'
+  }
+  if ($Model.state -eq 'closed') {
+    Add-CleanReason -List $failures -Reason 'pull request is not open'
+  } elseif ($Model.state -eq 'open' -and -not (Test-FullSha $Model.liveBase)) {
+    Add-CleanReason -List $failures -Reason 'live target ref missing'
+  } elseif ($Model.state -eq 'merged' -and -not (Test-FullSha $Model.recordedBase)) {
+    Add-CleanReason -List $failures -Reason 'recorded base schema'
   }
   $selected = @{}
   if ($Model.Contains('selected')) {
@@ -913,13 +999,45 @@ function Get-PrProofJudgment {
     }
     $runsOut[$event] = $runOut
   }
-  $unchanged = (Test-FullSha $Model.headAfter) -and (Test-FullSha $Model.baseAfter) -and $Model.headAfter -eq $Model.pr.head -and $Model.baseAfter -eq $Model.pr.base
-  if (-not (Test-FullSha $Model.headAfter) -or -not (Test-FullSha $Model.baseAfter)) {
+  $pullRun = $selected['pull_request']
+  $pullPassed = $false
+  if ($null -ne $pullRun -and (Get-PrProofNodeKind $pullRun.status $pullRun.conclusion) -eq 'pass') {
+    $pullPassed = $true
+  }
+  $needParents = $false
+  if ($Model.state -eq 'open' -and (Test-FullSha ([string]$Model.mergeTest)) -and (Test-FullSha $Model.liveBase)) {
+    $needParents = $true
+  } elseif ($Model.state -eq 'open' -and ($pullPassed -or $Model.skipArtifacts)) {
+    $needParents = $true
+  } elseif ($Model.state -eq 'merged' -and ($pullPassed -or (Test-FullSha ([string]$Model.mergeTest)))) {
+    $needParents = $true
+  }
+  if ($needParents) {
+    $mergeKey = [string]$Model.mergeTest
+    if (-not (Test-FullSha $mergeKey) -or -not $Model.commits.ContainsKey($mergeKey)) {
+      Add-CleanReason -List $failures -Reason 'merge-test commit unavailable'
+    } else {
+      $mergeParents = $Model.commits[$mergeKey]
+      $expectedBase = if ($Model.state -eq 'merged') { $Model.recordedBase } else { $Model.liveBase }
+      if ($mergeParents.Length -ne 2 -or $mergeParents[1] -ne $Model.pr.head -or $mergeParents[0] -ne $expectedBase) {
+        if ($Model.state -eq 'merged') {
+          Add-CleanReason -List $failures -Reason 'merge-test parents are not the recorded base then head'
+        } else {
+          Add-CleanReason -List $failures -Reason 'merge-test first parent is not the live target tip'
+        }
+      }
+    }
+  }
+  if ($Model.state -eq 'merged') {
+    Add-CleanReason -List $limitations -Reason 'historical merged snapshot; not current pull-request readiness'
+  }
+  $unchanged = (Test-FullSha $Model.headAfter) -and (Test-FullSha $Model.liveBaseAfter) -and $Model.headAfter -eq $Model.pr.head -and $Model.liveBaseAfter -eq $Model.liveBase
+  if (-not (Test-FullSha $Model.headAfter) -or -not (Test-FullSha $Model.liveBaseAfter)) {
     Add-CleanReason -List $failures -Reason 'head re-read missing'
   } elseif ($Model.headAfter -ne $Model.pr.head) {
     Add-CleanReason -List $failures -Reason 'pull request head changed during proof'
-  } elseif ($Model.baseAfter -ne $Model.pr.base) {
-    Add-CleanReason -List $failures -Reason 'pull request base changed during proof'
+  } elseif ($Model.liveBaseAfter -ne $Model.liveBase) {
+    Add-CleanReason -List $failures -Reason 'live target ref changed during proof'
   }
   $verdict = 'PASS'
   $reason = ''
@@ -930,10 +1048,16 @@ function Get-PrProofJudgment {
     $verdict = 'PENDING'
     $reason = $pending[0]
   }
+  $proofScope = if ($Model.state -eq 'merged') { 'historical' } else { 'current' }
   $payload = New-JsonObject
   $payload['verdict'] = $verdict
   $payload['reason'] = $reason
   $payload['mode'] = [string]$Model.mode
+  $payload['proofScope'] = $proofScope
+  $payload['currentReady'] = [bool]($verdict -eq 'PASS' -and $proofScope -eq 'current')
+  $payload['state'] = [string]$Model.state
+  $payload['recordedBase'] = [string]$Model.recordedBase
+  $payload['liveBase'] = [string]$Model.liveBase
   $payload['skipArtifacts'] = [bool]$Model.skipArtifacts
   $payload['limitations'] = $limitations
   $prOut = New-JsonObject
@@ -945,7 +1069,8 @@ function Get-PrProofJudgment {
   $payload['pr'] = $prOut
   $recheck = New-JsonObject
   $recheck['head'] = [string]$Model.headAfter
-  $recheck['base'] = [string]$Model.baseAfter
+  $recheck['liveBase'] = [string]$Model.liveBaseAfter
+  $recheck['base'] = [string]$Model.liveBaseAfter
   $recheck['unchanged'] = [bool]$unchanged
   $payload['headRecheck'] = $recheck
   $payload['runs'] = $runsOut

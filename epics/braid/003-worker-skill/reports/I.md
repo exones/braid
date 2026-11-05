@@ -1,6 +1,6 @@
 # BRAID-003/I current-head PR proof
 
-`scripts/Test-PrProof.ps1` is the finite snapshot for the current-head CI proof. Offline fixtures cover failed jobs, pending runs, stale head, source-parent order, and digest tampering. A full artifact run against historical PR 20 passed. Hosted proof of this item's own head is not in this file. Independent review and the human merge stay separate, and D stays behind that merge.
+`scripts/Test-PrProof.ps1` is the finite snapshot for the current-head CI proof. Review `I-pr-proof-script-review-001/F1` is repaired on this branch: an open pull request fails when the merge-test first parent is not the live target-branch tip. The earlier PASS at `ad0b1b6` certified cached base `4631970`, which is not current readiness. Hosted proof of the repair head is not in this file. Independent review002 and the human merge stay separate, and D stays behind that merge.
 
 ## What changed
 
@@ -28,3 +28,13 @@ No user action is needed for this local delivery. After this head's hosted check
 - Frozen hosted set for this head: workflow `.github/workflows/ci.yml`, events `push` and `pull_request`, jobs `verify (ubuntu-latest)` and `verify (windows-latest)`, steps Install dependencies, Verify, and Upload packed tarball, latest attempt, plus archive, tarball, provenance, and source mapping. `-SkipArtifacts` is not authorized for I. Pending, failed, missing, skipped, cancelled, or stale results do not count.
 - No records-gate draft was left in this checkout. The integrated tip already contains the coordinator-owned helper and rule.
 - Proposed shared status, for the coordinator: I is implemented and locally checked. Not accepted, not reviewed, not merged, not Done. Next coordinator action after the green current-head return: assign independent review, then stop for the human merge into the epic before D.
+
+## Repair for review001/F1
+
+Open pull requests now resolve `baseRefName` through `git/ref/heads/<branch>` and compare the merge-test first parent with that tip. `baseRefOid` stays a recorded snapshot and is not the live base. The final reread checks the head and that same ref. A stale open merge parent fails even when `-SkipArtifacts` waives archive bytes. Merged pull requests can still PASS as `proofScope` `historical` with `currentReady` false. Open pull requests never take that path. Callers accept an active pull request only when `proofScope` is `current`.
+
+Offline fixtures still cover the original failure, pending, attempt, source, and digest cases, and now cover a live base that has already advanced, a live base that advances during the proof, a matching live base, and a labelled merged snapshot. `pwsh -NoProfile -File test/fixtures/pr-proof/Test-PrProof.ps1` exited 0.
+
+Against frozen tip `7714587cfa7846c13560e0fd8c7f9a4c99b670f9`, open PR 21 at `ad0b1b6` exited 1. `proofScope` was `current`, `currentReady` false, recorded base `4631970cc6e7ac6eec1e2da9dc3b95a8a502b579`, live base `7714587cfa7846c13560e0fd8c7f9a4c99b670f9`, and the merge-test first parent was `4631970cc6e7ac6eec1e2da9dc3b95a8a502b579`. Merged PR 20 exited 0 with `proofScope` `historical`, `currentReady` false, recorded base `2b823f9fb7918b8db04d8cf985be327cdad28f70`, and live base `7714587cfa7846c13560e0fd8c7f9a4c99b670f9`. That historical PASS is not current readiness.
+
+`npm run verify` exited 0 after this repair as a dirty probe from merge `5c479e6357fcc85bf2e06aaeab735fb23ef3c69b`, candidate false. Node v26.13.0, npm 11.20.0, PowerShell 7.6.9. Docs gate `suppressed=7 exclusions=7 text=256`. 40 tests passed. Both skill validators exited 0. The hosted proof required for this repair is the new head against live base `7714587cfa7846c13560e0fd8c7f9a4c99b670f9`, full artifact mode, no `-SkipArtifacts`.

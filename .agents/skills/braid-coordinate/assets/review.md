@@ -15,7 +15,7 @@ Legacy alias: <only if needed to preserve an existing reference>.
 
 ## Scope and evidence
 
-When the target checkout provides `scripts/Test-PrProof.ps1`, run it for current-head CI proof. The script implements the packet's declared check set; that prose set remains the definition. `-SkipArtifacts` is valid only when the packet explicitly waives artifact verification, and that limitation stays in the review record.
+When the target checkout provides `scripts/Test-PrProof.ps1`, run it for current-head CI proof. The script implements the packet's declared check set; that prose set remains the definition. `-SkipArtifacts` is valid only when the packet explicitly waives artifact verification, and that limitation stays in the review record. Accept a PASS for an active pull request only when `proofScope` is `current`. A historical PASS is a merged snapshot and is not current readiness.
 
 <Acceptance criteria/outcomes examined, sources read, checks actually run, and coverage limits.>
 
