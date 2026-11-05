@@ -47,6 +47,8 @@ The coordinator asks the host to create or bind the workspace and supplies the n
 
 At startup, confirm the checkout is attached to the named branch and the full HEAD is the committed epic tip supplied at launch. Later commits stay on that same branch. A missing checkout, a detached HEAD, or a branch other than the named item branch stops the affected writes. Do not guess a path from the UI, create a worktree in the shell, rename the bound branch, or repair the binding. The worker reports that blocker. The coordinator does not ask the user to clean or retarget the checkout.
 
+Use the packet's schema 1 contract and `pwsh -NoProfile -File scripts/Test-WorkspaceBinding.ps1 -ContractPath <contract.json> -RepositoryRoot <absolute-root>` for that confirmation ([schema](../../../../scripts/workspace-binding.md)). Exit 0 proceeds. Exit 1 is reconciled only for the reported fields. Exit 2 stops the affected writes. The checker does not fetch, repair upstream, switch, clean, or write the checkout. A manual Git batch is the fallback only when the pinned helper is unavailable.
+
 After the item's review, its human merge into the epic, and durable copies of the report, checkpoint, and evidence, the coordinator may retire that item's stopped, clean, owned workspace. Do not force-remove a dirty tree, untracked evidence, or a checkout with a live owner. Keep an unresolved workspace. Adopting this policy does not retire any existing workspace. Deleting a thread does not remove its worktree.
 
 ## Conventional Commits: source and local convention
