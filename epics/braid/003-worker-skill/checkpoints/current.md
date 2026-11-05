@@ -1,12 +1,14 @@
 # BRAID-003 current coordinator checkpoint
-Date: 2026-11-05. Role: coordinator. Task: I implementation, awaiting worker result.
+Date: 2026-11-05. Role: coordinator. Task: D done. PR23 merged 2026-11-05T12:10:28Z as a7cbf760a920db90c2dec34e5d9364161286232b (verified via gh).
 Root: C:/worktrees/agento/epic-braid-003-worker-skill; branch epic/braid-003-worker-skill.
-Dispatch: 0ff10050cf11503713037d07fdcd0afa59788be5, committed/pushed packet assignments/I.md; J acceptance/adoption recorded.
-Item: C:/worktrees/agento/item-braid-003-i-pr-proof; branch item/braid-003-i-pr-proof; clean initial HEAD matched dispatch once.
-Live: top-level mcp:launch:00e42668086fd894d8c3775bf342bf6a7f1fde893f7c176164a0594f02a57713, ordinal1, Grok4.7 high/500k.
-Launch key: braid003-i-pr-proof-top-level-001. No child completion wake; worker sends one coordinator result per head.
-Skill: external installation C:/Users/exon/.codex/braid-pins/d30e3a93a2a3690934d059357eb2ed9b1494d6ca, revision d30e3a9.
-Proof: full artifact mode required for I; worker owns own PR/watch/repair. No PR or parent watch at dispatch.
-Checks: direct user-authorized Test-CoordinatorRecordsGate implemented here, nine focused cases passed; scope plus Markdown/text, no full suite. See reports/coordinator-records-gate.md.
-Blockers: none. Unrelated untracked maintenance evidence untouched; status only in epic table; D awaits I's reviewed human merge.
-Next: await original I result without polling. Direct helper/rule pushed fcea930; completion message steered same ordinal1 via braid003-i-records-gate-direct-complete-001. I extra assignment withdrawn.
+Candidate: epic PR25 into main. D (PR23, head faca856) merged and accepted: reports/D-acceptance.md.
+Frozen target 3101d84 released after D merge; coordinator records rebased onto merged epic and pushed.
+C proof: root Test-PrProof full mode exit0/currentReady true/current/no SkipArtifacts; push42021303056/PR42021309845 attempt1 all required jobs/steps/archives/source proven; merge61277ce parents frozen base then C.
+Trial: F BAD canary failed (catch-up), R GOOD passed both canary events and full CI before C removed fixture; normal CI unchanged/net only D records/validation.
+Transport: ordinal5 replayed after final result with CI6-8 queued; green-handoff-stop-001 interrupted5, preserved and cancelled only handled6-8. Final read cancelled/no active worker. No watch-wake/reliability claim.
+Evidence: reports/D-coordinator-triage.md, evidence/D/cleanup-current-proof.json, worker-handoff-events.json, final-handoff-queue.json, prior probe/recheck traces.
+Packet: assignments/reviews/D/D-worker-behavior-proof-review-001.md, exact candidate, claims/evidence/fixture safety; no new experiments or author writes.
+Live: none. Reviewer thread mcp:launch:f1487c4ce721e29d34f1b29a633e49eb93e495112a33be97cb44224166a36fd6 returned (message braid003-d-review001-result-001): no actionable findings; outputs copied byte-identical to reports|checkpoints/reviews/D/. Coordinator PR23 watch removed (wasWatching true). Before merge PR23 was OPEN/CLEAN at head faca856 on base 3101d84 with push42021303056/PR42021309845 success; merged 12:10:28Z as a7cbf76.
+Checks: coordinator records scope/Markdown/staged whitespace only; no product suite repeated. Operating pin d66843c unchanged; K deferred; audit disabled.
+User action: none yet. Final epic review/main merge still separate.
+Next: epic PR25 (epic a6eecbd9cd62b33139f3af902a329418d3a94cf9 -> main 1dd5cb735c4614b75d96c0694c8c6d0a939f2605, main..epic sync count 0) opened, linked, watched by coordinator. Final review BRAID-003-final-review-001 (Grok 4.7 High) returned one Medium finding (stale D records, missing D acceptance), fixed by coordinator records commit; Test-PrProof PASS on a6eecbd before that commit. After push: rerun Test-PrProof on new head, then ask user to merge PR25 into main; unwatch before handback. Cleanup 2026-11-05: removed 003 worktrees for D item/review, I/J items and reviews, D probe-3 and recheck-1 (branch item/d-live-recheck-1 kept, b738dd5 not on origin); deleted merged item branches. Kept item-d-live-probe-1/2 (deliberately dirty D fixtures) pending user decision. Epic 004 worktrees untouched.
