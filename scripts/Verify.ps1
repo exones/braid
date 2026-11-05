@@ -7,6 +7,8 @@
 # Does not call npm run verify. scripts/Test-Package.ps1 does not call this script.
 # test/fixtures/oidc-release/Test-OidcReleaseGuard.ps1 does not call this script.
 # test/fixtures/install-policy/Test-InstallPolicy.ps1 does not call this script.
+# test/fixtures/node-toolchain/Test-NodeToolchain.ps1 does not call this script.
+# test/fixtures/workspace-binding/Test-WorkspaceBinding.ps1 does not call this script.
 #Requires -Version 7.6
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -20,6 +22,7 @@ $env:BRAID_VERIFY_DEPTH = '1'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $repoRoot
+# Same order as the direct installer: PATH Node.js with bundled npm, then the shared pin.
 . (Join-Path $PSScriptRoot 'Install-NodeToolchain.ps1')
 
 function Invoke-VerifiedNative {
@@ -107,6 +110,20 @@ Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
   '-NoProfile',
   '-File',
   (Join-Path $repoRoot 'test/fixtures/pr-proof/Test-PrProof.ps1')
+)
+
+Write-Host "node-toolchain: PATH precedence, shared store, and failure fixtures"
+Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
+  '-NoProfile',
+  '-File',
+  (Join-Path $repoRoot 'test/fixtures/node-toolchain/Test-NodeToolchain.ps1')
+)
+
+Write-Host "workspace-binding: read-only checkout contract"
+Invoke-VerifiedNative -Executable 'pwsh' -Arguments @(
+  '-NoProfile',
+  '-File',
+  (Join-Path $repoRoot 'test/fixtures/workspace-binding/Test-WorkspaceBinding.ps1')
 )
 
 Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'typecheck')

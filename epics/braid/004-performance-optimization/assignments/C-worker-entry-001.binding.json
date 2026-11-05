@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "phase": "initial",
+  "expected": {
+    "repositoryRoot": "C:/worktrees/agento/trial-braid-004-c-entry-001",
+    "branch": "trial/braid-004-c-entry-001",
+    "head": "5a25b09985f92b25a8037938ef27dddcde7389c0",
+    "origin": {
+      "fetch": "https://github.com/exones/braid.git",
+      "push": "https://github.com/exones/braid.git"
+    },
+    "upstream": null,
+    "worktree": {
+      "clean": true
+    }
+  }
+}

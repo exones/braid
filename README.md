@@ -12,7 +12,7 @@ For contribution and agent assignment instructions, see the [handoff guide](docs
 
 ## Build and verify
 
-The seed requires Node.js `>=26.13.0 <27` and PowerShell 7.6 or newer (`pwsh`). The local pin is the official Node.js `26.13.0` Windows archive. The installer places it in `.tools/node` and does not replace the system Node.js. `.tools/`, `node_modules/`, `dist/`, and `.braid/` are gitignored. `.agents/` skills and `epics/` evidence stay tracked.
+The seed requires Node.js `>=26.13.0 <27` and PowerShell 7.6 or newer (`pwsh`). A compatible `node` already on `PATH`, with the npm that shipped in that same install, is used as-is. Otherwise, on Windows, the installer reuses or downloads the official Node.js `26.13.0` archive into `%LOCALAPPDATA%\braid\toolchains`. `BRAID_TOOLCHAIN_DIR` can name an absolute alternate root; it does not change the pin or the checksums. The installer does not replace the system Node.js, and it does not read, migrate, or delete a checkout-local `.tools/` directory. `.tools/`, `node_modules/`, `dist/`, and `.braid/` are gitignored. `.agents/` skills and `epics/` evidence stay tracked.
 
 From the repository root:
 
@@ -24,21 +24,25 @@ npm ci
 npm run verify
 ```
 
-`node --version` should print `v26.13.0`. The installer writes progress to stderr and writes only the toolchain directory to stdout. It downloads `https://nodejs.org/dist/v26.13.0/`, checks the archive SHA-256 against that directory's `SHASUMS256.txt`, and also requires the checksum pinned in `scripts/Install-NodeToolchain.ps1`. A later run reuses the extracted toolchain.
+The installer writes progress to stderr and writes only the toolchain directory to stdout. `node --version` prints the selected Node.js version: any compatible 26.x already on `PATH`, or `v26.13.0` for the Windows fallback. That fallback downloads `https://nodejs.org/dist/v26.13.0/`, checks the archive SHA-256 against that directory's `SHASUMS256.txt`, and also requires the checksum pinned in `scripts/Install-NodeToolchain.ps1`. The published directory is `node-v26.13.0-<platform>` (`win-x64` or `win-arm64`). A later run reuses it offline when `node.exe`, the bundled npm, and `.braid-toolchain.json` still match the pin, platform, and archive hash. A relative `BRAID_TOOLCHAIN_DIR`, a corrupt completed directory, or a lock held longer than 120 seconds fails with the directory and the recovery step. The corrupt directory is left in place. Other versions are not replaced.
 
-`.npmrc` sets `engine-strict=true`, `strict-allow-scripts=true`, `allow-git=none`, and `allow-remote=none`. `npm ci` refuses a Node.js older than 26.13.0, including this machine's default 24.x install. It also refuses an unreviewed dependency install script, a git dependency, and a remote URL dependency. `npm run verify` can be launched by that older npm; `scripts/Verify.ps1` still selects the pinned toolchain, or a Node.js 26 already on `PATH`, and runs the npm that shipped with it.
+`.npmrc` sets `engine-strict=true`, `strict-allow-scripts=true`, `allow-git=none`, and `allow-remote=none`. `npm ci` refuses a Node.js older than 26.13.0, including this machine's default 24.x install. It also refuses an unreviewed dependency install script, a git dependency, and a remote URL dependency. `npm run verify` can be launched by that older npm; `scripts/Verify.ps1` uses the same resolution as the installer and runs the npm that shipped with the selected Node.js.
 
-`npm run verify` is the deterministic offline pre-PR gate for code and docs. It runs `scripts/Verify.ps1`. That script selects the project toolchain when it is installed, otherwise a Node.js already on `PATH` that satisfies `>=26.13.0 <27`, and then runs, in order:
+`npm run verify` is the deterministic offline pre-PR gate for code and docs. It runs `scripts/Verify.ps1`. That script selects the toolchain, then runs, in order:
 
 1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Historical evidence keeps a narrow exclusion list in `scripts/markdown-link-exclusions.json`.
 2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
 3. A disposable repository that must fail for a broken relative link, a broken heading anchor, a CR line ending, and trailing whitespace, then removes those fixtures. CR and trailing whitespace are checked in the index blob and in the worktree.
 4. The OIDC release-shape guard.
 5. The install-policy guard.
-6. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`)
-7. `npm run build` (`tsc -p tsconfig.build.json`)
-8. `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`)
-9. `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable
+6. The shared Node.js toolchain fixture: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout, and interruption. It uses disposable roots and does not download Node.js.
+7. The workspace-binding fixture: a read-only JSON contract against disposable repositories, including mismatch, drift, and failed inspection. It does not use Node.js.
+8. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`)
+9. `npm run build` (`tsc -p tsconfig.build.json`)
+10. `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`)
+11. `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs the ledger scenario through the installed `braid` executable
+
+`scripts/Test-WorkspaceBinding.ps1` is the offline checkout check used before assigned work. Its contract and exit codes are [workspace binding](scripts/workspace-binding.md). It is not a product doctor command.
 
 External skill validators are not part of this command. Run them when a change edits skill content and report that result separately; they may be unavailable in CI.
 
@@ -134,7 +138,7 @@ On Linux, the executable path is `node_modules/.bin/braid`. Publishing, tagging,
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs `npm ci` and `npm run verify` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
+`.github/workflows/ci.yml` runs `npm ci` and `npm run verify` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`. Setup-node puts that runtime on `PATH`, so CI uses it instead of the shared Windows store. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
 
 The workflow uses pinned checkout, setup-node, and upload-artifact actions and the runner's PowerShell installation. It needs no T3 access, private infrastructure, or npm publishing credentials. `.github/workflows/release.yml` is a manual dispatch and is not part of this pull-request gate.
 

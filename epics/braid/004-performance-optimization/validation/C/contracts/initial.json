@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "phase": "initial",
+  "expected": {
+    "repositoryRoot": "C:/work/item-checkout",
+    "branch": "item/example",
+    "head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "origin": {
+      "fetch": "https://github.com/exones/braid.git",
+      "push": "https://github.com/exones/braid.git"
+    },
+    "upstream": null,
+    "worktree": {
+      "clean": true
+    }
+  }
+}

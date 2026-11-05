@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "phase": "resume",
+  "launchHead": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "expected": {
+    "repositoryRoot": "C:/work/item-checkout",
+    "branch": "item/example",
+    "head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "origin": {
+      "fetch": "https://github.com/exones/braid.git",
+      "push": "https://github.com/exones/braid.git"
+    },
+    "upstream": null,
+    "worktree": {
+      "clean": false,
+      "entries": [
+        {
+          "xy": "??",
+          "path": "notes/owned change.txt"
+        }
+      ]
+    }
+  }
+}

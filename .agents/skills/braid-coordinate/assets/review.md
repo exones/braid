@@ -9,6 +9,7 @@ Agent/assignment name: <review-name>.
 Report/checkpoint: <paths chosen under the review conventions>.
 Assignment packet, when used: `assignments/reviews/<parent>/<review-name>.md`. The pass stays under `reports/reviews/`.
 Candidate: <exact commit>. PR/artifact: <URL and identity when applicable>.
+Workspace check: phase `review`, with `expected.head` and `candidateHead` set to that candidate SHA and `packetRevision` set to the commit that supplied this packet. Invoke `pwsh -NoProfile -File scripts/Test-WorkspaceBinding.ps1 -ContractPath <contract.json> -RepositoryRoot <absolute-root>` ([schema](../../../../scripts/workspace-binding.md)). A mismatch or inspection failure stops the affected writes. The packet revision is not the candidate.
 Pass state: requested | findings | no-findings. Date: <date>.
 Item status is not copied here. See [One home for status](../../../../docs/agile-workflow.md#one-home-for-status).
 Legacy alias: <only if needed to preserve an existing reference>.
