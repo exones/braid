@@ -12,7 +12,19 @@ An epic lives in `<epics>/<NNN>-<slug>/`, where `<epics>` is the `epics` value i
 - `checkpoints/<ID>.md`: only when a worker has to stop before finishing.
 - `notes.md`: optional coordinator notes a fresh session couldn't work out from the files and GitHub.
 
-`<NNN>` is the next unused three-digit epic number in that folder. Item IDs are letters in planned order: A, B, … Z, then AA, AB. An ID stays once given. Statuses: `backlog`, `ready`, `in-progress`, `in-review`, `done`, `blocked`, `cancelled`.
+`<NNN>` is the next unused three-digit epic number in that folder. Item IDs are letters in planned order: A, B, … Z, then AA, AB. An ID stays once given.
+
+Only the coordinator changes an item's status, in the `epic.md` table, committed and pushed on the epic branch:
+
+| Status | When |
+| --- | --- |
+| `backlog` | The brief is written. |
+| `ready` | Its dependencies are done. |
+| `in-progress` | A worker is launched on it. |
+| `in-review` | The worker reported green; review or the user's merge is pending. Add the PR link. |
+| `done` | It is merged into the epic branch. |
+| `blocked` | It can't continue; put the reason and who can unblock it in the row. |
+| `cancelled` | It was dropped; put the reason in the row. |
 
 ## Kinds
 

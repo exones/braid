@@ -31,9 +31,9 @@ Layout, tiers, branches and merge rules are in [the workflow](references/workflo
 
 ## Run an item
 
-One implementation worker at a time.
+One implementation worker at a time. Keep each item's status in `epic.md` current as the [workflow](references/workflow.md) describes; a status change is a small commit pushed on the epic branch.
 
-1. Launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy based on the epic branch tip, the item branch, and the worker model for the item's kind.
+1. Set the item to `in-progress` and launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy based on the epic branch tip, the item branch, and the worker model for the item's kind.
 2. Send a short first message:
 
    ```text
@@ -50,12 +50,12 @@ One implementation worker at a time.
 
 When the worker reports green:
 
-1. Run `gh pr checks <pr>`. Green on the head commit is the CI result; don't download artifacts or re-run the gate.
+1. Run `gh pr checks <pr>`. Green on the head commit is the CI result; don't download artifacts or re-run the gate. Set the item to `in-review` with the PR link.
 2. Review by tier:
    - S: read the diff yourself. Send small problems back to the same worker to fix on the same PR.
    - M and L: launch a reviewer as a top-level thread in its own worktree on the PR branch, using the reviewer model (and skill, if named) for the item's kind, with [the review brief](assets/review.md) filled in. Send blocking findings to the worker; decide non-blocking ones yourself.
 3. S and M: once checks are green and nothing blocking remains, merge with `gh pr merge <pr> --merge`. L: tell the user the item is ready and wait for their merge.
-4. Update the item's row in `epic.md` (status and PR) and push. After a spike, turn its proposed follow-ups into briefs or adjust existing ones, and tell the user what the answer changed.
+4. Once merged, set the item to `done`, and any items whose dependencies are now met to `ready`, then push. If an item gets stuck or dropped, set `blocked` or `cancelled` with the reason. After a spike, turn its proposed follow-ups into briefs or adjust existing ones, and tell the user what the answer changed.
 5. If `main` has moved, merge it into the epic branch before the next item.
 
 ## Finish the epic
