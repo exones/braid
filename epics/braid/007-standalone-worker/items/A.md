@@ -7,6 +7,7 @@
 - Branch: `item/007-a-standalone-worker` from the current approved epic tip. The launch message supplies its exact SHA; no worker is launched during planning.
 - PR into: `epic/007-standalone-worker`.
 - Result to: thread `6cf8e720-9c32-4a93-a504-8cf80b49a4c0`.
+- User-authorized model overrides for this item (supersede repository defaults): coordinator `codex / gpt-6-astra / reasoningEffort=medium`; worker `codex / gpt-6-astra / reasoningEffort=medium`; reviewer `codex / gpt-6.1-sol / reasoningEffort=medium`. Verify availability before launch; do not substitute.
 
 ## Goal
 
@@ -14,7 +15,7 @@ Allow a user to invoke braid-worker with a bounded task and get a verified PR di
 
 ## Start here
 
-- `BRAID.md` and `AGENTS.md`: setup, gate, CI and ownership/merge rules. Use the epic's explicit model overrides instead of the repository model defaults for this item.
+- `BRAID.md` and `AGENTS.md`: setup, gate, CI and ownership/merge rules. Use the explicit model overrides at the top of this brief instead of the repository model defaults for this item.
 - `.agents/skills/braid-worker/SKILL.md`: all current assumptions about a brief, coordinator, epic branch, artifacts, checkpoints and final reporting.
 - `.agents/skills/braid-coordinate/references/workflow.md`: existing assigned-item tiers, review and merge behavior to preserve.
 - `.agents/skills/braid-coordinate/assets/review.md` and `assets/braid-md.md`: review recipient assumptions and reusable project facts.
