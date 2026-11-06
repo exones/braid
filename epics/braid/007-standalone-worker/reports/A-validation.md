@@ -14,4 +14,4 @@ These are instruction walkthroughs, not executed agent simulations.
 
 Executed: npm ci and worker quick_validate.py passed. Gate results are recorded in the PR. No executable behavior changed; no new executable tests were added. Independent review remains coordinator-led and pending. Walkthroughs do not prove live model behavior.
 
-Five files changed including this report. Existing coordinator review and project-facts templates remain applicable without edits. No installed skills changed.
+Existing coordinator review and project-facts templates remain applicable without edits. No installed skills changed.
