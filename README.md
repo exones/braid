@@ -62,7 +62,29 @@ pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a bra
 
 The script copies `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again. A folder of the same name that the script did not install is left alone unless `-Force` is given. `-Target` replaces the default folders.
 
-A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the `epics` folder, the required `ci` checks, optional `shell`, `setup` and `test` commands, how to `run` the app, and `models`: the provider, model and options for each role, with optional per-kind overrides such as `worker.spike` and an optional skill such as a review skill. Start from the [template](.agents/skills/braid-coordinate/assets/braid-md.md); this repository's own [BRAID.md](BRAID.md) is an example. Add the repository as a T3 project and start the coordinator there. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
+A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the `epics` folder, the required `ci` checks, optional `shell`, `setup` and `test` commands, how to `run` the app, and `models`: the provider, model and options for each role, with optional per-kind overrides such as `worker.spike` and an optional skill such as a review skill. Start from the [template](.agents/skills/braid-coordinate/assets/braid-md.md); this repository's own [BRAID.md](BRAID.md) is an example. For standalone work, `epics` is unused; the confirmed chat plan supplies the task. Git/GitHub access, the project toolchain and configured models must be available. Add the repository as a T3 project and choose the entry below. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
+
+Choose the entry that fits:
+
+- **Direct chat:** questions, review-only requests and small interactive edits; no braid workflow needed.
+- **Standalone worker:** one bounded task delivered as a PR. The worker proposes a chat plan and waits for confirmation, then owns setup, implementation, gate, CI and fixes in an owned worktree/item branch. The PR targets the `main` value in `BRAID.md`. No epic or coordinator is needed.
+- **Coordinator:** multi-item goals that need briefs, sequencing and an epic branch.
+
+Copyable worker prompts (replace the example paths and SHA with your project's values):
+
+```text
+Use braid-worker in standalone mode to fix the CLI's handling of an empty title.
+Propose scope, approach and validation in chat for my confirmation before implementing.
+Include independent review using the configured reviewer model.
+```
+
+```text
+Use braid-worker in assigned-item mode. Brief: epics/012-cli/items/A.md.
+Branch: item/012-a-empty-title at <approved SHA>. PR into epic/012-cli.
+Report to coordinator thread <thread ID>. The brief is approved; implement now.
+```
+
+For review alone, ask directly: `Review PR <URL> at head <SHA> against <requirements>; report blocking findings with file locations and reasons, without editing.` Standalone workers run required/requested review as a subagent and fix its findings themselves; assigned-item coordinators arrange review. Neither workers nor reviewers merge. Interrupted standalone work records its plan, branch, PR and next step in conversation/PR context and an external task checkpoint so it can resume without creating another PR.
 
 ## CLI
 
