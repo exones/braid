@@ -26,7 +26,7 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 ## Where to look
 
 - Planning and running an epic: [braid-coordinate](.agents/skills/braid-coordinate/SKILL.md).
-- Doing one assigned item from a brief: [braid-worker](.agents/skills/braid-worker/SKILL.md).
+- Executing one bounded standalone task or assigned item from a brief: [braid-worker](.agents/skills/braid-worker/SKILL.md).
 - Ordinary questions and small direct edits need neither skill.
 - Epics, items, tiers, branches and merges: [the workflow](.agents/skills/braid-coordinate/references/workflow.md).
 - Using the skills in other projects: [README](README.md#braid-skills-in-other-projects).
@@ -36,4 +36,4 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 
 The models per role are in [BRAID.md](BRAID.md): Sol High coordinates; Grok 4.7 High with 500K context implements and reviews. In T3 the worker route is Cursor model `grok-4.7` with `target.options` `{"reasoning_effort":"high","contextWindow":"500k"}`. Don't substitute another model or other settings without the user's agreement.
 
-Workers and reviewers run as top-level T3 threads, each in its own worktree. That is the user's standing request for work inside an approved epic, so it needs no confirmation per item.
+Inside approved epics, workers and reviewers run as top-level T3 threads, each in its own worktree. For standalone tasks, the worker owns implementation and CI and runs required/requested review as a subagent under the worker skill. That is the user's standing request for work inside an approved epic, so it needs no confirmation per item.

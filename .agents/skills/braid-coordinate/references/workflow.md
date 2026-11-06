@@ -2,6 +2,10 @@
 
 How work is organized in a project that uses braid. Project-specific values (gate command, main branch, epics folder, models) come from the project's `BRAID.md`; this file never overrides them.
 
+## Entry boundary
+
+This workflow governs coordinator-led epics and assigned items. A bounded standalone task can use braid-worker with a user-confirmed chat plan, an owned worktree and `item/<task-slug>` branch, and a PR into the project's `main` value. It needs no epic table or item ID. The worker owns implementation, CI and fixes and runs required/requested independent review as a subagent; the user receives the result and merges. Direct questions and small interactive edits need neither workflow. Assigned-item tiers and coordinator-led review below remain unchanged.
+
 ## Epics and items
 
 An epic lives in `<epics>/<NNN>-<slug>/`, where `<epics>` is the `epics` value in `BRAID.md`:
