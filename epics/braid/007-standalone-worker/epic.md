@@ -1,6 +1,6 @@
 # 007: Standalone worker support
 
-Status: planning.
+Status: in-progress.
 The user's merge into `main` marks it done.
 Branch: `epic/007-standalone-worker` from `main` at `d4ab2f4`.
 
@@ -16,16 +16,17 @@ Out: a second worker skill, new CLI dispatch or state schema, mandatory standalo
 
 ## Items
 
-Rows are in run order. Execution is on hold until the user approves this plan; `ready` indicates dependencies are satisfied, not permission to launch.
+Rows are in run order. The user approved execution on 2026-11-06 after reviewing the refined plan.
 
 | ID | Title | Kind | Tier | UI | Depends on | Status | PR | Threads |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| A | [Support standalone tasks in the worker skill](items/A.md) | story | L | no | none | ready | | |
+| A | [Support standalone tasks in the worker skill](items/A.md) | story | L | no | none | in-progress | | |
 
 One cohesive item keeps the worker contract, routing and user guidance consistent in one reviewed PR. Tier L applies because agent instructions change. After implementation and independent review, the user merges the item into this epic; the coordinator then prepares the final PR into main for the user's merge.
 
 ## Decisions
 
+- 2026-11-06: User said "Ok go", approving implementation of the refined plan. Launch A with Astra medium, followed by independent Sol medium review; user merge restrictions remain.
 - 2026-11-06: Plan only. Do not launch implementation or review until the user explicitly requests execution. The earlier attempt was stopped and removed; this is a fresh plan from current main.
 - 2026-11-06: User overrides models for this epic: coordinator `codex / gpt-6-astra / reasoningEffort=medium`; worker `codex / gpt-6-astra / reasoningEffort=medium`; reviewer `codex / gpt-6.1-sol / reasoningEffort=medium`. Use top-level T3 threads with separate worktrees for implementation and review. Verify availability before launch; do not substitute. These overrides do not change repository defaults.
 - 2026-11-06: Keep one braid-worker skill. Explicit assigned briefs use the existing epic path; direct bounded user requests use standalone mode. Resolve genuinely ambiguous context before writes.
