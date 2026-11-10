@@ -34,6 +34,6 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 
 ## Providers and roles
 
-The models per role are in [BRAID.md](BRAID.md): Sol High coordinates; Grok 4.7 High with 500K context implements and reviews. In T3 the worker route is Cursor model `grok-4.7` with `target.options` `{"reasoning_effort":"high","contextWindow":"500k"}`. Don't substitute another model or other settings without the user's agreement.
+The models per role are in [BRAID.md](BRAID.md): Claude Opus 5.5 (medium effort) coordinates; Claude Sonnet 5.5 (medium) implements, Claude Opus 5.5 (medium) runs spikes as a researcher, and Claude Opus 5.5 (high) reviews with the `security-review` and `code-review` skills. In T3 all three use the `Claude_Everix` provider with `target.options` `{"effort":"<level>"}`. Don't substitute another model or other settings without the user's agreement.
 
 Workers and reviewers run as top-level T3 threads, each in its own worktree. That is the user's standing request for work inside an approved epic, so it needs no confirmation per item.
