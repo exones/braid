@@ -8,9 +8,24 @@ setup: npm ci, with Node.js 26 on PATH (README "Build and verify")
 test: "npm run build && node --test test/<file>.test.ts; Pester suites: pwsh -NoProfile -File scripts/Test-Pester.ps1"
 run: npm run build, then node dist/cli.js --help (a CLI; no UI)
 models:
-  coordinator: codex / gpt-6.1-sol / reasoningEffort=high
-  worker: cursor / grok-4.7 / reasoning_effort=high, contextWindow=500k
-  reviewer: cursor / grok-4.7 / reasoning_effort=high, contextWindow=500k
+  coordinator:
+    provider: Claude_Everix
+    model: claude-opus-5-5
+    options: { effort: medium }
+  worker:
+    provider: Claude_Everix
+    model: claude-sonnet-5-5
+    options: { effort: medium }
+    spike:
+      role: researcher
+      provider: Claude_Everix
+      model: claude-opus-5-5
+      options: { effort: medium }
+  reviewer:
+    provider: Claude_Everix
+    model: claude-opus-5-5
+    options: { effort: high }
+    skills: [security-review, code-review]
 ---
 
 # braid for braid agents
