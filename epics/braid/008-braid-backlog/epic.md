@@ -30,7 +30,36 @@ Out: parallel workers and resource locks; braid CLI or ledger changes; MCP integ
 shows the CLI can't work); agents running or judging coordinators and workers (the user's trial
 does that after this epic); Snoboard, Everix or other project adoption; migrating braid's own
 `epics/` to Backlog.md; removing `braid-coordinate` (kept until the user's trial proves `braid`); Groma.md;
-releases.
+releases; unattended epic mode (see "Later ideas").
+
+## Later ideas
+
+Recorded for later epics; nothing here changes 008. The go rule and the merge rules change only
+after the user's trial of `braid`.
+
+**Unattended epic mode** (a later epic, after the trial). Goal: a whole epic runs without the user
+up to the epic branch. Today the stops are rules, not tooling: the explicit go before each launch,
+the user merging tier L items, and questions only the user can answer. The coordinator is already
+event-driven (delegate results and PR watches wake it).
+
+- Opt-in: a `BRAID.md` fact such as `autonomy: epic`, so projects like Everix (develop vs
+  staging) don't get it by default.
+- Next item: starts automatically after the previous one merges.
+- Item merge into the epic branch: the coordinator merges only when CI is green and the
+  independent reviewer (Opus 5.5 high, `code-review`) approves with no blocking findings.
+- Epic branch into `main`: still the user, the single human checkpoint.
+- Questions or blocks: park the item under "Blocked on human", carry on with items that don't
+  depend on it, and stop when nothing can run.
+- Stop when: 2 failed review rounds on one item; no wake event for about 2 hours (a fallback timer
+  covers a worker thread that dies silently); or a budget is exceeded.
+- Report: a push notification at the end or on a stop, plus the run report.
+- Check: GitHub branch protection on epic branches must not require approvals the coordinator
+  can't give.
+- Claude Code `/goal` doesn't fit the coordinator: T3 delegates aren't harness background tasks,
+  so it would force empty turns or polling. It may fit workers, with the done-condition "gate
+  passes, PR into the epic branch, CI green, report sent". Try it during the trial; it needs auto
+  mode or allowlisted commands, and a check that a `/goal` sent as a T3 thread's first message
+  works.
 
 ## Design
 
