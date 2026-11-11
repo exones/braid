@@ -32,6 +32,10 @@ even when the worker, idle while it waits for CI, never reports.
   no report came, take the result from the thread. Unwatch the PR before handing back to the user.
   In `braid-coordinate`, which has no `t3_thread_wait` step, add just the watch as a fallback to
   "wait for the worker's message".
+- The same holds per subitem in an epic: one item PR watched at a time, unwatched once merged. The
+  coordinator also watches the PRs it opens itself (a planning PR, the final epic PR into `main`)
+  for checks and comments; a watch doesn't wake on a merge, so the user's "merged" or
+  `gh pr list --state all` still decides that.
 
 ## Already decided
 
