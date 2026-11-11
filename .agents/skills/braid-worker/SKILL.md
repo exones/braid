@@ -1,6 +1,6 @@
 ---
 name: braid-worker
-description: Do one assigned braid item from its brief - implement it, run the project's gate, open a PR into the epic branch, get CI green, and report once to the coordinator. Use when you have been given a braid brief; not for planning epics or reviewing.
+description: Do one assigned braid item from its brief (an item brief file or a Backlog.md task ID) - implement it, run the project's gate, open a PR into the base branch, get CI green, and report once to the coordinator. Use when you have been given a braid brief or task; not for planning epics or reviewing.
 ---
 
 # Braid worker
@@ -14,6 +14,8 @@ Do one task from a brief, hand it back, and stop.
 
 3. Use `setup`, `shell` and `test` when provided; otherwise follow project conventions. In a new worktree, run setup before building or testing.
 
+**A Backlog.md task as the brief.** If your brief is a task ID (`TASK-12`, `TASK-12.1`) rather than a file, read it with `backlog task view <ID> --plain`, and its parent too if it has one. Call `backlog` as `assets/task.md` of the `braid` skill says (on Windows the native `backlog.exe` by its printed path; never `npx` or `backlog.cmd`). The task's "Start here" and "Already decided" are context; you write the plan. The PR goes into the base branch the first message names (`main` for a story, the epic branch for a subtask). You edit only your task; you don't create, split or restructure tasks or change other tasks' status. The "Work" and "Deliver" notes below marked *task* apply to you; a brief file works as before.
+
 ## Work
 
 - The brief is your plan. Treat "Already decided" as settled; don't re-investigate it.
@@ -23,12 +25,15 @@ Do one task from a brief, hand it back, and stop.
 - Screenshots and scratch files (helper scripts, PR body drafts) go in `~/.braid/artifacts/<repo>/<epic>/<ID>/`, never in the repository.
 - Run focused tests (`test` if provided) while you work. Before opening the PR, run the `gate` command from `BRAID.md` and fix what fails. Don't weaken or delete a test to make it pass.
 - Make routine decisions yourself. Ask the coordinator only about scope, acceptance, or a real blocker.
-- If your item is a spike: answer its question within the time box. Experiment as needed, but don't build the feature. Write the answer, the evidence and proposed follow-up items in `reports/<ID>.md` in the epic folder, and deliver that through a PR like any other item. If the time box runs out, report what is known and what isn't.
+- If your item is a spike: answer its question within the time box. Experiment as needed, but don't build the feature. Write the answer, the evidence and proposed follow-up items in `reports/<ID>.md` in the epic folder (*task*: in the task's final summary, or a doc it links to), and deliver that through a PR like any other item. If the time box runs out, report what is known and what isn't.
+- *Task:* set it In Progress in your first commit (`backlog task edit <ID> -s 'In Progress'`). Before coding, write your plan into it (`--plan`). Append notes for decisions and findings (`--append-notes`). Apply task changes the coordinator sends.
+- *Task, growth:* if you find more work, stop and send the coordinator one proposal in chat: what you found, the three options (absorb into this PR, a prerequisite, phases) with rough sizes, and your recommendation. Then do your part of the decided path as the `braid` skill's "Grow and adjust" describes: absorb: note it in the task; prerequisite: write where you stopped and a wait note in the task's notes, then, when told, merge the branch the coordinator names and add the `--dep` (repeat the existing ones); phases: commit and push your notes and work, then stop.
 
 ## Deliver
 
+0. *Task:* check the acceptance criteria and the Definition of Done items you proved (`--check-ac`, `--check-dod`), write the final summary (`--final-summary`: what changed, why, validation, anything open; it replaces `reports/<ID>.md`), and set the task Done (`-s Done`) in your last commit, before you report green. The chat report format stays.
 1. Commit your changes with Conventional Commit messages, staging only your files, and push: `git push -u origin <your branch>`.
-2. Open one PR into the epic branch named in the brief: `gh pr create --base <epic branch> --title "<type>: <summary>" --body-file <file>`. Describe what changed, why, validation, and anything open. Then call `link_pull_request` with the PR URL.
+2. Open one PR into the epic branch named in the brief (*task*: the base branch the first message names): `gh pr create --base <epic branch> --title "<type>: <summary>" --body-file <file>`. Describe what changed, why, validation, and anything open. Then call `link_pull_request` with the PR URL.
 3. If `ci` is `none`, go to step 5. Follow host PR-wait instructions; otherwise call `watch_pull_request`, then run `gh pr checks <pr>` once. If every check has already finished, go to step 5. Otherwise end your turn; the watch wakes you.
 4. When woken, run `gh pr checks <pr>`:
    - Pending: end the turn.
@@ -36,7 +41,7 @@ Do one task from a brief, hand it back, and stop.
    - Blocked: tell the coordinator the cause and who can fix it.
 5. When every required check is green on your latest commit, or `ci` is `none`, call `unwatch_pull_request` if you watched, then write the final report below as your last chat message and send the same text to the coordinator with `t3_thread_send`, adding the head commit. You're done.
 
-If the coordinator later sends review findings, fix them on the same branch and PR and repeat steps 3–5.
+If the coordinator later sends review findings, fix them on the same branch and PR and repeat steps 3–5. Step 5 removed the PR watch, so call `watch_pull_request` again after pushing fixes, then end your turn; don't assume the old watch is still active.
 
 ## Final report
 
