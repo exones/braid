@@ -9,7 +9,7 @@ Plan the user's goal or task as Backlog.md tasks, then deliver them through work
 
 ## Project facts
 
-Read `BRAID.md` at the repository root first (`gate`, `main`, `backlog`, `ci`, `run`, `models`, and the Backlog.md invocation rule). Use `models.<role>.<kind>` if present, otherwise `models.<role>`; if neither exists, ask the user. Use any named skill. Use the exact provider, model and options; if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line. Follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
+Read `BRAID.md` at the repository root first (`gate`, `main`, `backlog`, `ci`, `run`, `models`, and the Backlog.md invocation rule). Use `models.<role>.<tier>` (tier key `S`, `M` or `L`) if present, then `models.<role>.<kind>`, then `models.<role>`; if none exists, ask the user. Use any named skill. Use the exact provider, model and options; if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line. Follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
 Layout, ownership, branches per case, tiers and failure modes are in [the workflow](references/workflow.md). Task fields, how to call `backlog` and the exact commands are in [the task template](assets/task.md).
 
@@ -47,7 +47,7 @@ If `backlog/config.yml` is missing, copy [backlog-config.yml](assets/backlog-con
 
 One implementation worker at a time. The next item is under "Starting the next item" in the workflow; a story has only itself.
 
-1. Launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy on the item branch (for a subtask, create `item/<id>-<slug>` from the epic tip and push it first), and the worker model for the item's kind. The branch must not be checked out anywhere else.
+1. Launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy on the item branch (for a subtask, create `item/<id>-<slug>` from the epic tip and push it first), and the worker model for the item's tier and kind. The branch must not be checked out anywhere else.
 2. Send a short first message:
 
    ```text
@@ -58,7 +58,17 @@ One implementation worker at a time. The next item is under "Starting the next i
    ```
 
    If the worker might not find the skill by name, add the absolute path of its `SKILL.md`.
-3. After launching a worker or reviewer, or sending it fixes, call `t3_thread_wait` on its thread; it returns when the run ends. If no report arrived, read the thread's last message and `gh pr checks`. CI pending and the worker watching the PR: wait again. Green but no report: take the result from the thread and continue. Stopped without a watch, or stuck: send it a nudge. A run that failed: read its error and retry once with the same model and settings; if it fails again, ask the user, naming the error. If the user says it finished, believe them and look at the PR.
+3. After launching a worker or reviewer, or sending it fixes, call `t3_thread_wait` on its thread; it returns when the run ends, and at once on an idle thread. If no report arrived, read the thread's last message and `gh pr checks`. CI pending: make sure your watch is on, then end your turn; the watch wakes you. Green but no report: take the result from the thread and continue. Stopped without a watch, or stuck: send it a nudge. A run that failed: read its error and retry once with the same model and settings; if it fails again, ask the user, naming the error. If the user says it finished, believe them and look at the PR.
+
+   Once the worker's PR exists, call `watch_pull_request` on it (one item PR at a time) and end your turn.
+
+   On a wake:
+   - First call `t3_thread_wait` on the worker's thread. If the worker reported since you last sent it work, use its report and ignore the wake.
+   - Failed checks, conflicts or comments while the worker is active or watching are the worker's: do nothing and end your turn. Nudge it only if it stopped without a watch.
+   - Green and no report: take the result from the thread.
+   - A wake is never a merge decision; continue with "Accept and hand over".
+
+   Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox: an item PR when the recap asks for their merge, and your own PRs (the planning PR, the final PR into `main`) once their checks are green and any review is done. After that, the user's "merged" or `gh pr list --state all` decides.
 4. Answer the worker's questions. If the task must change, tell the worker; it applies the change on its branch.
 
 ## Grow and adjust
@@ -90,7 +100,7 @@ When the worker reports green:
 
 ## Finish
 
-A story is finished when the user merges its PR (the worker set Done in it). A phased item: when every subtask is Done on the epic branch, in a last commit set the parent Done and add a closing note, merge `main` in, open one PR epic → `main`, review it by the parent's tier, give the recap and wait for the user. Their merge marks it done: don't commit or open a PR after it.
+A story is finished when the user merges its PR (the worker set Done in it). A phased item: when every subtask is Done on the epic branch, in a last commit set the parent Done and add a closing note, merge `main` in, open one PR epic → `main` and watch it, review it by the parent's tier, unwatch it, give the recap and wait for the user. Their merge marks it done: don't commit or open a PR after it.
 
 ## Talking to the user
 
