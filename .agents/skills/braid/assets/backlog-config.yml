@@ -1,11 +1,12 @@
 # Recommended committed backlog/config.yml for a braid project (backlog.md 1.55.3).
 # Copy it to backlog/config.yml and set project_name; `backlog init` is not needed.
 # Keep default_editor out: each agent or user's EDITOR, or the platform default, applies.
+# taskResolutionStrategy is not a config.yml key in 1.55.3; the code default most_progressed applies.
 project_name: "<project>"
 default_status: "To Do"
 statuses: ["To Do", "In Progress", "Done"]
 labels: ["kind:story", "kind:task", "kind:spike", "tier:S", "tier:M", "tier:L", "ui"]
-definition_of_done: ["The gate command from BRAID.md passes", "Every required PR check is green on the latest commit", "Final summary written: what changed, why, validation, anything open"]
+definition_of_done: ["The gate command from BRAID.md passes", "Final summary written: what changed, why, validation, anything open"]
 date_format: yyyy-mm-dd
 max_column_width: 20
 auto_open_browser: false

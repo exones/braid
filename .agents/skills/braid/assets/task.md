@@ -1,19 +1,39 @@
 # A braid task
 
-A task is the brief. The coordinator creates it; the worker fills the plan, notes and final summary.
-Run these from pwsh 7 or bash in the checkout that owns the branch. Markdown goes in single quotes;
-each multi-line field is one argument with real newlines. The sections:
+A task is the brief. The coordinator creates it; its worker owns it from then on. Commands run from
+pwsh 7 (Windows) or bash, in the checkout that holds the branch. Markdown goes in single quotes; each
+multi-line field is one argument with real newlines.
 
-- Description: the template below (goal, start here, change, already decided, out of scope, size).
-- Acceptance criteria: "done when", a few testable points, one `--ac` each.
-- Definition of done: the project defaults from `backlog/config.yml`; don't repeat them.
-- Labels: `kind:story|task|spike`, `tier:S|M|L`, `ui` for new or noticeably changed user-facing UI.
-- Dependencies: real prerequisites only. Ordinal: run order, 10, 20, 30, so one can slot in between.
+## Call `backlog`
 
-## Create
+Install once (`npm install -g backlog.md@1.55.3`). On **Linux and macOS** call plain `backlog`. On
+**Windows** the `.ps1`/`.cmd` shims can silently cut a multi-line `--description` and drop `--ac` (seen
+under Volta), so call the native `backlog.exe` that the package ships. In pwsh, once per session:
 
 ```powershell
-backlog task create 'Title' --labels kind:story,tier:M --ordinal 10 --dep task-3 --description @'
+$p = (Get-Command volta -ErrorAction SilentlyContinue) ? (volta which backlog 2>$null) : $null
+if (-not $p) { $p = (Get-Command backlog).Source }
+$backlog = node -p "require(process.argv[1]).resolveBinaryPath()" (Join-Path (Split-Path $p) 'node_modules/backlog.md/resolveBinary.cjs')
+```
+
+then `& $backlog task …` everywhere below (`backlog …` on Linux/macOS). Never `npx`, `backlog.cmd`,
+`cmd.exe` or Windows PowerShell 5.1. One-time check, in a throwaway Git repo under the temp folder with
+`backlog-config.yml` copied to its `backlog/config.yml`: create a task with a two-line `--description`
+and one `--ac`, then `task view --plain`. Both lines and the criterion must be there; if not, stop and
+tell the user.
+
+## Fields
+
+- Description: the template below (goal, size, start here, change, already decided, out of scope).
+- Acceptance criteria: "done when", a few testable points, one `--ac` each.
+- Definition of done: the project defaults from `backlog/config.yml`; the worker checks the boxes it proved (`--check-dod`).
+- Labels, always quoted: `'kind:story|task|spike,tier:S|M|L'` plus `ui` for new or noticeably changed user-facing UI.
+- Dependencies: real prerequisites only. Ordinal: run order, 10, 20, 30, so one can slot in between.
+
+## Create (coordinator, on a branch it holds)
+
+```powershell
+& $backlog task create 'Title' --labels 'kind:story,tier:M' --ordinal 10 --dep task-3 --description @'
 Goal: <one to three sentences: the outcome and who it is for; for a spike the question, the time box and the decision it feeds>
 
 Expected size: about <N> lines in <K> files.
@@ -32,32 +52,40 @@ Out of scope:
 '@ --ac 'First testable outcome' --ac 'Second testable outcome'
 ```
 
-For a subtask add `--parent task-12`; it gets ID `TASK-12.1`. Spike: the answer goes in the final
-summary; follow-ups are proposed there, not created by the worker. Create tasks, never drafts.
-Keep the ID that `create` prints; put it in the PR title and the branch name.
+A subtask adds `--parent task-12` and gets `TASK-12.1`. A spike's answer, evidence and proposed
+follow-ups are its final summary; the worker proposes follow-ups, the coordinator creates them. Create
+tasks, never drafts. `create` prints the ID; use it in the branch and PR names.
 
 ## Edit
 
+`--dep` on `edit` replaces the dependency list: repeat the existing ones. It only accepts IDs that
+exist on the current branch.
+
 ```powershell
-backlog task edit task-12 --status 'In Progress'                 # coordinator, on the item's branch
-backlog task edit task-12 --plan @'
+# worker, on its item branch
+& $backlog task edit task-12 -s 'In Progress'                     # first commit
+& $backlog task edit task-12 --plan @'
 1. ...
-'@                                                               # worker, before coding
-backlog task edit task-12 --append-notes 'Found X; decided Y.'    # worker, as it goes
-backlog task edit task-12 --check-ac 1 --check-ac 2               # worker, only what is proven
-backlog task edit task-12 --final-summary @'
+'@                                                                # before coding
+& $backlog task edit task-12 --append-notes 'Found X; decided Y.' # as it goes
+& $backlog task edit task-12 --check-ac 1 --check-ac 2 --check-dod 1   # only what is proven
+& $backlog task edit task-12 --final-summary @'
 What changed, why, validation, anything open.
-'@                                                               # worker: this is the item's report
-backlog task edit task-12 --status Done                          # in the PR that completes it
-backlog task edit task-13 --dep task-12 --ordinal 20             # coordinator, restructuring
-backlog task archive task-14                                     # cancelled; say why in its notes first
+'@                                                                # the item's report
+& $backlog task edit task-12 -s Done                              # last commit, before reporting green
+
+# coordinator, on plan/ or the epic branch, for tasks that haven't started
+& $backlog task edit task-13 --dep task-11,task-12 --ordinal 20
+& $backlog task edit task-14 --append-notes 'Dropped: why.'; & $backlog task archive task-14
 ```
 
 ## Read
 
 ```powershell
-backlog task view task-12 --plain
-backlog task list --plain --ready        # unblocked To Do tasks, in run order
-backlog task list --plain -p task-12     # a parent's subtasks
-backlog doctor                           # duplicate IDs, cycles; run after a merge conflict
+& $backlog task view task-12 --plain
+& $backlog task list --plain --ready -s 'To Do' -p task-12   # next subtask of a parent, in run order
+& $backlog task list --plain -p task-12                      # all its subtasks
+& $backlog doctor                                            # duplicate IDs, cycles; after a merge conflict
 ```
+
+`--ready` only means "dependencies done": always add `-s 'To Do'` and `-p <parent>`.
