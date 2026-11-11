@@ -12,6 +12,7 @@ extends a story branch. Items live in [Backlog.md](https://github.com/MrLesk/Bac
 instead of braid's own `epic.md` table and `items/<ID>.md` briefs, so the user gets a board, a CLI
 and agent instructions without braid building them. The MVP runs one worker at a time; parallel
 execution is the next epic.
+The user then tries `braid` on a real project in an isolated environment.
 
 The skill is built from `braid-coordinate`, which keeps its proven parts: `BRAID.md` facts,
 briefs that are enough to start, tiers, review, recaps, milestone commits, and one writer per
@@ -22,11 +23,13 @@ checkout.
 In: a new `.agents/skills/braid/` skill (coordinator role for plan, story, grow and finish) with
 its workflow reference and templates; the `braid-worker` changes needed to take a Backlog.md task
 as its brief; installation and routing (`Install-Skills.ps1`, README, `AGENTS.md`, `BRAID.md`
-template); a decision record; one pilot run on a real repository.
+template); a decision record; a scripted check of the Backlog.md flow in throwaway repositories and
+a trial guide for the user.
 
 Out: parallel workers and resource locks; braid CLI or ledger changes; MCP integration (unless A
-shows the CLI can't work); Snoboard, Everix or other project adoption; migrating braid's own
-`epics/` to Backlog.md; removing `braid-coordinate` (kept until the pilot proves `braid`); Groma.md;
+shows the CLI can't work); agents running or judging coordinators and workers (the user's trial
+does that after this epic); Snoboard, Everix or other project adoption; migrating braid's own
+`epics/` to Backlog.md; removing `braid-coordinate` (kept until the user's trial proves `braid`); Groma.md;
 releases.
 
 ## Design
@@ -86,27 +89,32 @@ independent review, then the user's merge.
 | B | [The `braid` skill: plan, story, grow, finish](items/B.md) | story | L | no | A | backlog | | |
 | C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | backlog | | |
 | D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | backlog | | |
-| E | [Pilot: one story, one story that grows](items/E.md) | spike | S | no | D | backlog | | |
+| E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | backlog | | |
 
 ## Open questions
 
 1. Who merges S and M items into an epic branch: the coordinator (current `main`) or the user (your
    uncommitted draft of `braid-coordinate`)? Recommendation: the user for the MVP, then relax after
-   the pilot.
+   the user's trial.
 2. Is an `In Review` status worth a commit? The epic branch can show it; `main` can't before the
    merge. Recommendation: no status; an open PR is "in review".
 3. Coordinator mandate on growth: may it add up to two subtasks or one prerequisite task of tier S
    or M without asking? Recommendation: yes, recorded in the parent's notes and in the next recap.
 4. Epic 007 (standalone worker) also changes `braid-worker` and is in progress. Finish it first, or
    cancel it because `braid` story mode covers a single task without an epic? C waits on this.
-5. Pilot repository for E: `chinese-trainer` again?
-6. Models: `BRAID.md` defaults, or the Astra/Sol medium override used for 006 and 007?
-7. The braid CLI's own ledger (roadmap stages 1–5) also tracks items. D records Backlog.md as the
-   item store for the skills and leaves the CLI as is; revisit the roadmap after the pilot. Agree?
+5. Models for workers and reviewers: `BRAID.md` defaults, or the Astra/Sol medium override used for 006 and 007?
+6. The braid CLI's own ledger (roadmap stages 1–5) also tracks items. D records Backlog.md as the
+   item store for the skills and leaves the CLI as is; revisit the roadmap after the user's trial.
+   Agree?
 
 ## Decisions
 
 - 2026-11-11: Plan only. No workers until the user approves.
 - 2026-11-11: Sequential MVP: one worker at a time, as D07 already requires.
 - 2026-11-11: Keep `braid-coordinate` and `braid-worker` working; `braid` sits beside them until
-  the pilot shows it can replace the coordinator.
+  the user's trial shows it can replace the coordinator.
+- 2026-11-11: User: do all technical and skill work once, check what can be checked in isolation,
+  then the user tests on a real project in an isolated environment. E is a scripted flow check and
+  a trial guide instead of an agent-run pilot.
+- 2026-11-11: The plan was written in an `everix3` thread and handed over to a coordinator thread in
+  the agento project (same model, Claude Opus 5.5), working in this worktree.

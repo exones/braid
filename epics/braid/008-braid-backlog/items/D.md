@@ -28,10 +28,10 @@ it, and the repository records why braid's skills now keep items in Backlog.md.
 - A Pester test (or the existing installer test) that `braid` and `braid-*` are installed and
   another folder name is not.
 - `README.md`: the `braid` skill, the Backlog.md setup for a target project (pinned version,
-  `config.yml`, `BRAID.md` facts), and that `braid-coordinate` remains until the pilot.
+  `config.yml`, `BRAID.md` facts), and that `braid-coordinate` remains until the user's trial.
 - `AGENTS.md`, "Where to look": route goals and stories to `braid`.
 - `docs/decisions.md`: D30, Backlog.md as the item store for the braid skills, with the reason and
-  what it means for the CLI ledger (unchanged for now, roadmap revisited after the pilot); a dated
+  what it means for the CLI ledger (unchanged for now, roadmap revisited after the user's trial); a dated
   log line.
 
 ## Already decided
