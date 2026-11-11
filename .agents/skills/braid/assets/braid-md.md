@@ -13,7 +13,7 @@ models:
     story: <provider / model / options>
     task: <provider / model / options>
     spike: <provider / model / options>
-    L: <provider / model / options; optional, wins over the kind keys>
+    L: <provider / model / options; optional tier key, also S: or M:; wins over the kind keys>
   reviewer: <provider / model / options; skill: <skill name> (optional)>
 ---
 

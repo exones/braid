@@ -58,9 +58,17 @@ One implementation worker at a time. The next item is under "Starting the next i
    ```
 
    If the worker might not find the skill by name, add the absolute path of its `SKILL.md`.
-3. After launching a worker or reviewer, or sending it fixes, call `t3_thread_wait` on its thread; it returns when the run ends. If no report arrived, read the thread's last message and `gh pr checks`. CI pending and the worker watching the PR: wait again. Green but no report: take the result from the thread and continue. Stopped without a watch, or stuck: send it a nudge. A run that failed: read its error and retry once with the same model and settings; if it fails again, ask the user, naming the error. If the user says it finished, believe them and look at the PR.
+3. After launching a worker or reviewer, or sending it fixes, call `t3_thread_wait` on its thread; it returns when the run ends, and at once on an idle thread. If no report arrived, read the thread's last message and `gh pr checks`. CI pending: make sure your watch is on, then end your turn; the watch wakes you. Green but no report: take the result from the thread and continue. Stopped without a watch, or stuck: send it a nudge. A run that failed: read its error and retry once with the same model and settings; if it fails again, ask the user, naming the error. If the user says it finished, believe them and look at the PR.
 
-   Once the worker's PR exists, also call `watch_pull_request` on it: `t3_thread_wait` returns at once on a worker idle while it waits for CI. On a wake, read `gh pr checks` and the worker's thread; green and no report: take the result from the thread. Watch one item PR at a time, and the PRs you open yourself (the planning PR, the final PR into `main`) for checks and comments. A watch doesn't wake on a merge: the user's "merged" or `gh pr list --state all` decides that. Unwatch a PR once it is merged, and before handing back to the user.
+   Once the worker's PR exists, call `watch_pull_request` on it (one item PR at a time) and end your turn.
+
+   On a wake:
+   - First call `t3_thread_wait` on the worker's thread. If the worker reported, use its report and ignore the wake.
+   - Failed checks, conflicts or comments while the worker is active or watching are the worker's: do nothing and end your turn. Nudge it only if it stopped without a watch.
+   - Green and no report: take the result from the thread.
+   - A wake is never a merge decision; continue with "Accept and hand over".
+
+   Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox: an item PR when the recap asks for their merge, and your own PRs (the planning PR, the final PR into `main`) once their checks are green and any review is done. After that, the user's "merged" or `gh pr list --state all` decides.
 4. Answer the worker's questions. If the task must change, tell the worker; it applies the change on its branch.
 
 ## Grow and adjust
@@ -92,7 +100,7 @@ When the worker reports green:
 
 ## Finish
 
-A story is finished when the user merges its PR (the worker set Done in it). A phased item: when every subtask is Done on the epic branch, in a last commit set the parent Done and add a closing note, merge `main` in, open one PR epic → `main`, review it by the parent's tier, give the recap and wait for the user. Their merge marks it done: don't commit or open a PR after it.
+A story is finished when the user merges its PR (the worker set Done in it). A phased item: when every subtask is Done on the epic branch, in a last commit set the parent Done and add a closing note, merge `main` in, open one PR epic → `main` and watch it, review it by the parent's tier, unwatch it, give the recap and wait for the user. Their merge marks it done: don't commit or open a PR after it.
 
 ## Talking to the user
 
