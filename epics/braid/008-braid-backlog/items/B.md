@@ -3,7 +3,7 @@
 - Kind: story.
 - Tier: L.
 - UI: no.
-- Expected size: about 250 lines in 5 files, all new.
+- Expected size: about 270 lines in 6 files, all new.
 - Branch: `item/008-b-braid-skill` at `<short sha>`.
 - PR into: `epic/008-braid-backlog`.
 - Result to: thread `<coordinator thread id>`.
@@ -34,6 +34,8 @@ reported. The same skill handles a one-PR story and a story that grows into phas
 - `.agents/skills/braid/assets/braid-md.md`: the `BRAID.md` template with the Backlog.md facts
   (`backlog` folder, invocation, pinned version) replacing `epics`.
 - `.agents/skills/braid/assets/review.md`: copied from `braid-coordinate`, adjusted for tasks.
+- `.agents/skills/braid/assets/backlog-config.yml`: `../reports/A-config.yml`, the committed
+  `backlog/config.yml` a project copies instead of running `backlog init`.
 
 ## Already decided
 
@@ -52,7 +54,15 @@ reported. The same skill handles a one-PR story and a story that grows into phas
   or acceptance criteria, or new tier L work, goes to the user first.
 - Planning: tasks, not drafts, so IDs stay stable; a planning PR into `main` is the approval.
 - An item whose PR is merged is done; status changes reach `main` only through merges.
-- Agents call Backlog.md the way `../reports/A.md` says and never edit task files by hand.
+- Agents call Backlog.md the way `../reports/A.md` says: `backlog.md@1.55.3` installed globally,
+  plain `backlog` from pwsh 7 or bash, never `npx`, `backlog.cmd`, `cmd.exe` or Windows PowerShell
+  5.1, Markdown in single quotes, one argument per multi-line field. They never edit task files by
+  hand, except to resolve a Git merge conflict in one.
+- Setup copies `assets/backlog-config.yml`; if `init` runs at all, it runs with
+  `--agent-instructions none` and `EDITOR`/`VISUAL` unset. The target's `AGENTS.md` gets no
+  Backlog.md block.
+- The skill states the six overrides of `backlog instructions` in `../reports/A.md` ("Agent
+  instructions" table) and points to `backlog instructions <guide>` for the rest.
 - The skill folder is self-contained: no links outside `.agents/skills/braid/` (the docs gate
   checks this).
 
@@ -71,7 +81,8 @@ reported. The same skill handles a one-PR story and a story that grows into phas
   the section that covers each step.
 - Failure modes covered in the text: a worker's growth proposal beyond the mandate; a task edited on
   two branches; a draft promoted after something depends on it; a worker that ends without a
-  report.
+  report; the board showing `main`'s copy of a status rather than the newest; a merge conflict in
+  a task file.
 - `SKILL.md` stays under 200 lines.
 - The `gate` command from `BRAID.md` passes and the PR checks are green.
 

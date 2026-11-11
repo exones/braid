@@ -85,8 +85,8 @@ independent review, then the user's merge.
 
 | ID | Title | Kind | Tier | UI | Depends on | Status | PR | Threads |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| A | [Backlog.md setup for agents on Windows and in worktrees](items/A.md) | spike | S | no | – | in-progress | | |
-| B | [The `braid` skill: plan, story, grow, finish](items/B.md) | story | L | no | A | backlog | | |
+| A | [Backlog.md setup for agents on Windows and in worktrees](items/A.md) | spike | S | no | – | done | [#37](https://github.com/exones/braid/pull/37) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:d5733cf25bdf8a6bc1858bce977e84c409fc583907988ce92602853b3a54c7f0>) |
+| B | [The `braid` skill: plan, story, grow, finish](items/B.md) | story | L | no | A | in-progress | | |
 | C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | backlog | | |
 | D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | backlog | | |
 | E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | backlog | | |
@@ -111,6 +111,8 @@ independent review, then the user's merge.
     skill. They reach `main` with this epic. `AGENTS.md` "Providers and roles" says the same.
 - 2026-11-11: User approved the plan. Launch A; the coordinator merges A (tier S) after reading
   the diff, the user merges B, C and D, and E (tier M) follows `braid-coordinate`'s rules.
+- 2026-11-11: A merged (#37). Its invocation rule, committed config, the six overrides of
+  `backlog instructions` and two more failure modes went into B's brief; the setup rule into D's.
 - 2026-11-11: Sequential MVP: one worker at a time, as D07 already requires.
 - 2026-11-11: Keep `braid-coordinate` and `braid-worker` working; `braid` sits beside them until
   the user's trial shows it can replace the coordinator.

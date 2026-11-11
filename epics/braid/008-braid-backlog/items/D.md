@@ -37,6 +37,8 @@ it, and the repository records why braid's skills now keep items in Backlog.md.
 ## Already decided
 
 - `braid-coordinate` and `braid-worker` stay installed and documented.
+- Target-project setup follows `../reports/A.md`: global `backlog.md@1.55.3`, copy the skill's
+  `assets/backlog-config.yml` to `backlog/config.yml`, no Backlog.md block in `AGENTS.md`.
 - D doesn't change `BRAID.md`: braid's own epics stay in `epics/`. (The coordinator already set
   this epic's models there.)
 
