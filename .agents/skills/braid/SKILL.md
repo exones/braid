@@ -40,7 +40,7 @@ If `backlog/config.yml` is missing, copy [backlog-config.yml](assets/backlog-con
 4. Show the user the plan (titles, kinds, tiers, order, dependencies, acceptance) and confirm it, in as many rounds as it takes, before committing anything.
 5. Commit it.
    - **Goal:** branch `plan/<slug>` from `main`; create the parent and subtasks; push; open a planning PR into `main` and tell the user. Merging it is the approval. Then create `epic/<id>-<slug>` from `main` in your worktree.
-   - **Story:** in a temporary worktree on a new branch from `main`, `task create`, then `git branch -m item/<id>-<slug>`, commit, push, remove the worktree. The user's confirmation in step 4 is the approval.
+   - **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `task create`, then `git branch -m item/<id>-<slug>`, commit, push, remove the worktree. The user's confirmation in step 4 is the approval.
 6. Once approved, start the first ready task without waiting, unless the user asked only for a plan: then stop, show the table and open questions, and resume from Backlog.md and GitHub when the user says go.
 
 ## Run an item
@@ -58,7 +58,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    ```
 
    If the worker might not find the skill by name, add the absolute path of its `SKILL.md`.
-3. Wait for the worker's message without polling. If a worker or reviewer run fails or ends without a report, read its error and retry once with the same model and settings; if it fails again, ask the user, naming the error. If the user says the worker has finished, believe them and look at the PR.
+3. After launching a worker or reviewer, or sending it fixes, call `t3_thread_wait` on its thread; it returns when the run ends. If no report arrived, read the thread's last message and `gh pr checks`. CI pending and the worker watching the PR: wait again. Green but no report: take the result from the thread and continue. Stopped without a watch, or stuck: send it a nudge. A run that failed: read its error and retry once with the same model and settings; if it fails again, ask the user, naming the error. If the user says it finished, believe them and look at the PR.
 4. Answer the worker's questions. If the task must change, tell the worker; it applies the change on its branch.
 
 ## Grow and adjust
@@ -67,9 +67,9 @@ A worker that finds more work stops and sends you one proposal: **absorb** it (s
 
 - **Mandate.** You may add up to two subtasks or one prerequisite task of tier S or M without asking, recording why in the parent's notes and in the next recap. A change to the goal or acceptance criteria, new tier L work, or anything past that goes to the user first; the worker waits at a clean point.
 - **Absorb:** tell the worker; it records it in the task's notes.
-- **Prerequisite of a subtask:** create it as another subtask of that epic on the epic branch (you hold it), push, tell the worker to note where it stopped, merge the epic branch and `--dep` the prerequisite (repeating existing dependencies). Run it next; when it is merged, the worker merges the epic branch again and resumes.
-- **Prerequisite of a lone story:** `--dep` can't resolve until the prerequisite is on the story's branch. Create it as its own story into `main`; the worker notes the wait and stops; when it is merged, the worker merges `main` and resumes.
-- **Phases:** the worker notes its state and stops. Create `epic/<id>-<slug>` at the story branch tip and push it. On it add the subtasks (`--parent`, ordinals, dependencies; the first says what is already done) and note why in the parent's notes, which stays `In Progress`. Close the story's PR with a comment naming the epic branch. Run the subtasks one at a time with the epic as base.
+- **Prerequisite of a subtask:** create it as another subtask of that epic on the epic branch (you hold it), push, tell the worker to note where it stopped. The worker then merges the epic branch and adds the `--dep` (repeating existing dependencies). Run the prerequisite next; when it is merged, the worker merges the epic branch again and resumes.
+- **Prerequisite of a lone story:** `--dep` can't resolve until the prerequisite is on the story's branch. Create it as its own story into `main`; the worker writes the wait into the story's own notes and stops; when it is merged, the worker merges `main` and resumes.
+- **Phases:** the worker commits and pushes its notes and work, then stops. Create `epic/<id>-<slug>` at the story branch tip and push it. On it add the subtasks (`--parent`, ordinals, dependencies; the first says what is already done) and note why in the parent's notes, which stays `In Progress`. Close the story's PR with a comment naming the epic branch. Run the subtasks one at a time with the epic as base.
 - **Adjusting the plan.** When really needed, change tasks that haven't started (wording, order, dependencies, split, merge, drop) on the branch you hold, as a milestone commit, recording why in the parent's notes and the next recap. The same limits as the mandate apply: goal, acceptance or new tier L work go to the user first. A running item's task changes only through its worker. A dropped task gets a note and is archived, and its dependents' dependencies are fixed in the same commit.
 
 ## Accept and hand over
@@ -78,7 +78,7 @@ When the worker reports green:
 
 1. Review by tier:
    - S: read the diff yourself. Send problems back, including small factual errors in docs, to the same worker to fix on the same PR.
-   - M and L: launch an independent reviewer as a top-level thread in its own worktree on the PR branch with its model, any named skill, and [the review brief](assets/review.md). Send blocking findings to the worker; decide non-blocking ones yourself. For L, if blocking fixes substantially changed failure or recovery behavior, have the reviewer check the fix again. Use a fresh review task when the host requires it, never resume a delegated reviewer with `t3_thread_send`.
+   - M and L: launch an independent reviewer as a top-level thread in its own worktree on the PR branch with its model, any named skill, and [the review brief](assets/review.md); wait for it as in "Run an item" step 3. Send blocking findings to the worker; decide non-blocking ones yourself. For L, if blocking fixes substantially changed failure or recovery behavior, have the reviewer check the fix again. Use a fresh review task when the host requires it, never resume a delegated reviewer with `t3_thread_send`.
 2. When nothing blocking remains, read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. When green on the latest commit, give the user the recap and wait for their merge. You don't merge item PRs, re-run the gate or download artifacts.
 3. Once `gh pr list --state all` shows the PR merged, interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID). Pull the epic branch in your worktree and start the next item; after the last subtask, finish. After a spike, turn its proposed follow-ups into tasks (or adjust existing ones) and tell the user what the answer changed.
 
@@ -109,4 +109,4 @@ When an item is merged, waiting for the user's merge, or blocked, give a recap b
 
 ## Resuming
 
-Read `BRAID.md`, then rebuild the state from the repository and GitHub, not from chat: `git branch -r` and `gh pr list --state all` for plan, epic and item branches and their PRs; on the epic branch `backlog task list --plain` for the plan; the worker and reviewer threads for liveness. An item whose PR is merged is done. An item with a pushed `item/` branch or an open PR is running, even though the epic's copy reads `To Do`: read that branch's copy of its task (`git show origin/item/…:backlog/tasks/<file>`) and its thread before relaunching anything. Continue with the next unfinished step. Put notes in the parent task only for what a fresh session couldn't work out from these.
+Read `BRAID.md`, then rebuild the state from the repository and GitHub, not from chat: `git branch -r` and `gh pr list --state all` for plan, epic and item branches and their PRs; on the epic branch `backlog task list --plain` for the plan; the worker and reviewer threads for liveness. An item whose PR is merged is done. An item with an open PR, or a pushed `item/` branch with no PR yet, is running even though the epic's copy reads `To Do`: read that branch's copy of its task (find the file with `git ls-tree --name-only origin/item/<branch> backlog/tasks/`, then `git show` its quoted path) and its thread before relaunching anything. A closed, unmerged PR: read the task's notes (grown, dropped or restarted). Continue with the next unfinished step. Put notes in the parent task only for what a fresh session couldn't work out from these.

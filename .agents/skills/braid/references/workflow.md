@@ -53,7 +53,7 @@ copy. For what is running, read the item branch and `gh pr list`, not the board.
 ## Starting the next item
 
 Goal: on the epic branch, `task list --plain --ready -s 'To Do' -p <parent>`; take the first row that has
-no pushed `item/` branch and no open PR, since a running task still reads `To Do` on the epic branch.
+no open PR and no pushed `item/` branch without a PR, since a running task still reads `To Do` on the epic branch.
 Story: there is no next item.
 
 ## Tiers

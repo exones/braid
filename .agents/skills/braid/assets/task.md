@@ -8,18 +8,21 @@ multi-line field is one argument with real newlines.
 
 Install once (`npm install -g backlog.md@1.55.3`). On **Linux and macOS** call plain `backlog`. On
 **Windows** the `.ps1`/`.cmd` shims can silently cut a multi-line `--description` and drop `--ac` (seen
-under Volta), so call the native `backlog.exe` that the package ships. In pwsh, once per session:
+under Volta), so call the native `backlog.exe` that the package ships. Agent shells keep no variables
+between commands, so resolve the path once, with this lookup, which prints it:
 
 ```powershell
 $p = (Get-Command volta -ErrorAction SilentlyContinue) ? (volta which backlog 2>$null) : $null
 if (-not $p) { $p = (Get-Command backlog).Source }
 $backlog = node -p "require(process.argv[1]).resolveBinaryPath()" (Join-Path (Split-Path $p) 'node_modules/backlog.md/resolveBinary.cjs')
+$backlog
 ```
 
-then `& $backlog task …` everywhere below (`backlog …` on Linux/macOS). Never `npx`, `backlog.cmd`,
+then use the printed absolute path literally in every command: `& '<printed path>' task …`. Below,
+`& $backlog` stands for that call (or repeat these lines in the same command); plain `backlog` on Linux/macOS. Never `npx`, `backlog.cmd`,
 `cmd.exe` or Windows PowerShell 5.1. One-time check, in a throwaway Git repo under the temp folder with
 `backlog-config.yml` copied to its `backlog/config.yml`: create a task with a two-line `--description`
-and one `--ac`, then `task view --plain`. Both lines and the criterion must be there; if not, stop and
+and one `--ac`, then `task view --plain`; `--version` must print `1.55.3` (the lookup finds whichever version is installed). Both lines and the criterion must be there; if not, stop and
 tell the user.
 
 ## Fields
