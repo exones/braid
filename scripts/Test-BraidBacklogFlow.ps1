@@ -311,11 +311,11 @@ Validated by hand: "ok" & 100%.
   Check ((GitText status --porcelain) -eq '') 'main checkout is clean'
 }
 
+$savedPath = $env:PATH
+$savedVolta = $env:VOLTA_HOME
+$savedCache = $env:npm_config_cache
+$savedLocation = Get-Location
 try {
-  $savedPath = $env:PATH
-  $savedVolta = $env:VOLTA_HOME
-  $savedCache = $env:npm_config_cache
-  $savedLocation = Get-Location
   $sep = [IO.Path]::PathSeparator
   # Resolve Node once, before any VOLTA_HOME or PATH change, so the script works from any directory.
   $hasVolta = $IsWindows -and [bool](Get-Command volta -ErrorAction SilentlyContinue)
@@ -370,6 +370,11 @@ try {
   Write-Host "ABORTED before all checks ran: $($_.Exception.Message)`n$($_.ScriptStackTrace)" -ForegroundColor Red
   Check $false "script aborted: $($_.Exception.Message)"
 } finally {
+  # Leave the temp folder (and restore the environment) before removing it, whatever failed.
+  Set-Location $savedLocation
+  $env:PATH = $savedPath
+  $env:VOLTA_HOME = $savedVolta
+  $env:npm_config_cache = $savedCache
   if ($Keep) { Write-Host "Kept: $work" } else {
     # Worktrees mark their files read-only on some platforms; retry once after clearing it.
     try { Remove-Item $work -Recurse -Force } catch { Get-ChildItem $work -Recurse -Force | ForEach-Object { try { $_.Attributes = 'Normal' } catch {} }; Remove-Item $work -Recurse -Force -ErrorAction Continue }

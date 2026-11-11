@@ -63,8 +63,10 @@ $env:CLAUDE_CONFIG_DIR = $trial
 claude        # first time only: /login. This folder has its own login, settings and history.
 ```
 
-The folder starts empty of your usual settings, permissions and MCP servers. Copy
-`~/.claude/settings.json` into it if you want them.
+The folder starts empty of your usual settings, permissions, MCP servers, plugins and your global
+`CLAUDE.md` (which changes how agents behave, so the trial runs without your personal instructions
+unless you copy it in). Copy `~/.claude/settings.json` and `~/.claude/CLAUDE.md` into it if you want
+them; plugins and personal MCP servers (`.claude.json`) are not worth copying for this trial.
 
 **T3.** The models in `BRAID.md` run through T3's `Claude_Everix` provider, which starts Claude
 Code processes. That each of those processes, including the worker threads the coordinator launches,
@@ -77,25 +79,34 @@ the text mentions Backlog.md". The path must be under `.claude-braid-trial\skill
 mention Backlog.md. Do the same for a worker thread the first time one starts (the thread's skill
 reads show its path).
 
-**If T3 doesn't pick it up**, the plain fallback is to swap the global copies for the trial and back,
-in `~/.claude/skills` only:
+**If T3 doesn't pick it up**, the plain fallback is to move the old global copies out of
+`~/.claude/skills` for the trial and back afterwards. Move them, don't rename them in place: Claude
+Code also takes a skill's name from the `name:` line in its `SKILL.md`, so a renamed folder in the
+same place would still load next to the new one.
 
 ```powershell
 $g = Join-Path $HOME '.claude\skills'
-foreach ($n in 'braid-coordinate', 'braid-worker') { if (Test-Path "$g\$n") { Rename-Item "$g\$n" "$n.pre-trial" } }
+$backup = Join-Path $HOME '.claude-braid-pre-trial'
+New-Item -ItemType Directory -Force $backup | Out-Null
+foreach ($n in 'braid-coordinate', 'braid-worker') { if (Test-Path "$g\$n") { Move-Item "$g\$n" "$backup\$n" } }
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref HEAD -Target $g   # from the epic checkout above
 ```
 
-Restore afterwards: delete `$g\braid`, `$g\braid-coordinate` and `$g\braid-worker`, then rename the
-`.pre-trial` folders back. (The installer refuses to replace a folder it didn't install unless
-`-Force` is given, which is why the old ones are renamed first.)
+Restore afterwards (define `$g` and `$backup` again in a new shell): delete `$g\braid`,
+`$g\braid-coordinate` and `$g\braid-worker`, then `Move-Item "$backup\$n" "$g\$n"` for each of the
+two old ones, and delete `$backup`. (The installer refuses to replace a folder it didn't install
+unless `-Force` is given, which is why the old ones are moved first.)
 
-**Undo the recommended setup:** close the trial sessions, then
+**Undo the recommended setup:** first copy anything you need for the findings out of
+`~/.claude-braid-trial` (its transcripts go with it). Close the trial sessions, and if you started T3
+from the shell that had the variable, quit T3 and start it normally; otherwise it keeps using the
+trial folder. Then, in a new shell:
 
 ```powershell
-Remove-Item Env:CLAUDE_CONFIG_DIR
-Remove-Item -Recurse -Force (Join-Path $HOME '.claude-braid-trial')
-git worktree remove --force ..\braid-trial-skills
+$trial = Join-Path $HOME '.claude-braid-trial'
+Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force $trial
+git worktree remove --force ..\braid-trial-skills   # from the checkout you ran `git worktree add` in
 ```
 
 Your global skills, settings and history were never touched. Other hosts (Codex, Cursor) are out of
