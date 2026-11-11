@@ -49,7 +49,7 @@ One implementation worker at a time, on the first `ready` row of the item table.
 3. After sending the first message, or fixes, call `t3_thread_wait` on the worker's thread; it returns when the run ends, and at once on an idle thread. When it returns and the PR exists, call `watch_pull_request` on it (one item PR at a time) and end your turn; otherwise wait for the worker's message without polling. If a worker or reviewer run fails or ends without a report, read its error and retry once with the same model and settings; if it fails again, ask the user, naming the error. If the user says the worker has finished, believe them and look at the PR.
 
    On a wake:
-   - First call `t3_thread_wait` on the worker's thread. If the worker reported, use its report and ignore the wake.
+   - First call `t3_thread_wait` on the worker's thread. If the worker reported since you last sent it work, use its report and ignore the wake.
    - Failed checks, conflicts or comments while the worker is active or watching are the worker's: do nothing and end your turn. Nudge it only if it stopped without a watch.
    - Green and no report: take the result from the thread.
    - A wake is never a merge decision; continue with "Accept and merge".

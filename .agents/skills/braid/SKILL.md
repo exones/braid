@@ -63,7 +63,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    Once the worker's PR exists, call `watch_pull_request` on it (one item PR at a time) and end your turn.
 
    On a wake:
-   - First call `t3_thread_wait` on the worker's thread. If the worker reported, use its report and ignore the wake.
+   - First call `t3_thread_wait` on the worker's thread. If the worker reported since you last sent it work, use its report and ignore the wake.
    - Failed checks, conflicts or comments while the worker is active or watching are the worker's: do nothing and end your turn. Nudge it only if it stopped without a watch.
    - Green and no report: take the result from the thread.
    - A wake is never a merge decision; continue with "Accept and hand over".
