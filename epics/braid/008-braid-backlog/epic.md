@@ -89,10 +89,10 @@ independent review, then the user's merge.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | A | [Backlog.md setup for agents on Windows and in worktrees](items/A.md) | spike | S | no | – | done | [#37](https://github.com/exones/braid/pull/37) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:d5733cf25bdf8a6bc1858bce977e84c409fc583907988ce92602853b3a54c7f0>) |
 | B | [The `braid` skill: plan, story, grow, finish](items/B.md) | story | L | no | A | done | [#38](https://github.com/exones/braid/pull/38) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:21ec4c3068da4b6b55139b6a5253d31b7cf0bbddbdadf9fea28f4d36d0f6de54>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:e1be9dd17845bc71791f0e56847cc8a69fe6cf0c64c282ba6e15d7918c4ab5d1>) |
-| C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | in-progress | | |
-| D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | backlog | | |
-| E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | backlog | | |
-| F | [Model per tier and a PR watch for the coordinator](items/F.md) | task | L | no | B | backlog | | |
+| C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | done | [#39](https://github.com/exones/braid/pull/39) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:3814533af59fc06ef0a046878fb22147602d3b445be62388c1664d83e9950ba4>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:15b14cb84fefd8168cab17b58a42abc0f77cccca7e999208919fbe331a2f8ae4>) |
+| D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | in-progress | | |
+| E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | ready | | |
+| F | [Model per tier and a PR watch for the coordinator](items/F.md) | task | L | no | B | ready | | |
 
 ## Decisions
 
@@ -130,6 +130,8 @@ independent review, then the user's merge.
   medium (`models.worker.L` in `BRAID.md`, applied from D on); others Sonnet 5.5 medium. F adds
   the tier key and a coordinator PR watch (an idle worker waiting for CI can't be waited on with
   `t3_thread_wait`) to both coordinator skills, at the user's request.
+- 2026-11-11: C merged by the user (#39). D's brief records the routing the user agreed: the user
+  talks only to `braid`; `braid-worker` belongs to launched worker threads.
 - 2026-11-11: Sequential MVP: one worker at a time, as D07 already requires.
 - 2026-11-11: Keep `braid-coordinate` and `braid-worker` working; `braid` sits beside them until
   the user's trial shows it can replace the coordinator.

@@ -38,6 +38,10 @@ it, and the repository records why braid's skills now keep items in Backlog.md.
 ## Already decided
 
 - `braid-coordinate` and `braid-worker` stay installed and documented.
+- Routing (user, 2026-11-11): the user talks only to `braid`, for any size of work, including
+  "run TASK-12"; `braid` decides story or goal. `braid-worker` is the skill of the worker threads a
+  coordinator launches, never chosen by the user. `braid-coordinate` stays for epics in `epics/`
+  (this repository) until the user's trial. Small direct edits need no skill.
 - Target-project setup follows the `braid` skill: global `backlog.md@1.55.3`, copy the skill's
   `assets/backlog-config.yml` to `backlog/config.yml`, no Backlog.md block in `AGENTS.md`.
 - D doesn't change `BRAID.md`: braid's own epics stay in `epics/`. (The coordinator already set
