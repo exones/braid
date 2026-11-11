@@ -41,9 +41,11 @@ releases.
   Acceptance criteria: done when. Definition of Done: the project defaults (gate, green checks).
   Labels: `kind:story|task|spike`, `tier:S|M|L`, `ui`. Dependencies: real prerequisites only.
   Ordinal: run order.
-- **Who writes what.** The coordinator creates and restructures tasks and sets statuses on the
-  branch it owns. The worker writes its plan into the task before coding, appends notes, checks
-  acceptance criteria and writes the final summary: that summary is the item's report.
+- **Who writes what.** One writer per branch. The coordinator creates and restructures tasks on
+  the branches it holds (`plan/`, `epic/`, a new story's branch before launch). The worker owns its
+  item's task on its item branch: In Progress in its first commit, the plan before coding, notes,
+  checked acceptance criteria, the final summary (the item's report) and Done in its last commit.
+  A change to a running item's task goes to the worker as a message.
 - **Files travel with the work.** Each branch's copy of a task is the truth on that branch (probed,
   see below). A plan reaches `main` through a planning PR that the user merges: merging it is the
   approval. A story's PR into `main` sets its task to Done, so `main` shows Done exactly when the
@@ -113,6 +115,12 @@ independent review, then the user's merge.
   the diff, the user merges B, C and D, and E (tier M) follows `braid-coordinate`'s rules.
 - 2026-11-11: A merged (#37). Its invocation rule, committed config, the six overrides of
   `backlog instructions` and two more failure modes went into B's brief; the setup rule into D's.
+- 2026-11-11: B's review (8 blocking findings) showed plain `backlog` through the `.ps1` shim cuts
+  multi-line text under a Node shim such as Volta; the native `backlog.exe` keeps it. A's
+  invocation rule is superseded by the one B's skill states. One writer per branch: the worker,
+  not the coordinator, sets its own task In Progress and Done on its item branch (Design, "Who
+  writes what"). The skill also gets an explicit step from plan to run and a rule for adjusting the
+  plan mid-run (the user's questions).
 - 2026-11-11: Sequential MVP: one worker at a time, as D07 already requires.
 - 2026-11-11: Keep `braid-coordinate` and `braid-worker` working; `braid` sits beside them until
   the user's trial shows it can replace the coordinator.

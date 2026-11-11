@@ -20,7 +20,8 @@ it, and the repository records why braid's skills now keep items in Backlog.md.
 - `test/pester/` and the existing installer tests: where the installer's behavior is checked.
 - `README.md`, section "Braid skills in other projects"; `AGENTS.md`, section "Where to look";
   `docs/decisions.md`.
-- `../reports/A.md`: setup steps for a target project.
+- `../reports/A.md` and the `braid` skill's setup and invocation rule (which supersedes A's): setup
+  steps for a target project.
 
 ## Change
 
@@ -37,7 +38,7 @@ it, and the repository records why braid's skills now keep items in Backlog.md.
 ## Already decided
 
 - `braid-coordinate` and `braid-worker` stay installed and documented.
-- Target-project setup follows `../reports/A.md`: global `backlog.md@1.55.3`, copy the skill's
+- Target-project setup follows the `braid` skill: global `backlog.md@1.55.3`, copy the skill's
   `assets/backlog-config.yml` to `backlog/config.yml`, no Backlog.md block in `AGENTS.md`.
 - D doesn't change `BRAID.md`: braid's own epics stay in `epics/`. (The coordinator already set
   this epic's models there.)

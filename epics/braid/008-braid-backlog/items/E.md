@@ -19,7 +19,8 @@ agent behavior in this epic; the user's trial does.
 - `.agents/skills/braid/references/workflow.md` and `assets/task.md` (from B): the exact Backlog.md
   commands the skill prescribes.
 - `.agents/skills/braid-worker/SKILL.md` (from C): the worker's commands.
-- `../reports/A.md`: the invocation rule and the recommended `config.yml`.
+- The `braid` skill's invocation rule (it supersedes `../reports/A.md`'s) and its
+  `assets/backlog-config.yml`.
 - `epics/reports/run-001-chinese-trainer.md`: what the user looked at in the last real run.
 
 ## Change
@@ -33,7 +34,8 @@ agent behavior in this epic; the user's trial does.
      summary and Done; merge; `main` shows Done with the summary.
   3. Growth: a running story gets a prerequisite subtask on an `epic/<task-id>-<slug>` branch; IDs
      stay unique across branches; the final merge brings every status to `main`.
-  4. Multi-line text survives on Windows through the invocation from A.
+  4. Multi-line text and later options survive on Windows through the skill's invocation, also
+     under a Node shim such as Volta.
 - `epics/braid/008-braid-backlog/trial.md`: the user's trial guide: install the skills from the
   epic branch into an isolated setup, prepare a target repository (`BRAID.md`, Backlog.md init,
   config), the scenarios to try (plan a goal, one story, a story that grows, resume after a lost
