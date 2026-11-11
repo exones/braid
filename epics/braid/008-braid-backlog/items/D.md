@@ -37,7 +37,8 @@ it, and the repository records why braid's skills now keep items in Backlog.md.
 ## Already decided
 
 - `braid-coordinate` and `braid-worker` stay installed and documented.
-- `BRAID.md` in this repository doesn't change: braid's own epics stay in `epics/`.
+- D doesn't change `BRAID.md`: braid's own epics stay in `epics/`. (The coordinator already set
+  this epic's models there.)
 
 ## Out of scope
 

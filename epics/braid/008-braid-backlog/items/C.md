@@ -43,7 +43,8 @@ an item brief file, so the `braid` skill can hand it work without a second worke
 
 ## Out of scope
 
-- Standalone mode (epic 007) beyond what is needed to avoid conflicting with it.
+- Standalone mode (epic 007). 007 is parked: build on `main`'s `braid-worker`, not on
+  `epic/007-standalone-worker` or PR #35.
 - Coordinator or installer changes.
 
 ## Done when

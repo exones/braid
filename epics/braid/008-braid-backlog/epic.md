@@ -1,6 +1,6 @@
 # 008: one `braid` skill on Backlog.md, sequential MVP
 
-Status: planning.
+Status: in-progress.
 The user's merge into `main` marks it done.
 Branch: `epic/008-braid-backlog` from `main` at `d4ab2f4`.
 
@@ -85,31 +85,32 @@ independent review, then the user's merge.
 
 | ID | Title | Kind | Tier | UI | Depends on | Status | PR | Threads |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| A | [Backlog.md setup for agents on Windows and in worktrees](items/A.md) | spike | S | no | – | backlog | | |
+| A | [Backlog.md setup for agents on Windows and in worktrees](items/A.md) | spike | S | no | – | in-progress | | |
 | B | [The `braid` skill: plan, story, grow, finish](items/B.md) | story | L | no | A | backlog | | |
 | C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | backlog | | |
 | D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | backlog | | |
 | E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | backlog | | |
 
-## Open questions
-
-1. Who merges S and M items into an epic branch: the coordinator (current `main`) or the user (your
-   uncommitted draft of `braid-coordinate`)? Recommendation: the user for the MVP, then relax after
-   the user's trial.
-2. Is an `In Review` status worth a commit? The epic branch can show it; `main` can't before the
-   merge. Recommendation: no status; an open PR is "in review".
-3. Coordinator mandate on growth: may it add up to two subtasks or one prerequisite task of tier S
-   or M without asking? Recommendation: yes, recorded in the parent's notes and in the next recap.
-4. Epic 007 (standalone worker) also changes `braid-worker` and is in progress. Finish it first, or
-   cancel it because `braid` story mode covers a single task without an epic? C waits on this.
-5. Models for workers and reviewers: `BRAID.md` defaults, or the Astra/Sol medium override used for 006 and 007?
-6. The braid CLI's own ledger (roadmap stages 1–5) also tracks items. D records Backlog.md as the
-   item store for the skills and leaves the CLI as is; revisit the roadmap after the user's trial.
-   Agree?
-
 ## Decisions
 
 - 2026-11-11: Plan only. No workers until the user approves.
+- 2026-11-11: User answers to the planning questions:
+  - Item merges under `braid`: the user merges every item PR into an epic branch, S and M too, for
+    the MVP; relax after the trial. (This epic itself still runs on `braid-coordinate`'s rules.)
+  - No `In Review` status: an open PR is "in review".
+  - Growth mandate: the coordinator may add up to two subtasks or one prerequisite task of tier S
+    or M without asking, recorded in the parent's notes and the next recap. A change to the goal or
+    acceptance criteria, or new tier L work, goes to the user.
+  - Epic 007 is parked: its branch and PR #35 stay untouched, C builds on `main`'s `braid-worker`,
+    and 007 is revisited after the trial.
+  - The braid CLI ledger stays as it is; D30 records Backlog.md as the item store for the skills,
+    and the roadmap is revisited after the trial.
+  - Models: not PR #36. `BRAID.md` on this branch sets `Claude_Everix` models: coordinator
+    `claude-opus-5-5` effort high; worker `claude-sonnet-5-5` effort medium; spikes (researcher)
+    `claude-opus-5-5` effort medium; reviewer `claude-opus-5-5` effort high with the `code-review`
+    skill. They reach `main` with this epic. `AGENTS.md` "Providers and roles" says the same.
+- 2026-11-11: User approved the plan. Launch A; the coordinator merges A (tier S) after reading
+  the diff, the user merges B, C and D, and E (tier M) follows `braid-coordinate`'s rules.
 - 2026-11-11: Sequential MVP: one worker at a time, as D07 already requires.
 - 2026-11-11: Keep `braid-coordinate` and `braid-worker` working; `braid` sits beside them until
   the user's trial shows it can replace the coordinator.

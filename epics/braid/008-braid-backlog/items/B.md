@@ -43,8 +43,13 @@ reported. The same skill handles a one-PR story and a story that grows into phas
 - Include the user's draft refinements: confirm the plan with the user, in as many rounds as
   needed, before committing it; and the worker's final summary in the task is the item's report.
 - The design points in `../epic.md` ("One item type", "Task = brief", "Who writes what",
-  "Files travel with the work", "Growth") are settled. Open questions 1–3 in `../epic.md` will be
-  answered before this item starts; use those answers.
+  "Files travel with the work", "Growth") are settled.
+- The user merges every item PR into an epic branch, S and M included, for the MVP. The
+  coordinator still reviews by tier, checks CI and sends the recap, then waits for the merge.
+- No `In Review` status: an open PR is "in review".
+- Growth mandate: the coordinator may add up to two subtasks or one prerequisite task of tier S or
+  M without asking, and records why in the parent's notes and the next recap. A change to the goal
+  or acceptance criteria, or new tier L work, goes to the user first.
 - Planning: tasks, not drafts, so IDs stay stable; a planning PR into `main` is the approval.
 - An item whose PR is merged is done; status changes reach `main` only through merges.
 - Agents call Backlog.md the way `../reports/A.md` says and never edit task files by hand.
