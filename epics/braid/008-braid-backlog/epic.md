@@ -88,8 +88,8 @@ independent review, then the user's merge.
 | ID | Title | Kind | Tier | UI | Depends on | Status | PR | Threads |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | A | [Backlog.md setup for agents on Windows and in worktrees](items/A.md) | spike | S | no | – | done | [#37](https://github.com/exones/braid/pull/37) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:d5733cf25bdf8a6bc1858bce977e84c409fc583907988ce92602853b3a54c7f0>) |
-| B | [The `braid` skill: plan, story, grow, finish](items/B.md) | story | L | no | A | in-progress | | |
-| C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | backlog | | |
+| B | [The `braid` skill: plan, story, grow, finish](items/B.md) | story | L | no | A | done | [#38](https://github.com/exones/braid/pull/38) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:21ec4c3068da4b6b55139b6a5253d31b7cf0bbddbdadf9fea28f4d36d0f6de54>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:e1be9dd17845bc71791f0e56847cc8a69fe6cf0c64c282ba6e15d7918c4ab5d1>) |
+| C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | in-progress | | |
 | D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | backlog | | |
 | E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | backlog | | |
 
@@ -121,6 +121,10 @@ independent review, then the user's merge.
   not the coordinator, sets its own task In Progress and Done on its item branch (Design, "Who
   writes what"). The skill also gets an explicit step from plan to run and a rule for adjusting the
   plan mid-run (the user's questions).
+- 2026-11-11: B merged by the user (#38) after two review rounds. The coordinator now waits on
+  worker and reviewer runs with `t3_thread_wait`: a worker in B's first fix round ended without
+  re-watching its PR and never reported. C's brief adds the re-watch rule and the worker's part of
+  growth, invocation and Done from the merged skill.
 - 2026-11-11: Sequential MVP: one worker at a time, as D07 already requires.
 - 2026-11-11: Keep `braid-coordinate` and `braid-worker` working; `braid` sits beside them until
   the user's trial shows it can replace the coordinator.
