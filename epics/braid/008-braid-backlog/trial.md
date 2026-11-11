@@ -22,20 +22,84 @@ launches; you never start it yourself.
 
   It must end with `N of N checks passed`. If not, stop and report the failing line.
 
-## 1. Install the skills from the epic branch
+## 1. Install the skills into their own config folder
 
-From a checkout of this repository (any branch, the script reads the ref):
+**Why a separate folder.** You already have older `braid-coordinate` and `braid-worker` installed
+globally. Claude Code's documentation says that when a personal skill (`~/.claude/skills/`) and a
+project skill (`.claude/skills/`) share a name, the personal one wins
+([skills, "Resolve skills that share a name"](https://code.claude.com/docs/en/skills)). So copying
+the new versions into the target repository's `.claude/skills/` would leave the old ones running.
+It would work only for `braid`, which has no older copy. Claude Code also documents that
+`CLAUDE_CONFIG_DIR` moves everything that lives under `~/.claude`, skills included
+([.claude directory](https://code.claude.com/docs/en/claude-directory)). A session started with that
+variable set therefore sees only the skills in that folder, and your global ones are never read or
+written.
+
+Recommended setup: a trial config folder, `~/.claude-braid-trial`, used only by the sessions that
+run the trial. A separate OS user or a VM would isolate even more, but costs a second login and
+profile; use one only if the steps below fail. Everything below is PowerShell 7.
+
+**Install** (needs D merged into the epic branch). The installer copies the skill folders of the
+checkout it runs from (it picks the `braid` and `braid-*` folders from its own checkout, and the
+`-Ref` only chooses which commit's files are copied), so run it from a checkout of the epic branch,
+not from `main`:
 
 ```powershell
+$trial = Join-Path $HOME '.claude-braid-trial'
 git fetch origin
-pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref origin/epic/008-braid-backlog
+git worktree add --detach ..\braid-trial-skills origin/epic/008-braid-backlog   # a checkout of the epic branch
+Set-Location ..\braid-trial-skills
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref HEAD -Target (Join-Path $trial 'skills')
 ```
 
-This copies `braid`, `braid-coordinate` and `braid-worker` into `~/.cursor/skills`, `~/.codex/skills`,
-`~/.claude/skills` and `~/.braid/skills`, with `.braid-install.json` naming the commit. To keep the
-trial away from your usual folders, add `-Target <folder>` (it replaces the defaults) and point the
-agent host at that folder. Note the commit it prints; write it in the findings. Skills installed
-from `main` later replace these.
+It prints the commit it installed and writes `.braid-install.json` into each skill. Write that
+commit in the findings. Because `-Target` replaces the default folders, nothing in `~/.claude`,
+`~/.codex`, `~/.cursor` or `~/.braid` is touched.
+
+**Use it.** Start every trial session with the variable set, in the same shell:
+
+```powershell
+$env:CLAUDE_CONFIG_DIR = $trial
+claude        # first time only: /login. This folder has its own login, settings and history.
+```
+
+The folder starts empty of your usual settings, permissions and MCP servers. Copy
+`~/.claude/settings.json` into it if you want them.
+
+**T3.** The models in `BRAID.md` run through T3's `Claude_Everix` provider, which starts Claude
+Code processes. That each of those processes, including the worker threads the coordinator launches,
+inherits `CLAUDE_CONFIG_DIR` from the T3 process is **not verified**: the documentation above covers
+Claude Code, not T3, and I couldn't test T3 from here. To give the best chance, quit T3 and start it
+from a shell where `$env:CLAUDE_CONFIG_DIR = $trial` is set (check T3's provider settings for a
+config-directory or environment field too). Then check before trusting it: in the target project
+start a thread and ask "Open your `braid` skill's `SKILL.md` and tell me its full path and whether
+the text mentions Backlog.md". The path must be under `.claude-braid-trial\skills`, and the text must
+mention Backlog.md. Do the same for a worker thread the first time one starts (the thread's skill
+reads show its path).
+
+**If T3 doesn't pick it up**, the plain fallback is to swap the global copies for the trial and back,
+in `~/.claude/skills` only:
+
+```powershell
+$g = Join-Path $HOME '.claude\skills'
+foreach ($n in 'braid-coordinate', 'braid-worker') { if (Test-Path "$g\$n") { Rename-Item "$g\$n" "$n.pre-trial" } }
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref HEAD -Target $g   # from the epic checkout above
+```
+
+Restore afterwards: delete `$g\braid`, `$g\braid-coordinate` and `$g\braid-worker`, then rename the
+`.pre-trial` folders back. (The installer refuses to replace a folder it didn't install unless
+`-Force` is given, which is why the old ones are renamed first.)
+
+**Undo the recommended setup:** close the trial sessions, then
+
+```powershell
+Remove-Item Env:CLAUDE_CONFIG_DIR
+Remove-Item -Recurse -Force (Join-Path $HOME '.claude-braid-trial')
+git worktree remove --force ..\braid-trial-skills
+```
+
+Your global skills, settings and history were never touched. Other hosts (Codex, Cursor) are out of
+this trial: the models are Claude's, and the steps above don't write to their folders.
 
 ## 2. Prepare the target repository
 
@@ -52,7 +116,7 @@ small project, cloned to its own folder. It needs a GitHub remote, because worke
    `project_name`. Don't run `backlog init`. (If you skip this step, `braid` does it itself on first
    use; do it by hand once so you see the files.)
 4. Commit both on `main` and push: `docs: add BRAID.md and Backlog.md config`.
-5. In T3, add the folder as a project and start a thread there with `braid`. The first message can be
+5. In T3 (started with `CLAUDE_CONFIG_DIR` set, step 1), add the folder as a project and start a thread there with `braid`. The first message can be
    just the goal.
 
 Never point the trial at a repository whose `main` you can't afford to change.
@@ -65,7 +129,7 @@ gate yourself afterwards when you merge, as you normally would.
 | # | Scenario | You say | Expect |
 | --- | --- | --- | --- |
 | 1 | Plan a goal | A goal of several steps, for example "add a settings page with three options, storage and tests" | A plan with a parent task and subtasks (titles, kinds, tiers, order, dependencies, acceptance criteria) shown to you before anything is committed. Planning PR on `plan/<slug>`; merging it is your approval. Then an `epic/<id>-<slug>` branch. |
-| 2 | One story | A small change that fits one PR, for example "run TASK-n" for a story created in scenario 1, or "rename X to Y everywhere" | One task, a worker on `item/<id>-<slug>` that sets In Progress first, writes a plan, and ends with Done and a final summary in the same PR. One review for tier M, none for S beyond the coordinator reading the diff. A recap and your merge; `main` then shows Done. |
+| 2 | One story | A fresh small change that fits one PR, for example "rename X to Y everywhere" or "add a `--version` flag" (not a subtask of scenario 1's goal: those run on the epic, not as stories) | A story has no planning PR: your confirmation of the plan in chat is the approval. Then one task, a worker on `item/<id>-<slug>` that sets In Progress first, writes a plan, and ends with Done and a final summary in the same PR. One review for tier M, none for S beyond the coordinator reading the diff. A recap and your merge; `main` then shows Done. |
 | 3 | A story that grows | A story whose real size is hidden, for example "add export to CSV" in a project where the data layer needs a refactor first | The worker stops and sends one proposal (absorb, prerequisite or phases). The coordinator follows its mandate (up to two small subtasks or one prerequisite without asking) or asks you for more. A grown story becomes an `epic/` branch with subtasks and one final PR into `main`. IDs stay unique. |
 | 4 | Resume after a lost chat | In the middle of scenario 1 or 3 (a worker running or a PR open), close the coordinator thread. Start a new thread with `braid` and say "continue" | It rebuilds the state from `BRAID.md`, Git branches, `gh pr list` and Backlog.md (not from the old chat), says what is running and what is next, and does not relaunch a running item or duplicate a PR. |
 
@@ -80,7 +144,11 @@ gate yourself afterwards when you merge, as you normally would.
 - **Plan quality:** lowest tier that fits, testable criteria, real dependencies only, plan confirmed
   with you first. Is the task text enough for a worker, without it re-investigating?
 - **Workflow:** one worker at a time, the right model and effort per tier (L uses Opus 5.5 medium), a
-  thread named `<repo> <task-id> <role>: <title>`, a recap in the agreed shape, no merge by the agent.
+  thread named `<repo> <task-id> <role>: <title>`, a recap in the agreed shape, no merge by the agent. The coordinator
+  watches the item PR while it waits and unwatches it when the recap asks for your merge, and
+  unwatches its own planning and final PRs once their checks are green and any review is done. A missed
+  unwatch keeps the thread out of your inbox; if a PR is waiting for you but the thread isn't in your
+  inbox, that is a finding.
 - **Cost of the flow:** minutes from your goal to the plan, from launch to the first edit, from
   report to recap, and anything an agent asked you that it could have decided.
 - **Failure modes:** a stopped worker, red CI, a merge conflict in a task file, a worker proposing
