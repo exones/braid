@@ -11,7 +11,7 @@ Turn the user's goal into small items delivered by workers; don't write product 
 
 Read `BRAID.md` at the repository root first for its facts (`gate`, `main`, `epics`, `ci`, `run`, `models` and the optional ones). Before launching, require it committed at the epic tip workers inherit; if missing, ask the user to commit it to `main` or authorize your epic-only commit.
 
-Use `models.<role>.<kind>` if present, otherwise `models.<role>`; if neither exists, ask the user. Use any named skill. Use the exact provider, model and options; if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line. Follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
+Use `models.<role>.<tier>` (tier key `S`, `M` or `L`) if present, then `models.<role>.<kind>`, then `models.<role>`; if none exists, ask the user. Use any named skill. Use the exact provider, model and options; if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line. Follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
 Layout, tiers, branches and merges are in [the workflow](references/workflow.md).
 
@@ -36,7 +36,7 @@ Layout, tiers, branches and merges are in [the workflow](references/workflow.md)
 
 One implementation worker at a time, on the first `ready` row of the item table.
 
-1. Set the item to `in-progress` and launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy based on the epic branch tip, the item branch, and the worker model for the item's kind.
+1. Set the item to `in-progress` and launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy based on the epic branch tip, the item branch, and the worker model for the item's tier and kind.
 2. Send a short first message:
 
    ```text
@@ -47,6 +47,8 @@ One implementation worker at a time, on the first `ready` row of the item table.
 
    If the worker might not find the skill by name, add the absolute path of its `SKILL.md`; this skill folder's sibling `braid-worker` holds it.
 3. Wait for the worker's message without polling. If a worker or reviewer run fails or ends without a report, read its error and retry once with the same model and settings; if it fails again, ask the user, naming the error. If the user says the worker has finished, believe them and look at the PR.
+
+   As a fallback, once the worker's PR exists, call `watch_pull_request` on it: a worker idle while it waits for CI may never report. On a wake, read `gh pr checks` and the worker's thread; green and no report: take the result from the thread. Watch one item PR at a time, and the PRs you open yourself (the epic's PR into `main`) for checks and comments. A watch doesn't wake on a merge: the user's "merged" or `gh pr list --state all` decides that. Unwatch a PR once it is merged, and before handing back to the user.
 4. Answer the worker's questions. If the scope must change, update the brief and tell the worker.
 
 ## Accept and merge
