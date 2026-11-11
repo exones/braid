@@ -47,6 +47,11 @@ agent behavior in this epic; the user's trial does.
   It is run by hand and documented in the trial guide.
 - It never touches the user's real skill folders or repositories; everything lives in temp folders
   it removes at the end.
+- E runs before D (user's order). The trial guide installs the skills with
+  `scripts/Install-Skills.ps1` as D will change it (`braid` installed with `braid-*`); say that
+  this needs D merged into the epic branch first.
+- The flow is coordinator-driven: the user talks only to `braid`; `braid-worker` is for the worker
+  threads it launches. Tier L items use Opus 5.5 medium workers (`models.worker.L`).
 
 ## Out of scope
 
