@@ -13,6 +13,7 @@ models:
     story: Claude_Everix / claude-sonnet-5-5 / effort=medium
     task: Claude_Everix / claude-sonnet-5-5 / effort=medium
     spike: Claude_Everix / claude-opus-5-5 / effort=medium (researcher)
+    L: Claude_Everix / claude-opus-5-5 / effort=medium
   reviewer: Claude_Everix / claude-opus-5-5 / effort=high; skill code-review
 ---
 

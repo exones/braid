@@ -92,6 +92,7 @@ independent review, then the user's merge.
 | C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | in-progress | | |
 | D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | backlog | | |
 | E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | backlog | | |
+| F | [Model per tier and a PR watch for the coordinator](items/F.md) | task | L | no | B | backlog | | |
 
 ## Decisions
 
@@ -125,6 +126,10 @@ independent review, then the user's merge.
   worker and reviewer runs with `t3_thread_wait`: a worker in B's first fix round ended without
   re-watching its PR and never reported. C's brief adds the re-watch rule and the worker's part of
   growth, invocation and Done from the merged skill.
+- 2026-11-11: User: workers and reviewers stay top-level threads. Tier L workers use Opus 5.5
+  medium (`models.worker.L` in `BRAID.md`, applied from D on); others Sonnet 5.5 medium. F adds
+  the tier key and a coordinator PR watch (an idle worker waiting for CI can't be waited on with
+  `t3_thread_wait`) to both coordinator skills, at the user's request.
 - 2026-11-11: Sequential MVP: one worker at a time, as D07 already requires.
 - 2026-11-11: Keep `braid-coordinate` and `braid-worker` working; `braid` sits beside them until
   the user's trial shows it can replace the coordinator.
