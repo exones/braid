@@ -92,7 +92,7 @@ independent review, then the user's merge.
 | C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | done | [#39](https://github.com/exones/braid/pull/39) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:3814533af59fc06ef0a046878fb22147602d3b445be62388c1664d83e9950ba4>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:15b14cb84fefd8168cab17b58a42abc0f77cccca7e999208919fbe331a2f8ae4>) |
 | D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | ready | | |
 | E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | ready | | |
-| F | [Model per tier and a PR watch for the coordinator](items/F.md) | task | L | no | B | in-progress | | |
+| F | [Model per tier and a PR watch for the coordinator](items/F.md) | task | L | no | B | done | [#40](https://github.com/exones/braid/pull/40) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:461a4ae9be4cd25f68f4a6730f92f6f7af49a77a25ddfce8a5302c7600198e31>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:71e897dfc065f42837266dca9554176407f1af0d5726936e8027c60219027596>) |
 
 ## Decisions
 
@@ -136,6 +136,7 @@ independent review, then the user's merge.
   coordinator launches the next item only after the user says go.
 - 2026-11-11: User: start F next, before D and E. F's brief adds watching per subitem and on the
   coordinator's own PRs.
+- 2026-11-11: F merged by the user (#40). D's brief now also updates D29 for the tier key.
 - 2026-11-11: Sequential MVP: one worker at a time, as D07 already requires.
 - 2026-11-11: Keep `braid-coordinate` and `braid-worker` working; `braid` sits beside them until
   the user's trial shows it can replace the coordinator.

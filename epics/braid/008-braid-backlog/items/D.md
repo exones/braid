@@ -33,7 +33,8 @@ it, and the repository records why braid's skills now keep items in Backlog.md.
 - `AGENTS.md`, "Where to look": route goals and stories to `braid`.
 - `docs/decisions.md`: D30, Backlog.md as the item store for the braid skills, with the reason and
   what it means for the CLI ledger (unchanged for now, roadmap revisited after the user's trial); a dated
-  log line.
+  log line. Also update D29 (model overrides) for the tier key from F: `<role>.<tier>` wins over
+  `<role>.<kind>`, then `<role>`.
 
 ## Already decided
 
