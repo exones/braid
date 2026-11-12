@@ -4,10 +4,11 @@
 # again. Uncommitted edits are never installed, because files come from the ref.
 # Each installed skill gets .braid-install.json naming the ref and commit.
 # An existing folder without that file is not ours and is left alone unless
-# -Force is given; every target is checked before anything is copied. A stamped
-# braid skill folder that is no longer in the ref is removed. -Target replaces
-# the default host folders; separate several folders with the path separator
-# (';' on Windows, ':' elsewhere).
+# -Force is given; every target is checked before anything is copied. After
+# every target is installed, a stamped braid skill folder that is no longer in
+# the ref is removed; removal goes by the stamp, whatever checkout or fork
+# installed it. -Target replaces the default host folders; separate several
+# folders with the path separator (';' on Windows, ':' elsewhere).
 #Requires -Version 7.6
 [CmdletBinding()]
 param(
@@ -101,11 +102,16 @@ try {
       }
     }
     Write-Output "installed $($skills -join ', ') at $($commit.Substring(0, 7)) ($Ref) -> $rootFull"
+  }
+
+  foreach ($rootFull in $roots) {
     $stale = @(Get-ChildItem -LiteralPath $rootFull -Directory -Force |
         Where-Object { $_.Name -cmatch '^braid(-[a-z0-9-]+)?$' -and $skills -cnotcontains $_.Name } |
         Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName $StampName) -PathType Leaf })
     foreach ($folder in $stale) {
-      Remove-Item -LiteralPath $folder.FullName -Recurse -Force
+      $old = Join-Path $rootFull ".$($folder.Name).old-$([guid]::NewGuid().ToString('n'))"
+      Move-Item -LiteralPath $folder.FullName -Destination $old
+      Remove-Item -LiteralPath $old -Recurse -Force
       Write-Output "removed $($folder.Name), no longer in $Ref -> $rootFull"
     }
   }

@@ -32,9 +32,9 @@ never touched. Run it from a checkout of the epic branch:
 
 ```powershell
 git fetch origin
-git worktree add --detach ..raid-trial-skills origin/epic/008-braid-backlog
-Set-Location ..raid-trial-skills
-pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref HEAD
+git worktree add --detach ../braid-trial-skills origin/epic/008-braid-backlog
+Set-Location ../braid-trial-skills
+pwsh -NoProfile -File ./scripts/Install-Skills.ps1 -Ref HEAD
 ```
 
 It prints the commit it installed; write that commit in the findings. Then in the target project
@@ -42,8 +42,17 @@ start a thread and ask "Open your `braid` skill's `SKILL.md` and tell me its ful
 the text mentions Backlog.md". The path must be under your skills folder, and the text must mention
 Backlog.md.
 
-**Undo:** reinstall from `main` (`pwsh -NoProfile -File .\scripts\Install-Skills.ps1` in a checkout
-of `main`), then `git worktree remove --force ..raid-trial-skills`.
+**Undo:** `main`'s installer doesn't know `braid` until this epic merges, so delete it first (only
+where the installer put it), then reinstall from a checkout of `main` and remove the trial checkout:
+
+```powershell
+foreach ($d in '.claude', '.codex', '.cursor', '.braid') {
+  $s = Join-Path $HOME "$d/skills/braid"
+  if (Test-Path (Join-Path $s '.braid-install.json')) { Remove-Item -Recurse -Force $s }
+}
+pwsh -NoProfile -File ./scripts/Install-Skills.ps1        # in a checkout of main
+git worktree remove --force ../braid-trial-skills
+```
 
 ## 2. Prepare the target repository
 
