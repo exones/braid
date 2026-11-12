@@ -28,8 +28,8 @@ a trial guide for the user.
 
 Out: parallel workers and resource locks; braid CLI or ledger changes; MCP integration (unless A
 shows the CLI can't work); agents running or judging coordinators and workers (the user's trial
-does that after this epic); Snoboard, Everix or other project adoption; migrating braid's own
-`epics/` to Backlog.md; removing `braid-coordinate` (kept until the user's trial proves `braid`); Groma.md;
+does that after this epic); Snoboard, Everix or other project adoption; converting braid's
+past `epics/` records into Backlog.md tasks; Groma.md;
 releases; unattended epic mode (see "Later ideas").
 
 ## Later ideas
@@ -119,9 +119,10 @@ independent review, then the user's merge.
 | A | [Backlog.md setup for agents on Windows and in worktrees](items/A.md) | spike | S | no | – | done | [#37](https://github.com/exones/braid/pull/37) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:d5733cf25bdf8a6bc1858bce977e84c409fc583907988ce92602853b3a54c7f0>) |
 | B | [The `braid` skill: plan, story, grow, finish](items/B.md) | story | L | no | A | done | [#38](https://github.com/exones/braid/pull/38) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:21ec4c3068da4b6b55139b6a5253d31b7cf0bbddbdadf9fea28f4d36d0f6de54>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:e1be9dd17845bc71791f0e56847cc8a69fe6cf0c64c282ba6e15d7918c4ab5d1>) |
 | C | [Worker takes a Backlog.md task as its brief](items/C.md) | story | L | no | B | done | [#39](https://github.com/exones/braid/pull/39) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:3814533af59fc06ef0a046878fb22147602d3b445be62388c1664d83e9950ba4>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:15b14cb84fefd8168cab17b58a42abc0f77cccca7e999208919fbe331a2f8ae4>) |
-| D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | in-progress | | |
+| D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | done | [#42](https://github.com/exones/braid/pull/42) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:4e9d770e4473a6529a1dfbe901fd7ddf46ff926377ae449bc8ca6100343f21e6>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:041dc472efa732126c165ccff423bd473d910b8a70ca09f3262bce97a7beb145>) |
 | E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | done | [#41](https://github.com/exones/braid/pull/41) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:e843f7cdb573e7af30b790bcf629ee5e8346bd60c23ca883e59e1eb0a6e483c0>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:7652043fef3544b50b825e1e5bb8a47c75d43a8a654548865f91ed7e28362e82>) |
 | F | [Model per tier and a PR watch for the coordinator](items/F.md) | task | L | no | B | done | [#40](https://github.com/exones/braid/pull/40) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:461a4ae9be4cd25f68f4a6730f92f6f7af49a77a25ddfce8a5302c7600198e31>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:71e897dfc065f42837266dca9554176407f1af0d5726936e8027c60219027596>) |
+| G | [Drop `braid-coordinate`; this repository moves to `braid`](items/G.md) | task | L | no | D | in-progress | | |
 
 ## Decisions
 
@@ -173,5 +174,6 @@ independent review, then the user's merge.
 - 2026-11-11: User: do all technical and skill work once, check what can be checked in isolation,
   then the user tests on a real project in an isolated environment. E is a scripted flow check and
   a trial guide instead of an agent-run pilot.
+- 2026-11-12: D merged by the user (#42). User: drop `braid-coordinate` now, before the trial, and move this repository to `braid` and Backlog.md (G). Past `epics/` records stay as history; this epic finishes under the old rules. This supersedes "keep `braid-coordinate` until the trial" above.
 - 2026-11-11: The plan was written in an `everix3` thread and handed over to a coordinator thread in
   the agento project (same model, Claude Opus 5.5), working in this worktree.
