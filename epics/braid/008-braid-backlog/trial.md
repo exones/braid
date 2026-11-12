@@ -115,11 +115,22 @@ Fill one row per observation, with the time and the thread or PR it came from. K
 as meant), `gap` (the skill doesn't say what to do), `bug` (the skill says one thing, the agent or
 Backlog.md did another), `cost` (slow or noisy), `ask` (something you'd change).
 
-| # | Scenario | Time | Kind | What happened | Proposed change |
-| --- | --- | --- | --- | --- | --- |
-| 1 | | | | | |
-| 2 | | | | | |
-| 3 | | | | | |
-
 Header facts to write above the table: the skills' installed commit, the target repository, the
 models used, the Backlog.md version (`--version`) and whether the flow script passed.
+
+**Trial 1, 2026-11-12.** Skills installed from `1dac47b`. Target: `exones/openclaw` (main branch
+`restrict-agent-tools`, `ci: none`), scenario 2 only: TASK-1 "Read HTML-only letters as checked plain
+text", story, tier L, PR exones/openclaw#16. Models: coordinator Opus 5.5 medium; worker Opus 5.5
+medium (tier L); reviewer Grok 4.6 in Cursor, effort high, fast mode off, no skill. Backlog.md
+1.55.3; the coordinator's one-time setup check passed; the flow script was not run.
+
+| # | Scenario | Time | Kind | What happened | Proposed change |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 2 | 13:49–15:26 | good | The whole story worked: setup was missing, so the coordinator asked and put it in the story's first commit (the user's choice); it stopped after the plan as asked; it wrote the user's model choices into `BRAID.md`; on "run TASK-1" it launched the worker; two blocking reviews were fixed and the third re-check was clean; recap, merge, deploy. | None. |
+| 2 | 2 | 14:02 | bug | The first worker launch failed with `branch_already_exists`: the skill pushes the story branch (so it is in the local repository) and then says to launch with a worktree strategy, which creates the branch. The coordinator created the worktree itself and launched on `existing_worktree`. Same for every subtask. | Done: the skill now says to create the worktree and launch on it. |
+| 3 | 2 | 14:25 | gap | The skill put the reviewer "in its own worktree on the PR branch", which Git refuses while the worker's worktree holds the branch. The coordinator used a worktree detached at the head commit. | Done: the skill says detached at the PR's head. |
+| 4 | 2 | 15:21 | gap | The user saw TASK-1 as Done before merging, in the browser run from the worker's worktree. Expected (the worker sets Done in its PR), but not documented. From `main` the board was unavailable until the merge, because the setup came with the story. | Done: the workflow and README say what Done means before the merge. A separate setup PR is optional; no change. |
+| 5 | 2 | 15:22 | gap | The user changed the task's type in the browser running in the worker's worktree; the edit was saved there, uncommitted, and the browser kept the folder locked during clean-up. | Done: the README and workflow say to run the browser from your own checkout of `main`, to look, and to change tasks through `braid`; the skill's clean-up removes the item's worktrees. |
+| 6 | 2 | 14:36–15:10 | cost | The first two review reports reached the coordinator about 30 minutes late, as extra turns, after it had already taken the results from the threads. It recognized them as stale. | None. |
+| 7 | 2 | 15:23 | ask | The coordinator merged PR #16 and deleted its branch after "ok merge, lgtm". The skill says the user merges. | Open: allow the coordinator to merge when the user explicitly asks? |
+| 8 | 2 | 13:50 | bug | Minor: while planning it said "I'll send it to an independent review next"; no review of the plan happened. | None. |
