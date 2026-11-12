@@ -54,6 +54,7 @@ copy. For what is running, read the item branch and `gh pr list`, not the board.
 
 Goal: on the epic branch, `task list --plain --ready -s 'To Do' -p <parent>`; take the first row that has
 no open PR and no pushed `item/` branch without a PR, since a running task still reads `To Do` on the epic branch.
+A row whose PR was closed unmerged follows "Resuming" in [the skill](../SKILL.md).
 Story: there is no next item.
 
 ## Tiers
