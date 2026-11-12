@@ -93,8 +93,7 @@ Describe 'Install-Skills.ps1' {
     New-Item -ItemType Directory -Force -Path (Join-Path $script:TargetA 'mine') | Out-Null
     (Invoke-Install).Code | Should -Be 0
     (Invoke-Install).Code | Should -Be 0
-    Join-Path $script:TargetA 'mine' | Should -Exist
-    @(Get-ChildItem -LiteralPath $script:TargetA -Force -Filter '.braid-demo.*') | Should -HaveCount 0
+    @(Get-ChildItem -LiteralPath $script:TargetA -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo', 'mine')
   }
 
   It 'refuses to replace a folder it did not install unless -Force is given' {

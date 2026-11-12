@@ -55,7 +55,7 @@ The agent skills `braid`, `braid-worker` and `braid-coordinate` are developed in
 
 - `braid` is the one skill you talk to, for work of any size: a goal, a single story, or "run TASK-12". It decides whether the work is a story or a goal, keeps the items as [Backlog.md](https://github.com/MrLesk/Backlog.md) tasks in the target repository, and launches the workers.
 - `braid-worker` is the skill of the worker threads a coordinator launches. You don't start it yourself.
-- `braid-coordinate` is the earlier coordinator that keeps epics as Markdown briefs in an `epics/` folder. This repository still runs its own epics with it, and it stays installed until the user's trial of `braid` decides its future.
+- `braid-coordinate` is the earlier coordinator that keeps epics as Markdown briefs in an `epics/` folder. This repository still runs its own epics with it.
 - Ordinary questions and small direct edits need no skill.
 
 To make them available to Cursor, Codex and Claude in every project, install them from a committed ref:
@@ -74,7 +74,7 @@ To set up a target repository for `braid`:
 1. Install Backlog.md once per machine, at the pinned version: `npm install -g backlog.md@1.55.3` (with Volta: `volta install backlog.md@1.55.3`).
 2. Create `BRAID.md` from the [`braid` template](.agents/skills/braid/assets/braid-md.md). It adds the `backlog` folder and the rule for calling Backlog.md (on Windows the native `backlog.exe` from pwsh 7, never `npx` or `backlog.cmd`).
 3. Copy [backlog-config.yml](.agents/skills/braid/assets/backlog-config.yml) to `backlog/config.yml` and set `project_name`. Don't run `backlog init`, and don't add a Backlog.md block to `AGENTS.md`. If you skip this step, `braid` does it on first use.
-4. Commit both on `main`, add the repository as a T3 project and start a thread there with `braid`.
+4. Commit both on `main` and push, add the repository as a T3 project and start a thread there with `braid`.
 
 For `braid-coordinate`, `BRAID.md` names an `epics` folder instead; start from [its template](.agents/skills/braid-coordinate/assets/braid-md.md). This repository's own [BRAID.md](BRAID.md) is an example. Why `braid` keeps items in Backlog.md is decision D30 in [docs/decisions.md](docs/decisions.md).
 
