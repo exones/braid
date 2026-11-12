@@ -45,6 +45,8 @@ it, and the repository records why braid's skills now keep items in Backlog.md.
   (this repository) until the user's trial. Small direct edits need no skill.
 - Target-project setup follows the `braid` skill: global `backlog.md@1.55.3`, copy the skill's
   `assets/backlog-config.yml` to `backlog/config.yml`, no Backlog.md block in `AGENTS.md`.
+- The README's install and setup steps must agree with E's trial guide (`../trial.md`, merged in
+  #41). If they differ, fix whichever is wrong, in this PR.
 - D doesn't change `BRAID.md`: braid's own epics stay in `epics/`. (The coordinator already set
   this epic's models there.)
 
