@@ -14,6 +14,16 @@ These stages are capability boundaries for later releases. Live status is in the
 
 Since [D30](decisions.md), the `braid` skill keeps items in Backlog.md while the CLI's ledger stays as it is; stages 1–6 are revisited after the user's trial of `braid`.
 
+## braid's own board
+
+Planned after auto and unattended mode and, as [D01](decisions.md) says, built with the Backlog.md-based flow. braid gets its own task tracker and board, keeping what works in Backlog.md: Markdown task files in Git that travel with branches and PRs, a CLI with plain output for agents, acceptance criteria, Definition of Done, final summaries, subtasks and cross-branch reads. It adds:
+
+- goals shown with their subtasks nested;
+- states derived from GitHub, T3 and labels, not stored in task files: Running, In Review, Waiting for you (with the stop case), Done;
+- actions: Start, Merge on request, Open thread.
+
+Backlog.md stays the store until braid reads the same files, so existing tasks need no conversion. The first step is the spike TASK-2.
+
 The coordinator skill is delivered in stage 0, before the CLI. Stage 4 adds deterministic coordination in the product; it is not the first time a coordinator is used. Later milestones refine the bootstrap skill using delivery evidence. Work division follows the [workflow](../.agents/skills/braid/references/workflow.md); a review is part of its item, not a new item.
 
 ## Bootstrap rules
