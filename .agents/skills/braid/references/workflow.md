@@ -48,7 +48,13 @@ force-push shared branches. Every commit uses Conventional Commits.
 What the board shows: `backlog board` and the browser show the current branch's copy of every task it
 has, and for tasks it lacks the most progressed copy on other branches (the 1.55.3 default; the
 config file has no key for it). A newer status on another branch never replaces the current branch's
-copy. For what is running, read the item branch and `gh pr list`, not the board.
+copy. For what is running, read the item branch and `gh pr list`, not the board. A task that exists
+only on an item branch shows that branch's status, so a finished item reads `Done` while its PR waits
+for the user's merge; `main`'s own copy reads `Done` only after the merge.
+
+The user looks at the board with `backlog browser` from their own checkout of `main`. An edit made in
+the browser is saved to the checkout it runs from: in a worker's worktree that is a second writer on
+the item branch. Tasks change through the coordinator and workers, as above.
 
 ## Starting the next item
 

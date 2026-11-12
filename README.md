@@ -75,6 +75,8 @@ To set up a target repository for `braid`:
 3. Copy [backlog-config.yml](.agents/skills/braid/assets/backlog-config.yml) to `backlog/config.yml` and set `project_name`. Don't run `backlog init`, and don't add a Backlog.md block to `AGENTS.md`. If you skip this step, `braid` does it on first use.
 4. Commit both on `main` and push, add the repository as a T3 project and start a thread there with `braid`.
 
+To see the items, run `backlog browser` (or `backlog board`) in your own checkout of `main`. It also shows tasks that so far exist only on item branches. A task whose PR is waiting for your merge already reads Done there, because the worker sets Done in that PR. Use the browser to look, not to edit: it saves edits into the checkout it runs from, and a worker's worktree belongs to the worker. Ask `braid` for task changes.
+
 This repository's own [BRAID.md](BRAID.md) and `backlog/` are an example; `epics/` holds its past records, read-only. Why `braid` keeps items in Backlog.md is decision D30 in [docs/decisions.md](docs/decisions.md).
 
 ## CLI

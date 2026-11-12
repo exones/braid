@@ -47,7 +47,7 @@ If `backlog/config.yml` is missing, copy [backlog-config.yml](assets/backlog-con
 
 One implementation worker at a time. The next item is under "Starting the next item" in the workflow; a story has only itself.
 
-1. Launch a top-level T3 thread with `t3_thread_launch`: a worktree strategy on the item branch (for a subtask, create `item/<id>-<slug>` from the epic tip and push it first), and the worker model for the item's tier and kind. The branch must not be checked out anywhere else.
+1. Create the worker's worktree yourself with `git worktree add <folder> <item branch>` (for a subtask, first create `item/<id>-<slug>` from the epic tip and push it). The branch must not be checked out anywhere else. Then launch a top-level T3 thread with `t3_thread_launch` on that existing worktree (`existing_worktree`), with the worker model for the item's tier and kind. A launch option that creates the branch fails with `branch_already_exists`, because the pushed branch is already in the local repository.
 2. Send a short first message:
 
    ```text
@@ -88,9 +88,9 @@ When the worker reports green:
 
 1. Review by tier:
    - S: read the diff yourself. Send problems back, including small factual errors in docs, to the same worker to fix on the same PR.
-   - M and L: launch an independent reviewer as a top-level thread in its own worktree on the PR branch with its model, any named skill, and [the review brief](assets/review.md); wait for it as in "Run an item" step 3. Send blocking findings to the worker; decide non-blocking ones yourself. For L, if blocking fixes substantially changed failure or recovery behavior, have the reviewer check the fix again. Use a fresh review task when the host requires it, never resume a delegated reviewer with `t3_thread_send`.
+   - M and L: launch an independent reviewer as a top-level thread in its own worktree, detached at the PR's head commit (`git worktree add --detach <folder> <sha>`, since the worker's worktree holds the branch), with its model, any named skill, and [the review brief](assets/review.md); wait for it as in "Run an item" step 3. Send blocking findings to the worker; decide non-blocking ones yourself. For L, if blocking fixes substantially changed failure or recovery behavior, have the reviewer check the fix again. Use a fresh review task when the host requires it, never resume a delegated reviewer with `t3_thread_send`.
 2. When nothing blocking remains, read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. When green on the latest commit, give the user the recap and wait for their merge. You don't merge item PRs, re-run the gate or download artifacts.
-3. Once `gh pr list --state all` shows the PR merged, interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID). Pull the epic branch in your worktree and start the next item; after the last subtask, finish. After a spike, turn its proposed follow-ups into tasks (or adjust existing ones) and tell the user what the answer changed.
+3. Once `gh pr list --state all` shows the PR merged, interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID), and remove the worktrees you created for the item; if Windows refuses to delete a folder, a program such as `backlog browser` is probably still running in it, so ask the user to stop it. Pull the epic branch in your worktree and start the next item; after the last subtask, finish. After a spike, turn its proposed follow-ups into tasks (or adjust existing ones) and tell the user what the answer changed.
 
 ## Fixes
 
