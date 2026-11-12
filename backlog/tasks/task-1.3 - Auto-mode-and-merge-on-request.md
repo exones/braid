@@ -1,10 +1,10 @@
 ---
 id: TASK-1.3
 title: Auto mode and merge on request
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-12T17:29:00Z'
-updated_date: '2026-11-12T20:26:00Z'
+updated_date: '2026-11-12T21:05:00Z'
 labels:
   - kind:story
   - tier:L
