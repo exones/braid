@@ -4,7 +4,7 @@ title: 'Auto mode: braid merges phases into the epic branch'
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T18:24:00Z'
+updated_date: '2026-11-12T19:36:00Z'
 labels:
   - kind:story
   - tier:L
@@ -25,7 +25,7 @@ Start here (read in this order):
 - `docs/decisions.md` D28-D30: why the rules are as they are.
 
 Change:
-- TASK-1.1: stop cases and where each role records them.
+- TASK-1.1: stop cases and where each role records them; plan review as local task files; the parent's log of finished subtasks.
 - TASK-1.2: a `braid-reviewer` skill.
 - TASK-1.3: auto mode and merge on request.
 

@@ -6,7 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T18:24:00Z'
+updated_date: '2026-11-12T19:35:00Z'
 labels:
   - kind:task
   - tier:L
@@ -18,12 +18,12 @@ ordinal: 10
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Goal: one shared list of the cases where `braid` must wait for the user, and a fixed place where each role records them, so the coordinator, worker and reviewer flag the same things in the same words. In normal mode the cases only appear in plans and recaps; auto mode (TASK-1.3) refuses to merge on them. Also: the user reviews a goal's plan as real tasks in a draft planning PR, not only in chat.
+Goal: one shared list of the cases where `braid` must wait for the user, and a fixed place where each role records them, so the coordinator, worker and reviewer flag the same things in the same words. In normal mode the cases only appear in plans and recaps; auto mode (TASK-1.3) refuses to merge on them. Also: the user reviews a plan as real task files before it is pushed, and a goal's parent keeps a log that carries each finished subtask's report and history to the next worker.
 
-Expected size: about 140 lines in 6 files.
+Expected size: about 155 lines in 7 files.
 
 Start here (read in this order):
-- `.agents/skills/braid/SKILL.md`: "Plan" steps 3-6 and "Talking to the user" (the recap).
+- `.agents/skills/braid/SKILL.md`: "Plan" steps 3-6, "Accept", "Adjusting the plan", "Resuming" and "Talking to the user" (the recap).
 - `.agents/skills/braid-worker/SKILL.md`: Deliver step 0 and "Final report".
 - `.agents/skills/braid/assets/task.md`: Fields and labels.
 - `scripts/Test-DocsGate.ps1`: skill folders must be self-contained; a link can't reach into another skill.
@@ -46,6 +46,12 @@ Change:
   - Each round of the user's comments is one local commit, `docs(backlog): <id> amend: <what>`. Check `git diff` first so that only the intended lines changed, then tell the user briefly what changed in that round (no pasted diff).
   - On approval, squash the round commits into one `docs(backlog): plan <id>` and push once. A story's worker then starts on that branch; a goal's planning PR opens and the user's merge records the approval.
   - "Resuming" also checks local `plan/` and `item/` branches that haven't been pushed.
+- The parent's log, for a goal or grown story:
+  - After each subtask merges into the epic branch, and before the next item's branch is cut, the coordinator appends one dated entry with `backlog task edit <parent> --append-notes` and commits it on the epic branch.
+  - Every item gets an entry, even when nothing unusual happened: the item, its PR and merge sha, a short report of what was done, what later items must know (or `none`), plan changes since the last entry and why, and the user's decisions. A few lines; the PR holds the detail.
+  - Then the coordinator fixes any task that hasn't started and that the entry makes wrong, as a plan change (goal, acceptance criteria or new tier L work go to the user first).
+  - Workers already read the parent, so the log reaches them; a resuming coordinator reads it too. "Resuming"'s rule on parent notes points to the log. `workflow.md` names the log in one line.
+- `braid-worker` SKILL.md: the final summary gets a `For later items:` line (changed names or interfaces, deviations from the plan, new decisions, or `none`).
 - `braid-worker` SKILL.md: the final summary and the chat report carry `Needs the user: none` or `<key>: <one sentence>` per case, judged against the list.
 - `.agents/skills/braid/assets/task.md`: the `ask:<key>` label.
 - A check in the gate (Pester or the docs gate) that fails when the copies of `stop-cases.md` differ.
@@ -70,6 +76,7 @@ Out of scope:
 - [ ] #4 The diff facts are listed as runnable git/gh commands
 - [ ] #5 npm run verify passes
 - [ ] #6 The plan of a goal or story is reviewed as task files in the coordinator's worktree, one local commit per round with a brief note of what changed, and pushed once, squashed into one commit, after the user's approval
+- [ ] #7 After each subtask merges into the epic branch the parent's log has a short entry for it, written before the next item's branch is cut, and the worker's final summary has a For later items line
 <!-- AC:END -->
 
 ## Definition of Done
