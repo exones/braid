@@ -8,7 +8,8 @@ commands are in [the task template](../assets/task.md).
 
 - An item is one Backlog.md task of any size. A story is one task and one PR. When it grows it gets
   subtasks (`TASK-12.1`, `TASK-12.2`): its phases. At most two levels. The parent carries the goal,
-  scope and dated decisions (in its notes); subtasks carry the work.
+  scope and dated decisions (in its notes); subtasks carry the work. The parent's log, in its notes, has
+  one entry per merged subtask, written before the next item starts; workers and a resuming coordinator read it.
 - Kinds: **story** (a usable outcome, one PR), **task** (technical support work), **spike** (time-boxed
   question; the answer, evidence and proposed follow-ups are the final summary).
 - Statuses are `To Do`, `In Progress`, `Done` only. There is no `In Review`: an open PR is in review.
@@ -39,8 +40,8 @@ Each branch has one writer, and its copy of a task is the truth on that branch.
 | Case | Branches | PRs | Tasks |
 | --- | --- | --- | --- |
 | Story | `item/<id>-<slug>` from `main` | one into `main` | created on the new branch before launch; the worker's PR sets Done |
-| Planned goal | `plan/<slug>`, then `epic/<id>-<slug>` from `main`; each subtask `item/<subid>-<slug>` from the epic tip | planning PR into `main` (the approval); each subtask into the epic; one final PR epic → `main` | parent and subtasks created on `plan/`; each subtask's PR sets it Done; the coordinator's last commit on the epic sets the parent Done |
-| Grown story | `epic/<id>-<slug>` cut at the story branch tip | the story PR is closed; subtask PRs into the epic; one final PR into `main` | subtasks added on the epic branch; the parent stays In Progress until the final PR |
+| Planned goal | `plan/<slug>`, then `epic/<id>-<slug>` from `main`; each subtask `item/<subid>-<slug>` from the epic tip | planning PR into `main` (the approval); each subtask into the epic; one final PR epic → `main` | parent and subtasks created on `plan/` in one milestone; the parent In Progress in the epic's first commit; each subtask's PR sets it Done; the coordinator's last commit on the epic sets the parent Done |
+| Grown story | `epic/<id>-<slug>` cut at the story branch tip | the story PR is closed; subtask PRs into the epic; one final PR into `main` | milestone and subtasks added on the epic branch; the parent stays In Progress until the final PR |
 
 Merge `main` into an epic branch before the next item and before the final PR. Never rebase or
 force-push shared branches. Every commit uses Conventional Commits.

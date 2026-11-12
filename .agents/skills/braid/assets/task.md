@@ -30,7 +30,9 @@ tell the user.
 - Description: the template below (goal, size, start here, change, already decided, out of scope).
 - Acceptance criteria: "done when", a few testable points, one `--ac` each.
 - Definition of done: the project defaults from `backlog/config.yml`; the worker checks the boxes it proved (`--check-dod`).
-- Labels, always quoted: `'kind:story|task|spike,tier:S|M|L'` plus `ui` for new or noticeably changed user-facing UI.
+- Labels, always quoted: `'kind:story|task|spike,tier:S|M|L'` plus `ui` for new or noticeably changed user-facing UI,
+  and `ask:<key>` for each [stop case](../references/stop-cases.md) the plan already shows (`ask:security`).
+- Milestone: a goal's parent and all its subtasks, including later ones, share one; stories get none.
 - Dependencies: real prerequisites only. Ordinal: run order, 10, 20, 30, so one can slot in between.
 
 ## Create (coordinator, on a branch it holds)
@@ -59,6 +61,21 @@ A subtask adds `--parent task-12` and gets `TASK-12.1`. A spike's answer, eviden
 follow-ups are its final summary; the worker proposes follow-ups, the coordinator creates them. Create
 tasks, never drafts. `create` prints the ID; use it in the branch and PR names.
 
+## Milestone (goal only)
+
+It only groups the board; the parent holds the goal, decisions and log. Create it after the parent, give
+the parent and every subtask `--milestone <mid>` (`-m` on create and edit), and never archive it: an
+archived milestone's tasks fall into "No milestone".
+
+```powershell
+& $backlog milestone add 'TASK-12 Short title' --description 'Goal TASK-12: see the parent task for scope, decisions and the log.'
+git fetch   # the printed ID counts only this branch's files, so another plan or epic branch may hold it:
+git grep -l '^id: m-3$' $(git for-each-ref --format='%(refname)' refs/heads/plan refs/heads/epic refs/remotes/origin/plan refs/remotes/origin/epic) -- backlog/milestones backlog/archive/milestones
+```
+
+If a branch other than yours lists it, `milestone archive` the new one and add it again (archived IDs stay
+taken), until the ID is free.
+
 ## Edit
 
 `--dep` on `edit` replaces the dependency list: repeat the existing ones. It only accepts IDs that
@@ -80,6 +97,16 @@ What changed, why, validation, anything open.
 # coordinator, on plan/ or the epic branch, for tasks that haven't started
 & $backlog task edit task-13 --dep task-11,task-12 --ordinal 20
 & $backlog task edit task-14 --append-notes 'Dropped: why.'; & $backlog task archive task-14
+```
+
+The parent's log: after each subtask merges into the epic branch, and before the next item's branch is
+cut, the coordinator appends one entry on the epic branch, for every item:
+
+```powershell
+& $backlog task edit task-12 --append-notes @'
+2026-11-12 TASK-12.1 merged: PR #41, abc1234. Done: <short report>. For later items: <or none>.
+Plan changes: <since the last entry, and why, or none>. User decided: <or none>.
+'@
 ```
 
 ## Read
