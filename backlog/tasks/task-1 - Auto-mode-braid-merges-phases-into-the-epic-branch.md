@@ -4,7 +4,7 @@ title: 'Auto mode: braid merges phases into the epic branch'
 status: In Progress
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T20:38:00Z'
+updated_date: '2026-11-12T21:04:00Z'
 labels:
   - kind:story
   - tier:L
@@ -64,4 +64,6 @@ Out of scope:
 2026-11-12: TASK-1.3 extended at the user's request: the planning PR of a goal targets its epic branch, and workers push the In Progress commit at once, because main's own copies hid subtask progress on the board after PR #45 merged.
 
 2026-11-12 TASK-1.1 merged: PR #47, cfbfbe4. Done: stop-cases.md (8 keys) in braid and braid-worker, kept identical by the docs gate; ask:<key> labels and the recap's Needs the user line; local plan review squashed and pushed once; this log; one milestone per goal with a safe ID-collision check; parent In Progress from the epic's first commit. Two blocking review findings fixed, second review clean. For later items: any same path under references/ in two skills must be identical, so braid-reviewer's copy of stop-cases.md is checked automatically; the reviewer's section is named "Needs the user". Plan changes: TASK-1.3 now also moves a goal's planning PR into the epic branch and has workers push In Progress at once (user's request, see above). User decided: none.
+
+2026-11-12 TASK-1.2 merged: PR #48, a117dc4. Done: braid-reviewer skill (41 lines, its own stop-cases.md copy) replaces assets/review.md; braid launches it with a 3-line first message plus a Re-check line when needed; BRAID.md, its template, AGENTS.md and README name it (`; skill braid-reviewer`); Pester test for the installed skill set. Review not blocking; its 3 suggestions applied. For later items: the reviewer comment opens with "**Review of <task-id> at <short sha>** — blocking | not blocking" and has Blocking, Suggestions and Needs the user lines; its coordinator message carries blocking or not, Needs the user, the reviewed commit and the link. Plan changes: none. User decided: install the skills from the epic branch after this merge, so TASK-1.3's review uses braid-reviewer.
 <!-- SECTION:NOTES:END -->
