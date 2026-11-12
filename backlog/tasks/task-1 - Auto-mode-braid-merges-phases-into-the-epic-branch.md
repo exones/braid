@@ -4,6 +4,7 @@ title: 'Auto mode: braid merges phases into the epic branch'
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
+updated_date: '2026-11-12T18:24:00Z'
 labels:
   - kind:story
   - tier:L
@@ -29,6 +30,7 @@ Change:
 - TASK-1.3: auto mode and merge on request.
 
 Already decided (don't re-investigate):
+- Keep instructions very short: current models follow brief instructions well. One sentence per rule; no examples, rationale or repetition unless a model would get it wrong without them; extend an existing line before adding a section. Expected sizes are ceilings, not targets. Each subtask's final summary gives the line counts of the skill files it changed, before and after; the reviewer flags wording that could be shorter.
 - Switching on needs the user's request plus `auto: allowed` in `BRAID.md`.
 - No auto mode in projects with `ci: none`.
 - In auto mode every item gets an independent review, tier S included.

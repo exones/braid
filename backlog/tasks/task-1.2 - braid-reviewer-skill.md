@@ -4,6 +4,7 @@ title: braid-reviewer skill
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
+updated_date: '2026-11-12T18:24:00Z'
 labels:
   - kind:task
   - tier:L
@@ -43,6 +44,7 @@ Change:
 - Installer Pester tests: `braid-reviewer` is installed and removed like the other braid skills.
 
 Already decided (don't re-investigate):
+- Keep the skill text short, as the parent's rule says; give the before and after line counts of changed skill files in the final summary.
 - Plain language and commands only: no host-specific review skill and no Claude-only tools; the same skill must work in Cursor, Codex and Claude.
 - The reviewer works in a worktree detached at the head commit, never on the branch.
 

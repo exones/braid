@@ -4,6 +4,7 @@ title: Auto mode and merge on request
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:29:00Z'
+updated_date: '2026-11-12T18:24:00Z'
 labels:
   - kind:story
   - tier:L
@@ -42,6 +43,7 @@ Change:
 - `docs/decisions.md`: a new D31; D28 and D30 updated to match. README: a short "Auto mode" paragraph.
 
 Already decided (don't re-investigate):
+- Keep the skill text short, as the parent's rule says; give the before and after line counts of changed skill files in the final summary.
 - Auto mode never merges into `main` and never merges a story PR.
 - Never with `ci: none`.
 - Tier S gets an independent review in auto mode.
