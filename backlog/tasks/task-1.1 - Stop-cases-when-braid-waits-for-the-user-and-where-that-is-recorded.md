@@ -3,10 +3,10 @@ id: TASK-1.1
 title: >-
   Stop cases and plan review: when braid waits for the user, and where that is
   recorded
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T19:49:00Z'
+updated_date: '2026-11-12T20:07:00Z'
 labels:
   - kind:task
   - tier:L
@@ -93,3 +93,20 @@ Out of scope:
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. New `.agents/skills/braid/references/stop-cases.md`: the 8 keys with meaning and examples; who records what (plan `ask:<key>` labels, worker `Needs the user:` line, reviewer section, coordinator diff facts as git/gh commands). Identical copy in `braid-worker/references/`.
+2. Docs gate (`scripts/Test-DocsGate.ps1`, part of `npm run verify`): a file with the same path under `references/` in two skills must be byte-identical. Negative case in `test/fixtures/docs-gate/Test-DocsGateNegatives.ps1`.
+3. `braid` SKILL.md: plan steps 3-5 (ask labels, milestone, local review rounds, squash and push once), recap `**Needs the user:**` line, parent's log after each merged subtask, Resuming checks local plan/item branches and reads the log.
+4. `braid-worker` SKILL.md: final summary gets `For later items:` and `Needs the user:`; chat report gets `Needs the user:`.
+5. `assets/task.md`: `ask:<key>` label, milestone commands and the ID-collision check; `workflow.md`: milestone in the table, the log in one line; README: Group by milestone.
+6. Run the gate, record before/after line counts in the final summary.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Milestone IDs: tested with backlog 1.55.3 in a temp repo. `milestone add` numbers from local files only, so two plan branches cut from the same main both get the same ID. Archived milestones still count, so archiving a colliding milestone and adding it again gives the next free ID. Labels outside config.yml are accepted.
+<!-- SECTION:NOTES:END -->
