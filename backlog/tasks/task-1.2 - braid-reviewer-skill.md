@@ -1,10 +1,10 @@
 ---
 id: TASK-1.2
 title: braid-reviewer skill
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T19:49:00Z'
+updated_date: '2026-11-12T20:40:00Z'
 labels:
   - kind:task
   - tier:L
@@ -67,3 +67,13 @@ Out of scope:
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. New .agents/skills/braid-reviewer/: SKILL.md (inputs, start, what to check, blocking bar, Needs the user, output, never-list), agents/openai.yaml, references/stop-cases.md (identical copy).
+2. braid SKILL.md "Accept and hand over" step 1: reviewer launched with the braid-reviewer skill and a short first-message template; delete assets/review.md.
+3. assets/braid-md.md reviewer line, BRAID.md reviewer, AGENTS.md (Where to look, providers), README skills list.
+4. Pester: install this repository's HEAD into temp targets and assert braid, braid-reviewer, braid-worker land in every target; stale removal stays covered by the generic test.
+5. npm run verify (and Pester), PR into epic/task-1-auto-mode.
+<!-- SECTION:PLAN:END -->
