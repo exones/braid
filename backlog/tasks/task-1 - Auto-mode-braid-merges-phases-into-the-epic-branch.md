@@ -4,7 +4,7 @@ title: 'Auto mode: braid merges phases into the epic branch'
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T19:49:00Z'
+updated_date: '2026-11-12T20:26:00Z'
 labels:
   - kind:story
   - tier:L
@@ -57,3 +57,9 @@ Out of scope:
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-11-12: TASK-1.3 extended at the user's request: the planning PR of a goal targets its epic branch, and workers push the In Progress commit at once, because main's own copies hid subtask progress on the board after PR #45 merged.
+<!-- SECTION:NOTES:END -->

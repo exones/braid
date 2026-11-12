@@ -4,7 +4,7 @@ title: Auto mode and merge on request
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:29:00Z'
-updated_date: '2026-11-12T19:49:00Z'
+updated_date: '2026-11-12T20:26:00Z'
 labels:
   - kind:story
   - tier:L
@@ -21,10 +21,10 @@ ordinal: 30
 <!-- SECTION:DESCRIPTION:BEGIN -->
 Goal: on the user's request, `braid` merges a goal's subtask PRs into the epic branch itself when every condition holds and stops on any stop case (auto mode); and when the user explicitly asks to merge a PR, `braid` merges it in any mode (merge on request).
 
-Expected size: about 180 lines in 8 files.
+Expected size: about 190 lines in 9 files.
 
 Start here (read in this order):
-- `.agents/skills/braid/SKILL.md`: "Accept and hand over", "Finish", "Resuming".
+- `.agents/skills/braid/SKILL.md`: "Plan" step 5, "Accept and hand over", "Finish", "Resuming".
 - `.agents/skills/braid/references/workflow.md`: Tiers, the "user merges every item PR" paragraph, Failure modes.
 - `.agents/skills/braid/references/stop-cases.md` (TASK-1.1) and the `braid-reviewer` skill (TASK-1.2).
 - `AGENTS.md`: Hard limits. `docs/decisions.md`: D28 and D30.
@@ -38,6 +38,9 @@ Change:
   - After a merge: one line to the user; wait until the epic branch's CI is green on the merge commit before the next item; red means a fix subtask as now, a second red is a stop (`quality`).
   - Stops: any stop case; more than 2 blocking review rounds; branch protection refusing the merge (never `--admin`, never a bypass). On a stop: no merge, unwatch, a recap naming the case and its source, then wait. The user's answer goes into the parent's notes; "merge" from the user is merge on request.
   - Resuming: an `auto` label on the parent means continue in auto mode. The final epic to `main` PR is always handed to the user.
+- Board status while a goal runs (`main` holds a copy of every task once the planning PR merges, and a branch's own copy always wins, so `main` shows the subtasks `To Do` until the final PR):
+  - `braid` SKILL.md, Plan step 5 and `workflow.md`'s branch table: for a goal, create `epic/<id>-<slug>` from `main` first and open the planning PR from `plan/<slug>` into the epic branch; the user's merge is still the approval, and `main` gets the tasks with the final PR.
+  - `braid-worker` SKILL.md: push the `In Progress` commit at once, before coding.
 - `references/workflow.md`: who merges what (the user; on request; auto into the epic) and failure-mode rows for branch protection, a red epic CI and a moved head.
 - `assets/braid-md.md`: `auto: allowed` (absent means not allowed) with one line on what it allows. `BRAID.md` of this repository: `auto: allowed`.
 - `AGENTS.md` hard limit: agents merge only on the user's explicit request, or into an epic branch in auto mode (braid skill); everything into `main` is the user's merge or their explicit request.
@@ -64,6 +67,7 @@ Out of scope:
 - [ ] #4 AGENTS.md, the workflow, the template, D31 and the README agree
 - [ ] #5 The final summary contains the manual trial steps
 - [ ] #6 npm run verify passes
+- [ ] #7 A goal's planning PR targets its epic branch, and the worker pushes its In Progress commit before coding, so a board on main shows running and finished subtasks
 <!-- AC:END -->
 
 ## Definition of Done
