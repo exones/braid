@@ -8,6 +8,8 @@
 # whose links are not validated; their text is still checked.
 # Skills: a relative link in .agents/skills/<name>/ must stay inside that
 # folder, because skills are installed elsewhere and used from other projects.
+# A file with the same path under references/ in two skills is a shared copy
+# and must be byte-identical in the worktree.
 # Text: index blobs and worktree bytes. An empty `git diff --check` is not
 # this check; a clean checkout still has to fail when a blob contains CR
 # or trailing whitespace.
@@ -473,8 +475,32 @@ function Add-SkillContainmentFindings {
   }
 }
 
+function Add-SharedReferenceFindings {
+  param([Parameter(Mandatory = $true)][AllowEmptyCollection()][System.Collections.Generic.List[string]]$Findings)
+  $first = @{}
+  foreach ($file in (Get-IndexFiles)) {
+    if ($file.Path -notmatch '^\.agents/skills/[^/]+/(references/.+)$') {
+      continue
+    }
+    $name = $Matches[1]
+    $fullPath = Join-Path $script:RepoRoot $file.Path
+    if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+      continue
+    }
+    $bytes = [System.IO.File]::ReadAllBytes($fullPath)
+    if (-not $first.ContainsKey($name)) {
+      $first[$name] = [pscustomobject]@{ Path = $file.Path; Bytes = $bytes }
+      continue
+    }
+    if (-not (Test-SameBytes -Left $first[$name].Bytes -Right $bytes)) {
+      $Findings.Add("shared skill reference differs: $($file.Path) and $($first[$name].Path)")
+    }
+  }
+}
+
 $failures = [System.Collections.Generic.List[string]]::new()
 Add-SkillContainmentFindings -Findings $failures
+Add-SharedReferenceFindings -Findings $failures
 $linkConfig = Get-LinkConfig
 $linkFindings = @(Get-LinkFindings -Frozen ([string[]]$linkConfig.Frozen))
 $exclusions = @($linkConfig.Exclusions)
