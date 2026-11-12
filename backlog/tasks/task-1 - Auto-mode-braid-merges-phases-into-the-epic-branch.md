@@ -1,10 +1,10 @@
 ---
 id: TASK-1
 title: 'Auto mode: braid merges phases into the epic branch'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T20:26:00Z'
+updated_date: '2026-11-12T20:38:00Z'
 labels:
   - kind:story
   - tier:L
@@ -62,4 +62,6 @@ Out of scope:
 
 <!-- SECTION:NOTES:BEGIN -->
 2026-11-12: TASK-1.3 extended at the user's request: the planning PR of a goal targets its epic branch, and workers push the In Progress commit at once, because main's own copies hid subtask progress on the board after PR #45 merged.
+
+2026-11-12 TASK-1.1 merged: PR #47, cfbfbe4. Done: stop-cases.md (8 keys) in braid and braid-worker, kept identical by the docs gate; ask:<key> labels and the recap's Needs the user line; local plan review squashed and pushed once; this log; one milestone per goal with a safe ID-collision check; parent In Progress from the epic's first commit. Two blocking review findings fixed, second review clean. For later items: any same path under references/ in two skills must be identical, so braid-reviewer's copy of stop-cases.md is checked automatically; the reviewer's section is named "Needs the user". Plan changes: TASK-1.3 now also moves a goal's planning PR into the epic branch and has workers push In Progress at once (user's request, see above). User decided: none.
 <!-- SECTION:NOTES:END -->
