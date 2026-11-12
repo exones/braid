@@ -131,10 +131,13 @@ Change:
   $ready = Invoke-Backlog task list --plain --ready -s 'To Do' -p task-1
   Check ($ready -match 'TASK-1\.1' -and $ready -notmatch 'TASK-1\.2') '--ready -s To Do -p lists only the first subtask'
   Check ((Invoke-Backlog doctor) -match 'No duplicate IDs') 'doctor is clean'
-  GitRun switch -q main
+  # The planning PR goes into the goal's epic branch, cut from main; main gets the tasks with the final PR.
+  GitRun switch -q -c epic/task-1-demo main
   GitRun merge -q --no-ff plan/demo -m 'Merge pull request #1 from plan/demo'
-  GitRun push -q origin main
-  Check ((MainHas 'task-1 - ') -and (MainHas 'task-1.1 - ') -and (MainHas 'task-1.2 - ')) 'planning merged: all three tasks on main'
+  GitRun push -q -u origin epic/task-1-demo
+  GitRun switch -q main
+  $epicTasks = GitText ls-tree -r --name-only epic/task-1-demo -- backlog/tasks
+  Check (($epicTasks -match 'task-1 - ') -and ($epicTasks -match 'task-1\.1 - ') -and ($epicTasks -match 'task-1\.2 - ') -and -not (MainHas 'task-1')) 'planning merged into the epic branch: all three tasks there, none on main'
 
   # --- 2. Story: created on a new branch, worked by a worker, merged ---
   Write-Host '[2] Story'
@@ -143,7 +146,7 @@ Change:
   $script:cwd = $tmp
   $created = Invoke-Backlog task create 'Lone story' --labels 'kind:story,tier:S' --ordinal 30 --description 'Story goal' --ac 'Works'
   $storyId = [regex]::Match($created, 'Created task (TASK-\d+)').Groups[1].Value.ToLower()
-  Check ($storyId -eq 'task-2') "story got the next ID ($storyId)"
+  Check ($storyId -eq 'task-2') "story got the next ID past the goal that is only on the epic branch ($storyId)"
   GitRun branch -m "item/$storyId-lone-story"
   Commit "docs(backlog): plan $storyId"
   GitRun push -q -u origin "item/$storyId-lone-story"

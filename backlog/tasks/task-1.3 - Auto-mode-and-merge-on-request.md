@@ -4,7 +4,7 @@ title: Auto mode and merge on request
 status: In Progress
 assignee: []
 created_date: '2026-11-12T17:29:00Z'
-updated_date: '2026-11-12T21:05:00Z'
+updated_date: '2026-11-12T21:06:00Z'
 labels:
   - kind:story
   - tier:L
@@ -75,3 +75,15 @@ Out of scope:
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. braid SKILL.md: Plan step 5 (goal: epic branch from main first, planning PR into it); a short "Merge on request" section (named PR or "merge it" after a recap, pinned with --match-head-commit to the recapped head, moved head: show and ask); a short "Auto mode" section (switch-on and refusals, label and dated note as a milestone commit, the 7 conditions, evidence comment, after a merge, stops, stop/pause); recap header carries the head commit; Accept step 1: tier S gets an independent review in auto mode; Resuming: auto label; Finish: final PR always the user's.
+2. braid-worker SKILL.md: push the In Progress commit at once, before coding.
+3. workflow.md: branch table (planning PR into the epic), who merges what, failure-mode rows (branch protection, red epic CI, moved head).
+4. assets/braid-md.md: auto: allowed; BRAID.md: auto: allowed.
+5. AGENTS.md hard limit; docs/decisions.md: D31, D28 and D30 updated, log line; README: Auto mode paragraph, planning PR wording.
+6. scripts/Test-BraidBacklogFlow.ps1 section 1: merge the plan into an epic branch cut from main, and assert main has no task copies yet (run by hand, not part of the gate).
+7. Gate, final summary with line counts and manual trial steps, Done.
+<!-- SECTION:PLAN:END -->

@@ -16,7 +16,7 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 ## Hard limits
 
 - Don't publish packages, create releases or tags, deploy, or change repository settings unless the user asks for it.
-- The user merges every item PR and everything into `main`; agents don't merge. See [the workflow](.agents/skills/braid/references/workflow.md).
+- Agents merge only on the user's explicit request, or into an epic branch in auto mode (the `braid` skill); everything into `main` is the user's merge or their explicit request. See [the workflow](.agents/skills/braid/references/workflow.md).
 - Changes to `.agents/skills/`, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` are made only when the user asks, and the user merges them.
 - One writer per checkout. Don't reset, clean, switch branches or commit in a checkout that the user or another agent is working in, and leave changes you didn't make alone.
 - No secrets in chat, files, commits or logs. Get credentials only through the host's secret mechanism.

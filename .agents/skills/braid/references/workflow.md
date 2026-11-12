@@ -40,7 +40,7 @@ Each branch has one writer, and its copy of a task is the truth on that branch.
 | Case | Branches | PRs | Tasks |
 | --- | --- | --- | --- |
 | Story | `item/<id>-<slug>` from `main` | one into `main` | created on the new branch before launch; the worker's PR sets Done |
-| Planned goal | `plan/<slug>`, then `epic/<id>-<slug>` from `main`; each subtask `item/<subid>-<slug>` from the epic tip | planning PR into `main` (the approval); each subtask into the epic; one final PR epic → `main` | parent and subtasks created on `plan/` in one milestone; the parent In Progress in the epic's first commit; each subtask's PR sets it Done; the coordinator's last commit on the epic sets the parent Done |
+| Planned goal | `plan/<slug>` and `epic/<id>-<slug>`, both from `main`; each subtask `item/<subid>-<slug>` from the epic tip | planning PR into the epic (the approval); each subtask into the epic; one final PR epic → `main` | parent and subtasks created on `plan/` in one milestone; the parent In Progress in the epic's first commit after the planning merge; `main` gets them with the final PR; each subtask's PR sets it Done; the coordinator's last commit on the epic sets the parent Done |
 | Grown story | `epic/<id>-<slug>` cut at the story branch tip | the story PR is closed; subtask PRs into the epic; one final PR into `main` | milestone and subtasks added on the epic branch; the parent stays In Progress until the final PR |
 
 Merge `main` into an epic branch before the next item and before the final PR. Never rebase or
@@ -74,8 +74,11 @@ Every task has one `tier:` label; pick the lowest that fits.
 | M | Normal feature | Independent reviewer comments on the PR |
 | L | Persistent data formats, crash or recovery behavior, release or publishing, security, any change to agent instructions (skills, `AGENTS.md`, `CLAUDE.md`, `BRAID.md`) | Independent reviewer, again after fixes that substantially change failure or recovery behavior; the task lists failure modes and required regression tests |
 
-The user merges every item PR for now, whatever the tier. The tier decides the review before the
-recap. A `ui` item's recap embeds final screenshots.
+Who merges: the user, whatever the tier. The coordinator merges only a PR the user explicitly asks
+it to merge, and, in auto mode for a goal, subtask PRs into the epic branch (the
+[skill](../SKILL.md)). Everything into `main` is the user's merge or their explicit request. The tier
+decides the review before the recap; in auto mode tier S gets an independent review too. A `ui`
+item's recap embeds final screenshots.
 
 ## Checks and reports
 
@@ -95,4 +98,7 @@ recap. A `ui` item's recap embeds final screenshots.
 | A worker ends without a report | If the PR is merged, the item is done. Else read the task's final summary and the PR; retry once with the same model and settings; then ask the user, naming the error. |
 | The board shows `main`'s status, not the newest | Don't "fix" it. Read the item branch's task and the PR; statuses reach `main` by merge. |
 | A merge conflict in a task file | Resolve it by hand (the one allowed hand edit): keep both sides' notes and plan, the more advanced status, the union of dependencies. Run `backlog doctor` and `backlog task view` before committing. |
+| Branch protection refuses a merge | Never `--admin` or another bypass. In auto mode it is a stop: recap and wait for the user. |
+| The epic branch's CI is red on a merge commit | Add a tier S fix subtask and run it before the next item. A second red is a stop (`quality`). |
+| A PR's head moved after its recap or review | Don't merge. Show the user what changed and ask; in auto mode get the new head reviewed. |
 | `--dep` says a task doesn't exist | Lookups read only the current branch. Create the prerequisite on the branch where the dependency must resolve, or merge the branch that has it. |
