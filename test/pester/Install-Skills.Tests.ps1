@@ -114,7 +114,7 @@ Describe 'Install-Skills.ps1' {
     (Invoke-Install).Code | Should -Be 0
     Write-RepoFile '.agents/skills/braid-demo/SKILL.md' "v2`n"
     Invoke-RepoGit @('commit', '-q', '-am', 'v2')
-    Remove-Item -LiteralPath (Join-Path $script:TargetB 'braid-demo/.braid-install.json')
+    Remove-Item -LiteralPath (Join-Path $script:TargetB 'braid-demo/.braid-install.json') -Force
 
     $result = Invoke-Install
     $result.Code | Should -Not -Be 0
