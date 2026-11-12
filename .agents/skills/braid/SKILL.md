@@ -20,14 +20,14 @@ If `backlog/config.yml` is missing, copy [backlog-config.yml](assets/backlog-con
 - Call Backlog.md as the task template says (native `backlog.exe` on Windows); never `npx`, `backlog.cmd`, `cmd.exe` or Windows PowerShell 5.1. Markdown and labels in single quotes; one argument per multi-line field. Never edit task files by hand, except to resolve a Git merge conflict in one. `AGENTS.md` gets no Backlog.md block.
 - `backlog instructions` is written for a solo agent. Braid overrides six points (the rest, such as search first, testable criteria and archive, applies; read `backlog instructions <guide>`):
   1. Only the coordinator creates or restructures tasks; a worker proposes them.
-  2. The coordinator never sets a running item's status. Its worker sets `In Progress` in its first commit and `Done` in its last commit before reporting green.
+  2. The coordinator never sets a running item's status. Its worker sets `In Progress` in its first commit and `Done` in its last commit before reporting green. Only a goal's parent is the coordinator's: `In Progress` in the epic branch's first commit, `Done` at the end.
   3. "Ask the user" for plans and follow-ups means the coordinator; routine plans don't wait. Growth follows the mandate below.
   4. The task's "Already decided" and "Start here" are context, not a plan; the worker writes the plan.
   5. Task files are never edited by hand (kept), except for a merge conflict.
   6. Done is set in the PR that completes the item, not after verification alone.
 - One writer per branch (workflow). You hold `plan/<slug>`, then the epic branch, and a new story's branch only until launch. Never commit to a branch a worker holds, or in the user's checkout. Work in your own worktree.
 - Every commit uses Conventional Commits; yours are `docs(backlog): …`, for example `docs(backlog): plan task-12` or `docs(backlog): task-12 phases: add task-12.1, task-12.2`.
-- Commit task changes only at these points: the plan and its review rounds; a growth or plan-change decision; a log entry; the parent Done at the end. PRs and threads show progress in between.
+- Commit task changes only at these points: the plan and its review rounds; the parent In Progress on the epic branch; a growth or plan-change decision; a log entry; the parent Done at the end. PRs and threads show progress in between.
 - Ask the user with the host's question tool if it has one, otherwise as numbered questions with lettered options and your recommendation. If an answer is a value such as a path, say where it will be stored. Keep working on whatever the answer doesn't block.
 - Name threads `<repo> <task-id> <role>: <title>`, for example `chinese-trainer task-12.1 review: data model`.
 - Never edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless the user asks; work that changes them is tier L. Don't publish, release, deploy or change repository settings unless the user asks.
@@ -81,7 +81,7 @@ A worker that finds more work stops and sends you one proposal: **absorb** it (s
 - **Prerequisite of a subtask:** create it as another subtask of that epic on the epic branch (you hold it), push, tell the worker to note where it stopped. The worker then merges the epic branch and adds the `--dep` (repeating existing dependencies). Run the prerequisite next; when it is merged, the worker merges the epic branch again and resumes.
 - **Prerequisite of a lone story:** `--dep` can't resolve until the prerequisite is on the story's branch. Create it as its own story into `main`; the worker writes the wait into the story's own notes and stops; when it is merged, the worker merges `main` and resumes.
 - **Phases:** the worker commits and pushes its notes and work, then stops. Create `epic/<id>-<slug>` at the story branch tip and push it. On it create the goal's milestone and add the subtasks (`--parent`, `--milestone`, ordinals, dependencies; the first says what is already done), put the parent in the milestone, and note why in the parent's notes, which stays `In Progress`. Close the story's PR with a comment naming the epic branch. Run the subtasks one at a time with the epic as base.
-- **Adjusting the plan.** When really needed, change tasks that haven't started (wording, order, dependencies, split, merge, drop) on the branch you hold, as a milestone commit, recording why in the parent's notes and the next recap. The same limits as the mandate apply: goal, acceptance or new tier L work go to the user first. A running item's task changes only through its worker. A dropped task gets a note and is archived, and its dependents' dependencies are fixed in the same commit.
+- **Adjusting the plan.** When really needed, change tasks that haven't started (wording, order, dependencies, split, merge, drop) on the branch you hold, as one commit, recording why in the parent's notes and the next recap. The same limits as the mandate apply: goal, acceptance or new tier L work go to the user first. A running item's task changes only through its worker. A dropped task gets a note and is archived, and its dependents' dependencies are fixed in the same commit.
 
 ## Accept and hand over
 
@@ -91,7 +91,7 @@ When the worker reports green:
    - S: read the diff yourself. Send problems back, including small factual errors in docs, to the same worker to fix on the same PR.
    - M and L: launch an independent reviewer as a top-level thread in its own worktree, detached at the PR's head commit (`git worktree add --detach <folder> <sha>`, since the worker's worktree holds the branch), with its model, any named skill, and [the review brief](assets/review.md); wait for it as in "Run an item" step 3. Send blocking findings to the worker; decide non-blocking ones yourself. For L, if blocking fixes substantially changed failure or recovery behavior, have the reviewer check the fix again. Use a fresh review task when the host requires it, never resume a delegated reviewer with `t3_thread_send`.
 2. When nothing blocking remains, run the diff facts in [stop cases](references/stop-cases.md) and judge them against the cases. Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. When green on the latest commit, give the user the recap and wait for their merge. You don't merge item PRs, re-run the gate or download artifacts.
-3. Once `gh pr list --state all` shows the PR merged, interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID), and remove the worktrees you created for the item; if Windows refuses to delete a folder, a program such as `backlog browser` is probably still running in it, so ask the user to stop it. Pull the epic branch in your worktree, append the parent's log entry (task template) and commit it, then fix any task that hasn't started and that the entry makes wrong, as in "Adjusting the plan". Then start the next item; after the last subtask, finish. After a spike, turn its proposed follow-ups into tasks (or adjust existing ones) and tell the user what the answer changed.
+3. Once `gh pr list --state all` shows the PR merged, interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID), and remove the worktrees you created for the item; if Windows refuses to delete a folder, a program such as `backlog browser` is probably still running in it, so ask the user to stop it. For a goal, pull the epic branch in your worktree, append the parent's log entry (task template) and commit it, then fix any task that hasn't started and that the entry makes wrong, as in "Adjusting the plan". Then start the next item; after the last subtask, finish. After a spike, turn its proposed follow-ups into tasks (or adjust existing ones) and tell the user what the answer changed.
 
 ## Fixes
 
@@ -105,7 +105,7 @@ A story is finished when the user merges its PR (the worker set Done in it). A p
 
 ## Talking to the user
 
-When an item is merged, waiting for the user's merge, or blocked, give a recap based on the worker's final summary and checked against the diff:
+When an item is merged, waiting for the user's merge, or blocked, give a recap based on the worker's final summary and checked against the diff; record the user's answers on stop cases in a goal's parent log:
 
 ```markdown
 **<task-id>: <title>** — merged | ready for your merge | blocked. PR: <link>
@@ -118,8 +118,6 @@ When an item is merged, waiting for the user's merge, or blocked, give a recap b
 **Screenshots:** for `ui` items: the final screens, embedded as images from the worker's artifacts folder.
 **Next:** the next item, or what you are waiting for.
 ```
-
-Record the user's answers on stop cases in a goal's parent log.
 
 ## Resuming
 

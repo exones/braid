@@ -31,7 +31,7 @@ tell the user.
 - Acceptance criteria: "done when", a few testable points, one `--ac` each.
 - Definition of done: the project defaults from `backlog/config.yml`; the worker checks the boxes it proved (`--check-dod`).
 - Labels, always quoted: `'kind:story|task|spike,tier:S|M|L'` plus `ui` for new or noticeably changed user-facing UI,
-  and `ask:<key>` for each [stop case](../references/stop-cases.md) the plan already shows (`ask:security`).
+  and `ask:<key>` for each [stop case](../references/stop-cases.md) the plan already shows.
 - Milestone: a goal's parent and all its subtasks, including later ones, share one; stories get none.
 - Dependencies: real prerequisites only. Ordinal: run order, 10, 20, 30, so one can slot in between.
 
@@ -63,9 +63,10 @@ tasks, never drafts. `create` prints the ID; use it in the branch and PR names.
 
 ## Milestone (goal only)
 
-It only groups the board; the parent holds the goal, decisions and log. Create it after the parent, give
-the parent and every subtask `--milestone <mid>` (`-m` on create and edit), and never archive it: an
-archived milestone's tasks fall into "No milestone".
+It only groups the board; the parent holds the goal, decisions and log. In this order: create the parent,
+add the milestone, check its ID, then give the parent and every subtask `--milestone <mid>` (`-m` on
+create and edit). Once a task points at it, never archive it: an archived milestone's tasks fall into
+"No milestone".
 
 ```powershell
 & $backlog milestone add 'TASK-12 Short title' --description 'Goal TASK-12: see the parent task for scope, decisions and the log.'
@@ -73,8 +74,8 @@ git fetch   # the printed ID counts only this branch's files, so another plan or
 git grep -l '^id: m-3$' $(git for-each-ref --format='%(refname)' refs/heads/plan refs/heads/epic refs/remotes/origin/plan refs/remotes/origin/epic) -- backlog/milestones backlog/archive/milestones
 ```
 
-If a branch other than yours lists it, `milestone archive` the new one and add it again (archived IDs stay
-taken), until the ID is free.
+Exit code 1 with no output means the ID is free. Ignore hits on your own branch; if another branch lists
+it, `milestone archive` the new one and add it again (archived IDs stay taken), then check again.
 
 ## Edit
 
@@ -91,6 +92,8 @@ exist on the current branch.
 & $backlog task edit task-12 --check-ac 1 --check-ac 2 --check-dod 1   # only what is proven
 & $backlog task edit task-12 --final-summary @'
 What changed, why, validation, anything open.
+For later items: <changed names or interfaces, deviations, new decisions, or none>
+Needs the user: <none, or key: one sentence per case>
 '@                                                                # the item's report
 & $backlog task edit task-12 -s Done                              # last commit, before reporting green
 

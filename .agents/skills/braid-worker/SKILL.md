@@ -35,7 +35,7 @@ Do one task from a brief, hand it back, and stop.
 
 ## Deliver
 
-0. *Task:* check the acceptance criteria and the Definition of Done items you proved (`--check-ac`, `--check-dod`), write the final summary (`--final-summary`: what changed, why, validation, anything open, then a `For later items:` line (changed names or interfaces, deviations from the plan, new decisions, or `none`) and a `Needs the user:` line as in the final report; it replaces `reports/<ID>.md`), and set the task Done (`-s Done`) in your last commit, before you report green. The chat report format stays.
+0. *Task:* check the acceptance criteria and the Definition of Done items you proved (`--check-ac`, `--check-dod`), write the final summary (`--final-summary`: what changed, why, validation, anything open, then a `For later items:` line (changed names or interfaces, deviations from the plan, new decisions, or `none`) and a `Needs the user:` line as in the final report; it replaces `reports/<ID>.md`), and set the task Done (`-s Done`) in your last commit, before you report green.
 1. Commit your changes with Conventional Commit messages, staging only your files, and push: `git push -u origin <your branch>`.
 2. Open one PR into the epic branch named in the brief (*task*: the base branch the first message names): `gh pr create --base <base branch> --title "<type>: <summary>" --body-file <file>`. Describe what changed, why, validation, and anything open. Then call `link_pull_request` with the PR URL.
 3. If `ci` is `none`, go to step 5. Follow host PR-wait instructions; otherwise call `watch_pull_request`, then run `gh pr checks <pr>` once. If every check has already finished, go to step 5. Otherwise end your turn; the watch wakes you.

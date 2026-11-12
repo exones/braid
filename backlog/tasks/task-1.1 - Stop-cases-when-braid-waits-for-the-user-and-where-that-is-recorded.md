@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T20:14:00Z'
+updated_date: '2026-11-12T20:26:00Z'
 labels:
   - kind:task
   - tier:L
@@ -123,9 +123,11 @@ What changed:
 
 Why: one shared list of stop cases and fixed places to record them, for TASK-1.3's auto mode; plan review on real task files; the log carries each finished subtask to the next worker.
 
-Milestone IDs: tested with backlog 1.55.3. `milestone add` numbers from this branch's files only (archived included), so two plan or epic branches can get the same ID. The task template gives a `git grep` over local and remote plan/ and epic/ branches (works in bash and pwsh); if another branch holds the ID, archive the new milestone and add it again.
+Milestone IDs: tested with backlog 1.55.3. `milestone add` numbers from this branch's files only (archived included), so two plan or epic branches can get the same ID. The task template orders it: create the parent, add the milestone, check its ID with a `git grep` over local and remote plan/ and epic/ branches (bash and pwsh; exit 1 means free; hits on your own branch ignored), and only then attach tasks, so a colliding milestone is archived and re-added before any task points at it.
 
-Line counts before -> after: braid/SKILL.md 122 -> 126; braid-worker/SKILL.md 70 -> 71; braid/assets/task.md 94 -> 121; braid/references/workflow.md 97 -> 98; stop-cases.md new, 30 (each copy).
+Line counts before -> after: braid/SKILL.md 122 -> 124; braid-worker/SKILL.md 70 -> 71; braid/assets/task.md 94 -> 124; braid/references/workflow.md 97 -> 98; stop-cases.md new, 30 (each copy).
+
+Review fixes (PR #47): parent status exception in ground rule 2 and the commit points; milestone check order and exit code; goal-only log step; diff facts say which output counts; final-summary example lists the new lines.
 
 Validation: `npm run verify:full` (includes the quick gate, docs-gate negatives and Pester) passes on Windows; the stop-case commands and the milestone check were run against real repositories.
 
