@@ -1,6 +1,6 @@
 # 008: one `braid` skill on Backlog.md, sequential MVP
 
-Status: in-progress (all items done; the user's trial runs before the PR into `main`).
+Status: done (merged into `main` by the user's request after trial 1).
 The user's merge into `main` marks it done.
 Branch: `epic/008-braid-backlog` from `main` at `d4ab2f4`.
 
@@ -176,5 +176,6 @@ independent review, then the user's merge.
   a trial guide instead of an agent-run pilot.
 - 2026-11-12: D merged by the user (#42). User: drop `braid-coordinate` now, before the trial, and move this repository to `braid` and Backlog.md (G). Past `epics/` records stay as history; this epic finishes under the old rules. This supersedes "keep `braid-coordinate` until the trial" above.
 - 2026-11-12: G merged by the user (#43), with the Resuming rule from B's late follow-up (point 3). User: no PR into `main` yet; the skills were installed from `epic/008-braid-backlog` at `1dac47b` into the four skill folders, which removed the old `braid-coordinate` (stamped `d4ab2f4`). The trial comes next.
+- 2026-11-12: Trial 1 (openclaw TASK-1, a story) went well by the user's account; its findings are in `trial.md` and the launch, review-worktree, clean-up and board fixes are in `30243c6`. User: the coordinator merges a PR when the user explicitly asks; this repository's reviewer is Grok 4.6 in Cursor (effort high, fast mode off, no skill until `braid-reviewer` exists). User asked to merge the epic into `main`; the final PR got CI but no separate review, since every item was reviewed and the later commits are documentation. Next: the auto-mode goal, planned in Backlog.md on `main`.
 - 2026-11-11: The plan was written in an `everix3` thread and handed over to a coordinator thread in
   the agento project (same model, Claude Opus 5.5), working in this worktree.

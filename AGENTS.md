@@ -34,6 +34,6 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 
 ## Providers and roles
 
-The models per role are in [BRAID.md](BRAID.md): Claude Opus 5.5 (high effort) coordinates; Claude Sonnet 5.5 (medium) implements stories and tasks, Claude Opus 5.5 (medium) implements tier L items and runs spikes as a researcher, and Claude Opus 5.5 (high) reviews with the `code-review` skill. In T3 all of them use the `Claude_Everix` provider with `target.options` `{"effort":"<level>"}`. Don't substitute another model or other settings without the user's agreement.
+The models per role are in [BRAID.md](BRAID.md): Claude Opus 5.5 (high effort) coordinates; Claude Sonnet 5.5 (medium) implements stories and tasks, Claude Opus 5.5 (medium) implements tier L items and runs spikes as a researcher, and Grok 4.6 in Cursor (effort high, fast mode off, no skill) reviews. In T3 the Claude roles use the `Claude_Everix` provider with `target.options` `{"effort":"<level>"}`, and the reviewer uses the `cursor` provider with `{"effort":"high","fastMode":false}`. Don't substitute another model or other settings without the user's agreement.
 
 Workers and reviewers run as top-level T3 threads, each in its own worktree. That is the user's standing request for work inside an approved epic, so it needs no confirmation per item.
