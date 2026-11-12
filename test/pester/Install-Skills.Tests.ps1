@@ -110,6 +110,36 @@ Describe 'Install-Skills.ps1' {
     Get-Installed $script:TargetB 'braid-demo/SKILL.md' | Should -Be "v1`n"
   }
 
+  It 'checks every target before it replaces anything' {
+    (Invoke-Install).Code | Should -Be 0
+    Write-RepoFile '.agents/skills/braid-demo/SKILL.md' "v2`n"
+    Invoke-RepoGit @('commit', '-q', '-am', 'v2')
+    Remove-Item -LiteralPath (Join-Path $script:TargetB 'braid-demo/.braid-install.json')
+
+    $result = Invoke-Install
+    $result.Code | Should -Not -Be 0
+    $result.Text | Should -Match 'not installed by this script'
+    Get-Installed $script:TargetA 'braid-demo/SKILL.md' | Should -Be "v1`n"
+  }
+
+  It 'removes stamped braid skills that left the ref and keeps unstamped folders' {
+    Write-RepoFile '.agents/skills/braid-old/SKILL.md' "old`n"
+    Invoke-RepoGit @('add', '-A')
+    Invoke-RepoGit @('commit', '-q', '-m', 'add braid-old')
+    (Invoke-Install).Code | Should -Be 0
+    Get-Installed $script:TargetA 'braid-old/SKILL.md' | Should -Be "old`n"
+    foreach ($name in @('braid-mine', 'other')) {
+      New-Item -ItemType Directory -Force -Path (Join-Path $script:TargetA $name) | Out-Null
+    }
+    Invoke-RepoGit @('rm', '-q', '-r', '.agents/skills/braid-old')
+    Invoke-RepoGit @('commit', '-q', '-m', 'drop braid-old')
+
+    $result = Invoke-Install
+    $result.Code | Should -Be 0 -Because $result.Text
+    @(Get-ChildItem -LiteralPath $script:TargetA -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo', 'braid-mine', 'other')
+    @(Get-ChildItem -LiteralPath $script:TargetB -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo')
+  }
+
   It 'fails for a ref that does not exist' {
     (Invoke-Install -Extra @('-Ref', 'no-such-ref')).Code | Should -Not -Be 0
   }

@@ -4,8 +4,10 @@
 # again. Uncommitted edits are never installed, because files come from the ref.
 # Each installed skill gets .braid-install.json naming the ref and commit.
 # An existing folder without that file is not ours and is left alone unless
-# -Force is given. -Target replaces the default host folders; separate several
-# folders with the path separator (';' on Windows, ':' elsewhere).
+# -Force is given; every target is checked before anything is copied. A stamped
+# braid skill folder that is no longer in the ref is removed. -Target replaces
+# the default host folders; separate several folders with the path separator
+# (';' on Windows, ':' elsewhere).
 #Requires -Version 7.6
 [CmdletBinding()]
 param(
@@ -73,15 +75,18 @@ try {
     [System.IO.File]::WriteAllText((Join-Path $export ".agents/skills/$name/$StampName"), "$stamp`n", [System.Text.UTF8Encoding]::new($false))
   }
 
-  foreach ($root in $Target) {
-    $rootFull = [System.IO.Path]::GetFullPath($root)
-    New-Item -ItemType Directory -Force -Path $rootFull | Out-Null
+  $roots = @($Target | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
+  foreach ($rootFull in $roots) {
     foreach ($name in $skills) {
       $destination = Join-Path $rootFull $name
-      if ((Test-Path -LiteralPath $destination) -and -not $Force -and -not (Test-Path -LiteralPath (Join-Path $destination $StampName))) {
+      if ((Test-Path -LiteralPath $destination) -and -not $Force -and -not (Test-Path -LiteralPath (Join-Path $destination $StampName) -PathType Leaf)) {
         Fail "$destination exists and was not installed by this script; use -Force to replace it"
       }
     }
+  }
+
+  foreach ($rootFull in $roots) {
+    New-Item -ItemType Directory -Force -Path $rootFull | Out-Null
     foreach ($name in $skills) {
       $destination = Join-Path $rootFull $name
       $staging = Join-Path $rootFull ".$name.new-$([guid]::NewGuid().ToString('n'))"
@@ -96,6 +101,13 @@ try {
       }
     }
     Write-Output "installed $($skills -join ', ') at $($commit.Substring(0, 7)) ($Ref) -> $rootFull"
+    $stale = @(Get-ChildItem -LiteralPath $rootFull -Directory -Force |
+        Where-Object { $_.Name -cmatch '^braid(-[a-z0-9-]+)?$' -and $skills -cnotcontains $_.Name } |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName $StampName) -PathType Leaf })
+    foreach ($folder in $stale) {
+      Remove-Item -LiteralPath $folder.FullName -Recurse -Force
+      Write-Output "removed $($folder.Name), no longer in $Ref -> $rootFull"
+    }
   }
 } finally {
   Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
