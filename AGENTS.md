@@ -25,9 +25,10 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 
 ## Where to look
 
-- Planning and running an epic: [braid-coordinate](.agents/skills/braid-coordinate/SKILL.md).
-- Doing one assigned item from a brief: [braid-worker](.agents/skills/braid-worker/SKILL.md).
-- Ordinary questions and small direct edits need neither skill.
+- Goals and stories in this repository: [braid-coordinate](.agents/skills/braid-coordinate/SKILL.md), with epics in `epics/` and no `backlog/` (D30), until the user's trial.
+- Goals and stories in other projects, including "run TASK-12": [braid](.agents/skills/braid/SKILL.md). It decides story or goal and keeps items in Backlog.md.
+- Doing one assigned item: [braid-worker](.agents/skills/braid-worker/SKILL.md), only in a worker thread a coordinator launched; never chosen for a user's request.
+- Ordinary questions and small direct edits need no skill.
 - Epics, items, tiers, branches and merges: [the workflow](.agents/skills/braid-coordinate/references/workflow.md).
 - Using the skills in other projects: [README](README.md#braid-skills-in-other-projects).
 - Decisions and their reasons: [docs/decisions.md](docs/decisions.md). Later stages: [docs/roadmap.md](docs/roadmap.md).

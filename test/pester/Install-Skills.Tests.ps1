@@ -54,7 +54,10 @@ Describe 'Install-Skills.ps1' {
     Invoke-RepoGit @('config', 'core.autocrlf', 'false')
     Write-RepoFile '.agents/skills/braid-demo/SKILL.md' "v1`n"
     Write-RepoFile '.agents/skills/braid-demo/assets/t.md' "asset`n"
-    Write-RepoFile '.agents/skills/other/SKILL.md' "not braid`n"
+    Write-RepoFile '.agents/skills/braid/SKILL.md' "coordinator`n"
+    foreach ($name in @('other', 'braidx', 'my-braid', 'Braid-Upper')) {
+      Write-RepoFile ".agents/skills/$name/SKILL.md" "not braid`n"
+    }
     Invoke-RepoGit @('add', '-A')
     Invoke-RepoGit @('commit', '-q', '-m', 'v1')
     $script:First = (& git -C $script:Repo rev-parse HEAD).Trim()
@@ -66,10 +69,12 @@ Describe 'Install-Skills.ps1' {
     foreach ($root in @($script:TargetA, $script:TargetB)) {
       Get-Installed $root 'braid-demo/SKILL.md' | Should -Be "v1`n"
       Get-Installed $root 'braid-demo/assets/t.md' | Should -Be "asset`n"
+      Get-Installed $root 'braid/SKILL.md' | Should -Be "coordinator`n"
+      (Get-Installed $root 'braid/.braid-install.json' | ConvertFrom-Json).commit | Should -Be $script:First
       $stamp = Get-Installed $root 'braid-demo/.braid-install.json' | ConvertFrom-Json
       $stamp.commit | Should -Be $script:First
       $stamp.ref | Should -Be 'main'
-      Join-Path $root 'other' | Should -Not -Exist
+      @(Get-ChildItem -LiteralPath $root -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo')
     }
   }
 
@@ -88,8 +93,7 @@ Describe 'Install-Skills.ps1' {
     New-Item -ItemType Directory -Force -Path (Join-Path $script:TargetA 'mine') | Out-Null
     (Invoke-Install).Code | Should -Be 0
     (Invoke-Install).Code | Should -Be 0
-    Join-Path $script:TargetA 'mine' | Should -Exist
-    @(Get-ChildItem -LiteralPath $script:TargetA -Force -Filter '.braid-demo.*') | Should -HaveCount 0
+    @(Get-ChildItem -LiteralPath $script:TargetA -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo', 'mine')
   }
 
   It 'refuses to replace a folder it did not install unless -Force is given' {
