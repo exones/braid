@@ -4,10 +4,11 @@ title: Auto mode and merge on request
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:29:00Z'
-updated_date: '2026-11-12T18:24:00Z'
+updated_date: '2026-11-12T19:49:00Z'
 labels:
   - kind:story
   - tier:L
+milestone: m-0
 dependencies:
   - TASK-1.1
   - TASK-1.2

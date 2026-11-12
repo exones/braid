@@ -4,10 +4,11 @@ title: braid-reviewer skill
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T18:24:00Z'
+updated_date: '2026-11-12T19:49:00Z'
 labels:
   - kind:task
   - tier:L
+milestone: m-0
 dependencies:
   - TASK-1.1
 parent_task_id: TASK-1

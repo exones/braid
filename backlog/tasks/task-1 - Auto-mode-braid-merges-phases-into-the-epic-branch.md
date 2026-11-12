@@ -4,10 +4,11 @@ title: 'Auto mode: braid merges phases into the epic branch'
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T19:36:00Z'
+updated_date: '2026-11-12T19:49:00Z'
 labels:
   - kind:story
   - tier:L
+milestone: m-0
 dependencies: []
 ordinal: 10
 ---

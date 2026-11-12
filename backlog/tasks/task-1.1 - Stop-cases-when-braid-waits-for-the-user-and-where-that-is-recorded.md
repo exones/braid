@@ -6,10 +6,11 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T19:35:00Z'
+updated_date: '2026-11-12T19:49:00Z'
 labels:
   - kind:task
   - tier:L
+milestone: m-0
 dependencies: []
 parent_task_id: TASK-1
 ordinal: 10
@@ -18,14 +19,15 @@ ordinal: 10
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Goal: one shared list of the cases where `braid` must wait for the user, and a fixed place where each role records them, so the coordinator, worker and reviewer flag the same things in the same words. In normal mode the cases only appear in plans and recaps; auto mode (TASK-1.3) refuses to merge on them. Also: the user reviews a plan as real task files before it is pushed, and a goal's parent keeps a log that carries each finished subtask's report and history to the next worker.
+Goal: one shared list of the cases where `braid` must wait for the user, and a fixed place where each role records them, so the coordinator, worker and reviewer flag the same things in the same words. In normal mode the cases only appear in plans and recaps; auto mode (TASK-1.3) refuses to merge on them. Also: the user reviews a plan as real task files before it is pushed, a goal's parent keeps a log that carries each finished subtask's report and history to the next worker, and each goal is one milestone so the board groups it in one lane.
 
-Expected size: about 155 lines in 7 files.
+Expected size: about 170 lines in 8 files.
 
 Start here (read in this order):
 - `.agents/skills/braid/SKILL.md`: "Plan" steps 3-6, "Accept", "Adjusting the plan", "Resuming" and "Talking to the user" (the recap).
 - `.agents/skills/braid-worker/SKILL.md`: Deliver step 0 and "Final report".
 - `.agents/skills/braid/assets/task.md`: Fields and labels.
+- `README.md`: "Braid skills in other projects" (the board).
 - `scripts/Test-DocsGate.ps1`: skill folders must be self-contained; a link can't reach into another skill.
 
 Change:
@@ -51,6 +53,11 @@ Change:
   - Every item gets an entry, even when nothing unusual happened: the item, its PR and merge sha, a short report of what was done, what later items must know (or `none`), plan changes since the last entry and why, and the user's decisions. A few lines; the PR holds the detail.
   - Then the coordinator fixes any task that hasn't started and that the entry makes wrong, as a plan change (goal, acceptance criteria or new tier L work go to the user first).
   - Workers already read the parent, so the log reaches them; a resuming coordinator reads it too. "Resuming"'s rule on parent notes points to the log. `workflow.md` names the log in one line.
+- A goal is one milestone, for board grouping only:
+  - When planning a goal, or when a story grows into an epic, the coordinator creates a milestone `<ID> <short title>` whose description is one line pointing to the parent, and creates the parent and every subtask, including later ones, with `--milestone`. Stories get none. Never archive it: an archived milestone's tasks fall into "No milestone".
+  - The coordinator sets the parent `In Progress` in its first commit on the epic branch.
+  - `assets/task.md`: the commands; `workflow.md`: the table rows; README: view the board with "Group by milestone".
+  - Check whether two plan branches can get the same milestone ID; if they can, the skill says how to avoid it.
 - `braid-worker` SKILL.md: the final summary gets a `For later items:` line (changed names or interfaces, deviations from the plan, new decisions, or `none`).
 - `braid-worker` SKILL.md: the final summary and the chat report carry `Needs the user: none` or `<key>: <one sentence>` per case, judged against the list.
 - `.agents/skills/braid/assets/task.md`: the `ask:<key>` label.
@@ -58,6 +65,7 @@ Change:
 
 Already decided (don't re-investigate):
 - Keep the skill text short, as the parent's rule says; give the before and after line counts of changed skill files in the final summary.
+- The milestone only groups; the parent task holds the goal, decisions and log (Backlog.md's maintainer treats milestones as epics, MrLesk/Backlog.md#581). TASK-1 already uses `m-0` this way.
 - No project-specific path masks; the diff facts are generic and need only `git` and `gh`.
 - No helper script: the facts are commands in the reference file, usable from bash and pwsh.
 - Normal mode changes only by the plan labels and the recap line.
@@ -77,6 +85,7 @@ Out of scope:
 - [ ] #5 npm run verify passes
 - [ ] #6 The plan of a goal or story is reviewed as task files in the coordinator's worktree, one local commit per round with a brief note of what changed, and pushed once, squashed into one commit, after the user's approval
 - [ ] #7 After each subtask merges into the epic branch the parent's log has a short entry for it, written before the next item's branch is cut, and the worker's final summary has a For later items line
+- [ ] #8 A goal's parent and subtasks share one milestone, shown as one lane with Group by milestone; the milestone is never archived; the parent is In Progress from the epic branch's first commit
 <!-- AC:END -->
 
 ## Definition of Done
