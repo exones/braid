@@ -8,7 +8,7 @@ Project and CLI name: **braid**. Use `braid` as the executable, for example `bra
 
 This build implements the schema 1 manual ledger: `init`, `new`, `status`, and `story add/start/block/complete`. See the [contract](docs/seed-contract.md). Completing an item records a manual note; independent verification remains a separate step.
 
-For how work is planned, assigned to agents, reviewed and merged, see the [workflow](.agents/skills/braid-coordinate/references/workflow.md) and [AGENTS.md](AGENTS.md).
+For how work is planned, assigned to agents, reviewed and merged, see the [workflow](.agents/skills/braid/references/workflow.md) and [AGENTS.md](AGENTS.md).
 
 ## Build and verify
 
@@ -51,7 +51,11 @@ Both stop on the first native command with a nonzero exit code and return that c
 
 ## Braid skills in other projects
 
-The agent skills `braid-coordinate` and `braid-worker` are developed in `.agents/skills/` and can drive work in any repository. Each skill folder is self-contained: the docs gate fails if a skill links outside its own folder.
+The agent skills `braid` and `braid-worker` are developed in `.agents/skills/` and can drive work in any repository. Each skill folder is self-contained: the docs gate fails if a skill links outside its own folder.
+
+- `braid` is the one skill you talk to, for work of any size: a goal, a single story, or "run TASK-12". It decides whether the work is a story or a goal, keeps the items as [Backlog.md](https://github.com/MrLesk/Backlog.md) tasks in the target repository, and launches the workers.
+- `braid-worker` is the skill of the worker threads a coordinator launches. You don't start it yourself.
+- Ordinary questions and small direct edits need no skill.
 
 To make them available to Cursor, Codex and Claude in every project, install them from a committed ref:
 
@@ -60,9 +64,20 @@ pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from main
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a branch
 ```
 
-The script copies `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again. A folder of the same name that the script did not install is left alone unless `-Force` is given. `-Target` replaces the default folders.
+The script copies `.agents/skills/braid` and `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again. A folder of the same name that the script did not install is left alone unless `-Force` is given. Every target is checked before anything is replaced, and an installed braid skill that is no longer in the ref (such as the old `braid-coordinate`) is removed. `-Target` replaces the default folders.
 
-A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the `epics` folder, the required `ci` checks, optional `shell`, `setup` and `test` commands, how to `run` the app, and `models`: the provider, model and options for each role, with optional per-kind overrides such as `worker.spike` and an optional skill such as a review skill. Start from the [template](.agents/skills/braid-coordinate/assets/braid-md.md); this repository's own [BRAID.md](BRAID.md) is an example. Add the repository as a T3 project and start the coordinator there. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
+A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the required `ci` checks (`none` if it has no hosted CI), optional `shell`, `setup` and `test` commands, how to `run` the app, and `models`: the provider, model and options for each role, with optional overrides per tier (`worker.L`) or kind (`worker.spike`); the tier key wins over the kind key, then the plain role. A role may name a skill, such as a review skill. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
+
+To set up a target repository for `braid`:
+
+1. Install Backlog.md once per machine, at the pinned version: `npm install -g backlog.md@1.55.3` (with Volta: `volta install backlog.md@1.55.3`).
+2. Create `BRAID.md` from the [`braid` template](.agents/skills/braid/assets/braid-md.md). It adds the `backlog` folder and the rule for calling Backlog.md (on Windows the native `backlog.exe` from pwsh 7, never `npx` or `backlog.cmd`).
+3. Copy [backlog-config.yml](.agents/skills/braid/assets/backlog-config.yml) to `backlog/config.yml` and set `project_name`. Don't run `backlog init`, and don't add a Backlog.md block to `AGENTS.md`. If you skip this step, `braid` does it on first use.
+4. Commit both on `main` and push, add the repository as a T3 project and start a thread there with `braid`.
+
+To see the items, run `backlog browser` (or `backlog board`) in your own checkout of `main`. It also shows tasks that so far exist only on item branches. A task whose PR is waiting for your merge already reads Done there, because the worker sets Done in that PR. Use the browser to look, not to edit: it saves edits into the checkout it runs from, and a worker's worktree belongs to the worker. Ask `braid` for task changes.
+
+This repository's own [BRAID.md](BRAID.md) and `backlog/` are an example; `epics/` holds its past records, read-only. Why `braid` keeps items in Backlog.md is decision D30 in [docs/decisions.md](docs/decisions.md).
 
 ## CLI
 
@@ -148,19 +163,19 @@ On Linux, the executable path is `node_modules/.bin/braid`. Publishing, tagging,
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs `npm ci` and `npm run verify:full` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`, for pull requests and for pushes to `main` and `epic/**` branches. A push that only changes files under `epics/` (coordinator status records) doesn't run CI. Setup-node puts that runtime on `PATH`, so CI uses it instead of the shared Windows store. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
+`.github/workflows/ci.yml` runs `npm ci` and `npm run verify:full` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`, for pull requests and for pushes to `main` and `epic/**` branches. A push that only changes files under `epics/` (past records) or `backlog/` (Backlog.md tasks) doesn't run CI. Setup-node puts that runtime on `PATH`, so CI uses it instead of the shared Windows store. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
 
 The workflow uses pinned checkout, setup-node, and upload-artifact actions and the runner's PowerShell installation. It needs no T3 access, private infrastructure, or npm publishing credentials. `.github/workflows/release.yml` is a manual dispatch and is not part of this pull-request gate.
 
 ## Durable context
 
-- [Workflow](.agents/skills/braid-coordinate/references/workflow.md): epics, item briefs, tiers, branches, merges, and checks.
+- [Workflow](.agents/skills/braid/references/workflow.md): items, tiers, branches, merges, and checks.
 - [Decisions](docs/decisions.md): current requirements and their rationale.
 - [Roadmap](docs/roadmap.md): capability stages and bootstrap promotion gates.
 - [Seed contract](docs/seed-contract.md): schema 1 command and storage behavior.
-- [Coordinator skill](.agents/skills/braid-coordinate/SKILL.md) and [worker skill](.agents/skills/braid-worker/SKILL.md): how agents plan epics and do items.
+- [braid skill](.agents/skills/braid/SKILL.md) (goals and stories in Backlog.md) and [worker skill](.agents/skills/braid-worker/SKILL.md): how agents plan work and do items.
 - [npm distribution](docs/npm-distribution.md): selected release path and account/setup steps needed before publication.
-- [Epics](epics/README.md): current and past epics.
+- [Epics](epics/README.md): past epics, read-only; new work is in `backlog/`.
 - Original MVP plan `t3_multi-agent_mvp_86005e32.plan.md` (gitignored local input, not a tracked file): longer-term design input. Its PowerShell-only implementation and original milestone order have been superseded by the decisions and roadmap above.
 - [Inspiration](inspiration/README.md): reference material; its historical permissions, hosts, credentials, and deployment instructions do not authorize actions for this project.
 

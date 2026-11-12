@@ -1,6 +1,0 @@
-interface:
-  display_name: "Braid Coordinator"
-  short_description: "Plan an epic, brief workers, and deliver it"
-  default_prompt: "Use $braid-coordinate to plan my goal as an epic and get it delivered."
-policy:
-  allow_implicit_invocation: true

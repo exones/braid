@@ -1,10 +1,13 @@
-# Installs the braid skills (.agents/skills/braid-*) from a committed Git ref
+# Installs the braid skills (.agents/skills/braid and braid-*) from a committed Git ref
 # into each agent host's personal skills folder, so every project can use them.
 # It copies, never links: installed skills change only when this script runs
 # again. Uncommitted edits are never installed, because files come from the ref.
 # Each installed skill gets .braid-install.json naming the ref and commit.
 # An existing folder without that file is not ours and is left alone unless
-# -Force is given. -Target replaces the default host folders; separate several
+# -Force is given; every target is checked before anything is copied. After
+# every target is installed, a stamped braid skill folder that is no longer in
+# the ref is removed; removal goes by the stamp, whatever checkout or fork
+# installed it. -Target replaces the default host folders; separate several
 # folders with the path separator (';' on Windows, ':' elsewhere).
 #Requires -Version 7.6
 [CmdletBinding()]
@@ -50,10 +53,10 @@ if ($Target.Count -eq 0) {
 $commit = ([string](Invoke-Git @('rev-parse', '--verify', '--end-of-options', "$Ref^{commit}"))).Trim()
 $skills = @(Invoke-Git @('ls-tree', '-d', '--name-only', $commit, '.agents/skills/') |
     ForEach-Object { ([string]$_).Trim() } |
-    Where-Object { $_ -match '^\.agents/skills/braid-[a-z0-9-]+$' } |
+    Where-Object { $_ -cmatch '^\.agents/skills/braid(-[a-z0-9-]+)?$' } |
     ForEach-Object { $_.Substring('.agents/skills/'.Length) })
 if ($skills.Count -eq 0) {
-  Fail "no .agents/skills/braid-* folders at $Ref ($commit)"
+  Fail "no .agents/skills/braid or braid-* folders at $Ref ($commit)"
 }
 
 $work = Join-Path ([System.IO.Path]::GetTempPath()) ('braid-install-' + [guid]::NewGuid().ToString('n'))
@@ -73,15 +76,18 @@ try {
     [System.IO.File]::WriteAllText((Join-Path $export ".agents/skills/$name/$StampName"), "$stamp`n", [System.Text.UTF8Encoding]::new($false))
   }
 
-  foreach ($root in $Target) {
-    $rootFull = [System.IO.Path]::GetFullPath($root)
-    New-Item -ItemType Directory -Force -Path $rootFull | Out-Null
+  $roots = @($Target | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
+  foreach ($rootFull in $roots) {
     foreach ($name in $skills) {
       $destination = Join-Path $rootFull $name
-      if ((Test-Path -LiteralPath $destination) -and -not $Force -and -not (Test-Path -LiteralPath (Join-Path $destination $StampName))) {
+      if ((Test-Path -LiteralPath $destination) -and -not $Force -and -not (Test-Path -LiteralPath (Join-Path $destination $StampName) -PathType Leaf)) {
         Fail "$destination exists and was not installed by this script; use -Force to replace it"
       }
     }
+  }
+
+  foreach ($rootFull in $roots) {
+    New-Item -ItemType Directory -Force -Path $rootFull | Out-Null
     foreach ($name in $skills) {
       $destination = Join-Path $rootFull $name
       $staging = Join-Path $rootFull ".$name.new-$([guid]::NewGuid().ToString('n'))"
@@ -96,6 +102,18 @@ try {
       }
     }
     Write-Output "installed $($skills -join ', ') at $($commit.Substring(0, 7)) ($Ref) -> $rootFull"
+  }
+
+  foreach ($rootFull in $roots) {
+    $stale = @(Get-ChildItem -LiteralPath $rootFull -Directory -Force |
+        Where-Object { $_.Name -cmatch '^braid(-[a-z0-9-]+)?$' -and $skills -cnotcontains $_.Name } |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName $StampName) -PathType Leaf })
+    foreach ($folder in $stale) {
+      $old = Join-Path $rootFull ".$($folder.Name).old-$([guid]::NewGuid().ToString('n'))"
+      Move-Item -LiteralPath $folder.FullName -Destination $old
+      Remove-Item -LiteralPath $old -Recurse -Force
+      Write-Output "removed $($folder.Name), no longer in $Ref -> $rootFull"
+    }
   }
 } finally {
   Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
