@@ -1,6 +1,6 @@
 ---
 name: braid
-description: Plan a goal or a single task in Backlog.md, then deliver it - run one worker at a time, arrange review, hand each PR to the user to merge, and report. A story that grows becomes phases. Use for goal-level or single-task delivery in a repository that has a BRAID.md and Backlog.md; not for doing an item yourself.
+description: Plan a goal or a single task in Backlog.md, then deliver it - run one worker at a time, arrange review, hand each PR to the user to merge (unless they ask braid to, or auto mode merges a subtask into the epic; never a story or the final PR into main), and report. A story that grows becomes phases. Use for goal-level or single-task delivery in a repository that has a BRAID.md and Backlog.md; not for doing an item yourself.
 ---
 
 # Braid coordinator
@@ -27,7 +27,7 @@ If `backlog/config.yml` is missing, copy [backlog-config.yml](assets/backlog-con
   6. Done is set in the PR that completes the item, not after verification alone.
 - One writer per branch (workflow). You hold `plan/<slug>`, then the epic branch, and a new story's branch only until launch. Never commit to a branch a worker holds, or in the user's checkout. Work in your own worktree.
 - Every commit uses Conventional Commits; yours are `docs(backlog): …`, for example `docs(backlog): plan task-12` or `docs(backlog): task-12 phases: add task-12.1, task-12.2`.
-- Commit task changes only at these points: the plan and its review rounds; the parent In Progress on the epic branch; a growth or plan-change decision; a log entry; the parent Done at the end. PRs and threads show progress in between.
+- Commit task changes only at these points: the plan and its review rounds; the parent In Progress in the epic's first commit after the planning merge; auto mode on or off; a growth or plan-change decision; a log entry; the parent Done at the end. PRs and threads show progress in between.
 - Ask the user with the host's question tool if it has one, otherwise as numbered questions with lettered options and your recommendation. If an answer is a value such as a path, say where it will be stored. Keep working on whatever the answer doesn't block.
 - Name threads `<repo> <task-id> <role>: <title>`, for example `chinese-trainer task-12.1 review: data model`.
 - Never edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless the user asks; work that changes them is tier L. Don't publish, release, deploy or change repository settings unless the user asks.
@@ -40,7 +40,7 @@ If `backlog/config.yml` is missing, copy [backlog-config.yml](assets/backlog-con
 4. Create them as real tasks and commit locally; push nothing yet. **Goal:** in your worktree on `plan/<slug>` from `main`, with the goal's milestone (task template) on the parent and every subtask. **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `task create`, then `git branch -m item/<id>-<slug>`. Show the user the plan (titles, kinds, tiers, order, dependencies, acceptance, `ask:` labels) with links to the task files.
    - Each round of the user's comments is one local commit, `docs(backlog): <id> amend: <what>`. Check `git diff` first so that only the intended lines changed, then tell the user briefly what changed (no pasted diff).
 5. On approval, squash the commits into one `docs(backlog): plan <id>` (`git reset --soft <commit the branch was cut from>`, then commit) and push once.
-   - **Goal:** open a planning PR into `main` and tell the user; merging it records the approval. Then create `epic/<id>-<slug>` from `main` in your worktree and set the parent `In Progress` in its first commit.
+   - **Goal:** first create and push `epic/<id>-<slug>` from `main`, then open the planning PR from `plan/<slug>` into it and tell the user; merging it records the approval, and `main` gets the tasks with the final PR. Then pull the epic branch in your worktree and set the parent `In Progress` in its next commit.
    - **Story:** remove the temporary worktree; the worker starts on that branch.
 6. Once approved, start the first ready task without waiting, unless the user asked only for a plan: then stop, show the table and open questions, and resume from Backlog.md and GitHub when the user says go.
 
@@ -88,7 +88,7 @@ A worker that finds more work stops and sends you one proposal: **absorb** it (s
 When the worker reports green:
 
 1. Review by tier:
-   - S: read the diff yourself. Send problems back, including small factual errors in docs, to the same worker to fix on the same PR.
+   - S: read the diff yourself (in auto mode, review it as for M). Send problems back, including small factual errors in docs, to the same worker to fix on the same PR.
    - M and L: launch an independent reviewer as a top-level thread in its own worktree, detached at the PR's head commit (`git worktree add --detach <folder> <sha>`, since the worker's worktree holds the branch), with its model and this first message (add the `SKILL.md` path if needed, as for workers); wait for it as in "Run an item" step 3. Send blocking findings to the worker; decide non-blocking ones yourself. For L, if blocking fixes substantially changed failure or recovery behavior, have the reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its first message. Use a fresh review task when the host requires it, never resume a delegated reviewer with `t3_thread_send`.
 
      ```text
@@ -96,8 +96,21 @@ When the worker reports green:
      PR: <url>, head commit <sha>. Focus: <what matters most here>.
      Send your result to thread <your thread id>.
      ```
-2. When nothing blocking remains, run the diff facts in [stop cases](references/stop-cases.md) and judge them against the cases. Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. When green on the latest commit, give the user the recap and wait for their merge. You don't merge item PRs, re-run the gate or download artifacts.
+2. When nothing blocking remains, run the diff facts in [stop cases](references/stop-cases.md) and judge them against the cases. Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. When green on the latest commit, give the user the recap and wait for their merge, or, when auto mode is on, merge it yourself under "Auto mode". Otherwise you merge only under "Merge on request"; you don't re-run the gate or download artifacts.
 3. Once `gh pr list --state all` shows the PR merged, interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID), and remove the worktrees you created for the item; if Windows refuses to delete a folder, a program such as `backlog browser` is probably still running in it, so ask the user to stop it. For a goal, pull the epic branch in your worktree, append the parent's log entry (task template) and commit it, then fix any task that hasn't started and that the entry makes wrong, as in "Adjusting the plan". Then start the next item; after the last subtask, finish. After a spike, turn its proposed follow-ups into tasks (or adjust existing ones) and tell the user what the answer changed.
+
+## Merge on request
+
+When the user asks you to merge a named PR, or says "merge it" right after a recap that handed one over, merge it in any mode: `gh pr merge <pr> --merge --match-head-commit <head commit of your last recap of it>`. If you haven't recapped it, or its head has moved since, show what changed and ask. Then continue with step 3 of "Accept and hand over".
+
+## Auto mode
+
+When the user asks, for one goal, you merge its subtask PRs into the epic branch yourself. Refuse, with the reason, if `BRAID.md` lacks `auto: allowed`, if `ci` is `none`, or for a story (its PR goes into `main`). Switch on with `--add-label auto` and a dated note on the parent, as one commit on the epic branch; "stop auto" or "pause" removes them the same way (`--remove-label auto`, a note).
+
+- Merge only when all hold: (1) the worker reported green; (2) on the PR branch the task is Done with every acceptance criterion and Definition of Done box checked; (3) an independent `braid-reviewer` review found nothing blocking, and for tier L any re-check is finished; (4) `gh pr checks` is green on the head commit for the `ci` names; (5) the PR is mergeable and its base is the epic branch; (6) `Needs the user: none` from all four sources: plan labels, worker, reviewer, diff facts; (7) the head is the reviewed commit, and you merge it with `gh pr merge <pr> --merge --match-head-commit <sha>`.
+- Before merging, post a PR comment with the commit, the review link, the checks, the four Needs the user sources and "merged by braid auto mode". After the merge, tell the user in one line, do step 3 of "Accept and hand over", and before the next item wait until the epic branch's CI is green on the merge commit (`gh run list --commit <sha>`). Red: a fix subtask as in "Fixes"; a second red is a stop (`quality`).
+- Stop on any stop case, on more than 2 blocking review rounds, and when branch protection refuses the merge (never `--admin` or another bypass). On a stop: don't merge, unwatch the PR, give the recap naming the case and its source, and wait. Record the user's answer in the parent's notes; their "merge" is a merge on request.
+- The final PR epic → `main` is always the user's to merge.
 
 ## Fixes
 
@@ -114,7 +127,7 @@ A story is finished when the user merges its PR (the worker set Done in it). A p
 When an item is merged, waiting for the user's merge, or blocked, give a recap based on the worker's final summary and checked against the diff; record the user's answers on stop cases in a goal's parent log:
 
 ```markdown
-**<task-id>: <title>** — merged | ready for your merge | blocked. PR: <link>
+**<task-id>: <title>** — merged | ready for your merge | blocked. PR: <link> at <head commit>
 
 **Done:** 1–5 bullets on what changed and what it means for the project.
 **Decisions:** choices the task didn't settle, each with a one-line reason; growth and plan changes under the mandate. "None" if none.
@@ -127,4 +140,4 @@ When an item is merged, waiting for the user's merge, or blocked, give a recap b
 
 ## Resuming
 
-Read `BRAID.md`, then rebuild the state from the repository and GitHub, not from chat: `git branch -r`, local `plan/` and `item/` branches not yet pushed, and `gh pr list --state all` for plan, epic and item branches and their PRs; the parent's log; on the epic branch `backlog task list --plain` for the plan; the worker and reviewer threads for liveness. An item whose PR is merged is done. An item with an open PR, or a pushed `item/` branch with no PR yet, is running even though the epic's copy reads `To Do`: read that branch's copy of its task (find the file with `git ls-tree --name-only origin/item/<branch> backlog/tasks/`, then `git show` its quoted path) and its thread before relaunching anything. A closed, unmerged PR: grown if it is the branch's only PR and `epic/<same id>` exists (continue there as phases; the old branch is history); dropped if the task is archived; otherwise read the task's notes on that branch, then relaunch or ask the user. Continue with the next unfinished step. Beyond the log, put notes in the parent task only for what a fresh session couldn't work out from these.
+Read `BRAID.md`, then rebuild the state from the repository and GitHub, not from chat: `git branch -r`, local `plan/` and `item/` branches not yet pushed, and `gh pr list --state all` for plan, epic and item branches and their PRs; the parent's log; on the epic branch `backlog task list --plain` for the plan; the worker and reviewer threads for liveness. An item whose PR is merged is done. An item with an open PR, or a pushed `item/` branch with no PR yet, is running even though the epic's copy reads `To Do`: read that branch's copy of its task (find the file with `git ls-tree --name-only origin/item/<branch> backlog/tasks/`, then `git show` its quoted path) and its thread before relaunching anything. A closed, unmerged PR: grown if it is the branch's only PR and `epic/<same id>` exists (continue there as phases; the old branch is history); dropped if the task is archived; otherwise read the task's notes on that branch, then relaunch or ask the user. An `auto` label on the parent means continue in auto mode. Continue with the next unfinished step. Beyond the log, put notes in the parent task only for what a fresh session couldn't work out from these.
