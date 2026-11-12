@@ -25,9 +25,9 @@ BeforeAll {
   }
 
   function Invoke-Install {
-    param([string[]]$Extra = @())
+    param([string[]]$Extra = @(), [string]$Root = $script:Repo)
     $targets = $script:TargetA + [System.IO.Path]::PathSeparator + $script:TargetB
-    $arguments = @('-NoProfile', '-File', $script:Installer, '-RepositoryRoot', $script:Repo, '-Target', $targets) + $Extra
+    $arguments = @('-NoProfile', '-File', $script:Installer, '-RepositoryRoot', $Root, '-Target', $targets) + $Extra
     $lines = @(& pwsh @arguments 2>&1)
     return [pscustomobject]@{ Code = $LASTEXITCODE; Text = (($lines | ForEach-Object { "$_" }) -join "`n") }
   }
@@ -138,6 +138,23 @@ Describe 'Install-Skills.ps1' {
     $result.Code | Should -Be 0 -Because $result.Text
     @(Get-ChildItem -LiteralPath $script:TargetA -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo', 'braid-mine', 'other')
     @(Get-ChildItem -LiteralPath $script:TargetB -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo')
+  }
+
+  It 'installs this repository''s braid, braid-reviewer and braid-worker and removes them once they leave the ref' {
+    $real = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+    $result = Invoke-Install -Root $real -Extra @('-Ref', 'HEAD')
+    $result.Code | Should -Be 0 -Because $result.Text
+    foreach ($root in @($script:TargetA, $script:TargetB)) {
+      @(Get-ChildItem -LiteralPath $root -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-reviewer', 'braid-worker')
+      Get-Installed $root 'braid-reviewer/SKILL.md' | Should -Match '(?m)^name: braid-reviewer$'
+      Test-Path -LiteralPath (Join-Path $root 'braid-reviewer/.braid-install.json') -PathType Leaf | Should -BeTrue
+    }
+
+    $result = Invoke-Install
+    $result.Code | Should -Be 0 -Because $result.Text
+    foreach ($root in @($script:TargetA, $script:TargetB)) {
+      @(Get-ChildItem -LiteralPath $root -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo')
+    }
   }
 
   It 'fails for a ref that does not exist' {

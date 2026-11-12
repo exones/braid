@@ -14,7 +14,7 @@ models:
     task: Claude_Everix / claude-sonnet-5-5 / effort=medium
     spike: Claude_Everix / claude-opus-5-5 / effort=medium (researcher)
     L: Claude_Everix / claude-opus-5-5 / effort=medium (tier L items, including spikes as researcher)
-  reviewer: cursor / grok-4.6 / effort=high, fastMode=false; no skill
+  reviewer: cursor / grok-4.6 / effort=high, fastMode=false; skill braid-reviewer
 ---
 
 # braid for braid agents

@@ -51,10 +51,10 @@ Both stop on the first native command with a nonzero exit code and return that c
 
 ## Braid skills in other projects
 
-The agent skills `braid` and `braid-worker` are developed in `.agents/skills/` and can drive work in any repository. Each skill folder is self-contained: the docs gate fails if a skill links outside its own folder.
+The agent skills `braid`, `braid-worker` and `braid-reviewer` are developed in `.agents/skills/` and can drive work in any repository. Each skill folder is self-contained: the docs gate fails if a skill links outside its own folder.
 
 - `braid` is the one skill you talk to, for work of any size: a goal, a single story, or "run TASK-12". It decides whether the work is a story or a goal, keeps the items as [Backlog.md](https://github.com/MrLesk/Backlog.md) tasks in the target repository, and launches the workers.
-- `braid-worker` is the skill of the worker threads a coordinator launches. You don't start it yourself.
+- `braid-worker` and `braid-reviewer` are the skills of the worker and reviewer threads a coordinator launches. You don't start them yourself.
 - Ordinary questions and small direct edits need no skill.
 
 To make them available to Cursor, Codex and Claude in every project, install them from a committed ref:
@@ -66,7 +66,7 @@ pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a bra
 
 The script copies `.agents/skills/braid` and `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again. A folder of the same name that the script did not install is left alone unless `-Force` is given. Every target is checked before anything is replaced, and an installed braid skill that is no longer in the ref (such as the old `braid-coordinate`) is removed. `-Target` replaces the default folders.
 
-A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the required `ci` checks (`none` if it has no hosted CI), optional `shell`, `setup` and `test` commands, how to `run` the app, and `models`: the provider, model and options for each role, with optional overrides per tier (`worker.L`) or kind (`worker.spike`); the tier key wins over the kind key, then the plain role. A role may name a skill, such as a review skill. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
+A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the required `ci` checks (`none` if it has no hosted CI), optional `shell`, `setup` and `test` commands, how to `run` the app, and `models`: the provider, model and options for each role, with optional overrides per tier (`worker.L`) or kind (`worker.spike`); the tier key wins over the kind key, then the plain role. A role may name a skill, such as `braid-reviewer` for the reviewer. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
 
 To set up a target repository for `braid`:
 
@@ -173,7 +173,7 @@ The workflow uses pinned checkout, setup-node, and upload-artifact actions and t
 - [Decisions](docs/decisions.md): current requirements and their rationale.
 - [Roadmap](docs/roadmap.md): capability stages and bootstrap promotion gates.
 - [Seed contract](docs/seed-contract.md): schema 1 command and storage behavior.
-- [braid skill](.agents/skills/braid/SKILL.md) (goals and stories in Backlog.md) and [worker skill](.agents/skills/braid-worker/SKILL.md): how agents plan work and do items.
+- [braid skill](.agents/skills/braid/SKILL.md) (goals and stories in Backlog.md), [worker skill](.agents/skills/braid-worker/SKILL.md) and [reviewer skill](.agents/skills/braid-reviewer/SKILL.md): how agents plan, do and review items.
 - [npm distribution](docs/npm-distribution.md): selected release path and account/setup steps needed before publication.
 - [Epics](epics/README.md): past epics, read-only; new work is in `backlog/`.
 - Original MVP plan `t3_multi-agent_mvp_86005e32.plan.md` (gitignored local input, not a tracked file): longer-term design input. Its PowerShell-only implementation and original milestone order have been superseded by the decisions and roadmap above.
