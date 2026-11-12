@@ -1,6 +1,6 @@
 # 008: one `braid` skill on Backlog.md, sequential MVP
 
-Status: in-progress.
+Status: in-progress (all items done; the user's trial runs before the PR into `main`).
 The user's merge into `main` marks it done.
 Branch: `epic/008-braid-backlog` from `main` at `d4ab2f4`.
 
@@ -122,7 +122,7 @@ independent review, then the user's merge.
 | D | [Install, route and record the decision](items/D.md) | task | L | no | B, C | done | [#42](https://github.com/exones/braid/pull/42) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:4e9d770e4473a6529a1dfbe901fd7ddf46ff926377ae449bc8ca6100343f21e6>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:041dc472efa732126c165ccff423bd473d910b8a70ca09f3262bce97a7beb145>) |
 | E | [Isolated flow check and the user's trial guide](items/E.md) | task | M | no | B, C | done | [#41](https://github.com/exones/braid/pull/41) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:e843f7cdb573e7af30b790bcf629ee5e8346bd60c23ca883e59e1eb0a6e483c0>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:7652043fef3544b50b825e1e5bb8a47c75d43a8a654548865f91ed7e28362e82>) |
 | F | [Model per tier and a PR watch for the coordinator](items/F.md) | task | L | no | B | done | [#40](https://github.com/exones/braid/pull/40) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:461a4ae9be4cd25f68f4a6730f92f6f7af49a77a25ddfce8a5302c7600198e31>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:71e897dfc065f42837266dca9554176407f1af0d5726936e8027c60219027596>) |
-| G | [Drop `braid-coordinate`; this repository moves to `braid`](items/G.md) | task | L | no | D | in-progress | | |
+| G | [Drop `braid-coordinate`; this repository moves to `braid`](items/G.md) | task | L | no | D | done | [#43](https://github.com/exones/braid/pull/43) | [worker](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:65c4f8e54d58cbdafe4fbe5d8ce3aedeb70ac293e4c4bb7fcc921842c0073dcc>), [review](<t3-thread://v2/c361f221-e595-46eb-8f4b-7926ea55f19c/mcp:launch:83658644140b3d4af5f0ff46ac4639f6a30b2078b03f3ffc7d7221bcbbddd319>) |
 
 ## Decisions
 
@@ -175,5 +175,6 @@ independent review, then the user's merge.
   then the user tests on a real project in an isolated environment. E is a scripted flow check and
   a trial guide instead of an agent-run pilot.
 - 2026-11-12: D merged by the user (#42). User: drop `braid-coordinate` now, before the trial, and move this repository to `braid` and Backlog.md (G). Past `epics/` records stay as history; this epic finishes under the old rules. This supersedes "keep `braid-coordinate` until the trial" above.
+- 2026-11-12: G merged by the user (#43), with the Resuming rule from B's late follow-up (point 3). User: no PR into `main` yet; the skills were installed from `epic/008-braid-backlog` at `1dac47b` into the four skill folders, which removed the old `braid-coordinate` (stamped `d4ab2f4`). The trial comes next.
 - 2026-11-11: The plan was written in an `everix3` thread and handed over to a coordinator thread in
   the agento project (same model, Claude Opus 5.5), working in this worktree.
