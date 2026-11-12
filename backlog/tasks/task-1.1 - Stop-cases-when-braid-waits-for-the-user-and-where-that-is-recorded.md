@@ -1,9 +1,12 @@
 ---
 id: TASK-1.1
-title: 'Stop cases: when braid waits for the user, and where that is recorded'
+title: >-
+  Stop cases and plan review: when braid waits for the user, and where that is
+  recorded
 status: To Do
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
+updated_date: '2026-11-12T17:31:00Z'
 labels:
   - kind:task
   - tier:L
@@ -15,12 +18,12 @@ ordinal: 10
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Goal: one shared list of the cases where `braid` must wait for the user, and a fixed place where each role records them, so the coordinator, worker and reviewer flag the same things in the same words. In normal mode the cases only appear in recaps; auto mode (TASK-1.3) refuses to merge on them.
+Goal: one shared list of the cases where `braid` must wait for the user, and a fixed place where each role records them, so the coordinator, worker and reviewer flag the same things in the same words. In normal mode the cases only appear in plans and recaps; auto mode (TASK-1.3) refuses to merge on them. Also: the user reviews a goal's plan as real tasks in a draft planning PR, not only in chat.
 
-Expected size: about 120 lines in 6 files.
+Expected size: about 140 lines in 6 files.
 
 Start here (read in this order):
-- `.agents/skills/braid/SKILL.md`: Plan step 3 and "Talking to the user" (the recap).
+- `.agents/skills/braid/SKILL.md`: "Plan" steps 3-6 and "Talking to the user" (the recap).
 - `.agents/skills/braid-worker/SKILL.md`: Deliver step 0 and "Final report".
 - `.agents/skills/braid/assets/task.md`: Fields and labels.
 - `scripts/Test-DocsGate.ps1`: skill folders must be self-contained; a link can't reach into another skill.
@@ -37,7 +40,8 @@ Change:
   - `quality`: still blocking after 2 fix rounds, worker and reviewer disagree, the same check fails twice, a merge conflict outside task files, a worker that fails twice.
   The same file says who records what: the plan (`ask:<key>` labels the coordinator adds where the plan already shows a case); the worker (a `Needs the user:` line in its final summary); the reviewer (a section in its PR comment, TASK-1.2); and the coordinator's diff facts as runnable commands (`git diff --name-status <base>...<head>` and the added lines): changed dependency manifests or lockfiles (the common ones by name), changed `.github/workflows/`, `BRAID.md`, `AGENTS.md`, `CLAUDE.md` or `.agents/skills/`, deleted test files or added skip/only markers in tests, a diff over twice the task's expected size.
 - An identical copy in `.agents/skills/braid-worker/references/stop-cases.md`.
-- `braid` SKILL.md: planning adds `ask:<key>` labels and the plan shown to the user lists them; the recap gets a `**Needs the user:**` line (`none`, or each case with its source: plan, worker, reviewer or facts); the user's answer goes into the parent's notes.
+- `braid` SKILL.md, stop cases: planning adds `ask:<key>` labels and the plan shown to the user lists them; the recap gets a `**Needs the user:**` line (`none`, or each case with its source: plan, worker, reviewer or facts); the user's answer goes into the parent's notes.
+- `braid` SKILL.md, "Plan" steps 4-5 for a goal: after a short chat round on shape and open questions, create the parent and subtasks on `plan/<slug>`, push, and open the planning PR as a draft. The user reads the tasks there (PR diff, or `backlog browser` in their own checkout of `main` after `git fetch`) and asks for amendments; the coordinator applies them on `plan/<slug>` with `task edit` and pushes. The user marks the PR ready and merges it: that is the approval. A story keeps the chat confirmation (it has no planning PR), showing the task's full text.
 - `braid-worker` SKILL.md: the final summary and the chat report carry `Needs the user: none` or `<key>: <one sentence>` per case, judged against the list.
 - `.agents/skills/braid/assets/task.md`: the `ask:<key>` label.
 - A check in the gate (Pester or the docs gate) that fails when the copies of `stop-cases.md` differ.
@@ -45,7 +49,8 @@ Change:
 Already decided (don't re-investigate):
 - No project-specific path masks; the diff facts are generic and need only `git` and `gh`.
 - No helper script: the facts are commands in the reference file, usable from bash and pwsh.
-- Normal mode changes only by the recap line.
+- Normal mode changes only by the plan labels and the recap line.
+- A goal's plan is reviewed as a draft planning PR; the approval is still the user's merge of that PR.
 
 Out of scope:
 - Auto mode and merging (TASK-1.3).
@@ -59,6 +64,7 @@ Out of scope:
 - [ ] #3 Planning documents ask:<key> labels and the recap shows Needs the user with its source
 - [ ] #4 The diff facts are listed as runnable git/gh commands
 - [ ] #5 npm run verify passes
+- [ ] #6 A goal plan is created on plan/<slug> as a draft planning PR, amended there on request, and approved by the user's merge; a story shows the full task text in chat
 <!-- AC:END -->
 
 ## Definition of Done
