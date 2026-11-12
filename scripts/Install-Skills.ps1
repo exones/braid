@@ -1,4 +1,4 @@
-# Installs the braid skills (.agents/skills/braid-*) from a committed Git ref
+# Installs the braid skills (.agents/skills/braid and braid-*) from a committed Git ref
 # into each agent host's personal skills folder, so every project can use them.
 # It copies, never links: installed skills change only when this script runs
 # again. Uncommitted edits are never installed, because files come from the ref.
@@ -50,10 +50,10 @@ if ($Target.Count -eq 0) {
 $commit = ([string](Invoke-Git @('rev-parse', '--verify', '--end-of-options', "$Ref^{commit}"))).Trim()
 $skills = @(Invoke-Git @('ls-tree', '-d', '--name-only', $commit, '.agents/skills/') |
     ForEach-Object { ([string]$_).Trim() } |
-    Where-Object { $_ -match '^\.agents/skills/braid-[a-z0-9-]+$' } |
+    Where-Object { $_ -cmatch '^\.agents/skills/braid(-[a-z0-9-]+)?$' } |
     ForEach-Object { $_.Substring('.agents/skills/'.Length) })
 if ($skills.Count -eq 0) {
-  Fail "no .agents/skills/braid-* folders at $Ref ($commit)"
+  Fail "no .agents/skills/braid or braid-* folders at $Ref ($commit)"
 }
 
 $work = Join-Path ([System.IO.Path]::GetTempPath()) ('braid-install-' + [guid]::NewGuid().ToString('n'))
