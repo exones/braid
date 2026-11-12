@@ -1,10 +1,10 @@
 ---
 id: TASK-1.3
 title: Auto mode and merge on request
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-12T17:29:00Z'
-updated_date: '2026-11-12T21:06:00Z'
+updated_date: '2026-11-12T21:10:00Z'
 labels:
   - kind:story
   - tier:L
@@ -61,19 +61,19 @@ Out of scope:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The skill documents auto mode: switch-on rules, the 7 conditions, the evidence comment, the stops and the resume rule
-- [ ] #2 Auto mode is refused with ci: none, without auto: allowed, and for a story
-- [ ] #3 Merge PR N or merge it merges, pinned to the recapped commit, in any mode
-- [ ] #4 AGENTS.md, the workflow, the template, D31 and the README agree
-- [ ] #5 The final summary contains the manual trial steps
-- [ ] #6 npm run verify passes
-- [ ] #7 A goal's planning PR targets its epic branch, and the worker pushes its In Progress commit before coding, so a board on main shows running and finished subtasks
+- [x] #1 The skill documents auto mode: switch-on rules, the 7 conditions, the evidence comment, the stops and the resume rule
+- [x] #2 Auto mode is refused with ci: none, without auto: allowed, and for a story
+- [x] #3 Merge PR N or merge it merges, pinned to the recapped commit, in any mode
+- [x] #4 AGENTS.md, the workflow, the template, D31 and the README agree
+- [x] #5 The final summary contains the manual trial steps
+- [x] #6 npm run verify passes
+- [x] #7 A goal's planning PR targets its epic branch, and the worker pushes its In Progress commit before coding, so a board on main shows running and finished subtasks
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -87,3 +87,21 @@ Out of scope:
 6. scripts/Test-BraidBacklogFlow.ps1 section 1: merge the plan into an epic branch cut from main, and assert main has no task copies yet (run by hand, not part of the gate).
 7. Gate, final summary with line counts and manual trial steps, Done.
 <!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: the braid skill gains "Merge on request" (a named PR or "merge it" after a recap, pinned with --match-head-commit to the recapped head; a moved or unrecapped head is shown and asked about) and "Auto mode" (switch-on refused without auto: allowed, with ci: none, or for a story; an auto label and dated note on the parent as one epic-branch commit; the 7 merge conditions; an evidence PR comment; one line after a merge and a green epic CI before the next item, a second red is a quality stop; stops on any stop case, more than 2 blocking rounds, or branch protection, never bypassed; resume on the auto label; the final PR stays the user's). Tier S gets an independent review in auto mode. The recap names the head commit. A goal's planning PR now goes into its epic branch (created from main first), so main gets the tasks with the final PR; the worker pushes its In Progress commit at once. workflow.md: who merges, the branch table, three failure-mode rows (branch protection, red epic CI, moved head). The BRAID.md template documents auto: allowed (absent means not allowed); this repo's BRAID.md sets it. AGENTS.md hard limit, D31 (new), D28 and D30, the decision log and a README "Auto mode" paragraph agree. scripts/Test-BraidBacklogFlow.ps1 now merges the plan into an epic branch and checks main has no copies.
+
+Why: the user wants phases to run without waiting for each merge, with every merge checked, reviewed and pinned; and planning into main had hidden subtask progress on main's board.
+
+Line counts (before -> after): braid/SKILL.md 130 -> 143; braid-worker/SKILL.md 71 -> 71; braid/references/workflow.md 98 -> 104; braid/assets/braid-md.md 40 -> 42.
+
+Validation: npm run verify passed. Test-BraidBacklogFlow.ps1 -SkipVolta (by hand, not in the gate): 27 of 27, including a story planned from main getting task-2 while the goal task-1 exists only on the epic branch (no ID collision).
+
+Manual trial steps: 1. Install the skills from the epic branch. 2. In a scratch repository with BRAID.md auto: allowed and real CI, ask braid for a small goal of two subtasks, where the second adds a dependency (for example a package.json devDependency). 3. Merge the planning PR into the epic branch; check main's board shows the subtasks from their item branches. 4. Ask for auto mode; check the parent gets the auto label and a dated note in one commit. 5. Check subtask 1 is reviewed, gets the evidence comment and is merged into the epic with --match-head-commit, the epic CI is waited for, and you get one line. 6. Check subtask 2 stops with a recap naming dependency and its source, without a merge. 7. Say "merge it" and check it merges the recapped commit. 8. Check the final PR into main is handed to you. Also: ask for auto mode with auto: allowed removed, with ci: none, and for a story; each must be refused with the reason.
+
+Open: none.
+For later items: recap header now ends "at <head commit>"; BRAID.md key auto; parent label auto; the planning PR's base is the epic branch.
+Needs the user: process: this changes the braid skills, AGENTS.md and BRAID.md, and widens who may merge.
+<!-- SECTION:FINAL_SUMMARY:END -->
