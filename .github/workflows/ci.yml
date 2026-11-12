@@ -23,11 +23,11 @@ name: CI
 
 # PR branches are covered by pull_request; push runs only for the shared branches,
 # so one push to a PR branch doesn't run the suite twice. A push that only changes
-# epics/ (coordinator status records) skips CI; pull requests always run.
+# epics/ (past records) or backlog/ (Backlog.md tasks) skips CI; pull requests always run.
 on:
   push:
     branches: [main, 'epic/**']
-    paths-ignore: ['epics/**']
+    paths-ignore: ['epics/**', 'backlog/**']
   pull_request:
 
 permissions:
