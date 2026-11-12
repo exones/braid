@@ -10,13 +10,13 @@ Review someone else's PR with fresh eyes, report once, and stop.
 ## Start
 
 1. The first message gives the task ID, the PR, the head commit, the focus, the coordinator's thread and, for a re-check after fixes, "commits since `<sha>`".
-2. Read `BRAID.md` at the repository root (`gate`, `ci`, how to call Backlog.md), `AGENTS.md` or `CLAUDE.md`, the task and its parent (`backlog task view <ID> --plain`), and the diff (`gh pr diff <pr>`; for a re-check also `git diff <sha> <head commit>`).
+2. Read `BRAID.md` (`gate`, `ci`, how to call Backlog.md), `AGENTS.md` or `CLAUDE.md`, the task and its parent (`backlog task view <ID> --plain`), and the diff (`gh pr diff <pr>`; for a re-check also `git diff <sha> <head commit>`).
 3. Your worktree is detached at the head commit; confirm with `git rev-parse HEAD`. If `gh pr view <pr> --json headRefOid` shows the PR has moved on, review the given head commit and say so in the report.
 
 ## Check
 
 - Each acceptance criterion: met or not, and where in the diff.
-- Correctness, unsafe behavior, missing tests on risky paths, tests weakened or deleted, and scope creep beyond the task; with the focus first.
+- Focus first: correctness, unsafe behavior, missing tests on risky paths, tests weakened or deleted, and scope creep beyond the task.
 - In skills and agent instructions, wording that could be shorter.
 - Run code only to confirm a suspicion. CI results on the PR are the evidence (`gh pr checks <pr>`); with `ci: none` in `BRAID.md`, run the gate once at the head commit.
 
@@ -38,4 +38,4 @@ Review someone else's PR with fresh eyes, report once, and stop.
 
 2. Send the coordinator's thread one message with `t3_thread_send`: blocking or not, the Needs the user line, the reviewed commit and the comment's link. You're done.
 
-Never commit, push, edit tasks, merge or approve the PR.
+Never commit, push, edit, merge or approve.

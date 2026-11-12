@@ -89,12 +89,11 @@ When the worker reports green:
 
 1. Review by tier:
    - S: read the diff yourself. Send problems back, including small factual errors in docs, to the same worker to fix on the same PR.
-   - M and L: launch an independent reviewer as a top-level thread in its own worktree, detached at the PR's head commit (`git worktree add --detach <folder> <sha>`, since the worker's worktree holds the branch), with its model and this first message (add the `SKILL.md` path if needed, as for workers); wait for it as in "Run an item" step 3. Send blocking findings to the worker; decide non-blocking ones yourself. For L, if blocking fixes substantially changed failure or recovery behavior, have the reviewer check the fix again, with the re-check line. Use a fresh review task when the host requires it, never resume a delegated reviewer with `t3_thread_send`.
+   - M and L: launch an independent reviewer as a top-level thread in its own worktree, detached at the PR's head commit (`git worktree add --detach <folder> <sha>`, since the worker's worktree holds the branch), with its model and this first message (add the `SKILL.md` path if needed, as for workers); wait for it as in "Run an item" step 3. Send blocking findings to the worker; decide non-blocking ones yourself. For L, if blocking fixes substantially changed failure or recovery behavior, have the reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its first message. Use a fresh review task when the host requires it, never resume a delegated reviewer with `t3_thread_send`.
 
      ```text
      You are the braid reviewer for <task-id>. Use the braid-reviewer skill (sibling folder of the braid skill).
      PR: <url>, head commit <sha>. Focus: <what matters most here>.
-     Re-check only: review the commits since <sha>.
      Send your result to thread <your thread id>.
      ```
 2. When nothing blocking remains, run the diff facts in [stop cases](references/stop-cases.md) and judge them against the cases. Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. When green on the latest commit, give the user the recap and wait for their merge. You don't merge item PRs, re-run the gate or download artifacts.
