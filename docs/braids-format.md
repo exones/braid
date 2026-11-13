@@ -1,6 +1,6 @@
 # The braids/ format
 
-braid keeps its work items in a `braids/` folder at the repository root. A **braid** is a top-level item; a **strand** is one part of a braid, delivered as one PR. This page describes the files `braid list` and `braid view` read. The decisions behind it are in [doc-5](../backlog/docs/doc-5%20-%20New-braid-implementation-plan-draft.md) ("Decided so far").
+braid keeps its work items in a `braids/` folder at the repository root. A **braid** is a top-level item; a **strand** is one part of a braid, delivered as one PR. This page describes the files and the commands that read and write them; make and change briefs with braid, not by hand. The decisions behind it are in [doc-5](../backlog/docs/doc-5%20-%20New-braid-implementation-plan-draft.md) ("Decided so far").
 
 ## Folders and files
 
@@ -68,6 +68,14 @@ The body after the front matter is free Markdown. Its `## ` headings divide it i
 
 - `braid list`: every braid by number, with its strands indented in run order: id, status, order (`-` if none) and title.
 - `braid view <id>`: a braid (`0002`, or `2`) or a strand (`0002/A`) with its fields, folder, report, log files, its strands or its braid, and then the brief's body.
+- `braid new <title>`: a new braid with the next free number, its folder (the slug comes from the title, or `--slug`) and a `brief.md` with status `To Do`.
+- `braid strand new <braid> <title>`: a new strand in that braid with the next free letter.
+- `braid edit <id>`: changes the front matter. `--status`, `--title`, `--labels a,b` (replaces the list; `''` empties it), `--dep 0001,0002/A` (replaces the list; each id must exist), `--order <n>` or `--order none`, `--delivery epic|main` (braids only). `--labels` and `--dep` may be repeated. Changing the title keeps the folder name.
+- `braid brief <id> <section>`: sets the `## <section>` part of the body, replacing that section or adding it at the end. The text comes from `--file <path>`, `--file -` (standard input) or `--text <text>`; CRLF becomes LF. It may not hold `## ` headings or an unclosed code fence.
+
+`braid new` and `braid strand new` also take the `braid edit` options, except `--title`. braid writes front matter in one form: ids in single quotes, other text in double quotes with JSON escapes, `labels` and `dependencies` always present, and `delivery` on every braid.
+
+A number or letter is never given twice. Before choosing one, `braid new` and `braid strand new` run `git fetch --all` (when the repository has a remote; `--no-fetch` skips it, and a failed fetch stops the command). Taken are the folders in the working tree and every braid or strand folder that ever existed under `braids/` in the history of any branch, local or remote, including deleted ones. The next number or letter is one above the highest taken; gaps are not filled.
 
 braid finds the repository from the current folder: the nearest folder upwards that holds `braids/` or `.git`. A repository without `braids/` has no braids.
 
