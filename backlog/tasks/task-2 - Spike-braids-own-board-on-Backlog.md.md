@@ -4,7 +4,7 @@ title: 'Ground research: a new braid CLI, board and T3 automation'
 status: In Progress
 assignee: []
 created_date: '2026-11-12T20:01:00Z'
-updated_date: '2026-11-13T13:27:00Z'
+updated_date: '2026-11-13T14:49:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -53,4 +53,7 @@ Out of scope:
 
 2026-11-13 TASK-2.1 merged: PR #54, f11fe6e. Done: docs/backlog-md.md maps Backlog.md 1.55.3 (66.6k product lines, 88.5k test lines, Bun only, MIT, one maintainer in practice) and recommends reimplementing a compatible Node tracker with it as the reference, wrapping its CLI during the transition; review not blocking, three factual corrections applied. For later items: the board shows the working copy first (selectTaskRecord), not the newest; the compatible subset is a rough 5k-8k lines for TASK-2.3 to confirm.
 Plan changes: TASK-2.3 and TASK-2.2 adjusted to the user's lean (see the note above). User decided: leans to reimplement (see above).
+
+2026-11-13 TASK-2.3 merged: PR #55, 77d22f8. Done: docs/braid-cli.md: a fresh Node tracker compatible with Backlog.md's files (5.1k-7.1k product lines; 7.5k-11.1k with the board), React 19 + Vite 8 + Tailwind 4 + Radix served on 127.0.0.1, six follow-up goals with phases (read-only board, compatible task commands, coordinator commands, board actions, following agents and resuming, reports and several agents); review not blocking, five corrections applied. For later items: TASK-2.2 supplies the lanes and derived-state rules for goal 1; actions are buttons, not drag; run state lives in untracked runs/ records.
+Plan changes: none. User decided: none yet on the way and goal order; licence open (the repo is public with none).
 <!-- SECTION:NOTES:END -->
