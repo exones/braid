@@ -1,4 +1,13 @@
+---
+id: doc-1
+title: 'TASK-2.1 report: Backlog.md as braid''s reference'
+type: other
+created_date: '2026-11-13T15:19:00Z'
+---
+
 # Backlog.md as braid's reference
+
+> Research report for TASK-2.1, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so. The user's decisions: [TASK-2 report](doc-4%20-%20TASK-2-report-research-results-and-the-users-decisions.md).
 
 A map of how [Backlog.md](https://github.com/MrLesk/Backlog.md) 1.55.3 is built, what braid uses from
 it, and a recommendation on how braid gets its own tracker: fork it, wrap it, or reimplement a
@@ -39,13 +48,13 @@ server together are about 30,000 lines, and docs, decisions, drafts, wizards and
 
 ## What braid uses today, and how Backlog.md does it
 
-braid calls the CLI only ([BRAID.md](../BRAID.md), [the task guide](../.agents/skills/braid/assets/task.md)):
+braid calls the CLI only ([BRAID.md](../../BRAID.md), [the task guide](../../.agents/skills/braid/assets/task.md)):
 `task create` (`--parent`, `--labels`, `--ordinal`, `--dep`, `--milestone`, `--description`, `--ac`),
 `task edit` (`-s`, `--plan`, `--append-notes`, `--check-ac`, `--check-dod`, `--final-summary`,
 `--dep`), `task view --plain`, `task list --plain --ready -s -p`, `task archive`, `milestone add` and
 `archive`, `doctor`; and `backlog browser` for the user to look. Config: three statuses, the label
 list, project DoD defaults, `check_active_branches` with 30 days, `remote_operations` on,
-`auto_commit` off ([`backlog/config.yml`](../backlog/config.yml)).
+`auto_commit` off ([`backlog/config.yml`](../../backlog/config.yml)).
 
 - **Task file.** One Markdown file per task in `backlog/tasks/`, named `<id> - <title-slug>.md`.
   YAML front matter holds `id`, `title`, `status`, `labels`, `milestone`, `dependencies`,
@@ -80,7 +89,7 @@ list, project DoD defaults, `check_active_branches` with 30 days, `remote_operat
 
 ## What braid adds, against this code
 
-From the [roadmap](roadmap.md#braids-own-board):
+From the [roadmap](../../docs/roadmap.md#braids-own-board):
 
 - **Goals with subtasks nested.** The data is there (`parent_task_id`, `TASK-2.1` IDs), but both
   boards show a flat column per status. Grouping by parent is a view change; in Backlog.md that means
@@ -101,7 +110,7 @@ What a reimplementation must get right, and what braid has already hit:
 - **ID allocation across branches and worktrees.** Backlog.md scans worktrees and fetched branches;
   it still can't see unpushed branches in other clones, so two planners can take the same ID.
   `duplicate-task-repair.ts` (715 lines) and `backlog doctor` exist for that. Milestone IDs count only
-  the current branch, which is why [the task guide](../.agents/skills/braid/assets/task.md) has a
+  the current branch, which is why [the task guide](../../.agents/skills/braid/assets/task.md) has a
   `git grep` check after `milestone add`.
 - **The section format.** Markers, title variants, numbered checklists and preserved unknown content
   make `structured-sections.ts` the largest single parsing file; a compatible writer must round-trip
