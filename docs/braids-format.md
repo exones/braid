@@ -1,6 +1,6 @@
 # The braids/ format
 
-braid keeps its work items in a `braids/` folder at the repository root. A **braid** is a top-level item; a **strand** is one part of a braid, delivered as one PR. This page describes the files and the commands that read and write them; make and change briefs with braid, not by hand. The decisions behind it are in [doc-5](../backlog/docs/doc-5%20-%20New-braid-implementation-plan-draft.md) ("Decided so far").
+braid keeps its work items in a `braids/` folder at the repository root. A **braid** is a top-level item; a **strand** is one part of a braid, delivered as one PR. This page describes the files and the commands that read and write them; braid makes and changes briefs, and you may also edit briefs and reports directly: run `braid check` afterwards. The decisions behind it are in [doc-5](../backlog/docs/doc-5%20-%20New-braid-implementation-plan-draft.md) ("Decided so far").
 
 ## Folders and files
 
@@ -82,6 +82,8 @@ A **checkpoint** is an entry whose heading ends in ` checkpoint`: a place a thre
 
 ## Commands
 
+- `braid check`: validates every brief and folder name under `braids/` against this page and lists every problem as `<file>: <message>` (with the line where there is one), then the error count; exit code 2 if there is any, 0 and `braids OK: <n> braids, <m> strands` if there is none. Unlike the other commands it does not stop at the first error.
+- `braid board`: serves a read-only board on `127.0.0.1` at a free port, prints the address and opens the browser (`--no-open` only prints it). Lanes To Do, In Progress, In Review, Waiting and Done come from the stored status; In Review and Waiting stay empty until the board reads GitHub and T3. A braid is one card in the lane of its most urgent unfinished strand (Done when all strands are), with a done/total count; it expands to its strands. A card opens the braid's page: a table of contents of the braid and its strands, and for the selected one its details with tabs for the brief, the report and the logs. Reload the page to refresh. Stop it with Ctrl+C.
 - `braid list`: every braid by number, with its strands indented in run order: id, status, order (`-` if none) and title.
 - `braid view <id>`: a braid (`0002`, or `2`) or a strand (`0002/A`) with its fields, folder, report, log files, its strands or its braid, and then the brief's body.
 - `braid new <title>`: a new braid with the next free number, its folder (the slug comes from the title, or `--slug`) and a `brief.md` with status `To Do`.

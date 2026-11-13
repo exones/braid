@@ -24,17 +24,27 @@
     "node": "26.13.0"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.build.json && vite build --config web/vite.config.ts",
     "test": "node --test --test-reporter spec test",
     "verify": "pwsh -NoProfile -File ./scripts/Verify.ps1",
     "verify:full": "pwsh -NoProfile -File ./scripts/Verify.ps1 -Full",
     "package:proof": "pwsh -NoProfile -File ./scripts/Test-Package.ps1"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
     "@types/node": "26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "radix-ui": "^1.8.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
     "remark-cli": "12.0.1",
     "remark-validate-links": "13.1.0",
-    "typescript": "7.0.2"
+    "tailwindcss": "^4.3.5",
+    "typescript": "7.0.2",
+    "vite": "^8.3.8"
   }
 }
