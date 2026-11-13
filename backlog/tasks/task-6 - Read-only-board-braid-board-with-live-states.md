@@ -1,10 +1,10 @@
 ---
 id: TASK-6
 title: 'Read-only board: braid board with live states'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T22:00:00Z'
-updated_date: '2026-11-13T22:01:00Z'
+updated_date: '2026-11-13T22:18:00Z'
 labels:
   - kind:story
   - tier:L
@@ -41,3 +41,9 @@ Out of scope: board actions (Start, Merge, Open thread are story 6), the import 
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-11-13 User added to TASK-6.1's mockups: the final state with Start and Merge buttons, and a braid page with a strand table of contents on the left, details and brief by default, and tabs for report and logs.
+<!-- SECTION:NOTES:END -->
