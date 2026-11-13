@@ -157,6 +157,48 @@ test("CRLF briefs are read", () => {
   assert.equal(r.stdout, "0001  To Do        One\n");
 });
 
+test("a brief with a UTF-8 BOM is read", () => {
+  const root = repo({ "braids/0001-one/brief.md": `﻿${good}` });
+  const r = braid(root, "list");
+  assert.equal(r.stderr, "");
+  assert.equal(r.stdout, "0001  To Do        One\n");
+});
+
+test("quoted list items keep escaped and doubled quotes and commas", () => {
+  const root = repo({
+    "braids/0001-one/brief.md":
+      "---\nid: '0001'\ntitle: One\nstatus: To Do\nlabels: [\"a\\\"b\", 'c''d', \"e, f\"]\n---\n",
+  });
+  const r = braid(root, "view", "1");
+  assert.equal(r.stderr, "");
+  assert.match(r.stdout, /^Labels: a"b, c'd, e, f$/m);
+});
+
+test("strands without order run last, by letter", () => {
+  const strand = (id: string, order?: number) =>
+    `---\nid: ${id}\ntitle: S${id.slice(-1)}\nstatus: To Do\n${order === undefined ? "" : `order: ${order}\n`}---\n`;
+  const root = repo({
+    "braids/0001-one/brief.md": good,
+    "braids/0001-one/D-d/brief.md": strand("0001/D"),
+    "braids/0001-one/B-b/brief.md": strand("0001/B"),
+    "braids/0001-one/C-c/brief.md": strand("0001/C", 1),
+    "braids/0001-one/A-a/brief.md": strand("0001/A", 2),
+  });
+  const r = braid(root, "list");
+  assert.equal(r.stderr, "");
+  assert.equal(
+    r.stdout,
+    [
+      "0001  To Do        One",
+      "  0001/C  To Do         1  SC",
+      "  0001/A  To Do         2  SA",
+      "  0001/B  To Do         -  SB",
+      "  0001/D  To Do         -  SD",
+      "",
+    ].join("\n"),
+  );
+});
+
 test("temp folders and stray files are ignored", () => {
   const root = repo({
     "braids/README.md": "# Braids\n",

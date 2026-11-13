@@ -58,10 +58,16 @@ function splitInline(inner: string, line: number, file: string): string[] {
   const items: string[] = [];
   let current = "";
   let quote: string | null = null;
+  let escaped = false;
   for (const ch of inner) {
     if (quote !== null) {
       current += ch;
-      if (ch === quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (quote === '"' && ch === "\\") {
+        // JSON escape: the next character, even a quote, stays inside the string.
+        escaped = true;
+      } else if (ch === quote) {
         quote = null;
       }
     } else if (ch === "'" || ch === '"') {
