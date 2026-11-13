@@ -48,7 +48,9 @@ export function braidBranches(root: string): BranchRef[] {
     "for-each-ref",
     "--format=%(refname)%00%(objectname)%00%(committerdate:unix)",
     "refs/heads/braid/",
-    "refs/remotes/",
+    // `*` doesn't match `/`: these are exactly the braid and strand branch shapes on any remote.
+    "refs/remotes/*/braid/*",
+    "refs/remotes/*/braid/*/*",
   ]);
   if (r.status !== 0) {
     return [];
@@ -210,7 +212,8 @@ export function loadLiveBraids(root: string): Braid[] {
   }
   const headResult = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
   const head = headResult.status === 0 ? headResult.stdout.trim() : null;
-  const refs = winners(braidBranches(root).filter((ref) => head === null || !inHead(root, head, ref.commit)));
+  // Only each item's newest copy is checked against HEAD: if it is merged, the older ones are too old.
+  const refs = winners(braidBranches(root)).filter((ref) => head === null || !inHead(root, head, ref.commit));
   const tree = (ref: BranchRef) => gitTree(root, { branch: ref.branch, commit: ref.commit });
 
   for (const ref of refs.filter((r) => r.letter === null)) {

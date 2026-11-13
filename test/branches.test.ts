@@ -217,3 +217,14 @@ test("without Git the board reads the working tree only", () => {
   write(root, { "braids/0001-a/brief.md": brief("0001", "To Do") });
   assert.deepEqual(summary(root), ["0001: To Do []"]);
 });
+
+test("after a squash merge a leftover strand branch still overlays the working tree until it is deleted", () => {
+  const root = repo();
+  onBranch(root, "braid/0001/A-x", { "braids/0001-a/A-x/brief.md": brief("0001/A", "In Progress") });
+  git(root, "merge", "-q", "--squash", "braid/0001/A-x");
+  git(root, "commit", "-q", "-m", "squash");
+  commit(root, { "braids/0001-a/A-x/brief.md": brief("0001/A", "Done") });
+  assert.deepEqual(summary(root), ["0001: To Do [A: In Progress@braid/0001/A-x]"]);
+  git(root, "branch", "-q", "-D", "braid/0001/A-x");
+  assert.deepEqual(summary(root), ["0001: To Do [A: Done]"]);
+});
