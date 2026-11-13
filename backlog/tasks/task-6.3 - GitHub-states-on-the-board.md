@@ -1,10 +1,10 @@
 ---
 id: TASK-6.3
 title: GitHub states on the board
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
-updated_date: '2026-11-13T23:36:00Z'
+updated_date: '2026-11-13T23:43:00Z'
 labels:
   - kind:story
   - tier:M
@@ -39,16 +39,16 @@ Out of scope: T3 (TASK-6.4).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 An open, merged and failing PR each put the strand in the right lane, covered by tests with gh output stubbed
-- [ ] #2 An ask:<key> label shows Waiting with its key
-- [ ] #3 Without gh the board still works and says why states are missing
+- [x] #1 An open, merged and failing PR each put the strand in the right lane, covered by tests with gh output stubbed
+- [x] #2 An ask:<key> label shows Waiting with its key
+- [x] #3 Without gh the board still works and says why states are missing
 - [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -56,3 +56,9 @@ Out of scope: T3 (TASK-6.4).
 <!-- SECTION:PLAN:BEGIN -->
 1. src/board/github.ts: one `gh pr list --state all` per refresh (open-only after the first when no open PR vanished; merged PRs cached), PRs keyed by braid/strand number from head branch; checks from statusCheckRollup; gh missing/failing gives an "unavailable" note instead of an error.
 <!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Changed: src/board/github.ts reads PRs with one `gh pr list` per refresh (first call all states, later calls open only, a full read again when an open PR vanishes; merged PRs cached) and keys them by head branch. Lanes (model.ts `derive`): stored Done stays; ask:<key> label -> Waiting with the key; merged PR -> Done; open PR with failing checks -> Waiting "checks failed"; open PR -> In Review; else stored. Cards, strand rows and /api/item carry pr and reason; /api/board has a github status; without gh (or on error) lanes are stored states and the header text names the reason. UI: PR link, Waiting reason, Branch row in details; the unavailable note reuses the header text slot.
+<!-- SECTION:FINAL_SUMMARY:END -->
