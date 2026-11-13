@@ -94,7 +94,7 @@ Stories 1 and 2 in detail, stories 3 and 4 as outlines. Tiers follow the workflo
 
 ### Story 4: Skills on braid, with the import (outline, tier L)
 
-- Strands, roughly: import TASK-1 to TASK-3 with their subtasks and reports into `0001` to `0003`, leaving `backlog/` as read-only history; the task template and the skills' `backlog` calls become `braid` calls with the fewest wording changes; `BRAID.md` and its template drop the Backlog.md invocation rules; the installer also installs braid (decision 5); the Outline step joins the coordinator's flow.
+- Strands, roughly: import TASK-1 to TASK-3 with their subtasks and reports into `0001` to `0003`, leaving `backlog/` as read-only history; the task template and the skills' `backlog` calls become `braid` calls with the fewest wording changes; `BRAID.md` and its template drop the Backlog.md invocation rules; the installer also installs braid (decision 5); the Outline step joins the coordinator's flow. The worker skill learns the report rule (user, 2026-11-13): after a fix round the worker rewrites `report.md` to describe the final state (`braid report`, replace), and the history of the round goes into its log; `--append` is for short notes after the fact.
 - What may affect decisions: how Backlog.md's notes map (one `log-<date>-import.md`, or into the report); where the TASK-2 reports land; whether `backlog/` stays where it is or moves under an archive folder; whether other projects that use the braid skills keep Backlog.md support for a while, or move to braid at the same time; how a project without braid installed is told what to do.
 
 ## Decision details
