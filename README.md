@@ -2,11 +2,21 @@
 
 braid is a TypeScript/Node.js CLI for agent-driven work. PowerShell provides build and verification automation. GitHub hosts source and Actions; npm (`@exones/braid`) is the package registry. Licensed under [MIT](LICENSE).
 
-The CLI is a minimal skeleton:
+The CLI reads, creates, edits, logs and reports on the braids (work items) and strands (their parts) in a repository's `braids/` folder; the format is in [docs/braids-format.md](docs/braids-format.md):
 
 ```powershell
-braid --version   # print the version
-braid help        # show usage
+braid list          # braids and their strands, with status and run order
+braid view 0002     # one braid: fields, report, logs, strands and its brief
+braid view 0002/A   # one strand
+braid new 'Braids folder' --labels 'kind:story,tier:L'   # the next free number
+braid strand new 0002 'Read braids' --order 1           # the next free letter
+braid edit 0002/A --status 'In Progress'                # status, title, labels, dependencies, order, delivery
+braid brief 0002 Goal --file goal.md                    # set a section; --file - reads standard input
+braid log 0002/A --thread mcp:launch:5d80964a 'Parser done'   # a dated entry in that thread's log file, staged with git add
+braid log 0002/A --checkpoint 'Paused after the parser'       # a checkpoint entry; no thread: the log-<date>-user.md file
+braid report 0002/A --file report.md                    # write report.md; --append adds to it
+braid --version     # print the version
+braid help          # show usage
 ```
 
 For how work is planned, assigned to agents, reviewed and merged, see the [workflow](.agents/skills/braid/references/workflow.md) and [AGENTS.md](AGENTS.md).
@@ -84,7 +94,7 @@ This repository's own [BRAID.md](BRAID.md) and `backlog/` are an example; `epics
 
 ## CLI
 
-After `npm run build`, run `node dist/cli.js --version` or `node dist/cli.js help`. Both exit 0. An unknown command prints an error to stderr and exits 1.
+After `npm run build`, run `node dist/cli.js <command>`, for example `node dist/cli.js help`. Usage errors exit 1 and broken braid files exit 2, with the message on stderr.
 
 ## Continuous integration
 

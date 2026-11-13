@@ -11,6 +11,9 @@ dist/
 # Local braid state. It stays untracked.
 .braid/
 
+# Scratch folders inside braids and strands.
+braids/**/temp/
+
 # Packed package artifacts. The tarball and provenance stay local or in Actions.
 *.tgz
 /artifacts/
