@@ -27,7 +27,7 @@ Status: round 3: the MVP (stories 1 to 4) in strands: stories 1 and 2 in detail,
 - **Subtasks:** a folder per subtask inside its item: `A-<slug>`, `B-<slug>`. Letters never change; run order is in the front matter.
 - **Files in every item and subtask folder:** `brief.md` (front matter, the brief, decisions, implementation details), `report.md` (the report), one log file per thread, and `temp/` (ignored by git).
 - **Logs:** `log-<creation date>-<short thread id>.md`, written with `braid log`; a log shows which threads worked on a folder and serves as the checkpoint for resuming.
-- **Short thread IDs:** the first 8 characters of the T3 thread id (`user` when there is no thread).
+- **Short thread IDs:** the first 8 letters or digits of the T3 thread id after its last `:` (`mcp:launch:5d80964a…` gives `5d80964a`; `user` when there is no thread).
 - **Names:** a top-level item is a **braid**; the CLI stays `braid` (commands like `braid new`, `braid list`, so no `braid braid …`). A subtask is a **strand** (a braid is woven from strands).
 - **A subtask is one PR on its own branch** (decision 2). A braid has a delivery mode in its front matter, set per braid:
   - `epic` (default): an epic branch; each subtask's PR merges into it, and the braid goes into `main` with one final PR.
@@ -126,7 +126,7 @@ The background of each decision above, as first proposed; where they differ, "De
    - Letters are names, not order: they never change once given, and the run order is in the brief's front matter. A new subtask gets the next free letter.
    - Status lives in each brief's front matter; a worker sets its own subtask's status on its branch, as today.
    - Only the coordinator creates items and checks remote branches for taken numbers first.
-   - One log file per thread: `log-<creation date>-<short thread id>.md` (the first 8 characters of the T3 thread id; `user` when no thread). `braid log <folder> --thread <id> <text>` appends a dated entry to that thread's file, creating it on first use. On resume, the files show which threads worked on the folder before, and whether the current thread already has a log. One writer per file, so branches don't collide. Still to settle in story 2: the entry format, and how a checkpoint entry is marked.
+   - One log file per thread: `log-<creation date>-<short thread id>.md` (the first 8 letters or digits after the thread id's last `:`; `user` when no thread). `braid log <folder> --thread <id> <text>` appends a dated entry to that thread's file, creating it on first use. On resume, the files show which threads worked on the folder before, and whether the current thread already has a log. One writer per file, so branches don't collide. Still to settle in story 2: the entry format, and how a checkpoint entry is marked.
    - TASK-1 to TASK-3 become `0001` to `0003` at the import (story 4); new work starts at `0004`.
 2. **What a phase is.** Recommendation: a phase is one PR on its own branch, like today's subtask, but lives inside its task's folder; a task with phases has an epic branch as today. A story is a task with no phases.
 3. **Backlog.md compatibility.** Recommendation: none. A one-time import (story 4) and `backlog/` kept read-only. The alternative, reading both formats for a while, costs code for little gain.

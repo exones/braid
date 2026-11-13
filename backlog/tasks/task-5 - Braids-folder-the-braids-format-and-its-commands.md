@@ -4,7 +4,7 @@ title: 'Braids folder: the braids/ format and its commands'
 status: Done
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
-updated_date: '2026-11-13T21:06:00Z'
+updated_date: '2026-11-13T21:11:00Z'
 labels:
   - kind:story
   - tier:L
@@ -30,14 +30,14 @@ Out of scope: the board (story 3), the import of `backlog/` and the skills switc
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 All three strands are Done on the epic branch
-- [ ] #2 A braid with strands can be created, edited, logged, reported, listed and viewed entirely from the CLI
+- [x] #1 All three strands are Done on the epic branch
+- [x] #2 A braid with strands can be created, edited, logged, reported, listed and viewed entirely from the CLI
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -58,3 +58,12 @@ Plan changes: doc-5 story 4 outline notes the report rule (after a fix round the
 
 Closing: all three strands merged into the epic branch; braid now reads, creates, edits, logs and reports braids and strands from the CLI.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: braid tracks braids and strands in braids/ from the command line. TASK-5.1 (PR #60): the format (docs/braids-format.md), a strict front matter parser, braid list and braid view. TASK-5.2 (PR #61): braid new, braid strand new, braid edit, braid brief; numbers and letters never reused across branches; every write re-parsed before saving. TASK-5.3 (PR #62): braid log (one file per thread, the part of the thread id after its last ':', staged, never committed; checkpoints) and braid report (replace, or --append).
+Why: story 2 of the new braid (doc-5), the format and commands every later story builds on.
+Validation: npm run verify passes (29 tests); each strand was independently reviewed (5.3 blocking once, fixed); the final PR #63 was reviewed, not blocking; the user tried the commands hands-on in a playground repo.
+Open: a single end-to-end test across all commands (optional review suggestion); the report rule for fix rounds goes into the worker skill in story 4 (noted in doc-5).
+<!-- SECTION:FINAL_SUMMARY:END -->
