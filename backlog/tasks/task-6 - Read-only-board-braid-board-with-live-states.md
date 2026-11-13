@@ -4,7 +4,7 @@ title: 'Read-only board: braid board with live states'
 status: In Progress
 assignee: []
 created_date: '2026-11-13T22:00:00Z'
-updated_date: '2026-11-13T22:18:00Z'
+updated_date: '2026-11-13T23:10:00Z'
 labels:
   - kind:story
   - tier:L
@@ -46,4 +46,7 @@ Out of scope: board actions (Start, Merge, Open thread are story 6), the import 
 
 <!-- SECTION:NOTES:BEGIN -->
 2026-11-13 User added to TASK-6.1's mockups: the final state with Start and Merge buttons, and a braid page with a strand table of contents on the left, details and brief by default, and tabs for report and logs.
+
+2026-11-14 TASK-6.1 merged: PR #65, 329a8b2. Done: braid check; braid board (127.0.0.1, read-only, React/Vite/Tailwind/Radix bundled into dist/web, 430 KB); five lanes from stored status, expandable braid cards, braid page with contents panel and Brief/Report/Logs tabs; Start/Merge as disabled icons (Start on To Do, Merge on In Review); mockups reviewed by the user first, kept in docs/design/. Review not blocking; 4 suggestions applied (repo label, bound-address and HTML-in-brief tests, size measured). For later items: /api/board and /api/item in src/board/model.ts and src/commands/board.ts; web code in web/ (hash routes #/0002/A?tab=report).
+Plan changes: none. User decided: mockup review (icons bottom right); merge on request.
 <!-- SECTION:NOTES:END -->
