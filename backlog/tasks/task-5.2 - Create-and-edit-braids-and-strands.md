@@ -1,9 +1,10 @@
 ---
 id: TASK-5.2
 title: Create and edit braids and strands
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
+updated_date: '2026-11-13T19:18:00Z'
 labels:
   - kind:story
   - tier:L
