@@ -58,3 +58,12 @@ Out of scope:
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Q1 (starting agents): look at what T3 Code exposes on this machine (CLI, local server and its protocol, link scheme, the MCP tools this host gives agents), and the claude and codex CLIs as fallback; record commands and what each loses.
+2. Q2 (derived states): for Running, In Review, Waiting for you and Done, pick the source (gh pr list/checks, T3 threads, ask:<key> labels, branches), time the gh calls on this repo, and write the rule table with reliability and cost per refresh.
+3. Q3 (first version): read Backlog.md 1.55.3's board and task view (clone the tag into gitignored inspiration/) for parent/subtask display; propose candidate lanes, the read-only first version on TASK-2.3's way and stack with goal cards that expand, its size, and the follow-up goals.
+4. Rewrite docs/roadmap.md "braid's own board" (about 30-60 lines, marked proposed), noting evidence in task notes; run npm run verify; final summary; Done.
+<!-- SECTION:PLAN:END -->
