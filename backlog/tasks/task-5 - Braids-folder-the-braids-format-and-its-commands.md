@@ -1,10 +1,10 @@
 ---
 id: TASK-5
 title: 'Braids folder: the braids/ format and its commands'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
-updated_date: '2026-11-13T18:36:00Z'
+updated_date: '2026-11-13T18:55:00Z'
 labels:
   - kind:story
   - tier:L
@@ -44,4 +44,6 @@ Out of scope: the board (story 3), the import of `backlog/` and the skills switc
 
 <!-- SECTION:NOTES:BEGIN -->
 2026-11-13 Back to To Do at the user's request: nothing in TASK-5 starts until TASK-4 (fresh start) is merged; set In Progress when TASK-5.1 starts.
+
+2026-11-13 TASK-4 merged into main (PR #59, 74f272a); main merged into the epic branch; TASK-5.1 starts.
 <!-- SECTION:NOTES:END -->
