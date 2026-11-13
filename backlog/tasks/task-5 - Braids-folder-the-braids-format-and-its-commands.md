@@ -4,7 +4,7 @@ title: 'Braids folder: the braids/ format and its commands'
 status: In Progress
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
-updated_date: '2026-11-13T18:55:00Z'
+updated_date: '2026-11-13T19:17:00Z'
 labels:
   - kind:story
   - tier:L
@@ -46,4 +46,7 @@ Out of scope: the board (story 3), the import of `backlog/` and the skills switc
 2026-11-13 Back to To Do at the user's request: nothing in TASK-5 starts until TASK-4 (fresh start) is merged; set In Progress when TASK-5.1 starts.
 
 2026-11-13 TASK-4 merged into main (PR #59, 74f272a); main merged into the epic branch; TASK-5.1 starts.
+
+2026-11-13 TASK-5.1 merged: PR #60, 020cd03. Done: docs/braids-format.md; strict front matter parser (YAML subset, values stay text, unknown keys are errors, id must match folder, delivery only on braids, default epic); braid list and braid view; errors name file and line; BOM and CRLF handled. Review not blocking; 3 suggestions applied. For later items: parseBrief(text, file, expectedId), loadBraids(root), findRoot(cwd) in src/braids/store.ts; FormatError exits 2, UsageError 1; the writer should emit exactly the front matter subset, ids quoted like '0001', strings JSON-escaped in double quotes.
+Plan changes: none. User decided: merge on request.
 <!-- SECTION:NOTES:END -->
