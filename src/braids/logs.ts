@@ -4,12 +4,16 @@ import { appendFileSync, existsSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path";
 import { LOG_FILE } from "./store.js";
 
-/** The first 8 letters or digits of a thread id; `user` when there is no thread. */
+/**
+ * The first 8 letters or digits of the identifying part of a thread id: what follows
+ * the last `:` (`mcp:launch:5d80964a…` gives `5d80964a`). `user` when there is no thread.
+ */
 export function threadShort(thread: string | undefined): string | null {
   if (thread === undefined) {
     return "user";
   }
-  const short = thread.replace(/[^A-Za-z0-9]/g, "").slice(0, 8);
+  const part = thread.slice(thread.lastIndexOf(":") + 1);
+  const short = part.replace(/[^A-Za-z0-9]/g, "").slice(0, 8);
   return short.length === 8 ? short : null;
 }
 

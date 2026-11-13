@@ -4,7 +4,7 @@ title: 'Logs and reports: braid log, braid report'
 status: Done
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
-updated_date: '2026-11-13T20:40:00Z'
+updated_date: '2026-11-13T20:51:00Z'
 labels:
   - kind:story
   - tier:M
@@ -40,7 +40,7 @@ Out of scope: the board, the import, resuming runs (story 8).
 - [x] #1 braid log creates or appends the right per-thread file and stages it without committing, covered by tests
 - [x] #2 The entry and checkpoint format is in docs/braids-format.md
 - [x] #3 braid report writes and appends report.md
-- [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
+- [x] #4 npm run verify passes; CI green on Windows and Ubuntu
 <!-- AC:END -->
 
 ## Definition of Done
@@ -62,6 +62,8 @@ Out of scope: the board, the import, resuming runs (story 8).
 
 <!-- SECTION:NOTES:BEGIN -->
 Entry format: "## YYYY-MM-DD HH:MMZ" (UTC) plus " checkpoint" for checkpoints; --thread needs 8+ letters/digits; braid report replaces, --append adds; BRAID_NOW fixes the clock in tests.
+
+Review fix: thread short id is taken from the part after the last colon (mcp:launch:5d80964a.. gives 5d80964a); added tests for it and for braid log without a git repository.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
