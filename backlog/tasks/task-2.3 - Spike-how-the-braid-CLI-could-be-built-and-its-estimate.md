@@ -1,10 +1,10 @@
 ---
 id: TASK-2.3
 title: 'Spike: how the braid CLI could be built, and its estimate'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T12:45:00Z'
-updated_date: '2026-11-13T13:25:00Z'
+updated_date: '2026-11-13T13:28:00Z'
 labels:
   - kind:spike
   - tier:M
