@@ -4,7 +4,7 @@ title: 'Read-only board: braid board with live states'
 status: In Progress
 assignee: []
 created_date: '2026-11-13T22:00:00Z'
-updated_date: '2026-11-13T23:10:00Z'
+updated_date: '2026-11-13T23:35:00Z'
 labels:
   - kind:story
   - tier:L
@@ -49,4 +49,7 @@ Out of scope: board actions (Start, Merge, Open thread are story 6), the import 
 
 2026-11-14 TASK-6.1 merged: PR #65, 329a8b2. Done: braid check; braid board (127.0.0.1, read-only, React/Vite/Tailwind/Radix bundled into dist/web, 430 KB); five lanes from stored status, expandable braid cards, braid page with contents panel and Brief/Report/Logs tabs; Start/Merge as disabled icons (Start on To Do, Merge on In Review); mockups reviewed by the user first, kept in docs/design/. Review not blocking; 4 suggestions applied (repo label, bound-address and HTML-in-brief tests, size measured). For later items: /api/board and /api/item in src/board/model.ts and src/commands/board.ts; web code in web/ (hash routes #/0002/A?tab=report).
 Plan changes: none. User decided: mockup review (icons bottom right); merge on request.
+
+2026-11-14 TASK-6.2 merged: PR #66, db7eae7. Done: board reads a strand's brief, report and logs from braid/0006/A-<slug> (local or origin/), else braid/0006-<slug>, else the working tree; branch-only items shown; newest commit wins, local wins a tie; merged branches and the checked-out branch skipped; no fetch; cards note the branch. Review not blocking; squash note and test, narrower git calls applied. For later items: BRAID_BRANCH and STRAND_BRANCH in src/braids/branches.ts match PR head branches; treeOf(root, item) reads an item's files; /api/item has branch.
+Plan changes: TASK-6.3 also shows the branch in the braid page's details (user's yes). User decided: that; merge on request.
 <!-- SECTION:NOTES:END -->

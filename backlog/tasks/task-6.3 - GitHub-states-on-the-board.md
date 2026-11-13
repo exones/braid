@@ -4,6 +4,7 @@ title: GitHub states on the board
 status: To Do
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
+updated_date: '2026-11-13T23:35:00Z'
 labels:
   - kind:story
   - tier:M
@@ -28,6 +29,7 @@ Start here (read in this order):
 Change:
 - One `gh pr list` call per refresh (head branch, state, checks); merged PRs cached.
 - Open PR from a strand's branch → In Review; merged → Done; failing checks with no agent working → Waiting, reason "checks failed" (until TASK-6.4 knows about agents, treat failing checks as Waiting); an `ask:<key>` label on the strand → Waiting with that key.
+- The braid page's details list also shows which branch the item's state came from (`/api/item` already has `branch`; the user approved this one line).
 - The card links to its PR. Without `gh` or offline, the board says so and falls back to stored states.
 
 Already decided (don't re-investigate): the parent TASK-6 and doc-5 (`backlog/docs/doc-5 - New-braid-implementation-plan-draft.md`). Reuse the reader in `src/braids/` (`loadBraids`, `parseBrief`). Node.js 26, strict TypeScript, ESM; Windows and Ubuntu.
