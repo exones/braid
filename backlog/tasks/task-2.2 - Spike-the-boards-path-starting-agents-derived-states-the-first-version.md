@@ -4,7 +4,7 @@ title: 'Spike: the board''s path: starting agents, derived states, the first ver
 status: To Do
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
-updated_date: '2026-11-13T12:48:00Z'
+updated_date: '2026-11-13T13:25:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -31,13 +31,15 @@ Start here (read in this order):
 Questions:
 1. Starting work from outside T3: can a local program start a T3 thread on a worktree, or send a message to an existing thread (API, CLI, link scheme)? If not, the fallback (for example the `claude` or `codex` CLI) and what it loses.
 2. Derived states: for Running, In Review, Waiting for you (with the stop case) and Done, the source (`gh`, T3, task labels, branches), how reliable it is and its cost per refresh.
-3. The smallest first version: a read-only local board with derived columns, where a goal is one top-level card that expands (or opens) to show its subtasks together, on the recommended way from TASK-2.3; its size, and the follow-up goals after it. Also say whether Backlog.md 1.55.3's own board or task view can already show a parent with its subtasks, and how.
+3. The smallest first version: a read-only local board with derived columns, where a goal is one top-level card that expands (or opens) to show its subtasks together, on the way and UI stack from TASK-2.3; propose candidate lanes for the user to choose later; its size, and the follow-up goals after it. Also say whether Backlog.md 1.55.3's own board or task view can already show a parent with its subtasks, and how.
 
 Change:
 - `docs/roadmap.md` "braid's own board": the recommended path, the first version and the follow-up goals, marked as proposed until the user decides.
 
 Already decided (don't re-investigate):
 - The current braid CLI (`src/`, the `.braid/` ledger) and the roadmap's stages built around it are dismissed: the new CLI starts fresh and needn't fit them.
+- The user leans to reimplementing (2026-11-13): a compatible Node tracker with Backlog.md as the reference, wrapping its CLI during the transition. The product will grow: richer UI, checkpoints, reports, better resuming, multiple agents, running a task from the board.
+- UI: modern UI libraries; minimal but functional, the main view a board with several lanes (the lanes are defined later).
 
 Out of scope:
 - Re-deciding fork or reference (TASK-2.1) or the CLI's design (TASK-2.3), building the board, product code and skill changes.
