@@ -81,53 +81,6 @@ function Get-Sha256 {
   return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
 }
 
-function Test-SameBytes {
-  param($Left, $Right)
-  $leftMissing = $null -eq $Left
-  $rightMissing = $null -eq $Right
-  if ($leftMissing -and $rightMissing) {
-    return $true
-  }
-  if ($leftMissing -or $rightMissing) {
-    return $false
-  }
-  return [Convert]::ToBase64String([byte[]]$Left) -eq [Convert]::ToBase64String([byte[]]$Right)
-}
-
-function Get-Ledger {
-  param([Parameter(Mandatory = $true)][string]$Root)
-  $statePath = Join-Path $Root '.braid/state.json'
-  $eventsPath = Join-Path $Root '.braid/events.jsonl'
-  $state = $null
-  $events = $null
-  if (Test-Path -LiteralPath $statePath) {
-    $state = [System.IO.File]::ReadAllBytes($statePath)
-  }
-  if (Test-Path -LiteralPath $eventsPath) {
-    $events = [System.IO.File]::ReadAllBytes($eventsPath)
-  }
-  return [pscustomobject]@{
-    State = $state
-    Events = $events
-  }
-}
-
-function Assert-SameLedger {
-  param(
-    $Before,
-    $After,
-    [Parameter(Mandatory = $true)][string]$Label
-  )
-  if (-not (Test-SameBytes $Before.State $After.State) -or -not (Test-SameBytes $Before.Events $After.Events)) {
-    Fail "$Label changed ledger bytes"
-  }
-}
-
-function Join-Lines {
-  param([Parameter(Mandatory = $true)]$Lines)
-  return ([string[]]$Lines -join "`n")
-}
-
 function Remove-TreeSafe {
   param([Parameter(Mandatory = $true)][string]$RootPath)
   if (-not (Test-Path -LiteralPath $RootPath)) {
@@ -189,22 +142,6 @@ function Assert-EmptyDirectory {
   $actual = (Get-DirectoryNameText -Path $Path).Text
   if ($actual -ne '') {
     Fail "$Label directory names [$actual] expected empty"
-  }
-}
-
-function Assert-DirectoryNames {
-  param(
-    [Parameter(Mandatory = $true)][string]$Path,
-    [Parameter(Mandatory = $true)][string[]]$Expected,
-    [Parameter(Mandatory = $true)][string]$Label
-  )
-  $actual = (Get-DirectoryNameText -Path $Path).Text
-  $expectedList = [System.Collections.Generic.List[string]]::new()
-  $expectedList.AddRange($Expected)
-  $expectedList.Sort([StringComparer]::Ordinal)
-  $right = [string]::Join('|', $expectedList)
-  if ($actual -ne $right) {
-    Fail "$Label directory names [$actual] expected [$right]"
   }
 }
 
