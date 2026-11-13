@@ -4,7 +4,7 @@ title: 'Ground research: a new braid CLI, board and T3 automation'
 status: In Progress
 assignee: []
 created_date: '2026-11-12T20:01:00Z'
-updated_date: '2026-11-13T14:49:00Z'
+updated_date: '2026-11-13T15:19:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -56,4 +56,6 @@ Plan changes: TASK-2.3 and TASK-2.2 adjusted to the user's lean (see the note ab
 
 2026-11-13 TASK-2.3 merged: PR #55, 77d22f8. Done: docs/braid-cli.md: a fresh Node tracker compatible with Backlog.md's files (5.1k-7.1k product lines; 7.5k-11.1k with the board), React 19 + Vite 8 + Tailwind 4 + Radix served on 127.0.0.1, six follow-up goals with phases (read-only board, compatible task commands, coordinator commands, board actions, following agents and resuming, reports and several agents); review not blocking, five corrections applied. For later items: TASK-2.2 supplies the lanes and derived-state rules for goal 1; actions are buttons, not drag; run state lives in untracked runs/ records.
 Plan changes: none. User decided: none yet on the way and goal order; licence open (the repo is public with none).
+
+2026-11-13 Plan change (user's request): spike outputs are reports attached to their tasks in backlog/docs (doc-1 TASK-2.1, doc-2 TASK-2.3, doc-3 TASK-2.2), marked research, not decisions. docs/backlog-md.md and docs/braid-cli.md are removed and the roadmap's proposed section is taken out, all in TASK-2.2's PR #56. The coordinator's plan had wrongly sent spike output to docs/. Decisions still open: the way (user leans to reimplement), lanes A/B/C, T3 reading in goal 1, licence.
 <!-- SECTION:NOTES:END -->

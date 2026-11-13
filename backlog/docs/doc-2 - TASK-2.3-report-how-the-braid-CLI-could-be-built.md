@@ -1,16 +1,25 @@
+---
+id: doc-2
+title: 'TASK-2.3 report: how the braid CLI could be built'
+type: other
+created_date: '2026-11-13T15:19:00Z'
+---
+
 # The new braid CLI: design sketch and estimate
+
+> Research report for TASK-2.3, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so (see TASK-2's notes).
 
 How a new braid CLI could be built as braid's task tracker, board and, later, the automation of T3
 (starting and following agents), with an estimate per way, a UI stack for the board and what the
 licences mean. Written for TASK-2.3 (2026-11-13). It builds on [Backlog.md as braid's
-reference](backlog-md.md) (TASK-2.1) and the user's lean of 2026-11-13: reimplement a compatible
+reference](doc-1%20-%20TASK-2.1-report-Backlog.md-as-braids-reference.md) (TASK-2.1) and the user's lean of 2026-11-13: reimplement a compatible
 Node tracker with Backlog.md as the reference, wrapping its CLI during the transition. Fork and wrap
 are estimated only roughly. The board's lanes, derived-state sources and agent starts are TASK-2.2's.
 
 Evidence: the braid skills (`.agents/skills/braid/SKILL.md`, `references/workflow.md`,
-`assets/task.md`, `braid-worker`, `braid-reviewer`), [BRAID.md](../BRAID.md), the
-[roadmap](roadmap.md#braids-own-board), [decisions](decisions.md) D01 and D30, and Backlog.md v1.55.3
-cloned into `inspiration/backlog.md` (gitignored) as in [backlog-md.md](backlog-md.md). Line counts
+`assets/task.md`, `braid-worker`, `braid-reviewer`), [BRAID.md](../../BRAID.md), the
+[roadmap](../../docs/roadmap.md#braids-own-board), [decisions](../../docs/decisions.md) D01 and D30, and Backlog.md v1.55.3
+cloned into `inspiration/backlog.md` (gitignored) as in [backlog-md.md](doc-1%20-%20TASK-2.1-report-Backlog.md-as-braids-reference.md). Line counts
 are `wc -l`; library versions are `npm view <package> version time.modified` on 2026-11-13; braid's
 licence state is from `package.json` and `gh api repos/exones/braid`.
 
@@ -135,7 +144,7 @@ repository today has about 2,100 product lines (`src/`) and 4,300 test lines (`t
 | T3 automation, `runs/` records, checkpoints, resuming | 1,000–2,000 | Goal 5; depends on T3's API, the most uncertain |
 | Reports, several agents, running a task from the board | 1,000–2,000 | Goal 6; rough, planned after goal 5 |
 
-In goals (tiers as in [the workflow](../.agents/skills/braid/references/workflow.md)): six
+In goals (tiers as in [the workflow](../../.agents/skills/braid/references/workflow.md)): six
 goals, five of them tier L and one tier M, listed under "Follow-up goals" below.
 
 **Riskiest parts**, in order:

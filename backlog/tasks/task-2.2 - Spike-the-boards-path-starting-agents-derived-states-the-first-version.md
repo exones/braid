@@ -4,7 +4,7 @@ title: 'Spike: the board''s path: starting agents, derived states, the first ver
 status: Done
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
-updated_date: '2026-11-13T15:05:00Z'
+updated_date: '2026-11-13T15:19:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -12,6 +12,8 @@ milestone: m-1
 dependencies:
   - TASK-2.1
   - TASK-2.3
+documentation:
+  - backlog/docs/doc-3 - TASK-2.2-report-the-boards-path.md
 parent_task_id: TASK-2
 ordinal: 20
 ---
@@ -75,6 +77,8 @@ Evidence (2026-11-13): `t3 --help`, `t3 thread start|send|show|list --help` (t3 
 Decision: proposed moving the read-only T3 source into goal 1 phase (b), since the t3 CLI makes it cheap; actions stay in goal 4.
 
 Review fixes (PR #56): list and show fields split (branch, worktreePath, pendingRequestCount are show-only; branch can be null); join key via list pullRequests, then show worktreePath against git worktree list, branch as fallback; refresh re-costed (list 1.3 s for 73 threads, show ~1 s per running thread of an open item, 1.5-2.5 s parallel); --wait exit codes and seen statuses added; goal 1 size 5,500-8,400 with module rows; Failed split into Failed (red checks) and Stopped (interrupted/cancelled, no PR).
+
+On 2026-11-13, at the user's request, the spike's output moved from docs/ into this report attached to the task, marked as research, not decisions; docs/ and the roadmap are unchanged by TASK-2. Report: doc-3 (was the "Proposed path" section of docs/roadmap.md).
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
