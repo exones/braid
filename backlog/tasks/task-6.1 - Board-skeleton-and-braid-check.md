@@ -4,6 +4,7 @@ title: Board skeleton and braid check
 status: To Do
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
+updated_date: '2026-11-13T22:13:00Z'
 labels:
   - kind:story
   - tier:M
@@ -26,6 +27,7 @@ Start here (read in this order):
 - `backlog/docs/doc-2 - TASK-2.3-report-how-the-braid-CLI-could-be-built.md`, section 4 (UI stack): a proposal, not binding beyond the stack.
 
 Change:
+- **First, mockups, then stop.** Before building the board, make mockups of the board with realistic test braids (several braids, strands in every lane, an Outline braid, a Waiting card with its reason, an expanded braid card, and a card's brief and report view): a static page or screenshots saved under `temp/` and shown in the PR. Commit and push them, report to the coordinator and wait: the user reviews the design and may change the plan. Build only after the coordinator passes on the user's go.
 - `braid check`: validate every brief under `braids/`, list every error with its file, exit 2 on any.
 - `docs/braids-format.md` and `README.md`: briefs and reports may be edited directly; run `braid check` afterwards (they now say "not by hand").
 - `braid board`: serves a page on 127.0.0.1 (free port, printed) and opens the browser; React, Vite, Tailwind and Radix, built into the package.
@@ -43,6 +45,7 @@ Out of scope: branches, GitHub and T3 (TASK-6.2 to 6.4); refresh beyond a page r
 - [ ] #2 The format doc and README allow direct edits followed by braid check
 - [ ] #3 braid board opens a page showing braids in the five lanes, expanding to their strands, with brief and report on click
 - [ ] #4 npm run verify passes; CI green on Windows and Ubuntu; screenshots in the PR
+- [ ] #5 Mockups with test braids were reviewed by the user before the board was built
 <!-- AC:END -->
 
 ## Definition of Done

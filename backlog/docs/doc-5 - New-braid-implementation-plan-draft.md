@@ -45,6 +45,8 @@ Status: round 4: stories 1 and 2 merged; story 3 (board) in strands, with open q
 
 - **Agents may edit braid files directly** (user, 2026-11-13): briefs and reports are plain Markdown, and braid checks them on every read, so agents edit them like any file when that is quicker (planning especially). The CLI stays for what has logic: new numbers and letters (`braid new`, `strand new`), logs (`braid log` stages them), and quick status changes. A `braid check` command (in story 3, strand A) validates every brief, so an agent runs it after editing by hand.
 
+- **UI starts with mockups** (user, 2026-11-13): before UI is built, the worker makes mockups on realistic test braids and stops; the user reviews the design (and may change the plan) before building. First applied in story 3, strand A.
+
 All nine are decided; "Decision details" below keeps the background.
 
 ## Stories, in order
