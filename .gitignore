@@ -8,7 +8,7 @@ dist/
 *.tsbuildinfo
 .tools/
 
-# Local ledger state created by the CLI. It stays untracked.
+# Local braid state. It stays untracked.
 .braid/
 
 # Packed package artifacts. The tarball and provenance stay local or in Actions.
