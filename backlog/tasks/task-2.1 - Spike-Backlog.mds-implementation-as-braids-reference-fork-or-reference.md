@@ -4,6 +4,7 @@ title: 'Spike: Backlog.md''s implementation as braid''s reference; fork or refer
 status: To Do
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
+updated_date: '2026-11-13T12:48:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -32,6 +33,7 @@ Change:
 
 Already decided (don't re-investigate):
 - Backlog.md stays the store until braid reads the same files.
+- The current braid CLI (`src/`, the `.braid/` ledger) and the roadmap's stages built around it are dismissed: the new CLI starts fresh and needn't fit them.
 - Earlier count: about 68k lines at 1.55.3, 16k of them the web UI (verify with a per-folder count).
 
 Out of scope:

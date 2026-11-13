@@ -1,10 +1,10 @@
 ---
 id: TASK-2
-title: 'braid''s own board: the path, and Backlog.md as fork or reference'
+title: 'Ground research: a new braid CLI, board and T3 automation'
 status: To Do
 assignee: []
 created_date: '2026-11-12T20:01:00Z'
-updated_date: '2026-11-13T12:45:00Z'
+updated_date: '2026-11-13T12:48:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -16,7 +16,7 @@ ordinal: 20
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Goal: decide how braid gets its own task tracker and board (roadmap "braid's own board"): fork Backlog.md and adjust it into braid, wrap it, or reimplement it with its code as a reference; and the smallest path to a board that shows derived states and can start agents. The user decides from the spikes' answers.
+Goal: the ground research for a new braid: a CLI that tracks tasks, a board, and eventually automation of T3 (starting and following agents). Decide how to build it (fork Backlog.md and adjust it, wrap it, or reimplement with its code as a reference) and the smallest path to a board that shows derived states and can start agents. The user decides from the spikes' answers.
 
 Subtasks, in order:
 - TASK-2.1: Backlog.md's implementation as a reference, and fork or reference.
@@ -25,6 +25,7 @@ Subtasks, in order:
 
 Already decided (don't re-investigate):
 - Backlog.md stays the store until braid reads the same files, so existing tasks need no conversion (roadmap).
+- The current braid CLI (`src/`, the `.braid/` ledger) and the roadmap's stages built around it are dismissed: the new CLI starts fresh and needn't fit them.
 - Spikes recommend; the user decides. No product code or skill changes in this goal.
 - Backlog.md source for reading: github.com/MrLesk/Backlog.md at tag v1.55.3 (MIT), the version braid pins.
 

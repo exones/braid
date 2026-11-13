@@ -4,7 +4,7 @@ title: 'Spike: the board''s path: starting agents, derived states, the first ver
 status: To Do
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
-updated_date: '2026-11-13T12:45:00Z'
+updated_date: '2026-11-13T12:48:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -35,6 +35,9 @@ Questions:
 
 Change:
 - `docs/roadmap.md` "braid's own board": the recommended path, the first version and the follow-up goals, marked as proposed until the user decides.
+
+Already decided (don't re-investigate):
+- The current braid CLI (`src/`, the `.braid/` ledger) and the roadmap's stages built around it are dismissed: the new CLI starts fresh and needn't fit them.
 
 Out of scope:
 - Re-deciding fork or reference (TASK-2.1) or the CLI's design (TASK-2.3), building the board, product code and skill changes.
