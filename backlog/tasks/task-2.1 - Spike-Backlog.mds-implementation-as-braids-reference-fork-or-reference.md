@@ -4,7 +4,7 @@ title: 'Spike: Backlog.md''s implementation as braid''s reference; fork or refer
 status: In Progress
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
-updated_date: '2026-11-13T12:57:00Z'
+updated_date: '2026-11-13T12:59:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -54,3 +54,13 @@ Out of scope:
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Clone Backlog.md v1.55.3 into inspiration/ (gitignored) and count lines per folder (non-test, tests, web UI).
+2. Read the parts braid uses: task file format and structured sections, ID and subtask generation, cross-branch loading, config, CLI commands, MCP server, web server and board; note Bun-only APIs and the build.
+3. Collect upstream health with gh api (releases, contributors, open issues) and the licence.
+4. Write docs/backlog-md.md: parts with line counts, how it does what braid uses, what braid adds, hard parts and known bugs, runtime, upstream health, then fork vs wrap vs reimplement compared, with a recommendation and the conditions that would change it.
+5. Run npm run verify; write the final summary; set Done.
+<!-- SECTION:PLAN:END -->
