@@ -4,7 +4,7 @@ title: 'Ground research: a new braid CLI, board and T3 automation'
 status: In Progress
 assignee: []
 created_date: '2026-11-12T20:01:00Z'
-updated_date: '2026-11-13T13:25:00Z'
+updated_date: '2026-11-13T13:27:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -50,4 +50,7 @@ Out of scope:
 
 <!-- SECTION:NOTES:BEGIN -->
 2026-11-13 User decided (on TASK-2.1): leans to reimplementing a compatible Node tracker with Backlog.md as the reference, then growing the product (richer UI, checkpoints, reports, better resuming, multiple agents, running a task from the board); follow-ups as bigger stories with phases. UI: modern libraries, minimal but functional, a board with several lanes defined later. Plan changes: TASK-2.3 now details reimplementing (fork and wrap only roughly) and adds the UI stack; TASK-2.2 proposes candidate lanes.
+
+2026-11-13 TASK-2.1 merged: PR #54, f11fe6e. Done: docs/backlog-md.md maps Backlog.md 1.55.3 (66.6k product lines, 88.5k test lines, Bun only, MIT, one maintainer in practice) and recommends reimplementing a compatible Node tracker with it as the reference, wrapping its CLI during the transition; review not blocking, three factual corrections applied. For later items: the board shows the working copy first (selectTaskRecord), not the newest; the compatible subset is a rough 5k-8k lines for TASK-2.3 to confirm.
+Plan changes: TASK-2.3 and TASK-2.2 adjusted to the user's lean (see the note above). User decided: leans to reimplement (see above).
 <!-- SECTION:NOTES:END -->
