@@ -4,7 +4,7 @@ title: 'Ground research: a new braid CLI, board and T3 automation'
 status: Done
 assignee: []
 created_date: '2026-11-12T20:01:00Z'
-updated_date: '2026-11-13T15:50:00Z'
+updated_date: '2026-11-13T15:57:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -42,15 +42,15 @@ Out of scope:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 No product code or skill changes
-- [ ] #2 All three spikes are Done on the epic branch
-- [ ] #3 docs/backlog-md.md, docs/braid-cli.md and the roadmap give the user a recommendation on fork, wrap or reimplement, the CLI estimate, and the board path with its first version and follow-up goals
+- [x] #1 No product code or skill changes
+- [x] #2 All three spikes are Done on the epic branch
+- [x] #3 The reports doc-1 to doc-3 give the recommendation on fork, wrap or rewrite, the CLI estimate and the board path, and doc-4 records the user's decisions
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -78,3 +78,13 @@ Plan changes: spike outputs are task reports, not docs. User decided: see the de
 
 Closing: all three spikes merged into the epic branch; the user decided the way, lanes, T3 reading in goal 1 and MIT (doc-4). Next: the implementation plan from doc-4, and the MIT licence story on the user's go.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: the ground research for a new braid (a task tracker CLI, a board, later T3 automation), as four reports attached to the tasks in backlog/docs. doc-1 (TASK-2.1): Backlog.md 1.55.3 as braid's reference. doc-2 (TASK-2.3): how the braid CLI could be built, with estimates and a proposed UI stack and follow-up goals. doc-3 (TASK-2.2): starting and reading agents through T3's t3 CLI, derived states and the first read-only board. doc-4: the results and the user's decisions. docs/ and the roadmap are unchanged.
+Why: to choose how braid gets its own tracker and board before planning the implementation.
+User decisions (doc-4): rewrite a Node tracker compatible with Backlog.md's files, sized to braid's needs; lanes To Do, In Progress, In Review, Waiting (with its reason), Done; the first board reads T3; MIT.
+Validation: npm run verify passes; each spike was independently reviewed (TASK-2.2 blocking once, fixed); the final PR #57 was reviewed, not blocking.
+Open: the implementation plan, starting from doc-4; the MIT licence story on the user's go. The subtasks' original acceptance text still names docs/ files; their notes record the move to the reports.
+<!-- SECTION:FINAL_SUMMARY:END -->
