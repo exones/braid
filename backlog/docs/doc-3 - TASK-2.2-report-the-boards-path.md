@@ -7,7 +7,7 @@ created_date: '2026-11-13T15:19:00Z'
 
 # The board's path: starting agents, derived states, the first version
 
-> Research report for TASK-2.2, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so (see TASK-2's notes).
+> Research report for TASK-2.2, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so. The user's decisions: [TASK-2 report](doc-4%20-%20TASK-2-report-research-results-and-the-users-decisions.md).
 
 Built on [Backlog.md as braid's reference](doc-1%20-%20TASK-2.1-report-Backlog.md-as-braids-reference.md) and [the new braid CLI](doc-2%20-%20TASK-2.3-report-how-the-braid-CLI-could-be-built.md): a fresh Node tracker that reads Backlog.md's files, React board served on 127.0.0.1, `backlog` stays the writer at first.
 

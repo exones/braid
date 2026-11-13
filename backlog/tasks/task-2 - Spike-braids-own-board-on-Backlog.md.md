@@ -4,12 +4,19 @@ title: 'Ground research: a new braid CLI, board and T3 automation'
 status: In Progress
 assignee: []
 created_date: '2026-11-12T20:01:00Z'
-updated_date: '2026-11-13T15:37:00Z'
+updated_date: '2026-11-13T15:40:00Z'
 labels:
   - kind:spike
   - tier:M
 milestone: m-1
 dependencies: []
+documentation:
+  - >-
+    backlog/docs/doc-4 -
+    TASK-2-report-research-results-and-the-users-decisions.md
+  - backlog/docs/doc-1 - TASK-2.1-report-Backlog.md-as-braids-reference.md
+  - backlog/docs/doc-3 - TASK-2.2-report-the-boards-path.md
+  - backlog/docs/doc-2 - TASK-2.3-report-how-the-braid-CLI-could-be-built.md
 ordinal: 20
 ---
 

@@ -7,7 +7,7 @@ created_date: '2026-11-13T15:19:00Z'
 
 # The new braid CLI: design sketch and estimate
 
-> Research report for TASK-2.3, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so (see TASK-2's notes).
+> Research report for TASK-2.3, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so. The user's decisions: [TASK-2 report](doc-4%20-%20TASK-2-report-research-results-and-the-users-decisions.md).
 
 How a new braid CLI could be built as braid's task tracker, board and, later, the automation of T3
 (starting and following agents), with an estimate per way, a UI stack for the board and what the
