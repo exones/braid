@@ -1,10 +1,10 @@
 ---
 id: TASK-2.1
 title: 'Spike: Backlog.md''s implementation as braid''s reference; fork or reference'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
-updated_date: '2026-11-13T12:48:00Z'
+updated_date: '2026-11-13T12:57:00Z'
 labels:
   - kind:spike
   - tier:M
