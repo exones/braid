@@ -1,10 +1,10 @@
 ---
 id: TASK-6.3
 title: GitHub states on the board
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
-updated_date: '2026-11-13T23:35:00Z'
+updated_date: '2026-11-13T23:36:00Z'
 labels:
   - kind:story
   - tier:M
@@ -50,3 +50,9 @@ Out of scope: T3 (TASK-6.4).
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. src/board/github.ts: one `gh pr list --state all` per refresh (open-only after the first when no open PR vanished; merged PRs cached), PRs keyed by braid/strand number from head branch; checks from statusCheckRollup; gh missing/failing gives an "unavailable" note instead of an error.
+<!-- SECTION:PLAN:END -->
