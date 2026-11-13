@@ -1,10 +1,10 @@
 ---
 id: TASK-2.1
 title: 'Spike: Backlog.md''s implementation as braid''s reference; fork or reference'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
-updated_date: '2026-11-13T12:59:00Z'
+updated_date: '2026-11-13T13:03:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -43,16 +43,16 @@ Out of scope:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 docs/backlog-md.md maps Backlog.md 1.55.3 by part with line counts, and names the parts braid uses
-- [ ] #2 It compares fork, wrap and reimplement-with-reference on size, upkeep, runtime fit and licence, and recommends one with the conditions that would change it
-- [ ] #3 Claims cite files, commands run or upstream pages
-- [ ] #4 No product code or skill changes; Backlog.md source is not committed
+- [x] #1 docs/backlog-md.md maps Backlog.md 1.55.3 by part with line counts, and names the parts braid uses
+- [x] #2 It compares fork, wrap and reimplement-with-reference on size, upkeep, runtime fit and licence, and recommends one with the conditions that would change it
+- [x] #3 Claims cite files, commands run or upstream pages
+- [x] #4 No product code or skill changes; Backlog.md source is not committed
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -64,3 +64,21 @@ Out of scope:
 4. Write docs/backlog-md.md: parts with line counts, how it does what braid uses, what braid adds, hard parts and known bugs, runtime, upstream health, then fork vs wrap vs reimplement compared, with a recommendation and the conditions that would change it.
 5. Run npm run verify; write the final summary; set Done.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Bun use is concentrated in tests: product code has 119 Bun.* calls in 23 files; tests have 922 more and 324 files on bun:test. Product total is 66,604 lines (web UI 15,800 TS/TSX + 375 CSS/HTML), tests 88,487.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: new docs/backlog-md.md maps Backlog.md 1.55.3 by part with line counts (66.6k product lines: core 11.1k, CLI 10.6k, TUI 9.8k, web UI 15.8k, MCP 4.5k, format 2.2k; 88.5k test lines), explains how it does what braid uses (file format and section markers, IDs and subtasks, cross-branch reads, statuses, readiness, boards, --json), what braid adds against it, the hard parts and the bugs braid has hit, runtime (Bun-only: 119 product Bun calls, 922 more in tests, compiled binaries), and upstream health (MIT, 206 releases, 21 in six months, one maintainer with 1,407 of the commits, 77 open issues).
+Recommendation: reimplement a compatible Node tracker with Backlog.md as the reference, and wrap its CLI during the transition: braid's board reads tasks first and joins GitHub and T3 for derived states while writes go through backlog; then braid's CLI takes over the commands braid calls, proven by round-trip tests against Backlog.md-written files. Fork if the user wants most of Backlog.md's web UI or braid moves to Bun; wrap only if the board is all braid needs; revisit if the compatible subset is much larger than 8k lines.
+Why: braid needs about a tenth of Backlog.md; a fork carries Bun (above all the test suite), UI braid would delete, and a fast single-maintainer upstream; derived states contradict Backlog.md's stored-status model.
+Validation: counts and claims from the v1.55.3 source (wc, grep), gh api for upstream, epic 008 report A and trial; npm run verify passes.
+Open: cross-branch read performance on large repos, --json schema stability across releases, and the content of open issues were not checked.
+For later items: TASK-2.3 owns the CLI estimate; the doc's 5k-8k line range for the compatible subset is a rough bound for it to confirm or replace.
+Needs the user: decision: choose fork, wrap or reimplement (recommended: reimplement with reference, wrapping during the transition).
+<!-- SECTION:FINAL_SUMMARY:END -->
