@@ -1,10 +1,10 @@
 ---
 id: TASK-2
 title: 'Ground research: a new braid CLI, board and T3 automation'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-12T20:01:00Z'
-updated_date: '2026-11-13T15:40:00Z'
+updated_date: '2026-11-13T15:50:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -72,4 +72,9 @@ Plan changes: none. User decided: none yet on the way and goal order; licence op
 3. Reading T3 (read-only) belongs in goal 1, the first board.
 4. Licence: MIT; a LICENSE file and package.json field come as a separate story, on the user's go.
 These replace the reports' lane options A/B/C and the open "way" question; the reports stay as research.
+
+2026-11-13 TASK-2.2 merged: PR #56, 9f4b97d. Done: the board's path: the t3 CLI can start, message and read threads (list vs show fields, join by linked PR or worktree path), derived states with costs, the first read-only board; review blocking once (t3 list/show fields), fixed. At the user's request the three spike outputs moved from docs/ into task reports (doc-1..3) and the user's decisions into doc-4, all attached to their tasks; docs/ and the roadmap are unchanged by TASK-2. For later items: plan the implementation from doc-4.
+Plan changes: spike outputs are task reports, not docs. User decided: see the decisions entry above and doc-4.
+
+Closing: all three spikes merged into the epic branch; the user decided the way, lanes, T3 reading in goal 1 and MIT (doc-4). Next: the implementation plan from doc-4, and the MIT licence story on the user's go.
 <!-- SECTION:NOTES:END -->
