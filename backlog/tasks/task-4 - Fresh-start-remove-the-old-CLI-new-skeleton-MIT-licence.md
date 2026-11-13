@@ -1,9 +1,10 @@
 ---
 id: TASK-4
 title: 'Fresh start: remove the old CLI, new skeleton, MIT licence'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
+updated_date: '2026-11-13T18:35:00Z'
 labels:
   - kind:story
   - tier:M
@@ -52,3 +53,13 @@ Out of scope:
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Delete old CLI (src/*, test/cli+ledger+helpers) and docs seed-contract, cli-name; trim roadmap.
+2. New src/cli.ts router (--version, help), test/cli.test.ts running dist/cli.js.
+3. Simplify scripts/Test-Package.ps1 to version/help proof.
+4. Cut README, add LICENSE MIT, package.json license.
+5. Fix links, run npm run verify:full, PR.
+<!-- SECTION:PLAN:END -->
