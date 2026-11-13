@@ -1,10 +1,10 @@
 ---
 id: TASK-2.2
 title: 'Spike: the board''s path: starting agents, derived states, the first version'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
-updated_date: '2026-11-13T13:25:00Z'
+updated_date: '2026-11-13T14:50:00Z'
 labels:
   - kind:spike
   - tier:M
