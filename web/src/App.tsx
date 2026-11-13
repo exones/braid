@@ -101,6 +101,15 @@ function Actions({ lane }: { lane: Lane }) {
   return null;
 }
 
+/** Says which branch a card's state came from, when not from the checked-out files. */
+function FromBranch({ branch }: { branch: string }) {
+  return (
+    <span className="block break-all font-mono text-[11px] text-slate-400" title="State read from this branch">
+      from {branch}
+    </span>
+  );
+}
+
 function Card({ braid }: { braid: BraidCard }) {
   const [open, setOpen] = useState(false);
   const tier = braid.labels.filter((l) => l.startsWith("tier:"));
@@ -131,6 +140,7 @@ function Card({ braid }: { braid: BraidCard }) {
         )}
       </div>
       <div className="my-1 font-semibold">{braid.title}</div>
+      {braid.branch !== null && <FromBranch branch={braid.branch} />}
       {braid.total > 0 && (
         <div className="flex items-center gap-1.5">
           <div className="h-1.5 flex-1 overflow-hidden rounded bg-slate-200">
@@ -154,7 +164,10 @@ function Card({ braid }: { braid: BraidCard }) {
             >
               <span className={`size-2 flex-none rounded-full ${DOT[s.status] ?? ""}`} />
               <span className="w-10 flex-none text-xs text-slate-500">{s.id.slice(2)}</span>
-              <span className="flex-1">{s.title}</span>
+              <span className="flex-1">
+                {s.title}
+                {s.branch !== null && <FromBranch branch={s.branch} />}
+              </span>
               <span className="text-xs text-slate-500">{s.status}</span>
             </div>
           ))}
