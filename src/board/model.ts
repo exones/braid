@@ -1,5 +1,4 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { treeOf } from "../braids/branches.js";
 import type { Status } from "../braids/brief.js";
 import type { Braid, Item } from "../braids/store.js";
 
@@ -11,6 +10,8 @@ export interface StrandCard {
   readonly title: string;
   readonly status: Status;
   readonly lane: Lane;
+  /** The branch the brief was read from; null for the working tree. */
+  readonly branch: string | null;
 }
 
 export interface BraidCard {
@@ -19,6 +20,8 @@ export interface BraidCard {
   readonly status: Status;
   readonly lane: Lane;
   readonly labels: readonly string[];
+  /** The branch the braid's own brief was read from; null for the working tree. */
+  readonly branch: string | null;
   readonly done: number;
   readonly total: number;
   readonly strands: readonly StrandCard[];
@@ -41,6 +44,8 @@ export interface ItemDetail {
   readonly order: number | null;
   readonly delivery: string | null;
   readonly folder: string;
+  /** The branch the brief, report and logs were read from; null for the working tree. */
+  readonly branch: string | null;
   readonly brief: string;
   readonly report: string | null;
   readonly logs: readonly { readonly name: string; readonly text: string }[];
@@ -71,6 +76,7 @@ export function toCard(braid: Braid): BraidCard {
     title: s.brief.title,
     status: s.brief.status,
     lane: laneOfStatus(s.brief.status),
+    branch: s.source?.branch ?? null,
   }));
   return {
     id: braid.brief.id,
@@ -78,6 +84,7 @@ export function toCard(braid: Braid): BraidCard {
     status: braid.brief.status,
     lane: laneOfBraid(braid),
     labels: braid.brief.labels,
+    branch: braid.source?.branch ?? null,
     done: strands.filter((s) => s.status === "Done").length,
     total: strands.length,
     strands,
@@ -88,16 +95,9 @@ export function toBoard(repo: string, braids: readonly Braid[]): BoardData {
   return { repo, lanes: LANES, braids: braids.map(toCard) };
 }
 
-function readOptional(path: string): string | null {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return null;
-  }
-}
-
 export function toDetail(root: string, braid: Braid, item: Item): ItemDetail {
   const card = toCard(braid);
+  const tree = treeOf(root, item);
   return {
     id: item.brief.id,
     title: item.brief.title,
@@ -108,9 +108,10 @@ export function toDetail(root: string, braid: Braid, item: Item): ItemDetail {
     order: item.brief.order,
     delivery: item.brief.delivery,
     folder: item.folder,
+    branch: item.source?.branch ?? null,
     brief: item.brief.body.trim(),
-    report: item.hasReport ? readOptional(join(root, item.folder, "report.md")) : null,
-    logs: item.logs.map((name) => ({ name, text: readOptional(join(root, item.folder, name)) ?? "" })),
+    report: item.hasReport ? tree.read(`${item.folder}/report.md`) : null,
+    logs: item.logs.map((name) => ({ name, text: tree.read(`${item.folder}/${name}`) ?? "" })),
     braid: card,
   };
 }

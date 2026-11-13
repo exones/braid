@@ -80,10 +80,26 @@ Done: parser. Next: the `braid log` command. Open: none.
 
 A **checkpoint** is an entry whose heading ends in ` checkpoint`: a place a thread can be resumed from, written with `--checkpoint`. Its text says what is done, what comes next and what is open. The last checkpoint in a log is the current one.
 
+## Branches
+
+Work on a braid or strand happens on its own branch, named after its folder:
+
+- `braid/<number>-<slug>` for a braid, like `braid/0006-read-only-board`: its epic branch when it has strands (their PRs merge into it), its only branch when it has none.
+- `braid/<number>/<letter>-<slug>` for a strand, like `braid/0006/A-board-skeleton`.
+
+The status on such a branch is newer than the one in the checked-out files, so `braid board` reads it from there, from local branches and remote-tracking ones (`origin/braid/…`) alike, without checking them out:
+
+- A strand's brief, report and logs come from its strand branch, else from its braid's branch, else from the working tree. A braid's own brief comes from its braid branch, else the working tree.
+- When a branch exists both locally and on a remote, or under two slugs, the newest commit wins; a local branch wins a tie.
+- A branch whose commit is already in the checked-out commit is skipped: the working tree has its copy or a newer one. So is the checked-out branch itself, whose uncommitted edits show.
+- A branch whose brief is missing or malformed is skipped; run `braid check` on that branch.
+- A braid or strand that exists only on a branch shows too.
+- braid runs no `git fetch` for the board; remote branches are as fresh as the last fetch.
+
 ## Commands
 
 - `braid check`: validates every brief and folder name under `braids/` against this page and lists every problem as `<file>: <message>` (with the line where there is one), then the error count; exit code 2 if there is any, 0 and `braids OK: <n> braids, <m> strands` if there is none. Unlike the other commands it does not stop at the first error.
-- `braid board`: serves a read-only board on `127.0.0.1` at a free port, prints the address and opens the browser (`--no-open` only prints it). Lanes To Do, In Progress, In Review, Waiting and Done come from the stored status; In Review and Waiting stay empty until the board reads GitHub and T3. A braid is one card in the lane of its most urgent unfinished strand (Done when all strands are), with a done/total count; it expands to its strands. A card opens the braid's page: a table of contents of the braid and its strands, and for the selected one its details with tabs for the brief, the report and the logs. Reload the page to refresh. Stop it with Ctrl+C.
+- `braid board`: serves a read-only board on `127.0.0.1` at a free port, prints the address and opens the browser (`--no-open` only prints it). Lanes To Do, In Progress, In Review, Waiting and Done come from the stored status, read from the item's own branch when it has one (see [Branches](#branches)); In Review and Waiting stay empty until the board reads GitHub and T3. A card whose state came from a branch says which. A braid is one card in the lane of its most urgent unfinished strand (Done when all strands are), with a done/total count; it expands to its strands. A card opens the braid's page: a table of contents of the braid and its strands, and for the selected one its details with tabs for the brief, the report and the logs. Reload the page to refresh. Stop it with Ctrl+C.
 - `braid list`: every braid by number, with its strands indented in run order: id, status, order (`-` if none) and title.
 - `braid view <id>`: a braid (`0002`, or `2`) or a strand (`0002/A`) with its fields, folder, report, log files, its strands or its braid, and then the brief's body.
 - `braid new <title>`: a new braid with the next free number, its folder (the slug comes from the title, or `--slug`) and a `brief.md` with status `To Do`.

@@ -4,7 +4,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { basename, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBraids } from "../braids/store.js";
+import { loadLiveBraids } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import { toBoard, toDetail } from "../board/model.js";
 import { normaliseId, UsageError } from "./braids.js";
@@ -34,7 +34,7 @@ function json(status: number, body: unknown): Reply {
 
 function api(root: string, url: URL): Reply {
   try {
-    const braids = loadBraids(root);
+    const braids = loadLiveBraids(root);
     if (url.pathname === "/api/board") {
       return json(200, toBoard(basename(root), braids));
     }
