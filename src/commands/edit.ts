@@ -25,12 +25,12 @@ const CREATE_OPTIONS: Options = {
   "no-fetch": { type: "boolean" },
 };
 
-interface Parsed {
+export interface Parsed {
   readonly positionals: string[];
   readonly values: Record<string, string | boolean | (string | boolean)[] | undefined>;
 }
 
-function parse(command: string, args: readonly string[], options: Options): Parsed {
+export function parse(command: string, args: readonly string[], options: Options): Parsed {
   try {
     const { positionals, values } = parseArgs({ args: [...args], options, allowPositionals: true, strict: true });
     return { positionals, values };
@@ -40,7 +40,7 @@ function parse(command: string, args: readonly string[], options: Options): Pars
   }
 }
 
-function str(values: Parsed["values"], key: string): string | undefined {
+export function str(values: Parsed["values"], key: string): string | undefined {
   const value = values[key];
   return typeof value === "string" ? value : undefined;
 }
@@ -223,7 +223,7 @@ export function newStrand(root: string, args: readonly string[]): string {
   return `Created ${id} ${folder}\n`;
 }
 
-function find(braids: readonly Braid[], raw: string | undefined, command: string): { item: Item; strand: boolean } {
+export function find(braids: readonly Braid[], raw: string | undefined, command: string): { item: Item; strand: boolean } {
   if (raw === undefined) {
     throw new UsageError(`${command} needs an id, like 0002 or 0002/A`);
   }
@@ -272,7 +272,7 @@ export function editItem(root: string, args: readonly string[]): string {
   return `Updated ${item.brief.id}\n`;
 }
 
-function readText(values: Parsed["values"]): string {
+export function readText(values: Parsed["values"]): string {
   const file = str(values, "file");
   const text = str(values, "text");
   if ((file === undefined) === (text === undefined)) {

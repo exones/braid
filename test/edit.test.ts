@@ -287,3 +287,74 @@ test("a malformed brief stops edits with exit 2", () => {
   assert.equal(r.status, 2);
   assert.match(r.stderr, /^error: braids\/0001-one\/brief\.md: line 4: status must be one of/);
 });
+
+test("braid log creates and appends the thread file, stages it and never commits", () => {
+  const root = repo();
+  ok(root, "new", "Logged");
+  ok(root, "strand", "new", "1", "Part");
+  commitAll(root, "braids");
+  const head = git(root, "rev-parse", "HEAD");
+  const env1 = { ...env, BRAID_NOW: "2026-11-13T14:05:30Z" };
+  const run = (args: string[], input?: string) =>
+    spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", cwd: root, env: env1, ...(input === undefined ? {} : { input }) });
+  const thread = "mcp:launch:5d80964a34704ff9";
+  let r = run(["log", "1/A", "--thread", thread, "first"]);
+  assert.equal(r.stderr, "");
+  assert.equal(r.stdout, "Logged 0001/A: braids/0001-logged/A-part/log-2026-11-13-5d80964a.md\n");
+  env1.BRAID_NOW = "2026-11-14T09:00:00Z";
+  r = run(["log", "1/A", "--thread", thread, "--checkpoint", "--file", "-"], "line one\r\nline two\r\n");
+  assert.equal(r.status, 0, r.stderr);
+  const file = join(root, "braids/0001-logged/A-part/log-2026-11-13-5d80964a.md");
+  assert.equal(
+    readFileSync(file, "utf8"),
+    "## 2026-11-13 14:05Z\n\nfirst\n\n## 2026-11-14 09:00Z checkpoint\n\nline one\nline two\n",
+  );
+  assert.equal(run(["log", "0001", "note"]).status, 0);
+  assert.equal(run(["log", "0001", "--thread", "mcp:launch:7c1e22b0aaaa", "other"]).status, 0);
+  assert.equal(run(["log", "0001", "--thread", "mcp:2831f09b-f69a-4c1d-9a3e-000000000000", "uuid"]).status, 0);
+  assert.equal(run(["log", "0001", "--thread", "a1b2c3d4", "bare"]).status, 0);
+  assert.ok(readdirSync(join(root, "braids/0001-logged")).includes("log-2026-11-14-user.md"));
+  assert.equal(
+    git(root, "status", "--porcelain"),
+    [
+      "A  braids/0001-logged/A-part/log-2026-11-13-5d80964a.md",
+      "A  braids/0001-logged/log-2026-11-14-2831f09b.md",
+      "A  braids/0001-logged/log-2026-11-14-7c1e22b0.md",
+      "A  braids/0001-logged/log-2026-11-14-a1b2c3d4.md",
+      "A  braids/0001-logged/log-2026-11-14-user.md",
+      "",
+    ].join("\n"),
+  );
+  assert.equal(git(root, "rev-parse", "HEAD"), head);
+  assert.match(ok(root, "view", "0001/A"), /log-2026-11-13-5d80964a\.md/);
+  r = run(["log", "1/A", "--thread", "abc", "x"]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /8 letters or digits/);
+  assert.equal(run(["log", "1/A", ""]).status, 1);
+  assert.equal(run(["log", "9", "x"]).status, 1);
+});
+
+test("braid report writes, replaces and appends report.md", () => {
+  const root = repo();
+  ok(root, "new", "Reported");
+  const report = join(root, "braids/0001-reported/report.md");
+  ok(root, "report", "1", "--text", "First.");
+  assert.equal(readFileSync(report, "utf8"), "First.\n");
+  writeFileSync(join(root, "more.md"), "Second\r\nline\r\n");
+  ok(root, "report", "1", "--append", "--file", "more.md");
+  assert.equal(readFileSync(report, "utf8"), "First.\n\nSecond\nline\n");
+  const r = braid(root, ["report", "1", "--file", "-"], "Fresh\n");
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(readFileSync(report, "utf8"), "Fresh\n");
+  assert.equal(braid(root, ["report", "1"]).status, 1);
+});
+
+test("braid log without a Git repository exits 1 and keeps the file", () => {
+  const root = dir("plain-log");
+  mkdirSync(join(root, "braids"));
+  ok(root, "new", "Plain");
+  const r = braid(root, ["log", "1", "note"]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /wrote braids\/0001-plain\/log-.*-user\.md but git add failed/);
+  assert.equal(readdirSync(join(root, "braids/0001-plain")).filter((n) => n.startsWith("log-")).length, 1);
+});

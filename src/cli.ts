@@ -5,6 +5,7 @@ import { FormatError } from "./braids/frontmatter.js";
 import { findRoot } from "./braids/store.js";
 import { GitError } from "./braids/numbers.js";
 import { listBraids, UsageError, viewItem } from "./commands/braids.js";
+import { logEntry, reportItem } from "./commands/logs.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
 export function readVersion(): string {
@@ -34,6 +35,8 @@ export function helpText(version: string): string {
     "  strand new <braid> <title>  Create a strand with the next free letter",
     "  edit <id>                   Change --status, --title, --labels, --dep, --order, --delivery",
     "  brief <id> <section>        Set a section of brief.md from --file <path>, --file - or --text",
+    "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
+    "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
     "  help                        Show this help",
     "",
     "Options:",
@@ -57,7 +60,7 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["list", "view", "new", "strand", "edit", "brief"]);
+const BRAID_COMMANDS = new Set(["list", "view", "new", "strand", "edit", "brief", "log", "report"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string {
   switch (command) {
@@ -82,6 +85,10 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
     }
     case "edit":
       return editItem(root, args);
+    case "log":
+      return logEntry(root, cwd, args);
+    case "report":
+      return reportItem(root, cwd, args);
     default:
       return setBriefSection(root, cwd, args);
   }
