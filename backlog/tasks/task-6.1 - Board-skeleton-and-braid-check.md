@@ -1,7 +1,7 @@
 ---
 id: TASK-6.1
 title: Board skeleton and braid check
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
 updated_date: '2026-11-13T22:18:00Z'
@@ -53,3 +53,10 @@ Out of scope: branches, GitHub and T3 (TASK-6.2 to 6.4); refresh beyond a page r
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Mockups (this stop): one static page temp/mockups/board.html (plain HTML/CSS/JS, no build) with realistic test braids, in the final design: five lanes, braid cards with progress and in-place expansion, Outline badge, Waiting card with reason, disabled Start/Merge buttons, and a braid page (left table-of-contents panel, main details + brief, tabs Brief/Report/Logs). Screenshots in temp/mockups/*.png. Commit, push, draft PR, report, STOP until the user's go.
+2. After go: braid check (validate all briefs, list errors with file, exit 2); docs/braids-format.md and README allow direct edits + braid check; braid board (node:http on 127.0.0.1, free port, JSON API from loadBraids, React/Vite/Tailwind/Radix built into dist/web); lanes from stored status; tests; screenshots on the playground repo; verify; Done.
+<!-- SECTION:PLAN:END -->
