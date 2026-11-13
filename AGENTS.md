@@ -16,7 +16,7 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 ## Hard limits
 
 - Don't publish packages, create releases or tags, deploy, or change repository settings unless the user asks for it.
-- The user merges every item PR and everything into `main`; agents don't merge. See [the workflow](.agents/skills/braid/references/workflow.md).
+- Agents merge only on the user's explicit request, or into an epic branch in auto mode (the `braid` skill); everything into `main` is the user's merge or their explicit request. See [the workflow](.agents/skills/braid/references/workflow.md).
 - Changes to `.agents/skills/`, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` are made only when the user asks, and the user merges them.
 - One writer per checkout. Don't reset, clean, switch branches or commit in a checkout that the user or another agent is working in, and leave changes you didn't make alone.
 - No secrets in chat, files, commits or logs. Get credentials only through the host's secret mechanism.
@@ -27,6 +27,7 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 
 - Goals and stories, here and in other projects, including "run TASK-12": [braid](.agents/skills/braid/SKILL.md). It decides story or goal and keeps items in Backlog.md (`backlog/`). `epics/` holds past records, read-only.
 - Doing one assigned item: [braid-worker](.agents/skills/braid-worker/SKILL.md), only in a worker thread a coordinator launched; never chosen for a user's request.
+- Reviewing one item's PR: [braid-reviewer](.agents/skills/braid-reviewer/SKILL.md), only in a reviewer thread a coordinator launched.
 - Ordinary questions and small direct edits need no skill.
 - Items, tiers, branches and merges: [the workflow](.agents/skills/braid/references/workflow.md).
 - Using the skills in other projects: [README](README.md#braid-skills-in-other-projects).
@@ -34,6 +35,4 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 
 ## Providers and roles
 
-The models per role are in [BRAID.md](BRAID.md): Claude Opus 5.5 (high effort) coordinates; Claude Sonnet 5.5 (medium) implements stories and tasks, Claude Opus 5.5 (medium) implements tier L items and runs spikes as a researcher, and Grok 4.6 in Cursor (effort high, fast mode off, no skill) reviews. In T3 the Claude roles use the `Claude_Everix` provider with `target.options` `{"effort":"<level>"}`, and the reviewer uses the `cursor` provider with `{"effort":"high","fastMode":false}`. Don't substitute another model or other settings without the user's agreement.
-
-Workers and reviewers run as top-level T3 threads, each in its own worktree. That is the user's standing request for work inside an approved epic, so it needs no confirmation per item.
+The models per role and their settings are `models` in [BRAID.md](BRAID.md); the [braid](.agents/skills/braid/SKILL.md) skill launches them. Don't substitute another model or other settings without the user's agreement.

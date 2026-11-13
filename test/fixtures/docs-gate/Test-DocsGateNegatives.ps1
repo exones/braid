@@ -7,6 +7,7 @@
 # A tracked broken link under a frozen path passes; outside it, it fails.
 # A skill linking inside its own folder passes; linking outside it fails,
 # even when the target exists.
+# Identical copies of a shared skill reference pass; differing copies fail.
 # Does not call scripts/Verify.ps1.
 #Requires -Version 7.6
 $ErrorActionPreference = 'Stop'
@@ -217,6 +218,16 @@ try {
   Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/demo/SKILL.md') -Bytes (Convert-ToLfBytes "# Demo`n`nSee [other](../../../other.md).`n")
   Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/demo/SKILL.md')
   Assert-Fails -Label 'skill-outside-link' -Pattern 'skill link leaves its folder in \.agents/skills/demo/SKILL\.md'
+
+  Reset-Fixture
+  $shared = Convert-ToLfBytes "# Shared`n"
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/one/references/shared.md') -Bytes $shared
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/two/references/shared.md') -Bytes $shared
+  Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/one/references/shared.md', '.agents/skills/two/references/shared.md')
+  Assert-Passes -Label 'shared-reference-same'
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/two/references/shared.md') -Bytes (Convert-ToLfBytes "# Shared`n`nChanged.`n")
+  Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/two/references/shared.md')
+  Assert-Fails -Label 'shared-reference-differs' -Pattern 'shared skill reference differs: \.agents/skills/two/references/shared\.md'
 
   Reset-Fixture
   $brokenAnchor = @(

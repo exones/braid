@@ -26,7 +26,7 @@ Do one task from a brief, hand it back, and stop.
 - Run focused tests (`test` if provided) while you work. Before opening the PR, run the `gate` command from `BRAID.md` and fix what fails. Don't weaken or delete a test to make it pass.
 - Make routine decisions yourself. Ask the coordinator only about scope, acceptance, or a real blocker.
 - If your item is a spike: answer its question within the time box. Experiment as needed, but don't build the feature. Write the answer, the evidence and proposed follow-up items in `reports/<ID>.md` in the epic folder (*task*: in the task's final summary, or a doc it links to), and deliver that through a PR like any other item. If the time box runs out, report what is known and what isn't.
-- *Task:* set it In Progress in your first commit (`backlog task edit <ID> -s 'In Progress'`). Before coding, write your plan into it (`--plan`). Append notes for decisions and findings (`--append-notes`). Apply task changes the coordinator sends.
+- *Task:* set it In Progress in your first commit (`backlog task edit <ID> -s 'In Progress'`) and push that commit at once. Before coding, write your plan into it (`--plan`). Append notes for decisions and findings (`--append-notes`). Apply task changes the coordinator sends.
 - *Task, growth:* if you find more work, stop and send the coordinator one proposal in chat: what you found, the three options (absorb into this PR, a prerequisite, phases) with rough sizes, and your recommendation. Then wait for the decision and do your part of the path as the `braid` skill's "Grow and adjust" describes:
   - Absorb: note it in the task's notes and go on.
   - Prerequisite of a subtask: note where you stopped, merge the epic branch the coordinator names, add the `--dep` (repeat the existing ones) and stop. When the prerequisite is merged, merge the epic branch again and resume.
@@ -35,7 +35,7 @@ Do one task from a brief, hand it back, and stop.
 
 ## Deliver
 
-0. *Task:* check the acceptance criteria and the Definition of Done items you proved (`--check-ac`, `--check-dod`), write the final summary (`--final-summary`: what changed, why, validation, anything open; it replaces `reports/<ID>.md`), and set the task Done (`-s Done`) in your last commit, before you report green. The chat report format stays.
+0. *Task:* check the acceptance criteria and the Definition of Done items you proved (`--check-ac`, `--check-dod`), write the final summary (`--final-summary`: what changed, why, validation, anything open, then a `For later items:` line (changed names or interfaces, deviations from the plan, new decisions, or `none`) and a `Needs the user:` line as in the final report; it replaces `reports/<ID>.md`), and set the task Done (`-s Done`) in your last commit, before you report green.
 1. Commit your changes with Conventional Commit messages, staging only your files, and push: `git push -u origin <your branch>`.
 2. Open one PR into the epic branch named in the brief (*task*: the base branch the first message names): `gh pr create --base <base branch> --title "<type>: <summary>" --body-file <file>`. Describe what changed, why, validation, and anything open. Then call `link_pull_request` with the PR URL.
 3. If `ci` is `none`, go to step 5. Follow host PR-wait instructions; otherwise call `watch_pull_request`, then run `gh pr checks <pr>` once. If every check has already finished, go to step 5. Otherwise end your turn; the watch wakes you.
@@ -57,6 +57,7 @@ Use plain language and this format even when blocked; then "Done" lists what got
 **Done:** 1–5 bullets on what changed and what it means for the project.
 **Decisions:** choices you made that the brief didn't settle, each with a one-line reason. "None" if none.
 **Deviations:** only if you departed from the brief: what and why.
+**Needs the user:** `none`, or `<key>: <one sentence>` per [stop case](references/stop-cases.md) the work shows.
 **You:** only if the user must act: the exact steps.
 **Screenshots:** only for UI work: the final screens, embedded as images from your artifacts folder. Start the app with `run` from `BRAID.md`.
 ```

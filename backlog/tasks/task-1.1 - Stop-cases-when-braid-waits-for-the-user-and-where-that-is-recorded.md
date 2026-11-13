@@ -3,10 +3,10 @@ id: TASK-1.1
 title: >-
   Stop cases and plan review: when braid waits for the user, and where that is
   recorded
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T19:49:00Z'
+updated_date: '2026-11-12T20:26:00Z'
 labels:
   - kind:task
   - tier:L
@@ -78,18 +78,60 @@ Out of scope:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 stop-cases.md exists in braid and braid-worker with the 8 keys, and the gate fails if the copies differ
-- [ ] #2 The worker final summary and chat report formats include the Needs the user line
-- [ ] #3 Planning documents ask:<key> labels and the recap shows Needs the user with its source
-- [ ] #4 The diff facts are listed as runnable git/gh commands
-- [ ] #5 npm run verify passes
-- [ ] #6 The plan of a goal or story is reviewed as task files in the coordinator's worktree, one local commit per round with a brief note of what changed, and pushed once, squashed into one commit, after the user's approval
-- [ ] #7 After each subtask merges into the epic branch the parent's log has a short entry for it, written before the next item's branch is cut, and the worker's final summary has a For later items line
-- [ ] #8 A goal's parent and subtasks share one milestone, shown as one lane with Group by milestone; the milestone is never archived; the parent is In Progress from the epic branch's first commit
+- [x] #1 stop-cases.md exists in braid and braid-worker with the 8 keys, and the gate fails if the copies differ
+- [x] #2 The worker final summary and chat report formats include the Needs the user line
+- [x] #3 Planning documents ask:<key> labels and the recap shows Needs the user with its source
+- [x] #4 The diff facts are listed as runnable git/gh commands
+- [x] #5 npm run verify passes
+- [x] #6 The plan of a goal or story is reviewed as task files in the coordinator's worktree, one local commit per round with a brief note of what changed, and pushed once, squashed into one commit, after the user's approval
+- [x] #7 After each subtask merges into the epic branch the parent's log has a short entry for it, written before the next item's branch is cut, and the worker's final summary has a For later items line
+- [x] #8 A goal's parent and subtasks share one milestone, shown as one lane with Group by milestone; the milestone is never archived; the parent is In Progress from the epic branch's first commit
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. New `.agents/skills/braid/references/stop-cases.md`: the 8 keys with meaning and examples; who records what (plan `ask:<key>` labels, worker `Needs the user:` line, reviewer section, coordinator diff facts as git/gh commands). Identical copy in `braid-worker/references/`.
+2. Docs gate (`scripts/Test-DocsGate.ps1`, part of `npm run verify`): a file with the same path under `references/` in two skills must be byte-identical. Negative case in `test/fixtures/docs-gate/Test-DocsGateNegatives.ps1`.
+3. `braid` SKILL.md: plan steps 3-5 (ask labels, milestone, local review rounds, squash and push once), recap `**Needs the user:**` line, parent's log after each merged subtask, Resuming checks local plan/item branches and reads the log.
+4. `braid-worker` SKILL.md: final summary gets `For later items:` and `Needs the user:`; chat report gets `Needs the user:`.
+5. `assets/task.md`: `ask:<key>` label, milestone commands and the ID-collision check; `workflow.md`: milestone in the table, the log in one line; README: Group by milestone.
+6. Run the gate, record before/after line counts in the final summary.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Milestone IDs: tested with backlog 1.55.3 in a temp repo. `milestone add` numbers from local files only, so two plan branches cut from the same main both get the same ID. Archived milestones still count, so archiving a colliding milestone and adding it again gives the next free ID. Labels outside config.yml are accepted.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed:
+- New `references/stop-cases.md` in `braid` and an identical copy in `braid-worker`: the 8 keys (security, dependency, architecture, data, process, outward, scope, quality) with meaning and examples; who records what (plan `ask:<key>` labels, worker `Needs the user:` line, reviewer section, coordinator diff facts as `git diff` commands for changed files, size, dependency manifests and lockfiles, process files, deleted files, skip/only markers).
+- Docs gate (`scripts/Test-DocsGate.ps1`, in `npm run verify`): a file with the same path under `references/` in two skills must be byte-identical; negative fixture cases for same and differing copies.
+- `braid` SKILL.md: `ask:<key>` labels in planning; the plan is created as real tasks, reviewed in local `amend` commits, squashed into `docs(backlog): plan <id>` and pushed once; parent `In Progress` in the epic's first commit; diff facts judged before the recap; recap `**Needs the user:**` line with its source; the parent's log after each merged subtask, then fixing unstarted tasks; Resuming checks unpushed local plan/item branches and reads the log; grown stories get the milestone too.
+- `braid-worker` SKILL.md: final summary gets `For later items:` and `Needs the user:`; chat report gets `**Needs the user:**`.
+- `assets/task.md`: `ask:<key>` label, milestone section (commands, never archive, ID collision check), parent log entry format. `workflow.md`: the log in one line, milestone in the table rows. README: "Group by milestone".
+
+Why: one shared list of stop cases and fixed places to record them, for TASK-1.3's auto mode; plan review on real task files; the log carries each finished subtask to the next worker.
+
+Milestone IDs: tested with backlog 1.55.3. `milestone add` numbers from this branch's files only (archived included), so two plan or epic branches can get the same ID. The task template orders it: create the parent, add the milestone, check its ID with a `git grep` over local and remote plan/ and epic/ branches (bash and pwsh; exit 1 means free; hits on your own branch ignored), and only then attach tasks, so a colliding milestone is archived and re-added before any task points at it.
+
+Line counts before -> after: braid/SKILL.md 122 -> 124; braid-worker/SKILL.md 70 -> 71; braid/assets/task.md 94 -> 124; braid/references/workflow.md 97 -> 98; stop-cases.md new, 30 (each copy).
+
+Review fixes (PR #47): parent status exception in ground rule 2 and the commit points; milestone check order and exit code; goal-only log step; diff facts say which output counts; final-summary example lists the new lines.
+
+Validation: `npm run verify:full` (includes the quick gate, docs-gate negatives and Pester) passes on Windows; the stop-case commands and the milestone check were run against real repositories.
+
+For later items: the shared-copy rule is generic (any same path under `references/` in two skills), so TASK-1.2's `braid-reviewer/references/stop-cases.md` is checked automatically. The reviewer's section is named `Needs the user` in stop-cases.md.
+
+Needs the user: process: changes braid skills and the docs gate, as the task intends.
+<!-- SECTION:FINAL_SUMMARY:END -->
