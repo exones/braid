@@ -2,11 +2,14 @@
 
 braid is a TypeScript/Node.js CLI for agent-driven work. PowerShell provides build and verification automation. GitHub hosts source and Actions; npm (`@exones/braid`) is the package registry. Licensed under [MIT](LICENSE).
 
-The CLI is a minimal skeleton:
+The CLI reads the braids (work items) and strands (their parts) in a repository's `braids/` folder; the format is in [docs/braids-format.md](docs/braids-format.md):
 
 ```powershell
-braid --version   # print the version
-braid help        # show usage
+braid list          # braids and their strands, with status and run order
+braid view 0002     # one braid: fields, report, logs, strands and its brief
+braid view 0002/A   # one strand
+braid --version     # print the version
+braid help          # show usage
 ```
 
 For how work is planned, assigned to agents, reviewed and merged, see the [workflow](.agents/skills/braid/references/workflow.md) and [AGENTS.md](AGENTS.md).
