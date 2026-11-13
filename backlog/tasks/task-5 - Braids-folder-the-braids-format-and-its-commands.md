@@ -1,10 +1,10 @@
 ---
 id: TASK-5
 title: 'Braids folder: the braids/ format and its commands'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
-updated_date: '2026-11-13T18:29:00Z'
+updated_date: '2026-11-13T18:34:00Z'
 labels:
   - kind:story
   - tier:L
