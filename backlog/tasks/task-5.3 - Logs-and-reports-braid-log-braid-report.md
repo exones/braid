@@ -1,10 +1,10 @@
 ---
 id: TASK-5.3
 title: 'Logs and reports: braid log, braid report'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
-updated_date: '2026-11-13T20:38:00Z'
+updated_date: '2026-11-13T20:40:00Z'
 labels:
   - kind:story
   - tier:M
@@ -37,16 +37,16 @@ Out of scope: the board, the import, resuming runs (story 8).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 braid log creates or appends the right per-thread file and stages it without committing, covered by tests
-- [ ] #2 The entry and checkpoint format is in docs/braids-format.md
-- [ ] #3 braid report writes and appends report.md
+- [x] #1 braid log creates or appends the right per-thread file and stages it without committing, covered by tests
+- [x] #2 The entry and checkpoint format is in docs/braids-format.md
+- [x] #3 braid report writes and appends report.md
 - [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -57,3 +57,17 @@ Out of scope: the board, the import, resuming runs (story 8).
 3. `braid report <id> (--file|--text) [--append]`: writes report.md (replace by default? no: appends by default is risky) - decide: default writes/replaces; --append adds after a blank line.
 4. Router, help, docs/braids-format.md (entry and checkpoint format, commands), tests running the built CLI (Windows+Ubuntu safe), npm run verify.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Entry format: "## YYYY-MM-DD HH:MMZ" (UTC) plus " checkpoint" for checkpoints; --thread needs 8+ letters/digits; braid report replaces, --append adds; BRAID_NOW fixes the clock in tests.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: braid log <id> [--thread] [--checkpoint] (<text>|--file|--text) appends a dated entry to log-<date>-<thread8>.md (user without a thread), creates it on first use, runs git add, never commits. braid report <id> (--file, --file -, --text) [--append] writes or appends report.md. Entry and checkpoint format and both commands are in docs/braids-format.md. Why: a strand's life is recorded through braid. Validation: npm run verify passes locally (28 tests, two new); CI pending on the PR. Open: nothing.
+For later items: edit.ts now exports parse, str, find, readText; src/braids/logs.ts holds the log and report writers; BRAID_NOW env fixes the clock; braid report replaces by default.
+Needs the user: none
+<!-- SECTION:FINAL_SUMMARY:END -->

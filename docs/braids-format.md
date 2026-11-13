@@ -64,6 +64,22 @@ Front matter is a small subset of YAML, and braid rejects anything outside it:
 
 The body after the front matter is free Markdown. Its `## ` headings divide it into sections (headings inside code fences don't count); `braid view` prints the body as it is.
 
+## Log entries and checkpoints
+
+A log file holds one thread's entries, oldest first. The first `braid log` of a thread creates `log-<date>-<thread>.md` with the date (UTC) of that call; later entries go to the same file even on a later day. Each entry is a heading with the UTC time, a blank line and the text; entries are separated by a blank line:
+
+```markdown
+## 2026-11-13 14:05Z
+
+Read the reader code; the writer must re-parse.
+
+## 2026-11-13 15:30Z checkpoint
+
+Done: parser. Next: the `braid log` command. Open: none.
+```
+
+A **checkpoint** is an entry whose heading ends in ` checkpoint`: a place a thread can be resumed from, written with `--checkpoint`. Its text says what is done, what comes next and what is open. The last checkpoint in a log is the current one.
+
 ## Commands
 
 - `braid list`: every braid by number, with its strands indented in run order: id, status, order (`-` if none) and title.
@@ -72,6 +88,8 @@ The body after the front matter is free Markdown. Its `## ` headings divide it i
 - `braid strand new <braid> <title>`: a new strand in that braid with the next free letter.
 - `braid edit <id>`: changes the front matter. `--status`, `--title`, `--labels a,b` (replaces the list; `''` empties it), `--dep 0001,0002/A` (replaces the list; each id must exist), `--order <n>` or `--order none`, `--delivery epic|main` (braids only). `--labels` and `--dep` may be repeated. Changing the title keeps the folder name.
 - `braid brief <id> <section>`: sets the `## <section>` part of the body, replacing that section or adding it at the end. The text comes from `--file <path>`, `--file -` (standard input) or `--text <text>`; CRLF becomes LF. It may not hold `## ` headings or an unclosed code fence.
+- `braid log <id> <text>`: appends an entry to this thread's log in the braid or strand folder and stages the file with `git add`; it never commits. `--thread <id>` names the thread (the file uses its first 8 letters or digits; a shorter id is an error); without it the entry goes to the `user` log. `--checkpoint` marks the entry as a checkpoint. The text is the argument, `--text <text>`, `--file <path>` or `--file -` (standard input); CRLF becomes LF.
+- `braid report <id>`: writes `report.md` from `--file <path>`, `--file -` or `--text <text>`, replacing an existing report; with `--append` the text is added after a blank line (a new file if there is none).
 
 `braid new` and `braid strand new` also take the `braid edit` options, except `--title`. braid writes front matter in one form: ids in single quotes, other text in double quotes with JSON escapes, `labels` and `dependencies` always present, and `delivery` on every braid.
 
