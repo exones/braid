@@ -1,10 +1,10 @@
 ---
 id: TASK-2
 title: 'Ground research: a new braid CLI, board and T3 automation'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-12T20:01:00Z'
-updated_date: '2026-11-13T12:48:00Z'
+updated_date: '2026-11-13T12:57:00Z'
 labels:
   - kind:spike
   - tier:M
