@@ -4,7 +4,7 @@ title: 'Spike: Backlog.md''s implementation as braid''s reference; fork or refer
 status: Done
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
-updated_date: '2026-11-13T13:03:00Z'
+updated_date: '2026-11-13T13:16:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -69,6 +69,8 @@ Out of scope:
 
 <!-- SECTION:NOTES:BEGIN -->
 Bun use is concentrated in tests: product code has 119 Bun.* calls in 23 files; tests have 922 more and 324 files on bun:test. Product total is 66,604 lines (web UI 15,800 TS/TSX + 375 CSS/HTML), tests 88,487.
+
+Review (PR #54) fixes: the shown copy is chosen by selectTaskRecord (working copy first), not newest updated_date; the fork size is ~52k with the web UI kept, ~36k without; the last 100 upstream commits go back to 2026-10-11.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

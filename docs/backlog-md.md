@@ -62,8 +62,11 @@ list, project DoD defaults, `check_active_branches` with 30 days, `remote_operat
   matter has `parent_task_id`; there is no deeper nesting and no "goal" type.
 - **Cross-branch reads.** `BranchTaskLoader` (`src/core/task-loader.ts`) lists branches touched in
   the last `active_branch_days`, reads their `backlog/` trees with `git ls-tree`, and hydrates only
-  tasks that are newer than the local copy (`chooseWinners`, strategies `most_recent` and
-  `most_progressed`, by `updated_date`). Trees and blobs are cached per commit for one process.
+  other-branch copies that may be newer than the local one (`chooseWinners`, by `updated_date`).
+  That only decides what to read. The copy shown is chosen by `selectTaskRecord`
+  (`src/core/task-identity-index.ts`, around line 135): the working copy always wins; among other
+  copies, `most_progressed` prefers the later status, then the newest change. Trees and blobs are
+  cached per commit for one process.
 - **Statuses.** Stored in the file and checked against `config.statuses`
   (`src/core/backlog.ts` line 1139, "Invalid status"). Board columns are those statuses.
 - **Readiness.** `--ready` means "every dependency is Done" (`src/utils/readiness.ts`), nothing more,
@@ -84,8 +87,8 @@ From the [roadmap](roadmap.md#braids-own-board):
   the TUI and the React board both.
 - **Derived states** (Running, In Review, Waiting for you with the stop case, Done) from GitHub, T3
   and labels, not stored. This goes against Backlog.md's model, where status is a stored field
-  checked against config, columns are config statuses, and the cross-branch winner is picked by stored
-  `updated_date`. A derived state needs a second source joined at read time (PRs by head branch,
+  checked against config, columns are config statuses, and the working copy's stored status wins
+  over other branches. A derived state needs a second source joined at read time (PRs by head branch,
   T3 threads by task ID); nothing in the core has a hook for that.
 - **Actions** (Start, Merge on request, Open thread). Backlog.md's actions are edits to task files;
   there is no notion of an outside process. In the web UI they would be new API routes and buttons;
@@ -103,8 +106,10 @@ What a reimplementation must get right, and what braid has already hit:
 - **The section format.** Markers, title variants, numbered checklists and preserved unknown content
   make `structured-sections.ts` the largest single parsing file; a compatible writer must round-trip
   files Backlog.md wrote, byte for byte where it doesn't change them.
-- **Cross-branch "which copy wins".** By `updated_date`, within 30 days of branch activity. The board
-  can show a stale status (epic 008 report A: "the board shows `main`'s status, not the newest").
+- **Cross-branch "which copy wins".** The working copy first, whatever its date; other branches
+  (active within 30 days) count only for tasks the working copy lacks. So a board run from `main`
+  shows `main`'s status, not the newest (epic 008 report A). A compatible reader should copy that
+  rule from `selectTaskRecord`; braid's derived states are meant to replace it on the board.
 - **Merge conflicts in task files.** Two branches editing one task conflict like any file; braid's
   rule is to resolve by hand, then run `backlog doctor`.
 - **Windows launch.** The npm `.cmd` and `.ps1` shims cut a multi-line `--description` at the first
@@ -139,7 +144,7 @@ From `gh api repos/MrLesk/Backlog.md` and its releases and contributors, on 2026
 - 206 releases in 17 months; 21 in the last six months (v1.45.0 to v1.55.3, four of them in the week
   of 2026-10-20). v1.55.3 (2026-10-23) is still the latest.
 - One maintainer in practice: 62 contributors, MrLesk with 1,407 commits, the next with 5; of the
-  last 100 commits (since 2026-08-13) 92 are his.
+  last 100 commits (back to 2026-10-11) 92 are his.
 - 77 open issues and 21 open PRs.
 
 Fast and steady, but a fork would trail a moving target, and the project's direction is one
@@ -153,7 +158,7 @@ tracker that reads and writes the same files, with Backlog.md's code and tests a
 
 | | Fork | Wrap | Reimplement with reference |
 | --- | --- | --- | --- |
-| Size to own | 66.6k product + 88.5k test lines, in Bun; dropping the TUI, MCP, docs and decisions still leaves ~40k | Small: a client over `--json` plus the board and the derived-state join; Backlog.md stays a dependency | The subset braid uses: format, IDs, subtasks, cross-branch reads, config, a handful of commands, roughly 5k–8k lines plus tests (TASK-2.3 owns the estimate) |
+| Size to own | 66.6k product + 88.5k test lines, in Bun; dropping the TUI and MCP server still leaves ~52k with the web UI kept, ~36k without it | Small: a client over `--json` plus the board and the derived-state join; Backlog.md stays a dependency | The subset braid uses: format, IDs, subtasks, cross-branch reads, config, a handful of commands, roughly 5k–8k lines plus tests (TASK-2.3 owns the estimate) |
 | Upkeep against upstream | High: every upstream release is a merge into code braid has changed, from a single-maintainer repo shipping several releases a month | Pin and bump; each bump re-runs braid's tests. Upstream format or CLI changes still break braid | None by default; braid follows the file format only while it wants compatibility |
 | Runtime fit | Poor: Bun-only, compiled binaries; either braid adopts Bun or ports 119 product Bun calls, the web server and build, and 88k test lines off `bun:test` | Separate process per call; on Windows the native binary path lookup stays; startup and cross-branch scans per call | Native: Node 26, ESM, `tsc`, `node --test` |
 | Licence | MIT: keep the copyright notice in the fork | MIT; nothing copied | MIT allows copying pieces with the notice; reading as a reference needs nothing |
