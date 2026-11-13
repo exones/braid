@@ -4,7 +4,7 @@ title: 'Ground research: a new braid CLI, board and T3 automation'
 status: In Progress
 assignee: []
 created_date: '2026-11-12T20:01:00Z'
-updated_date: '2026-11-13T15:19:00Z'
+updated_date: '2026-11-13T15:37:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -58,4 +58,11 @@ Plan changes: TASK-2.3 and TASK-2.2 adjusted to the user's lean (see the note ab
 Plan changes: none. User decided: none yet on the way and goal order; licence open (the repo is public with none).
 
 2026-11-13 Plan change (user's request): spike outputs are reports attached to their tasks in backlog/docs (doc-1 TASK-2.1, doc-2 TASK-2.3, doc-3 TASK-2.2), marked research, not decisions. docs/backlog-md.md and docs/braid-cli.md are removed and the roadmap's proposed section is taken out, all in TASK-2.2's PR #56. The coordinator's plan had wrongly sent spike output to docs/. Decisions still open: the way (user leans to reimplement), lanes A/B/C, T3 reading in goal 1, licence.
+
+2026-11-13 User decided (after the three reports):
+1. Way: rewrite, a compatible Node tracker with Backlog.md as the reference, sized to what braid needs (a custom tool, fewer features than Backlog.md), not a fork or a wrap.
+2. Board lanes: To Do · In Progress · In Review · Waiting · Done. To Do: not started; unmet dependencies show as a badge. In Progress: agents move it by themselves (worker, CI, the reviewer agent, fix rounds). In Review: the user's normal step, the recap handed over for their review and merge. Waiting: stuck until the user acts, with the reason shown: a stop case or question, fixes still failing after two review rounds or a second red CI, an agent stopped with no PR, failing checks nobody fixes; more reasons may be added later, not more lanes. A goal is one card in its most urgent subtask's lane and expands to its subtasks.
+3. Reading T3 (read-only) belongs in goal 1, the first board.
+4. Licence: MIT; a LICENSE file and package.json field come as a separate story, on the user's go.
+These replace the reports' lane options A/B/C and the open "way" question; the reports stay as research.
 <!-- SECTION:NOTES:END -->
