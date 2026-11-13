@@ -4,7 +4,7 @@ title: 'Auto mode: braid merges phases into the epic branch'
 status: Done
 assignee: []
 created_date: '2026-11-12T17:28:00Z'
-updated_date: '2026-11-12T21:27:00Z'
+updated_date: '2026-11-13T11:30:00Z'
 labels:
   - kind:story
   - tier:L
@@ -48,14 +48,14 @@ Out of scope:
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 All three subtasks are Done on the epic branch
-- [ ] #2 The epic to main PR is green and reviewed
+- [x] #2 The epic to main PR is green and reviewed
 - [ ] #3 A fresh coordinator can follow the skills without this chat
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -70,3 +70,12 @@ Out of scope:
 2026-11-12 TASK-1.3 merged: PR #49, b15e9ed. Done: merge on request pinned to the recapped head; auto mode (auto: allowed plus the user's request, refused with ci: none or for a story; auto label and note; 7 conditions; evidence comment; epic CI before the next item; stops; final PR always the user's); a goal's planning PR targets its epic branch and workers push In Progress at once; workflow.md, BRAID.md template and this repo's BRAID.md (auto: allowed), AGENTS.md, D31. First review with the braid-reviewer skill: not blocking, 4 suggestions applied. For later items: recap header ends "at <head commit>"; BRAID.md key auto; parent label auto. Plan changes: none. User decided: none.
 Closing: all three subtasks merged into the epic branch. A behavior trial of auto mode is still to do; the steps are in TASK-1.3's final summary.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: braid gained auto mode (it merges a goal's subtask PRs into the epic branch under 7 conditions and stops on 8 stop cases), merge on request pinned to the recapped head, the braid-reviewer skill, a parent log, one milestone per goal, and planning PRs into the epic branch so the board shows subtask progress. Subtasks: TASK-1.1 (PR #47), TASK-1.2 (PR #48), TASK-1.3 (PR #49); final PR #50.
+Why: to let a goal run between user checkpoints without the user merging every subtask, while stops stay with the user.
+Validation: npm run verify passes; each subtask and the final PR were independently reviewed (not blocking); the user's PR review on #50 led to small fixes (merge wording in workflow.md, T3 model settings in the braid skill instead of AGENTS.md, parent boxes and summary checked at the end of Finish).
+Open: AC #3 waits for the user's auto-mode trial (steps in TASK-1.3's final summary). One stop-cases.md instead of three copies and a researched braid-reviewer go to TASK-3.
+<!-- SECTION:FINAL_SUMMARY:END -->

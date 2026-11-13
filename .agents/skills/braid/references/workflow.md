@@ -74,9 +74,8 @@ Every task has one `tier:` label; pick the lowest that fits.
 | M | Normal feature | Independent reviewer comments on the PR |
 | L | Persistent data formats, crash or recovery behavior, release or publishing, security, any change to agent instructions (skills, `AGENTS.md`, `CLAUDE.md`, `BRAID.md`) | Independent reviewer, again after fixes that substantially change failure or recovery behavior; the task lists failure modes and required regression tests |
 
-Who merges: the user, whatever the tier. The coordinator merges only a PR the user explicitly asks
-it to merge, and, in auto mode for a goal, subtask PRs into the epic branch (the
-[skill](../SKILL.md)). Everything into `main` is the user's merge or their explicit request. The tier
+Who merges: the user, whatever the tier, unless they explicitly ask the coordinator to merge a PR,
+or auto mode merges a goal's subtask PRs into the epic branch (the [skill](../SKILL.md)). Everything into `main` is the user's merge or their explicit request. The tier
 decides the review before the recap; in auto mode tier S gets an independent review too. A `ui`
 item's recap embeds final screenshots.
 

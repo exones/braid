@@ -9,7 +9,7 @@ Plan the user's goal or task as Backlog.md tasks, then deliver them through work
 
 ## Project facts
 
-Read `BRAID.md` at the repository root first (`gate`, `main`, `backlog`, `ci`, `run`, `models`, and the Backlog.md invocation rule). Use `models.<role>.<tier>` (tier key `S`, `M` or `L`) if present, then `models.<role>.<kind>`, then `models.<role>`; if none exists, ask the user. Use any named skill. Use the exact provider, model and options; if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line. Follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
+Read `BRAID.md` at the repository root first (`gate`, `main`, `backlog`, `ci`, `run`, `models`, and the Backlog.md invocation rule). Use `models.<role>.<tier>` (tier key `S`, `M` or `L`) if present, then `models.<role>.<kind>`, then `models.<role>`; if none exists, ask the user. Use any named skill. Use the exact provider, model and options (in T3 they are `instanceId`, `model` and `options`: `effort=high` is `{"effort":"high"}`); if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line. Follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
 Layout, ownership, branches per case, tiers and failure modes are in [the workflow](references/workflow.md). Task fields, how to call `backlog` and the exact commands are in [the task template](assets/task.md).
 
@@ -120,7 +120,7 @@ When the user asks, for one goal, you merge its subtask PRs into the epic branch
 
 ## Finish
 
-A story is finished when the user merges its PR (the worker set Done in it). A phased item: when every subtask is Done on the epic branch, in a last commit set the parent Done and add a closing note, merge `main` in, open one PR epic → `main` and watch it, review it by the parent's tier, unwatch it, give the recap and wait for the user. Their merge marks it done: don't commit or open a PR after it.
+A story is finished when the user merges its PR (the worker set Done in it). A phased item: when every subtask is Done on the epic branch, in a last commit set the parent Done and add a closing note, merge `main` in, open one PR epic → `main` and watch it, review it by the parent's tier. Once it is reviewed, in a last commit check the parent's acceptance and Definition of Done boxes that now hold and write its final summary, naming any box left open and why. When CI is green, unwatch it, give the recap and wait for the user. Their merge marks it done: don't commit or open a PR after it.
 
 ## Talking to the user
 
