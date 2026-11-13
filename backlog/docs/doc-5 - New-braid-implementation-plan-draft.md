@@ -9,14 +9,14 @@ created_date: '2026-11-13T16:42:00Z'
 
 > Draft for iterative planning with the user, section by section. Nothing here is a task yet; stories become Backlog.md tasks only after the user approves them. Built on [TASK-2's decisions](doc-4%20-%20TASK-2-report-research-results-and-the-users-decisions.md).
 
-Status: round 3: the MVP (stories 1 to 4) in strands: stories 1 and 2 in detail, 3 and 4 as outlines. Next rounds: one story at a time, broken into phases.
+Status: round 4: stories 1 and 2 merged; story 3 (board) in strands, with open questions; story 4 an outline. Next rounds: one story at a time, broken into phases.
 
 ## Ground rules (the user's, 2026-11-13)
 
 - Rewrite: a new Node.js braid, sized to braid's own needs; not a fork or a wrap of Backlog.md.
 - Agile: every story ends with something working that the next one extends.
 - One folder per task, holding its brief, phases, report, checkpoints and the rest; no Backlog.md-style subtask files.
-- The braid skills mostly survive: their `backlog` calls are replaced by `braid` commands step by step. No new skill instructions unless needed.
+- The braid skills mostly survive: their `backlog` calls are replaced by direct edits of the braid files or by `braid` commands where those have logic (see "Agents may edit braid files directly"). No new skill instructions unless needed.
 - UI: simple but functional, no drag and drop. Lanes To Do · In Progress · In Review · Waiting · Done; a goal is one card that expands; the first board reads T3.
 - Not needed: an MCP server, JSON output.
 - MIT licence.
@@ -42,6 +42,8 @@ Status: round 3: the MVP (stories 1 to 4) in strands: stories 1 and 2 in detail,
 - **One project on the board** (decision 8) for now; several later.
 - **Publishing to npm** (decision 9): after the MVP, once braid has proven itself here; the npm setup mostly exists already.
 - **MVP:** stories 1 to 4; braid then tracks its own braids, shows them on the board, and the skills run on it.
+
+- **Agents may edit braid files directly** (user, 2026-11-13): briefs and reports are plain Markdown, and braid checks them on every read, so agents edit them like any file when that is quicker (planning especially). The CLI stays for what has logic: new numbers and letters (`braid new`, `strand new`), logs (`braid log` stages them), and quick status changes. A `braid check` command (in story 3, strand A) validates every brief, so an agent runs it after editing by hand.
 
 All nine are decided; "Decision details" below keeps the background.
 
@@ -73,28 +75,38 @@ Why this order: the format (2) comes before the board (3), because a board that 
 
 Stories 1 and 2 in detail, stories 3 and 4 as outlines. Tiers follow the workflow: anything that fixes a persistent format is L.
 
-### Story 1: Fresh start (one PR, no strands, tier M)
+### Story 1: Fresh start (one PR, no strands, tier M) — merged: TASK-4, PR #59
 
 - Remove the old CLI: `src/` (ledger, state, events, status), its tests (`test/cli.test.ts`, `test/ledger*.test.ts`, `test/helpers.ts`), and the docs only it needs (`docs/seed-contract.md`, `docs/cli-name.md`; the roadmap's stages and bootstrap rules). Keep the tooling: the gate (`scripts/Verify.ps1`), CI, the npm release setup, the skills installer and the Pester suites.
 - A new skeleton: `src/cli.ts` with a small command router, `braid --version` and `braid help`; a test that runs the built CLI; `README.md` cut to what exists.
 - MIT: `LICENSE` and `"license": "MIT"` in `package.json`.
 - Working at the end: `npm run verify` green on Windows and Ubuntu; `braid help` lists nothing but help.
 
-### Story 2: Braids folder (epic, tier L)
+### Story 2: Braids folder (epic, tier L) — merged: TASK-5, PR #63
 
 - **A. Read braids** (L): the `braids/` format (decision 1): `brief.md` front matter (id, title, status `Outline | To Do | In Progress | Done`, labels, dependencies, order, delivery mode `epic | main`) and sections; `braid list` and `braid view <0002>` / `<0002/A>`. Working: test fixtures listed and viewed.
 - **B. Create and edit** (L): `braid new <title>` (next free number, checking remote branches), `braid strand new <braid> <title>` (next free letter), `braid edit` for status and fields, `braid brief` to set a section; multi-line text from a file or standard input. Working: a braid with two strands made entirely from the CLI.
 - **C. Logs and reports** (M): `braid log <folder> --thread <id> <text>` (per-thread file, staged with `git add`), `braid report <folder>` to write or append `report.md`. Working: one strand's whole life recorded through braid.
 - Open in this story: the log entry format and how a checkpoint is marked (decision 1); whether reading strands from their item branches belongs here or in story 4 (see story 3).
 
-### Story 3: Read-only board (outline, tier L)
+### Story 3: Read-only board (epic, tier L) — round 4, draft
 
-- Strands, roughly: a local server (`braid board`) with React, Vite, Tailwind and Radix; the five lanes and expanding braid cards; derived states from git and GitHub; T3 threads through the `t3` CLI; refresh and caching.
-- What may affect decisions: reading a strand's live copy from its item branch (needed for In Progress, unless story 2 already did it); until story 4 the board is tried on fixtures and on braids made by hand with the CLI, since this repo's work is still in Backlog.md; polling versus watching files; what to show when T3 isn't running; the Waiting reasons that can really be detected.
+Working at the end: `braid board` opens a local page with the five lanes; braid cards expand to their strands; a running strand shows In Progress from its branch, an open PR shows In Review, a strand with a question for the user shows Waiting.
+
+- **A. Board skeleton** (M, `ui`): `braid check` (validate every brief and report the errors; exit 2 on any) for agents that edit files directly; `docs/braids-format.md` and the README say briefs and reports may be edited directly, then `braid check` (today they say "not by hand"); `braid board` serves a React, Vite, Tailwind and Radix page on 127.0.0.1 and opens the browser; lanes To Do · In Progress · In Review · Waiting · Done from the stored status only (In Review and Waiting stay empty); braid cards with a progress count that expand to their strands; an Outline badge; a card opens the brief and report. Working: the playground's braids on a board.
+- **B. Live copies from branches** (L): a strand being worked on lives on its own branch; the board reads its brief from there (`git ls-tree` / `git show`), so its status shows without a merge. Fixes the branch names for braids and strands (see open questions). Working: a strand set In Progress on its branch shows In Progress on the board run from `main`.
+- **C. GitHub states** (M): open PR from a strand's branch → In Review; merged → Done; failing checks with no agent working → Waiting ("checks failed"); one `gh` call per refresh, merged PRs cached. Working: opening and merging a PR in the playground moves the card.
+- **D. T3 threads** (M): `t3 thread list` / `show` joined to strands (by linked PR, then worktree path); Running vs stopped; a pending question → Waiting ("question"); an interrupted thread with no PR → Waiting ("agent stopped"); a clear note when T3 isn't running. Live refresh to the page. Working: a running worker and a waiting question show on the board.
+
+Decided by the user (2026-11-13):
+1. **Branch names:** `braid/0006-<slug>` for a braid (its epic branch when it has strands, its only branch when it has none) and `braid/0006/A-<slug>` for a strand.
+2. **Waiting reasons in the first board:** a question pending in T3, an agent stopped with no PR, checks failing with no agent working, and an `ask:<key>` label on the strand. "Fixes still failing after two review rounds" comes with story 5.
+3. **Refresh:** every 30 seconds while the page is open, at once when a file under `braids/` changes, and a Refresh button.
+4. **Trying it before story 4:** the playground repository and test fixtures.
 
 ### Story 4: Skills on braid, with the import (outline, tier L)
 
-- Strands, roughly: import TASK-1 to TASK-3 with their subtasks and reports into `0001` to `0003`, leaving `backlog/` as read-only history; the task template and the skills' `backlog` calls become `braid` calls with the fewest wording changes; `BRAID.md` and its template drop the Backlog.md invocation rules; the installer also installs braid (decision 5); the Outline step joins the coordinator's flow. The worker skill learns the report rule (user, 2026-11-13): after a fix round the worker rewrites `report.md` to describe the final state (`braid report`, replace), and the history of the round goes into its log; `--append` is for short notes after the fact.
+- Strands, roughly: import TASK-1 to TASK-3 with their subtasks and reports into `0001` to `0003`, leaving `backlog/` as read-only history; the task template and the skills' `backlog` calls become direct edits of `brief.md` and `report.md` (followed by `braid check`) or `braid` commands where they have logic (new, strand new, log), with the fewest wording changes; the skills drop "never edit task files by hand" and the Windows `backlog.exe` lookup, which makes them shorter; `BRAID.md` and its template drop the Backlog.md invocation rules; the installer also installs braid (decision 5); the Outline step joins the coordinator's flow. The worker skill learns the report rule (user, 2026-11-13): after a fix round the worker rewrites `report.md` to describe the final state (`braid report`, replace), and the history of the round goes into its log; `--append` is for short notes after the fact.
 - What may affect decisions: how Backlog.md's notes map (one `log-<date>-import.md`, or into the report); where the TASK-2 reports land; whether `backlog/` stays where it is or moves under an archive folder; whether other projects that use the braid skills keep Backlog.md support for a while, or move to braid at the same time; how a project without braid installed is told what to do.
 
 ## Decision details
