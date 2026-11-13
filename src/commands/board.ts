@@ -6,6 +6,7 @@ import { basename, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadLiveBraids } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
+import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { toBoard, toDetail } from "../board/model.js";
 import { normaliseId, UsageError } from "./braids.js";
 
@@ -32,11 +33,11 @@ function json(status: number, body: unknown): Reply {
   return { status, body: JSON.stringify(body) };
 }
 
-function api(root: string, url: URL): Reply {
+function api(root: string, url: URL, gh: GhRunner): Reply {
   try {
     const braids = loadLiveBraids(root);
     if (url.pathname === "/api/board") {
-      return json(200, toBoard(basename(root), braids));
+      return json(200, toBoard(basename(root), braids, readGithub(root, gh)));
     }
     if (url.pathname !== "/api/item") {
       return json(404, { error: "no such endpoint" });
@@ -52,7 +53,7 @@ function api(root: string, url: URL): Reply {
     if (braid === undefined || item === undefined) {
       return json(404, { error: `no item ${id}` });
     }
-    return json(200, toDetail(root, braid, item));
+    return json(200, toDetail(root, braid, item, readGithub(root, gh)));
   } catch (error) {
     if (error instanceof UsageError) {
       return json(400, { error: error.message });
@@ -65,7 +66,7 @@ function api(root: string, url: URL): Reply {
 }
 
 /** Starts the board server on 127.0.0.1 with a free port. Resolves once it is listening. */
-export function startBoard(root: string, webDir: string = defaultWebDir()): Promise<{ server: Server; url: string }> {
+export function startBoard(root: string, webDir: string = defaultWebDir(), gh: GhRunner = runGh): Promise<{ server: Server; url: string }> {
   const base = resolve(webDir);
   const server = createServer((req, res) => {
     try {
@@ -75,7 +76,7 @@ export function startBoard(root: string, webDir: string = defaultWebDir()): Prom
       }
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       if (url.pathname.startsWith("/api/")) {
-        const out = api(root, url);
+        const out = api(root, url, gh);
         res.writeHead(out.status, { "content-type": TYPES[".json"] ?? "", "cache-control": "no-store" }).end(out.body);
         return;
       }

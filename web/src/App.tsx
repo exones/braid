@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
-import { useBoard, useItem, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded } from "./api.ts";
+import { useBoard, useItem, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded, type PullRequest } from "./api.ts";
 
 /** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
 interface Route {
@@ -110,6 +110,30 @@ function FromBranch({ branch }: { branch: string }) {
   );
 }
 
+/** A link to the item's PR; clicking it must not open the card. */
+function PrLink({ pr }: { pr: PullRequest | null }) {
+  if (pr === null) {
+    return null;
+  }
+  return (
+    <a
+      href={pr.url}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="text-xs text-blue-700 hover:underline"
+      title={`Pull request #${pr.number}, ${pr.state}`}
+    >
+      PR #{pr.number}
+    </a>
+  );
+}
+
+/** Why an item waits; nothing outside the Waiting lane. */
+function Reason({ reason }: { reason: string | null }) {
+  return reason === null ? null : <span className="block text-xs text-amber-700">Waiting: {reason}</span>;
+}
+
 function Card({ braid }: { braid: BraidCard }) {
   const [open, setOpen] = useState(false);
   const tier = braid.labels.filter((l) => l.startsWith("tier:"));
@@ -124,6 +148,7 @@ function Card({ braid }: { braid: BraidCard }) {
         {tier.map((l) => (
           <Badge key={l}>{l}</Badge>
         ))}
+        <PrLink pr={braid.pr} />
         <span className="flex-1" />
         {braid.total > 0 && (
           <button
@@ -141,6 +166,7 @@ function Card({ braid }: { braid: BraidCard }) {
       </div>
       <div className="my-1 font-semibold">{braid.title}</div>
       {braid.branch !== null && <FromBranch branch={braid.branch} />}
+      <Reason reason={braid.reason} />
       {braid.total > 0 && (
         <div className="flex items-center gap-1.5">
           <div className="h-1.5 flex-1 overflow-hidden rounded bg-slate-200">
@@ -167,7 +193,9 @@ function Card({ braid }: { braid: BraidCard }) {
               <span className="flex-1">
                 {s.title}
                 {s.branch !== null && <FromBranch branch={s.branch} />}
+                <Reason reason={s.reason} />
               </span>
+              <PrLink pr={s.pr} />
               <span className="text-xs text-slate-500">{s.status}</span>
             </div>
           ))}
@@ -204,11 +232,13 @@ function Board({ data }: { data: BoardData }) {
 function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
   const rows: [string, string][] = [
     ["Status", item.status],
+    ["Branch", item.branch ?? "working tree"],
     ["Delivery", item.delivery ?? "-"],
     ["Depends on", item.dependencies.length === 0 ? "-" : item.dependencies.join(", ")],
     ["Order", item.order === null ? "-" : String(item.order)],
     ["Folder", item.folder],
   ];
+  const pr = item.pr;
   const trigger = "cursor-pointer border-b-2 border-transparent px-3.5 py-2 text-slate-500 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=active]:text-slate-900";
   return (
     <main className="overflow-auto px-7 py-5">
@@ -222,6 +252,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
         <span className="flex-1" />
         <Actions lane={item.lane} />
       </div>
+      <Reason reason={item.reason} />
       <dl className="my-3 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1 text-[13px]">
         {rows.map(([k, v]) => (
           <div key={k} className="contents">
@@ -229,6 +260,14 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
             <dd>{v}</dd>
           </div>
         ))}
+        {pr !== null && (
+          <div className="contents">
+            <dt className="text-slate-500">Pull request</dt>
+            <dd>
+              <PrLink pr={pr} /> <span className="text-slate-500">{pr.state}, checks {pr.checks}</span>
+            </dd>
+          </div>
+        )}
       </dl>
       <Tabs.Root value={tab} onValueChange={(t) => go(item.id, t)}>
         <Tabs.List className="mb-3.5 flex gap-0.5 border-b border-slate-200">
@@ -320,7 +359,11 @@ export function App() {
           <b className="text-base">braid</b>
           {board.state === "ready" && <span className="text-slate-500">{board.data.repo} · braids/</span>}
           <span className="flex-1" />
-          <span className="text-xs text-slate-500">read-only · reload to refresh</span>
+          <span className="text-xs text-slate-500">
+            {board.state === "ready" && board.data.github.state === "unavailable"
+              ? `GitHub unavailable (${board.data.github.reason}): showing stored states · reload to refresh`
+              : "read-only · reload to refresh"}
+          </span>
         </header>
         {route.id === null ? (
           <Status loaded={board}>{(data) => <Board data={data} />}</Status>
