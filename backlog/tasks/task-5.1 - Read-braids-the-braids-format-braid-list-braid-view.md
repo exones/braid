@@ -1,10 +1,10 @@
 ---
 id: TASK-5.1
 title: 'Read braids: the braids/ format, braid list, braid view'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
-updated_date: '2026-11-13T18:56:00Z'
+updated_date: '2026-11-13T18:59:00Z'
 labels:
   - kind:story
   - tier:L
@@ -38,16 +38,16 @@ Out of scope: creating or editing (TASK-5.2), logs and reports (TASK-5.3), readi
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 docs/braids-format.md describes the folder, file and front matter format
-- [ ] #2 braid list and braid view show fixture braids and strands correctly, covered by tests
-- [ ] #3 Malformed briefs give a clear error naming the file
-- [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
+- [x] #1 docs/braids-format.md describes the folder, file and front matter format
+- [x] #2 braid list and braid view show fixture braids and strands correctly, covered by tests
+- [x] #3 Malformed briefs give a clear error naming the file
+- [x] #4 npm run verify passes; CI green on Windows and Ubuntu
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -59,3 +59,25 @@ Out of scope: creating or editing (TASK-5.2), logs and reports (TASK-5.3), readi
 4. Tests (built CLI, like test/cli.test.ts): a fixture repo under test/fixtures/braids/ (two braids, one with strands out of letter order, an Outline, a report and logs); malformed briefs built in temp dirs (missing front matter, bad status, id mismatch, unknown key, bad list, missing brief.md, duplicate number, delivery on a strand).
 5. `.gitignore`: `braids/**/temp/`. README: list and view under the CLI section.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Decisions: front matter values are always text (`0001` stays `0001`, no YAML number coercion); unknown keys are errors so typos fail loudly; braid ids are `0002`, strand ids `0002/A`, and `id` must match the folder; `delivery` is braid-only (default epic) and an error on a strand; strands without `order` run last, by letter. Root = nearest ancestor holding `braids/` or `.git`. Exit 1 for usage errors, 2 for malformed braids files. No new dependencies: a small YAML-subset parser instead of a YAML library.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: braid now reads the `braids/` folder. `docs/braids-format.md` defines the layout (`NNNN-slug` braids, `X-slug` strands, `brief.md`, optional `report.md`, `log-<date>-<thread>.md`, ignored `temp/`) and the brief front matter (id, title, status Outline | To Do | In Progress | Done, labels, dependencies, order, delivery epic | main). New code: `src/braids/frontmatter.ts` (a strict YAML subset with line-numbered errors), `src/braids/brief.ts` (validated briefs and `## ` sections), `src/braids/store.ts` (root discovery and loading), `src/commands/braids.ts` (`braid list`, `braid view <0002|0002/A>`), routed in `src/cli.ts` and listed in help and the README. `.gitignore` ignores `braids/**/temp/`.
+
+Why: the persistent format every later story builds on (TASK-5.2 writes it, the board reads it).
+
+Validation: `test/braids.test.ts` runs the built CLI against a fixture repo (`test/fixtures/braids-repo`: three braids, strands out of letter order, Outline, report, logs, block and inline lists, quoted ids) and 21 malformed cases in temp repos (each error names the file, most with a line); `npm run verify` passes locally on Windows.
+
+Open: none.
+
+For later items: `parseBrief(text, file, expectedId)` returns `Brief` with `sections` (title/text from `## ` headings) for `braid brief`; `loadBraids(root)` and `findRoot(cwd)` in `src/braids/store.ts`; `FormatError(file, message)` exits 2 and `UsageError` exits 1 via `src/cli.ts`. Values are written as text; ids `0001` should be quoted (`'0001'`) when writing for YAML compatibility, though braid reads them either way. No writer exists yet; TASK-5.2 adds one that should emit this exact subset.
+
+Needs the user: none
+<!-- SECTION:FINAL_SUMMARY:END -->
