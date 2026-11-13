@@ -4,7 +4,7 @@ title: 'Spike: how the braid CLI could be built, and its estimate'
 status: Done
 assignee: []
 created_date: '2026-11-13T12:45:00Z'
-updated_date: '2026-11-13T13:33:00Z'
+updated_date: '2026-11-13T13:45:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -77,14 +77,16 @@ Out of scope:
 
 <!-- SECTION:NOTES:BEGIN -->
 Compatible subset estimated at 4.8k-6.7k product lines (confirms TASK-2.1's 5k-8k at its low end); first full product with the board 7.2k-10.7k. Drag and drop deferred: lanes are derived states, so a drag would be an action, not an edit. braid has no licence (no license field, no LICENSE file, gh api license null, public repo).
+
+Review (PR #55) fixes: reference tests are 18 files / 5,578 lines; config/ids/git raised to 1,100-1,500 (ids alone 762 upstream), so the compatible tracker is 5,100-7,100 and the first full product 7,500-11,100; the test ratio follows this repository (about 2.1k product to 4.3k test lines); the old goal 5 split into goals 5 and 6 with phases, so six goals, five tier L and one M.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-What changed: new docs/braid-cli.md answers the five questions. (1) What the CLI must do: the Backlog.md subset braid calls, plus the steps the skills do by hand (next item, resume status, start, checks by ci names, auto-mode merge checks, stop-case facts, recaps); order: read-only board with nested goals and derived states, then compatible write commands, coordinator commands, board actions, T3 automation. (2) Architecture: format, config, ids, git, store, model, cli, sources, derive, actions, server, web on Node 26/ESM with two or three dependencies; Backlog.md code and 17 test files (5,074 lines) as the specification; a round-trip suite against backlog.exe-written files; runtime state in an untracked runs module for checkpoints and several agents; multi-line fields also from a file or stdin because npm shims on Windows cut them. (3) Estimate: compatible tracker 4.8k-6.7k product lines, with board 7.2k-10.7k, about five goals (three tier L); riskiest: byte-exact round-trip, IDs across branches, outside sources, concurrent writers; fork ~36k-52k plus the Bun port, wrap 3k-5.5k but never drops backlog. (4) UI: React 19.3, Vite 8, Tailwind 4.3, Radix primitives, node:http with SSE on 127.0.0.1 and a session token for actions; drag and drop (pragmatic-drag-and-drop when wanted), router, query cache and editor can wait. (5) Licence: reading needs nothing; ported pieces keep the MIT notice (THIRD_PARTY_NOTICES.md and file headers); wrap nothing unless bundled; fork keeps LICENSE. braid has no licence: others have no right to use it, so pick one (MIT simplest) before publishing.
+What changed: new docs/braid-cli.md answers the five questions. (1) What the CLI must do: the Backlog.md subset braid calls, plus the steps the skills do by hand (next item, resume status, start, checks by ci names, auto-mode merge checks, stop-case facts, recaps); order: read-only board with nested goals and derived states, then compatible write commands, coordinator commands, board actions, T3 automation and growth. (2) Architecture: format, config, ids, git, store, model, cli, sources, derive, actions, server, web on Node 26/ESM with two or three dependencies; Backlog.md code and 18 test files (5,578 lines) as the specification; a round-trip suite against backlog.exe-written files; runtime state in an untracked runs module for checkpoints and several agents; multi-line fields also from a file or stdin because npm shims on Windows cut them. (3) Estimate: compatible tracker 5.1k-7.1k product lines, with board 7.5k-11.1k, tests one to two times that; six goals (five tier L, one M), each with phases; riskiest: byte-exact round-trip, IDs across branches, outside sources, concurrent writers; fork ~36k-52k plus the Bun port, wrap 3k-5.5k but never drops backlog. (4) UI: React 19.3, Vite 8, Tailwind 4.3, Radix primitives, node:http with SSE on 127.0.0.1 and a session token for actions; drag and drop (pragmatic-drag-and-drop when wanted), router, query cache and editor can wait. (5) Licence: reading needs nothing; ported pieces keep the MIT notice (THIRD_PARTY_NOTICES.md and file headers); wrap nothing unless bundled; fork keeps LICENSE. braid has no licence: others have no right to use it, so pick one (MIT simplest) before publishing.
 Why: the user leans to reimplementing and needs the estimate, stack and follow-up goals to plan.
-Validation: claims from the v1.55.3 source (wc, grep), npm view on 2026-11-13, gh api repos/exones/braid, the braid skills; npm run verify passes.
+Validation: claims from the v1.55.3 source (wc, grep), npm view on 2026-11-13, gh api repos/exones/braid, the braid skills; review (PR #55) not blocking, five suggestions applied; npm run verify passes.
 Open: cross-branch read time on large repos, T3 programmatic interface (TASK-2.2), exact per-command sizes in cli.ts.
 For later items: TASK-2.2 supplies the lanes and derived-state rules that goal 1 (read-only board) needs; the doc proposes derived lanes with actions as buttons, not drag.
 Needs the user: decision: confirm the reimplement way and the follow-up goal order; decision: pick a licence for braid before publishing.

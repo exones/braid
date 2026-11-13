@@ -87,7 +87,7 @@ under a file lock (it uses `proper-lockfile`) because the board and agents may w
 `checklist`, `definition-of-done*`, `cli-final-summary`, `append-implementation-notes`,
 `cli-dependency*`, `cli-incrementing-ids`, `cli-zero-padded-ids`, `branch-task-loader-resilience`,
 `cli-plain-output`, `cli-json-output`, `markdown`, `structured-sections-code-fences` and
-`core-task-corpus-regressions`. Those 17 files are 5,074 lines of `bun:test`; they are read as a
+`core-task-corpus-regressions`. Those 18 files are 5,578 lines of `bun:test`; they are read as a
 specification, not ported. braid adds a round-trip suite over every task file in its own `backlog/`
 and over files written by `backlog.exe` 1.55.3 in a temporary repository: read, write unchanged,
 compare bytes.
@@ -116,25 +116,27 @@ launch"). Every multi-line field therefore also accepts a file or standard input
 
 ## 3. Estimates
 
-**Reimplement**, in product lines (tests about the same again, as in the repository today):
+**Reimplement**, in product lines. Tests come on top, one to two times as many lines; this
+repository today has about 2,100 product lines (`src/`) and 4,300 test lines (`test/`), about two to one.
 
 | Part | Lines | Reason for the size |
 | --- | ---: | --- |
 | `format/` with round-trip | 1,200–1,600 | Most of `src/markdown/` minus comments and fields braid doesn't write |
-| `config/`, `ids/`, `git/` | 800–1,100 | The ID rules and a narrow slice of git operations |
+| `config/`, `ids/`, `git/` | 1,100–1,500 | `ids/` 600–760 (upstream's 762 lines are mostly rules braid needs: prefixes, padding, subtasks, taken IDs across worktrees and branches), `config/` 250–350, a narrow slice of git operations 250–400 |
 | `store/` with cross-branch reads and lock | 900–1,200 | The 1,172 reference lines plus a lock |
 | `model/` and readiness, `next` | 400–600 | Types, goal tree, ordering |
 | `cli/` for the commands braid calls, `--plain`, `--json`, `doctor` | 1,500–2,200 | About 15 commands with options and output parity |
-| **Compatible tracker subtotal** | **4,800–6,700** | Confirms TASK-2.1's 5k–8k bound, at its low end |
+| **Compatible tracker subtotal** | **5,100–7,100** | Confirms TASK-2.1's 5k–8k bound, in its lower half |
 | `sources/` GitHub, `derive/` | 600–1,000 | `gh` calls, cache, the state table |
 | `server/` | 300–500 | Built-in HTTP, SSE, static files |
 | `web/` minimal board | 1,500–2,500 | Lanes, nested goals, card, task panel, filters |
-| **First full product (tracker and board)** | **7,200–10,700** | |
+| **First full product (tracker and board)** | **7,500–11,100** | |
 | Coordinator commands, actions | 1,000–1,800 | Later goals 3 and 4 |
-| T3 automation | 1,000–2,000 | Depends on T3's API, the most uncertain |
+| T3 automation, `runs/` records, checkpoints, resuming | 1,000–2,000 | Goal 5; depends on T3's API, the most uncertain |
+| Reports, several agents, running a task from the board | 1,000–2,000 | Goal 6; rough, planned after goal 5 |
 
-In goals (tiers as in [the workflow](../.agents/skills/braid/references/workflow.md)): about five
-goals, three of them tier L, listed under "Follow-up goals" below.
+In goals (tiers as in [the workflow](../.agents/skills/braid/references/workflow.md)): six
+goals, five of them tier L and one tier M, listed under "Follow-up goals" below.
 
 **Riskiest parts**, in order:
 
@@ -233,8 +235,17 @@ Each is a goal with phases (one subtask per phase), sized for long unattended ru
    them (user merges).
 4. **Board actions (tier L).** Phases: (a) Open thread and Merge on request; (b) Start: branch,
    worktree and T3 launch, with the session token; (c) states from T3 (Running, Waiting for you).
-5. **Agents and growth (tier L, planned when 4 is done).** Following agents, checkpoints and better
-   resuming in the `runs/` records, reports, several agents at once, running a task from the board.
+5. **Following agents and resuming (tier L).** Phases: (a) the `runs/` records (which agent works
+   on which task, in which thread and worktree) and following T3 threads into derived states;
+   (b) checkpoints: an agent's progress recorded in `runs/` at clean points; (c) better resuming:
+   `braid status` and the coordinator rebuild state from `runs/`, Git and GitHub, and relaunch a
+   stopped agent from its last checkpoint.
+6. **Reports and several agents (tier L, planned in detail when 5 is done).** Phases: (a) reports:
+   a task's report as a Markdown file linked from its notes, shown in the board's task panel;
+   (b) several agents at once: independent items in parallel within a limit, with `next` returning
+   every ready item and the board showing each run; (c) running a task from the board: Start
+   followed through review and CI to a recap waiting for the user's merge, without a coordinator
+   chat.
 
 Goals 1 and 2 can swap if the user wants agents off `backlog` before the board.
 
