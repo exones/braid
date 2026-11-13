@@ -204,6 +204,29 @@ test("strand letters are never reused, also across branches", () => {
   assert.equal(ok(root, "strand", "new", "1", "Next"), "Created 0001/D braids/0001-braid/D-next\n");
 });
 
+test("a strand letter taken only on a pushed remote branch is not reused", () => {
+  const remote = dir("remote");
+  git(remote, "init", "-q", "--bare", "-b", "main");
+  const one = repo();
+  git(one, "remote", "add", "origin", remote);
+  ok(one, "new", "Braid");
+  ok(one, "strand", "new", "1", "First");
+  commitAll(one, "braid with strand A");
+  git(one, "push", "-q", "origin", "main");
+  const two = dir("clone");
+  git(two, "clone", "-q", remote, ".");
+
+  // Clone one takes letter B on a branch that only the remote has.
+  git(one, "switch", "-q", "-c", "side");
+  assert.match(ok(one, "strand", "new", "1", "Second"), /^Created 0001\/B /);
+  commitAll(one, "strand b");
+  git(one, "push", "-q", "origin", "side");
+
+  assert.match(ok(two, "strand", "new", "1", "Stale", "--no-fetch"), /^Created 0001\/B /);
+  rmSync(join(two, "braids", "0001-braid", "B-stale"), { recursive: true });
+  assert.equal(ok(two, "strand", "new", "1", "Third"), "Created 0001/C braids/0001-braid/C-third\n");
+});
+
 test("a failed fetch stops new unless --no-fetch", () => {
   const root = repo();
   git(root, "remote", "add", "origin", join(scratch, "missing-remote"));

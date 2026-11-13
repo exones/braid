@@ -4,7 +4,7 @@ title: Create and edit braids and strands
 status: Done
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
-updated_date: '2026-11-13T19:22:00Z'
+updated_date: '2026-11-13T19:35:00Z'
 labels:
   - kind:story
   - tier:L
@@ -42,7 +42,7 @@ Out of scope: logs and reports (TASK-5.3), the board, the import.
 - [x] #1 A braid with two strands can be created and edited entirely from the CLI, covered by tests
 - [x] #2 Numbers and letters are never reused, including numbers taken on remote branches
 - [x] #3 Multi-line text works from a file and from standard input on Windows and Ubuntu
-- [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
+- [x] #4 npm run verify passes; CI green on Windows and Ubuntu
 <!-- AC:END -->
 
 ## Definition of Done
@@ -66,6 +66,8 @@ Out of scope: logs and reports (TASK-5.3), the board, the import.
 
 <!-- SECTION:NOTES:BEGIN -->
 Numbers and letters: taken = the working tree plus every path ever under braids/ in any ref (git log --all --name-only), after git fetch --all; next = highest + 1. This also covers deleted folders. A failed fetch stops new/strand new (exit 1) unless --no-fetch. parseArgs rejects a value that starts with - (--order -1 is "ambiguous"); --order=-1 reaches braid's own check.
+
+AC #4: npm run verify green locally; verify (ubuntu-latest) and verify (windows-latest) green on cbeaf53 (https://github.com/exones/braid/actions/runs/43491688265). Review suggestion 2 applied: a test that a strand letter taken only on a pushed remote branch is not reused.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -75,7 +77,7 @@ What changed: four commands that make and change braids, so nobody edits brief.m
 Why: TASK-5 story 2, strand B; agents must change braids only through braid.
 How numbers stay unique: before choosing, braid runs `git fetch --all` (when there is a remote) and treats as taken every braid/strand folder in the working tree and in the history of any ref (`git log --all --name-only -- braids`), deleted ones included; the next is highest + 1, gaps not filled. A failed fetch exits 1 unless --no-fetch.
 Every write is parsed back with parseBrief before it lands; the writer always emits labels and dependencies, delivery on every braid, ids in single quotes and other text JSON-escaped in double quotes. Section text may not contain `## ` headings or an unclosed fence; CRLF and a BOM become LF/none. Dependencies must exist; a title change keeps the folder name.
-Validation: test/edit.test.ts (8 tests, built CLI in temp Git repos with HOME and friends in the scratch folder, a local bare remote for the fetch case); npm run verify green locally on Windows.
+Validation: test/edit.test.ts (9 tests, built CLI in temp Git repos with HOME and friends in the scratch folder, a local bare remote for the fetch cases, numbers and letters taken only on a pushed remote branch); npm run verify green locally; CI verify green on Ubuntu and Windows.
 Open: none.
 For later items: writeBrief(path, name, fields, body) and setSection(body, title, text) in src/braids/write.ts; GitError (exit 1) from src/braids/numbers.ts; UsageError and normaliseId still in src/commands/braids.ts. braid log (TASK-5.3) can reuse the fetch-free parts and the cli.ts dispatch switch.
 Needs the user: none
