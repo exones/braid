@@ -4,7 +4,7 @@ title: GitHub states on the board
 status: Done
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
-updated_date: '2026-11-13T23:43:00Z'
+updated_date: '2026-11-13T23:54:00Z'
 labels:
   - kind:story
   - tier:M
@@ -42,7 +42,7 @@ Out of scope: T3 (TASK-6.4).
 - [x] #1 An open, merged and failing PR each put the strand in the right lane, covered by tests with gh output stubbed
 - [x] #2 An ask:<key> label shows Waiting with its key
 - [x] #3 Without gh the board still works and says why states are missing
-- [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
+- [x] #4 npm run verify passes; CI green on Windows and Ubuntu
 <!-- AC:END -->
 
 ## Definition of Done
@@ -56,6 +56,12 @@ Out of scope: T3 (TASK-6.4).
 <!-- SECTION:PLAN:BEGIN -->
 1. src/board/github.ts: one `gh pr list --state all` per refresh (open-only after the first when no open PR vanished; merged PRs cached), PRs keyed by braid/strand number from head branch; checks from statusCheckRollup; gh missing/failing gives an "unavailable" note instead of an error.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Review applied: AC 4 ticked; one gh read shared per page view (3 s window); tests for unauthenticated gh, braid-level branch PR, stored Done with an open PR.
+<!-- SECTION:NOTES:END -->
 
 ## Final Summary
 

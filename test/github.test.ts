@@ -30,7 +30,7 @@ const { startBoard } = (await load("../dist/commands/board.js")) as {
 };
 const { resetGithubMemory, readGithub } = (await load("../dist/board/github.js")) as {
   resetGithubMemory: () => void;
-  readGithub: (root: string, run: Runner) => { status: { state: string; reason?: string }; prs: Map<string, { state: string; checks: string }> };
+  readGithub: (root: string, run: Runner, ttlMs?: number) => { status: { state: string; reason?: string }; prs: Map<string, { state: string; checks: string }> };
 };
 
 beforeEach(() => resetGithubMemory());
@@ -143,13 +143,13 @@ test("merged PRs are cached: later reads list only open PRs until one disappears
     return ok(state === "all" ? [...open, ...merged] : open);
   };
   const root = "C:\cache-test";
-  assert.equal(readGithub(root, gh).prs.get("0001/B")?.state, "merged");
-  assert.equal(readGithub(root, gh).prs.get("0001/B")?.state, "merged");
+  assert.equal(readGithub(root, gh, 0).prs.get("0001/B")?.state, "merged");
+  assert.equal(readGithub(root, gh, 0).prs.get("0001/B")?.state, "merged");
   assert.deepEqual(calls, ["all", "open"]);
   // The open PR merges: it is gone from the open list, so everything is read again.
   open = [];
   merged.push(pr(1, "MERGED", "braid/0001/A-open"));
-  assert.equal(readGithub(root, gh).prs.get("0001/A")?.state, "merged");
+  assert.equal(readGithub(root, gh, 0).prs.get("0001/A")?.state, "merged");
   assert.deepEqual(calls, ["all", "open", "open", "all"]);
 });
 
@@ -158,4 +158,36 @@ test("pending checks stay In Review", async () => {
   const { data } = await board(files(), gh);
   assert.equal(data.braids[0].strands[0].lane, "In Review");
   assert.equal(data.braids[0].strands[0].pr.checks, "pending");
+});
+
+test("the board and an item in one page view share one gh read", async () => {
+  let calls = 0;
+  const gh: Runner = () => {
+    calls++;
+    return ok([pr(10, "OPEN", "braid/0001/A-open", green)]);
+  };
+  const { item } = await board(files(), gh);
+  await item("0001/A");
+  assert.equal(calls, 1);
+});
+
+test("gh that is not logged in says so", async () => {
+  const gh: Runner = () => ({ status: 4, stdout: "", stderr: "To get started with GitHub CLI, please run:  gh auth login\n" });
+  const { data } = await board(files(), gh);
+  assert.deepEqual(data.github, { state: "unavailable", reason: "gh is not logged in; run gh auth login" });
+});
+
+test("a PR from a braid's own branch puts a braid without strands in its lane", async () => {
+  const root = repo({ "braids/0006-solo/brief.md": brief("0006", "In Progress") });
+  const { data, item } = await board(root, () => ok([pr(20, "OPEN", "braid/0006-solo", green)]));
+  assert.equal(data.braids[0].lane, "In Review");
+  assert.equal(data.braids[0].pr.number, 20);
+  assert.equal((await item("0006")).pr.number, 20);
+});
+
+test("a strand stored as Done stays Done with an open PR", async () => {
+  const { data } = await board(files(), () => ok([pr(30, "OPEN", "braid/0001/F-done", red)]));
+  const f = data.braids[0].strands.find((x: any) => x.id === "0001/F");
+  assert.equal(f.lane, "Done");
+  assert.equal(f.reason, null);
 });

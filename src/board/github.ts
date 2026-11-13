@@ -83,6 +83,9 @@ interface Memory {
   readonly merged: Map<number, RawPr>;
   open: Set<number>;
 }
+// One page view asks for the board and an item; they share one read made within this many ms.
+const SHARE_MS = 3000;
+const recent = new Map<string, { at: number; github: Github }>();
 const memory = new Map<string, Memory>();
 
 function list(run: GhRunner, root: string, state: "open" | "all"): RawPr[] | string {
@@ -91,6 +94,9 @@ function list(run: GhRunner, root: string, state: "open" | "all"): RawPr[] | str
     return "gh is not installed or not on PATH";
   }
   if (r.status !== 0) {
+    if (/gh auth login|not logged in/i.test(r.stderr)) {
+      return "gh is not logged in; run gh auth login";
+    }
     const first = r.stderr.trim().split("\n")[0] ?? "";
     return `gh failed${first === "" ? "" : `: ${first}`}`;
   }
@@ -106,7 +112,17 @@ function list(run: GhRunner, root: string, state: "open" | "all"): RawPr[] | str
  * the open ones, unless one that was open has gone (it merged or closed), then every PR again.
  * Any failure gives `unavailable` with the reason, never an error.
  */
-export function readGithub(root: string, run: GhRunner = runGh): Github {
+export function readGithub(root: string, run: GhRunner = runGh, ttlMs: number = SHARE_MS): Github {
+  const shared = recent.get(root);
+  if (shared !== undefined && Date.now() - shared.at < ttlMs) {
+    return shared.github;
+  }
+  const github = readFresh(root, run);
+  recent.set(root, { at: Date.now(), github });
+  return github;
+}
+
+function readFresh(root: string, run: GhRunner): Github {
   const mem = memory.get(root) ?? { merged: new Map<number, RawPr>(), open: new Set<number>() };
   let fetched = list(run, root, mem.merged.size === 0 && mem.open.size === 0 ? "all" : "open");
   if (typeof fetched !== "string") {
@@ -142,4 +158,5 @@ export function readGithub(root: string, run: GhRunner = runGh): Github {
 /** Forgets what was read, for tests. */
 export function resetGithubMemory(): void {
   memory.clear();
+  recent.clear();
 }
