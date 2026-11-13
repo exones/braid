@@ -1,10 +1,10 @@
 ---
 id: TASK-2.2
 title: 'Spike: the board''s path: starting agents, derived states, the first version'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-13T12:37:00Z'
-updated_date: '2026-11-13T14:50:00Z'
+updated_date: '2026-11-13T14:53:00Z'
 labels:
   - kind:spike
   - tier:M
@@ -47,16 +47,16 @@ Out of scope:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Each of the three questions is answered with evidence (commands run, files or docs read)
-- [ ] #2 The roadmap section proposes the path, the first version with its size, and the follow-up goals
-- [ ] #3 No product code or skill changes
-- [ ] #4 The first version shows a goal as one top-level card that expands to its subtasks; the doc says what Backlog.md already offers for this
+- [x] #1 Each of the three questions is answered with evidence (commands run, files or docs read)
+- [x] #2 The roadmap section proposes the path, the first version with its size, and the follow-up goals
+- [x] #3 No product code or skill changes
+- [x] #4 The first version shows a goal as one top-level card that expands to its subtasks; the doc says what Backlog.md already offers for this
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -67,3 +67,26 @@ Out of scope:
 3. Q3 (first version): read Backlog.md 1.55.3's board and task view (clone the tag into gitignored inspiration/) for parent/subtask display; propose candidate lanes, the read-only first version on TASK-2.3's way and stack with goal cards that expand, its size, and the follow-up goals.
 4. Rewrite docs/roadmap.md "braid's own board" (about 30-60 lines, marked proposed), noting evidence in task notes; run npm run verify; final summary; Done.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Evidence (2026-11-13): `t3 --help`, `t3 thread start|send|show|list --help` (t3 v0.1.6); `t3 thread list --project C:\code\agento --json` (72 threads, 1.2 s; statuses running/completed/interrupted/cancelled) and `t3 thread show --json` (fields incl. branch, worktreePath, pendingRequestCount, ~0.95 s). Timings: `gh pr list --state all --limit 100` with statusCheckRollup 3.5 s (55 PRs), lean 0.9 s; open with checks 0.8 s; `git ls-remote` 0.5 s; GraphQL budget 5,000/h. Backlog.md v1.55.3 cloned into gitignored inspiration/: src/ui/board.ts buildColumnTasks, src/web/components/TaskDetailsModal.tsx; web Board/TaskColumn/TaskCard have no parent grouping.
+Decision: proposed moving the read-only T3 source into goal 1 phase (b), since the t3 CLI makes it cheap; actions stay in goal 4.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Changed: docs/roadmap.md "braid's own board" gains a "Proposed path" section (marked proposed until the user decides): starting agents, derived-state rules, what Backlog.md already shows, the first version with its size, candidate lanes and follow-up goals.
+
+Answers:
+1. Starting agents: yes. T3 Code ships a `t3` CLI (v0.1.6) over the running server: `t3 thread start <project> <msg> --worktree <base> --branch <item> --provider --model --json` starts a thread in a new worktree; `t3 thread send` messages an existing thread (queued as its next turn); `list`/`show --json` give status, branch, worktreePath, pendingRequestCount, linked PRs and a link to open the thread. Limits: needs T3 running; no flag for reasoning effort; ~1 s per call. Fallback `claude -p` / `codex exec` loses the visible, answerable thread, T3's MCP tools and live state.
+2. Derived states: Running from T3 thread status (or item branch without PR, weak); In Review from an open PR on item/<id>-*; Waiting for you from pendingRequestCount, ask:<key> labels, the summary's Needs the user line, or a PR into main; Done from a merged PR. About 3-4 s per refresh sequential, ~1.5 s parallel; merged PRs cacheable; GitHub budget ample.
+3. First version: read-only `braid board` (goal 1 of braid-cli.md, tier L, ~5.5k-8k product lines, four phases); a goal is one card in the lane of its most urgent subtask, with progress and one dot per subtask, expanding in place to its subtasks. Lanes A (by state), B (by who acts), C (state with Ready split) for the user. Backlog.md 1.55.3: task view lists subtasks, task list -p filters; the TUI board puts a subtask after its parent only if same status; the web board is flat, only the task modal lists subtasks with "n of m complete".
+
+Validation: commands and files in the notes; npm run verify passes (40 tests). No product code or skill changes.
+Open: T3's effort setting on start; reading T3's local API directly instead of the CLI; whether the board could be a T3 panel.
+For later items: goal 1 phase (b) also reads T3 (read-only) via `t3 thread list/show --json`; goal 4 Start uses `t3 thread start`, Open thread the thread's `link`.
+Needs the user: scope: choose the lanes (A, B or C) and confirm moving the read-only T3 source into goal 1.
+<!-- SECTION:FINAL_SUMMARY:END -->
