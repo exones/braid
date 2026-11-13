@@ -1,9 +1,10 @@
 ---
 id: TASK-5.3
 title: 'Logs and reports: braid log, braid report'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
+updated_date: '2026-11-13T20:38:00Z'
 labels:
   - kind:story
   - tier:M
@@ -47,3 +48,12 @@ Out of scope: the board, the import, resuming runs (story 8).
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. src/braids/logs.ts: thread short id (first 8 letters/digits, `user` without), find-or-create log file (date from creation, UTC), entry format `## <YYYY-MM-DD HH:MM>Z` (+ ` checkpoint`), then text.
+2. `braid log <id> [--thread <id>] [--checkpoint] (<text> | --file <path|->)`: appends, then `git add` the file; never commits; stops with a clear error if git add fails.
+3. `braid report <id> (--file|--text) [--append]`: writes report.md (replace by default? no: appends by default is risky) - decide: default writes/replaces; --append adds after a blank line.
+4. Router, help, docs/braids-format.md (entry and checkpoint format, commands), tests running the built CLI (Windows+Ubuntu safe), npm run verify.
+<!-- SECTION:PLAN:END -->
