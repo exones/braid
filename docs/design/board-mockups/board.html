@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>braid board – mockup</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#3b5bdb}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line)}
+header b{font-size:16px}header .repo{color:var(--mut)}header .sp{flex:1}
+.lanes{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 20px;align-items:start}
+.lane{background:#eceef3;border-radius:10px;padding:10px;min-height:200px}
+.lane h3{margin:2px 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;box-shadow:0 1px 2px #0001;cursor:pointer}
+.card:hover{border-color:var(--acc)}
+.card .id{color:var(--mut);font-size:12px}.card .t{font-weight:600;margin:2px 0 6px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:#e8ebf3;color:#49506a}
+.b-outline{background:#fff1d6;color:#8a5a00}.b-lbl{background:#eef;color:#3b4aa0}
+.bar{height:5px;background:#e6e9f0;border-radius:3px;flex:1;min-width:50px;overflow:hidden}.bar i{display:block;height:100%;background:#37b24d}
+.cnt{font-size:12px;color:var(--mut)}
+.reason{margin-top:6px;font-size:12px;color:#a12a2a;background:#fff5f5;border-radius:6px;padding:4px 6px}
+.strands{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+.strand{display:flex;gap:6px;align-items:center;padding:4px 0;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:#adb5bd;flex:none}
+.d-prog{background:#3b5bdb}.d-done{background:#37b24d}.d-wait{background:#e03131}.d-out{background:#f59f00}
+.sid{color:var(--mut);font-size:12px;width:40px;flex:none}
+button{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+button:disabled{color:#a3a9b8;background:#f3f4f7;cursor:not-allowed}
+.actions{margin-top:8px;display:flex;gap:6px}
+.page{display:grid;grid-template-columns:290px 1fr;height:calc(100vh - 47px)}
+nav{background:#fff;border-right:1px solid var(--line);padding:14px;overflow:auto}
+nav .back{color:var(--acc);font-size:13px;cursor:pointer;display:block;margin-bottom:10px}
+nav h2{font-size:15px;margin:0 0 2px}
+nav .item{display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:6px;cursor:pointer;margin-top:2px}
+nav .item.sel{background:#e7ecff;font-weight:600}nav .item:hover{background:#f0f2f8}nav .sub{margin-left:14px}
+main{padding:20px 28px;overflow:auto}
+main h1{font-size:20px;margin:0 0 6px}
+.meta{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;margin:12px 0 16px;font-size:13px}.meta dt{color:var(--mut)}.meta dd{margin:0}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{padding:7px 14px;cursor:pointer;color:var(--mut);border-bottom:2px solid transparent}.tab.on{color:var(--ink);border-color:var(--acc);font-weight:600}
+.md h2{font-size:15px;margin:16px 0 4px}.md p,.md li{max-width:75ch}.md code{background:#eef0f5;padding:0 4px;border-radius:4px}
+.log{border-left:3px solid var(--line);padding-left:12px;margin:10px 0}.log h4{margin:0;font-size:12px;color:var(--mut);font-weight:600}
+.logfile{display:flex;gap:8px;margin-bottom:10px}.logfile .badge{cursor:pointer}.logfile .on{background:var(--acc);color:#fff}
+</style></head><body>
+<header><b>braid</b><span class="repo">playground · braids/</span><span class="sp"></span><span class="cnt">read-only · reload to refresh</span></header>
+<div id="app"></div>
+<script>
+const B=[
+{id:'0001',title:'Fresh start',status:'Done',labels:['kind:story','tier:S'],strands:[]},
+{id:'0002',title:'Braids folder: the format',status:'In Progress',labels:['kind:story','tier:L'],delivery:'epic',strands:[
+ {l:'A',title:'Read the folder',status:'Done'},
+ {l:'B',title:'Create and write briefs',status:'In Progress'},
+ {l:'C',title:'Log and checkpoints',status:'To Do'}]},
+{id:'0003',title:'Read-only board',status:'In Progress',labels:['kind:epic','ui'],delivery:'epic',strands:[
+ {l:'A',title:'Board skeleton and braid check',status:'In Progress'},
+ {l:'B',title:'Live copies from branches',status:'To Do'},
+ {l:'C',title:'GitHub states',status:'To Do'},
+ {l:'D',title:'T3 threads and live refresh',status:'To Do'}]},
+{id:'0004',title:'Start and Merge actions',status:'To Do',labels:['kind:story','tier:L'],strands:[
+ {l:'A',title:'Start an agent from a card',status:'To Do'},
+ {l:'B',title:'Merge on request',status:'To Do'}]},
+{id:'0005',title:'Review reminders',status:'Waiting',labels:['kind:story','tier:M'],reason:'Needs the user: scope. The brief asks for email, the repo has no mail setup.',strands:[
+ {l:'A',title:'Detect stale reviews',status:'Waiting'}]},
+{id:'0006',title:'Dark mode and theming',status:'Outline',labels:['kind:story','tier:M','ui'],strands:[]},
+{id:'0007',title:'Export board as PDF',status:'Outline',labels:['kind:story','tier:S'],strands:[]},
+{id:'0008',title:'Release checklist',status:'In Review',labels:['kind:story','tier:S'],strands:[
+ {l:'A',title:'Draft the checklist',status:'In Review'}]},
+];
+const LANES=['To Do','In Progress','In Review','Waiting','Done'];
+const rank={'Waiting':0,'In Review':1,'In Progress':2,'To Do':3,'Outline':3,'Done':4};
+const laneOf=b=>{if(!b.strands.length)return b.status==='Outline'?'To Do':b.status;
+ const w=b.strands.map(s=>s.status).filter(s=>s!=='Done');if(!w.length)return'Done';
+ w.sort((x,y)=>rank[x]-rank[y]);return w[0]==='Outline'?'To Do':w[0]};
+const dot=s=>({'In Progress':'d-prog','Done':'d-done','Waiting':'d-wait','Outline':'d-out','In Review':'d-prog'}[s]||'');
+const q=new URLSearchParams(location.hash.slice(1));
+const exp=q.get('expand'),open_=q.get('braid'),tab=q.get('tab')||'brief',sel=q.get('strand');
+const brief='<div class="md"><h2>Goal</h2><p>A first board you can open, from the stored statuses only, and a <code>braid check</code> for agents that edit braid files directly.</p><h2>Change</h2><ul><li>Serve a page on 127.0.0.1 and open the browser.</li><li>Lanes from the stored status; a braid is one card in its most urgent strand lane.</li><li>Clicking a card shows its brief and report.</li></ul><h2>Acceptance</h2><ul><li><code>braid check</code> lists every broken brief and exits 2.</li><li>The board shows five lanes.</li></ul></div>';
+const report='<div class="md"><h2>Done</h2><p>The reader reuses <code>loadBraids</code>; the board API returns braids with strands. 14 tests added.</p><h2>Decisions</h2><ul><li>The OS picks the port (listen on 0); it is printed on start.</li></ul><h2>Needs the user</h2><p>none</p></div>';
+const logs='<div class="logfile"><span class="badge on">2026-11-13 · 2831f09b</span><span class="badge">2026-11-13 · user</span></div><div class="log"><h4>2026-11-13 14:05Z</h4><p>Read the reader code; the writer must re-parse.</p></div><div class="log"><h4>2026-11-13 15:30Z · checkpoint</h4><p>Done: parser. Next: the <code>braid log</code> command. Open: none.</p></div>';
+function tabs(t){return '<div class="tabs">'+[['brief','Brief'],['report','Report'],['logs','Logs (2)']].map(function(k){return '<div class="tab '+(t===k[0]?'on':'')+'" onclick="go({braid:\''+open_+'\',strand:\''+(sel||'')+'\',tab:\''+k[0]+'\'})">'+k[1]+'</div>'}).join('')+'</div>'}
+window.go=function(o){var p=new URLSearchParams();Object.keys(o).forEach(function(k){if(o[k])p.set(k,o[k])});location.hash=p.toString()};
+function card(b){var done=b.strands.filter(function(s){return s.status==='Done'}).length,n=b.strands.length;
+ var prog=n?'<div class="row"><div class="bar"><i style="width:'+(done/n*100)+'%"></i></div><span class="cnt">'+done+'/'+n+'</span></div>':'';
+ var e=exp===b.id;
+ var tier=b.labels.filter(function(l){return l.indexOf('tier')===0}).map(function(l){return '<span class="badge">'+l+'</span>'}).join('');
+ var st=e?'<div class="strands">'+b.strands.map(function(s){return '<div class="strand"><span class="dot '+dot(s.status)+'"></span><span class="sid">'+b.id.slice(-2)+'/'+s.l+'</span><span style="flex:1">'+s.title+'</span><span class="cnt">'+s.status+'</span></div>'}).join('')+'</div>':'';
+ return '<div class="card" onclick="go({braid:\''+b.id+'\'})"><div class="row"><span class="id">'+b.id+'</span>'+(b.status==='Outline'?'<span class="badge b-outline">Outline</span>':'')+tier+'<span style="flex:1"></span>'+(n?'<span class="cnt" onclick="event.stopPropagation();go({expand:\''+(e?'':b.id)+'\'})" style="cursor:pointer">'+(e?'▾':'▸')+' strands</span>':'')+'</div><div class="t">'+b.title+'</div>'+prog+(b.reason?'<div class="reason">'+b.reason+'</div>':'')+st+'<div class="actions"><button disabled title="Built in story 6">Start</button><button disabled title="Built in story 6">Merge</button></div></div>'}
+function board(){return '<div class="lanes">'+LANES.map(function(l){var c=B.filter(function(b){return laneOf(b)===l});return '<div class="lane"><h3><span>'+l+'</span><span>'+c.length+'</span></h3>'+c.map(card).join('')+'</div>'}).join('')+'</div>'}
+function braidPage(){var b=B.find(function(x){return x.id===open_});var s=b.strands.find(function(x){return x.l===sel});
+ var nav='<nav><a class="back" onclick="go({})">← Board</a><h2>'+b.id+' '+b.title+'</h2><div class="cnt">'+laneOf(b)+'</div><div class="item '+(!s?'sel':'')+'" onclick="go({braid:\''+b.id+'\'})">Braid brief</div>'+b.strands.map(function(x){return '<div class="item sub '+(s&&s.l===x.l?'sel':'')+'" onclick="go({braid:\''+b.id+'\',strand:\''+x.l+'\'})"><span class="dot '+dot(x.status)+'"></span>'+x.l+' · '+x.title+'</div>'}).join('')+'</nav>';
+ var t=s||b;
+ return '<div class="page">'+nav+'<main><div class="cnt">'+b.id+(s?'/'+s.l:'')+'</div><h1>'+t.title+'</h1><div class="row"><span class="badge">'+t.status+'</span>'+b.labels.map(function(l){return '<span class="badge b-lbl">'+l+'</span>'}).join('')+'<span style="flex:1"></span><button disabled>Start</button><button disabled>Merge</button></div><dl class="meta"><dt>Status</dt><dd>'+t.status+'</dd><dt>Delivery</dt><dd>'+(b.delivery||'epic')+'</dd><dt>Depends on</dt><dd>'+(s&&s.l!=='A'?b.id+'/A':'–')+'</dd><dt>Order</dt><dd>'+(s?'1':'–')+'</dd></dl>'+tabs(tab)+(tab==='brief'?brief:tab==='report'?report:logs)+'</main></div>'}
+document.getElementById('app').innerHTML=open_?braidPage():board();
+addEventListener('hashchange',function(){location.reload()});
+</script></body></html>

@@ -1,10 +1,10 @@
 ---
 id: TASK-6.1
 title: Board skeleton and braid check
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
-updated_date: '2026-11-13T22:18:00Z'
+updated_date: '2026-11-13T22:39:00Z'
 labels:
   - kind:story
   - tier:M
@@ -41,15 +41,33 @@ Out of scope: branches, GitHub and T3 (TASK-6.2 to 6.4); refresh beyond a page r
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 braid check lists every broken brief with its file and exits 2, and exits 0 on a clean folder
-- [ ] #2 The format doc and README allow direct edits followed by braid check
-- [ ] #3 braid board opens a page showing braids in the five lanes, expanding to their strands, with brief and report on click
-- [ ] #4 npm run verify passes; CI green on Windows and Ubuntu; screenshots in the PR
-- [ ] #5 Mockups with test braids were reviewed by the user before the board was built
+- [x] #1 braid check lists every broken brief with its file and exits 2, and exits 0 on a clean folder
+- [x] #2 The format doc and README allow direct edits followed by braid check
+- [x] #3 braid board opens a page showing braids in the five lanes, expanding to their strands, with brief and report on click
+- [x] #4 npm run verify passes; CI green on Windows and Ubuntu; screenshots in the PR
+- [x] #5 Mockups with test braids were reviewed by the user before the board was built
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Mockups (this stop): one static page temp/mockups/board.html (plain HTML/CSS/JS, no build) with realistic test braids, in the final design: five lanes, braid cards with progress and in-place expansion, Outline badge, Waiting card with reason, disabled Start/Merge buttons, and a braid page (left table-of-contents panel, main details + brief, tabs Brief/Report/Logs). Screenshots in temp/mockups/*.png. Commit, push, draft PR, report, STOP until the user's go.
+2. After go: braid check (validate all briefs, list errors with file, exit 2); docs/braids-format.md and README allow direct edits + braid check; braid board (node:http on 127.0.0.1, free port, JSON API from loadBraids, React/Vite/Tailwind/Radix built into dist/web); lanes from stored status; tests; screenshots on the playground repo; verify; Done.
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: `braid check` validates every brief and folder name under braids/ and lists each error as `<file>: <message>` with a count, exit 2 on any, 0 on a clean (or missing) folder. `braid board` serves a read-only board on 127.0.0.1 (free port, printed; `--no-open` skips the browser) from a node:http server with a JSON API (/api/board, /api/item?id=) over the existing loadBraids reader; the page (React 19, Vite 8, Tailwind 4, Radix tabs and tooltips, react-markdown) lives in web/ and is built into dist/web by `npm run build`. Lanes To Do, In Progress, In Review, Waiting, Done come from stored status (Outline shows in To Do with a badge; In Review and Waiting stay empty); a braid is one card in its most urgent unfinished strand's lane with a done/total bar that expands in place; clicking opens the braid page with a table-of-contents panel and Brief, Report and Logs tabs (one chip per thread log). Start (To Do cards) and Merge (In Review cards) are disabled icon buttons at the card's bottom right with a tooltip. docs/braids-format.md and README now say briefs and reports may be edited directly, then run `braid check`. The package proof also requires dist/web/index.html. dist/web is 430 KB on disk after the build (JS 416 KB, 130 KB gzip; CSS 14 KB); the radix-ui umbrella import tree-shakes (React and react-markdown are the bulk), so it stays as is.
+Why: first usable board plus a safety check for agents that edit braid files directly (TASK-6).
+Validation: npm run verify green; new tests in test/board.test.ts and test/md.test.ts (bound address is 127.0.0.1; HTML in a brief shows as text, not markup; check errors, lanes API, item API, 500 on broken brief, static serving and path traversal, real `braid board --no-open` process); Test-Package.ps1 green from pwsh; screenshots on the playground repo and a demo repo in docs/design/board-screenshots/. The user reviewed the mockups (docs/design/board-mockups/) before the build and asked for the icon-button change.
+Review follow-up: header shows <repo> · braids/ (repo comes from /api/board). Open: the mockup page still shows text Start/Merge buttons on every card (design superseded by the icon buttons); no refresh beyond reload (TASK-6.4). Local `npm run verify:full` from Git Bash fails at the packed-install step only because GNU tar cannot read C: paths; from pwsh it passes.
+For later items: web code is in web/ (own tsconfig; `npm run typecheck` now checks it too; build is `tsc ... && vite build`); API types are in src/board/model.ts (BraidCard, ItemDetail); lane logic is laneOfBraid in the same file with the URGENCY order Waiting, In Review, In Progress, To Do, Done, so 6.2 to 6.4 add states there; the page is hash-routed (#/0002/A?tab=report); UI libs are devDependencies bundled into dist/web, so the package has no runtime dependencies.
+Needs the user: none
+<!-- SECTION:FINAL_SUMMARY:END -->

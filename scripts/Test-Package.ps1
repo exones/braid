@@ -355,7 +355,7 @@ try {
   & tar '-xf' $tarball '-C' $extract
   Assert-Native -Label 'tar -xf' -Code $LASTEXITCODE
   $packedRoot = Join-Path $extract 'package'
-  foreach ($required in @('package.json', 'README.md', 'dist/cli.js', 'LICENSE')) {
+  foreach ($required in @('package.json', 'README.md', 'dist/cli.js', 'dist/web/index.html', 'LICENSE')) {
     if (-not (Test-Path -LiteralPath (Join-Path $packedRoot $required))) {
       Fail "tarball is missing $required"
     }
