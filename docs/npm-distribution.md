@@ -5,7 +5,7 @@ npm is the selected package registry, recorded 2026-11-03. This supersedes the F
 ## Delivery sequence
 
 1. The TypeScript foundation and the deterministic Windows and Linux Actions checks do not need an npm account. Local package installation and build verification use public dependencies.
-2. The manual epic and story ledger is separate from publication.
+2. The CLI is a skeleton; publication is a separate, explicit step.
 3. Build the exact tarball, install it outside the source checkout, and verify its behavior. Prepare npm publication from GitHub Actions after those checks, with a manual reviewed release trigger.
 4. Complete the account and package bootstrap and the trusted-publisher setup, then perform an explicitly authorized release. Keep an exact versioned tarball as the bootstrap artifact.
 

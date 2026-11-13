@@ -2,14 +2,16 @@
   "name": "@exones/braid",
   "version": "0.1.1",
   "private": false,
-  "description": "CLI for staged, recoverable agent work.",
+  "license": "MIT",
+  "description": "CLI for the braid agent workflow.",
   "type": "module",
   "bin": {
     "braid": "dist/cli.js"
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "repository": {
     "type": "git",

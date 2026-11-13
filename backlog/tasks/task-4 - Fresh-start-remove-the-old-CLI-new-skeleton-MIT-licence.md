@@ -1,10 +1,10 @@
 ---
 id: TASK-4
 title: 'Fresh start: remove the old CLI, new skeleton, MIT licence'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-13T18:28:00Z'
-updated_date: '2026-11-13T18:35:00Z'
+updated_date: '2026-11-13T18:41:00Z'
 labels:
   - kind:story
   - tier:M
@@ -42,16 +42,16 @@ Out of scope:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The old CLI, its tests and its docs are gone; no links point to them
-- [ ] #2 braid --version and braid help work from a clean build, covered by a test
-- [ ] #3 LICENSE (MIT) exists and package.json has "license": "MIT"
-- [ ] #4 npm run verify passes and CI is green on Windows and Ubuntu
+- [x] #1 The old CLI, its tests and its docs are gone; no links point to them
+- [x] #2 braid --version and braid help work from a clean build, covered by a test
+- [x] #3 LICENSE (MIT) exists and package.json has "license": "MIT"
+- [x] #4 npm run verify passes and CI is green on Windows and Ubuntu
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -63,3 +63,18 @@ Out of scope:
 4. Cut README, add LICENSE MIT, package.json license.
 5. Fix links, run npm run verify:full, PR.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Package proof (Test-Package.ps1) reduced to version/help through the installed tarball; docs/roadmap.md kept (AGENTS.md links it) but cut to the board section.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Removed the old ledger CLI (src/, its tests, seed-contract and cli-name docs, roadmap stages and bootstrap rules). New skeleton: src/cli.ts router with --version, help/--help and an unknown-command error; test/cli.test.ts runs the built CLI. README cut to what exists; MIT LICENSE and "license": "MIT"; LICENSE is packed. Test-Package.ps1 now proves version and help through the installed tarball. Validation: npm run verify:full passes locally; CI checked on the PR. Open: none.
+
+For later items: none
+Needs the user: none
+<!-- SECTION:FINAL_SUMMARY:END -->
