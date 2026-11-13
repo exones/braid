@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import Markdown from "react-markdown";
 import { Tabs, Tooltip } from "radix-ui";
+import { Md } from "./Md.tsx";
 import { useBoard, useItem, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded } from "./api.ts";
 
 /** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
@@ -188,17 +188,6 @@ function Board({ data }: { data: BoardData }) {
   );
 }
 
-function Md({ text, empty }: { text: string | null; empty: string }) {
-  if (text === null || text.trim() === "") {
-    return <p className="text-slate-500">{empty}</p>;
-  }
-  return (
-    <div className="md">
-      <Markdown>{text}</Markdown>
-    </div>
-  );
-}
-
 function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
   const rows: [string, string][] = [
     ["Status", item.status],
@@ -316,6 +305,7 @@ export function App() {
       <div className="min-h-screen bg-slate-100 text-sm text-slate-900">
         <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-5 py-2.5">
           <b className="text-base">braid</b>
+          {board.state === "ready" && <span className="text-slate-500">{board.data.repo} · braids/</span>}
           <span className="flex-1" />
           <span className="text-xs text-slate-500">read-only · reload to refresh</span>
         </header>

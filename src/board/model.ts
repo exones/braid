@@ -25,6 +25,8 @@ export interface BraidCard {
 }
 
 export interface BoardData {
+  /** The repository folder name, shown in the header. */
+  readonly repo: string;
   readonly lanes: readonly Lane[];
   readonly braids: readonly BraidCard[];
 }
@@ -82,8 +84,8 @@ export function toCard(braid: Braid): BraidCard {
   };
 }
 
-export function toBoard(braids: readonly Braid[]): BoardData {
-  return { lanes: LANES, braids: braids.map(toCard) };
+export function toBoard(repo: string, braids: readonly Braid[]): BoardData {
+  return { repo, lanes: LANES, braids: braids.map(toCard) };
 }
 
 function readOptional(path: string): string | null {

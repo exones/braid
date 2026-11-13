@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { get } from "node:http";
+import { get, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 const fixture = fileURLToPath(new URL("./fixtures/braids-repo", import.meta.url));
@@ -115,9 +116,11 @@ test("the board API puts each braid in its most urgent strand's lane", async () 
   await withBoard(lanesRepo(), async (url) => {
     assert.match(url, /^http:\/\/127\.0\.0\.1:\d+\/$/);
     const data = (await (await fetch(`${url}api/board`)).json()) as {
+      repo: string;
       lanes: string[];
       braids: { id: string; lane: string; done: number; total: number }[];
     };
+    assert.match(data.repo, /^repo-\d+$/);
     assert.deepEqual(data.lanes, ["To Do", "In Progress", "In Review", "Waiting", "Done"]);
     const lane = Object.fromEntries(data.braids.map((b) => [b.id, b.lane]));
     assert.deepEqual(lane, {
@@ -176,4 +179,22 @@ test("braid board serves the built page and nothing outside it", async () => {
     assert.equal((await fetch(url, { method: "POST" })).status, 405);
     assert.equal((await (await fetch(`${url}api/board`)).json() as { braids: unknown[] }).braids.length, 0);
   });
+});
+
+test("the server binds to 127.0.0.1 only", async () => {
+  // A computed specifier keeps the compiled module out of the typecheck, which runs before the build.
+  const compiled = fileURLToPath(new URL("../dist/commands/board.js", import.meta.url));
+  const mod = (await import(pathToFileURL(compiled).href)) as {
+    startBoard: (root: string) => Promise<{ server: Server; url: string }>;
+  };
+  const { server, url } = await mod.startBoard(repo({}));
+  try {
+    const address = server.address() as AddressInfo;
+    assert.equal(address.address, "127.0.0.1");
+    assert.equal(address.family, "IPv4");
+    assert.equal(url, `http://127.0.0.1:${address.port}/`);
+  } finally {
+    server.close();
+    server.closeAllConnections();
+  }
 });

@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { extname, join, resolve, sep } from "node:path";
+import { basename, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadBraids } from "../braids/store.js";
 import { FormatError } from "../braids/frontmatter.js";
@@ -36,7 +36,7 @@ function api(root: string, url: URL): Reply {
   try {
     const braids = loadBraids(root);
     if (url.pathname === "/api/board") {
-      return json(200, toBoard(braids));
+      return json(200, toBoard(basename(root), braids));
     }
     if (url.pathname !== "/api/item") {
       return json(404, { error: "no such endpoint" });
