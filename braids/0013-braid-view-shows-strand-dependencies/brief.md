@@ -1,8 +1,9 @@
 ---
 id: '0013'
 title: "braid view shows strand dependencies"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S"]
+dependencies: []
 delivery: epic
 ---
 
