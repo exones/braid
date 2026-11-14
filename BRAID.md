@@ -20,7 +20,7 @@ models:
 # braid for braid agents
 
 - Read installed skills; don't edit them. Documented setup may install/reuse the shared Node.js toolchain. Tests use temporary skill destinations and toolchain stores, never the real installations.
-- Items are braids in `braids/`, kept with the installed `braid` CLI ([format](docs/braids-format.md)). Edit briefs and reports directly, then run `braid check`. Until TASK-7.4 imports them, this repository's items are still Backlog.md tasks in `backlog/`, run by the skills installed from `main`.
+- Items are braids in `braids/`, kept with the installed `braid` CLI ([format](docs/braids-format.md)). Edit briefs and reports directly, then run `braid check`.
 - Project facts and hard limits are in [AGENTS.md](AGENTS.md).
 - Past epics are in `epics/` (read-only); those before 006 are in the Git tag `archive/process-v1`.
 - The braid skills are developed here in `.agents/skills/`. Other projects get them through `scripts/Install-Skills.ps1`.

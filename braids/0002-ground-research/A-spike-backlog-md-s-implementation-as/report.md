@@ -1,9 +1,12 @@
----
-id: doc-1
-title: 'TASK-2.1 report: Backlog.md as braid''s reference'
-type: other
-created_date: '2026-11-13T15:19:00Z'
----
+What changed: new docs/backlog-md.md maps Backlog.md 1.55.3 by part with line counts (66.6k product lines: core 11.1k, CLI 10.6k, TUI 9.8k, web UI 15.8k, MCP 4.5k, format 2.2k; 88.5k test lines), explains how it does what braid uses (file format and section markers, IDs and subtasks, cross-branch reads, statuses, readiness, boards, --json), what braid adds against it, the hard parts and the bugs braid has hit, runtime (Bun-only: 119 product Bun calls, 922 more in tests, compiled binaries), and upstream health (MIT, 206 releases, 21 in six months, one maintainer with 1,407 of the commits, 77 open issues).
+Recommendation: reimplement a compatible Node tracker with Backlog.md as the reference, and wrap its CLI during the transition: braid's board reads tasks first and joins GitHub and T3 for derived states while writes go through backlog; then braid's CLI takes over the commands braid calls, proven by round-trip tests against Backlog.md-written files. Fork if the user wants most of Backlog.md's web UI or braid moves to Bun; wrap only if the board is all braid needs; revisit if the compatible subset is much larger than 8k lines.
+Why: braid needs about a tenth of Backlog.md; a fork carries Bun (above all the test suite), UI braid would delete, and a fast single-maintainer upstream; derived states contradict Backlog.md's stored-status model.
+Validation: counts and claims from the v1.55.3 source (wc, grep), gh api for upstream, epic 008 report A and trial; npm run verify passes.
+Open: cross-branch read performance on large repos, --json schema stability across releases, and the content of open issues were not checked.
+For later items: TASK-2.3 owns the CLI estimate; the doc's 5k-8k line range for the compatible subset is a rough bound for it to confirm or replace.
+Needs the user: decision: choose fork, wrap or reimplement (recommended: reimplement with reference, wrapping during the transition).
+
+## TASK-2.1 report: Backlog.md as braid's reference
 
 # Backlog.md as braid's reference
 
@@ -54,7 +57,7 @@ braid calls the CLI only ([BRAID.md](../../BRAID.md), [the task guide](../../.ag
 `--dep`), `task view --plain`, `task list --plain --ready -s -p`, `task archive`, `milestone add` and
 `archive`, `doctor`; and `backlog browser` for the user to look. Config: three statuses, the label
 list, project DoD defaults, `check_active_branches` with 30 days, `remote_operations` on,
-`auto_commit` off ([`backlog/config.yml`](../../backlog/config.yml)).
+`auto_commit` off ([`archive/backlog/config.yml`](../../../archive/backlog/config.yml)).
 
 - **Task file.** One Markdown file per task in `backlog/tasks/`, named `<id> - <title-slug>.md`.
   YAML front matter holds `id`, `title`, `status`, `labels`, `milestone`, `dependencies`,
