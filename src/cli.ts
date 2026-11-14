@@ -12,6 +12,7 @@ import { logEntry, reportItem } from "./commands/logs.js";
 import { nextCommand, statusCommand } from "./commands/coordinate.js";
 import { cleanCommand } from "./commands/clean.js";
 import { startCommand } from "./commands/start.js";
+import { doneCommand } from "./commands/done.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
 export function readVersion(): string {
@@ -48,6 +49,7 @@ export function helpText(version: string): string {
     "  status <number>             One line per strand: status, lane, ask:<key>, branch, PR, ci checks, T3 thread (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id>                  Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
+    "  done <id> [--head <sha>] [--merge]  Mark an item Done where the coordinator holds the base: a strand after its merge on the braid branch (--merge merges the reviewed, green head first), a story or final PR on its branch (--log <file>|- adds the braid log entry)",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
     "  board                       Open the read-only board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
@@ -188,9 +190,9 @@ async function main(argv: readonly string[]): Promise<void> {
     }
     return;
   }
-  if (argv[0] === "status" || argv[0] === "next" || argv[0] === "start" || argv[0] === "clean") {
+  if (argv[0] === "status" || argv[0] === "next" || argv[0] === "start" || argv[0] === "clean" || argv[0] === "done") {
     try {
-      const run = argv[0] === "status" ? statusCommand : argv[0] === "next" ? nextCommand : argv[0] === "start" ? startCommand : cleanCommand;
+      const run = argv[0] === "status" ? statusCommand : argv[0] === "next" ? nextCommand : argv[0] === "start" ? startCommand : argv[0] === "done" ? doneCommand : cleanCommand;
       process.stdout.write(await run(findRoot(process.cwd()), argv.slice(1)));
     } catch (error) {
       if (error instanceof UsageError || error instanceof GitError) {
