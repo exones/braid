@@ -73,7 +73,7 @@ test("view shows a braid with its fields, files, strands and brief", () => {
       "Strands:",
       "  0002/A  Done          1  Read braids",
       "  0002/C  Outline       2  Logs and reports",
-      "  0002/B  To Do         3  Create and edit",
+      "  0002/B  To Do         3  Create and edit  (needs 0002/A)",
       "",
       "## Goal",
       "",
@@ -254,4 +254,21 @@ test("malformed braids give a clear error naming the file and exit 2", () => {
     assert.equal(r.stdout, "");
     assert.equal(r.status, 2);
   }
+});
+
+test("view shows each strand's dependencies; list does not", () => {
+  const strand = (id: string, deps: string) =>
+    `---\nid: ${id}\ntitle: S${id.slice(-1)}\nstatus: To Do\n${deps}---\n`;
+  const root = repo({
+    "braids/0001-one/brief.md": good,
+    "braids/0001-one/A-a/brief.md": strand("0001/A", ""),
+    "braids/0001-one/B-b/brief.md": strand("0001/B", "dependencies: ['0001/A']\n"),
+    "braids/0001-one/C-c/brief.md": strand("0001/C", "dependencies: ['0001/A', '0001/B']\n"),
+  });
+  const view = braid(root, "view", "1");
+  assert.equal(view.stderr, "");
+  assert.match(view.stdout, /^ {2}0001\/A {2}To Do {9}- {2}SA$/m);
+  assert.match(view.stdout, /^ {2}0001\/B {2}To Do {9}- {2}SB {2}\(needs 0001\/A\)$/m);
+  assert.match(view.stdout, /^ {2}0001\/C {2}To Do {9}- {2}SC {2}\(needs 0001\/A, 0001\/B\)$/m);
+  assert.doesNotMatch(braid(root, "list").stdout, /needs/);
 });

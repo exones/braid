@@ -1,0 +1,3 @@
+## 2026-11-14 10:04Z
+
+2026-11-14 User decisions on the mockups: the board is an attention board (header "braid · attention board"; a braid sits in the lane of its most urgent strand). Lanes are To Do · Working · To Review · Needs You · Done (UI labels only; stored statuses stay To Do / In Progress / Done). Waiting reasons are icons with a hover and aria-label instead of text (question, checks failed, agent stopped, ask flag). Colours: To Do light grey, Working blue, To Review purple, Needs You amber, Done green; red only on checks failed and agent stopped. A running agent is a wrench; a strand in To Review has an eye (hover "PR #N to review"); a Done row has a green tick; the progress bar is green. Strand 0003/C (To Review, PR #17) is added to --demo.

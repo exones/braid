@@ -9,13 +9,20 @@
 # the ref is removed; removal goes by the stamp, whatever checkout or fork
 # installed it. -Target replaces the default host folders; separate several
 # folders with the path separator (';' on Windows, ':' elsewhere).
+# It also builds the braid CLI from the same ref (npm ci, npm run build, npm
+# pack) and installs the tarball globally (npm install -g), then checks that
+# `braid --version` prints that version; the version goes into the stamp.
+# -SkipCli leaves the CLI alone. -NpmCommand and -BraidCommand are test seams.
 #Requires -Version 7.6
 [CmdletBinding()]
 param(
   [string]$Ref = 'main',
   [string[]]$Target,
   [string]$RepositoryRoot = (Split-Path -Parent $PSScriptRoot),
-  [switch]$Force
+  [switch]$Force,
+  [switch]$SkipCli,
+  [string]$NpmCommand = 'npm',
+  [string]$BraidCommand = 'braid'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -64,18 +71,10 @@ New-Item -ItemType Directory -Path $work | Out-Null
 try {
   $zip = Join-Path $work 'skills.zip'
   Invoke-Git @('archive', '--format=zip', '-o', $zip, $commit, '.agents/skills/') | Out-Null
+  $zipFull = Join-Path $work 'ref.zip'
+  if (-not $SkipCli) { Invoke-Git @('archive', '--format=zip', '-o', $zipFull, $commit) | Out-Null }
   $export = Join-Path $work 'export'
   Expand-Archive -LiteralPath $zip -DestinationPath $export
-  $stamp = [ordered]@{
-    ref = $Ref
-    commit = $commit
-    installedAt = [DateTime]::UtcNow.ToString('o')
-    source = [System.IO.Path]::GetFullPath($RepositoryRoot)
-  } | ConvertTo-Json
-  foreach ($name in $skills) {
-    [System.IO.File]::WriteAllText((Join-Path $export ".agents/skills/$name/$StampName"), "$stamp`n", [System.Text.UTF8Encoding]::new($false))
-  }
-
   $roots = @($Target | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
   foreach ($rootFull in $roots) {
     foreach ($name in $skills) {
@@ -84,6 +83,49 @@ try {
         Fail "$destination exists and was not installed by this script; use -Force to replace it"
       }
     }
+  }
+
+  $cliVersion = $null
+  if (-not $SkipCli) {
+    $source = Join-Path $work 'source'
+    Expand-Archive -LiteralPath $zipFull -DestinationPath $source
+    $packageJson = Join-Path $source 'package.json'
+    if (-not (Test-Path -LiteralPath $packageJson -PathType Leaf)) {
+      Fail "no package.json at $Ref ($commit); the braid CLI cannot be built (-SkipCli skips it)"
+    }
+    $cliVersion = [string](Get-Content -LiteralPath $packageJson -Raw | ConvertFrom-Json).version
+    $tarballs = Join-Path $work 'tarball'
+    New-Item -ItemType Directory -Path $tarballs | Out-Null
+    Push-Location -LiteralPath $source
+    try {
+      foreach ($npmArguments in @(@('ci'), @('run', 'build'), @('pack', '--pack-destination', $tarballs))) {
+        $output = & $NpmCommand @npmArguments 2>&1
+        if ($LASTEXITCODE -ne 0) { Fail "npm $($npmArguments -join ' ') exited ${LASTEXITCODE}: $output" }
+      }
+    } finally {
+      Pop-Location
+    }
+    $tarball = @(Get-ChildItem -LiteralPath $tarballs -Filter '*.tgz')
+    if ($tarball.Count -ne 1) { Fail "npm pack made $($tarball.Count) tarballs, expected 1" }
+    $output = & $NpmCommand install -g $tarball[0].FullName 2>&1
+    if ($LASTEXITCODE -ne 0) { Fail "npm install -g exited ${LASTEXITCODE}: $output" }
+    $printed = (@(& $BraidCommand --version 2>&1) | ForEach-Object { "$_" }) -join "`n"
+    if ($LASTEXITCODE -ne 0 -or $printed.Trim() -ne "braid $cliVersion") {
+      Fail "braid --version printed '$($printed.Trim())' after install, expected 'braid $cliVersion'"
+    }
+    Write-Output "installed braid CLI $cliVersion from $($commit.Substring(0, 7)) ($Ref)"
+  }
+
+  $stamp = [ordered]@{
+    ref = $Ref
+    commit = $commit
+    installedAt = [DateTime]::UtcNow.ToString('o')
+    source = [System.IO.Path]::GetFullPath($RepositoryRoot)
+  }
+  if ($null -ne $cliVersion) { $stamp['cliVersion'] = $cliVersion }
+  $stampJson = $stamp | ConvertTo-Json
+  foreach ($name in $skills) {
+    [System.IO.File]::WriteAllText((Join-Path $export ".agents/skills/$name/$StampName"), "$stampJson`n", [System.Text.UTF8Encoding]::new($false))
   }
 
   foreach ($rootFull in $roots) {

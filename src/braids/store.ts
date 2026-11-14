@@ -5,7 +5,7 @@ import { FormatError } from "./frontmatter.js";
 
 export const BRAID_FOLDER = /^(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const STRAND_FOLDER = /^([A-Z])-[a-z0-9]+(?:-[a-z0-9]+)*$/;
-export const LOG_FILE = /^log-(\d{4}-\d{2}-\d{2})-([A-Za-z0-9]{8}|user)\.md$/;
+export const LOG_FILE = /^log-(\d{4}-\d{2}-\d{2})-([A-Za-z0-9]{8}|user|import)\.md$/;
 
 /** Where an item was read from: a branch at a commit. Null means the working tree. */
 export interface Source {
