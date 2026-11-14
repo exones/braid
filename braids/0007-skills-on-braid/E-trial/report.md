@@ -24,3 +24,7 @@ Deviation of the trial: its PR went into the epic branch because `main` has no `
 
 For later items: `none` is now the way to clear `--dep` and `--labels`.
 Needs the user: none
+
+## Second finding: workers logged under the coordinator's thread id
+
+My own log, and 0007/D's, went to the coordinator's log file: the first message gave only "Send your result to thread <id>", and the worker took it as its own. Fixed: the braid skill's worker first message now ends with `Your thread id: <worker thread id>.` (the coordinator knows it once the launch returns), and the worker skill says to use that id for `--thread`, never the result thread. The log file moved to `log-2026-11-14-a8c206bd.md`. Simpler alternative to consider later: T3 exposing the thread id to the agent, which would remove the manual step.
