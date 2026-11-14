@@ -53,7 +53,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    Send your result to thread <your thread id>. Your thread id: <worker thread id>.
    ```
 
-   The launch returns the worker's thread id; send it with the message, so the worker logs under its own id and not yours.
+   Launch the thread with no message (it starts idle), then send this first message with `t3_thread_send`, filling in the thread id the launch returned, so the worker logs under its own id and not yours.
 
    If the worker might not find the skill by name, add the absolute path of its `SKILL.md`.
 3. After launching a worker or reviewer, or sending it fixes, call `t3_thread_wait` on its thread; it returns when the run ends, and at once on an idle thread. If no report arrived, read the thread's last message and `gh pr checks`. CI pending: make sure your watch is on, then end your turn; the watch wakes you. Green but no report: take the result from the thread and continue. Stopped without a watch, or stuck: send it a nudge. A run that failed: read its error and retry once with the same model and settings; if it fails again, ask the user, naming the error. If the user says it finished, believe them and look at the PR.
