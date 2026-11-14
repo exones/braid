@@ -23,6 +23,7 @@ Expected size: about 150 to 300 changed lines, mostly removals.
 - Resuming and "Starting the next item" use `braid status` and `braid next`; Run an item uses `braid start`.
 - When a review is still blocking after two fix rounds, the coordinator adds the `ask:quality` label, so the board shows it in Needs You (board decision, 2026-11-13).
 - `.github/workflows/ci.yml` and the README drop the `epic/**` trigger and the `backlog/**` skip.
+- `test/github.test.ts` ("share one gh read") is flaky: it failed once when the test took 10 s against the 3 s sharing window (0008/A). Make it independent of wall-clock time (inject the clock or the window).
 
 ## Already decided
 
@@ -36,6 +37,7 @@ Expected size: about 150 to 300 changed lines, mostly removals.
 
 - [ ] The skills name the commands where they did the steps by hand, and are shorter
 - [ ] The epic/** trigger and backlog/** skip are gone from ci.yml and the README
+- [ ] The gh-sharing test no longer depends on timing
 - [ ] CI green on Windows and Ubuntu
 
 ## Definition of done
