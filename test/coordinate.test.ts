@@ -39,6 +39,7 @@ interface Strand {
   letter: string;
   status: string;
   deps?: string[];
+  labels?: string;
   order: number;
 }
 function repo(strands: Strand[], ci = "[verify (ubuntu-latest), verify (windows-latest)]"): string {
@@ -47,13 +48,13 @@ function repo(strands: Strand[], ci = "[verify (ubuntu-latest), verify (windows-
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  const brief = (id: string, status: string, deps = "", order = "") =>
-    `---\nid: '${id}'\ntitle: "T ${id}"\nstatus: ${status}\nlabels: []\ndependencies: [${deps}]\n${order}---\n\n## Goal\n\nx\n`;
+  const brief = (id: string, status: string, deps = "", order = "", labels = "") =>
+    `---\nid: '${id}'\ntitle: "T ${id}"\nstatus: ${status}\nlabels: [${labels}]\ndependencies: [${deps}]\n${order}---\n\n## Goal\n\nx\n`;
   put("BRAID.md", `---\nci: ${ci}\n---\n`);
   put("braids/0001-a/brief.md", brief("0001", "In Progress"));
   for (const s of strands) {
     const deps = (s.deps ?? []).map((d) => `'${d}'`).join(", ");
-    put(`braids/0001-a/${s.letter}-s/brief.md`, brief(`0001/${s.letter}`, s.status, deps, `order: ${s.order}\n`));
+    put(`braids/0001-a/${s.letter}-s/brief.md`, brief(`0001/${s.letter}`, s.status, deps, `order: ${s.order}\n`, s.labels));
   }
   git(root, "init", "-q", "-b", "main");
   git(root, "config", "user.email", "t@example.com");
@@ -195,4 +196,23 @@ test("next treats another braid as a dependency until its lane is Done, and note
   const ready = await nextCommand(root, ["1"], down);
   assert.match(ready, /^0001\/A {2}T 0001\/A\n/);
   assert.match(ready, /a running agent can't be ruled out/);
+});
+
+test("next treats a stored-Done strand with an open PR as not ready and not all done", async () => {
+  const root = repo([
+    { letter: "A", status: "Done", order: 10 },
+    { letter: "B", status: "To Do", order: 20, deps: ["0001/A"] },
+  ]);
+  const out = await nextCommand(root, ["1"], src([pr(5, "braid/0001/A-s", [check("verify (ubuntu-latest)", "SUCCESS"), check("verify (windows-latest)", "SUCCESS")])]));
+  assert.match(out, /^none ready in 0001:\n/);
+  assert.match(out, /0001\/A: PR #5 is open/);
+  assert.match(out, /0001\/B: blocked by 0001\/A/);
+  assert.doesNotMatch(out, /all done/i);
+});
+
+test("status prints an ask label after the lane without changing the lane", async () => {
+  const root = repo([{ letter: "A", status: "In Progress", order: 10, labels: "'ask:approve-layout'" }]);
+  const out = await statusCommand(root, ["1"], src());
+  const a = out.split("\n").find((l) => l.includes("0001/A")) ?? "";
+  assert.match(a, /In Progress {2}In Progress {2}ask:approve-layout {2}branch -/);
 });

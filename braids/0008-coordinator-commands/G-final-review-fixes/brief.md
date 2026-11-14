@@ -1,7 +1,7 @@
 ---
 id: '0008/G'
 title: "Final review fixes"
-status: To Do
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: ['0008/C']
 order: 40
@@ -23,11 +23,15 @@ Expected size: about 40 to 100 lines.
 
 ## Acceptance
 
-- [ ] The two seam cases are covered by CLI tests
-- [ ] D40, the workflow, docs/braids-format.md and braid help match the code
-- [ ] CI green on Windows and Ubuntu
+- [x] The two seam cases are covered by CLI tests
+- [x] D40, the workflow, docs/braids-format.md and braid help match the code
+- [x] CI green on Windows and Ubuntu
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Add the two CLI tests, then align D40, workflow.md, braids-format.md and `braid help` with the code; tick F's report box.

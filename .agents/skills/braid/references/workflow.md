@@ -44,8 +44,7 @@ Merge `main` into a braid branch before the next strand and before the final PR.
 force-push shared branches. Every commit uses Conventional Commits.
 
 The user looks at the work with `braid board` (read-only) from their own checkout of `main`. It reads
-each item from its own branch, so a strand whose PR waits for the user's merge already reads Done
-there.
+each item from its own branch; a strand whose PR waits for the merge shows To Review (or Needs You on failing checks), not Done, although the stored status already reads Done there.
 
 ## Starting the next item
 
