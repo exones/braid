@@ -10,6 +10,7 @@ import { listBraids, UsageError, viewItem } from "./commands/braids.js";
 import { ImportRefusal, importBacklog } from "./backlog/import.js";
 import { logEntry, reportItem } from "./commands/logs.js";
 import { nextCommand, statusCommand } from "./commands/coordinate.js";
+import { startCommand } from "./commands/start.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
 export function readVersion(): string {
@@ -45,6 +46,7 @@ export function helpText(version: string): string {
     "  check                       Check every brief under braids/; list each error with its file (exit 2 on any)",
     "  status <number>             One line per strand: status, lane, branch, PR, ci checks, T3 thread (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
+    "  start <id>                  Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
     "  board                       Open the read-only board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
     "",
@@ -184,9 +186,9 @@ async function main(argv: readonly string[]): Promise<void> {
     }
     return;
   }
-  if (argv[0] === "status" || argv[0] === "next") {
+  if (argv[0] === "status" || argv[0] === "next" || argv[0] === "start") {
     try {
-      const run = argv[0] === "status" ? statusCommand : nextCommand;
+      const run = argv[0] === "status" ? statusCommand : argv[0] === "next" ? nextCommand : startCommand;
       process.stdout.write(await run(findRoot(process.cwd()), argv.slice(1)));
     } catch (error) {
       if (error instanceof UsageError || error instanceof GitError) {

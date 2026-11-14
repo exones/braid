@@ -34,13 +34,13 @@ Expected size: about 150 to 250 lines with tests.
 
 ## Acceptance
 
-- [ ] `braid start` creates, pushes and checks out the strand branch in a new worktree, and refuses a strand that isn't ready, covered by tests
+- [x] `braid start` creates, pushes and checks out the strand branch in a new worktree, and refuses a strand that isn't ready, covered by tests
 - [ ] CI green on Windows and Ubuntu
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 

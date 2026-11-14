@@ -36,7 +36,7 @@ function braidNumber(args: readonly string[], command: string): string {
   return (match[1] ?? "").padStart(4, "0");
 }
 
-interface World {
+export interface World {
   readonly braid: Braid;
   readonly card: BraidCard;
   readonly cards: ReadonlyMap<string, { readonly lane: Lane; readonly strand: StrandCard | null }>;
@@ -45,7 +45,7 @@ interface World {
   readonly t3: T3;
 }
 
-async function read(root: string, number: string, command: string, src: Sources): Promise<World> {
+export async function read(root: string, number: string, command: string, src: Sources): Promise<World> {
   const braids = loadLiveBraids(root);
   const braid = braids.find((b) => b.number === number);
   if (braid === undefined) {
@@ -68,13 +68,13 @@ async function read(root: string, number: string, command: string, src: Sources)
   return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3 };
 }
 
-function branchState(refs: readonly BranchRef[], number: string, letter: string | null): { local: boolean; pushed: boolean } {
+export function branchState(refs: readonly BranchRef[], number: string, letter: string | null): { local: boolean; pushed: boolean } {
   const own = refs.filter((r) => r.number === number && r.letter === letter);
   return { local: own.some((r) => r.local), pushed: own.some((r) => !r.local) };
 }
 
 /** When the remote-tracking branches were last updated by a fetch, as Git recorded it. */
-function freshness(root: string): string {
+export function freshness(root: string): string {
   const r = spawnSync("git", ["rev-parse", "--git-path", "FETCH_HEAD"], { cwd: root, encoding: "utf8" });
   const raw = r.status === 0 ? r.stdout.trim() : "";
   const path = raw === "" ? "" : isAbsolute(raw) ? raw : join(root, raw);
@@ -109,7 +109,7 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
 }
 
 /** The notes for a source that couldn't be read; `next` also says what that hides. */
-function unreadable(w: World, next: boolean): string {
+export function unreadable(w: World, next: boolean): string {
   let out = "";
   if (w.github.status.state !== "ok") {
     out += `note: GitHub could not be read (${w.github.status.reason}); ${next ? "an open PR would not show" : "PRs and checks are missing and lanes come from stored statuses"}
@@ -137,34 +137,42 @@ export async function statusCommand(root: string, args: readonly string[], src: 
   return `${out.join("\n")}\n`;
 }
 
+/** Why a strand can't be started now, or null when it is ready (what `braid next` and `braid start` share). */
+export function notReady(w: World, s: StrandCard): string | null {
+  const letter = s.id.slice(5);
+  const strand = w.braid.strands.find((x) => x.letter === letter);
+  const deps = strand?.brief.dependencies ?? [];
+  const blocked = deps.filter((d) => w.cards.get(d)?.lane !== "Done");
+  const b = branchState(w.refs, w.braid.number, letter);
+  if (s.lane === "Done") {
+    return "done";
+  } else if (s.status === "Outline") {
+    return "Outline, not ready to run";
+  } else if (s.running) {
+    return "running";
+  } else if (s.pr?.state === "open") {
+    return `PR #${s.pr.number} is open (${s.lane})`;
+  } else if (s.lane === "Waiting") {
+    return `waiting (${s.reason ?? "?"})`;
+  } else if (s.status !== "To Do") {
+    return `status ${s.status}, no running agent or PR`;
+  } else if (blocked.length > 0) {
+    return `blocked by ${blocked.join(", ")}`;
+  } else if (b.pushed) {
+    return "branch already pushed";
+  }
+  return null;
+}
+
 export async function nextCommand(root: string, args: readonly string[], src: Sources = {}): Promise<string> {
   const number = braidNumber(args, "next");
   const w = await read(root, number, "next", src);
   const notes: string[] = [];
   for (const s of w.card.strands) {
-    const letter = s.id.slice(5);
-    const strand = w.braid.strands.find((x) => x.letter === letter);
-    const deps = strand?.brief.dependencies ?? [];
-    const blocked = deps.filter((d) => w.cards.get(d)?.lane !== "Done");
-    const b = branchState(w.refs, number, letter);
-    let why: string | null = null;
     if (s.lane === "Done") {
       continue;
-    } else if (s.status === "Outline") {
-      why = "Outline, not ready to run";
-    } else if (s.running) {
-      why = "running";
-    } else if (s.pr?.state === "open") {
-      why = `PR #${s.pr.number} is open (${s.lane})`;
-    } else if (s.lane === "Waiting") {
-      why = `waiting (${s.reason ?? "?"})`;
-    } else if (s.status !== "To Do") {
-      why = `status ${s.status}, no running agent or PR`;
-    } else if (blocked.length > 0) {
-      why = `blocked by ${blocked.join(", ")}`;
-    } else if (b.pushed) {
-      why = "branch already pushed";
     }
+    const why = notReady(w, s);
     if (why === null) {
       return `${s.id}  ${s.title}\n${unreadable(w, true)}${freshness(root)}\n`;
     }
