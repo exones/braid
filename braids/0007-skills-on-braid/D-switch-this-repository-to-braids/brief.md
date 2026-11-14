@@ -1,7 +1,7 @@
 ---
 id: '0007/D'
 title: "Switch this repository to braids"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S", "ask:data"]
 dependencies: ['0007/C']
 order: 40
@@ -29,15 +29,15 @@ Out of scope: changing the content of past tasks beyond the import; the skills (
 
 ## Acceptance
 
-- [ ] braids/ holds 0001 to 0007 from the import and Outline braids for stories 5 to 9; braid check passes and the board shows them
-- [ ] backlog/ is now archive/backlog/ with a frozen-history note, and no link in the repository points to the old path
-- [ ] doc-5's decisions are in docs/decisions.md
-- [ ] npm run verify passes; CI green on Windows and Ubuntu
+- [x] braids/ holds 0001 to 0007 from the import and Outline braids for stories 5 to 9; braid check passes and the board shows them
+- [x] backlog/ is now archive/backlog/ with a frozen-history note, and no link in the repository points to the old path
+- [x] doc-5's decisions are in docs/decisions.md
+- [x] npm run verify passes; CI green on Windows and Ubuntu
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] Final summary written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] Final summary written: what changed, why, validation, anything open
 
 ## Plan
 
