@@ -36,7 +36,7 @@ main h1{font-size:20px;margin:0 0 6px}
 .md h2{font-size:15px;margin:16px 0 4px}.md p,.md li{max-width:75ch}.md code{background:#eef0f5;padding:0 4px;border-radius:4px}
 .log{border-left:3px solid var(--line);padding-left:12px;margin:10px 0}.log h4{margin:0;font-size:12px;color:var(--mut);font-weight:600}
 .logfile{display:flex;gap:8px;margin-bottom:10px}.logfile .badge{cursor:pointer}.logfile .on{background:var(--acc);color:#fff}
-:root{--todo:#cbd5e1;--prog:#16a34a;--rev:#7c3aed;--wait:#f59e0b;--done:#64748b;--bad:#dc2626}
+:root{--todo:#cbd5e1;--prog:#2563eb;--rev:#7c3aed;--wait:#f59e0b;--done:#16a34a;--bad:#dc2626}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
 .l-todo{background:var(--todo)}.l-prog{background:var(--prog)}.l-rev{background:var(--rev)}.l-wait{background:var(--wait)}.l-done{background:var(--done)}
 .lane h3{align-items:center}.lane h3 span:first-child{display:flex;align-items:center;gap:6px}
@@ -45,7 +45,7 @@ main h1{font-size:20px;margin:0 0 6px}
 .ic{width:16px;height:16px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;line-height:1}
 .i-q{background:var(--wait)}.i-x{background:var(--bad)}.i-stop{background:var(--bad)}.i-stop b{width:6px;height:6px;background:#fff;border-radius:1px;display:block}
 .i-flag{background:none;color:var(--wait)}
-.i-ag{background:none;color:var(--prog);animation:wob 2s ease-in-out infinite}.i-eye{background:none;color:var(--rev)}@keyframes wob{50%{transform:rotate(-12deg)}}
+.i-ag{background:none;color:var(--prog);animation:wob 2s ease-in-out infinite}.i-tick{background:none;color:var(--done)}.i-eye{background:none;color:var(--rev)}@keyframes wob{50%{transform:rotate(-12deg)}}
 .icons{display:inline-flex;gap:5px;align-items:center}
 .note{padding:6px 20px;color:var(--mut);font-size:12px}
 .legend{display:grid;grid-template-columns:auto auto 1fr;gap:10px 14px;align-items:center;padding:20px 28px;font-size:13px;max-width:760px}
@@ -73,13 +73,14 @@ const icon=r=>{const t=r[1];const a=' title="'+t+'" aria-label="'+t+'"';
  if(r[0]==='stop')return '<span class="ic i-stop"'+a+'><b></b></span>';
  return '<span class="ic i-flag"'+a+'><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5 2h2v20H5zM8 3h12l-3 5 3 5H8z"/></svg></span>'};
 const AG='<span class="ic i-ag" title="agent running" aria-label="agent running"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8 6.2 21l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></span>';
+const TICK='<span class="ic i-tick" title="Done" aria-label="Done"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
 const EYE=n=>'<span class="ic i-eye" title="PR #'+n+' to review" aria-label="PR #'+n+' to review"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>';
 const laneOf=b=>['Needs You','To Review','Working','To Do','Done'].find(l=>b.strands.some(s=>s[2]===l));
 const running=b=>b.strands.some(s=>s[4]);
 const reasons=b=>{const seen=new Map();b.strands.forEach(s=>{if(s[3]&&!seen.has(s[3][0]))seen.set(s[3][0],s[3])});return [...seen.values()]};
 const review=b=>b.strands.find(s=>s[2]==='To Review');
 const marks=b=>'<span class="icons">'+reasons(b).map(icon).join('')+(review(b)?EYE(review(b)[5]):'')+(running(b)?AG:'')+'</span>';
-const rowMarks=s=>'<span class="icons">'+(s[3]?icon(s[3]):'')+(s[2]==='To Review'?EYE(s[5]):'')+(s[4]?AG:'')+'</span>';
+const rowMarks=s=>'<span class="icons">'+(s[3]?icon(s[3]):'')+(s[2]==='To Review'?EYE(s[5]):'')+(s[2]==='Done'?TICK:'')+(s[4]?AG:'')+'</span>';
 function card(b){const done=b.strands.filter(s=>s[2]==='Done').length,n=b.strands.length;
  return '<div class="card"><div class="row"><span class="id">'+b.id+'</span><span class="badge">'+b.tier+'</span>'+marks(b)+'<span style="flex:1"></span><span class="cnt">▾ strands</span></div><div class="t">'+b.title+'</div>'
  +'<div class="row"><div class="bar"><i style="width:'+(done/n*100)+'%"></i></div><span class="cnt">'+done+'/'+n+'</span></div>'
@@ -93,7 +94,7 @@ function page(b,sel){const s=b.strands.find(x=>x[0]===sel);
  +'<p class="cnt">(Details, brief and tabs unchanged; only the contents panel on the left changes.)</p></main></div>'}
 function legend(){const lanes=['To Do','Working','To Review','Needs You','Done'].map(l=>'<span>'+dot(l)+'</span><span></span><span>'+l+'</span>').join('');
  const t=[[Q,'question'],[X,'checks failed'],[S,'agent stopped'],[F,'ask:&lt;key&gt;']].map(x=>'<span>'+icon(x[0])+'</span><span><code>'+x[1]+'</code></span><span>hover: "'+x[0][1]+'"</span>').join('');
- return '<div class="legend"><h2>Lane colours (UI labels)</h2>'+lanes+'<h2>Needs You reasons (red only where something went wrong)</h2>'+t+'<h2>Agent and review</h2><span>'+AG+'</span><span></span><span>wrench, gently swinging; hover: "agent running"</span><span>'+EYE(12)+'</span><span></span><span>strand in To Review; hover: "PR #12 to review"</span></div>'}
+ return '<div class="legend"><h2>Lane colours (UI labels)</h2>'+lanes+'<h2>Needs You reasons (red only where something went wrong)</h2>'+t+'<h2>Agent and review</h2><span>'+AG+'</span><span></span><span>blue wrench, gently swinging; hover: "agent running"</span><span>'+TICK+'</span><span></span><span>strand in Done; hover: "Done"</span><span>'+EYE(12)+'</span><span></span><span>strand in To Review; hover: "PR #12 to review"</span></div>'}
 const h=location.hash.slice(1);
 document.getElementById('app').innerHTML=h==='board'?board():h==='legend'?legend():h==='p2'?page(B[1],'A'):page(B[0],'B');
 document.getElementById('note').textContent=h==='board'?'Mockup on the --demo data. Hover texts are in 14-live-legend.png. 0003 gets an extra strand C (To Review, PR #17) in this mockup to show a Needs You card that also has a review.':'';

@@ -4,7 +4,7 @@ title: Live lane in strand lists and a running-agent marker
 status: In Progress
 assignee: []
 created_date: '2026-11-14T10:04:00Z'
-updated_date: '2026-11-14T10:07:00Z'
+updated_date: '2026-11-14T10:26:00Z'
 labels:
   - kind:story
   - tier:S
@@ -63,3 +63,9 @@ Out of scope: new lanes or states, starting or messaging threads (story 6), any 
 4. Tests on demo data for lane, reason and marker; retake screenshots 09 (and others affected) from --demo.
 5. npm run verify, PR into epic/task-6-read-only-board, CI green.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-11-14 User decisions on the mockups: the board is an attention board (header "braid · attention board"; a braid sits in the lane of its most urgent strand). Lanes are To Do · Working · To Review · Needs You · Done (UI labels only; stored statuses stay To Do / In Progress / Done). Waiting reasons are icons with a hover and aria-label instead of text (question, checks failed, agent stopped, ask flag). Colours: To Do light grey, Working blue, To Review purple, Needs You amber, Done green; red only on checks failed and agent stopped. A running agent is a wrench; a strand in To Review has an eye (hover "PR #N to review"); a Done row has a green tick; the progress bar is green. Strand 0003/C (To Review, PR #17) is added to --demo.
+<!-- SECTION:NOTES:END -->
