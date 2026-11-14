@@ -7,9 +7,10 @@ export class UsageError extends Error {
 
 const STATUS_WIDTH = "In Progress".length;
 
-function strandLine(strand: Strand): string {
+function strandLine(strand: Strand, withDeps = false): string {
   const order = strand.brief.order === null ? "-" : String(strand.brief.order);
-  return `  ${strand.brief.id.padEnd(6)}  ${strand.brief.status.padEnd(STATUS_WIDTH)}  ${order.padStart(2)}  ${strand.brief.title}`;
+  const deps = withDeps && strand.brief.dependencies.length > 0 ? `  (needs ${strand.brief.dependencies.join(", ")})` : "";
+  return `  ${strand.brief.id.padEnd(6)}  ${strand.brief.status.padEnd(STATUS_WIDTH)}  ${order.padStart(2)}  ${strand.brief.title}${deps}`;
 }
 
 export function listBraids(root: string): string {
@@ -82,7 +83,7 @@ export function viewItem(root: string, raw: string | undefined): string {
   }
   if (letter === undefined) {
     const strands =
-      braid.strands.length === 0 ? ["Strands: none"] : ["Strands:", ...braid.strands.map(strandLine)];
+      braid.strands.length === 0 ? ["Strands: none"] : ["Strands:", ...braid.strands.map((s) => strandLine(s, true))];
     return render(braid, strands);
   }
   const strand = braid.strands.find((s) => s.letter === letter);

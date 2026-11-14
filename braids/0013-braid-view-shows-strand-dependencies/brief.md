@@ -35,11 +35,17 @@ Expected size: about 30 to 60 lines in 2 to 3 files, with tests.
 
 ## Acceptance
 
-- [ ] `braid view <number>` shows each strand's dependencies on its line, covered by tests
-- [ ] docs/braids-format.md describes it
+- [x] `braid view <number>` shows each strand's dependencies on its line, covered by tests
+- [x] docs/braids-format.md describes it
 - [ ] CI green on Windows and Ubuntu
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `strandLine(strand, withDeps)`: the braid view passes true and appends `  (needs A, B)` when the strand has dependencies; `braid list` passes false.
+- Tests in test/braids.test.ts: view with one, two and no dependencies; list unchanged.
+- One line in docs/braids-format.md.
