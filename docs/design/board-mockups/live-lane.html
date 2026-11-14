@@ -19,9 +19,6 @@ header b{font-size:16px}header .repo{color:var(--mut)}header .sp{flex:1}
 .reason{margin-top:6px;font-size:12px;color:#a12a2a;background:#fff5f5;border-radius:6px;padding:4px 6px}
 .strands{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
 .strand{display:flex;gap:6px;align-items:center;padding:4px 0;font-size:13px}
-.dot{width:8px;height:8px;border-radius:50%;background:#adb5bd;flex:none}
-.d-prog{background:#3b5bdb}.d-done{background:#37b24d}.d-wait{background:#e03131}.d-out{background:#f59f00}
-
 button{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
 button:disabled{color:#a3a9b8;background:#f3f4f7;cursor:not-allowed}
 .actions{margin-top:8px;display:flex;gap:6px}
@@ -39,43 +36,63 @@ main h1{font-size:20px;margin:0 0 6px}
 .md h2{font-size:15px;margin:16px 0 4px}.md p,.md li{max-width:75ch}.md code{background:#eef0f5;padding:0 4px;border-radius:4px}
 .log{border-left:3px solid var(--line);padding-left:12px;margin:10px 0}.log h4{margin:0;font-size:12px;color:var(--mut);font-weight:600}
 .logfile{display:flex;gap:8px;margin-bottom:10px}.logfile .badge{cursor:pointer}.logfile .on{background:var(--acc);color:#fff}
-.run{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#1b7a34;background:#e6f6ea;border-radius:99px;padding:0 7px 0 5px;white-space:nowrap}
-.run i{width:7px;height:7px;border-radius:50%;background:#2f9e44;box-shadow:0 0 0 3px #2f9e4433}
-.lbl{font-size:12px;color:var(--mut);white-space:nowrap}
-.why{display:block;font-size:12px;color:#a12a2a}
-.d-todo{background:#adb5bd}.d-rev{background:#7048e8}
+:root{--todo:#cbd5e1;--prog:#16a34a;--rev:#7c3aed;--wait:#f59e0b;--done:#64748b;--bad:#dc2626}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.l-todo{background:var(--todo)}.l-prog{background:var(--prog)}.l-rev{background:var(--rev)}.l-wait{background:var(--wait)}.l-done{background:var(--done)}
+.lane h3{align-items:center}.lane h3 span:first-child{display:flex;align-items:center;gap:6px}
+.sid{color:var(--mut);font-size:12px;width:16px;flex:none}
+.strand{align-items:center;padding:5px 0}
+.ic{width:16px;height:16px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;line-height:1}
+.i-q{background:var(--wait)}.i-x{background:var(--bad)}.i-stop{background:var(--bad)}.i-stop b{width:6px;height:6px;background:#fff;border-radius:1px;display:block}
+.i-flag{background:none;color:var(--wait)}
+.i-ag{background:none}.i-ag i{width:8px;height:8px;border-radius:50%;background:var(--prog);box-shadow:0 0 0 3px #16a34a40;display:block}
+.icons{display:inline-flex;gap:5px;align-items:center}
 .note{padding:6px 20px;color:var(--mut);font-size:12px}
-.strand{align-items:flex-start}.strand .dot{margin-top:6px}
-.sid{color:var(--mut);font-size:12px;width:16px;flex:none}</style></head><body>
+.legend{display:grid;grid-template-columns:auto auto 1fr;gap:10px 14px;align-items:center;padding:20px 28px;font-size:13px;max-width:760px}
+.legend h2{grid-column:1/-1;margin:8px 0 0;font-size:14px}.legend code{background:#eef0f5;padding:0 4px;border-radius:4px}
+</style></head><body>
 <header><b>braid</b><span class="repo">sample · braids/</span><span class="sp"></span><span class="cnt">read-only · refreshes every 30 s</span></header>
 <div class="note" id="note"></div>
 <div id="app"></div>
 <script>
-// The --demo data: strand = [id, title, lane, reason, running]
+// --demo data: strand = [letter, title, lane, reason, running]; reason = [kind, tooltip]
+const Q=['q','Agent asked a question: waiting for your answer'],X=['x','Checks failed: verify (windows-latest)'],S=['stop','Agent stopped: no running thread and no PR'],F=['flag','Needs your decision: approve-layout'];
 const B=[
 {id:'0001',title:'Sample login flow',tier:'tier:L',strands:[['A','Login form','Done',0,0],['B','Session storage','In Review',0,0],['C','Password reset','To Do',0,0]]},
-{id:'0002',title:'Sample search',tier:'tier:M',strands:[['A','Search index','In Progress',0,1],['B','Search page','Waiting','checks failed',0]]},
-{id:'0003',title:'Sample export',tier:'tier:M',strands:[['A','CSV export','Waiting','question',1],['B','PDF export','Waiting','approve-layout',0]]},
+{id:'0002',title:'Sample search',tier:'tier:M',strands:[['A','Search index','In Progress',0,1],['B','Search page','Waiting',X,0]]},
+{id:'0003',title:'Sample export',tier:'tier:M',strands:[['A','CSV export','Waiting',Q,1],['B','PDF export','Waiting',F,0]]},
+{id:'0004',title:'Sample billing',tier:'tier:S',strands:[['A','Invoice page','Waiting',S,0]]},
 {id:'0007',title:'Sample import',tier:'tier:M',strands:[['A','Parser','In Progress',0,1]]},
-{id:'0004',title:'Sample billing',tier:'tier:S',strands:[['A','Invoice page','Waiting','agent stopped',0]]},
+{id:'0008',title:'Sample mail',tier:'tier:S',strands:[['A','Send mail','Done',0,0]]},
 ];
-const dot={'Done':'d-done','In Review':'d-rev','In Progress':'d-prog','Waiting':'d-wait','To Do':'d-todo'};
-const RUN='<span class="run" title="An agent is running on this in T3"><i></i>agent</span>';
+const cls={'To Do':'l-todo','In Progress':'l-prog','In Review':'l-rev','Waiting':'l-wait','Done':'l-done'};
+const dot=l=>'<span class="dot '+cls[l]+'"></span>';
+const icon=r=>{const t=r[1];const a=' title="'+t+'" aria-label="'+t+'"';
+ if(r[0]==='q')return '<span class="ic i-q"'+a+'>?</span>';
+ if(r[0]==='x')return '<span class="ic i-x"'+a+'>✕</span>';
+ if(r[0]==='stop')return '<span class="ic i-stop"'+a+'><b></b></span>';
+ return '<span class="ic i-flag"'+a+'><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5 2h2v20H5zM8 3h12l-3 5 3 5H8z"/></svg></span>'};
+const AG='<span class="ic i-ag" title="agent running" aria-label="agent running"><i></i></span>';
 const laneOf=b=>['Waiting','In Review','In Progress','To Do','Done'].find(l=>b.strands.some(s=>s[2]===l));
 const running=b=>b.strands.some(s=>s[4]);
-const reason=b=>{const w=b.strands.find(s=>s[2]==='Waiting');return w?w[3]:null};
-function card(b){const done=b.strands.filter(s=>s[2]==='Done').length,n=b.strands.length,r=reason(b);
- return '<div class="card"><div class="row"><span class="id">'+b.id+'</span><span class="badge">'+b.tier+'</span>'+(running(b)?RUN:'')+'<span style="flex:1"></span><span class="cnt">▾ strands</span></div><div class="t">'+b.title+'</div>'
- +'<div class="row"><div class="bar"><i style="width:'+(done/n*100)+'%"></i></div><span class="cnt">'+done+'/'+n+'</span></div>'+(r?'<div class="reason">Waiting: '+r+'</div>':'')
- +'<div class="strands">'+b.strands.map(s=>'<div class="strand"><span class="dot '+dot[s[2]]+'"></span><span class="sid">'+s[0]+'</span><span style="flex:1">'+s[1]+(s[3]?'<span class="why">Waiting: '+s[3]+'</span>':'')+'</span>'+(s[4]?RUN:'')+'<span class="lbl">'+s[2]+'</span></div>').join('')+'</div></div>'}
+const reasons=b=>{const seen=new Map();b.strands.forEach(s=>{if(s[3]&&!seen.has(s[3][0]))seen.set(s[3][0],s[3])});return [...seen.values()]};
+const marks=b=>'<span class="icons">'+reasons(b).map(icon).join('')+(running(b)?AG:'')+'</span>';
+const rowMarks=s=>'<span class="icons">'+(s[3]?icon(s[3]):'')+(s[4]?AG:'')+'</span>';
+function card(b){const done=b.strands.filter(s=>s[2]==='Done').length,n=b.strands.length;
+ return '<div class="card"><div class="row"><span class="id">'+b.id+'</span><span class="badge">'+b.tier+'</span>'+marks(b)+'<span style="flex:1"></span><span class="cnt">▾ strands</span></div><div class="t">'+b.title+'</div>'
+ +'<div class="row"><div class="bar"><i style="width:'+(done/n*100)+'%"></i></div><span class="cnt">'+done+'/'+n+'</span></div>'
+ +'<div class="strands">'+b.strands.map(s=>'<div class="strand">'+dot(s[2])+'<span class="sid">'+s[0]+'</span><span style="flex:1">'+s[1]+'</span>'+rowMarks(s)+'</div>').join('')+'</div></div>'}
 function board(){const L=['To Do','In Progress','In Review','Waiting','Done'];
- return '<div class="lanes">'+L.map(l=>{const c=B.filter(b=>laneOf(b)===l);return '<div class="lane"><h3><span>'+l+'</span><span>'+c.length+'</span></h3>'+c.map(card).join('')+'</div>'}).join('')+'</div>'}
+ return '<div class="lanes">'+L.map(l=>{const c=B.filter(b=>laneOf(b)===l);return '<div class="lane"><h3><span>'+dot(l)+l+'</span><span>'+c.length+'</span></h3>'+c.map(card).join('')+'</div>'}).join('')+'</div>'}
 function page(b,sel){const s=b.strands.find(x=>x[0]===sel);
- const nav='<nav><a class="back">← Board</a><h2>'+b.id+' '+b.title+'</h2><div class="cnt" style="display:flex;gap:6px;align-items:center">'+laneOf(b)+(running(b)?RUN:'')+'</div><div class="item">Braid brief</div>'
- +b.strands.map(x=>'<div class="item sub '+(x[0]===sel?'sel':'')+'"><span class="dot '+dot[x[2]]+'"></span><span style="flex:1">'+x[0]+' · '+x[1]+(x[3]?'<span class="why">Waiting: '+x[3]+'</span>':'')+'</span>'+(x[4]?RUN:'')+'</div>').join('')+'</nav>';
- return '<div class="page">'+nav+'<main><div class="cnt">'+b.id+'/'+s[0]+'</div><h1>'+s[1]+'</h1><div class="row"><span class="badge">'+s[2]+'</span>'+(s[4]?RUN:'')+'</div>'
- +'<p class="cnt">(Details, brief and tabs unchanged — only the contents panel on the left changes.)</p></main></div>'}
+ const nav='<nav><a class="back">← Board</a><h2>'+b.id+' '+b.title+'</h2><div class="cnt" style="display:flex;gap:6px;align-items:center">'+dot(laneOf(b))+laneOf(b)+marks(b)+'</div><div class="item">Braid brief</div>'
+ +b.strands.map(x=>'<div class="item sub '+(x[0]===sel?'sel':'')+'">'+dot(x[2])+'<span style="flex:1">'+x[0]+' · '+x[1]+'</span>'+rowMarks(x)+'</div>').join('')+'</nav>';
+ return '<div class="page">'+nav+'<main><div class="cnt">'+b.id+'/'+s[0]+'</div><h1>'+s[1]+'</h1><div class="row">'+dot(s[2])+'<span class="badge">'+s[2]+'</span>'+rowMarks(s)+'</div>'
+ +'<p class="cnt">(Details, brief and tabs unchanged; only the contents panel on the left changes.)</p></main></div>'}
+function legend(){const lanes=['To Do','In Progress','In Review','Waiting','Done'].map(l=>'<span>'+dot(l)+'</span><span></span><span>'+l+'</span>').join('');
+ const t=[[Q,'question'],[X,'checks failed'],[S,'agent stopped'],[F,'ask:&lt;key&gt;']].map(x=>'<span>'+icon(x[0])+'</span><span><code>'+x[1]+'</code></span><span>hover: "'+x[0][1]+'"</span>').join('');
+ return '<div class="legend"><h2>Lane colours</h2>'+lanes+'<h2>Waiting reasons (red only where something went wrong)</h2>'+t+'<h2>Agent</h2><span>'+AG+'</span><span></span><span>pulsing green dot; hover: "agent running"</span></div>'}
 const h=location.hash.slice(1);
-document.getElementById('app').innerHTML=h==='board'?board():h==='p2'?page(B[1],'A'):page(B[0],'B');
-document.getElementById('note').textContent=h==='board'?'Mockup on the --demo data: strand rows show the live lane and Waiting reason, like the board; the green "agent" marker means T3 reports a running thread.':'';
+document.getElementById('app').innerHTML=h==='board'?board():h==='legend'?legend():h==='p2'?page(B[1],'A'):page(B[0],'B');
+document.getElementById('note').textContent=h==='board'?'Mockup on the --demo data. Hover texts (title and aria-label) are listed in 14-live-legend.png.':'';
 </script></body></html>
