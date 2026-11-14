@@ -79,7 +79,10 @@ To make them available to Cursor, Codex and Claude in every project, install the
 ```powershell
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from main
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a branch
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -SkipCli       # skills only
 ```
+
+The installer also installs the matching `braid` CLI, so the skills can always call it. From the same ref it runs `npm ci`, `npm run build` and `npm pack`, installs the tarball with `npm install -g`, and checks that `braid --version` prints that version, which it records as `cliVersion` in the stamp. It needs Node.js and npm on `PATH` (see "Build and verify") and runs before any skill is copied, so a failed build or version check leaves the installed skills as they were. `-SkipCli` leaves the CLI alone. Nothing is published to npm.
 
 The script copies `.agents/skills/braid` and `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again. A folder of the same name that the script did not install is left alone unless `-Force` is given. Every target is checked before anything is replaced, and an installed braid skill that is no longer in the ref (such as the old `braid-coordinate`) is removed. `-Target` replaces the default folders.
 
