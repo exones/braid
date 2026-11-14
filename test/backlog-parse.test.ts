@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checks, list, marked, splitFile, text } from "../dist/backlog/parse.js";
+type Parse = typeof import("../src/backlog/parse.ts");
+// Loaded from the build, which runs before the tests; the type comes from the source.
+const { checks, list, marked, splitFile, text }: Parse = await import(new URL("../dist/backlog/parse.js", import.meta.url).href);
 
 const task = [
   "---",
