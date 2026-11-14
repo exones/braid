@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { BoardData, ItemDetail } from "../../src/board/model.ts";
 
 export type { BoardData, BraidCard, ItemDetail, Lane } from "../../src/board/model.ts";
+export type { PullRequest } from "../../src/board/github.ts";
 
 export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
 
