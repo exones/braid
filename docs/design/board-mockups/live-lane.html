@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>braid board – mockup</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#3b5bdb}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line)}
+header b{font-size:16px}header .repo{color:var(--mut)}header .sp{flex:1}
+.lanes{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 20px;align-items:start}
+.lane{background:#eceef3;border-radius:10px;padding:10px;min-height:200px}
+.lane h3{margin:2px 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;box-shadow:0 1px 2px #0001;cursor:pointer}
+.card:hover{border-color:var(--acc)}
+.card .id{color:var(--mut);font-size:12px}.card .t{font-weight:600;margin:2px 0 6px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:#e8ebf3;color:#49506a}
+.b-outline{background:#fff1d6;color:#8a5a00}.b-lbl{background:#eef;color:#3b4aa0}
+.bar{height:5px;background:#e6e9f0;border-radius:3px;flex:1;min-width:50px;overflow:hidden}.bar i{display:block;height:100%;background:#37b24d}
+.cnt{font-size:12px;color:var(--mut)}
+.reason{margin-top:6px;font-size:12px;color:#a12a2a;background:#fff5f5;border-radius:6px;padding:4px 6px}
+.strands{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+.strand{display:flex;gap:6px;align-items:center;padding:4px 0;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:#adb5bd;flex:none}
+.d-prog{background:#3b5bdb}.d-done{background:#37b24d}.d-wait{background:#e03131}.d-out{background:#f59f00}
+
+button{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+button:disabled{color:#a3a9b8;background:#f3f4f7;cursor:not-allowed}
+.actions{margin-top:8px;display:flex;gap:6px}
+.page{display:grid;grid-template-columns:290px 1fr;height:calc(100vh - 47px)}
+nav{background:#fff;border-right:1px solid var(--line);padding:14px;overflow:auto}
+nav .back{color:var(--acc);font-size:13px;cursor:pointer;display:block;margin-bottom:10px}
+nav h2{font-size:15px;margin:0 0 2px}
+nav .item{display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:6px;cursor:pointer;margin-top:2px}
+nav .item.sel{background:#e7ecff;font-weight:600}nav .item:hover{background:#f0f2f8}nav .sub{margin-left:14px}
+main{padding:20px 28px;overflow:auto}
+main h1{font-size:20px;margin:0 0 6px}
+.meta{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;margin:12px 0 16px;font-size:13px}.meta dt{color:var(--mut)}.meta dd{margin:0}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{padding:7px 14px;cursor:pointer;color:var(--mut);border-bottom:2px solid transparent}.tab.on{color:var(--ink);border-color:var(--acc);font-weight:600}
+.md h2{font-size:15px;margin:16px 0 4px}.md p,.md li{max-width:75ch}.md code{background:#eef0f5;padding:0 4px;border-radius:4px}
+.log{border-left:3px solid var(--line);padding-left:12px;margin:10px 0}.log h4{margin:0;font-size:12px;color:var(--mut);font-weight:600}
+.logfile{display:flex;gap:8px;margin-bottom:10px}.logfile .badge{cursor:pointer}.logfile .on{background:var(--acc);color:#fff}
+.run{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#1b7a34;background:#e6f6ea;border-radius:99px;padding:0 7px 0 5px;white-space:nowrap}
+.run i{width:7px;height:7px;border-radius:50%;background:#2f9e44;box-shadow:0 0 0 3px #2f9e4433}
+.lbl{font-size:12px;color:var(--mut);white-space:nowrap}
+.why{display:block;font-size:12px;color:#a12a2a}
+.d-todo{background:#adb5bd}.d-rev{background:#7048e8}
+.note{padding:6px 20px;color:var(--mut);font-size:12px}
+.strand{align-items:flex-start}.strand .dot{margin-top:6px}
+.sid{color:var(--mut);font-size:12px;width:16px;flex:none}</style></head><body>
+<header><b>braid</b><span class="repo">sample · braids/</span><span class="sp"></span><span class="cnt">read-only · refreshes every 30 s</span></header>
+<div class="note" id="note"></div>
+<div id="app"></div>
+<script>
+// The --demo data: strand = [id, title, lane, reason, running]
+const B=[
+{id:'0001',title:'Sample login flow',tier:'tier:L',strands:[['A','Login form','Done',0,0],['B','Session storage','In Review',0,0],['C','Password reset','To Do',0,0]]},
+{id:'0002',title:'Sample search',tier:'tier:M',strands:[['A','Search index','In Progress',0,1],['B','Search page','Waiting','checks failed',0]]},
+{id:'0003',title:'Sample export',tier:'tier:M',strands:[['A','CSV export','Waiting','question',1],['B','PDF export','Waiting','approve-layout',0]]},
+{id:'0007',title:'Sample import',tier:'tier:M',strands:[['A','Parser','In Progress',0,1]]},
+{id:'0004',title:'Sample billing',tier:'tier:S',strands:[['A','Invoice page','Waiting','agent stopped',0]]},
+];
+const dot={'Done':'d-done','In Review':'d-rev','In Progress':'d-prog','Waiting':'d-wait','To Do':'d-todo'};
+const RUN='<span class="run" title="An agent is running on this in T3"><i></i>agent</span>';
+const laneOf=b=>['Waiting','In Review','In Progress','To Do','Done'].find(l=>b.strands.some(s=>s[2]===l));
+const running=b=>b.strands.some(s=>s[4]);
+const reason=b=>{const w=b.strands.find(s=>s[2]==='Waiting');return w?w[3]:null};
+function card(b){const done=b.strands.filter(s=>s[2]==='Done').length,n=b.strands.length,r=reason(b);
+ return '<div class="card"><div class="row"><span class="id">'+b.id+'</span><span class="badge">'+b.tier+'</span>'+(running(b)?RUN:'')+'<span style="flex:1"></span><span class="cnt">▾ strands</span></div><div class="t">'+b.title+'</div>'
+ +'<div class="row"><div class="bar"><i style="width:'+(done/n*100)+'%"></i></div><span class="cnt">'+done+'/'+n+'</span></div>'+(r?'<div class="reason">Waiting: '+r+'</div>':'')
+ +'<div class="strands">'+b.strands.map(s=>'<div class="strand"><span class="dot '+dot[s[2]]+'"></span><span class="sid">'+s[0]+'</span><span style="flex:1">'+s[1]+(s[3]?'<span class="why">Waiting: '+s[3]+'</span>':'')+'</span>'+(s[4]?RUN:'')+'<span class="lbl">'+s[2]+'</span></div>').join('')+'</div></div>'}
+function board(){const L=['To Do','In Progress','In Review','Waiting','Done'];
+ return '<div class="lanes">'+L.map(l=>{const c=B.filter(b=>laneOf(b)===l);return '<div class="lane"><h3><span>'+l+'</span><span>'+c.length+'</span></h3>'+c.map(card).join('')+'</div>'}).join('')+'</div>'}
+function page(b,sel){const s=b.strands.find(x=>x[0]===sel);
+ const nav='<nav><a class="back">← Board</a><h2>'+b.id+' '+b.title+'</h2><div class="cnt" style="display:flex;gap:6px;align-items:center">'+laneOf(b)+(running(b)?RUN:'')+'</div><div class="item">Braid brief</div>'
+ +b.strands.map(x=>'<div class="item sub '+(x[0]===sel?'sel':'')+'"><span class="dot '+dot[x[2]]+'"></span><span style="flex:1">'+x[0]+' · '+x[1]+(x[3]?'<span class="why">Waiting: '+x[3]+'</span>':'')+'</span>'+(x[4]?RUN:'')+'</div>').join('')+'</nav>';
+ return '<div class="page">'+nav+'<main><div class="cnt">'+b.id+'/'+s[0]+'</div><h1>'+s[1]+'</h1><div class="row"><span class="badge">'+s[2]+'</span>'+(s[4]?RUN:'')+'</div>'
+ +'<p class="cnt">(Details, brief and tabs unchanged — only the contents panel on the left changes.)</p></main></div>'}
+const h=location.hash.slice(1);
+document.getElementById('app').innerHTML=h==='board'?board():h==='p2'?page(B[1],'A'):page(B[0],'B');
+document.getElementById('note').textContent=h==='board'?'Mockup on the --demo data: strand rows show the live lane and Waiting reason, like the board; the green "agent" marker means T3 reports a running thread.':'';
+</script></body></html>

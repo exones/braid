@@ -1,9 +1,10 @@
 ---
 id: TASK-6.5
 title: Live lane in strand lists and a running-agent marker
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-14T10:04:00Z'
+updated_date: '2026-11-14T10:07:00Z'
 labels:
   - kind:story
   - tier:S
@@ -52,3 +53,13 @@ Out of scope: new lanes or states, starting or messaging threads (story 6), any 
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Mockups (docs/design/board-mockups/11-13, source live-lane.html) on --demo data; stop for the user.
+2. After approval: add `running: boolean` to StrandCard/BraidCard/ItemDetail in src/board/model.ts (from T3 running threads, via a helper in t3.ts).
+3. web/src/App.tsx: strand rows (expanded card) and Contents list show the live lane (dot colour, label) and Waiting reason; marker on cards and strand rows when running.
+4. Tests on demo data for lane, reason and marker; retake screenshots 09 (and others affected) from --demo.
+5. npm run verify, PR into epic/task-6-read-only-board, CI green.
+<!-- SECTION:PLAN:END -->
