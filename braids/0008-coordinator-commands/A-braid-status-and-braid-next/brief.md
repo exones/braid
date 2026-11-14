@@ -1,7 +1,7 @@
 ---
 id: '0008/A'
 title: "braid status and braid next"
-status: To Do
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 10
@@ -36,12 +36,16 @@ Expected size: about 300 to 500 lines with tests.
 
 ## Acceptance
 
-- [ ] `braid status` shows each strand's stored status, live lane, branch, PR, ci checks and thread, covered by tests
-- [ ] `braid next` picks the right strand or says why none, covered by tests (dependencies, running, Outline, all done)
-- [ ] Numbers and letters ignore refs outside branches and remote branches, covered by a test
-- [ ] CI green on Windows and Ubuntu
+- [x] `braid status` shows each strand's stored status, live lane, branch, PR, ci checks and thread, covered by tests
+- [x] `braid next` picks the right strand or says why none, covered by tests (dependencies, running, Outline, all done)
+- [x] Numbers and letters ignore refs outside branches and remote branches, covered by a test
+- [x] CI green on Windows and Ubuntu
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+status and next live in src/commands/coordinate.ts on the board sources (loadLiveBraids, readGithub, readT3, toCard); PullRequest gains per-check runs; numbers.ts counts only --branches --remotes; tests stub gh and t3.
