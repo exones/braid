@@ -70,7 +70,11 @@ interface PrRef {
 }
 
 function prRefs(thread: Json): PrRef[] {
-  const raw: unknown[] = [thread["linkedPullRequest"], ...(Array.isArray(thread["pullRequests"]) ? thread["pullRequests"] : [])];
+  // A thread's own PR: the linked one, else the only one it lists. A coordinator lists many PRs
+  // that are not its own, so a longer list says nothing about which strand the thread works on.
+  const linked = thread["linkedPullRequest"];
+  const listed = Array.isArray(thread["pullRequests"]) ? thread["pullRequests"] : [];
+  const raw: unknown[] = linked !== null && linked !== undefined ? [linked] : listed.length === 1 ? listed : [];
   const refs: PrRef[] = [];
   for (const r of raw) {
     if (typeof r === "number") {
@@ -109,6 +113,13 @@ const norm = (p: string): string => resolve(p).replaceAll("\\", "/").toLowerCase
 
 /** Worktree path to its checked-out branch, from `git worktree list --porcelain`. */
 export type Worktrees = (root: string) => Map<string, string>;
+
+/** The main checkout: the first entry of `git worktree list`, which T3 knows as the project. */
+export function mainCheckout(root: string): string {
+  const r = spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: root, encoding: "utf8" });
+  const first = r.status === 0 ? r.stdout.split("\n").find((l) => l.startsWith("worktree ")) : undefined;
+  return first === undefined ? root : first.slice(9).trim();
+}
 
 export const gitWorktrees: Worktrees = (root) => {
   const r = spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: root, encoding: "utf8" });
@@ -171,6 +182,8 @@ async function pool<T, R>(items: readonly T[], work: (item: T) => Promise<R>, si
 export interface T3Options {
   readonly run?: T3Runner;
   readonly worktrees?: Worktrees;
+  /** The T3 project folder; the main checkout when not given. */
+  readonly project?: string;
   readonly ttlMs?: number;
 }
 
@@ -184,14 +197,14 @@ export function readT3(root: string, github: Github, options: T3Options = {}): P
   if (shared !== undefined && Date.now() - shared.at < ttl) {
     return shared.t3;
   }
-  const t3 = readFresh(root, github, options.run ?? runT3, options.worktrees ?? gitWorktrees);
+  const t3 = readFresh(root, github, options.run ?? runT3, options.worktrees ?? gitWorktrees, options.project ?? mainCheckout(root));
   recent.set(root, { at: Date.now(), t3 });
   return t3;
 }
 
-async function readFresh(root: string, github: Github, run: T3Runner, worktrees: Worktrees): Promise<T3> {
+async function readFresh(root: string, github: Github, run: T3Runner, worktrees: Worktrees, project: string): Promise<T3> {
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
-  const listed = await run(root, ["thread", "list", "--json"]);
+  const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
     return down("t3 is not installed or not on PATH");
   }

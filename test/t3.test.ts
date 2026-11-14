@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -86,11 +87,11 @@ const shown: Record<string, object> = {
   "t-red": { branch: null, worktreePath: null, pendingRequestCount: 0 },
 };
 
-function t3Stub(calls: string[] = []): T3Run {
+function t3Stub(calls: string[] = [], list: object[] = threads): T3Run {
   return (_root, args) => {
     calls.push(args.join(" "));
     if (args[1] === "list") {
-      return Promise.resolve(ok(threads));
+      return Promise.resolve(ok(list));
     }
     return Promise.resolve(ok({ thread: shown[args[2] ?? ""] ?? {} }));
   };
@@ -209,4 +210,46 @@ test("the demo data is reusable and loads without a repository", () => {
   assert.equal(demo.demoBraids().length, 8);
   assert.ok(demo.demoGithub());
   assert.ok(demo.demoT3());
+});
+
+test("a coordinator listing many PRs joins no strand; a linked PR wins over a longer list", async () => {
+  // The TASK-2.2 sample: a running coordinator thread with a dozen PRs of its own and no linked one.
+  const many = Array.from({ length: 18 }, (_, i) => ({ number: 39 + i, url: `https://github.com/o/r/pull/${39 + i}`, state: "open" }));
+  const coordinator = { threadId: "t-coord", status: "running", linkedPullRequest: null, pullRequests: many };
+  const { get } = await start(files(), t3Stub([], [coordinator]));
+  const s = Object.fromEntries((await get("api/board")).braids[0].strands.map((x: any) => [x.id.slice(5), x]));
+  assert.deepEqual([s.D.lane, s.D.reason], ["Waiting", "checks failed"]); // PR 40 is in its list, but it is not its PR
+  assert.equal(s.E.lane, "In Review"); // PR 41 too
+
+  resetT3Memory();
+  const worker = { threadId: "t-worker", status: "running", linkedPullRequest: { number: 40 }, pullRequests: many };
+  const linked = await start(files(), t3Stub([], [worker]));
+  const d = (await linked.get("api/board")).braids[0].strands.find((x: any) => x.id === "0001/D");
+  assert.equal(d.lane, "In Progress");
+});
+
+test("thread list is asked for the main checkout, also when the board starts in a linked worktree", async () => {
+  const git = (cwd: string, ...args: string[]) => {
+    const r = spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+  };
+  const main = realpathSync(repo({ "braids/0001-a/brief.md": brief("0001", "In Progress") }));
+  rmSync(join(main, ".git"), { recursive: true });
+  git(main, "init", "-q");
+  git(main, "add", "-A");
+  git(main, "commit", "-q", "-m", "x");
+  const linked = join(scratch, "linked-worktree");
+  git(main, "worktree", "add", "-q", linked, "-b", "other");
+  const calls: string[][] = [];
+  const run: T3Run = (_root, args) => {
+    calls.push([...args]);
+    return Promise.resolve(ok([]));
+  };
+  const { get } = await start(linked, run);
+  await get("api/board");
+  const list = calls.find((c) => c[1] === "list") ?? [];
+  const at = list.indexOf("--project");
+  assert.notEqual(at, -1);
+  assert.equal(realpathSync(list[at + 1] ?? ""), main);
+  assert.equal(calls.some((c) => c[1] === "show" && c.includes("--project")), false);
 });
