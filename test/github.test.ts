@@ -214,3 +214,30 @@ test("a PR from a braid's own branch puts a braid without strands in its lane", 
   assert.equal(data.braids[0].pr.number, 20);
   assert.equal((await item("0006")).pr.number, 20);
 });
+
+test("a closed, unmerged PR never makes its strand Done", async () => {
+  const closed = await board(files(), () => ok([pr(7, "CLOSED", "braid/0001/F-done"), pr(8, "CLOSED", "braid/0001/A-open")]));
+  const f = closed.data.braids[0].strands.find((s: any) => s.id === "0001/F");
+  assert.equal(f.lane, "To Do");
+  assert.equal(f.pr.state, "closed");
+  assert.equal(closed.data.braids[0].strands.find((s: any) => s.id === "0001/A").lane, "In Progress");
+  // A later PR for the same item wins: merged beats closed, open beats both.
+  const merged = await board(files(), () => ok([pr(7, "CLOSED", "braid/0001/F-done"), pr(6, "MERGED", "braid/0001/F-done")]));
+  assert.equal(merged.data.braids[0].strands.find((s: any) => s.id === "0001/F").lane, "Done");
+});
+
+test("closed PRs are cached and dropped when they reopen", () => {
+  const calls: string[] = [];
+  let all = [pr(1, "CLOSED", "braid/0001/A-open")];
+  const gh: Runner = (_root, args) => {
+    const state = args[args.indexOf("--state") + 1] ?? "";
+    calls.push(state);
+    return ok(state === "all" ? all : all.filter((p) => p.state === "OPEN"));
+  };
+  const root = "C:\closed-test";
+  assert.equal(readGithub(root, gh, 0).prs.get("0001/A")?.state, "closed");
+  assert.equal(readGithub(root, gh, 0).prs.get("0001/A")?.state, "closed");
+  all = [pr(1, "OPEN", "braid/0001/A-open")];
+  assert.equal(readGithub(root, gh, 0).prs.get("0001/A")?.state, "open");
+  assert.deepEqual(calls, ["all", "open", "open"]);
+});

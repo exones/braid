@@ -8,7 +8,7 @@ export type Checks = "passing" | "failing" | "pending" | "none";
 export interface PullRequest {
   readonly number: number;
   readonly url: string;
-  readonly state: "open" | "merged";
+  readonly state: "open" | "merged" | "closed";
   readonly checks: Checks;
   /** Names of the failing checks, when GitHub gave them. */
   readonly failed?: readonly string[];
@@ -22,7 +22,7 @@ export type GithubState =
 
 export interface Github {
   readonly status: GithubState;
-  /** The PR to show per item key (`0006` or `0006/A`): the open one, else the newest merged one. */
+  /** The PR to show per item key (`0006` or `0006/A`): the open one, else the newest merged one, else the newest closed (unmerged) one. */
   readonly prs: ReadonlyMap<string, PullRequest>;
 }
 
@@ -103,9 +103,11 @@ export function keyOfBranch(branch: string): string | null {
 
 const FIELDS = "number,url,state,headRefName,mergedAt,statusCheckRollup";
 
-// Merged PRs never change, so they are kept for the life of the process, per repository folder.
+// Merged PRs never change (closed ones rarely do), so they are kept for the life of the process, per repository folder.
 interface Memory {
   readonly merged: Map<number, RawPr>;
+  /** Closed without merging; a PR can reopen, so one that shows up open is dropped from here. */
+  readonly closed: Map<number, RawPr>;
   open: Set<number>;
 }
 // One page view asks for the board and an item; they share one read made within this many ms.
@@ -153,8 +155,8 @@ export function readGithub(root: string, run: GhRunner = runGh, ttlMs: number = 
 }
 
 function readFresh(root: string, run: GhRunner): Github {
-  const mem = memory.get(root) ?? { merged: new Map<number, RawPr>(), open: new Set<number>() };
-  let fetched = list(run, root, mem.merged.size === 0 && mem.open.size === 0 ? "all" : "open");
+  const mem = memory.get(root) ?? { merged: new Map<number, RawPr>(), closed: new Map<number, RawPr>(), open: new Set<number>() };
+  let fetched = list(run, root, mem.merged.size === 0 && mem.closed.size === 0 && mem.open.size === 0 ? "all" : "open");
   if (typeof fetched !== "string") {
     const still = new Set(fetched.filter((p) => p.state === "OPEN").map((p) => p.number));
     if ([...mem.open].some((n) => !still.has(n))) {
@@ -168,18 +170,24 @@ function readFresh(root: string, run: GhRunner): Github {
   for (const p of fetched) {
     if (p.state === "MERGED") {
       mem.merged.set(p.number, p);
+      mem.closed.delete(p.number);
+    } else if (p.state === "CLOSED") {
+      mem.closed.set(p.number, p);
+    } else {
+      mem.closed.delete(p.number);
     }
   }
   memory.set(root, mem);
 
   const prs = new Map<string, PullRequest>();
   const merged = [...mem.merged.values()].sort((a, b) => a.number - b.number);
+  const closed = [...mem.closed.values()].sort((a, b) => a.number - b.number);
   const open = fetched.filter((p) => p.state === "OPEN");
-  // Merged ones first, so a later (higher-numbered) one wins; an open PR wins over all of them.
-  for (const [raw, state] of [...merged.map((p) => [p, "merged"] as const), ...open.map((p) => [p, "open"] as const)]) {
+  // Closed ones first, then merged, so a later (higher-numbered) one wins within a kind; an open PR wins over all of them.
+  for (const [raw, state] of [...closed.map((p) => [p, "closed"] as const), ...merged.map((p) => [p, "merged"] as const), ...open.map((p) => [p, "open"] as const)]) {
     const key = keyOfBranch(raw.headRefName);
     if (key !== null) {
-      prs.set(key, { number: raw.number, url: raw.url, state, checks: state === "open" ? checksOf(raw.statusCheckRollup) : "passing", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
+      prs.set(key, { number: raw.number, url: raw.url, state, checks: state === "open" ? checksOf(raw.statusCheckRollup) : state === "merged" ? "passing" : "none", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
     }
   }
   return { status: { state: "ok" }, prs };
