@@ -4,7 +4,7 @@ title: 'Read-only board: braid board with live states'
 status: In Progress
 assignee: []
 created_date: '2026-11-13T22:00:00Z'
-updated_date: '2026-11-14T09:20:00Z'
+updated_date: '2026-11-14T10:04:00Z'
 labels:
   - kind:story
   - tier:L
@@ -55,4 +55,7 @@ Plan changes: TASK-6.3 also shows the branch in the braid page's details (user's
 
 2026-11-14 TASK-6.3 merged: PR #67, 9047a57. Done: lanes from GitHub via one `gh pr list` per refresh (merged -> Done, open -> In Review, failing checks -> Waiting "checks failed", ask:<key> -> Waiting); PR link, Waiting reason and Branch row on the braid page; without gh the board uses stored states and says why. For later items: src/board/github.ts, `derive` in model.ts; screenshots of GitHub states still missing.
 Plan changes: TASK-6.4 adds `braid board --demo` (sample braids with fake GitHub and T3 states) and refreshes the screenshots with it. User decided: keep the "Pull request" row on the braid page; add --demo.
+
+2026-11-14 TASK-6.4 merged: PR #68, b2cae69. Done: lanes from T3 (running -> In Progress, pending question -> Waiting "question", interrupted/cancelled with no PR -> Waiting "agent stopped"); a thread joins a strand by linkedPullRequest, else a single pullRequests entry, else worktree path or branch; `thread list` carries --project <main checkout>; refresh by server-sent events (/api/events: 30 s, braids/ file change, Refresh button with ?fresh=1); `braid board --demo` and `--demo-t3-down`; screenshots 08-10. For later items: src/board/t3.ts (readT3, T3), derive takes a T3, src/board/demo.ts, Sources/startBoardWith/demoSources in src/commands/board.ts.
+Plan changes: TASK-6.5 added (live lane in strand lists, running-agent marker), mockups first. User decided: accept both proposals from the 6.4 worker.
 <!-- SECTION:NOTES:END -->
