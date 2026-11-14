@@ -19,7 +19,7 @@ The coordinator calls one command where it ran several.
 ## Open questions
 
 - Which skill steps become commands first, and what each prints.
-- `braid list` and `braid view` lack strand dependencies; `braid next` needs them (from TASK-7.3).
+- `braid view <number>` shows each strand's dependencies (`(needs …)`, braid 0013); `braid list` doesn't.
 - "Fixes still failing after two review rounds" becomes a Needs You reason here (board decision, 2026-11-13).
 - The `epic/**` CI trigger can go once the epic branches are `braid/**`.
 

@@ -15,14 +15,14 @@ Run after the user's behavior trial of auto mode, so the trial uses the skills a
 Expected size: net fewer lines across the braid skills (braid-reviewer may grow); about 10 files.
 
 Start here (read in this order):
-- `.agents/skills/braid/SKILL.md`, `references/workflow.md`, `assets/task.md`, `references/stop-cases.md`.
+- `.agents/skills/braid/SKILL.md`, `references/workflow.md`, `assets/brief.md`, `references/stop-cases.md`.
 - `.agents/skills/braid-worker/SKILL.md`, `.agents/skills/braid-reviewer/SKILL.md`.
 - TASK-1's notes (the log) and the final review of PR #50.
 
 Change:
 - Move auto mode to `braid/references/auto-mode.md`; `SKILL.md` keeps one line saying to read it when the user asks for auto mode.
 - Remove duplication between `SKILL.md` and `workflow.md` (who merges what, branch rules, tiers and review): each rule lives in one place, the other points to it.
-- Fold the prose in `assets/task.md` into its command examples.
+- Fold the prose in `assets/brief.md` into its command examples.
 - Fix three leftovers from TASK-1 (PR #50 review): ground rule 2 still says the parent goes In Progress in "the epic's first commit" (the commit-points rule says after the planning merge); the skill's YAML description can be read as forbidding merge on request of a story or the final PR (only auto mode never merges them); the grown-story row in workflow.md and "Finish" disagree on when the parent goes Done.
 - One copy of `stop-cases.md`: keep it in `braid/references/`; `braid-worker` and `braid-reviewer` point to `../braid/references/stop-cases.md` (the installer always installs the three skills together), and the docs gate's same-file check goes away (user's PR #50 review).
 - Enrich `braid-reviewer`: research well-regarded code-review skills and prompts online and add what improves its reviews (for example edge cases and failure paths, testing the tests, a confidence bar for findings), still short; name the sources in the final summary (user's PR #50 review).

@@ -1,7 +1,7 @@
 ---
 id: '0007'
 title: "Skills on braid, with the import"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: ['0006']
 order: 70
@@ -25,10 +25,10 @@ Until TASK-7.4 merges, this story is tracked in Backlog.md on its epic branch an
 
 ## Acceptance
 
-- [ ] All five strands are Done on the epic branch
-- [ ] This repository's work is in braids/, the skills call braid, and one braid ran end to end on them
+- [x] All five strands are Done on the epic branch
+- [x] This repository's work is in braids/, the skills call braid, and one braid ran end to end on them
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] Final summary written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
