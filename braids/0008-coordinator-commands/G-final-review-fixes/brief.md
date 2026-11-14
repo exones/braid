@@ -1,7 +1,7 @@
 ---
 id: '0008/G'
 title: "Final review fixes"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: ['0008/C']
 order: 40
@@ -25,7 +25,7 @@ Expected size: about 40 to 100 lines.
 
 - [x] The two seam cases are covered by CLI tests
 - [x] D40, the workflow, docs/braids-format.md and braid help match the code
-- [ ] CI green on Windows and Ubuntu
+- [x] CI green on Windows and Ubuntu
 
 ## Definition of done
 
