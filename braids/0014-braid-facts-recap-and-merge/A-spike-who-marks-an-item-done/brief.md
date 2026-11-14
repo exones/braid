@@ -1,7 +1,7 @@
 ---
 id: '0014/A'
 title: "Spike: who marks an item Done"
-status: To Do
+status: Done
 labels: ["kind:spike", "tier:M"]
 dependencies: []
 order: 5
@@ -37,8 +37,12 @@ Time box: about 2 to 3 hours. Output: `report.md` only, no code. It feeds 0014's
 
 ## Acceptance
 
-- [ ] report.md covers every case listed, compares two or three options and recommends one
+- [x] report.md covers every case listed, compares two or three options and recommends one
 
 ## Definition of done
 
-- [ ] report.md written: answer, evidence, proposed follow-ups
+- [x] report.md written: answer, evidence, proposed follow-ups
+
+## Plan
+
+Read the skill, workflow, brief template, derive, branches.ts, github.ts, coordinate.ts, ci.yml and the 0008 PR histories; build the case table for three options (worker stamps today, coordinator stamps on the PR branch, coordinator stamps after the merge); recommend one; report.md only, no code.
