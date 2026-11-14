@@ -64,6 +64,7 @@ Each story is a braid; its strands are one PR each. MVP: stories 1 to 4. Tiers a
 | 6 | **Board actions.** Start (a T3 thread on a new worktree), Open thread, Merge on request; local only, with a per-session token. | Start a strand from the board. | L |
 | 7 | **Runs, checkpoints, resuming.** Each run recorded with its strand, thread and worktree; checkpoints from the logs; resume a stopped run. | Kill a session mid-strand and resume it. | L |
 | 8 | **Reports and several agents.** Reports on the board; independent strands in parallel within a limit; a strand started from the board runs through review and CI to In Review without a coordinator chat. | Two strands run at once and both reach In Review. | L |
+| 9 | **Board on the phone** (outline; user, 2026-11-14). A layout that fits a phone (one lane at a time, larger tap targets); `braid board --host <address>` to serve it on the user's Tailscale network, opt-in, never on all networks by default; board actions over the network need real authentication (Tailscale identity or sign-in), building on story 6's token. Open: whether the read-only part moves right after the MVP. | Open the board on the phone over Tailscale and act on a braid safely. | M–L |
 
 Why this order: the format (2) comes before the board (3), because a board that read Backlog.md's files would be thrown away. The import and the skills switch (4) come last and together, so the flow that already works keeps working until braid can do the same, and there is never a moment without a working store.
 
