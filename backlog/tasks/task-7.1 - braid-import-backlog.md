@@ -1,10 +1,10 @@
 ---
 id: TASK-7.1
 title: braid import-backlog
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-14T11:18:00Z'
-updated_date: '2026-11-14T11:25:00Z'
+updated_date: '2026-11-14T11:39:00Z'
 labels:
   - kind:story
   - tier:M
@@ -41,16 +41,16 @@ Out of scope: running it on this repository (TASK-7.4), the skills (TASK-7.3).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 braid import-backlog turns a fixture backlog/ into braids/ that pass braid check, mapping ids, strands, statuses, labels, dependencies, order, acceptance, plan, notes, final summary and docs as described
-- [ ] #2 --dry-run prints what it would write and writes nothing; existing targets or unparsable input stop it before any write
-- [ ] #3 docs/braids-format.md and the README describe the command
-- [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
+- [x] #1 braid import-backlog turns a fixture backlog/ into braids/ that pass braid check, mapping ids, strands, statuses, labels, dependencies, order, acceptance, plan, notes, final summary and docs as described
+- [x] #2 --dry-run prints what it would write and writes nothing; existing targets or unparsable input stop it before any write
+- [x] #3 docs/braids-format.md and the README describe the command
+- [x] #4 npm run verify passes; CI green on Windows and Ubuntu
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -62,3 +62,14 @@ Out of scope: running it on this repository (TASK-7.4), the skills (TASK-7.3).
 4. Tests (test/import.test.ts) on a fixture copied from a few real tasks (parent+subtasks, lone task, task with doc, task with notes and final summary); refusal cases and dry run.
 5. docs/braids-format.md and README: the command. Verify, PR.
 <!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: `braid import-backlog [--dry-run]` (src/backlog/parse.ts, src/backlog/import.ts, wired in src/cli.ts) turns backlog/tasks and backlog/docs into braids/. TASK-N becomes 000N-<slug>, subtasks strands A, B, ... in subtask-number order; status, labels, dependencies (as braid/strand ids) and ordinal -> order carry over; a parent with subtasks gets delivery: epic, a lone task delivery: main. Brief body: description, ## Acceptance and ## Definition of done as checkbox lists with ticks, ## Plan. Notes go to log-<created date>-import.md, the final summary to report.md, linked docs appended under their title (a doc linked from a braid and its strand goes to the strand only). Milestones dropped; archived tasks, drafts and unlinked docs are listed as not imported. It plans everything first and re-parses every brief, so a refusal writes nothing: existing braid number exits 1; unparsable input, a dependency on a non-imported task or a missing doc exits 2, all problems listed. It ends with the braid check checks and never touches backlog/. docs/braids-format.md and README describe it. No Backlog.md dependency.
+Why: one command lets this repository and every other project switch to braid (TASK-7.4).
+Validation: npm run verify green; verify:full green from pwsh; test/import.test.ts (6 tests) runs the CLI on a fixture copied from TASK-2, 2.1, 4, 6, 6.1, 6.2 (docs trimmed, links removed for the docs gate): mapping, dry run, existing target, bad input, bad dependency, doc on braid and strand. CI green on Windows and Ubuntu.
+Open: none.
+For later items: log files may now use `import` as the thread part (LOG_FILE in src/braids/store.ts); lone tasks get delivery: main (my choice, the brief didn't say); a doc link to a missing file or a dependency on a task that isn't imported refuses the import, so TASK-7.4 must run on a backlog whose links all resolve (task descriptions' ids in text are not rewritten).
+Needs the user: none
+<!-- SECTION:FINAL_SUMMARY:END -->
