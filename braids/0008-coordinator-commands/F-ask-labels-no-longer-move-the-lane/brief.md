@@ -1,7 +1,7 @@
 ---
 id: '0008/F'
 title: "ask labels no longer move the lane"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S"]
 dependencies: ['0008/A']
 order: 15
@@ -36,11 +36,15 @@ Expected size: about 30 to 80 lines with tests.
 
 ## Acceptance
 
-- [ ] A strand with an `ask:` label sits in the lane its other state gives, with the flag, covered by tests
-- [ ] docs/board.md describes the flag and Needs You as above
+- [x] A strand with an `ask:` label sits in the lane its other state gives, with the flag, covered by tests
+- [x] docs/board.md describes the flag and Needs You as above
 - [ ] CI green on Windows and Ubuntu
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+`derive` returns the ask key as a separate `ask` field (cards, strands, item detail) instead of a Waiting reason; marks adds the flag from `ask`; `braid status` prints `ask:<key>`; docs and tests updated.

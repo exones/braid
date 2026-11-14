@@ -107,12 +107,20 @@ test("open, merged and failing PRs put strands in the right lanes", async () => 
   assert.equal(detail.pr.url, "https://github.com/o/r/pull/12");
 });
 
-test("an ask:<key> label shows Waiting with its key", async () => {
+test("an ask:<key> label keeps its key but not the lane", async () => {
   const { data, item } = await board(files(), () => ok([]));
   const d = data.braids[0].strands.find((s: any) => s.id === "0001/D");
-  assert.equal(d.lane, "Waiting");
-  assert.equal(d.reason, "approve-ui");
-  assert.equal((await item("0001/D")).reason, "approve-ui");
+  assert.equal(d.lane, "In Progress"); // stored status decides
+  assert.equal(d.reason, null);
+  assert.equal(d.ask, "approve-ui");
+  assert.equal((await item("0001/D")).ask, "approve-ui");
+});
+
+test("an ask label with an open PR sits in To Review", async () => {
+  const { data } = await board(files(), () => ok([pr(6, "OPEN", "braid/0001/D-ask")]));
+  const d = data.braids[0].strands.find((s: any) => s.id === "0001/D");
+  assert.equal(d.lane, "In Review");
+  assert.equal(d.ask, "approve-ui");
 });
 
 test("a merged PR beats an ask label", async () => {
@@ -126,7 +134,7 @@ test("without gh the board keeps stored states and says why", async () => {
   assert.equal(data.github.state, "unavailable");
   assert.match(data.github.reason, /gh is not installed/);
   const lanes = data.braids[0].strands.map((s: any) => s.lane);
-  assert.deepEqual(lanes, ["In Progress", "In Progress", "In Progress", "Waiting", "To Do", "Done"]);
+  assert.deepEqual(lanes, ["In Progress", "In Progress", "In Progress", "In Progress", "To Do", "Done"]);
 
   const offline: Runner = () => ({ status: 1, stdout: "", stderr: "error connecting to api.github.com\nmore" });
   const second = await board(files(), offline);

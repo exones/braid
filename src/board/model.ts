@@ -16,6 +16,8 @@ export interface StrandCard {
   readonly pr: PullRequest | null;
   /** Why the item waits (`checks failed` or an ask key); null outside Waiting. */
   readonly reason: string | null;
+  /** The key of an `ask:<key>` label (a decision expected at review); it never moves the lane. */
+  readonly ask: string | null;
   /** Whether T3 reports a running agent thread for this strand. */
   readonly running: boolean;
 }
@@ -30,6 +32,7 @@ export interface BraidCard {
   readonly branch: string | null;
   readonly pr: PullRequest | null;
   readonly reason: string | null;
+  readonly ask: string | null;
   /** Whether T3 reports a running thread for the braid or any of its strands. */
   readonly running: boolean;
   readonly done: number;
@@ -62,6 +65,7 @@ export interface ItemDetail {
   readonly branch: string | null;
   readonly pr: PullRequest | null;
   readonly reason: string | null;
+  readonly ask: string | null;
   readonly running: boolean;
   readonly brief: string;
   readonly report: string | null;
@@ -79,41 +83,38 @@ export interface Derived {
   readonly lane: Lane;
   readonly pr: PullRequest | null;
   readonly reason: string | null;
+  readonly ask: string | null;
 }
 
 /**
  * An item's lane from its stored status, its labels, its PR and its T3 threads. Done stays Done;
- * an `ask:<key>` label waits with that key; a merged PR is Done; a running agent is In Progress,
+ * a merged PR is Done; a running agent is In Progress,
  * or Waiting "question" when it asks one (failing checks don't matter while it works); otherwise an
  * open PR is In Review, or Waiting when its checks fail; an agent that stopped with no PR waits
- * "agent stopped"; otherwise the stored status decides.
+ * "agent stopped"; otherwise the stored status decides. An `ask:<key>` label never sets the lane;
+ * it comes back as `ask` (none once the PR is merged) for the flag.
  */
 export function derive(status: Status, labels: readonly string[], key: string, gh: Github, t3: T3 = NO_T3): Derived {
   const pr = gh.prs.get(key) ?? null;
-  if (status === "Done") {
-    return { lane: "Done", pr, reason: null };
+  if (status === "Done" || pr?.state === "merged") {
+    return { lane: "Done", pr, reason: null, ask: null };
   }
-  const ask = labels.find((l) => l.startsWith("ask:") && l.length > 4);
-  if (ask !== undefined && pr?.state !== "merged") {
-    return { lane: "Waiting", pr, reason: ask.slice(4) };
-  }
-  if (pr?.state === "merged") {
-    return { lane: "Done", pr, reason: null };
-  }
+  const label = labels.find((l) => l.startsWith("ask:") && l.length > 4);
+  const ask = label === undefined ? null : label.slice(4);
   const threads = t3.threads.get(key) ?? [];
   const running = threads.filter((t) => t.state === "running");
   if (running.length > 0) {
-    return running.some((t) => t.pending > 0) ? { lane: "Waiting", pr, reason: "question" } : { lane: "In Progress", pr, reason: null };
+    return running.some((t) => t.pending > 0) ? { lane: "Waiting", pr, reason: "question", ask } : { lane: "In Progress", pr, reason: null, ask };
   }
   if (pr?.state === "open") {
     return pr.checks === "failing"
-      ? { lane: "Waiting", pr, reason: "checks failed" }
-      : { lane: "In Review", pr, reason: null };
+      ? { lane: "Waiting", pr, reason: "checks failed", ask }
+      : { lane: "In Review", pr, reason: null, ask };
   }
   if (pr === null && threads.length > 0) {
-    return { lane: "Waiting", pr, reason: "agent stopped" };
+    return { lane: "Waiting", pr, reason: "agent stopped", ask };
   }
-  return { lane: laneOfStatus(status), pr, reason: null };
+  return { lane: laneOfStatus(status), pr, reason: null, ask };
 }
 
 /** Whether T3 reports a running thread for this item key. */
@@ -141,6 +142,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3): BraidCard {
       branch: s.source?.branch ?? null,
       pr: d.pr,
       reason: d.reason,
+      ask: d.ask,
       running: isRunning(t3, `${braid.number}/${s.letter}`),
     };
   });
@@ -156,6 +158,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3): BraidCard {
     branch: braid.source?.branch ?? null,
     pr: own.pr,
     reason: strands.length === 0 ? own.reason : (waiting?.reason ?? null),
+    ask: strands.length === 0 ? own.ask : null,
     running: isRunning(t3, braid.number) || strands.some((s) => s.running),
     done: strands.filter((s) => s.lane === "Done").length,
     total: strands.length,
@@ -183,6 +186,7 @@ export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T
     branch: item.source?.branch ?? null,
     pr: own?.pr ?? null,
     reason: own?.reason ?? null,
+    ask: own?.ask ?? null,
     running: own?.running ?? false,
     brief: item.brief.body.trim(),
     report: item.hasReport ? tree.read(`${item.folder}/report.md`) : null,

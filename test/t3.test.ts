@@ -198,7 +198,8 @@ test("the demo shows every lane and every Waiting reason from built-in samples",
   assert.deepEqual(new Set(data.braids.map((b: any) => b.lane)), new Set(data.lanes));
   const strands = data.braids.flatMap((b: any) => b.strands);
   const reasons = new Set(strands.map((s: any) => s.reason).filter((r: unknown) => r !== null));
-  assert.deepEqual(reasons, new Set(["question", "agent stopped", "checks failed", "approve-layout"]));
+  assert.deepEqual(reasons, new Set(["question", "agent stopped", "checks failed"]));
+  assert.equal(strands.some((s: any) => s.ask === "approve-layout"), true);
   assert.equal(strands.some((s: any) => s.lane === "In Progress"), true);
   assert.equal(((await (await fetch(`${url}api/item?id=0008/A`)).json()) as any).report.startsWith("# Report"), true);
   const down = await board.startBoardWith(board.demoSources(true), join(scratch, "no-web"));
