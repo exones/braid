@@ -1,7 +1,7 @@
 ---
 id: '0013'
 title: "braid view shows strand dependencies"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: []
 delivery: epic
@@ -37,7 +37,7 @@ Expected size: about 30 to 60 lines in 2 to 3 files, with tests.
 
 - [x] `braid view <number>` shows each strand's dependencies on its line, covered by tests
 - [x] docs/braids-format.md describes it
-- [ ] CI green on Windows and Ubuntu
+- [x] CI green on Windows and Ubuntu
 
 ## Definition of done
 
