@@ -89,7 +89,7 @@ test("a braid with two strands is created and edited entirely from the CLI", () 
     "Updated 0002/B\n",
   );
   ok(root, "edit", "0002/A", "--order", "none");
-  ok(root, "edit", "0002", "--delivery", "epic", "--labels", "");
+  ok(root, "edit", "0002", "--delivery", "epic", "--labels", "none");
   ok(root, "brief", "0002", "Goal", "--text", "Track braids.");
   ok(root, "brief", "0002", "Plan", "--text", "1. Read\n2. Write");
   ok(root, "brief", "0002", "## Goal", "--text", "Track braids from the CLI.");
