@@ -1,7 +1,7 @@
 ---
 id: '0014/C'
 title: "braid done"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: ['0014/B']
 order: 20
@@ -40,7 +40,7 @@ Expected size: about 400 to 700 lines with tests, plus skill and doc changes.
 - [x] braid done merges only the reviewed, green head and marks Done in the right place for a strand, a story and a final PR, refusing with the failed condition otherwise, covered by tests
 - [x] The skills and template follow: workers don't set Done, the coordinator runs braid done
 - [x] braid status hints at braid done for merged items not yet Done
-- [ ] CI green on Windows and Ubuntu
+- [x] CI green on Windows and Ubuntu
 
 ## Definition of done
 
