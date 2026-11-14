@@ -1,7 +1,7 @@
 ---
 id: '0007/E'
 title: "Trial: one braid end to end on the new skills"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S"]
 dependencies: ['0007/D']
 order: 50
