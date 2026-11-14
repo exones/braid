@@ -1,10 +1,10 @@
 ---
 id: TASK-7.4
 title: Switch this repository to braids
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-14T11:18:00Z'
-updated_date: '2026-11-14T12:42:00Z'
+updated_date: '2026-11-14T12:43:00Z'
 labels:
   - kind:story
   - tier:S
@@ -53,3 +53,9 @@ Out of scope: changing the content of past tasks beyond the import; the skills (
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Commit In Progress + plan.
+<!-- SECTION:PLAN:END -->
