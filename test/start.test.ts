@@ -149,7 +149,8 @@ async function started() {
   for (const l of ["A", "B", "C"]) {
     await startCommand(r.root, [`0001/${l}`, "--force"], src(), r.env);
   }
-  // B is Done in its brief too
+  // The braid branch merges into main with a merge commit: A, B and C are then in this checkout's HEAD.
+  git(r.root, "merge", "-q", "--no-ff", "-m", "merge braid", "braid/0001-alpha");
   const prs = [merged(5, "braid/0001/A-first"), merged(6, "braid/0001/B-second-one")];
   return { ...r, prs };
 }
@@ -177,7 +178,7 @@ test("clean --yes removes merged worktrees and local branches, not unmerged item
   assert.match(await cleanCommand(root, ["--yes"], src(prs), env), /nothing to clean/);
 });
 
-test("clean keeps a worktree with changes and a branch that is not fully merged", async () => {
+test("clean keeps a worktree with changes and a branch with commits that are not in HEAD", async () => {
   const { root, env, wt, prs } = await started();
   const a = join(wt, "proj", "0001-A");
   writeFileSync(join(a, "scratch.txt"), "x");
@@ -185,8 +186,30 @@ test("clean keeps a worktree with changes and a branch that is not fully merged"
   const out = await cleanCommand(root, ["0001", "--yes"], src(prs), env);
   assert.match(out, /skip 0001\/A: .*worktree not removed/);
   assert.ok(existsSync(a));
-  assert.match(out, /kept branch braid\/0001\/B-second-one of 0001\/B: not fully merged/);
+  assert.match(out, /skip 0001\/B: .*merged on GitHub, but its commits are not in this checkout/);
   assert.equal(gone(root, "braid/0001/B-second-one"), false);
+});
+
+test("clean keeps a squash-merged branch that is pushed and tracked, and removes a merge-commit one", async () => {
+  const { root, env, wt, prs } = await started();
+  const b = join(wt, "proj", "0001-B");
+  writeFileSync(join(b, "work.txt"), "work");
+  git(b, "add", "work.txt");
+  git(b, "commit", "-q", "-m", "work");
+  git(b, "push", "-q");
+  // upstream has the commit, so git branch -d alone would accept it
+  git(root, "merge", "-q", "--squash", "braid/0001/B-second-one");
+  git(root, "commit", "-q", "-m", "squash B");
+  const dry = await cleanCommand(root, [], src(prs), env);
+  assert.match(dry, /would remove 0001\/A:/);
+  assert.match(dry, /skip 0001\/B: .*squash-merged/);
+  const out = await cleanCommand(root, ["--yes"], src(prs), env);
+  assert.match(out, /removed 0001\/A:/);
+  assert.match(out, /skip 0001\/B: .*delete it by hand/);
+  assert.ok(gone(root, "braid/0001/A-first"));
+  assert.equal(gone(root, "braid/0001/B-second-one"), false);
+  assert.ok(existsSync(b));
+  assert.equal(git(b, "log", "-1", "--format=%s"), "work");
 });
 
 test("clean leaves a worktree outside the worktree folder unless the strand is named", async () => {

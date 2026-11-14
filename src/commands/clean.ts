@@ -1,5 +1,5 @@
 // `braid clean [<number>|<id>] [--yes]`: removes the worktrees and local branches of items whose
-// PR is merged. A dry run unless `--yes`. It never forces: a worktree that is in use or has
+// PR is merged. A dry run unless `--yes`. It never forces and keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
 // changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay.
 import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync, renameSync } from "node:fs";
@@ -91,6 +91,9 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
         let skip: string | null = null;
         if (tree !== undefined && norm(tree.path) === here) {
           skip = "checked out in this checkout";
+        } else if (git(root, ["merge-base", "--is-ancestor", ref.branch, "HEAD"]).status !== 0) {
+          // `git branch -d` also accepts a branch merged into its upstream; that is not enough here.
+          skip = "merged on GitHub, but its commits are not in this checkout's HEAD: pull first, or if it was squash-merged, delete it by hand";
         } else if (tree !== undefined && !named && !norm(tree.path).startsWith(`${mine}/`)) {
           skip = `its worktree ${tree.path} is not in the braid worktree folder (name the strand to clean it)`;
         } else if (tree !== undefined && yes && !free(tree.path)) {
