@@ -1,7 +1,7 @@
 ---
 id: '0014/D'
 title: "braid facts and braid recap"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: ['0014/C']
 order: 30
@@ -40,3 +40,10 @@ Expected size: about 250 to 400 lines with tests.
 
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- New `src/commands/facts.ts`: `braid facts <pr>` (gh pr view for base/head, fetch both, the stop-case git diffs, each fact printed with its case; size vs the brief's expected size found from the branch name) and `braid recap <id>` (draft recap from report.md at the PR head, PR head and checks, the facts, plus the braid log line).
+- Export the small git/gh helpers of done.ts; wire both commands into cli.ts, `braid help`, docs/braids-format.md.
+- Tests on temporary repositories with a fake gh (test/facts.test.ts).
+- Skills: replace the hand-run diff block in stop-cases.md (3 copies) by `braid facts <pr>`, and SKILL.md's recap/diff-facts steps by the commands; net word count must not grow.
