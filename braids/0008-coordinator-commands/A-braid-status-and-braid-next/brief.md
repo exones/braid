@@ -1,7 +1,7 @@
 ---
 id: '0008/A'
 title: "braid status and braid next"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 10
