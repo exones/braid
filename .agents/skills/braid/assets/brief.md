@@ -68,12 +68,12 @@ follow-ups, the coordinator creates them.
 # worker, on its strand branch
 braid edit 0012/A --status 'In Progress'                 # first commit
 braid brief 0012/A Plan --file -                         # before coding; or edit brief.md
-braid log 0012/A --thread <your thread id> 'Found X; decided Y.'   # with the commit it explains; staged, not committed
+'Found X; decided Y.' | braid log 0012/A --thread <your thread id> --file -   # staged, not committed; with the commit it explains
 # tick the boxes you proved in brief.md; write report.md (or braid report 0012/A --file <path>)
 braid edit 0012/A --status Done                          # last commit, after CI is green
 
 # coordinator, on plan/ or the braid branch, for items that haven't started
-braid edit 0012/B --dep 0012/A --order 20                # --dep and --labels replace the list: repeat the others
+braid edit 0012/B --dep 0012/A --order 20                # --dep and --labels replace the list: repeat the others; `none` clears one
 ```
 
 `report.md`: what changed, why, validation, anything open, then `For later items:` (changed names or
@@ -85,8 +85,10 @@ The braid's log: after each strand merges into the braid branch, and before the 
 is cut, the coordinator adds one entry on the braid branch:
 
 ```sh
-braid log 0012 --thread <your thread id> '0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.'
+'0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.' | braid log 0012 --thread <your thread id> --file -
 ```
+
+Pass log and report text on standard input (`--file -`), as above, whenever it may hold quotes: on Windows the `braid.cmd` shim splits an argument that holds a quoted phrase.
 
 ## Read
 

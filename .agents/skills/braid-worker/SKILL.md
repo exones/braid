@@ -13,7 +13,7 @@ Do one item from its brief, hand it back, and stop.
 2. Check where you are with `git status -sb` and `git log -1 --oneline`. If the branch and commit match the first message, start working. If they don't, tell the coordinator what you see and don't write anything until it answers.
 3. Use `setup`, `shell` and `test` when provided; otherwise follow project conventions. In a new worktree, run setup before building or testing.
 
-The PR goes into the base branch the first message names (`main` for a story, the braid branch for a strand). You own your item's folder on your branch: edit `brief.md` and `report.md` directly and run `braid check`; use `braid edit` for status and `braid log --thread <your thread id>` for log entries. You don't create, split or restructure items or change other items. Commands are in `assets/brief.md` of the `braid` skill.
+The PR goes into the base branch the first message names (`main` for a story, the braid branch for a strand). You own your item's folder on your branch: edit `brief.md` and `report.md` directly and run `braid check`; use `braid edit` for status and `braid log --thread <your thread id>` for log entries ("Your thread id" in the first message, never the thread you send your result to). You don't create, split or restructure items or change other items. Commands are in `assets/brief.md` of the `braid` skill.
 
 ## Work
 
@@ -68,6 +68,6 @@ Use plain language and this format even when blocked; then "Done" lists what got
 
 - Trust what you have already checked and what the user or coordinator tells you. Check again only when something fails or changes.
 - If you see your first message again, run `gh pr list --state all --head <branch>`. If your PR is merged, you're done: stop without reporting again. If it was closed unmerged (the story went to phases), stop and ask the coordinator; don't commit to the branch. Otherwise carry on from where you are.
-- If you must stop before finishing, log a checkpoint (`braid log <id> --checkpoint --thread <your thread id> 'done: …; next: …; open: …'`) and commit it with your work.
+- If you must stop before finishing, log a checkpoint (`'done: …; next: …; open: …' | braid log <id> --checkpoint --thread <your thread id> --file -`) and commit it with your work.
 - Don't edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless your brief says so.
 - Don't merge, publish, or start other items.
