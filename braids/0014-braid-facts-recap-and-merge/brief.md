@@ -17,9 +17,10 @@ The coordinator gets the facts, drafts its recap and merges with one command eac
 
 ## Strands
 
-- A. Spike: who marks an item Done (M, user 2026-11-14); its answer shapes `braid merge` (maybe `braid done <id> [--merge]`).
-- Then: `braid facts` and `braid recap` (M); `braid merge`, merge on request only (S to M); the skills call them (S).
-
+- A. Spike: who marks an item Done (done; user chose option C).
+- B. Board: closed PRs and merged strand branches (S).
+- C. `braid done <id> [--head <sha>] [--merge]`, the only merge command; the skills follow (L).
+- D. `braid facts` and `braid recap`; the skills call them (M).
 ## Open questions
 
 - Auto mode's checks in `braid merge` (user, 2026-11-14: later, when unattended runs are wanted). Most are deterministic reads (CI checks, mergeable, base branch, the strand Done with boxes ticked, `ask:` labels, the diff facts, the pinned head); "the worker reported green" and "the review found nothing blocking" are the coordinator's judgments, passed in or read from the reviewer's PR comment.
