@@ -1,10 +1,10 @@
 ---
 id: TASK-7.1
 title: braid import-backlog
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-14T11:18:00Z'
-updated_date: '2026-11-14T11:19:00Z'
+updated_date: '2026-11-14T11:25:00Z'
 labels:
   - kind:story
   - tier:M
@@ -52,3 +52,13 @@ Out of scope: running it on this repository (TASK-7.4), the skills (TASK-7.3).
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. src/backlog/parse.ts: parse a Backlog.md task file (YAML front matter subset incl. lists and folded `>-` scalars; sections between SECTION/AC/DOD markers) into a plain object; parse docs (front matter + body).
+2. src/backlog/import.ts: plan the import (pure): TASK-N -> braid, N.M -> strand letters in subtask-number order, status/labels/deps/order mapping, brief body, log from notes, report from final summary plus linked docs; collect refusals (existing braid number/folder, unparsable input); write only after planning succeeds; then run checkBraids.
+3. src/commands/import.ts + cli wiring: `braid import-backlog [--dry-run]`; dry run prints the plan, writes nothing; archived/drafts reported as not imported.
+4. Tests (test/import.test.ts) on a fixture copied from a few real tasks (parent+subtasks, lone task, task with doc, task with notes and final summary); refusal cases and dry run.
+5. docs/braids-format.md and README: the command. Verify, PR.
+<!-- SECTION:PLAN:END -->
