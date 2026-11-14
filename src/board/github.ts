@@ -110,6 +110,11 @@ interface Memory {
 }
 // One page view asks for the board and an item; they share one read made within this many ms.
 const SHARE_MS = 3000;
+let clock: () => number = Date.now;
+/** Tests pass a fixed clock so the sharing window doesn't depend on how long a test takes; no argument restores the real one. */
+export function setGithubClock(now: () => number = Date.now): void {
+  clock = now;
+}
 const recent = new Map<string, { at: number; github: Github }>();
 const memory = new Map<string, Memory>();
 
@@ -139,11 +144,11 @@ function list(run: GhRunner, root: string, state: "open" | "all"): RawPr[] | str
  */
 export function readGithub(root: string, run: GhRunner = runGh, ttlMs: number = SHARE_MS): Github {
   const shared = recent.get(root);
-  if (shared !== undefined && Date.now() - shared.at < ttlMs) {
+  if (shared !== undefined && clock() - shared.at < ttlMs) {
     return shared.github;
   }
   const github = readFresh(root, run);
-  recent.set(root, { at: Date.now(), github });
+  recent.set(root, { at: clock(), github });
   return github;
 }
 
