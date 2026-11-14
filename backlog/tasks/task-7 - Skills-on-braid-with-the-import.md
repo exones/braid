@@ -4,7 +4,7 @@ title: Skills on braid, with the import
 status: In Progress
 assignee: []
 created_date: '2026-11-14T11:17:00Z'
-updated_date: '2026-11-14T11:58:00Z'
+updated_date: '2026-11-14T12:10:00Z'
 labels:
   - kind:story
   - tier:L
@@ -50,4 +50,7 @@ Until TASK-7.4 merges, this story is tracked in Backlog.md on its epic branch an
 <!-- SECTION:NOTES:BEGIN -->
 2026-11-14 TASK-7.1 merged: PR #72. Done: `braid import-backlog [--dry-run]` (src/backlog/) maps tasks to braids and strands (ids, subtask order, status, labels, dependencies, ordinal → order, delivery main for a lone task and epic for a parent, description, acceptance with ticks, DoD, plan, notes → log-<created date>-import.md, final summary → report.md, docs → report, a doc on braid and strand goes to the strand); refuses before any write on existing targets, unparsable input or unresolved links; LOG_FILE accepts `import`. Dry run on this repository: 7 braids, 19 strands, doc-5 unlinked. For later items: TASK-7.4 needs every doc link and dependency to resolve; task ids in description text aren't rewritten; folder slugs come from full titles (tidy in 7.4 if wanted).
 Plan changes: none. User decided: none.
+
+2026-11-14 TASK-7.2 merged: PR #73, 799bc3d. Done: scripts/Install-Skills.ps1 builds the CLI from the same ref (npm ci, build, pack), installs the tarball globally, checks `braid --version`, records `cliVersion` in the stamp; the CLI step runs before any skill is copied; `-SkipCli`; Pester tests with npm stubbed; README. Not yet run for real (TASK-7.5 does). For later items: TASK-7.3's missing-braid message points to README "Braid skills in other projects".
+Plan changes: TASK-3 gets the installer check mode (worker's idea); TASK-7.3 adds the worktree-removal timing line. User decided: both agreed.
 <!-- SECTION:NOTES:END -->

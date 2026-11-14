@@ -4,7 +4,7 @@ title: 'Skills diet: shorter braid skills, one place per rule'
 status: To Do
 assignee: []
 created_date: '2026-11-12T21:36:00Z'
-updated_date: '2026-11-13T12:27:00Z'
+updated_date: '2026-11-14T12:10:00Z'
 labels:
   - kind:story
   - tier:L
@@ -60,3 +60,9 @@ Out of scope: new behavior beyond the references field the reviewer enrichment a
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-11-14 Added (user agreed): an installer check mode that reports the installed skill and CLI versions against a given ref (proposed by the TASK-7.2 worker).
+<!-- SECTION:NOTES:END -->
