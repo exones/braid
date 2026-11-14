@@ -88,7 +88,7 @@ export interface Derived {
 
 /**
  * An item's lane from its stored status, its labels, its PR and its T3 threads. a merged PR is Done, and so
- * is a stored Done unless its PR is still open (a worker sets Done on the PR branch before the merge); a running agent is In Progress,
+ * is a stored Done unless its PR is still open (a worker sets Done on the PR branch before the merge) or was closed unmerged (then To Do); a running agent is In Progress,
  * or Waiting "question" when it asks one (failing checks don't matter while it works); otherwise an
  * open PR is In Review, or Waiting when its checks fail; an agent that stopped with no PR waits
  * "agent stopped"; otherwise the stored status decides. An `ask:<key>` label never sets the lane;
@@ -96,7 +96,9 @@ export interface Derived {
  */
 export function derive(status: Status, labels: readonly string[], key: string, gh: Github, t3: T3 = NO_T3): Derived {
   const pr = gh.prs.get(key) ?? null;
-  if (pr?.state === "merged" || (status === "Done" && pr?.state !== "open")) {
+  // A closed, unmerged PR never makes Done; a stored Done next to one is taken back to To Do, since the state before Done isn't known.
+  const stored = status === "Done" && pr?.state === "closed" ? "To Do" : status;
+  if (pr?.state === "merged" || (stored === "Done" && pr?.state !== "open")) {
     return { lane: "Done", pr, reason: null, ask: null };
   }
   const label = labels.find((l) => l.startsWith("ask:") && l.length > 4);
@@ -114,7 +116,7 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   if (pr === null && threads.length > 0) {
     return { lane: "Waiting", pr, reason: "agent stopped", ask };
   }
-  return { lane: laneOfStatus(status), pr, reason: null, ask };
+  return { lane: laneOfStatus(stored), pr, reason: null, ask };
 }
 
 /** Whether T3 reports a running thread for this item key. */

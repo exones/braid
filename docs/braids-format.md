@@ -92,6 +92,7 @@ The status on such a branch is newer than the one in the checked-out files, so `
 - A strand's brief, report and logs come from its strand branch, else from its braid's branch, else from the working tree. A braid's own brief comes from its braid branch, else the working tree.
 - When a branch exists both locally and on a remote, or under two slugs, the newest commit wins; a local branch wins a tie.
 - A branch whose commit is already in the checked-out commit is skipped: the working tree has its copy or a newer one. So is the checked-out branch itself, whose uncommitted edits show. Of the copies of one item, only the newest is checked; when it is merged, the item shows the working tree's copy.
+- A strand branch whose commit is already in its braid branch's tip is skipped as well: a merged strand's branch stays on the remote, and its copy is older than the braid branch's, so the braid branch's copy wins (from `main` too, until the braid's own merge).
 - "Merged" here means merged with a merge commit or fast-forwarded, as this repository merges. After a squash or rebase merge the branch's commit is not in the checked-out one, so a leftover branch still overlays the working tree until it is deleted.
 - A branch whose brief is missing or malformed is skipped; run `braid check` on that branch.
 - A braid or strand that exists only on a branch shows too.

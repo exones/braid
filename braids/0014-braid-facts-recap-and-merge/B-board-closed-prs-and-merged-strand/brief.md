@@ -1,7 +1,7 @@
 ---
 id: '0014/B'
 title: "Board: closed PRs and merged strand branches"
-status: To Do
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: ['0014/A']
 order: 10
@@ -38,3 +38,10 @@ Expected size: about 60 to 150 lines with tests.
 
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. github.ts: keep closed, unmerged PRs (state "closed"), cached like merged ones until reopened; priority open > merged > closed.
+2. model.ts derive: stored Done with a closed PR is not Done; it reads as To Do (earlier stored state is unknown).
+3. branches.ts: drop a strand branch whose commit is an ancestor of its braid branch's tip.
+4. Tests in github.test.ts and branches.test.ts; update docs/board.md and docs/braids-format.md.

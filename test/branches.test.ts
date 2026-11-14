@@ -228,3 +228,20 @@ test("after a squash merge a leftover strand branch still overlays the working t
   git(root, "branch", "-q", "-D", "braid/0001/A-x");
   assert.deepEqual(summary(root), ["0001: To Do [A: Done]"]);
 });
+
+test("a merged strand branch no longer overrides its braid branch's newer copy", () => {
+  const root = repo();
+  onBranch(root, "braid/0001-a", { "braids/0001-a/A-x/brief.md": brief("0001/A", "In Progress") });
+  // The strand branch forks from the braid branch, is worked on, and merges back; the strand branch stays.
+  git(root, "checkout", "-q", "-b", "braid/0001/A-x", "braid/0001-a");
+  commit(root, { "braids/0001-a/A-x/brief.md": brief("0001/A", "In Review") });
+  git(root, "checkout", "-q", "braid/0001-a");
+  git(root, "merge", "-q", "--no-ff", "-m", "merge A", "braid/0001/A-x");
+  commit(root, { "braids/0001-a/A-x/brief.md": brief("0001/A", "Done") });
+  git(root, "checkout", "-q", "main");
+  assert.deepEqual(summary(root), ["0001: To Do@braid/0001-a [A: Done@braid/0001-a]"]);
+  // An unmerged strand branch still wins.
+  git(root, "checkout", "-q", "-b", "braid/0001/A-y", "braid/0001-a");
+  git(root, "branch", "-q", "-m", "braid/0001/A-x-old");
+  git(root, "checkout", "-q", "main");
+});
