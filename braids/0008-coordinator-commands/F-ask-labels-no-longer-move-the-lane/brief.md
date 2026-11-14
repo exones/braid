@@ -1,7 +1,7 @@
 ---
 id: '0008/F'
 title: "ask labels no longer move the lane"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: ['0008/A']
 order: 15
@@ -38,7 +38,7 @@ Expected size: about 30 to 80 lines with tests.
 
 - [x] A strand with an `ask:` label sits in the lane its other state gives, with the flag, covered by tests
 - [x] docs/board.md describes the flag and Needs You as above
-- [ ] CI green on Windows and Ubuntu
+- [x] CI green on Windows and Ubuntu
 
 ## Definition of done
 
