@@ -4,7 +4,7 @@ title: Skills on braid, with the import
 status: In Progress
 assignee: []
 created_date: '2026-11-14T11:17:00Z'
-updated_date: '2026-11-14T12:10:00Z'
+updated_date: '2026-11-14T12:42:00Z'
 labels:
   - kind:story
   - tier:L
@@ -53,4 +53,7 @@ Plan changes: none. User decided: none.
 
 2026-11-14 TASK-7.2 merged: PR #73, 799bc3d. Done: scripts/Install-Skills.ps1 builds the CLI from the same ref (npm ci, build, pack), installs the tarball globally, checks `braid --version`, records `cliVersion` in the stamp; the CLI step runs before any skill is copied; `-SkipCli`; Pester tests with npm stubbed; README. Not yet run for real (TASK-7.5 does). For later items: TASK-7.3's missing-braid message points to README "Braid skills in other projects".
 Plan changes: TASK-3 gets the installer check mode (worker's idea); TASK-7.3 adds the worktree-removal timing line. User decided: both agreed.
+
+2026-11-14 TASK-7.3 merged: PR #74, db23a50 (merged by the user). Done: the braid, worker and reviewer skills keep items in braids/ (direct edits plus `braid check`; `braid new/strand new/edit/brief/log/report/list/view`); `assets/brief.md` replaces `assets/task.md`; backlog-config, the backlog.exe lookup, milestones and Test-BraidBacklogFlow.ps1 removed; branches `braid/<n>-<slug>` and `braid/<n>/<letter>-<slug>`; added the Outline step, report rule, converge loop, decided-means-documented, side ideas, CI-tick, worktree-removal timing, workers stop servers/browsers; BRAID.md, template, AGENTS.md, README on braid; D33 replaces D30; ci.yml runs on braid/* pushes and skips braids/**-only pushes. Skills 9,776 → 9,038 words. For later items: TASK-7.4 removes the BRAID.md transition line, the roadmap's Backlog.md lines and doc-1's link exclusion; `braid view` lacks strand dependencies (story 5, `braid next`); the `epic/**` CI trigger can go after TASK-7.
+Plan changes: TASK-7.4 takes the 7.3 leftovers and shortens cut-off slugs. User decided: none.
 <!-- SECTION:NOTES:END -->

@@ -4,6 +4,7 @@ title: Switch this repository to braids
 status: To Do
 assignee: []
 created_date: '2026-11-14T11:18:00Z'
+updated_date: '2026-11-14T12:42:00Z'
 labels:
   - kind:story
   - tier:S
@@ -30,6 +31,9 @@ Change:
 - Run `braid import-backlog` here: TASK-1 to TASK-7 become `0001` to `0007`; doc-1 to doc-4 end up as the reports of `0002` and its strands; check the board shows them.
 - Stories 5 to 9 of doc-5 become Outline braids `0008` onward (`braid new --status Outline`), each with its goal, "working at the end" and open questions from doc-5; doc-5's decisions that `docs/decisions.md` lacks become decisions there.
 - `git mv backlog archive/backlog`; a short `archive/backlog/README.md` says it is frozen history; links to `backlog/` in docs, decisions, README and braid files are rewritten (the link checker passes).
+- Leftovers from TASK-7.3: remove `BRAID.md`'s transition line (items stay in `backlog/` until TASK-7.4), the Backlog.md lines in `docs/roadmap.md` (store and live status), and doc-1's entry in `scripts/markdown-link-exclusions.json` if its links resolve after the move (else keep it frozen, pointing at the archive).
+- Folder slugs cut mid-phrase by the import (for example `0006-read-only-board-braid-board-with-live`): rename to a short slug that reads well (`0006-read-only-board`), with `git mv`, then `braid check`.
+- Your own task: run the import after your In Progress commit. From then on your task lives in `braids/0007/D-…`: record notes with `braid log`, set its status there, and write your report to its `report.md` (`backlog` can't find the task after the move). The parent `0007` stays In Progress.
 
 Already decided (don't re-investigate): the parent TASK-7; numbers kept (TASK-N → `000N`); `backlog/` moves to `archive/backlog/`.
 
