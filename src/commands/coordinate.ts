@@ -105,7 +105,9 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
   const pr = card.pr === null ? "-" : `#${card.pr.number} ${card.pr.state}`;
   const lane = card.reason === null ? card.lane : `${card.lane} (${card.reason})`;
   const ask = card.ask === null ? "" : `  ask:${card.ask}`;
-  return `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}`;
+  // Merged but not stamped (a merge in GitHub's UI, or a run that stopped after the merge): the coordinator's next step.
+  const hint = card.pr?.state === "merged" && card.status !== "Done" ? `  run braid done ${card.id}` : "";
+  return `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}${hint}`;
 }
 
 /** The notes for a source that couldn't be read; `next` also says what that hides. */

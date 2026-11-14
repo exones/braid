@@ -101,7 +101,7 @@ To set up a target repository for `braid`:
 
 **Auto mode.** You merge every PR yourself, unless you tell `braid` to merge one ("merge it" after its recap, and it merges exactly the commit it showed you) or auto mode merges a strand into its braid branch; auto mode never merges a story or the final PR into `main`. For a goal, you can ask for auto mode if `BRAID.md` has `auto: allowed` and real CI (`ci` not `none`): `braid` then merges each strand PR into the braid branch itself once the worker is green, an independent review found nothing blocking, CI is green and nobody flagged a stop case, and it leaves a comment on the PR saying why. It stops and asks you on any stop case, when a review is still blocking after 2 rounds of fixes, or when branch protection refuses; "stop auto" or "pause" switches it off. A goal's plan is merged into its braid branch, so `main` gets its briefs with the final PR.
 
-To see the items, run `braid board` in your own checkout of `main`. It reads each item from its own branch, so a strand whose PR is waiting for your merge already reads Done there, because the worker sets Done in that PR. The board is read-only; ask `braid` for changes.
+To see the items, run `braid board` in your own checkout of `main`. It reads each item from its own branch, so a strand whose PR is waiting for your merge shows To Review; braid marks it Done on the braid branch after the merge (`braid done`). The board is read-only; ask `braid` for changes.
 
 This repository's own [BRAID.md](BRAID.md) is an example; `epics/` holds its past records, read-only. Why `braid` keeps items in `braids/` is decision D33 in [docs/decisions.md](docs/decisions.md).
 

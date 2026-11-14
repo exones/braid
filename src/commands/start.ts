@@ -36,7 +36,7 @@ export function worktreesDir(env: NodeJS.ProcessEnv = process.env): string {
   return set !== undefined && set !== "" ? resolve(set) : join(homedir(), "braid-worktrees");
 }
 
-function mainBranch(root: string): string {
+export function mainBranch(root: string): string {
   const file = join(root, "BRAID.md");
   const front = existsSync(file) ? (/^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(file, "utf8"))?.[1] ?? "") : "";
   return /^main:\s*["']?([^\s"']+)["']?\s*$/m.exec(front)?.[1] ?? "main";

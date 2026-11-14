@@ -20,7 +20,7 @@ The labels live in one place, `LANE_LABEL` in `src/board/marks.ts`. Stored statu
 
 For each braid and strand, the first rule that matches wins (`derive` in `src/board/model.ts`):
 
-1. A merged PR: Done. So is stored status `Done` when it has no PR. A worker sets `Done` on the PR branch before the merge, so an open PR wins over a stored `Done` (rule 3). A PR closed without merging never makes Done: a stored `Done` next to one reads as To Do (the state before `Done` isn't known), and the closed PR still shows on the card.
+1. A merged PR: Done. So is stored status `Done` when it has no PR. An open PR wins over a stored `Done` (rule 3): `braid done` stamps a story or a braid's final PR `Done` on its branch before the user's merge (D43). A PR closed without merging never makes Done: a stored `Done` next to one reads as To Do (the state before `Done` isn't known), and the closed PR still shows on the card.
 2. A running T3 thread: Working, or Needs You with reason `question` when the thread has a pending request. Failing checks don't count while an agent works.
 3. An open PR: To Review, or Needs You with reason `checks failed` when its checks fail.
 4. T3 threads that stopped (interrupted or cancelled) and no PR: Needs You, reason `agent stopped`.

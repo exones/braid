@@ -88,7 +88,7 @@ export interface Derived {
 
 /**
  * An item's lane from its stored status, its labels, its PR and its T3 threads. a merged PR is Done, and so
- * is a stored Done unless its PR is still open (a worker sets Done on the PR branch before the merge) or was closed unmerged (then To Do); a running agent is In Progress,
+ * is a stored Done unless its PR is still open (`braid done` stamps a story Done on its PR branch before the merge) or was closed unmerged (then To Do); a running agent is In Progress,
  * or Waiting "question" when it asks one (failing checks don't matter while it works); otherwise an
  * open PR is In Review, or Waiting when its checks fail; an agent that stopped with no PR waits
  * "agent stopped"; otherwise the stored status decides. An `ask:<key>` label never sets the lane;
