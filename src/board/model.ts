@@ -1,7 +1,7 @@
 import { type Github, type PullRequest } from "./github.js";
-import { treeOf } from "../braids/branches.js";
+import { NO_T3, type T3 } from "./t3.js";
 import type { Status } from "../braids/brief.js";
-import type { Braid, Item } from "../braids/store.js";
+import type { Braid, Item, Tree } from "../braids/store.js";
 
 export const LANES = ["To Do", "In Progress", "In Review", "Waiting", "Done"] as const;
 export type Lane = (typeof LANES)[number];
@@ -39,6 +39,8 @@ export interface BoardData {
   readonly lanes: readonly Lane[];
   /** Whether GitHub could be read; when not, lanes come from the stored states. */
   readonly github: Github["status"];
+  /** Whether T3 could be read; when not, no agent states show. */
+  readonly t3: T3["status"];
   readonly braids: readonly BraidCard[];
 }
 
@@ -75,11 +77,13 @@ export interface Derived {
 }
 
 /**
- * An item's lane from its stored status, its labels and its PR. Done stays Done; an `ask:<key>`
- * label waits with that key; a merged PR is Done; an open PR is In Review, or Waiting when its
- * checks fail (until T3 threads say an agent is on it); otherwise the stored status decides.
+ * An item's lane from its stored status, its labels, its PR and its T3 threads. Done stays Done;
+ * an `ask:<key>` label waits with that key; a merged PR is Done; a running agent is In Progress,
+ * or Waiting "question" when it asks one (failing checks don't matter while it works); otherwise an
+ * open PR is In Review, or Waiting when its checks fail; an agent that stopped with no PR waits
+ * "agent stopped"; otherwise the stored status decides.
  */
-export function derive(status: Status, labels: readonly string[], key: string, gh: Github): Derived {
+export function derive(status: Status, labels: readonly string[], key: string, gh: Github, t3: T3 = NO_T3): Derived {
   const pr = gh.prs.get(key) ?? null;
   if (status === "Done") {
     return { lane: "Done", pr, reason: null };
@@ -91,10 +95,18 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   if (pr?.state === "merged") {
     return { lane: "Done", pr, reason: null };
   }
+  const threads = t3.threads.get(key) ?? [];
+  const running = threads.filter((t) => t.state === "running");
+  if (running.length > 0) {
+    return running.some((t) => t.pending > 0) ? { lane: "Waiting", pr, reason: "question" } : { lane: "In Progress", pr, reason: null };
+  }
   if (pr?.state === "open") {
     return pr.checks === "failing"
       ? { lane: "Waiting", pr, reason: "checks failed" }
       : { lane: "In Review", pr, reason: null };
+  }
+  if (pr === null && threads.length > 0) {
+    return { lane: "Waiting", pr, reason: "agent stopped" };
   }
   return { lane: laneOfStatus(status), pr, reason: null };
 }
@@ -107,10 +119,10 @@ export function laneOfLanes(lanes: readonly Lane[]): Lane {
   return URGENCY.find((lane) => lanes.includes(lane)) ?? "To Do";
 }
 
-export function toCard(braid: Braid, gh: Github): BraidCard {
-  const own = derive(braid.brief.status, braid.brief.labels, braid.number, gh);
+export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3): BraidCard {
+  const own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3);
   const strands: StrandCard[] = braid.strands.map((s) => {
-    const d = derive(s.brief.status, s.brief.labels, `${braid.number}/${s.letter}`, gh);
+    const d = derive(s.brief.status, s.brief.labels, `${braid.number}/${s.letter}`, gh, t3);
     return {
       id: s.brief.id,
       title: s.brief.title,
@@ -139,14 +151,13 @@ export function toCard(braid: Braid, gh: Github): BraidCard {
   };
 }
 
-export function toBoard(repo: string, braids: readonly Braid[], gh: Github): BoardData {
-  return { repo, lanes: LANES, github: gh.status, braids: braids.map((b) => toCard(b, gh)) };
+export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3): BoardData {
+  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3)) };
 }
 
-export function toDetail(root: string, braid: Braid, item: Item, gh: Github): ItemDetail {
-  const card = toCard(braid, gh);
+export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T3 = NO_T3): ItemDetail {
+  const card = toCard(braid, gh, t3);
   const own = item === braid ? card : card.strands.find((s) => s.id === item.brief.id);
-  const tree = treeOf(root, item);
   return {
     id: item.brief.id,
     title: item.brief.title,

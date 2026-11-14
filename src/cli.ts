@@ -40,7 +40,7 @@ export function helpText(version: string): string {
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
     "  check                       Check every brief under braids/; list each error with its file (exit 2 on any)",
-    "  board                       Open the read-only board in the browser (--no-open: only print the address)",
+    "  board                       Open the read-only board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
     "",
     "Options:",
@@ -151,7 +151,8 @@ export function run(argv: readonly string[], cwd: string = process.cwd()): Outpu
 async function main(argv: readonly string[]): Promise<void> {
   if (argv[0] === "board") {
     try {
-      await runBoard(findRoot(process.cwd()), argv.slice(1));
+      // The demo reads no repository, so it does not look for one.
+      await runBoard(argv.includes("--demo") || argv.includes("--demo-t3-down") ? process.cwd() : findRoot(process.cwd()), argv.slice(1));
     } catch (error) {
       if (error instanceof UsageError) {
         process.stderr.write(`error: ${error.message}\n`);

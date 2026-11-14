@@ -4,7 +4,7 @@ title: T3 threads and live refresh
 status: In Progress
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
-updated_date: '2026-11-14T09:21:00Z'
+updated_date: '2026-11-14T09:28:00Z'
 labels:
   - kind:story
   - tier:M
@@ -42,11 +42,11 @@ Out of scope: starting or messaging threads (story 6).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Running, question and stopped threads put the strand in the right lane with its reason, covered by tests with t3 output stubbed
-- [ ] #2 The page updates by itself every 30 s and on a file change, and has a Refresh button
-- [ ] #3 Without T3 the board still works and says so
+- [x] #1 Running, question and stopped threads put the strand in the right lane with its reason, covered by tests with t3 output stubbed
+- [x] #2 The page updates by itself every 30 s and on a file change, and has a Refresh button
+- [x] #3 Without T3 the board still works and says so
 - [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
-- [ ] #5 braid board --demo shows every lane and every Waiting reason without touching the repo, gh or t3; the screenshots are retaken from it
+- [x] #5 braid board --demo shows every lane and every Waiting reason without touching the repo, gh or t3; the screenshots are retaken from it
 <!-- AC:END -->
 
 ## Definition of Done
@@ -65,3 +65,9 @@ Out of scope: starting or messaging threads (story 6).
 5. `braid board --demo`: src/board/demo.ts holds sample braids (in-memory Tree) with fake GitHub and T3 results covering every lane and Waiting reason; no repo, gh or t3 reads, no writes; tests reuse it.
 6. Tests with t3 stubbed; retake screenshots from --demo into docs/design/board-screenshots/.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-11-14 Decisions: T3 ids come from the list's threadId; a thread joins by linked PR (number/url against GitHub's PRs, or head branch if given), else worktree path vs git worktree list, else show's branch; show runs per running thread (pending questions) and once per unjoined stopped thread (cached). Refresh is server-sent events on /api/events (30 s timer, fs.watch on braids/ debounced 200 ms); the Refresh button refetches with fresh=1. Added --demo-t3-down so the T3-down note can be screenshotted. Tests no longer reach real gh/t3 (board.test spawns with an empty PATH).
+<!-- SECTION:NOTES:END -->
