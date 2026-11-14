@@ -1,10 +1,10 @@
 ---
 id: TASK-6.4
 title: T3 threads and live refresh
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
-updated_date: '2026-11-14T09:20:00Z'
+updated_date: '2026-11-14T09:21:00Z'
 labels:
   - kind:story
   - tier:M
@@ -54,3 +54,14 @@ Out of scope: starting or messaging threads (story 6).
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. src/board/t3.ts: read `t3 thread list --json` (+ `show --json` for running threads and unjoined stopped ones, cached per thread id); join a thread to a strand by its linked PR (number/url against GitHub's PRs), else by worktree path matched to `git worktree list`, else show's branch. Async, shared for 3 s; T3 down gives a note, never an error.
+2. model.ts `derive` takes T3: running thread -> In Progress (Waiting "question" if a request is pending, even with failing checks); open PR otherwise as before; interrupted/cancelled thread with no PR -> Waiting "agent stopped". BoardData gets `t3` status.
+3. Server: async api, `/api/events` (server-sent events) pushing a refresh every 30 s while a page is open and when a file under braids/ changes; `?fresh=1` bypasses the 3 s share for the Refresh button.
+4. Page: Refresh button and T3-down note in the header style; refetch on each event without flicker.
+5. `braid board --demo`: src/board/demo.ts holds sample braids (in-memory Tree) with fake GitHub and T3 results covering every lane and Waiting reason; no repo, gh or t3 reads, no writes; tests reuse it.
+6. Tests with t3 stubbed; retake screenshots from --demo into docs/design/board-screenshots/.
+<!-- SECTION:PLAN:END -->
