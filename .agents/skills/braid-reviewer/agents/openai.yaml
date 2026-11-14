@@ -1,6 +1,6 @@
 interface:
   display_name: "Braid Reviewer"
-  short_description: "Review one item's PR against its task and report once"
+  short_description: "Review one item's PR against its brief and report once"
   default_prompt: "Use $braid-reviewer to review the braid PR described in my first message."
 policy:
   allow_implicit_invocation: true
