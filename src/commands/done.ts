@@ -185,8 +185,8 @@ function stamp(cwd: string, t: Target, number: string, log: { text: string; thre
   return commit;
 }
 
-/** A strand merged on GitHub: stamp it on the braid branch checked out here. */
-function stampStrand(root: string, t: Target, number: string, log: { text: string; thread: string } | null, prNumber: number): string {
+/** The strand stamp is made in this checkout: it must be on the braid branch with no tracked changes. Checked before any merge. */
+function onBraidBranch(root: string, t: Target): void {
   const branch = git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"]).stdout.trim();
   if (branch !== t.braidBranch) {
     throw new UsageError(`${t.id} not done: this checkout is on ${branch === "" ? "a detached HEAD" : branch}, not the braid branch ${t.braidBranch}; run braid done in your worktree on it`);
@@ -194,6 +194,11 @@ function stampStrand(root: string, t: Target, number: string, log: { text: strin
   if (must(root, ["status", "--porcelain", "--untracked-files=no"], "can't read the working tree") !== "") {
     throw new UsageError(`${t.id} not done: this checkout has uncommitted changes; commit or set them aside first`);
   }
+}
+
+/** A strand merged on GitHub: stamp it on the braid branch checked out here. */
+function stampStrand(root: string, t: Target, number: string, log: { text: string; thread: string } | null, prNumber: number): string {
+  onBraidBranch(root, t);
   must(root, ["pull", "-q", "--ff-only", REMOTE, t.braidBranch], `can't pull ${t.braidBranch}`);
   const strand = loadBraids(root).find((b) => b.number === number)?.strands.find((s) => s.brief.id === t.id);
   if (strand === undefined) {
@@ -288,6 +293,7 @@ export async function doneCommand(root: string, args: readonly string[], opts: D
       if (pr.state !== "OPEN") {
         throw new UsageError(`${t.id} not done: PR #${found.number} is ${pr.state.toLowerCase()} now; run braid done again; nothing changed`);
       }
+      onBraidBranch(root, t);
       ready(root, w, t, pr, head);
       gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
       return `merged PR #${pr.number} at ${pr.headRefOid}\n${stampStrand(root, t, number, log, pr.number)}`;

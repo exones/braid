@@ -26,7 +26,7 @@ Each branch has one writer, and its copy of a brief is the truth on that branch.
   then on the braid branch; for a lone story it holds no branch after launch.
 - The **worker** holds its item's branch and owns that item's folder on it: `In Progress` in its first
   commit, the plan before coding, log entries, the boxes it proved and `report.md`. It never sets
-  `Done` and makes no commit after CI is green. The coordinator never commits to a branch a worker holds. A change to
+  `Done` and makes no commit after CI is green. The coordinator never commits to a branch a worker holds, except the Done stamp `braid done` commits on a story's or the final PR's branch after its worker has stopped (D43). A change to
   a running item's brief goes to the worker as a message; the worker applies it, and merges the braid
   branch first if the change needs something the coordinator added there.
 - **Done** is the coordinator's, through `braid done <id>`, where it holds the base: a strand after its

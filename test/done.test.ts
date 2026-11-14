@@ -231,6 +231,18 @@ test("a strand merged in GitHub's UI is stamped on the braid branch, once", asyn
   assert.doesNotMatch(await statusCommand(w.root, ["0001"], w.opts), /run braid done/);
 });
 
+test("an open strand PR with --merge is refused before the merge when this checkout can't take the stamp", async () => {
+  const w = world();
+  const head = w.headOf("braid/0001/A-first");
+  git(w.root, "checkout", "-q", "main");
+  await assert.rejects(doneCommand(w.root, ["0001/A", "--head", head, "--merge"], w.opts), /this checkout is on main, not the braid branch braid\/0001-alpha/);
+  git(w.root, "checkout", "-q", "braid/0001-alpha");
+  writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: [verify]\n---\nedited\n");
+  await assert.rejects(doneCommand(w.root, ["0001/A", "--head", head, "--merge"], w.opts), /uncommitted changes/);
+  assert.equal(w.merges.length, 0);
+  assert.equal(w.prs[0]!.state, "OPEN");
+});
+
 test("the merged-strand stamp needs the braid branch checked out and no uncommitted changes", async () => {
   const w = world();
   w.opts.gh(w.root, ["pr", "merge", "5", "--merge", "--match-head-commit", w.headOf("braid/0001/A-first")]);
@@ -278,6 +290,29 @@ test("a story with --merge waits for green on the new head and merges exactly th
   assert.match(out, new RegExp(`merged PR #6 at ${now}`));
   assert.equal(polls, 1);
   assert.deepEqual(w.merges[0], ["pr", "merge", "6", "--merge", "--match-head-commit", now]);
+  assert.match(w.show("main", "braids/0002-story/brief.md"), /^status: Done$/m);
+});
+
+test("a story stamped before but not merged: a second call with --merge waits for green and merges that head", async () => {
+  const w = world();
+  await doneCommand(w.root, ["0002", "--head", w.headOf("braid/0002-story")], w.opts);
+  const stamped = w.headOf("braid/0002-story");
+  assert.equal(w.merges.length, 0);
+  // The stamp's checks are still running when the second call comes.
+  w.prs[1]!.checks = "PENDING";
+  let polls = 0;
+  const sleep = () => {
+    polls += 1;
+    w.prs[1]!.checks = "SUCCESS";
+    return Promise.resolve();
+  };
+  resetGithubMemory();
+  const out = await doneCommand(w.root, ["0002", "--head", stamped.slice(0, 7), "--merge"], { ...w.opts, sleep });
+  assert.equal(out, `0002 is already Done at ${stamped}\nmerged PR #6 at ${stamped}\n`);
+  assert.equal(polls, 1);
+  assert.deepEqual(w.merges[0], ["pr", "merge", "6", "--merge", "--match-head-commit", stamped]);
+  // No second stamp: the head that merged is the one stamped before.
+  assert.equal(w.headOf("braid/0002-story"), stamped);
   assert.match(w.show("main", "braids/0002-story/brief.md"), /^status: Done$/m);
 });
 
