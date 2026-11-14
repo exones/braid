@@ -28,12 +28,17 @@ const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, 
 const { startBoard } = (await load("../dist/commands/board.js")) as {
   startBoard: (root: string, web: string, gh: Runner) => Promise<{ server: Server; url: string }>;
 };
-const { resetGithubMemory, readGithub } = (await load("../dist/board/github.js")) as {
+const { resetGithubMemory, readGithub, setGithubClock } = (await load("../dist/board/github.js")) as {
   resetGithubMemory: () => void;
+  setGithubClock: (now?: () => number) => void;
   readGithub: (root: string, run: Runner, ttlMs?: number) => { status: { state: string; reason?: string }; prs: Map<string, { state: string; checks: string }> };
 };
 
-beforeEach(() => resetGithubMemory());
+beforeEach(() => {
+  resetGithubMemory();
+  setGithubClock(() => 0); // time stands still: the sharing window can't expire mid-test
+});
+after(() => setGithubClock());
 
 let repos = 0;
 function repo(files: Record<string, string>): string {

@@ -49,10 +49,10 @@ there. For what is running, read the item branch and `gh pr list`.
 
 ## Starting the next item
 
-Goal: on the braid branch, `braid view <number>` lists its strands in run order; take the first `To Do`
-strand whose dependencies are Done and that has no open PR and no pushed branch without a PR, since a
-running strand still reads `To Do` on the braid branch. One whose PR was closed unmerged follows
-"Resuming" in [the skill](../SKILL.md). Story: there is no next item.
+Goal: `braid next <number>` names the first `To Do` strand in run order whose dependencies are Done and
+that has no running agent, no open PR and no pushed branch (a running strand still reads `To Do` on the
+braid branch), or says why none is ready. One whose PR was closed unmerged follows "Resuming" in
+[the skill](../SKILL.md). `braid start <id>` then makes its branch and worktree. Story: there is no next item.
 
 ## Tiers
 
@@ -93,4 +93,4 @@ item's recap embeds final screenshots.
 | The braid branch's CI is red on a merge commit | Add a tier S fix strand and run it before the next item. A second red is a stop (`quality`). |
 | A PR's head moved after its recap or review | Don't merge. Show the user what changed and ask; in auto mode get the new head reviewed. |
 | `braid edit --dep` says an id doesn't exist | Lookups read only the current checkout. Create the prerequisite on the branch where the dependency must resolve, or merge the branch that has it. |
-| A worktree folder can't be deleted | On Windows the worker's agent process holds it for a while after the report. Remove it once the worker's session has ended; if the delete still fails, retry later. |
+| A worktree folder can't be deleted | On Windows the worker's agent process holds it for a while after the report. `braid clean --yes` keeps it ("still in use"); run it again once the worker's session has ended. |

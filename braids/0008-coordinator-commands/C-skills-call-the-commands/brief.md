@@ -1,7 +1,7 @@
 ---
 id: '0008/C'
 title: "Skills call the commands"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: ['0008/B']
 order: 30
@@ -35,12 +35,16 @@ Expected size: about 150 to 300 changed lines, mostly removals.
 
 ## Acceptance
 
-- [ ] The skills name the commands where they did the steps by hand, and are shorter
-- [ ] The epic/** trigger and backlog/** skip are gone from ci.yml and the README
-- [ ] The gh-sharing test no longer depends on timing
+- [x] The skills name the commands where they did the steps by hand, and are shorter
+- [x] The epic/** trigger and backlog/** skip are gone from ci.yml and the README
+- [x] The gh-sharing test no longer depends on timing
 - [ ] CI green on Windows and Ubuntu
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Replace the hand-run steps in the braid skill and workflow with `braid status`, `braid next`, `braid start` and `braid clean`; add the `ask:quality` rule; drop `epic/**` and `backlog/**` from ci.yml and the README; give `github.ts` an injectable clock so the sharing test doesn't depend on timing.
