@@ -6,12 +6,12 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 
 - Names: the project and CLI are `braid`, the npm package is `@exones/braid`, and local state lives in `.braid/`. Leave `.agento/` and `.crew/` directories alone.
 - Product code: strict TypeScript on Node.js `>=26.13.0 <27`, ESM, compiled to `dist/`. Automation and scripts: PowerShell 7.6+ (`pwsh`).
-- Setup is in the README under "Build and verify". [BRAID.md](BRAID.md) holds the facts braid agents read: the gate (`npm run verify`, before every PR), the CI checks, the `backlog` folder, how to call Backlog.md and the models.
+- Setup is in the README under "Build and verify". [BRAID.md](BRAID.md) holds the facts braid agents read: the gate (`npm run verify`, before every PR), the CI checks and the models.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `docs:`, `build:`, `test:`, `chore:`). Merge with merge commits. Don't rebase or force-push shared branches.
 - Search with `rg`. In PowerShell, pass native command arguments as arrays and check `$LASTEXITCODE`.
 - Keep code and scripts cross-platform: CI runs on Windows and Ubuntu, and Windows-only path, line-ending or permission assumptions have broken Linux CI before.
 - New PowerShell tests are Pester 5 suites under `test/pester/` (`*.Tests.ps1`). The older hand-written fixtures under `test/fixtures/` stay until they are converted.
-- The README describes what the product does and how to use it. Work status belongs in `backlog/`, not the README.
+- The README describes what the product does and how to use it. Work status belongs in `braids/`, not the README.
 
 ## Hard limits
 
@@ -25,7 +25,7 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 
 ## Where to look
 
-- Goals and stories, here and in other projects, including "run TASK-12": [braid](.agents/skills/braid/SKILL.md). It decides story or goal and keeps items in Backlog.md (`backlog/`). `epics/` holds past records, read-only.
+- Goals and stories, here and in other projects, including "run 0012": [braid](.agents/skills/braid/SKILL.md). It decides story or goal and keeps items in `braids/` through the `braid` CLI. `epics/` holds past records, read-only.
 - Doing one assigned item: [braid-worker](.agents/skills/braid-worker/SKILL.md), only in a worker thread a coordinator launched; never chosen for a user's request.
 - Reviewing one item's PR: [braid-reviewer](.agents/skills/braid-reviewer/SKILL.md), only in a reviewer thread a coordinator launched.
 - Ordinary questions and small direct edits need no skill.

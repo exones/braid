@@ -1,6 +1,6 @@
 {
   "version": 2,
   "note": "frozen lists closed records whose links are not validated: a path ending in / covers that directory, any other entry is one file. Their text checks still run. exclusions suppresses one remark-validate-links finding each in a file that is still checked: source is repository-relative, reasonIncludes is matched after backslashes are normalized to slashes, and it must hit exactly one finding. inspiration/ is excluded by .remarkrc.mjs, not by this list.",
-  "frozen": [],
+  "frozen": ["backlog/docs/doc-1 - TASK-2.1-report-Backlog.md-as-braids-reference.md"],
   "exclusions": []
 }
