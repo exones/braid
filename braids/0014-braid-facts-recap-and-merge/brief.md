@@ -17,9 +17,8 @@ The coordinator gets the facts, drafts its recap and merges with one command eac
 
 ## Strands
 
-- A. `braid facts` and `braid recap` (M).
-- B. `braid merge`, merge on request only (S to M).
-- C. The skills call them (S).
+- A. Spike: who marks an item Done (M, user 2026-11-14); its answer shapes `braid merge` (maybe `braid done <id> [--merge]`).
+- Then: `braid facts` and `braid recap` (M); `braid merge`, merge on request only (S to M); the skills call them (S).
 
 ## Open questions
 
