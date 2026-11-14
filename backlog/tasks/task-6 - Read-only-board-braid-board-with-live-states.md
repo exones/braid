@@ -1,10 +1,10 @@
 ---
 id: TASK-6
 title: 'Read-only board: braid board with live states'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-13T22:00:00Z'
-updated_date: '2026-11-14T10:04:00Z'
+updated_date: '2026-11-14T10:54:00Z'
 labels:
   - kind:story
   - tier:L
@@ -32,14 +32,14 @@ Out of scope: board actions (Start, Merge, Open thread are story 6), the import 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 All four strands are Done on the epic branch
-- [ ] #2 braid board shows the playground's braids in the five lanes, with a strand's state taken from its branch, its PR and its T3 thread
+- [x] #1 All four strands are Done on the epic branch
+- [x] #2 braid board shows the playground's braids in the five lanes, with a strand's state taken from its branch, its PR and its T3 thread
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -58,4 +58,21 @@ Plan changes: TASK-6.4 adds `braid board --demo` (sample braids with fake GitHub
 
 2026-11-14 TASK-6.4 merged: PR #68, b2cae69. Done: lanes from T3 (running -> In Progress, pending question -> Waiting "question", interrupted/cancelled with no PR -> Waiting "agent stopped"); a thread joins a strand by linkedPullRequest, else a single pullRequests entry, else worktree path or branch; `thread list` carries --project <main checkout>; refresh by server-sent events (/api/events: 30 s, braids/ file change, Refresh button with ?fresh=1); `braid board --demo` and `--demo-t3-down`; screenshots 08-10. For later items: src/board/t3.ts (readT3, T3), derive takes a T3, src/board/demo.ts, Sources/startBoardWith/demoSources in src/commands/board.ts.
 Plan changes: TASK-6.5 added (live lane in strand lists, running-agent marker), mockups first. User decided: accept both proposals from the 6.4 worker.
+
+2026-11-14 TASK-6.5 merged: PR #69, 1f9a689. Done: strand rows and the braid page show the live lane; reasons as icons with hover (? question, red cross checks failed, red stop agent stopped, amber flag ask:<key>), purple eye for a PR to review, blue wrench for a running agent, green tick for Done; lanes labelled To Do · Working · To Review · Needs You · Done (`LANE_LABEL` in src/board/marks.ts; stored statuses unchanged); header "braid · attention board"; 0003/C in --demo; screenshots 08-12. For later items: `cardMarks`, `strandMarks` in src/board/marks.ts.
+Plan changes: doc-5 records the attention board, story 4's ways of working (converge loop, decided means documented, side ideas get a home) and outline story 9 (board on the phone). User decided: attention board over four mockup rounds (lane names, icons instead of text, Working blue, Done green, wrench, eye, tick); add D32 and docs/board.md at the close.
+
+2026-11-14 Closed. Story 3 is complete: `braid board` is a local, read-only attention board over braids/, branches, GitHub and T3, with live refresh and a --demo mode. Close-out: docs/board.md (lanes, rules, sources, icons, refresh, demo), D32 in docs/decisions.md, braids-format and README point to it; old screenshots 01-07 removed (08-12 show the current board). Next: story 4 (skills on braid, with the import), planned with the user.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: `braid board` (story 3), a local read-only attention board over `braids/`. 6.1 board skeleton (React/Vite page, 127.0.0.1, braid page with brief, report and logs) and `braid check`; 6.2 live copies of briefs from braid and strand branches; 6.3 GitHub states via one `gh pr list` per refresh; 6.4 T3 threads (running, question, stopped), live refresh (30 s, file change, Refresh button) and `--demo`; 6.5 live lanes on strand rows, reason icons with hover, running wrench, review eye, Done tick, lanes renamed To Do · Working · To Review · Needs You · Done.
+Why: see where running work needs the user without opening each PR or thread.
+Validation: npm run verify green on the epic branch (73 tests); CI green on every strand PR on Windows and Ubuntu; T3 field names checked against real T3 data; every visible change came from mockups the user approved.
+Docs: docs/board.md (lanes, rules, sources, icons, refresh, demo); D32 in docs/decisions.md; braids-format and README link to it.
+Open: none in scope. Later: story 4 (skills on braid with the import), outline story 9 (board on the phone over Tailscale).
+For later items: board code in src/board/ (model.ts derive/laneOfLanes, github.ts, t3.ts, marks.ts, demo.ts) and src/commands/board.ts; change the board's behaviour or look together with docs/board.md.
+Needs the user: none
+<!-- SECTION:FINAL_SUMMARY:END -->
