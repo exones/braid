@@ -4,7 +4,7 @@ title: T3 threads and live refresh
 status: Done
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
-updated_date: '2026-11-14T09:44:00Z'
+updated_date: '2026-11-14T09:52:00Z'
 labels:
   - kind:story
   - tier:M
@@ -45,7 +45,7 @@ Out of scope: starting or messaging threads (story 6).
 - [x] #1 Running, question and stopped threads put the strand in the right lane with its reason, covered by tests with t3 output stubbed
 - [x] #2 The page updates by itself every 30 s and on a file change, and has a Refresh button
 - [x] #3 Without T3 the board still works and says so
-- [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
+- [x] #4 npm run verify passes; CI green on Windows and Ubuntu
 - [x] #5 braid board --demo shows every lane and every Waiting reason without touching the repo, gh or t3; the screenshots are retaken from it
 <!-- AC:END -->
 
