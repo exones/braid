@@ -1,7 +1,7 @@
 ---
 id: '0014/B'
 title: "Board: closed PRs and merged strand branches"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: ['0014/A']
 order: 10
