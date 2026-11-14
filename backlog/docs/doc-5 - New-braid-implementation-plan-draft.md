@@ -17,7 +17,7 @@ Status: round 4: stories 1 and 2 merged; story 3 (board) in strands, with open q
 - Agile: every story ends with something working that the next one extends.
 - One folder per task, holding its brief, phases, report, checkpoints and the rest; no Backlog.md-style subtask files.
 - The braid skills mostly survive: their `backlog` calls are replaced by direct edits of the braid files or by `braid` commands where those have logic (see "Agents may edit braid files directly"). No new skill instructions unless needed.
-- UI: simple but functional, no drag and drop. Lanes To Do · In Progress · In Review · Waiting · Done; a goal is one card that expands; the first board reads T3.
+- UI: simple but functional, no drag and drop. The board is an attention board: a braid sits in the lane of its most urgent strand, so the lanes show where the user is needed, not the braid's own status. Lanes To Do · Working · To Review · Needs You · Done (renamed 2026-11-14 in TASK-6.5 from In Progress, In Review, Waiting); the stored statuses in brief.md stay To Do · In Progress · Done. A goal is one card that expands; the first board reads T3.
 - Not needed: an MCP server, JSON output.
 - MIT licence.
 
