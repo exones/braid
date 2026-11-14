@@ -1,10 +1,10 @@
 ---
 id: TASK-7.3
 title: The skills on braid
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-14T11:18:00Z'
-updated_date: '2026-11-14T12:10:00Z'
+updated_date: '2026-11-14T12:11:00Z'
 labels:
   - kind:story
   - tier:L
