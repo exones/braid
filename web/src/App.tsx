@@ -100,7 +100,7 @@ function ReasonMark({ kind, tooltip }: { kind: string; tooltip: string }) {
 /** Reason icons, the review eye, the wrench and the Done tick, in this order. */
 function Marks({ marks }: { marks: Marks }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex flex-none items-center gap-1.5">
       {marks.reasons.map((r) => (
         <ReasonMark key={r.kind} kind={r.kind} tooltip={r.tooltip} />
       ))}
@@ -387,15 +387,15 @@ function Contents({ braid, current }: { braid: BraidCard; current: string }) {
       key={id}
       type="button"
       onClick={() => go(id)}
-      className={`mt-0.5 flex w-full cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-left hover:bg-slate-100 ${strand !== null ? "ml-3.5 w-[calc(100%-0.875rem)]" : ""} ${current === id ? "bg-indigo-100 font-semibold" : ""}`}
+      className={`mt-0.5 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-left hover:bg-slate-100 ${strand !== null ? "ml-3.5 w-[calc(100%-0.875rem)]" : "w-full"} ${current === id ? "bg-indigo-100 font-semibold" : ""}`}
     >
       {strand !== null && <LaneDot lane={strand.lane} />}
-      <span className="flex-1">{label}</span>
+      <span className="min-w-0 flex-1 truncate" title={label}>{label}</span>
       {strand !== null && <Marks marks={strandMarks(strand)} />}
     </button>
   );
   return (
-    <nav className="overflow-auto border-r border-slate-200 bg-white p-3.5">
+    <nav className="overflow-y-auto overflow-x-hidden border-r border-slate-200 bg-white p-3.5">
       <button type="button" onClick={() => go(null)} className="mb-2.5 cursor-pointer text-[13px] text-blue-700">
         ← Board
       </button>

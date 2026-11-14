@@ -17,7 +17,7 @@ const FILES: Readonly<Record<string, string>> = {
   "braids/0002-sample-search/B-ui/brief.md": brief("0002/B", "Search page", "In Progress", "order: 2\n"),
   "braids/0003-sample-export/brief.md": brief("0003", "Sample export", "In Progress", "labels:\n  - tier:M\n"),
   "braids/0003-sample-export/A-csv/brief.md": brief("0003/A", "CSV export", "In Progress", "order: 1\n"),
-  "braids/0003-sample-export/B-pdf/brief.md": brief("0003/B", "PDF export", "In Progress", "labels:\n  - ask:approve-layout\n"),
+  "braids/0003-sample-export/B-pdf/brief.md": brief("0003/B", "PDF export", "In Progress", "order: 2\nlabels:\n  - ask:approve-layout\n"),
   "braids/0003-sample-export/C-tests/brief.md": brief("0003/C", "Export tests", "In Progress", "order: 3\n"),
   "braids/0004-sample-billing/brief.md": brief("0004", "Sample billing", "In Progress", "labels:\n  - tier:S\n"),
   "braids/0004-sample-billing/A-invoice/brief.md": brief("0004/A", "Invoice page", "In Progress"),
