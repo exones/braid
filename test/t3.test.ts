@@ -233,7 +233,7 @@ test("thread list is asked for the main checkout, also when the board starts in 
     const r = spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd, encoding: "utf8" });
     assert.equal(r.status, 0, r.stderr);
   };
-  const main = realpathSync(repo({ "braids/0001-a/brief.md": brief("0001", "In Progress") }));
+  const main = realpathSync.native(repo({ "braids/0001-a/brief.md": brief("0001", "In Progress") }));
   rmSync(join(main, ".git"), { recursive: true });
   git(main, "init", "-q");
   git(main, "add", "-A");
@@ -250,6 +250,6 @@ test("thread list is asked for the main checkout, also when the board starts in 
   const list = calls.find((c) => c[1] === "list") ?? [];
   const at = list.indexOf("--project");
   assert.notEqual(at, -1);
-  assert.equal(realpathSync(list[at + 1] ?? ""), main);
+  assert.equal(realpathSync.native(list[at + 1] ?? ""), main);
   assert.equal(calls.some((c) => c[1] === "show" && c.includes("--project")), false);
 });
