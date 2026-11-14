@@ -23,7 +23,7 @@ export interface DoneOptions extends Sources {
   readonly waitMs?: number;
 }
 
-interface PrView {
+export interface PrView {
   readonly number: number;
   readonly url: string;
   readonly state: string;
@@ -34,11 +34,11 @@ interface PrView {
   readonly statusCheckRollup?: Parameters<typeof runsOf>[0];
 }
 
-function git(cwd: string, args: readonly string[]) {
+export function git(cwd: string, args: readonly string[]) {
   return spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd, encoding: "utf8" });
 }
 
-function must(cwd: string, args: readonly string[], what: string): string {
+export function must(cwd: string, args: readonly string[], what: string): string {
   const r = git(cwd, args);
   if (r.status !== 0) {
     throw new UsageError(`${what}: ${(r.stderr || r.stdout).trim()}`);
@@ -46,7 +46,7 @@ function must(cwd: string, args: readonly string[], what: string): string {
   return r.stdout.trim();
 }
 
-function gh(run: GhRunner, root: string, args: readonly string[], what: string): string {
+export function gh(run: GhRunner, root: string, args: readonly string[], what: string): string {
   const r = run(root, args);
   if (r.error !== undefined || r.status !== 0) {
     throw new UsageError(`${what}: ${(r.stderr || r.error?.message || "gh failed").trim().split("\n")[0] ?? ""}`);
@@ -54,7 +54,7 @@ function gh(run: GhRunner, root: string, args: readonly string[], what: string):
   return r.stdout;
 }
 
-function view(run: GhRunner, root: string, pr: number): PrView {
+export function view(run: GhRunner, root: string, pr: number): PrView {
   const out = gh(run, root, ["pr", "view", String(pr), "--json", "number,url,state,baseRefName,headRefName,headRefOid,mergeable,statusCheckRollup"], `can't read PR #${pr}`);
   try {
     return JSON.parse(out) as PrView;
@@ -87,7 +87,7 @@ export function openBoxes(brief: string): string[] {
 }
 
 /** Why the `ci` checks of BRAID.md aren't green on this PR's head, or null; `pending` tells waiting from failing. */
-function checksProblem(names: readonly string[], pr: PrView): { why: string; pending: boolean } | null {
+export function checksProblem(names: readonly string[], pr: PrView): { why: string; pending: boolean } | null {
   const runs = runsOf(pr.statusCheckRollup);
   if (names.length === 0) {
     const bad = runs.filter((r) => r.result !== "passing");

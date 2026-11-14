@@ -32,14 +32,14 @@ Expected size: about 250 to 400 lines with tests.
 
 ## Acceptance
 
-- [ ] braid facts prints the stop-case facts with their cases, covered by tests
-- [ ] braid recap drafts the recap and the log line from report.md and the PR, covered by tests
-- [ ] The skills call them and are not longer
+- [x] braid facts prints the stop-case facts with their cases, covered by tests
+- [x] braid recap drafts the recap and the log line from report.md and the PR, covered by tests
+- [x] The skills call them and are not longer
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
