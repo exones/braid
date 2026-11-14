@@ -123,6 +123,23 @@ test("an ask label with an open PR sits in To Review", async () => {
   assert.equal(d.ask, "approve-ui");
 });
 
+test("a stored Done with an open PR is still under review", async () => {
+  const { data } = await board(files(), () => ok([pr(7, "OPEN", "braid/0001/F-done", green)]));
+  const f = data.braids[0].strands.find((s: any) => s.id === "0001/F");
+  assert.equal(f.lane, "In Review");
+  const red7 = await board(files(), () => ok([pr(7, "OPEN", "braid/0001/F-done", red)]));
+  const r = red7.data.braids[0].strands.find((s: any) => s.id === "0001/F");
+  assert.equal(r.lane, "Waiting");
+  assert.equal(r.reason, "checks failed");
+});
+
+test("a stored Done is Done with a merged PR or none", async () => {
+  const merged = await board(files(), () => ok([pr(7, "MERGED", "braid/0001/F-done")]));
+  assert.equal(merged.data.braids[0].strands.find((s: any) => s.id === "0001/F").lane, "Done");
+  const none = await board(files(), () => ok([]));
+  assert.equal(none.data.braids[0].strands.find((s: any) => s.id === "0001/F").lane, "Done");
+});
+
 test("a merged PR beats an ask label", async () => {
   const { data } = await board(files(), () => ok([pr(5, "MERGED", "braid/0001/D-ask")]));
   assert.equal(data.braids[0].strands.find((s: any) => s.id === "0001/D").lane, "Done");
@@ -191,11 +208,4 @@ test("a PR from a braid's own branch puts a braid without strands in its lane", 
   assert.equal(data.braids[0].lane, "In Review");
   assert.equal(data.braids[0].pr.number, 20);
   assert.equal((await item("0006")).pr.number, 20);
-});
-
-test("a strand stored as Done stays Done with an open PR", async () => {
-  const { data } = await board(files(), () => ok([pr(30, "OPEN", "braid/0001/F-done", red)]));
-  const f = data.braids[0].strands.find((x: any) => x.id === "0001/F");
-  assert.equal(f.lane, "Done");
-  assert.equal(f.reason, null);
 });
