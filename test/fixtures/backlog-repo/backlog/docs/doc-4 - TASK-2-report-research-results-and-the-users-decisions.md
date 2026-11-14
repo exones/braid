@@ -28,9 +28,9 @@ These replace the spike reports' open questions (fork, wrap or rewrite) and thei
 
 ## Research results (recommendations, not decided unless listed above)
 
-- [TASK-2.1 report: Backlog.md as braid's reference](doc-1%20-%20TASK-2.1-report-Backlog.md-as-braids-reference.md): Backlog.md 1.55.3 is about 67k product lines and 88k test lines, Bun only, MIT, one maintainer in practice; braid uses a small part of it. How it stores tasks, IDs, subtasks and cross-branch reads (the working copy wins).
-- [TASK-2.3 report: how the braid CLI could be built](doc-2%20-%20TASK-2.3-report-how-the-braid-CLI-could-be-built.md): a design sketch; about 5.1k-7.1k product lines for the compatible tracker, 7.5k-11.1k with the board, before trimming to braid's needs; a proposed UI stack (React, Vite, Tailwind, Radix, served on 127.0.0.1) and six follow-up goals with phases. The stack and the goals are proposals for the implementation plan to confirm.
-- [TASK-2.2 report: the board's path](doc-3%20-%20TASK-2.2-report-the-boards-path.md): starting and reading agents through the `t3` CLI; where each state comes from and what a refresh costs; the first read-only board (about 5.5k-8.4k lines). Its lanes are superseded by decision 2.
+- TASK-2.1 report: Backlog.md as braid's reference: Backlog.md 1.55.3 is about 67k product lines and 88k test lines, Bun only, MIT, one maintainer in practice; braid uses a small part of it. How it stores tasks, IDs, subtasks and cross-branch reads (the working copy wins).
+- TASK-2.3 report: how the braid CLI could be built: a design sketch; about 5.1k-7.1k product lines for the compatible tracker, 7.5k-11.1k with the board, before trimming to braid's needs; a proposed UI stack (React, Vite, Tailwind, Radix, served on 127.0.0.1) and six follow-up goals with phases. The stack and the goals are proposals for the implementation plan to confirm.
+- TASK-2.2 report: the board's path: starting and reading agents through the `t3` CLI; where each state comes from and what a refresh costs; the first read-only board (about 5.5k-8.4k lines). Its lanes are superseded by decision 2.
 
 ## Still open
 

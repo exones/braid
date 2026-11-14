@@ -7,9 +7,9 @@ created_date: '2026-11-13T15:19:00Z'
 
 # Backlog.md as braid's reference
 
-> Research report for TASK-2.1, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so. The user's decisions: [TASK-2 report](doc-4%20-%20TASK-2-report-research-results-and-the-users-decisions.md).
+> Research report for TASK-2.1, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so. The user's decisions: TASK-2 report.
 
-A map of how [Backlog.md](https://github.com/MrLesk/Backlog.md) 1.55.3 is built, what braid uses from
+A map of how Backlog.md 1.55.3 is built, what braid uses from
 it, and a recommendation on how braid gets its own tracker: fork it, wrap it, or reimplement a
 compatible tracker with its code as the reference. Written for TASK-2.1 (2026-11-13); it feeds the
 user's choice, TASK-2.3 (the CLI estimate) and TASK-2.2 (the board path).
