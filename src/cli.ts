@@ -36,7 +36,7 @@ export function helpText(version: string): string {
     "  view <id>                   Show a braid (0002) or a strand (0002/A)",
     "  new <title>                 Create a braid with the next free number",
     "  strand new <braid> <title>  Create a strand with the next free letter",
-    "  edit <id>                   Change --status, --title, --labels, --dep, --order, --delivery",
+    "  edit <id>                   Change --status, --title, --labels, --dep, --order, --delivery (none clears a list or the order)",
     "  brief <id> <section>        Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",

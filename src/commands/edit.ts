@@ -50,10 +50,12 @@ function list(values: Parsed["values"], key: string): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
-  return value
+  const items = value
     .flatMap((item) => String(item).split(","))
     .map((item) => item.trim())
     .filter((item) => item !== "");
+  // `none` clears the list: an empty '' argument does not survive the Windows braid.cmd shim.
+  return items.length === 1 && items[0] === "none" ? [] : items;
 }
 
 function oneLine(what: string, text: string): string {
