@@ -1,10 +1,10 @@
 ---
 id: TASK-7.3
 title: The skills on braid
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-14T11:18:00Z'
-updated_date: '2026-11-14T12:19:00Z'
+updated_date: '2026-11-14T12:23:00Z'
 labels:
   - kind:story
   - tier:L
@@ -48,7 +48,7 @@ Out of scope: the skills diet (TASK-3), coordinator commands (story 5), running 
 - [x] #2 The skills use braid commands or direct edits plus braid check for every item operation, and braid/... branch names
 - [x] #3 The Outline step, the report rule, the converge loop, decided-means-documented, side ideas and the CI-tick rule are in the skills, each in a few lines
 - [x] #4 A new decision replaces D30 in docs/decisions.md
-- [ ] #5 npm run verify passes; CI green on Windows and Ubuntu
+- [x] #5 npm run verify passes; CI green on Windows and Ubuntu
 <!-- AC:END -->
 
 ## Definition of Done
