@@ -18,6 +18,7 @@ Start a strand from the board.
 
 ## Open questions
 
+- Start: let T3 create the worktree (its `worktree` launch mode from the braid branch), so the checkout is attached to T3 natively, instead of `braid start` plus `git worktree add`; `braid start` stays for use outside T3 (user, 2026-11-14, after looking at wtw).
 - UI item: start with mockups on realistic test data and stop for the user to review the design (converge loop).
 - How the per-session token is passed and checked.
 

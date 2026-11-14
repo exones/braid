@@ -17,6 +17,10 @@ braid log 0002/A --checkpoint 'Paused after the parser'       # a checkpoint ent
 braid report 0002/A --file report.md                    # write report.md; --append adds to it
 braid import-backlog --dry-run   # list the braids a Backlog.md backlog/ would become; without --dry-run, write braids/
 braid check         # validate every brief under braids/; lists each error with its file, exit 2 on any
+braid status 0008   # one braid's strands: status, lane, branch, PR, ci checks, T3 thread
+braid next 0008     # the next strand to run, or why none is ready
+braid start 0008/B  # its branch from the braid tip, pushed, plus a worktree in $BRAID_WORKTREES_DIR (default ~/braid-worktrees)
+braid clean 0008   # dry run: worktrees and local branches of merged items; --yes removes them
 braid board         # open the read-only board in the browser (127.0.0.1, free port)
 braid board --demo  # the same board on built-in sample data: no repository, gh or t3 is read
 braid --version     # print the version
@@ -107,7 +111,7 @@ After `npm run build`, run `node dist/cli.js <command>`, for example `node dist/
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs `npm ci` and `npm run verify:full` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`, for pull requests and for pushes to `main`, braid branches (`braid/<number>-<slug>`) and `epic/**` branches. A push that only changes files under `epics/` (past records), `backlog/` (Backlog.md tasks) or `braids/` (briefs, reports and logs) doesn't run CI. Setup-node puts that runtime on `PATH`, so CI uses it instead of the shared Windows store. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
+`.github/workflows/ci.yml` runs `npm ci` and `npm run verify:full` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`, for pull requests and for pushes to `main` and braid branches (`braid/<number>-<slug>`). A push that only changes files under `epics/` (past records) or `braids/` (briefs, reports and logs) doesn't run CI. Setup-node puts that runtime on `PATH`, so CI uses it instead of the shared Windows store. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
 
 The workflow uses pinned checkout, setup-node, and upload-artifact actions and the runner's PowerShell installation. It needs no T3 access, private infrastructure, or npm publishing credentials. `.github/workflows/release.yml` is a manual dispatch and is not part of this pull-request gate.
 

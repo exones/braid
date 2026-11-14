@@ -20,13 +20,13 @@ The labels live in one place, `LANE_LABEL` in `src/board/marks.ts`. Stored statu
 
 For each braid and strand, the first rule that matches wins (`derive` in `src/board/model.ts`):
 
-1. Stored status `Done`: Done.
-2. An `ask:<key>` label, unless its PR is merged: Needs You, reason `<key>`.
-3. A merged PR: Done.
-4. A running T3 thread: Working, or Needs You with reason `question` when the thread has a pending request. Failing checks don't count while an agent works.
-5. An open PR: To Review, or Needs You with reason `checks failed` when its checks fail.
-6. T3 threads that stopped (interrupted or cancelled) and no PR: Needs You, reason `agent stopped`.
-7. Otherwise the stored status: `Outline` and `To Do` show in To Do, `In Progress` in Working.
+1. A merged PR: Done. So is stored status `Done` when its PR is not open (none, or closed). A worker sets `Done` on the PR branch before the merge, so an open PR wins over a stored `Done` (rule 3).
+2. A running T3 thread: Working, or Needs You with reason `question` when the thread has a pending request. Failing checks don't count while an agent works.
+3. An open PR: To Review, or Needs You with reason `checks failed` when its checks fail.
+4. T3 threads that stopped (interrupted or cancelled) and no PR: Needs You, reason `agent stopped`.
+5. Otherwise the stored status: `Outline` and `To Do` show in To Do, `In Progress` in Working.
+
+Needs You means a real block: a question, an agent that stopped, or failing checks with no agent working. An `ask:<key>` label set when planning doesn't move the lane: it marks a decision expected at review (and keeps auto mode from merging), so the item stays in the lane its other state gives and carries the amber flag. `braid status` prints the label as `ask:<key>` after the lane.
 
 ## Where the states come from
 
@@ -44,7 +44,7 @@ Cards and strand rows show no lane text. Icons carry the detail, with the exact 
 | amber `?` | an agent asked a question | Agent asked a question: waiting for your answer |
 | red circle with a cross | checks failed | Checks failed: names of the failing checks |
 | red circle with a stop square | an agent stopped with no PR | Agent stopped: no running thread and no PR |
-| amber flag | an `ask:<key>` label | Needs your decision: `<key>` |
+| amber flag | an `ask:<key>` label | Will need your decision: `<key>` |
 | purple eye | a PR to review | PR #N to review |
 | blue wrench | an agent is running now | agent running |
 | green tick | Done | Done |

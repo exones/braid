@@ -28,12 +28,17 @@ const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, 
 const { startBoard } = (await load("../dist/commands/board.js")) as {
   startBoard: (root: string, web: string, gh: Runner) => Promise<{ server: Server; url: string }>;
 };
-const { resetGithubMemory, readGithub } = (await load("../dist/board/github.js")) as {
+const { resetGithubMemory, readGithub, setGithubClock } = (await load("../dist/board/github.js")) as {
   resetGithubMemory: () => void;
+  setGithubClock: (now?: () => number) => void;
   readGithub: (root: string, run: Runner, ttlMs?: number) => { status: { state: string; reason?: string }; prs: Map<string, { state: string; checks: string }> };
 };
 
-beforeEach(() => resetGithubMemory());
+beforeEach(() => {
+  resetGithubMemory();
+  setGithubClock(() => 0); // time stands still: the sharing window can't expire mid-test
+});
+after(() => setGithubClock());
 
 let repos = 0;
 function repo(files: Record<string, string>): string {
@@ -107,12 +112,37 @@ test("open, merged and failing PRs put strands in the right lanes", async () => 
   assert.equal(detail.pr.url, "https://github.com/o/r/pull/12");
 });
 
-test("an ask:<key> label shows Waiting with its key", async () => {
+test("an ask:<key> label keeps its key but not the lane", async () => {
   const { data, item } = await board(files(), () => ok([]));
   const d = data.braids[0].strands.find((s: any) => s.id === "0001/D");
-  assert.equal(d.lane, "Waiting");
-  assert.equal(d.reason, "approve-ui");
-  assert.equal((await item("0001/D")).reason, "approve-ui");
+  assert.equal(d.lane, "In Progress"); // stored status decides
+  assert.equal(d.reason, null);
+  assert.equal(d.ask, "approve-ui");
+  assert.equal((await item("0001/D")).ask, "approve-ui");
+});
+
+test("an ask label with an open PR sits in To Review", async () => {
+  const { data } = await board(files(), () => ok([pr(6, "OPEN", "braid/0001/D-ask")]));
+  const d = data.braids[0].strands.find((s: any) => s.id === "0001/D");
+  assert.equal(d.lane, "In Review");
+  assert.equal(d.ask, "approve-ui");
+});
+
+test("a stored Done with an open PR is still under review", async () => {
+  const { data } = await board(files(), () => ok([pr(7, "OPEN", "braid/0001/F-done", green)]));
+  const f = data.braids[0].strands.find((s: any) => s.id === "0001/F");
+  assert.equal(f.lane, "In Review");
+  const red7 = await board(files(), () => ok([pr(7, "OPEN", "braid/0001/F-done", red)]));
+  const r = red7.data.braids[0].strands.find((s: any) => s.id === "0001/F");
+  assert.equal(r.lane, "Waiting");
+  assert.equal(r.reason, "checks failed");
+});
+
+test("a stored Done is Done with a merged PR or none", async () => {
+  const merged = await board(files(), () => ok([pr(7, "MERGED", "braid/0001/F-done")]));
+  assert.equal(merged.data.braids[0].strands.find((s: any) => s.id === "0001/F").lane, "Done");
+  const none = await board(files(), () => ok([]));
+  assert.equal(none.data.braids[0].strands.find((s: any) => s.id === "0001/F").lane, "Done");
 });
 
 test("a merged PR beats an ask label", async () => {
@@ -126,7 +156,7 @@ test("without gh the board keeps stored states and says why", async () => {
   assert.equal(data.github.state, "unavailable");
   assert.match(data.github.reason, /gh is not installed/);
   const lanes = data.braids[0].strands.map((s: any) => s.lane);
-  assert.deepEqual(lanes, ["In Progress", "In Progress", "In Progress", "Waiting", "To Do", "Done"]);
+  assert.deepEqual(lanes, ["In Progress", "In Progress", "In Progress", "In Progress", "To Do", "Done"]);
 
   const offline: Runner = () => ({ status: 1, stdout: "", stderr: "error connecting to api.github.com\nmore" });
   const second = await board(files(), offline);
@@ -183,11 +213,4 @@ test("a PR from a braid's own branch puts a braid without strands in its lane", 
   assert.equal(data.braids[0].lane, "In Review");
   assert.equal(data.braids[0].pr.number, 20);
   assert.equal((await item("0006")).pr.number, 20);
-});
-
-test("a strand stored as Done stays Done with an open PR", async () => {
-  const { data } = await board(files(), () => ok([pr(30, "OPEN", "braid/0001/F-done", red)]));
-  const f = data.braids[0].strands.find((x: any) => x.id === "0001/F");
-  assert.equal(f.lane, "Done");
-  assert.equal(f.reason, null);
 });

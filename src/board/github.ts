@@ -12,6 +12,8 @@ export interface PullRequest {
   readonly checks: Checks;
   /** Names of the failing checks, when GitHub gave them. */
   readonly failed?: readonly string[];
+  /** Each check by name with its own result, for an open PR. */
+  readonly runs?: readonly { readonly name: string; readonly result: "passing" | "failing" | "pending" }[];
 }
 
 export type GithubState =
@@ -58,6 +60,21 @@ export function failedChecks(rollup: RawPr["statusCheckRollup"]): string[] {
     .filter((n) => n !== "");
 }
 
+/** Each named check of a rollup with its own result. */
+export function runsOf(rollup: RawPr["statusCheckRollup"]): NonNullable<PullRequest["runs"]> {
+  return (rollup ?? [])
+    .map((c) => {
+      const result = (c.conclusion ?? c.state ?? "").toUpperCase();
+      const own = FAILED.has(result)
+        ? ("failing" as const)
+        : result === "" || result === "PENDING" || result === "EXPECTED" || (c.status ?? "COMPLETED").toUpperCase() !== "COMPLETED"
+          ? ("pending" as const)
+          : ("passing" as const);
+      return { name: c.name ?? c.context ?? "", result: own };
+    })
+    .filter((c) => c.name !== "");
+}
+
 export function checksOf(rollup: RawPr["statusCheckRollup"]): Checks {
   if (rollup === null || rollup === undefined || rollup.length === 0) {
     return "none";
@@ -93,6 +110,11 @@ interface Memory {
 }
 // One page view asks for the board and an item; they share one read made within this many ms.
 const SHARE_MS = 3000;
+let clock: () => number = Date.now;
+/** Tests pass a fixed clock so the sharing window doesn't depend on how long a test takes; no argument restores the real one. */
+export function setGithubClock(now: () => number = Date.now): void {
+  clock = now;
+}
 const recent = new Map<string, { at: number; github: Github }>();
 const memory = new Map<string, Memory>();
 
@@ -122,11 +144,11 @@ function list(run: GhRunner, root: string, state: "open" | "all"): RawPr[] | str
  */
 export function readGithub(root: string, run: GhRunner = runGh, ttlMs: number = SHARE_MS): Github {
   const shared = recent.get(root);
-  if (shared !== undefined && Date.now() - shared.at < ttlMs) {
+  if (shared !== undefined && clock() - shared.at < ttlMs) {
     return shared.github;
   }
   const github = readFresh(root, run);
-  recent.set(root, { at: Date.now(), github });
+  recent.set(root, { at: clock(), github });
   return github;
 }
 
@@ -157,7 +179,7 @@ function readFresh(root: string, run: GhRunner): Github {
   for (const [raw, state] of [...merged.map((p) => [p, "merged"] as const), ...open.map((p) => [p, "open"] as const)]) {
     const key = keyOfBranch(raw.headRefName);
     if (key !== null) {
-      prs.set(key, { number: raw.number, url: raw.url, state, checks: state === "open" ? checksOf(raw.statusCheckRollup) : "passing", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup) } : {}) });
+      prs.set(key, { number: raw.number, url: raw.url, state, checks: state === "open" ? checksOf(raw.statusCheckRollup) : "passing", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
     }
   }
   return { status: { state: "ok" }, prs };

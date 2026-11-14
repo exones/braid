@@ -1,7 +1,7 @@
 ---
 id: '0008'
 title: "Coordinator commands"
-status: Outline
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: ['0007']
 order: 80
@@ -10,17 +10,31 @@ delivery: epic
 
 ## Goal
 
-Story 5 of the braid plan. `braid next`, `status`, `facts`, `recap` and `merge` take over steps the braid skills do by hand today.
+Story 5 of the braid plan, first cut (user, 2026-11-14): `braid status`, `next` and `start` take over steps the braid skills do by hand today (doc-2 in `archive/backlog/docs/`, "Skill step today → CLI candidate"), so the coordinator calls one command where it ran several, and the skills get shorter.
 
 ## Working at the end
 
-The coordinator calls one command where it ran several.
+A coordinator runs a braid with `braid status`, `next` and `start`; the skills call them instead of describing the steps; the `epic/**` CI trigger is gone.
 
-## Open questions
+## Strands
 
-- Which skill steps become commands first, and what each prints.
-- `braid view <number>` shows each strand's dependencies (`(needs …)`, braid 0013); `braid list` doesn't.
-- "Fixes still failing after two review rounds" becomes a Needs You reason here (board decision, 2026-11-13).
-- The `epic/**` CI trigger can go once the epic branches are `braid/**`.
+- A. `braid status <number>` and `braid next <number>` (M).
+- B. `braid start <id>`: strand branch, push, worktree (S).
+- C. The skills call the commands; drop the `epic/**` CI trigger; "still blocking after two fix rounds" shows on the board (M).
 
-Plan it fully when its turn comes, asking the user if needed.
+`braid facts`, `recap` and `merge` follow in braid 0014, after the user tries this cut.
+
+## Already decided
+
+- Plain text output for agents, no JSON (doc-5). Commands read; only `start`, `merge` and `log` change things, and each says what it did.
+- Reuse the board's sources: branch copies (`src/braids/branches.ts`), GitHub (`src/board/github.ts`), T3 (`src/board/t3.ts`) and `derive` (`src/board/model.ts`).
+
+## Acceptance
+
+- [x] All strands are Done on the braid branch (A, F, B, C, and G for the final review)
+- [x] The braid skills use status, next and start, and a braid run uses them end to end
+
+## Definition of done
+
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

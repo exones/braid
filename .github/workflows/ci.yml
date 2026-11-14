@@ -24,12 +24,11 @@ name: CI
 # PR branches are covered by pull_request; push runs only for the shared branches
 # (braid/* is a braid branch; its strands, braid/<n>/<letter>-<slug>, don't match),
 # so one push to a strand's PR branch doesn't run the suite twice (a story's does). A push that only changes
-# epics/ (past records), backlog/ (Backlog.md tasks) or braids/ (briefs and logs)
-# skips CI; pull requests always run.
+# epics/ (past records) or braids/ (briefs and logs) skips CI; pull requests always run.
 on:
   push:
-    branches: [main, 'braid/*', 'epic/**']
-    paths-ignore: ['epics/**', 'backlog/**', 'braids/**']
+    branches: [main, 'braid/*']
+    paths-ignore: ['epics/**', 'braids/**']
   pull_request:
 
 permissions:

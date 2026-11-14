@@ -358,3 +358,16 @@ test("braid log without a Git repository exits 1 and keeps the file", () => {
   assert.match(r.stderr, /wrote braids\/0001-plain\/log-.*-user\.md but git add failed/);
   assert.equal(readdirSync(join(root, "braids/0001-plain")).filter((n) => n.startsWith("log-")).length, 1);
 });
+
+test("refs outside branches, like T3 checkpoints, don't take numbers or letters", () => {
+  const root = repo();
+  ok(root, "new", "Kept");
+  commitAll(root, "kept");
+  git(root, "switch", "-q", "-c", "draft");
+  ok(root, "new", "Draft only");
+  commitAll(root, "draft in a checkpoint only");
+  git(root, "update-ref", "refs/t3/checkpoints/x", "HEAD");
+  git(root, "switch", "-q", "main");
+  git(root, "branch", "-D", "draft");
+  assert.equal(ok(root, "new", "Next", "--no-fetch"), "Created 0002 braids/0002-next\n");
+});
