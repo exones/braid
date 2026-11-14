@@ -1,7 +1,7 @@
 ---
 id: '0008/A'
 title: "braid status and braid next"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 10
@@ -39,7 +39,7 @@ Expected size: about 300 to 500 lines with tests.
 - [x] `braid status` shows each strand's stored status, live lane, branch, PR, ci checks and thread, covered by tests
 - [x] `braid next` picks the right strand or says why none, covered by tests (dependencies, running, Outline, all done)
 - [x] Numbers and letters ignore refs outside branches and remote branches, covered by a test
-- [ ] CI green on Windows and Ubuntu
+- [x] CI green on Windows and Ubuntu
 
 ## Definition of done
 
