@@ -1,7 +1,7 @@
 ---
 id: '0008'
 title: "Coordinator commands"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: ['0007']
 order: 80
@@ -31,10 +31,10 @@ A coordinator runs a braid with `braid status`, `next` and `start`; the skills c
 
 ## Acceptance
 
-- [ ] All three strands are Done on the braid branch
-- [ ] The braid skills use status, next and start, and a braid run uses them end to end
+- [x] All strands are Done on the braid branch (A, F, B, C, and G for the final review)
+- [x] The braid skills use status, next and start, and a braid run uses them end to end
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
