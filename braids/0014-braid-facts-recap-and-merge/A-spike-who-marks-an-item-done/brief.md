@@ -1,7 +1,7 @@
 ---
 id: '0014/A'
 title: "Spike: who marks an item Done"
-status: In Progress
+status: Done
 labels: ["kind:spike", "tier:M"]
 dependencies: []
 order: 5
