@@ -1,7 +1,7 @@
 ---
 id: '0014'
 title: "braid facts, recap and merge"
-status: Outline
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0008']
 delivery: epic
