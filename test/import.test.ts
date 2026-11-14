@@ -69,6 +69,9 @@ test("imports tasks, subtasks, notes, summaries and docs, and the result passes 
   assert.match(strand, /^id: '0006\/B'$/m);
   assert.match(strand, /^dependencies: \['0006\/A'\]$/m);
   assert.doesNotMatch(strand, /^delivery:/m);
+  // Strand order comes from the ordinal (TASK-6.1 is 10, TASK-6.2 is 20).
+  assert.match(strand, /^order: 20$/m);
+  assert.match(read(braids, six, a, "brief.md"), /^order: 10$/m);
   assert.match(strand, /^## Plan\n\n/m);
   assert.match(read(braids, six, a, "report.md"), /^What changed: /m);
 
@@ -78,6 +81,8 @@ test("imports tasks, subtasks, notes, summaries and docs, and the result passes 
   const log = names(join(braids, four)).filter((n) => n.startsWith("log-"));
   assert.equal(log.length, 1);
   assert.match(log[0] ?? "", /^log-\d{4}-\d{2}-\d{2}-import\.md$/);
+  // braid view reads it through the store, so LOG_FILE must accept the import thread.
+  assert.ok(braid(root, "view", "4").stdout.includes(`  ${log[0]}`), "braid view lists the import log");
   assert.match(read(braids, four, log[0] ?? ""), /^## \d{4}-\d{2}-\d{2} \d{2}:\d{2}Z\n\n\S/);
   assert.match(read(braids, four, "report.md"), /\S/);
 
@@ -142,4 +147,15 @@ test("a doc linked from a braid and from its strand goes to the strand only", ()
   const report = read(braids, two, find(join(braids, two), "A-"), "report.md");
   assert.match(report, /^## TASK-2 report: research results and the user's decisions$/m);
   assert.match(report, /^## TASK-2\.1 report: Backlog\.md as braid's reference$/m);
+});
+
+test("it refuses a documentation path that doesn't exist, and writes nothing", () => {
+  const root = project();
+  const path = join(root, "backlog/tasks", find(join(root, "backlog/tasks"), "task-4 "));
+  const missing = "backlog/docs/doc-404 - Nope.md";
+  writeFileSync(path, read(path).replace("dependencies: []\n", `dependencies: []\ndocumentation:\n  - ${missing}\n`));
+  const r = braid(root, "import-backlog");
+  assert.equal(r.status, 2);
+  assert.ok(r.stderr.includes(`documentation file not found: ${missing}`), r.stderr);
+  assert.deepEqual(names(join(root, "braids")), []);
 });
