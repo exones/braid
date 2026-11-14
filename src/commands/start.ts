@@ -24,7 +24,7 @@ function must(root: string, args: readonly string[], what: string): string {
 }
 
 /** The repository's name for the worktree folder: the main checkout's folder, also from inside a worktree. */
-function repoName(root: string): string {
+export function repoName(root: string): string {
   const common = must(root, ["rev-parse", "--git-common-dir"], "can't read the repository");
   const dir = resolve(root, common);
   return basename(basename(dir) === ".git" ? dirname(dir) : dir).replace(/\.git$/, "");

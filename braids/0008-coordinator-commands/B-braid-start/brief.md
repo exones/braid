@@ -36,12 +36,13 @@ Expected size: about 300 to 450 lines with tests (grown: `braid clean` absorbed,
 ## Acceptance
 
 - [x] `braid start` creates, pushes and checks out the strand branch in a new worktree, and refuses a strand that isn't ready, covered by tests
+- [x] `braid clean` dry-runs by default and with `--yes` removes only merged items' worktrees and local branches, skipping in-use, unmerged and foreign ones, covered by tests
 - [ ] CI green on Windows and Ubuntu
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
