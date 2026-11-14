@@ -1,10 +1,10 @@
 ---
 id: TASK-7
 title: Skills on braid, with the import
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-14T11:17:00Z'
-updated_date: '2026-11-14T11:18:00Z'
+updated_date: '2026-11-14T11:25:00Z'
 labels:
   - kind:story
   - tier:L
