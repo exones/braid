@@ -167,3 +167,32 @@ test("status and next take one braid number", async () => {
   await assert.rejects(nextCommand(root, [], src()), /usage: braid next <number>/);
   await assert.rejects(nextCommand(root, ["7"], src()), /no braid 0007/);
 });
+
+test("a remote-only branch shows +pushed, and a check missing from the rollup is pending", async () => {
+  const root = repo([{ letter: "A", status: "In Progress", order: 10 }]);
+  git(root, "update-ref", "refs/remotes/origin/braid/0001/A-s", git(root, "rev-parse", "HEAD"));
+  const out = await statusCommand(root, ["1"], src([pr(5, "braid/0001/A-s", [check("verify (ubuntu-latest)", "SUCCESS")])]));
+  assert.match(out, /branch \+pushed {2}PR #5 open {2}ci verify \(ubuntu-latest\): passing, verify \(windows-latest\): pending/);
+});
+
+test("next treats another braid as a dependency until its lane is Done, and notes unreadable sources", async () => {
+  const root = repo([{ letter: "A", status: "To Do", order: 10, deps: ["0002"] }]);
+  const put = (path: string, text: string) => {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), text);
+  };
+  const other = (status: string) => `---\nid: '0002'\ntitle: "Other"\nstatus: ${status}\nlabels: []\ndependencies: []\n---\n\n## Goal\n\nx\n`;
+  put("braids/0002-other/brief.md", other("In Progress"));
+  const down = { gh: () => ({ status: 1, stdout: "", stderr: "boom" }), t3: () => Promise.resolve({ status: 1, stdout: "", stderr: "" }), worktrees: noWorktrees };
+  const blocked = await nextCommand(root, ["1"], down);
+  assert.match(blocked, /0001\/A: blocked by 0002/);
+  assert.match(blocked, /note: GitHub could not be read/);
+  assert.match(blocked, /note: T3 could not be read .*a running agent can't be ruled out/);
+
+  put("braids/0002-other/brief.md", other("Done"));
+  resetGithubMemory();
+  resetT3Memory();
+  const ready = await nextCommand(root, ["1"], down);
+  assert.match(ready, /^0001\/A {2}T 0001\/A\n/);
+  assert.match(ready, /a running agent can't be ruled out/);
+});

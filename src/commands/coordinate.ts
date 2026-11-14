@@ -101,10 +101,24 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
   const key = letter === null ? w.braid.number : `${w.braid.number}/${letter}`;
   const threads = w.t3.threads.get(key) ?? [];
   const thread = w.t3.status.state !== "ok" ? "?" : threads.some((t) => t.state === "running") ? "running" : threads.length > 0 ? "stopped" : "-";
-  const where = `${b.local ? "local" : "-"}${b.pushed ? "+pushed" : ""}`;
+  const where = b.local ? (b.pushed ? "local+pushed" : "local") : b.pushed ? "+pushed" : "-";
   const pr = card.pr === null ? "-" : `#${card.pr.number} ${card.pr.state}`;
   const lane = card.reason === null ? card.lane : `${card.lane} (${card.reason})`;
   return `${card.id}  ${card.status}  ${lane}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}`;
+}
+
+/** The notes for a source that couldn't be read; `next` also says what that hides. */
+function unreadable(w: World, next: boolean): string {
+  let out = "";
+  if (w.github.status.state !== "ok") {
+    out += `note: GitHub could not be read (${w.github.status.reason}); ${next ? "an open PR would not show" : "PRs and checks are missing and lanes come from stored statuses"}
+`;
+  }
+  if (w.t3.status.state !== "ok") {
+    out += `note: T3 could not be read (${w.t3.status.reason}); ${next ? "a running agent can't be ruled out" : "threads show as ?"}
+`;
+  }
+  return out;
 }
 
 export async function statusCommand(root: string, args: readonly string[], src: Sources = {}): Promise<string> {
@@ -151,11 +165,10 @@ export async function nextCommand(root: string, args: readonly string[], src: So
       why = "branch already pushed";
     }
     if (why === null) {
-      const warn = w.github.status.state === "ok" ? "" : `note: GitHub could not be read (${w.github.status.reason}); an open PR would not show\n`;
-      return `${s.id}  ${s.title}\n${warn}${freshness(root)}\n`;
+      return `${s.id}  ${s.title}\n${unreadable(w, true)}${freshness(root)}\n`;
     }
     notes.push(`${s.id}: ${why}`);
   }
   const head = notes.length === 0 ? `none: all strands of ${number} are done` : `none ready in ${number}:\n${notes.map((n) => `  ${n}`).join("\n")}`;
-  return `${head}\n${freshness(root)}\n`;
+  return `${head}\n${unreadable(w, true)}${freshness(root)}\n`;
 }
