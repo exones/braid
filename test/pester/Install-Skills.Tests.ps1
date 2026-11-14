@@ -25,9 +25,10 @@ BeforeAll {
   }
 
   function Invoke-Install {
-    param([string[]]$Extra = @(), [string]$Root = $script:Repo)
+    param([string[]]$Extra = @(), [string]$Root = $script:Repo, [switch]$Cli)
     $targets = $script:TargetA + [System.IO.Path]::PathSeparator + $script:TargetB
     $arguments = @('-NoProfile', '-File', $script:Installer, '-RepositoryRoot', $Root, '-Target', $targets) + $Extra
+    if (-not $Cli) { $arguments += '-SkipCli' }
     $lines = @(& pwsh @arguments 2>&1)
     return [pscustomobject]@{ Code = $LASTEXITCODE; Text = (($lines | ForEach-Object { "$_" }) -join "`n") }
   }
@@ -159,5 +160,78 @@ Describe 'Install-Skills.ps1' {
 
   It 'fails for a ref that does not exist' {
     (Invoke-Install -Extra @('-Ref', 'no-such-ref')).Code | Should -Not -Be 0
+  }
+
+  Context 'the braid CLI step, with npm and braid stubbed' {
+    BeforeEach {
+      $script:StubLog = Join-Path $TestDrive "stub-$([guid]::NewGuid().ToString('n')).log"
+      $script:StubNpm = Join-Path $TestDrive 'npm-stub.ps1'
+      $script:StubBraid = Join-Path $TestDrive 'braid-stub.ps1'
+      # The stub npm logs its arguments and the working folder; pack writes a tarball.
+      @'
+Add-Content -LiteralPath $env:STUB_LOG -Value ("npm " + ($args -join ' ') + " @ " + (Split-Path -Leaf (Get-Location)))
+if ($env:STUB_FAIL -eq ($args -join ' ')) { exit 3 }
+if ($args[0] -eq 'pack') { Set-Content -LiteralPath (Join-Path $args[2] 'exones-braid-0.9.0.tgz') -Value 'tgz' }
+exit 0
+'@ | Set-Content -LiteralPath $script:StubNpm
+      @'
+Add-Content -LiteralPath $env:STUB_LOG -Value ("braid " + ($args -join ' '))
+Write-Output $env:STUB_BRAID_PRINTS
+exit 0
+'@ | Set-Content -LiteralPath $script:StubBraid
+      $env:STUB_LOG = $script:StubLog
+      $env:STUB_BRAID_PRINTS = 'braid 0.9.0'
+      $env:STUB_FAIL = ''
+      Write-RepoFile 'package.json' "{ `"name`": `"@exones/braid`", `"version`": `"0.9.0`" }`n"
+      Invoke-RepoGit @('add', '-A')
+      Invoke-RepoGit @('commit', '-q', '-m', 'package')
+    }
+    AfterEach {
+      foreach ($name in @('STUB_LOG', 'STUB_BRAID_PRINTS', 'STUB_FAIL')) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
+    }
+
+    It 'builds, packs and globally installs the ref, checks the version and stamps it' {
+      $result = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
+      $result.Code | Should -Be 0 -Because $result.Text
+      $log = @(Get-Content -LiteralPath $script:StubLog)
+      $log.Count | Should -Be 5
+      $log[0] | Should -Match '^npm ci @ source$'
+      $log[1] | Should -Match '^npm run build @ source$'
+      $log[2] | Should -Match '^npm pack --pack-destination .+ @ source$'
+      $log[3] | Should -Match '^npm install -g .+exones-braid-0\.9\.0\.tgz @ '
+      $log[4] | Should -Be 'braid --version'
+      (Get-Installed $script:TargetA 'braid/.braid-install.json' | ConvertFrom-Json).cliVersion | Should -Be '0.9.0'
+    }
+
+    It 'fails and installs no skills when braid --version does not match' {
+      $env:STUB_BRAID_PRINTS = 'braid 0.1.0'
+      $result = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
+      $result.Code | Should -Not -Be 0
+      $result.Text | Should -Match 'expected .braid 0\.9\.0.'
+      Test-Path -LiteralPath $script:TargetA | Should -BeFalse
+    }
+
+    It 'fails when an npm step fails' {
+      $env:STUB_FAIL = 'run build'
+      $result = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
+      $result.Code | Should -Not -Be 0
+      $result.Text | Should -Match 'npm run build exited 3'
+      Test-Path -LiteralPath $script:TargetA | Should -BeFalse
+    }
+
+    It 'fails when the ref has no package.json' {
+      Invoke-RepoGit @('rm', '-q', 'package.json')
+      Invoke-RepoGit @('commit', '-q', '-m', 'drop package')
+      $result = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
+      $result.Code | Should -Not -Be 0
+      $result.Text | Should -Match 'no package.json'
+    }
+
+    It 'leaves npm and braid alone with -SkipCli and records no CLI version' {
+      $result = Invoke-Install -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
+      $result.Code | Should -Be 0 -Because $result.Text
+      Test-Path -LiteralPath $script:StubLog | Should -BeFalse
+      (Get-Installed $script:TargetA 'braid/.braid-install.json' | ConvertFrom-Json).PSObject.Properties.Name | Should -Not -Contain 'cliVersion'
+    }
   }
 }
