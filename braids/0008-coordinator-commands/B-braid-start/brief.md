@@ -1,7 +1,7 @@
 ---
 id: '0008/B'
 title: "braid start"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: ['0008/A']
 order: 20
@@ -35,7 +35,7 @@ Expected size: about 150 to 250 lines with tests.
 ## Acceptance
 
 - [x] `braid start` creates, pushes and checks out the strand branch in a new worktree, and refuses a strand that isn't ready, covered by tests
-- [ ] CI green on Windows and Ubuntu
+- [x] CI green on Windows and Ubuntu
 
 ## Definition of done
 
