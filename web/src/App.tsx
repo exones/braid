@@ -284,7 +284,7 @@ function Board({ data }: { data: BoardData }) {
       {data.lanes.map((lane) => {
         const cards = data.braids.filter((b) => b.lane === lane);
         return (
-          <section key={lane} aria-label={lane} className="min-h-48 rounded-xl bg-slate-200/70 p-2.5">
+          <section key={lane} aria-label={LANE_LABEL[lane]} className="min-h-48 rounded-xl bg-slate-200/70 p-2.5">
             <h3 className="mx-1 mb-2.5 mt-0.5 flex justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
               <span className="flex items-center gap-1.5"><LaneDot lane={lane} />{LANE_LABEL[lane]}</span>
               <span>{cards.length}</span>

@@ -110,7 +110,7 @@ The workflow uses pinned checkout, setup-node, and upload-artifact actions and t
 ## Durable context
 
 - [Workflow](.agents/skills/braid/references/workflow.md): items, tiers, branches, merges, and checks.
-- [The attention board](docs/board.md): what raid board shows and how it decides.
+- [The attention board](docs/board.md): what `braid board` shows and how it decides.
 - [Decisions](docs/decisions.md): current requirements and their rationale.
 - [Roadmap](docs/roadmap.md): what comes next.
 - [braid skill](.agents/skills/braid/SKILL.md) (goals and stories in Backlog.md), [worker skill](.agents/skills/braid-worker/SKILL.md) and [reviewer skill](.agents/skills/braid-reviewer/SKILL.md): how agents plan, do and review items.

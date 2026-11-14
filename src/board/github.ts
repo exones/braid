@@ -24,8 +24,6 @@ export interface Github {
   readonly prs: ReadonlyMap<string, PullRequest>;
 }
 
-export const NO_GITHUB: Github = { status: { state: "unavailable", reason: "GitHub was not read" }, prs: new Map() };
-
 export interface GhResult {
   readonly status: number | null;
   readonly stdout: string;
