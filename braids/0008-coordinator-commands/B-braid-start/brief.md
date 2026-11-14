@@ -1,7 +1,7 @@
 ---
 id: '0008/B'
 title: "braid start"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S"]
 dependencies: ['0008/A']
 order: 20
@@ -41,3 +41,7 @@ Expected size: about 150 to 250 lines with tests.
 
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Extract the per-strand readiness test from `braid next` into a shared function in coordinate.ts.
