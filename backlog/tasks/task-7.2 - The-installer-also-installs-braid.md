@@ -1,9 +1,10 @@
 ---
 id: TASK-7.2
 title: The installer also installs braid
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-14T11:18:00Z'
+updated_date: '2026-11-14T11:58:00Z'
 labels:
   - kind:story
   - tier:S
@@ -47,3 +48,13 @@ Out of scope: publishing, other package managers, the skills' text (TASK-7.3).
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Install-Skills.ps1: add -SkipCli, plus test seams -NpmCommand and -BraidCommand (default npm, braid).
+2. Reorder: collision checks first, then the CLI step, then stamping and copying, so a CLI failure leaves skills untouched.
+3. CLI step: export the whole ref to a temp folder, run npm ci, npm run build, npm pack, npm install -g <tarball>, then check braid --version prints "braid <package.json version>"; fail otherwise. Record the version in the stamp (cliVersion).
+4. Pester: existing tests pass -SkipCli; new tests stub npm and braid (scripts in TestDrive): command sequence, global install of the tarball, version mismatch fails, -SkipCli never calls npm, missing package.json fails.
+5. README: install and installer behavior.
+<!-- SECTION:PLAN:END -->
