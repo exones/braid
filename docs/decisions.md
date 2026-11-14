@@ -64,6 +64,7 @@ The user confirmed using npm directly. Public packages can use npm's free tier; 
 ## Decision log
 
 - 2026-11-14, user (TASK-7): adopted D33, braids as the skills' item store; it replaces D30 (Backlog.md). D16, D29 and D31 reworded for braids. D34 to D41 record the decisions of the braid plan (doc-5, now in `archive/backlog/docs/`).
+- 2026-11-14, user (0008/F): an `ask:<key>` label no longer sets the lane (it put 0008 in Needs You before work began); it only shows the amber flag "Will need your decision". Needs You is a real block. How the board learns that the coordinator itself waits is braid 0015.
 - 2026-11-14, user (TASK-6): adopted D32, the attention board; documented in [docs/board.md](board.md).
 - 2026-11-12, user (TASK-1): adopted D31, auto mode and merge on request; a goal's planning PR targets its epic branch. D28 and D30 updated.
 - 2026-11-12, user (epic 008): dropped `braid-coordinate` before the trial. This repository moves to `braid` with `backlog/`; `epics/` stays as read-only history. `Install-Skills.ps1` checks every target first and removes stamped braid skills no longer in the ref. D28, D29 and D30 updated.

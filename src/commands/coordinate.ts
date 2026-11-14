@@ -104,7 +104,8 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
   const where = b.local ? (b.pushed ? "local+pushed" : "local") : b.pushed ? "+pushed" : "-";
   const pr = card.pr === null ? "-" : `#${card.pr.number} ${card.pr.state}`;
   const lane = card.reason === null ? card.lane : `${card.lane} (${card.reason})`;
-  return `${card.id}  ${card.status}  ${lane}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}`;
+  const ask = card.ask === null ? "" : `  ask:${card.ask}`;
+  return `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}`;
 }
 
 /** The notes for a source that couldn't be read; `next` also says what that hides. */

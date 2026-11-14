@@ -38,21 +38,30 @@ export function reasonIcon(reason: string, failed: readonly string[] = []): Reas
   if (reason === "agent stopped") {
     return { kind: "stopped", tooltip: "Agent stopped: no running thread and no PR" };
   }
-  return { kind: "ask", tooltip: `Needs your decision: ${reason}` };
+  return { kind: "ask", tooltip: askTooltip(reason) };
 }
 
-export type Row = Pick<StrandCard, "lane" | "reason" | "pr" | "running">;
+/** The flag's hover: an `ask:<key>` label marks a decision expected at review. */
+export function askTooltip(key: string): string {
+  return `Will need your decision: ${key}`;
+}
 
-function ofRow(row: Row): { reason: ReasonIcon | null; review: string | null } {
+export type Row = Pick<StrandCard, "lane" | "reason" | "ask" | "pr" | "running">;
+
+function ofRow(row: Row): { reasons: ReasonIcon[]; review: string | null } {
+  const reasons = row.reason === null ? [] : [reasonIcon(row.reason, row.pr?.failed)];
+  if (row.ask !== null) {
+    reasons.push({ kind: "ask", tooltip: askTooltip(row.ask) });
+  }
   return {
-    reason: row.reason === null ? null : reasonIcon(row.reason, row.pr?.failed),
+    reasons,
     review: row.lane === "In Review" && row.pr !== null ? `PR #${row.pr.number} to review` : null,
   };
 }
 
 export function strandMarks(strand: Row): Marks {
-  const { reason, review } = ofRow(strand);
-  return { reasons: reason === null ? [] : [reason], review, running: strand.running, done: strand.lane === "Done" };
+  const { reasons, review } = ofRow(strand);
+  return { reasons, review, running: strand.running, done: strand.lane === "Done" };
 }
 
 /** A card shows each distinct reason once, the first review and the wrench if any strand runs. */
@@ -62,8 +71,10 @@ export function cardMarks(card: BraidCard): Marks {
   let review: string | null = null;
   for (const row of rows) {
     const m = ofRow(row);
-    if (m.reason !== null && !reasons.has(m.reason.kind)) {
-      reasons.set(m.reason.kind, m.reason);
+    for (const r of m.reasons) {
+      if (!reasons.has(r.kind)) {
+        reasons.set(r.kind, r);
+      }
     }
     review ??= m.review;
   }

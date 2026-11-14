@@ -59,7 +59,9 @@ test("each Waiting reason has its icon and a hover text", () => {
   assert.deepEqual(kind("0003/B"), ["ask"]);
   assert.deepEqual(kind("0002/A"), []);
   assert.equal(marks.strandMarks(strand("0002/B")).reasons[0]?.tooltip, "Checks failed: verify (windows-latest)");
-  assert.equal(marks.strandMarks(strand("0003/B")).reasons[0]?.tooltip, "Needs your decision: approve-layout");
+  assert.equal(marks.strandMarks(strand("0003/B")).reasons[0]?.tooltip, "Will need your decision: approve-layout");
+  assert.equal(strand("0003/B").lane, "In Progress"); // the flag does not move the lane
+  assert.equal(strand("0003/B").reason, null);
 });
 
 test("the wrench marks running strands and cards", () => {
