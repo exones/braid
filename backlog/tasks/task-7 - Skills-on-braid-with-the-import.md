@@ -4,7 +4,7 @@ title: Skills on braid, with the import
 status: In Progress
 assignee: []
 created_date: '2026-11-14T11:17:00Z'
-updated_date: '2026-11-14T11:25:00Z'
+updated_date: '2026-11-14T11:58:00Z'
 labels:
   - kind:story
   - tier:L
@@ -44,3 +44,10 @@ Until TASK-7.4 merges, this story is tracked in Backlog.md on its epic branch an
 - [ ] #1 The gate command from BRAID.md passes
 - [ ] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-11-14 TASK-7.1 merged: PR #72. Done: `braid import-backlog [--dry-run]` (src/backlog/) maps tasks to braids and strands (ids, subtask order, status, labels, dependencies, ordinal → order, delivery main for a lone task and epic for a parent, description, acceptance with ticks, DoD, plan, notes → log-<created date>-import.md, final summary → report.md, docs → report, a doc on braid and strand goes to the strand); refuses before any write on existing targets, unparsable input or unresolved links; LOG_FILE accepts `import`. Dry run on this repository: 7 braids, 19 strands, doc-5 unlinked. For later items: TASK-7.4 needs every doc link and dependency to resolve; task ids in description text aren't rewritten; folder slugs come from full titles (tidy in 7.4 if wanted).
+Plan changes: none. User decided: none.
+<!-- SECTION:NOTES:END -->
