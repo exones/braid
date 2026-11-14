@@ -35,7 +35,6 @@ Expected size: about 250 to 400 lines with tests.
 - [ ] braid facts prints the stop-case facts with their cases, covered by tests
 - [ ] braid recap drafts the recap and the log line from report.md and the PR, covered by tests
 - [ ] The skills call them and are not longer
-- [ ] CI green on Windows and Ubuntu
 
 ## Definition of done
 
