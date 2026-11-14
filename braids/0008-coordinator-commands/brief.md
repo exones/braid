@@ -1,7 +1,7 @@
 ---
 id: '0008'
 title: "Coordinator commands"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: ['0007']
 order: 80
