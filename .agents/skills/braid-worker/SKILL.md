@@ -68,6 +68,6 @@ Use plain language and this format even when blocked; then "Done" lists what got
 
 - Trust what you have already checked and what the user or coordinator tells you. Check again only when something fails or changes.
 - If you see your first message again, run `gh pr list --state all --head <branch>`. If your PR is merged, you're done: stop without reporting again. If it was closed unmerged (the story went to phases), stop and ask the coordinator; don't commit to the branch. Otherwise carry on from where you are.
-- If you must stop before finishing, log a checkpoint (`braid log <id> --checkpoint --thread <your thread id>`: done, next, open) and commit it with your work.
+- If you must stop before finishing, log a checkpoint (`braid log <id> --checkpoint --thread <your thread id> 'done: …; next: …; open: …'`) and commit it with your work.
 - Don't edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless your brief says so.
 - Don't merge, publish, or start other items.
