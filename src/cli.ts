@@ -7,6 +7,7 @@ import { checkBraids } from "./braids/check.js";
 import { runBoard } from "./commands/board.js";
 import { GitError } from "./braids/numbers.js";
 import { listBraids, UsageError, viewItem } from "./commands/braids.js";
+import { ImportRefusal, importBacklog } from "./backlog/import.js";
 import { logEntry, reportItem } from "./commands/logs.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
@@ -39,6 +40,7 @@ export function helpText(version: string): string {
     "  brief <id> <section>        Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
+    "  import-backlog              Turn backlog/ tasks into braids/ (--dry-run: print only; backlog/ is never touched)",
     "  check                       Check every brief under braids/; list each error with its file (exit 2 on any)",
     "  board                       Open the read-only board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
@@ -64,7 +66,7 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["check", "list", "view", "new", "strand", "edit", "brief", "log", "report"]);
+const BRAID_COMMANDS = new Set(["import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string {
   switch (command) {
@@ -77,6 +79,13 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
         throw new CheckError(result.errors);
       }
       return `braids OK: ${result.braids} braids, ${result.strands} strands\n`;
+    }
+    case "import-backlog": {
+      const extra = args.filter((a) => a !== "--dry-run");
+      if (extra.length > 0) {
+        throw new UsageError(`braid import-backlog takes only --dry-run; got: ${extra.join(" ")}`);
+      }
+      return importBacklog(root, args.includes("--dry-run"));
     }
     case "list":
       if (args.length > 0) {
@@ -121,6 +130,10 @@ function braidsCommand(command: string, args: readonly string[], cwd: string): O
   } catch (error) {
     if (error instanceof UsageError || error instanceof GitError) {
       return fail(1, error.message);
+    }
+    if (error instanceof ImportRefusal) {
+      return { code: error.code, stdout: "", stderr: error.problems.map((p) => `error: ${p}
+`).join("") };
     }
     if (error instanceof CheckError) {
       return { code: 2, stdout: "", stderr: `${error.errors.join("\n")}

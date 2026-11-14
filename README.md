@@ -15,6 +15,7 @@ braid brief 0002 Goal --file goal.md                    # set a section; --file 
 braid log 0002/A --thread mcp:launch:5d80964a 'Parser done'   # a dated entry in that thread's log file, staged with git add
 braid log 0002/A --checkpoint 'Paused after the parser'       # a checkpoint entry; no thread: the log-<date>-user.md file
 braid report 0002/A --file report.md                    # write report.md; --append adds to it
+braid import-backlog --dry-run   # list the braids a Backlog.md backlog/ would become; without --dry-run, write braids/
 braid check         # validate every brief under braids/; lists each error with its file, exit 2 on any
 braid board         # open the read-only board in the browser (127.0.0.1, free port)
 braid board --demo  # the same board on built-in sample data: no repository, gh or t3 is read
