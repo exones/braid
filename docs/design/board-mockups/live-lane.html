@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>braid board – mockup</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#3b5bdb}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line)}
+header b{font-size:16px}header .repo{color:var(--mut)}header .sp{flex:1}
+.lanes{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 20px;align-items:start}
+.lane{background:#eceef3;border-radius:10px;padding:10px;min-height:200px}
+.lane h3{margin:2px 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;box-shadow:0 1px 2px #0001;cursor:pointer}
+.card:hover{border-color:var(--acc)}
+.card .id{color:var(--mut);font-size:12px}.card .t{font-weight:600;margin:2px 0 6px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:#e8ebf3;color:#49506a}
+.b-outline{background:#fff1d6;color:#8a5a00}.b-lbl{background:#eef;color:#3b4aa0}
+.bar{height:5px;background:#e6e9f0;border-radius:3px;flex:1;min-width:50px;overflow:hidden}.bar i{display:block;height:100%;background:var(--done)}
+.cnt{font-size:12px;color:var(--mut)}
+.reason{margin-top:6px;font-size:12px;color:#a12a2a;background:#fff5f5;border-radius:6px;padding:4px 6px}
+.strands{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+.strand{display:flex;gap:6px;align-items:center;padding:4px 0;font-size:13px}
+button{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+button:disabled{color:#a3a9b8;background:#f3f4f7;cursor:not-allowed}
+.actions{margin-top:8px;display:flex;gap:6px}
+.page{display:grid;grid-template-columns:290px 1fr;height:calc(100vh - 47px)}
+nav{background:#fff;border-right:1px solid var(--line);padding:14px;overflow:auto}
+nav .back{color:var(--acc);font-size:13px;cursor:pointer;display:block;margin-bottom:10px}
+nav h2{font-size:15px;margin:0 0 2px}
+nav .item{display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:6px;cursor:pointer;margin-top:2px}
+nav .item.sel{background:#e7ecff;font-weight:600}nav .item:hover{background:#f0f2f8}nav .sub{margin-left:14px}
+main{padding:20px 28px;overflow:auto}
+main h1{font-size:20px;margin:0 0 6px}
+.meta{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;margin:12px 0 16px;font-size:13px}.meta dt{color:var(--mut)}.meta dd{margin:0}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{padding:7px 14px;cursor:pointer;color:var(--mut);border-bottom:2px solid transparent}.tab.on{color:var(--ink);border-color:var(--acc);font-weight:600}
+.md h2{font-size:15px;margin:16px 0 4px}.md p,.md li{max-width:75ch}.md code{background:#eef0f5;padding:0 4px;border-radius:4px}
+.log{border-left:3px solid var(--line);padding-left:12px;margin:10px 0}.log h4{margin:0;font-size:12px;color:var(--mut);font-weight:600}
+.logfile{display:flex;gap:8px;margin-bottom:10px}.logfile .badge{cursor:pointer}.logfile .on{background:var(--acc);color:#fff}
+:root{--todo:#cbd5e1;--prog:#2563eb;--rev:#7c3aed;--wait:#f59e0b;--done:#16a34a;--bad:#dc2626}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.l-todo{background:var(--todo)}.l-prog{background:var(--prog)}.l-rev{background:var(--rev)}.l-wait{background:var(--wait)}.l-done{background:var(--done)}
+.lane h3{align-items:center}.lane h3 span:first-child{display:flex;align-items:center;gap:6px}
+.sid{color:var(--mut);font-size:12px;width:16px;flex:none}
+.strand{align-items:center;padding:5px 0}
+.ic{width:16px;height:16px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;line-height:1}
+.i-q{background:var(--wait)}.i-x{background:var(--bad)}.i-stop{background:var(--bad)}.i-stop b{width:6px;height:6px;background:#fff;border-radius:1px;display:block}
+.i-flag{background:none;color:var(--wait)}
+.i-ag{background:none;color:var(--prog);animation:wob 2s ease-in-out infinite}.i-tick{background:none;color:var(--done)}.i-eye{background:none;color:var(--rev)}@keyframes wob{50%{transform:rotate(-12deg)}}
+.icons{display:inline-flex;gap:5px;align-items:center}
+.note{padding:6px 20px;color:var(--mut);font-size:12px}
+.legend{display:grid;grid-template-columns:auto auto 1fr;gap:10px 14px;align-items:center;padding:20px 28px;font-size:13px;max-width:760px}
+.legend h2{grid-column:1/-1;margin:8px 0 0;font-size:14px}.legend code{background:#eef0f5;padding:0 4px;border-radius:4px}
+</style></head><body>
+<header><b title="Each braid sits in the lane where it needs you most.">braid · attention board</b><span class="repo">Each braid sits in the lane where it needs you most. · sample · braids/</span><span class="sp"></span><span class="cnt">read-only · refreshes every 30 s</span></header>
+<div class="note" id="note"></div>
+<div id="app"></div>
+<script>
+// --demo data: strand = [letter, title, lane, reason, running]; reason = [kind, tooltip]
+const Q=['q','Agent asked a question: waiting for your answer'],X=['x','Checks failed: verify (windows-latest)'],S=['stop','Agent stopped: no running thread and no PR'],F=['flag','Needs your decision: approve-layout'];
+const B=[
+{id:'0001',title:'Sample login flow',tier:'tier:L',strands:[['A','Login form','Done',0,0],['B','Session storage','To Review',0,0,12],['C','Password reset','To Do',0,0]]},
+{id:'0002',title:'Sample search',tier:'tier:M',strands:[['A','Search index','Working',0,1],['B','Search page','Needs You',X,0]]},
+{id:'0003',title:'Sample export',tier:'tier:M',strands:[['A','CSV export','Needs You',Q,1],['B','PDF export','Needs You',F,0],['C','Export tests','To Review',0,0,17]]},
+{id:'0004',title:'Sample billing',tier:'tier:S',strands:[['A','Invoice page','Needs You',S,0]]},
+{id:'0007',title:'Sample import',tier:'tier:M',strands:[['A','Parser','Working',0,1]]},
+{id:'0008',title:'Sample mail',tier:'tier:S',strands:[['A','Send mail','Done',0,0]]},
+];
+const cls={'To Do':'l-todo','Working':'l-prog','To Review':'l-rev','Needs You':'l-wait','Done':'l-done'};
+const dot=l=>'<span class="dot '+cls[l]+'"></span>';
+const icon=r=>{const t=r[1];const a=' title="'+t+'" aria-label="'+t+'"';
+ if(r[0]==='q')return '<span class="ic i-q"'+a+'>?</span>';
+ if(r[0]==='x')return '<span class="ic i-x"'+a+'>✕</span>';
+ if(r[0]==='stop')return '<span class="ic i-stop"'+a+'><b></b></span>';
+ return '<span class="ic i-flag"'+a+'><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5 2h2v20H5zM8 3h12l-3 5 3 5H8z"/></svg></span>'};
+const AG='<span class="ic i-ag" title="agent running" aria-label="agent running"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8 6.2 21l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></span>';
+const TICK='<span class="ic i-tick" title="Done" aria-label="Done"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
+const EYE=n=>'<span class="ic i-eye" title="PR #'+n+' to review" aria-label="PR #'+n+' to review"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>';
+const laneOf=b=>['Needs You','To Review','Working','To Do','Done'].find(l=>b.strands.some(s=>s[2]===l));
+const running=b=>b.strands.some(s=>s[4]);
+const reasons=b=>{const seen=new Map();b.strands.forEach(s=>{if(s[3]&&!seen.has(s[3][0]))seen.set(s[3][0],s[3])});return [...seen.values()]};
+const review=b=>b.strands.find(s=>s[2]==='To Review');
+const marks=b=>'<span class="icons">'+reasons(b).map(icon).join('')+(review(b)?EYE(review(b)[5]):'')+(running(b)?AG:'')+'</span>';
+const rowMarks=s=>'<span class="icons">'+(s[3]?icon(s[3]):'')+(s[2]==='To Review'?EYE(s[5]):'')+(s[2]==='Done'?TICK:'')+(s[4]?AG:'')+'</span>';
+function card(b){const done=b.strands.filter(s=>s[2]==='Done').length,n=b.strands.length;
+ return '<div class="card"><div class="row"><span class="id">'+b.id+'</span><span class="badge">'+b.tier+'</span>'+marks(b)+'<span style="flex:1"></span><span class="cnt">▾ strands</span></div><div class="t">'+b.title+'</div>'
+ +'<div class="row"><div class="bar"><i style="width:'+(done/n*100)+'%"></i></div><span class="cnt">'+done+'/'+n+'</span></div>'
+ +'<div class="strands">'+b.strands.map(s=>'<div class="strand">'+dot(s[2])+'<span class="sid">'+s[0]+'</span><span style="flex:1">'+s[1]+'</span>'+rowMarks(s)+'</div>').join('')+'</div></div>'}
+function board(){const L=['To Do','Working','To Review','Needs You','Done'];
+ return '<div class="lanes">'+L.map(l=>{const c=B.filter(b=>laneOf(b)===l);return '<div class="lane"><h3><span>'+dot(l)+l+'</span><span>'+c.length+'</span></h3>'+c.map(card).join('')+'</div>'}).join('')+'</div>'}
+function page(b,sel){const s=b.strands.find(x=>x[0]===sel);
+ const nav='<nav><a class="back">← Board</a><h2>'+b.id+' '+b.title+'</h2><div class="cnt" style="display:flex;gap:6px;align-items:center">'+dot(laneOf(b))+laneOf(b)+marks(b)+'</div><div class="item">Braid brief</div>'
+ +b.strands.map(x=>'<div class="item sub '+(x[0]===sel?'sel':'')+'">'+dot(x[2])+'<span style="flex:1">'+x[0]+' · '+x[1]+'</span>'+rowMarks(x)+'</div>').join('')+'</nav>';
+ return '<div class="page">'+nav+'<main><div class="cnt">'+b.id+'/'+s[0]+'</div><h1>'+s[1]+'</h1><div class="row">'+dot(s[2])+'<span class="badge">'+s[2]+'</span>'+rowMarks(s)+'</div>'
+ +'<p class="cnt">(Details, brief and tabs unchanged; only the contents panel on the left changes.)</p></main></div>'}
+function legend(){const lanes=['To Do','Working','To Review','Needs You','Done'].map(l=>'<span>'+dot(l)+'</span><span></span><span>'+l+'</span>').join('');
+ const t=[[Q,'question'],[X,'checks failed'],[S,'agent stopped'],[F,'ask:&lt;key&gt;']].map(x=>'<span>'+icon(x[0])+'</span><span><code>'+x[1]+'</code></span><span>hover: "'+x[0][1]+'"</span>').join('');
+ return '<div class="legend"><h2>Lane colours (UI labels)</h2>'+lanes+'<h2>Needs You reasons (red only where something went wrong)</h2>'+t+'<h2>Agent and review</h2><span>'+AG+'</span><span></span><span>blue wrench, gently swinging; hover: "agent running"</span><span>'+TICK+'</span><span></span><span>strand in Done; hover: "Done"</span><span>'+EYE(12)+'</span><span></span><span>strand in To Review; hover: "PR #12 to review"</span></div>'}
+const h=location.hash.slice(1);
+document.getElementById('app').innerHTML=h==='board'?board():h==='legend'?legend():h==='p2'?page(B[1],'A'):page(B[0],'B');
+document.getElementById('note').textContent=h==='board'?'Mockup on the --demo data. Hover texts are in 14-live-legend.png. 0003 gets an extra strand C (To Review, PR #17) in this mockup to show a Needs You card that also has a review.':'';
+</script></body></html>
