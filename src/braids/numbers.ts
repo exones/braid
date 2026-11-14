@@ -1,6 +1,7 @@
 // Which braid numbers and strand letters are taken. A number or letter counts as taken
-// when it is in the working tree, or anywhere under braids/ in the history of any ref
-// (local and remote-tracking branches, tags), including folders deleted since. So a
+// when it is in the working tree, or anywhere under braids/ in the history of a local or
+// remote-tracking branch (not other refs, such as T3's checkpoints under refs/t3), including
+// folders deleted since. So a
 // number used on another branch, or given once and removed, is never handed out again.
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, statSync } from "node:fs";
@@ -78,7 +79,7 @@ export function takenIds(root: string): Taken {
     }
   }
   if (isRepository(root)) {
-    const r = git(root, ["log", "--all", "--format=", "--name-only", "--", "braids"]);
+    const r = git(root, ["log", "--branches", "--remotes","--format=", "--name-only", "--", "braids"]);
     if (r.status !== 0) {
       throw new GitError(`git log failed: ${(r.stderr || r.error?.message || "").trim()}`);
     }

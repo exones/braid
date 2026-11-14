@@ -9,6 +9,7 @@ import { GitError } from "./braids/numbers.js";
 import { listBraids, UsageError, viewItem } from "./commands/braids.js";
 import { ImportRefusal, importBacklog } from "./backlog/import.js";
 import { logEntry, reportItem } from "./commands/logs.js";
+import { nextCommand, statusCommand } from "./commands/coordinate.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
 export function readVersion(): string {
@@ -42,6 +43,8 @@ export function helpText(version: string): string {
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
     "  import-backlog              Turn backlog/ tasks into braids/ (--dry-run: print only; backlog/ is never touched)",
     "  check                       Check every brief under braids/; list each error with its file (exit 2 on any)",
+    "  status <number>             One line per strand: status, lane, branch, PR, ci checks, T3 thread (reads GitHub and T3, no fetch)",
+    "  next <number>               The next strand to run, or why none is ready",
     "  board                       Open the read-only board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
     "",
@@ -174,6 +177,27 @@ async function main(argv: readonly string[]): Promise<void> {
       }
       if (error instanceof FormatError) {
         process.stderr.write(`error: ${error.file}: ${error.message}\n`);
+        process.exitCode = 2;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "status" || argv[0] === "next") {
+    try {
+      const run = argv[0] === "status" ? statusCommand : nextCommand;
+      process.stdout.write(await run(findRoot(process.cwd()), argv.slice(1)));
+    } catch (error) {
+      if (error instanceof UsageError || error instanceof GitError) {
+        process.stderr.write(`error: ${error.message}
+`);
+        process.exitCode = 1;
+        return;
+      }
+      if (error instanceof FormatError) {
+        process.stderr.write(`error: ${error.file}: ${error.message}
+`);
         process.exitCode = 2;
         return;
       }

@@ -12,6 +12,8 @@ export interface PullRequest {
   readonly checks: Checks;
   /** Names of the failing checks, when GitHub gave them. */
   readonly failed?: readonly string[];
+  /** Each check by name with its own result, for an open PR. */
+  readonly runs?: readonly { readonly name: string; readonly result: "passing" | "failing" | "pending" }[];
 }
 
 export type GithubState =
@@ -56,6 +58,21 @@ export function failedChecks(rollup: RawPr["statusCheckRollup"]): string[] {
     .filter((c) => FAILED.has((c.conclusion ?? c.state ?? "").toUpperCase()))
     .map((c) => c.name ?? c.context ?? "")
     .filter((n) => n !== "");
+}
+
+/** Each named check of a rollup with its own result. */
+export function runsOf(rollup: RawPr["statusCheckRollup"]): NonNullable<PullRequest["runs"]> {
+  return (rollup ?? [])
+    .map((c) => {
+      const result = (c.conclusion ?? c.state ?? "").toUpperCase();
+      const own = FAILED.has(result)
+        ? ("failing" as const)
+        : result === "" || result === "PENDING" || result === "EXPECTED" || (c.status ?? "COMPLETED").toUpperCase() !== "COMPLETED"
+          ? ("pending" as const)
+          : ("passing" as const);
+      return { name: c.name ?? c.context ?? "", result: own };
+    })
+    .filter((c) => c.name !== "");
 }
 
 export function checksOf(rollup: RawPr["statusCheckRollup"]): Checks {
@@ -157,7 +174,7 @@ function readFresh(root: string, run: GhRunner): Github {
   for (const [raw, state] of [...merged.map((p) => [p, "merged"] as const), ...open.map((p) => [p, "open"] as const)]) {
     const key = keyOfBranch(raw.headRefName);
     if (key !== null) {
-      prs.set(key, { number: raw.number, url: raw.url, state, checks: state === "open" ? checksOf(raw.statusCheckRollup) : "passing", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup) } : {}) });
+      prs.set(key, { number: raw.number, url: raw.url, state, checks: state === "open" ? checksOf(raw.statusCheckRollup) : "passing", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
     }
   }
   return { status: { state: "ok" }, prs };
