@@ -1,7 +1,7 @@
 ---
 id: '0007/E'
 title: "Trial: one braid end to end on the new skills"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: ['0007/D']
 order: 50
@@ -36,7 +36,7 @@ Found, to fix in this strand:
 
 - [x] One real braid ran from plan to merge on the new skills, with its brief, logs and report in braids/
 - [x] Gaps found are fixed or proposed as follow-ups in the report
-- [ ] npm run verify passes; CI green on Windows and Ubuntu
+- [x] npm run verify passes; CI green on Windows and Ubuntu
 
 ## Definition of done
 

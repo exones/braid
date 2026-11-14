@@ -16,7 +16,7 @@ Skills and `braid` 0.1.1 installed from the epic branch on all four hosts; the s
 
 ## Validation
 
-`npm run verify` passes locally (Windows); CI is pending.
+`npm run verify` passes locally (Windows); CI green on Windows and Ubuntu.
 
 ## Open
 
