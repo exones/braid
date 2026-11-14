@@ -45,13 +45,11 @@ force-push shared branches. Every commit uses Conventional Commits.
 
 The user looks at the work with `braid board` (read-only) from their own checkout of `main`. It reads
 each item from its own branch, so a strand whose PR waits for the user's merge already reads Done
-there. For what is running, read the item branch and `gh pr list`.
+there.
 
 ## Starting the next item
 
-Goal: `braid next <number>` names the first `To Do` strand in run order whose dependencies are Done and
-that has no running agent, no open PR and no pushed branch (a running strand still reads `To Do` on the
-braid branch), or says why none is ready. One whose PR was closed unmerged follows "Resuming" in
+Goal: `braid next <number>` names the next ready strand or says why none is. One whose PR was closed unmerged follows "Resuming" in
 [the skill](../SKILL.md). `braid start <id>` then makes its branch and worktree. Story: there is no next item.
 
 ## Tiers
