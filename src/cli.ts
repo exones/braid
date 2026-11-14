@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { FormatError } from "./braids/frontmatter.js";
 import { findRoot } from "./braids/store.js";
+import { checkBraids } from "./braids/check.js";
+import { runBoard } from "./commands/board.js";
 import { GitError } from "./braids/numbers.js";
 import { listBraids, UsageError, viewItem } from "./commands/braids.js";
 import { logEntry, reportItem } from "./commands/logs.js";
@@ -37,6 +39,8 @@ export function helpText(version: string): string {
     "  brief <id> <section>        Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
+    "  check                       Check every brief under braids/; list each error with its file (exit 2 on any)",
+    "  board                       Open the read-only board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
     "",
     "Options:",
@@ -60,10 +64,20 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["list", "view", "new", "strand", "edit", "brief", "log", "report"]);
+const BRAID_COMMANDS = new Set(["check", "list", "view", "new", "strand", "edit", "brief", "log", "report"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string {
   switch (command) {
+    case "check": {
+      if (args.length > 0) {
+        throw new UsageError(`braid check takes no arguments; got: ${args.join(" ")}`);
+      }
+      const result = checkBraids(root);
+      if (result.errors.length > 0) {
+        throw new CheckError(result.errors);
+      }
+      return `braids OK: ${result.braids} braids, ${result.strands} strands\n`;
+    }
     case "list":
       if (args.length > 0) {
         throw new UsageError(`braid list takes no arguments; got: ${args.join(" ")}`);
@@ -94,6 +108,12 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
   }
 }
 
+class CheckError extends Error {
+  constructor(readonly errors: readonly string[]) {
+    super(errors.join("\n"));
+  }
+}
+
 function braidsCommand(command: string, args: readonly string[], cwd: string): Output {
   const root = findRoot(cwd);
   try {
@@ -101,6 +121,11 @@ function braidsCommand(command: string, args: readonly string[], cwd: string): O
   } catch (error) {
     if (error instanceof UsageError || error instanceof GitError) {
       return fail(1, error.message);
+    }
+    if (error instanceof CheckError) {
+      return { code: 2, stdout: "", stderr: `${error.errors.join("\n")}
+${error.errors.length} error${error.errors.length === 1 ? "" : "s"}
+` };
     }
     if (error instanceof FormatError) {
       return fail(2, `${error.file}: ${error.message}`);
@@ -123,11 +148,34 @@ export function run(argv: readonly string[], cwd: string = process.cwd()): Outpu
   return { code: 1, stdout: "", stderr: `error: unknown command: ${first}\nRun braid help.\n` };
 }
 
-try {
-  const out = run(process.argv.slice(2));
+async function main(argv: readonly string[]): Promise<void> {
+  if (argv[0] === "board") {
+    try {
+      // The demo reads no repository, so it does not look for one.
+      await runBoard(argv.includes("--demo") || argv.includes("--demo-t3-down") ? process.cwd() : findRoot(process.cwd()), argv.slice(1));
+    } catch (error) {
+      if (error instanceof UsageError) {
+        process.stderr.write(`error: ${error.message}\n`);
+        process.exitCode = 1;
+        return;
+      }
+      if (error instanceof FormatError) {
+        process.stderr.write(`error: ${error.file}: ${error.message}\n`);
+        process.exitCode = 2;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  const out = run(argv);
   process.stdout.write(out.stdout);
   process.stderr.write(out.stderr);
   process.exitCode = out.code;
+}
+
+try {
+  await main(process.argv.slice(2));
 } catch {
   process.stderr.write("error: unexpected failure\n");
   process.exitCode = 5;
