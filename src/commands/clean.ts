@@ -33,7 +33,7 @@ function worktrees(root: string): Worktree[] {
 const norm = (p: string): string => {
   let real = resolve(p);
   try {
-    real = realpathSync(real);
+    real = realpathSync.native(real);
   } catch {
     // a folder that is gone keeps its plain path
   }
