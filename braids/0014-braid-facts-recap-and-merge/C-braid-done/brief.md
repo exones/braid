@@ -37,15 +37,15 @@ Expected size: about 400 to 700 lines with tests, plus skill and doc changes.
 
 ## Acceptance
 
-- [ ] braid done merges only the reviewed, green head and marks Done in the right place for a strand, a story and a final PR, refusing with the failed condition otherwise, covered by tests
-- [ ] The skills and template follow: workers don't set Done, the coordinator runs braid done
-- [ ] braid status hints at braid done for merged items not yet Done
+- [x] braid done merges only the reviewed, green head and marks Done in the right place for a strand, a story and a final PR, refusing with the failed condition otherwise, covered by tests
+- [x] The skills and template follow: workers don't set Done, the coordinator runs braid done
+- [x] braid status hints at braid done for merged items not yet Done
 - [ ] CI green on Windows and Ubuntu
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 

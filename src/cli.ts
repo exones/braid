@@ -49,7 +49,7 @@ export function helpText(version: string): string {
     "  status <number>             One line per strand: status, lane, ask:<key>, branch, PR, ci checks, T3 thread (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id>                  Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
-    "  done <id> [--head <sha>] [--merge]  Mark an item Done where the coordinator holds the base: a strand after its merge on the braid branch (--merge merges the reviewed, green head first), a story or final PR on its branch (--log <file>|- adds the braid log entry)",
+    "  done <id> [--head <sha>] [--merge]  Mark an item Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first), a story or final PR on its branch (--log adds a braid log entry)",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
     "  board                       Open the read-only board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
