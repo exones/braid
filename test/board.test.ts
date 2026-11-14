@@ -78,7 +78,9 @@ test("check reports duplicate numbers and strand letters", () => {
 
 /** Runs `braid board --no-open` in `root` and calls `run` with the printed address. */
 async function withBoard<T>(root: string, run: (url: string) => Promise<T>): Promise<T> {
-  const child = spawn(process.execPath, [cli, "board", "--no-open"], { cwd: root });
+  // No gh and no t3 are found, and HOME points at the scratch folder: the board reads nothing real.
+  const env: NodeJS.ProcessEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(path|home|userprofile)$/i.test(k)));
+  const child = spawn(process.execPath, [cli, "board", "--no-open"], { cwd: root, env: { ...env, PATH: scratch, HOME: scratch, USERPROFILE: scratch } });
   try {
     const url = await new Promise<string>((resolve, reject) => {
       let out = "";

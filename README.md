@@ -17,6 +17,7 @@ braid log 0002/A --checkpoint 'Paused after the parser'       # a checkpoint ent
 braid report 0002/A --file report.md                    # write report.md; --append adds to it
 braid check         # validate every brief under braids/; lists each error with its file, exit 2 on any
 braid board         # open the read-only board in the browser (127.0.0.1, free port)
+braid board --demo  # the same board on built-in sample data: no repository, gh or t3 is read
 braid --version     # print the version
 braid help          # show usage
 ```

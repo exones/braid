@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
-import { useBoard, useItem, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded, type PullRequest } from "./api.ts";
+import { useBoard, useItem, useTick, type Tick, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded, type PullRequest } from "./api.ts";
 
 /** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
 interface Route {
@@ -335,8 +335,8 @@ function Contents({ braid, current }: { braid: BraidCard; current: string }) {
   );
 }
 
-function ItemPage({ id, tab }: { id: string; tab: string }) {
-  const loaded = useItem(id);
+function ItemPage({ id, tab, tick }: { id: string; tab: string; tick: Tick }) {
+  const loaded = useItem(id, tick);
   return (
     <Status loaded={loaded}>
       {(item) => (
@@ -351,7 +351,15 @@ function ItemPage({ id, tab }: { id: string; tab: string }) {
 
 export function App() {
   const route = useRoute();
-  const board = useBoard();
+  const { tick, refresh } = useTick();
+  const board = useBoard(tick);
+  const notes =
+    board.state === "ready"
+      ? [
+          board.data.github.state === "unavailable" ? `GitHub unavailable (${board.data.github.reason}): showing stored states` : null,
+          board.data.t3.state === "unavailable" ? `T3 unavailable (${board.data.t3.reason}): no agent states` : null,
+        ].filter((n) => n !== null)
+      : [];
   return (
     <Tooltip.Provider>
       <div className="min-h-screen bg-slate-100 text-sm text-slate-900">
@@ -360,15 +368,20 @@ export function App() {
           {board.state === "ready" && <span className="text-slate-500">{board.data.repo} · braids/</span>}
           <span className="flex-1" />
           <span className="text-xs text-slate-500">
-            {board.state === "ready" && board.data.github.state === "unavailable"
-              ? `GitHub unavailable (${board.data.github.reason}): showing stored states · reload to refresh`
-              : "read-only · reload to refresh"}
+            {notes.length > 0 ? `${notes.join(" · ")} · ` : "read-only · "}refreshes every 30 s
           </span>
+          <button
+            type="button"
+            onClick={refresh}
+            className="cursor-pointer rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 hover:border-blue-600"
+          >
+            Refresh
+          </button>
         </header>
         {route.id === null ? (
           <Status loaded={board}>{(data) => <Board data={data} />}</Status>
         ) : (
-          <ItemPage id={route.id} tab={route.tab} />
+          <ItemPage id={route.id} tab={route.tab} tick={tick} />
         )}
       </div>
     </Tooltip.Provider>
