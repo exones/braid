@@ -18,3 +18,9 @@
 .md pre { background: #eef0f5; padding: 0.6rem 0.8rem; border-radius: 0.4rem; overflow: auto; }
 .md pre code { background: none; padding: 0; }
 .md a { color: #3b5bdb; text-decoration: underline; }
+
+@keyframes wob {
+  50% {
+    transform: rotate(-12deg);
+  }
+}

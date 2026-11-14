@@ -127,7 +127,7 @@ test("a strand set In Progress on its branch shows In Progress on a board run fr
     assert.equal(card?.lane, "In Progress");
     assert.equal(card?.branch, null);
     assert.deepEqual(card?.strands, [
-      { id: "0001/A", title: "T 0001/A", status: "In Progress", lane: "In Progress", branch: "braid/0001/A-x", pr: null, reason: null },
+      { id: "0001/A", title: "T 0001/A", status: "In Progress", lane: "In Progress", branch: "braid/0001/A-x", pr: null, reason: null, running: false },
     ]);
     const item = (await (await fetch(`${url}api/item?id=0001/A`)).json()) as {
       status: string;

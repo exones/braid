@@ -10,6 +10,8 @@ export interface PullRequest {
   readonly url: string;
   readonly state: "open" | "merged";
   readonly checks: Checks;
+  /** Names of the failing checks, when GitHub gave them. */
+  readonly failed?: readonly string[];
 }
 
 export type GithubState =
@@ -45,10 +47,18 @@ interface RawPr {
   readonly state: string;
   readonly headRefName: string;
   readonly mergedAt?: string | null;
-  readonly statusCheckRollup?: readonly { readonly conclusion?: string | null; readonly state?: string | null; readonly status?: string | null }[] | null;
+  readonly statusCheckRollup?: readonly { readonly name?: string | null; readonly context?: string | null; readonly conclusion?: string | null; readonly state?: string | null; readonly status?: string | null }[] | null;
 }
 
 const FAILED = new Set(["FAILURE", "TIMED_OUT", "STARTUP_FAILURE", "ERROR"]);
+
+/** Names of the failing checks in a rollup. */
+export function failedChecks(rollup: RawPr["statusCheckRollup"]): string[] {
+  return (rollup ?? [])
+    .filter((c) => FAILED.has((c.conclusion ?? c.state ?? "").toUpperCase()))
+    .map((c) => c.name ?? c.context ?? "")
+    .filter((n) => n !== "");
+}
 
 export function checksOf(rollup: RawPr["statusCheckRollup"]): Checks {
   if (rollup === null || rollup === undefined || rollup.length === 0) {
@@ -149,7 +159,7 @@ function readFresh(root: string, run: GhRunner): Github {
   for (const [raw, state] of [...merged.map((p) => [p, "merged"] as const), ...open.map((p) => [p, "open"] as const)]) {
     const key = keyOfBranch(raw.headRefName);
     if (key !== null) {
-      prs.set(key, { number: raw.number, url: raw.url, state, checks: state === "open" ? checksOf(raw.statusCheckRollup) : "passing" });
+      prs.set(key, { number: raw.number, url: raw.url, state, checks: state === "open" ? checksOf(raw.statusCheckRollup) : "passing", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup) } : {}) });
     }
   }
   return { status: { state: "ok" }, prs };

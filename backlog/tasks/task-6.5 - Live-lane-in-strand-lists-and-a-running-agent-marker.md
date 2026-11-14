@@ -4,7 +4,7 @@ title: Live lane in strand lists and a running-agent marker
 status: In Progress
 assignee: []
 created_date: '2026-11-14T10:04:00Z'
-updated_date: '2026-11-14T10:26:00Z'
+updated_date: '2026-11-14T10:35:00Z'
 labels:
   - kind:story
   - tier:S
@@ -42,9 +42,9 @@ Out of scope: new lanes or states, starting or messaging threads (story 6), any 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Mockups of both changes were shown to the user and approved before the build
-- [ ] #2 Strand rows in expanded cards and on the braid page show the live lane and Waiting reason, covered by tests
-- [ ] #3 Cards and strand rows with a running T3 thread carry the marker, covered by tests on the demo data
+- [x] #1 Mockups of both changes were shown to the user and approved before the build
+- [x] #2 Strand rows in expanded cards and on the braid page show the live lane and Waiting reason, covered by tests
+- [x] #3 Cards and strand rows with a running T3 thread carry the marker, covered by tests on the demo data
 - [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
 <!-- AC:END -->
 

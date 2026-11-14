@@ -16,6 +16,8 @@ export interface StrandCard {
   readonly pr: PullRequest | null;
   /** Why the item waits (`checks failed` or an ask key); null outside Waiting. */
   readonly reason: string | null;
+  /** Whether T3 reports a running agent thread for this strand. */
+  readonly running: boolean;
 }
 
 export interface BraidCard {
@@ -28,6 +30,8 @@ export interface BraidCard {
   readonly branch: string | null;
   readonly pr: PullRequest | null;
   readonly reason: string | null;
+  /** Whether T3 reports a running thread for the braid or any of its strands. */
+  readonly running: boolean;
   readonly done: number;
   readonly total: number;
   readonly strands: readonly StrandCard[];
@@ -58,6 +62,7 @@ export interface ItemDetail {
   readonly branch: string | null;
   readonly pr: PullRequest | null;
   readonly reason: string | null;
+  readonly running: boolean;
   readonly brief: string;
   readonly report: string | null;
   readonly logs: readonly { readonly name: string; readonly text: string }[];
@@ -111,6 +116,11 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   return { lane: laneOfStatus(status), pr, reason: null };
 }
 
+/** Whether T3 reports a running thread for this item key. */
+export function isRunning(t3: T3, key: string): boolean {
+  return (t3.threads.get(key) ?? []).some((t) => t.state === "running");
+}
+
 /** Most urgent first. */
 const URGENCY: readonly Lane[] = ["Waiting", "In Review", "In Progress", "To Do", "Done"];
 
@@ -131,6 +141,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3): BraidCard {
       branch: s.source?.branch ?? null,
       pr: d.pr,
       reason: d.reason,
+      running: isRunning(t3, `${braid.number}/${s.letter}`),
     };
   });
   // A braid with strands sits in its most urgent strand's lane; with none, its own state decides.
@@ -145,6 +156,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3): BraidCard {
     branch: braid.source?.branch ?? null,
     pr: own.pr,
     reason: strands.length === 0 ? own.reason : (waiting?.reason ?? null),
+    running: isRunning(t3, braid.number) || strands.some((s) => s.running),
     done: strands.filter((s) => s.lane === "Done").length,
     total: strands.length,
     strands,
@@ -171,6 +183,7 @@ export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T
     branch: item.source?.branch ?? null,
     pr: own?.pr ?? null,
     reason: own?.reason ?? null,
+    running: own?.running ?? false,
     brief: item.brief.body.trim(),
     report: item.hasReport ? tree.read(`${item.folder}/report.md`) : null,
     logs: item.logs.map((name) => ({ name, text: tree.read(`${item.folder}/${name}`) ?? "" })),
