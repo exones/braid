@@ -1,7 +1,7 @@
 ---
 id: '0008/C'
 title: "Skills call the commands"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: ['0008/B']
 order: 30
@@ -38,7 +38,7 @@ Expected size: about 150 to 300 changed lines, mostly removals.
 - [x] The skills name the commands where they did the steps by hand, and are shorter
 - [x] The epic/** trigger and backlog/** skip are gone from ci.yml and the README
 - [x] The gh-sharing test no longer depends on timing
-- [ ] CI green on Windows and Ubuntu
+- [x] CI green on Windows and Ubuntu
 
 ## Definition of done
 
