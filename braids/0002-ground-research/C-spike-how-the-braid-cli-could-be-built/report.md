@@ -1,25 +1,27 @@
----
-id: doc-2
-title: 'TASK-2.3 report: how the braid CLI could be built'
-type: other
-created_date: '2026-11-13T15:19:00Z'
----
+What changed: new docs/braid-cli.md answers the five questions. (1) What the CLI must do: the Backlog.md subset braid calls, plus the steps the skills do by hand (next item, resume status, start, checks by ci names, auto-mode merge checks, stop-case facts, recaps); order: read-only board with nested goals and derived states, then compatible write commands, coordinator commands, board actions, T3 automation and growth. (2) Architecture: format, config, ids, git, store, model, cli, sources, derive, actions, server, web on Node 26/ESM with two or three dependencies; Backlog.md code and 18 test files (5,578 lines) as the specification; a round-trip suite against backlog.exe-written files; runtime state in an untracked runs module for checkpoints and several agents; multi-line fields also from a file or stdin because npm shims on Windows cut them. (3) Estimate: compatible tracker 5.1k-7.1k product lines, with board 7.5k-11.1k, tests one to two times that; six goals (five tier L, one M), each with phases; riskiest: byte-exact round-trip, IDs across branches, outside sources, concurrent writers; fork ~36k-52k plus the Bun port, wrap 3k-5.5k but never drops backlog. (4) UI: React 19.3, Vite 8, Tailwind 4.3, Radix primitives, node:http with SSE on 127.0.0.1 and a session token for actions; drag and drop (pragmatic-drag-and-drop when wanted), router, query cache and editor can wait. (5) Licence: reading needs nothing; ported pieces keep the MIT notice (THIRD_PARTY_NOTICES.md and file headers); wrap nothing unless bundled; fork keeps LICENSE. braid has no licence: others have no right to use it, so pick one (MIT simplest) before publishing.
+Why: the user leans to reimplementing and needs the estimate, stack and follow-up goals to plan.
+Validation: claims from the v1.55.3 source (wc, grep), npm view on 2026-11-13, gh api repos/exones/braid, the braid skills; review (PR #55) not blocking, five suggestions applied; npm run verify passes.
+Open: cross-branch read time on large repos, T3 programmatic interface (TASK-2.2), exact per-command sizes in cli.ts.
+For later items: TASK-2.2 supplies the lanes and derived-state rules that goal 1 (read-only board) needs; the doc proposes derived lanes with actions as buttons, not drag.
+Needs the user: decision: confirm the reimplement way and the follow-up goal order; decision: pick a licence for braid before publishing.
+
+## TASK-2.3 report: how the braid CLI could be built
 
 # The new braid CLI: design sketch and estimate
 
-> Research report for TASK-2.3, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so. The user's decisions: [TASK-2 report](doc-4%20-%20TASK-2-report-research-results-and-the-users-decisions.md).
+> Research report for TASK-2.3, 2026-11-13. Findings and recommendations, not decisions: nothing here is decided until the user says so. The user's decisions: [TASK-2 report](../../../archive/backlog/docs/doc-4%20-%20TASK-2-report-research-results-and-the-users-decisions.md).
 
 How a new braid CLI could be built as braid's task tracker, board and, later, the automation of T3
 (starting and following agents), with an estimate per way, a UI stack for the board and what the
 licences mean. Written for TASK-2.3 (2026-11-13). It builds on [Backlog.md as braid's
-reference](doc-1%20-%20TASK-2.1-report-Backlog.md-as-braids-reference.md) (TASK-2.1) and the user's lean of 2026-11-13: reimplement a compatible
+reference](../../../archive/backlog/docs/doc-1%20-%20TASK-2.1-report-Backlog.md-as-braids-reference.md) (TASK-2.1) and the user's lean of 2026-11-13: reimplement a compatible
 Node tracker with Backlog.md as the reference, wrapping its CLI during the transition. Fork and wrap
 are estimated only roughly. The board's lanes, derived-state sources and agent starts are TASK-2.2's.
 
 Evidence: the braid skills (`.agents/skills/braid/SKILL.md`, `references/workflow.md`,
-`assets/task.md`, `braid-worker`, `braid-reviewer`), [BRAID.md](../../BRAID.md), the
-[roadmap](../../docs/roadmap.md#braids-own-board), [decisions](../../docs/decisions.md) D01 and D30, and Backlog.md v1.55.3
-cloned into `inspiration/backlog.md` (gitignored) as in [backlog-md.md](doc-1%20-%20TASK-2.1-report-Backlog.md-as-braids-reference.md). Line counts
+`assets/task.md`, `braid-worker`, `braid-reviewer`), [BRAID.md](../../../BRAID.md), the
+[roadmap](../../../docs/roadmap.md#braids-own-board), [decisions](../../../docs/decisions.md) D01 and D30, and Backlog.md v1.55.3
+cloned into `inspiration/backlog.md` (gitignored) as in [backlog-md.md](../../../archive/backlog/docs/doc-1%20-%20TASK-2.1-report-Backlog.md-as-braids-reference.md). Line counts
 are `wc -l`; library versions are `npm view <package> version time.modified` on 2026-11-13; braid's
 licence state is from `package.json` and `gh api repos/exones/braid`.
 
@@ -31,7 +33,7 @@ licence state is from `package.json` and `gh api repos/exones/braid`.
 --final-summary --dep --add-label --remove-label`; `task view --plain`; `task list --plain --ready -s
 -p`; `task archive`; `milestone add` and `archive`; `doctor`. Behind them: the task file format,
 IDs and subtask IDs, cross-branch reads (30 days, remote operations on), the three statuses and the
-project DoD defaults from `backlog/config.yml`. braid uses no drafts, docs, decisions, wizards, MCP
+project DoD defaults from `archive/backlog/config.yml`. braid uses no drafts, docs, decisions, wizards, MCP
 server, TUI or shell completions.
 
 **What the skills do by hand today that a CLI could do.** Each line below is prose in a skill that
@@ -74,7 +76,7 @@ One package, `@exones/braid`, Node.js 26, ESM, strict TypeScript built with `tsc
 | Module | Does | Reference in Backlog.md (lines) |
 | --- | --- | --- |
 | `format/` | Parse and serialize a task file: front matter, the `SECTION:…:BEGIN/END` blocks, numbered AC and DoD, title variants; keep unknown content and byte order on round-trip | `src/markdown/` (2,246, of which `structured-sections.ts` 1,522) |
-| `config/` | `backlog/config.yml` (statuses, labels, DoD defaults, branch settings) and `BRAID.md` front matter (`gate`, `ci`, `models`, `auto`) | part of `src/file-system/operations.ts` (2,647) |
+| `config/` | `archive/backlog/config.yml` (statuses, labels, DoD defaults, branch settings) and `BRAID.md` front matter (`gate`, `ci`, `models`, `auto`) | part of `src/file-system/operations.ts` (2,647) |
 | `ids/` | Prefixes, padding, `task-2` → `task-2.3`, milestone IDs; taken IDs from local files, every worktree and fetched branches | `prefix-config.ts`, `id-generators.ts`, `task-id.ts` (762) |
 | `git/` | `git` through `execFile` with argument arrays: branches, `ls-tree`, `show`, worktrees, fetch | `src/git/operations.ts` (1,362; braid needs a small part) |
 | `store/` | Load tasks from the working copy and other branches; the winner rule (`selectTaskRecord`: working copy first, then most progressed); write with a lock | `task-loader.ts`, `cross-branch-tasks.ts`, `task-identity-index.ts` (1,172) |
@@ -144,7 +146,7 @@ repository today has about 2,100 product lines (`src/`) and 4,300 test lines (`t
 | T3 automation, `runs/` records, checkpoints, resuming | 1,000–2,000 | Goal 5; depends on T3's API, the most uncertain |
 | Reports, several agents, running a task from the board | 1,000–2,000 | Goal 6; rough, planned after goal 5 |
 
-In goals (tiers as in [the workflow](../../.agents/skills/braid/references/workflow.md)): six
+In goals (tiers as in [the workflow](../../../.agents/skills/braid/references/workflow.md)): six
 goals, five of them tier L and one tier M, listed under "Follow-up goals" below.
 
 **Riskiest parts**, in order:

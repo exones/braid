@@ -54,7 +54,7 @@ braid calls the CLI only ([BRAID.md](../../BRAID.md), [the task guide](../../.ag
 `--dep`), `task view --plain`, `task list --plain --ready -s -p`, `task archive`, `milestone add` and
 `archive`, `doctor`; and `backlog browser` for the user to look. Config: three statuses, the label
 list, project DoD defaults, `check_active_branches` with 30 days, `remote_operations` on,
-`auto_commit` off ([`backlog/config.yml`](../../backlog/config.yml)).
+`auto_commit` off ([`archive/backlog/config.yml`](../../../archive/backlog/config.yml)).
 
 - **Task file.** One Markdown file per task in `backlog/tasks/`, named `<id> - <title-slug>.md`.
   YAML front matter holds `id`, `title`, `status`, `labels`, `milestone`, `dependencies`,

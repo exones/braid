@@ -1,24 +1,12 @@
 ---
-id: TASK-7.4
-title: Switch this repository to braids
-status: To Do
-assignee: []
-created_date: '2026-11-14T11:18:00Z'
-updated_date: '2026-11-14T12:42:00Z'
-labels:
-  - kind:story
-  - tier:S
-  - ask:data
-milestone: m-4
-dependencies:
-  - TASK-7.3
-parent_task_id: TASK-7
-ordinal: 40
+id: '0007/D'
+title: "Switch this repository to braids"
+status: Done
+labels: ["kind:story", "tier:S", "ask:data"]
+dependencies: ['0007/C']
+order: 40
 ---
 
-## Description
-
-<!-- SECTION:DESCRIPTION:BEGIN -->
 Goal: this repository's work lives in `braids/`, with its history kept in `archive/backlog/` and its future stories visible on the board as outlines.
 
 Expected size: generated files plus about 100 to 200 lines of hand edits.
@@ -38,18 +26,19 @@ Change:
 Already decided (don't re-investigate): the parent TASK-7; numbers kept (TASK-N → `000N`); `backlog/` moves to `archive/backlog/`.
 
 Out of scope: changing the content of past tasks beyond the import; the skills (TASK-7.3).
-<!-- SECTION:DESCRIPTION:END -->
 
-## Acceptance Criteria
-<!-- AC:BEGIN -->
-- [ ] #1 braids/ holds 0001 to 0007 from the import and Outline braids for stories 5 to 9; braid check passes and the board shows them
-- [ ] #2 backlog/ is now archive/backlog/ with a frozen-history note, and no link in the repository points to the old path
-- [ ] #3 doc-5's decisions are in docs/decisions.md
-- [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
-<!-- AC:END -->
+## Acceptance
 
-## Definition of Done
-<!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
-<!-- DOD:END -->
+- [x] braids/ holds 0001 to 0007 from the import and Outline braids for stories 5 to 9; braid check passes and the board shows them
+- [x] backlog/ is now archive/backlog/ with a frozen-history note, and no link in the repository points to the old path
+- [x] doc-5's decisions are in docs/decisions.md
+- [x] npm run verify passes; CI green on Windows and Ubuntu
+
+## Definition of done
+
+- [x] The gate command from BRAID.md passes
+- [x] Final summary written: what changed, why, validation, anything open
+
+## Plan
+
+1. Commit In Progress + plan.

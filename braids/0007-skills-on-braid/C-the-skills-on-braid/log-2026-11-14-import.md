@@ -1,0 +1,5 @@
+## 2026-11-14 11:18Z
+
+2026-11-14 Decisions: the worker skill drops its brief-file mode (epics/ era) since there is one version of the skills; assets/task.md is renamed assets/brief.md; the new decision is D33 (D32 is the attention board); scripts/Test-BraidBacklogFlow.ps1 is removed (it replayed the Backlog.md commands of task.md and was not in the gate); doc-1 is frozen in the link exclusions because it links the old task.md; ci.yml pushes run on braid/* (braid branches) and skip braids/**; a grown story's branch becomes its braid branch (same name), no separate epic branch; a dropped strand's folder is removed after a log entry (braids have no archive); BRAID.md here keeps a one-line note that items stay in backlog/ until TASK-7.4.
+
+2026-11-14 Review (PR #74, not blocking), three fixes: AGENTS.md hard limits say auto mode merges into the braid branch; story planning runs git fetch again before cutting from origin/main; the worker checkpoint example is a valid braid log call with its text.
