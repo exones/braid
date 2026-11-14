@@ -9,7 +9,7 @@ created_date: '2026-11-13T16:42:00Z'
 
 > Draft for iterative planning with the user, section by section. Nothing here is a task yet; stories become Backlog.md tasks only after the user approves them. Built on [TASK-2's decisions](doc-4%20-%20TASK-2-report-research-results-and-the-users-decisions.md).
 
-Status: round 4: stories 1 and 2 merged; story 3 (board) in strands, with open questions; story 4 an outline. Next rounds: one story at a time, broken into phases.
+Status: round 5: stories 1 to 3 merged; story 4 in strands, with open questions. Next rounds: one story at a time, broken into phases.
 
 ## Ground rules (the user's, 2026-11-13)
 
@@ -107,15 +107,27 @@ Decided by the user (2026-11-13):
 3. **Refresh:** every 30 seconds while the page is open, at once when a file under `braids/` changes, and a Refresh button.
 4. **Trying it before story 4:** the playground repository and test fixtures.
 
-### Story 4: Skills on braid, with the import (outline, tier L)
+### Story 4: Skills on braid, with the import (epic, tier L) — round 5, draft
 
-- Strands, roughly: import TASK-1 to TASK-3 with their subtasks and reports into `0001` to `0003`, leaving `backlog/` as read-only history; the task template and the skills' `backlog` calls become direct edits of `brief.md` and `report.md` (followed by `braid check`) or `braid` commands where they have logic (new, strand new, log), with the fewest wording changes; the skills drop "never edit task files by hand" and the Windows `backlog.exe` lookup, which makes them shorter; `BRAID.md` and its template drop the Backlog.md invocation rules; the installer also installs braid (decision 5); the Outline step joins the coordinator's flow. The worker skill learns the report rule (user, 2026-11-13): after a fix round the worker rewrites `report.md` to describe the final state (`braid report`, replace), and the history of the round goes into its log; `--append` is for short notes after the fact.
+Working at the end: this repository's work lives in `braids/`; the installed skills call `braid`, not `backlog`; one small real braid has run end to end (plan, worker, review, merge) on them. Backlog.md is no longer needed. **End of the MVP.**
+
+- **A. Import** (M): `braid import-backlog` reads `backlog/` and writes `braids/`. TASK-N becomes `000N-<slug>` and its subtasks strands in subtask order (TASK-6.1 → `0006/A`); status, labels, dependencies and ordinal map one to one; the description, acceptance criteria (`## Acceptance`, checkboxes), Definition of Done and plan become brief sections; the notes become `log-<date>-import.md`; the final summary becomes `report.md`; a linked doc becomes that item's report or sits next to it; milestones are dropped (a braid groups its strands). It refuses when a target folder exists and has a dry run. Tested on a fixture copy of this repository's `backlog/`.
+- **B. Install braid** (S): the skill installer also builds and installs the `braid` CLI from the same ref (no npm publishing yet) and checks `braid --version`; the skills say what to do when `braid` is missing, or when a project has `backlog/` and no `braids/` (run `braid import-backlog`).
+- **C. Skills on braid** (L, may split into coordinator and worker/reviewer phases): `backlog` calls become direct edits of `brief.md` and `report.md` followed by `braid check`, or `braid` commands where they hold logic (new, strand new, log, report); the task template becomes a brief template; branches become `braid/0007-<slug>` and `braid/0007/A-<slug>`; the Windows `backlog.exe` lookup, "never edit task files by hand" and the Backlog.md parts of `BRAID.md`, its template, `AGENTS.md` and the README go; D30 is replaced by a new decision. Added: the Outline step, the report rule, the three ways of working below, and "tick the CI criterion only once CI is green" (workers kept ticking it early).
+- **D. Switch this repository** (S): run the import here (TASK-1 to TASK-7 → `0001` to `0007`; TASK-2's reports into its braid and strands); turn stories 5 to 9 of this plan into Outline braids (`0008` onward) and its decisions into `docs/decisions.md`; move `backlog/` to `archive/backlog/` and rewrite the links to it. From here on story 4 itself lives in `braids/0007`.
+- **E. Trial** (S): install the skills and `braid` from the epic branch, then run one small real braid end to end with them; fix what breaks before the final PR.
+
+Order: A, B, C, D, E. Until D merges, story 4 is tracked in Backlog.md on its epic branch, and the coordinator runs on the skills installed from `main`.
 - Ways of working the skills learn (user, 2026-11-14; plan them in detail when story 4 comes up):
   1. **Converge loop.** A `ui` item, or any item where the user chooses the shape (design, names, wording), starts with a proposal on realistic test data, and the worker stops. The coordinator shows it to the user; each verdict goes into the item's log at once; rounds repeat until the user approves, and only then does the worker build. While it waits for the verdict, the strand sits in Needs You. Example: TASK-6.5 took four mockup rounds to reach the attention board.
   2. **Decided means documented.** The PR that builds an approved design also updates the product doc that describes it (how it works) and `docs/decisions.md` (why). Unconfirmed proposals stay in the item's report, as for spikes.
   3. **Side ideas get a home.** When the user proposes something while another item runs, the coordinator doesn't fold it in silently: it asks whether to track it and proposes where, with a recommendation: absorb it into the running item, add a strand to an existing braid, extend an outline, or create a new braid.
-- What may affect decisions: how Backlog.md's notes map (one `log-<date>-import.md`, or into the report); where the TASK-2 reports land; whether `backlog/` stays where it is or moves under an archive folder; whether other projects that use the braid skills keep Backlog.md support for a while, or move to braid at the same time; how a project without braid installed is told what to do.
 
+Decided by the user (2026-11-14):
+1. **Other projects switch together:** one version of the skills, braid only. A project still on Backlog.md runs `braid import-backlog` once; the skills say so when they find `backlog/` and no `braids/`.
+2. **The import is a lasting command,** `braid import-backlog`, kept and tested.
+3. **This plan and the reports go into braids:** stories 5 to 9 become Outline braids `0008` onward; this plan's decisions go to `docs/decisions.md`; doc-1 to doc-4 become the reports of braid `0002` and its strands; this file stays with the old `backlog/` as history.
+4. **The old `backlog/` moves to `archive/backlog/`;** links to it in docs and decisions are rewritten in the same PR.
 ## Decision details
 
 The background of each decision above, as first proposed; where they differ, "Decided so far" wins.
