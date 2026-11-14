@@ -43,7 +43,7 @@ Expected size: about 30 to 80 lines with tests.
 ## Definition of done
 
 - [x] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
