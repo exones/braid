@@ -1,10 +1,10 @@
 ---
 id: TASK-6.4
 title: T3 threads and live refresh
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-13T22:01:00Z'
-updated_date: '2026-11-14T09:28:00Z'
+updated_date: '2026-11-14T09:32:00Z'
 labels:
   - kind:story
   - tier:M
@@ -45,14 +45,14 @@ Out of scope: starting or messaging threads (story 6).
 - [x] #1 Running, question and stopped threads put the strand in the right lane with its reason, covered by tests with t3 output stubbed
 - [x] #2 The page updates by itself every 30 s and on a file change, and has a Refresh button
 - [x] #3 Without T3 the board still works and says so
-- [ ] #4 npm run verify passes; CI green on Windows and Ubuntu
+- [x] #4 npm run verify passes; CI green on Windows and Ubuntu
 - [x] #5 braid board --demo shows every lane and every Waiting reason without touching the repo, gh or t3; the screenshots are retaken from it
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 The gate command from BRAID.md passes
-- [ ] #2 Final summary written: what changed, why, validation, anything open
+- [x] #1 The gate command from BRAID.md passes
+- [x] #2 Final summary written: what changed, why, validation, anything open
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -71,3 +71,14 @@ Out of scope: starting or messaging threads (story 6).
 <!-- SECTION:NOTES:BEGIN -->
 2026-11-14 Decisions: T3 ids come from the list's threadId; a thread joins by linked PR (number/url against GitHub's PRs, or head branch if given), else worktree path vs git worktree list, else show's branch; show runs per running thread (pending questions) and once per unjoined stopped thread (cached). Refresh is server-sent events on /api/events (30 s timer, fs.watch on braids/ debounced 200 ms); the Refresh button refetches with fresh=1. Added --demo-t3-down so the T3-down note can be screenshotted. Tests no longer reach real gh/t3 (board.test spawns with an empty PATH).
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+What changed: the board reads T3 threads (src/board/t3.ts: `t3 thread list/show --json`, joined to a strand by linked PR, then worktree path vs `git worktree list`, then show's branch; show cached per thread). `derive` now gives: running thread -> In Progress (Waiting "question" with a pending request; failing checks ignored while it runs); interrupted/cancelled thread with no PR -> Waiting "agent stopped". Without T3 the board still works and the header says why. The page refreshes by server-sent events: every 30 s, 200 ms after a file under braids/ changes, and by a Refresh button (fresh read). `braid board --demo` (src/board/demo.ts, reused by tests) serves sample braids with faked GitHub/T3 and reads no repo, gh or t3; `--demo-t3-down` shows the T3-down note. Screenshots 08-10 retaken from the demo.
+Why: story 3 needs the board to show what agents do and stay current without reload.
+Validation: npm run verify (63 tests; test/t3.test.ts stubs t3 output); CI green on Windows and Ubuntu. Existing board tests no longer reach real gh/t3.
+Open: not run against a real T3 (needs permission to read the user's threads); field names follow the saved TASK-2.2 samples (threadId, pullRequests, pendingRequestCount, worktreePath).
+For later items: Sources interface and startBoardWith/demoSources in src/commands/board.ts; readT3/T3 in src/board/t3.ts; derive takes a T3; /api/events and ?fresh=1; strand rows in the card still print the stored status (e.g. "In Progress" beside "Waiting: question") and a running agent has no marker beyond the lane: candidates for a UI mockup; the `--demo-t3-down` flag is an addition for the screenshot.
+Needs the user: none
+<!-- SECTION:FINAL_SUMMARY:END -->
