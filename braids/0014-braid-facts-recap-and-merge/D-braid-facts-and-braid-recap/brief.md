@@ -1,7 +1,7 @@
 ---
 id: '0014/D'
 title: "braid facts and braid recap"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: ['0014/C']
 order: 30
