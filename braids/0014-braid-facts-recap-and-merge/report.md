@@ -10,6 +10,7 @@
   - `braid recap` drafts the recap and the braid log line from `report.md`, the PR head and checks, and the facts.
   - The skills call both commands instead of the hand-run steps, going from 9,384 to 9,131 words. Decision D44.
 - **E, final review fixes (#91).** The recap draft gets a Screenshots line, its log line follows the `assets/brief.md` template, branch parsing reuses `keyOfBranch`, the full case name `quality or scope` is kept, and D44 has its decision-log line. `braid facts` now reads the expected size from the number of lines (the upper end of a range); it used to take the file count.
+- **F, `braid done` skips the caller's thread (#92).** Finishing 0014, `braid done 0014` refused because the coordinator's own thread, whose checkout is on the braid branch, counted as a running worker. It now skips the `--thread` it is given, names any other running thread, and the skill passes `--thread` on every `braid done`. The board's side of this moved to 0015.
 - The goal's separate `braid merge` became `braid done --merge` (A, option C).
 
 ## Why
@@ -20,7 +21,7 @@ The coordinator used to assemble the stop-case facts, recaps and merges by hand.
 
 - `npm run verify` passed on every strand, and CI passed on Windows and Ubuntu for each PR.
 - Independent reviews (grok-4.6) of C and D found nothing blocking. C's three suggestions were applied before its merge.
-- The final review of #90 (grok-4.6) found nothing blocking. Its five suggestions and one bug found by running `braid recap` are fixed in E (136 tests).
+- The final review of #90 (grok-4.6) found nothing blocking. Its five suggestions and one bug found by running `braid recap` are fixed in E; F fixed the bug above (all strands' tests pass).
 - D was merged with `braid done 0014/D --merge --log -` from this branch's build, the command's first real use.
 
 ## Open
