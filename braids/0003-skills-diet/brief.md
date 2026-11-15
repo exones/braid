@@ -29,6 +29,8 @@ Change:
 - `scripts/Install-Skills.ps1` without `-Ref` installs from `origin/main` after a `git fetch`, not the local `main` branch, which can be stale (on 2026-11-13 a stale local `main` replaced the new skills with the old `braid-coordinate`); README and the Pester test follow.
 - Parent's references: the coordinator adds the epic branch and the planning PR with `--add-ref` at planning, and the final PR when it opens, so a goal's properties show at the top of its parent.
 
+- `braid facts`: the size fact leaves `braids/**` (the item's own brief, report and logs) out of the lines changed, as PR-size tools leave out generated files; `docs/braids-format.md` and a test follow (user, 2026-11-15).
+
 Already decided (don't re-investigate):
 - No rule is lost: the reviewer compares old and new rule by rule.
 - Keep instructions very short, as TASK-1's rule says; give before and after word and line counts of every changed skill file.
