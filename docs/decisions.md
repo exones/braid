@@ -66,6 +66,7 @@ The user confirmed using npm directly. Public packages can use npm's free tier; 
 
 ## Decision log
 
+- 2026-11-15, user (0014/D, 0014/E): adopted D44, the coordinator's diff facts and recap drafts come from `braid facts` and `braid recap`; the final review's fixes (Screenshots line, log-line template, full case names) are in 0014/E.
 - 2026-11-14, user (0014/A, built in 0014/C): adopted D43, the coordinator marks Done with `braid done`; D31's auto-mode condition (2) and D33's CI-box rule reworded for it.
 - 2026-11-14, user (TASK-7): adopted D33, braids as the skills' item store; it replaces D30 (Backlog.md). D16, D29 and D31 reworded for braids. D34 to D41 record the decisions of the braid plan (doc-5, now in `archive/backlog/docs/`).
 - 2026-11-14, user (0008/F): an `ask:<key>` label no longer sets the lane (it put 0008 in Needs You before work began); it only shows the amber flag "Will need your decision". Needs You is a real block. How the board learns that the coordinator itself waits is braid 0015.
