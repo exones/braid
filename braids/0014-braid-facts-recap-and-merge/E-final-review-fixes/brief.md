@@ -1,7 +1,7 @@
 ---
 id: '0014/E'
 title: "Final review fixes"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 40
@@ -37,9 +37,9 @@ Expected size: about 40 to 80 lines in 4 files.
 
 ## Acceptance
 
-- [ ] The five suggestions are fixed, with tests for the recap's Screenshots line, the log line shape and the full case name
+- [x] The five suggestions are fixed, with tests for the recap's Screenshots line, the log line shape and the full case name
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

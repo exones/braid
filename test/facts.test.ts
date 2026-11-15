@@ -24,10 +24,10 @@ const git = (cwd: string, ...args: string[]) => {
   return r.stdout.trim();
 };
 const ok = (data: unknown) => ({ status: 0, stdout: JSON.stringify(data), stderr: "" });
-const brief = (size: string) => `---\nid: '0001'\ntitle: "Alpha story"\nstatus: In Progress\nlabels: []\ndependencies: []\n---\n\n## Goal\n\nx\n\nExpected size: ${size}\n`;
+const brief = (size: string, labels = "[]") => `---\nid: '0001'\ntitle: "Alpha story"\nstatus: In Progress\nlabels: ${labels}\ndependencies: []\n---\n\n## Goal\n\nx\n\nExpected size: ${size}\n`;
 
 /** A repository with a bare remote and PR 7 from braid/0001-alpha into main; `change` edits the worker's clone before the commit. */
-function world(size: string, change: (put: (path: string, text: string) => void, rm: (path: string) => void) => void, report = "") {
+function world(size: string, change: (put: (path: string, text: string) => void, rm: (path: string) => void) => void, report = "", labels = "[]") {
   const base = mkdtempSync(join(scratch, "w-"));
   const root = join(base, "proj");
   const worker = join(base, "worker");
@@ -43,7 +43,7 @@ function world(size: string, change: (put: (path: string, text: string) => void,
   };
   put(root)("BRAID.md", "---\nmain: main\nci: [verify]\n---\n");
   put(root)("test/old.test.ts", "test('a', () => {});\n");
-  put(root)("braids/0001-alpha/brief.md", brief(size));
+  put(root)("braids/0001-alpha/brief.md", brief(size, labels));
   git(root, "add", "-A");
   git(root, "commit", "-q", "-m", "init");
   git(root, "remote", "add", "origin", join(base, "remote.git"));
@@ -118,7 +118,15 @@ test("braid recap: drafts the recap from report.md, the PR head and checks, and 
   assert.match(out, /\*\*Done:\*\* - added facts\n- added recap/);
   assert.match(out, /^\*\*Needs the user:\*\* dependency \(facts\): manifest or lockfile changed: package\.json$/m);
   assert.match(out, /^checks: verify passing \(green on this head\)$/m);
-  assert.match(out, /^braid log line: 0001 PR #7 at [0-9a-f]{7}: Alpha story; checks green; needs the user: see recap$/m);
+  assert.match(out, /^braid log line: 0001 merged: PR #7, [0-9a-f]{7}\. Done: <edit: short report>\. For later items: none\. Plan changes: <edit: or none>\. User decided: <edit: or none>\. \(Alpha story; checks green; needs the user: see recap\)$/m);
+  assert.match(out, /^\*\*Screenshots:\*\* none$/m);
+});
+
+test("braid recap: a ui item gets a Screenshots placeholder and a size fact keeps the full case name", async () => {
+  const w = world("about 10 lines", (put) => put("src/big.ts", "x\n".repeat(60)), "## What changed\n\n- a\n", "[ui]");
+  const out = await recapCommand(w.root, ["0001"], { gh: w.gh });
+  assert.match(out, /^\*\*Screenshots:\*\* <edit: /m);
+  assert.match(out, /^\*\*Needs the user:\*\* quality or scope \(facts\): /m);
 });
 
 test("braid recap: no facts and a quiet worker gives Needs the user: none; a missing PR is refused", async () => {

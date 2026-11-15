@@ -1,6 +1,6 @@
 // `braid facts <pr>` and `braid recap <id>`: the coordinator's diff facts and a draft recap, from the PR and the item's files at its head.
 // They read and print only: the coordinator still judges each fact against the stop cases.
-import { readGithub, runGh, runsOf, type GhRunner } from "../board/github.js";
+import { keyOfBranch, readGithub, runGh, runsOf, type GhRunner } from "../board/github.js";
 import { UsageError } from "./braids.js";
 import { ciChecks } from "./coordinate.js";
 import { checksProblem, git, must, view, type PrView } from "./done.js";
@@ -67,11 +67,6 @@ function itemAt(root: string, head: string, id: string): Item | null {
   return null;
 }
 
-function idOfBranch(branch: string): string | null {
-  const m = /^braid\/(\d{4})(?:\/([A-Z]))?-/.exec(branch);
-  return m === null ? null : `${m[1]}${m[2] === undefined ? "" : `/${m[2]}`}`;
-}
-
 interface Gathered {
   readonly pr: PrView;
   readonly item: Item | null;
@@ -81,7 +76,7 @@ interface Gathered {
 function gather(root: string, run: GhRunner, prNumber: number): Gathered {
   const pr = view(run, root, prNumber);
   must(root, ["fetch", "-q", REMOTE, `+refs/heads/${pr.baseRefName}:refs/remotes/${REMOTE}/${pr.baseRefName}`, `+refs/heads/${pr.headRefName}:refs/remotes/${REMOTE}/${pr.headRefName}`], "can't fetch the PR's branches");
-  const id = idOfBranch(pr.headRefName);
+  const id = keyOfBranch(pr.headRefName);
   const item = id === null ? null : itemAt(root, pr.headRefOid, id);
   return { pr, item, facts: diffFacts(root, `${REMOTE}/${pr.baseRefName}`, pr.headRefOid, item === null ? null : expectedSize(item.brief)) };
 }
@@ -135,8 +130,9 @@ export async function recapCommand(root: string, args: readonly string[], opts: 
   const problem = checksProblem(names, pr);
   const worker = field(report, "Needs the user");
   const quiet = worker === null || /^`?none`?\.?$/i.test(worker);
-  const needs = facts.map((f) => `${f.key.split(" ")[0]} (facts): ${f.text}`);
+  const needs = facts.map((f) => `${f.key} (facts): ${f.text}`);
   const needsLine = [quiet ? null : `worker: ${worker}`, ...needs].filter((x) => x !== null).join("; ");
+  const ui = /^labels:.*\bui\b/m.test(item?.brief ?? "");
   const out = [
     `**${key}: ${title}** — ${pr.state === "MERGED" ? "merged" : "ready for your merge"}. PR: ${pr.url} at ${pr.headRefOid}`,
     "",
@@ -144,6 +140,7 @@ export async function recapCommand(root: string, args: readonly string[], opts: 
     `**Decisions:** ${field(report, "Decisions") ?? "<edit: choices the brief didn't settle, or None>"}`,
     "**Deviations:** <edit: only if the work departed from the brief>",
     `**Needs the user:** ${needsLine === "" ? "none" : needsLine}${report === "" ? " (no report.md at the head)" : ""}`,
+    `**Screenshots:** ${ui ? "<edit: the final screens, embedded from the artifacts folder>" : "none"}`,
     `**You:** <edit: only if the user must act, e.g. merge PR ${pr.url}>`,
     "**Next:** <edit>",
     "",
@@ -152,7 +149,7 @@ export async function recapCommand(root: string, args: readonly string[], opts: 
     "facts:",
     ...factLines(facts).map((l) => `- ${l}`),
     "",
-    `braid log line: ${key} PR #${pr.number} at ${pr.headRefOid.slice(0, 7)}: ${title}; checks ${problem === null ? "green" : "not green"}; needs the user: ${needsLine === "" ? "none" : "see recap"}`,
+    `braid log line: ${key} merged: PR #${pr.number}, ${pr.headRefOid.slice(0, 7)}. Done: <edit: short report>. For later items: ${field(report, "For later items") ?? "<edit: or none>"}. Plan changes: <edit: or none>. User decided: <edit: or none>. (${title}; checks ${problem === null ? "green" : "not green"}; needs the user: ${needsLine === "" ? "none" : "see recap"})`,
   ];
   return `${out.join("\n")}\n`;
 }
