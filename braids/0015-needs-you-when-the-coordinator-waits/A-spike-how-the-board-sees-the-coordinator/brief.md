@@ -1,7 +1,7 @@
 ---
 id: '0015/A'
 title: "Spike: how the board sees the coordinator"
-status: To Do
+status: In Progress
 labels: ["kind:spike", "tier:M"]
 dependencies: []
 order: 10
