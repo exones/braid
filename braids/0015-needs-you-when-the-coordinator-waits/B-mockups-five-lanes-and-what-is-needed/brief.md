@@ -1,7 +1,7 @@
 ---
 id: '0015/B'
 title: "Mockups: five lanes and what is needed"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S", "ui"]
 dependencies: []
 order: 20
