@@ -141,5 +141,5 @@ export function cardMarks(card: BraidCard, details = true): Marks {
       activities.set(a.kind, a);
     }
   }
-  return { reasons: [...reasons.values()], review: null, activities: [...activities.values()], done: false };
+  return { reasons: [...reasons.values()], review: null, activities: [...activities.values()], done: card.lane === "Done" };
 }

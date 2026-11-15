@@ -263,3 +263,10 @@ test("stalled and checks failed show only after the condition has held for ten m
   resetT3Memory();
   assert.match(await statusCommand(root, ["1"], src(red)), /Needs You \(checks failed\)[\s\S]*Checks failed: verify \(ubuntu-latest\); fix or retry \(for 12 min\)/);
 });
+
+test("an item with an open request is still ready for next (start closing it is tested in requests.test.ts)", async () => {
+  const root = repo([{ letter: "A", status: "To Do", order: 10 }]);
+  openRequest(root, { id: "0001/A", kind: "decision", text: "Which layout?", at: new Date().toISOString(), thread: null });
+  assert.match(await statusCommand(root, ["1"], src()), /0001\/A {2}To Do {2}Needs You \(decision\)/);
+  assert.match(await nextCommand(root, ["1"], src()), /^0001\/A {2}T 0001\/A\n/);
+});

@@ -248,12 +248,19 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
-  // so besides its strands only its own request counts.
+  // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
+  // strand Done; before that the strands decide, and a braid with strands is never "stalled".
   const pr = gh.prs.get(braid.number) ?? null;
   const req = sig.requests.get(braid.number);
-  const own = req === undefined || pr?.state === "merged" ? null : requestLane(req, sig.now);
+  const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
+  let own: { lane: Lane; reason: Reason | null; need: Need | null } | null = null;
+  if (finalPr) {
+    own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, { status: t3.status, threads: new Map() }, sig);
+  } else if (req !== undefined && pr?.state !== "merged") {
+    own = requestLane(req, sig.now);
+  }
   const candidates = [
-    ...(own === null ? [] : [{ lane: own.lane, reason: own.reason, need: own.need, who: null as string | null }]),
+    ...(own?.need == null ? [] : [{ lane: own.lane, reason: own.reason, need: own.need, who: null as string | null }]),
     ...strands.flatMap((s) => (s.need === null ? [] : [{ lane: s.lane, reason: s.reason, need: s.need, who: s.id as string | null }])),
   ];
   const top = [...candidates].sort((a, b) => URGENCY.indexOf(a.lane) - URGENCY.indexOf(b.lane))[0];

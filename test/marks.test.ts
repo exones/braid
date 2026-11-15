@@ -157,3 +157,8 @@ test("without T3 no agent shows and no alarm can be told", () => {
   const down = model.toBoard("demo", demo.demoBraids(), demo.demoGithub(), demo.demoT3(true), demo.demoSignals()).braids;
   assert.equal(down.some((c) => marks.cardMarks(c).activities.some((a) => a.kind !== "checks")), false);
 });
+
+test("the tick marks Done cards too", () => {
+  assert.equal(marks.cardMarks(card("0008")).done, true);
+  assert.equal(marks.cardMarks(card("0001")).done, false);
+});

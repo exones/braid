@@ -32,7 +32,7 @@ interface Signals {
 }
 const model = (await load("../dist/board/model.js")) as {
   derive: (status: string, labels: string[], key: string, gh: unknown, t3: unknown, sig: Signals) => Derived;
-  toCard: (braid: unknown, gh: unknown, t3: unknown, sig: Signals) => { lane: string; running: boolean; need: { who: string | null; more: number } | null; strands: { lane: string }[] };
+  toCard: (braid: unknown, gh: unknown, t3: unknown, sig: Signals) => { lane: string; running: boolean; need: { text: string; who: string | null; more: number } | null; reason: string | null; strands: { lane: string }[] };
 };
 const signals = (await load("../dist/board/signals.js")) as {
   brokeClock: (initial: Record<string, string>, now: Date) => { alarm: Signals["alarm"]; seen: () => Record<string, string>; changed: () => boolean };
@@ -147,4 +147,20 @@ test("a coordinator on a braid branch with strands is no agent, and a braid show
   assert.deepEqual([own.lane, own.need?.who, own.need?.more], ["Waiting", null, 0]);
   const mixed = model.toCard(braid, gh(null), t3(), sig([{ ...request("question"), id: "0001/B" }, { ...request("review", { pr: 7 }), id: "0001/C" }, { ...request("plan"), id: "0001" }]));
   assert.deepEqual([mixed.lane, mixed.need?.who, mixed.need?.more], ["Waiting", null, 2], "the braid's own request first on a tie, the strands counted");
+});
+
+test("a braid's final PR: every strand Done, the braid's own PR open", () => {
+  const braid = demo.demoBraids().find((b) => b.number === "0008"); // one strand, Done
+  const braidKey = (status: string) => ({ ...(braid as object), brief: { ...(braid as unknown as { brief: object }).brief, status } });
+  const gh2 = { status: { state: "ok" }, prs: new Map([["0008/A", { number: 15, url: "u", state: "merged", checks: "passing" }], ["0008", { number: 16, url: "u", state: "open", checks: "passing" }]]) };
+  const coordinator = { status: { state: "ok" }, threads: new Map([["0008", [thread("worker", 1)]]]) };
+  const done = model.toCard(braidKey("Done"), gh2, coordinator, sig());
+  assert.deepEqual([done.lane, done.need?.text, done.need?.who, done.reason], ["In Review", "Merge PR #16", null, null], "stored Done, open PR, no request: To Review");
+  const working = model.toCard(braidKey("In Progress"), gh2, coordinator, sig());
+  assert.deepEqual([working.lane, working.need, working.running], ["In Progress", null, false], "the coordinator on the braid branch is no agent");
+  const reviewed = model.toCard(braidKey("In Progress"), gh2, coordinator, sig([{ ...request("review", { pr: 16 }), id: "0008" }]));
+  assert.deepEqual([reviewed.lane, reviewed.need?.text], ["In Review", "Merge PR #16"]);
+  // Merged: Done again.
+  const merged = { ...gh2, prs: new Map([...gh2.prs, ["0008", { number: 16, url: "u", state: "merged", checks: "passing" }]]) };
+  assert.equal(model.toCard(braidKey("Done"), merged, coordinator, sig()).lane, "Done");
 });
