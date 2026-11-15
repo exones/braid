@@ -1,7 +1,9 @@
-// Sample braids with faked GitHub and T3 results for `braid board --demo`: every lane and every
-// Waiting reason shows. Nothing here reads the repository, `gh` or `t3`, and nothing is written.
+// Sample braids with faked GitHub, T3 and requests for `braid board --demo`: every state and every
+// reason shows. Nothing here reads the repository, `gh` or `t3`, and nothing is written.
 import { loadTree, type Braid, type Tree } from "../braids/store.js";
+import type { Request } from "../braids/requests.js";
 import type { Github } from "./github.js";
+import type { ReadSignals } from "./signals.js";
 import type { T3, T3Thread } from "./t3.js";
 
 const brief = (id: string, title: string, status: string, extra = ""): string =>
@@ -20,14 +22,27 @@ const FILES: Readonly<Record<string, string>> = {
   "braids/0003-sample-export/B-pdf/brief.md": brief("0003/B", "PDF export", "In Progress", "order: 2\nlabels:\n  - ask:approve-layout\n"),
   "braids/0003-sample-export/C-tests/brief.md": brief("0003/C", "Export tests", "In Progress", "order: 3\n"),
   "braids/0004-sample-billing/brief.md": brief("0004", "Sample billing", "In Progress", "labels:\n  - tier:S\n"),
-  "braids/0004-sample-billing/A-invoice/brief.md": brief("0004/A", "Invoice page", "In Progress"),
-  "braids/0005-sample-themes/brief.md": brief("0005", "Sample themes", "To Do", "labels:\n  - tier:S\n"),
-  "braids/0006-sample-audit/brief.md": brief("0006", "Sample audit log", "Outline"),
+  "braids/0004-sample-billing/A-invoice/brief.md": brief("0004/A", "Invoice page", "In Progress", "order: 1\n"),
+  "braids/0004-sample-billing/B-refunds/brief.md": brief("0004/B", "Refund rules", "In Progress", "order: 2\n"),
+  "braids/0005-sample-themes/brief.md": brief("0005", "Sample themes", "In Progress", "labels:\n  - tier:S\n"),
+  "braids/0005-sample-themes/A-tokens/brief.md": brief("0005/A", "Colour tokens", "In Progress", "order: 1\n"),
+  "braids/0005-sample-themes/B-dark/brief.md": brief("0005/B", "Dark mode", "To Do", "order: 2\n"),
+  "braids/0006-sample-audit/brief.md": brief("0006", "Sample audit log", "In Progress", "labels:\n  - tier:M\n"),
+  "braids/0006-sample-audit/A-spike/brief.md": brief("0006/A", "Spike: storage options", "Done"),
   "braids/0007-sample-import/brief.md": brief("0007", "Sample import", "In Progress", "labels:\n  - tier:M\n"),
-  "braids/0007-sample-import/A-parser/brief.md": brief("0007/A", "Parser", "In Progress"),
+  "braids/0007-sample-import/A-parser/brief.md": brief("0007/A", "Parser", "To Do", "order: 1\n"),
+  "braids/0007-sample-import/B-mapper/brief.md": brief("0007/B", "Mapper", "To Do", "order: 2\n"),
+  "braids/0007-sample-import/C-report/brief.md": brief("0007/C", "Report", "To Do", "order: 3\n"),
   "braids/0008-sample-mail/brief.md": brief("0008", "Sample mail", "Done", "labels:\n  - tier:S\n"),
   "braids/0008-sample-mail/A-send/brief.md": brief("0008/A", "Send mail", "Done"),
   "braids/0008-sample-mail/A-send/report.md": "# Report\n\nSample report text.\n",
+  "braids/0009-sample-reports/brief.md": brief("0009", "Sample reports", "In Progress", "labels:\n  - tier:M\n"),
+  "braids/0009-sample-reports/A-model/brief.md": brief("0009/A", "Report model", "In Progress", "order: 1\n"),
+  "braids/0009-sample-reports/B-page/brief.md": brief("0009/B", "Report page", "In Progress", "order: 2\n"),
+  "braids/0009-sample-reports/C-export/brief.md": brief("0009/C", "Report export", "To Do", "order: 3\n"),
+  "braids/0010-sample-cache/brief.md": brief("0010", "Sample cache", "In Progress", "labels:\n  - tier:S\n"),
+  "braids/0010-sample-cache/A-layer/brief.md": brief("0010/A", "Cache layer", "In Progress"),
+  "braids/0011-sample-notices/brief.md": brief("0011", "Sample notifications", "To Do", "labels:\n  - tier:S\n"),
 };
 
 /** The sample files as a read-only tree; no disk is touched. */
@@ -63,6 +78,7 @@ const pr = (number: number, state: "open" | "merged", checks: "passing" | "faili
   url: `https://github.com/example/sample/pull/${number}`,
   state,
   checks,
+  head: `${number.toString(16).padStart(7, "0")}${"0".repeat(33)}`,
 });
 
 export function demoGithub(): Github {
@@ -72,17 +88,18 @@ export function demoGithub(): Github {
       ["0001/A", pr(11, "merged", "passing")],
       ["0001/B", pr(12, "open", "passing")],
       ["0002/B", pr(13, "open", "failing")],
-      ["0003/A", pr(14, "open", "passing")],
       ["0003/C", pr(17, "open", "passing")],
+      ["0005/A", pr(18, "open", "pending")],
+      ["0010/A", pr(19, "open", "passing")],
       ["0008/A", pr(15, "merged", "passing")],
       ["0008", pr(16, "merged", "passing")],
     ]),
   };
 }
 
-const thread = (id: string, state: T3Thread["state"], pending = 0): T3Thread => ({ id, state, pending, link: null });
+const thread = (id: string, role: T3Thread["role"], pending = 0): T3Thread => ({ id, role, pending, link: null });
 
-/** Agents: 0002/A runs, 0003/A asks a question, 0004/A stopped, 0002/B has failing checks and no agent. */
+/** Agents: 0002/A, 0009/A and 0009/B run, 0003/A asks a question, 0010/A is being reviewed; 0002/B has failing checks and no agent. */
 export function demoT3(down = false): T3 {
   if (down) {
     return { status: { state: "unavailable", reason: "T3 is not running" }, threads: new Map() };
@@ -90,10 +107,34 @@ export function demoT3(down = false): T3 {
   return {
     status: { state: "ok" },
     threads: new Map<string, readonly T3Thread[]>([
-      ["0002/A", [thread("demo-1", "running")]],
-      ["0003/A", [thread("demo-2", "running", 1)]],
-      ["0004/A", [thread("demo-3", "stopped")]],
-      ["0007/A", [thread("demo-4", "running")]],
+      ["0002/A", [thread("demo-1", "worker")]],
+      ["0003/A", [thread("demo-2", "worker", 1)]],
+      ["0009/A", [thread("demo-3", "worker")]],
+      ["0009/B", [thread("demo-4", "worker")]],
+      ["0010/A", [thread("demo-5", "reviewer")]],
     ]),
+  };
+}
+
+const MIN = 60_000;
+
+/** The requests and broke alarms of the demo, as of `now`: every kind of request, both alarms. Nothing is read or written. */
+export function demoSignals(now: Date = new Date()): ReadSignals {
+  const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
+  const request = (id: string, kind: Request["kind"], text: string, minutes: number, extra: Partial<Request> = {}): Request => ({ id, kind, text, at: at(minutes), thread: null, ...extra });
+  const requests: Request[] = [
+    request("0001/B", "review", "review PR #12 at 0000012", 120, { pr: 12 }),
+    request("0003/B", "decision", "Decide: approve the PDF layout (approve-layout)", 60, { key: "approve-layout" }),
+    request("0003/C", "review", "review PR #17 at 0000011", 180, { pr: 17 }),
+    request("0004/B", "question", "Which rounding rule should refunds use, half-up or banker's?", 35),
+    request("0006", "decision", "Decide: which spike option to build (spike-direction)", 120, { key: "spike-direction" }),
+    request("0007", "plan", "Approve the plan: 3 strands, A to C", 20),
+  ];
+  const began: Readonly<Record<string, number>> = { "0002/B": 14, "0004/A": 25 };
+  return {
+    now,
+    requests: new Map(requests.map((r) => [r.id, r])),
+    alarm: (id, _reason, holds) => (holds === true && began[id] !== undefined ? at(began[id] ?? 0) : null),
+    commit() {},
   };
 }

@@ -94,21 +94,21 @@ test("open, merged and failing PRs put strands in the right lanes", async () => 
   const { data, item } = await board(root, gh);
   assert.deepEqual(data.github, { state: "ok" });
   const strands = Object.fromEntries(data.braids[0].strands.map((s: any) => [s.id, s]));
-  assert.equal(strands["0001/A"].lane, "In Review");
+  assert.equal(strands["0001/A"].lane, "In Progress"); // an open PR without a review request: the agents still have it
   assert.equal(strands["0001/A"].pr.number, 10);
   assert.equal(strands["0001/A"].reason, null);
   assert.equal(strands["0001/B"].lane, "Done");
   assert.equal(strands["0001/B"].pr.state, "merged");
-  assert.equal(strands["0001/C"].lane, "Waiting");
-  assert.equal(strands["0001/C"].reason, "checks failed");
+  assert.equal(strands["0001/C"].lane, "In Progress"); // red checks alarm only when T3 shows no agent (it is down here)
+  assert.equal(strands["0001/C"].reason, null);
   assert.equal(strands["0001/E"].lane, "To Do");
   assert.equal(strands["0001/F"].lane, "Done");
   assert.equal(strands["0001/E"].pr, null);
-  assert.equal(data.braids[0].lane, "Waiting");
-  assert.equal(data.braids[0].reason, "checks failed");
+  assert.equal(data.braids[0].lane, "In Progress");
+  assert.equal(data.braids[0].reason, null);
   assert.equal(data.braids[0].done, 2);
   const detail = await item("0001/C");
-  assert.equal(detail.lane, "Waiting");
+  assert.equal(detail.lane, "In Progress");
   assert.equal(detail.pr.url, "https://github.com/o/r/pull/12");
 });
 
@@ -121,21 +121,21 @@ test("an ask:<key> label keeps its key but not the lane", async () => {
   assert.equal((await item("0001/D")).ask, "approve-ui");
 });
 
-test("an ask label with an open PR sits in To Review", async () => {
+test("an ask label with an open PR and no review request is Working", async () => {
   const { data } = await board(files(), () => ok([pr(6, "OPEN", "braid/0001/D-ask")]));
   const d = data.braids[0].strands.find((s: any) => s.id === "0001/D");
-  assert.equal(d.lane, "In Review");
+  assert.equal(d.lane, "In Progress");
   assert.equal(d.ask, "approve-ui");
 });
 
-test("a stored Done with an open PR is still under review", async () => {
+test("a stored Done with an open PR waits for the merge, red checks or not", async () => {
   const { data } = await board(files(), () => ok([pr(7, "OPEN", "braid/0001/F-done", green)]));
   const f = data.braids[0].strands.find((s: any) => s.id === "0001/F");
   assert.equal(f.lane, "In Review");
   const red7 = await board(files(), () => ok([pr(7, "OPEN", "braid/0001/F-done", red)]));
   const r = red7.data.braids[0].strands.find((s: any) => s.id === "0001/F");
-  assert.equal(r.lane, "Waiting");
-  assert.equal(r.reason, "checks failed");
+  assert.equal(r.lane, "In Review");
+  assert.equal(r.need.text, "Merge PR #7");
 });
 
 test("a stored Done is Done with a merged PR or none", async () => {
@@ -183,10 +183,11 @@ test("merged PRs are cached: later reads list only open PRs until one disappears
   assert.deepEqual(calls, ["all", "open", "open", "all"]);
 });
 
-test("pending checks stay In Review", async () => {
+test("pending checks stay Working", async () => {
   const gh: Runner = () => ok([pr(3, "OPEN", "braid/0001/A-open", [{ status: "IN_PROGRESS" }])]);
   const { data } = await board(files(), gh);
-  assert.equal(data.braids[0].strands[0].lane, "In Review");
+  assert.equal(data.braids[0].strands[0].lane, "In Progress");
+  assert.equal(data.braids[0].strands[0].activity, "checks");
   assert.equal(data.braids[0].strands[0].pr.checks, "pending");
 });
 
@@ -210,7 +211,7 @@ test("gh that is not logged in says so", async () => {
 test("a PR from a braid's own branch puts a braid without strands in its lane", async () => {
   const root = repo({ "braids/0006-solo/brief.md": brief("0006", "In Progress") });
   const { data, item } = await board(root, () => ok([pr(20, "OPEN", "braid/0006-solo", green)]));
-  assert.equal(data.braids[0].lane, "In Review");
+  assert.equal(data.braids[0].lane, "In Progress");
   assert.equal(data.braids[0].pr.number, 20);
   assert.equal((await item("0006")).pr.number, 20);
 });

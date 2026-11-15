@@ -6,14 +6,15 @@ import { join, isAbsolute } from "node:path";
 import { braidBranches, loadLiveBraids, type BranchRef } from "../braids/branches.js";
 import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner, type Github } from "../board/github.js";
+import { LANE_LABEL, needLine } from "../board/marks.js";
 import { toCard, type BraidCard, type Lane, type StrandCard } from "../board/model.js";
-import { readT3, runT3, type T3, type T3Runner, type Worktrees } from "../board/t3.js";
+import { readSignals } from "../board/signals.js";
+import { readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { UsageError } from "./braids.js";
 
 export interface Sources {
   readonly gh?: GhRunner;
   readonly t3?: T3Runner;
-  readonly worktrees?: Worktrees;
 }
 
 /** The `ci` check names of BRAID.md; empty when it names none. */
@@ -52,11 +53,12 @@ export async function read(root: string, number: string, command: string, src: S
     throw new UsageError(`no braid ${number} (braid ${command} takes a braid number)`);
   }
   const github = readGithub(root, src.gh ?? runGh, 0);
-  const t3 = await readT3(root, github, { ttlMs: 0, run: src.t3 ?? runT3, ...(src.worktrees === undefined ? {} : { worktrees: src.worktrees }) });
+  const t3 = await readT3(root, { ttlMs: 0, run: src.t3 ?? runT3 });
+  const sig = readSignals(root, github);
   const cards = new Map<string, { lane: Lane; strand: StrandCard | null }>();
   let card: BraidCard | undefined;
   for (const b of braids) {
-    const c = toCard(b, github, t3);
+    const c = toCard(b, github, t3, sig);
     cards.set(c.id, { lane: c.lane, strand: null });
     for (const s of c.strands) {
       cards.set(s.id, { lane: s.lane, strand: s });
@@ -65,6 +67,7 @@ export async function read(root: string, number: string, command: string, src: S
       card = c;
     }
   }
+  sig.commit();
   return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3 };
 }
 
@@ -96,18 +99,19 @@ function checksText(names: readonly string[], card: StrandCard | BraidCard): str
   return names.map((n) => `${n}: ${runs.find((r) => r.name === n)?.result ?? "pending"}`).join(", ");
 }
 
-function line(names: readonly string[], w: World, card: StrandCard | BraidCard, letter: string | null): string {
+function line(names: readonly string[], w: World, card: StrandCard | BraidCard, letter: string | null): string[] {
   const b = branchState(w.refs, w.braid.number, letter);
   const key = letter === null ? w.braid.number : `${w.braid.number}/${letter}`;
   const threads = w.t3.threads.get(key) ?? [];
-  const thread = w.t3.status.state !== "ok" ? "?" : threads.some((t) => t.state === "running") ? "running" : threads.length > 0 ? "stopped" : "-";
+  const thread = w.t3.status.state !== "ok" ? "?" : threads.some((t) => t.role === "worker") ? "running" : threads.length > 0 ? "review running" : "-";
   const where = b.local ? (b.pushed ? "local+pushed" : "local") : b.pushed ? "+pushed" : "-";
   const pr = card.pr === null ? "-" : `#${card.pr.number} ${card.pr.state}`;
-  const lane = card.reason === null ? card.lane : `${card.lane} (${card.reason})`;
+  const lane = card.reason === null ? LANE_LABEL[card.lane] : `${LANE_LABEL[card.lane]} (${card.reason})`;
   const ask = card.ask === null ? "" : `  ask:${card.ask}`;
   // Merged but not stamped (a merge in GitHub's UI, or a run that stopped after the merge): the coordinator's next step.
   const hint = card.pr?.state === "merged" && card.status !== "Done" ? `  run braid done ${card.id}` : "";
-  return `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}${hint}`;
+  const head = `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}${hint}`;
+  return card.need === null ? [head] : [head, `    ${needLine(card.need)}`];
 }
 
 /** The notes for a source that couldn't be read; `next` also says what that hides. */
@@ -128,7 +132,7 @@ export async function statusCommand(root: string, args: readonly string[], src: 
   const number = braidNumber(args, "status");
   const w = await read(root, number, "status", src);
   const names = ciChecks(root);
-  const out = [line(names, w, w.card, null), ...w.card.strands.map((s) => `  ${line(names, w, s, s.id.slice(5))}`)];
+  const out = [...line(names, w, w.card, null), ...w.card.strands.flatMap((s) => line(names, w, s, s.id.slice(5)).map((l) => `  ${l}`))];
   if (w.github.status.state !== "ok") {
     out.push(`note: GitHub could not be read (${w.github.status.reason}); PRs and checks are missing and lanes come from stored statuses`);
   }
@@ -153,9 +157,7 @@ export function notReady(w: World, s: StrandCard): string | null {
   } else if (s.running) {
     return "running";
   } else if (s.pr?.state === "open") {
-    return `PR #${s.pr.number} is open (${s.lane})`;
-  } else if (s.lane === "Waiting") {
-    return `waiting (${s.reason ?? "?"})`;
+    return `PR #${s.pr.number} is open (${LANE_LABEL[s.lane]})`;
   } else if (s.status !== "To Do") {
     return `status ${s.status}, no running agent or PR`;
   } else if (blocked.length > 0) {

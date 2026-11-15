@@ -1,15 +1,16 @@
 // What T3 knows about the agents: one `t3 thread list --json` per refresh, plus `show --json` for
-// threads that need it. A thread belongs to a braid or strand by its linked PR, else by its worktree.
+// each running thread. An agent of an item is a running thread whose worktree braid created for it
+// (`braid start`); any other thread, a coordinator's included, is not an agent of any item.
 import { execFile, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
-import { keyOfBranch, type Github } from "./github.js";
+import { basename, join, resolve } from "node:path";
+import { agentsDir, itemOfFolder } from "../braids/worktrees.js";
 
 export interface T3Thread {
   readonly id: string;
-  /** `running`, or `stopped` for an interrupted or cancelled thread. */
-  readonly state: "running" | "stopped";
+  /** `worker` in the item's own worktree, `reviewer` in its `-review` checkout. */
+  readonly role: "worker" | "reviewer";
   /** Questions and approvals the agent waits on. */
   readonly pending: number;
   readonly link: string | null;
@@ -23,7 +24,7 @@ export type T3State =
 
 export interface T3 {
   readonly status: T3State;
-  /** Threads per item key (`0006` or `0006/A`). */
+  /** Running agents per item key (`0006` or `0006/A`). */
   readonly threads: ReadonlyMap<string, readonly T3Thread[]>;
 }
 
@@ -65,56 +66,7 @@ type Json = Record<string, unknown>;
 const obj = (v: unknown): Json | null => (typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Json) : null);
 const str = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
 
-interface PrRef {
-  readonly number: number | null;
-  readonly url: string | null;
-  readonly branch: string | null;
-}
-
-function prRefs(thread: Json): PrRef[] {
-  // A thread's own PR: the linked one, else the only one it lists. A coordinator lists many PRs
-  // that are not its own, so a longer list says nothing about which strand the thread works on.
-  const linked = thread["linkedPullRequest"];
-  const listed = Array.isArray(thread["pullRequests"]) ? thread["pullRequests"] : [];
-  const raw: unknown[] = linked !== null && linked !== undefined ? [linked] : listed.length === 1 ? listed : [];
-  const refs: PrRef[] = [];
-  for (const r of raw) {
-    if (typeof r === "number") {
-      refs.push({ number: r, url: null, branch: null });
-    }
-    const o = obj(r);
-    if (o !== null) {
-      const n = o["number"];
-      refs.push({
-        number: typeof n === "number" ? n : null,
-        url: str(o["url"]),
-        branch: str(o["headRefName"]) ?? str(o["headBranch"]) ?? str(o["branch"]),
-      });
-    }
-  }
-  return refs;
-}
-
-/** The key of the item a linked PR belongs to: by its head branch, else by GitHub's PR numbers. */
-function joinByPr(thread: Json, github: Github): string | null {
-  for (const ref of prRefs(thread)) {
-    const byBranch = ref.branch === null ? null : keyOfBranch(ref.branch);
-    if (byBranch !== null) {
-      return byBranch;
-    }
-    for (const [key, pr] of github.prs) {
-      if ((ref.number !== null && pr.number === ref.number) || (ref.url !== null && pr.url === ref.url)) {
-        return key;
-      }
-    }
-  }
-  return null;
-}
-
 const norm = (p: string): string => resolve(p).replaceAll("\\", "/").toLowerCase();
-
-/** Worktree path to its checked-out branch, from `git worktree list --porcelain`. */
-export type Worktrees = (root: string) => Map<string, string>;
 
 /** The main checkout: the first entry of `git worktree list`, which T3 knows as the project. */
 export function mainCheckout(root: string): string {
@@ -123,31 +75,11 @@ export function mainCheckout(root: string): string {
   return first === undefined ? root : first.slice(9).trim();
 }
 
-export const gitWorktrees: Worktrees = (root) => {
-  const r = spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: root, encoding: "utf8" });
-  const out = new Map<string, string>();
-  if (r.status !== 0) {
-    return out;
-  }
-  let path: string | null = null;
-  for (const line of r.stdout.split("\n").map((l) => l.trim())) {
-    if (line.startsWith("worktree ")) {
-      path = norm(line.slice(9));
-    } else if (line.startsWith("branch ") && path !== null) {
-      out.set(path, line.slice(7).replace(/^refs\/heads\//, ""));
-    }
-  }
-  return out;
-};
-
 interface Where {
   readonly worktreePath: string | null;
-  readonly branch: string | null;
   readonly pending: number;
 }
 
-// A worktree path never changes, so where a thread lives is read once per thread id.
-const placed = new Map<string, Where>();
 const recent = new Map<string, { at: number; t3: Promise<T3> }>();
 const SHARE_MS = 3000;
 
@@ -160,7 +92,7 @@ async function show(run: T3Runner, root: string, id: string): Promise<Where | nu
     const top = obj(JSON.parse(r.stdout));
     const t = obj(top?.["thread"]) ?? top ?? {};
     const pending = t["pendingRequestCount"];
-    return { worktreePath: str(t["worktreePath"]), branch: str(t["branch"]), pending: typeof pending === "number" ? pending : 0 };
+    return { worktreePath: str(t["worktreePath"]), pending: typeof pending === "number" ? pending : 0 };
   } catch {
     return null;
   }
@@ -183,7 +115,8 @@ async function pool<T, R>(items: readonly T[], work: (item: T) => Promise<R>, si
 
 export interface T3Options {
   readonly run?: T3Runner;
-  readonly worktrees?: Worktrees;
+  /** The folder holding the worktrees braid created (`<worktrees>/<repo>`); derived from the repository when not given. */
+  readonly agents?: string;
   /** The T3 project folder; the main checkout when not given. */
   readonly project?: string;
   readonly ttlMs?: number;
@@ -193,18 +126,18 @@ export interface T3Options {
  * Reads the threads of running and stopped agents. Any failure, including T3 not running, gives
  * `unavailable` with the reason, never an error.
  */
-export function readT3(root: string, github: Github, options: T3Options = {}): Promise<T3> {
+export function readT3(root: string, options: T3Options = {}): Promise<T3> {
   const ttl = options.ttlMs ?? SHARE_MS;
   const shared = recent.get(root);
   if (shared !== undefined && Date.now() - shared.at < ttl) {
     return shared.t3;
   }
-  const t3 = readFresh(root, github, options.run ?? runT3, options.worktrees ?? gitWorktrees, options.project ?? mainCheckout(root));
+  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDir(root), options.project ?? mainCheckout(root));
   recent.set(root, { at: Date.now(), t3 });
   return t3;
 }
 
-async function readFresh(root: string, github: Github, run: T3Runner, worktrees: Worktrees, project: string): Promise<T3> {
+async function readFresh(root: string, run: T3Runner, agents: string, project: string): Promise<T3> {
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
   const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
@@ -225,27 +158,16 @@ async function readFresh(root: string, github: Github, run: T3Runner, worktrees:
     .map(obj)
     .filter((t): t is Json => t !== null)
     .map((t) => ({ t, id: str(t["threadId"]) ?? str(t["id"]), status: str(t["status"]) }))
-    .filter((x): x is { t: Json; id: string; status: string } => x.id !== null && ["running", "interrupted", "cancelled"].includes(x.status ?? ""));
+    .filter((x): x is { t: Json; id: string; status: string } => x.id !== null && x.status === "running");
 
-  const trees = worktrees(root);
-  const found = await pool(wanted, async ({ t, id, status }) => {
-    const running = status === "running";
-    let key = joinByPr(t, github);
-    // Show costs about a second: only for a running thread's pending questions, or an unjoined thread.
-    let where: Where | null = placed.get(id) ?? null;
-    if (running || (key === null && where === null)) {
-      const fresh = await show(run, root, id);
-      if (fresh !== null) {
-        placed.set(id, fresh);
-        where = fresh;
-      }
-    }
-    if (key === null && where !== null) {
-      const branch = where.worktreePath === null ? undefined : trees.get(norm(where.worktreePath));
-      key = keyOfBranch(branch ?? where.branch ?? "");
-    }
-    // Stopped threads that have a PR are the PR's business; only an agent that left no PR waits.
-    return key === null ? null : { key, thread: { id, state: running ? "running" : "stopped", pending: running ? (where?.pending ?? 0) : 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
+  const mine = norm(agents);
+  const found = await pool(wanted, async ({ t, id }) => {
+    const where = await show(run, root, id);
+    const path = where?.worktreePath ?? null;
+    // Only a worktree directly inside the braid worktree folder, named for an item, is an agent's.
+    const folder = path === null ? null : norm(path);
+    const owner = path !== null && folder !== null && folder.startsWith(`${mine}/`) && !folder.slice(mine.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
+    return owner === null ? null : { key: owner.key, thread: { id, role: owner.role, pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
   });
   const threads = new Map<string, T3Thread[]>();
   for (const f of found) {
@@ -258,6 +180,5 @@ async function readFresh(root: string, github: Github, run: T3Runner, worktrees:
 
 /** Forgets what was read, for tests. */
 export function resetT3Memory(): void {
-  placed.clear();
   recent.clear();
 }

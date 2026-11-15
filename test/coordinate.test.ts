@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { after, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-coordinate-"));
+// braid's worktrees are `<worktrees>/<repo>/<NNNN>[-<L>][-review]`: that is where an agent of an item lives.
+process.env.BRAID_WORKTREES_DIR = join(scratch, "worktrees");
+const at = (root: string, folder: string) => join(process.env.BRAID_WORKTREES_DIR as string, basename(root), folder);
 after(() => rmSync(scratch, { recursive: true, force: true }));
 
 interface Result {
@@ -66,12 +69,12 @@ function repo(strands: Strand[], ci = "[verify (ubuntu-latest), verify (windows-
 
 const ok = (data: unknown): Result => ({ status: 0, stdout: JSON.stringify(data), stderr: "" });
 const ghWith = (prs: object[]) => () => ok(prs);
-const t3With = (threads: object[]) => (_root: string, args: readonly string[]) =>
-  Promise.resolve(args[1] === "list" ? ok(threads) : ok({ thread: { branch: null, worktreePath: null, pendingRequestCount: 0 } }));
-const noWorktrees = () => new Map<string, string>();
+/** A T3 stub: the listed threads, each shown in the worktree of `folders[threadId]`. */
+const t3With = (threads: { threadId: string; status: string }[], folders: Record<string, string> = {}, root = "") => (_root: string, args: readonly string[]) =>
+  Promise.resolve(args[1] === "list" ? ok(threads) : ok({ thread: { worktreePath: folders[args[2] ?? ""] === undefined ? null : at(root, folders[args[2] ?? ""] ?? ""), pendingRequestCount: 0 } }));
 const check = (name: string, conclusion: string, status = "COMPLETED") => ({ name, conclusion, status });
 const pr = (n: number, branch: string, rollup: object[]) => ({ number: n, url: `https://github.com/o/r/pull/${n}`, state: "OPEN", headRefName: branch, statusCheckRollup: rollup });
-const src = (prs: object[] = [], threads: object[] = []) => ({ gh: ghWith(prs), t3: t3With(threads), worktrees: noWorktrees });
+const src = (prs: object[] = [], threads: { threadId: string; status: string }[] = []) => ({ gh: ghWith(prs), t3: t3With(threads) });
 
 test("status shows stored status, lane, branches, PR, ci checks and thread per strand", async () => {
   const root = repo([
@@ -83,13 +86,12 @@ test("status shows stored status, lane, branches, PR, ci checks and thread per s
   git(root, "update-ref", "refs/remotes/origin/braid/0001/A-s", head);
   const out = await statusCommand(root, ["1"], {
     gh: ghWith([pr(7, "braid/0001/A-s", [check("verify (ubuntu-latest)", "SUCCESS"), check("verify (windows-latest)", "", "IN_PROGRESS")])]),
-    t3: t3With([{ threadId: "x", status: "interrupted", linkedPullRequest: { number: 7 } }]),
-    worktrees: noWorktrees,
+    t3: t3With([{ threadId: "x", status: "interrupted" }], { x: "0001-A" }, root),
   });
   const lines = out.split("\n");
-  assert.match(lines[0] ?? "", /^0001 {2}In Progress {2}In Review /);
+  assert.match(lines[0] ?? "", /^0001 {2}In Progress {2}Working /);
   const a = lines.find((l) => l.includes("0001/A")) ?? "";
-  assert.match(a, /In Progress {2}In Review {2}branch local\+pushed {2}PR #7 open {2}ci verify \(ubuntu-latest\): passing, verify \(windows-latest\): pending {2}thread stopped/);
+  assert.match(a, /In Progress {2}Working {2}branch local\+pushed {2}PR #7 open {2}ci verify \(ubuntu-latest\): passing, verify \(windows-latest\): pending {2}thread -/);
   const b = lines.find((l) => l.includes("0001/B")) ?? "";
   assert.match(b, /To Do {2}To Do {2}branch - {2}PR - {2}ci - {2}thread -/);
   assert.match(out, /remote branches: as of this clone's last fetch \(it never fetched/);
@@ -100,8 +102,7 @@ test("status reports failing checks and says when GitHub or T3 cannot be read", 
   const root = repo([{ letter: "A", status: "In Progress", order: 10 }]);
   const red = await statusCommand(root, ["0001"], {
     gh: ghWith([pr(8, "braid/0001/A-s", [check("verify (ubuntu-latest)", "FAILURE"), check("verify (windows-latest)", "SUCCESS")])]),
-    t3: t3With([{ threadId: "r", status: "running", linkedPullRequest: { number: 8 } }]),
-    worktrees: noWorktrees,
+    t3: t3With([{ threadId: "r", status: "running" }], { r: "0001-A" }, root),
   });
   assert.match(red, /ci verify \(ubuntu-latest\): failing, verify \(windows-latest\): passing {2}thread running/);
 
@@ -110,7 +111,6 @@ test("status reports failing checks and says when GitHub or T3 cannot be read", 
   const down = await statusCommand(root, ["1"], {
     gh: () => ({ status: 1, stdout: "", stderr: "gh auth login needed" }),
     t3: () => Promise.resolve({ status: 1, stdout: "", stderr: "not running" }),
-    worktrees: noWorktrees,
   });
   assert.match(down, /note: GitHub could not be read \(gh is not logged in; run gh auth login\)/);
   assert.match(down, /note: T3 could not be read \(T3 is not running \(not running\)\)/);
@@ -138,7 +138,7 @@ test("next skips a strand with an open PR, a pushed branch or an Outline, and sa
   git(root, "update-ref", "refs/remotes/origin/braid/0001/B-s", git(root, "rev-parse", "HEAD"));
   const out = await nextCommand(root, ["1"], src([pr(9, "braid/0001/A-s", [])]));
   assert.match(out, /^none ready in 0001:\n/);
-  assert.match(out, /0001\/A: PR #9 is open \(In Review\)/);
+  assert.match(out, /0001\/A: PR #9 is open \(Working\)/);
   assert.match(out, /0001\/B: branch already pushed/);
   assert.match(out, /0001\/C: blocked by 0001\/B/);
   assert.match(out, /0001\/D: Outline/);
@@ -148,9 +148,7 @@ test("next names a running agent, and says when everything is done", async () =>
   const root = repo([{ letter: "A", status: "To Do", order: 10 }]);
   const running = await nextCommand(root, ["1"], {
     gh: ghWith([]),
-    t3: (_r: string, args: readonly string[]) =>
-      Promise.resolve(args[1] === "list" ? ok([{ threadId: "t", status: "running", pullRequests: [] }]) : ok({ thread: { branch: "braid/0001/A-s", worktreePath: null, pendingRequestCount: 0 } })),
-    worktrees: noWorktrees,
+    t3: t3With([{ threadId: "t", status: "running" }], { t: "0001-A" }, root),
   });
   assert.match(running, /0001\/A: running/);
 
@@ -184,7 +182,7 @@ test("next treats another braid as a dependency until its lane is Done, and note
   };
   const other = (status: string) => `---\nid: '0002'\ntitle: "Other"\nstatus: ${status}\nlabels: []\ndependencies: []\n---\n\n## Goal\n\nx\n`;
   put("braids/0002-other/brief.md", other("In Progress"));
-  const down = { gh: () => ({ status: 1, stdout: "", stderr: "boom" }), t3: () => Promise.resolve({ status: 1, stdout: "", stderr: "" }), worktrees: noWorktrees };
+  const down = { gh: () => ({ status: 1, stdout: "", stderr: "boom" }), t3: () => Promise.resolve({ status: 1, stdout: "", stderr: "" }) };
   const blocked = await nextCommand(root, ["1"], down);
   assert.match(blocked, /0001\/A: blocked by 0002/);
   assert.match(blocked, /note: GitHub could not be read/);
@@ -214,5 +212,61 @@ test("status prints an ask label after the lane without changing the lane", asyn
   const root = repo([{ letter: "A", status: "In Progress", order: 10, labels: "'ask:approve-layout'" }]);
   const out = await statusCommand(root, ["1"], src());
   const a = out.split("\n").find((l) => l.includes("0001/A")) ?? "";
-  assert.match(a, /In Progress {2}In Progress {2}ask:approve-layout {2}branch -/);
+  assert.match(a, /In Progress {2}Working {2}ask:approve-layout {2}branch -/);
+});
+
+const { openRequest } = (await load("../dist/braids/requests.js")) as { openRequest: (root: string, request: object) => void };
+
+test("status prints the request's text and age under its item, as the board shows them", async () => {
+  const root = repo([
+    { letter: "A", status: "In Progress", order: 10 },
+    { letter: "B", status: "To Do", order: 20 },
+  ]);
+  openRequest(root, { id: "0001/B", kind: "question", text: "Which date format, ISO or local?", at: new Date(Date.now() - 35 * 60_000).toISOString(), thread: null });
+  openRequest(root, { id: "0001", kind: "plan", text: "Approve the plan: 2 strands", at: new Date(Date.now() - 20 * 60_000).toISOString(), thread: null });
+  const out = await statusCommand(root, ["1"], src());
+  const lines = out.split("\n");
+  assert.match(lines[0] ?? "", /^0001 {2}In Progress {2}Needs You \(plan\) /); // the braid's own request first on a tie
+  assert.equal(lines[1], "    Approve the plan: 2 strands (asked 20 min ago)");
+  const b = lines.findIndex((l) => l.includes("0001/B"));
+  assert.match(lines[b] ?? "", /^ {2}0001\/B {2}To Do {2}Needs You \(question\) /);
+  assert.equal(lines[b + 1], "      Which date format, ISO or local? (asked 35 min ago)");
+});
+
+test("stalled and checks failed show only after the condition has held for ten minutes", async () => {
+  const root = repo([{ letter: "A", status: "In Progress", order: 10 }]);
+  const first = await statusCommand(root, ["1"], src());
+  assert.doesNotMatch(first, /stalled/, "first seen just now");
+  const file = join(root, ".braid", "broke.json");
+  assert.deepEqual(Object.keys(JSON.parse(readFileSync(file, "utf8"))), ["0001/A stalled"]);
+  // Nine minutes in: still nothing.
+  writeFileSync(file, JSON.stringify({ "0001/A stalled": new Date(Date.now() - 9 * 60_000).toISOString() }));
+  assert.doesNotMatch(await statusCommand(root, ["1"], src()), /stalled/);
+  // Eleven minutes in: Needs You.
+  writeFileSync(file, JSON.stringify({ "0001/A stalled": new Date(Date.now() - 11 * 60_000).toISOString() }));
+  const out = await statusCommand(root, ["1"], src());
+  assert.match(out, /0001\/A {2}In Progress {2}Needs You \(stalled\) /);
+  assert.match(out, /Stalled: nobody is working and nothing was asked \(for 11 min\)/);
+  // An agent shows up: the clock is forgotten, and a later gap starts from zero.
+  resetT3Memory();
+  const busy = await statusCommand(root, ["1"], { gh: ghWith([]), t3: t3With([{ threadId: "w", status: "running" }], { w: "0001-A" }, root) });
+  assert.doesNotMatch(busy, /stalled/);
+  assert.deepEqual(JSON.parse(readFileSync(file, "utf8")), {});
+
+  // Red checks, no agent: the same ten minutes.
+  const red = [pr(8, "braid/0001/A-s", [check("verify (ubuntu-latest)", "FAILURE")])];
+  resetT3Memory();
+  resetGithubMemory();
+  await statusCommand(root, ["1"], src(red));
+  writeFileSync(file, JSON.stringify({ "0001/A checks failed": new Date(Date.now() - 12 * 60_000).toISOString() }));
+  resetGithubMemory();
+  resetT3Memory();
+  assert.match(await statusCommand(root, ["1"], src(red)), /Needs You \(checks failed\)[\s\S]*Checks failed: verify \(ubuntu-latest\); fix or retry \(for 12 min\)/);
+});
+
+test("an item with an open request is still ready for next (start closing it is tested in requests.test.ts)", async () => {
+  const root = repo([{ letter: "A", status: "To Do", order: 10 }]);
+  openRequest(root, { id: "0001/A", kind: "decision", text: "Which layout?", at: new Date().toISOString(), thread: null });
+  assert.match(await statusCommand(root, ["1"], src()), /0001\/A {2}To Do {2}Needs You \(decision\)/);
+  assert.match(await nextCommand(root, ["1"], src()), /^0001\/A {2}T 0001\/A\n/);
 });

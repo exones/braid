@@ -8,6 +8,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-done-test-"));
 after(() => rmSync(scratch, { recursive: true, force: true }));
+// braid worktrees live in `<worktrees>/<repo>/<NNNN>[-<L>][-review]`; a thread shown elsewhere is no agent of an item.
+process.env.BRAID_WORKTREES_DIR = join(scratch, "worktrees");
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 const { doneCommand, openBoxes } = (await load("../dist/commands/done.js")) as {
@@ -124,9 +126,12 @@ function world() {
   };
   let threads: object[] = [];
   let t3Down = false;
-  const t3 = (_r: string, args: readonly string[]) =>
-    Promise.resolve(t3Down ? { status: 1, stdout: "", stderr: "t3 is not running" } : args[1] === "list" ? ok(threads) : ok({ thread: { branch: null, worktreePath: null, pendingRequestCount: 0 } }));
-  const opts = { gh, t3, worktrees: () => new Map<string, string>(), sleep: () => Promise.resolve(), waitMs: 60_000 };
+  // A thread's `_at` is the folder of its worktree under braid's worktrees for this repository.
+  const t3 = (_r: string, args: readonly string[]) => {
+    const at = (threads as { threadId: string; _at?: string }[]).find((t) => t.threadId === args[2])?._at ?? "elsewhere";
+    return Promise.resolve(t3Down ? { status: 1, stdout: "", stderr: "t3 is not running" } : args[1] === "list" ? ok(threads) : ok({ thread: { worktreePath: join(process.env.BRAID_WORKTREES_DIR as string, "proj", at), pendingRequestCount: 0 } }));
+  };
+  const opts = { gh, t3, sleep: () => Promise.resolve(), waitMs: 60_000 };
   return {
     root,
     remote,
@@ -188,21 +193,20 @@ test("a strand's open PR is refused without --merge, and for each failed conditi
   w.prs[0]!.base = "main";
   await refuse(merge, /PR #5 goes into main, not braid\/0001-alpha/);
   w.prs[0]!.base = "braid/0001-alpha";
-  w.setThreads([{ threadId: "x", status: "running", linkedPullRequest: { number: 5 } }]);
+  w.setThreads([{ threadId: "x", status: "running", _at: "0001-A" }]);
   await refuse(merge, /a worker thread for 0001\/A is still running \(x\)/);
-  w.setThreads([{ threadId: "mcp:launch:abcd1234ef", title: "Coordinator", status: "running", linkedPullRequest: { number: 5 } }, { threadId: "workerthread1", title: "Worker A", status: "running", linkedPullRequest: { number: 5 } }]);
-  await refuse([...merge, "--thread", "mcp:launch:abcd1234ef"], /still running \(workerthread1, "Worker A"\)/);
-  w.setThreads([{ threadId: "mcp:launch:abcd1234ef", status: "running", linkedPullRequest: { number: 5 } }]);
-  await refuse(merge, /still running \(mcp:launch:abcd1234ef\)/);
+  // The coordinator's thread (on the braid branch, in no braid-made worktree) is no agent and needs no skip.
+  w.setThreads([{ threadId: "mcp:launch:abcd1234ef", title: "Coordinator", status: "running", _at: "0001" }, { threadId: "workerthread1", title: "Worker A", status: "running", _at: "0001-A" }]);
+  await refuse(merge, /still running \(workerthread1, "Worker A"\)/);
   w.setThreads([]);
   w.setT3Down(true);
   await refuse(merge, /T3 could not be read .* a running worker can't be ruled out/);
   w.setT3Down(false);
-  // Only the caller's own thread runs: the check is passed (the next refusal is the unticked box below).
-  w.setThreads([{ threadId: "mcp:launch:abcd1234ef", status: "running", linkedPullRequest: { number: 5 } }]);
+  // Only the coordinator runs: the check is passed (the next refusal is the unticked box below).
+  w.setThreads([{ threadId: "mcp:launch:abcd1234ef", status: "running", _at: "0001" }]);
   w.workerCommit("braid/0001/A-first", "braids/0001-alpha/A-first/brief.md", brief("0001/A", "In Progress", "\n## Acceptance\n\n- [ ] it works\n"));
   const mine = w.headOf("braid/0001/A-first").slice(0, 7);
-  await refuse(["0001/A", "--head", mine, "--merge", "--thread", "mcp:launch:abcd1234ef"], /unticked boxes at [0-9a-f]{7}: it works/);
+  await refuse(["0001/A", "--head", mine, "--merge"], /unticked boxes at [0-9a-f]{7}: it works/);
   assert.equal(w.merges.length, 0);
   assert.equal(w.headOf("braid/0001-alpha"), before);
 });

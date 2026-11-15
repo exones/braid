@@ -3,12 +3,14 @@
 // stops it; nothing is rolled back beyond what was never created.
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import type { BranchRef } from "../braids/branches.js";
 import { closeRequest } from "../braids/requests.js";
+import { repoNameOf, reviewFolder, workFolder, worktreesDir } from "../braids/worktrees.js";
 import { UsageError } from "./braids.js";
 import { notReady, read, type Sources, type World } from "./coordinate.js";
+
+export { worktreesDir };
 
 const REMOTE = "origin";
 
@@ -26,15 +28,11 @@ function must(root: string, args: readonly string[], what: string): string {
 
 /** The repository's name for the worktree folder: the main checkout's folder, also from inside a worktree. */
 export function repoName(root: string): string {
-  const common = must(root, ["rev-parse", "--git-common-dir"], "can't read the repository");
-  const dir = resolve(root, common);
-  return basename(basename(dir) === ".git" ? dirname(dir) : dir).replace(/\.git$/, "");
-}
-
-/** `$BRAID_WORKTREES_DIR`, else `~/braid-worktrees`. */
-export function worktreesDir(env: NodeJS.ProcessEnv = process.env): string {
-  const set = env.BRAID_WORKTREES_DIR;
-  return set !== undefined && set !== "" ? resolve(set) : join(homedir(), "braid-worktrees");
+  const name = repoNameOf(root);
+  if (name === null) {
+    throw new UsageError("can't read the repository");
+  }
+  return name;
 }
 
 export function mainBranch(root: string): string {
@@ -48,13 +46,13 @@ function tip(refs: readonly BranchRef[]): BranchRef | undefined {
   return [...refs].sort((a, b) => b.time - a.time || Number(b.local) - Number(a.local))[0];
 }
 
-function parse(args: readonly string[]): { number: string; letter: string | null; force: boolean } {
-  const ids = args.filter((a) => a !== "--force");
+function parse(args: readonly string[]): { number: string; letter: string | null; force: boolean; review: boolean } {
+  const ids = args.filter((a) => a !== "--force" && a !== "--review");
   const m = ids.length === 1 ? /^(\d{1,4})(?:\/([A-Z]))?$/.exec(ids[0] ?? "") : null;
   if (m === null) {
-    throw new UsageError("usage: braid start <id> [--force]  (a strand like 0008/B, or a braid without strands like 0008)");
+    throw new UsageError("usage: braid start <id> [--force | --review]  (a strand like 0008/B, or a braid without strands like 0008; --review checks out the open PR's head for the reviewer)");
   }
-  return { number: (m[1] ?? "").padStart(4, "0"), letter: m[2] ?? null, force: args.includes("--force") };
+  return { number: (m[1] ?? "").padStart(4, "0"), letter: m[2] ?? null, force: args.includes("--force"), review: args.includes("--review") };
 }
 
 function target(w: World, letter: string | null): { branch: string; slug: string; folder: string; why: string | null } {
@@ -66,7 +64,7 @@ function target(w: World, letter: string | null): { branch: string; slug: string
     const deps = w.braid.brief.dependencies.filter((d) => w.cards.get(d)?.lane !== "Done");
     const c = w.card;
     const why = c.lane === "Done" ? "done" : c.running ? "running" : c.pr?.state === "open" ? `PR #${c.pr.number} is open` : c.status !== "To Do" ? `status ${c.status}` : deps.length > 0 ? `blocked by ${deps.join(", ")}` : null;
-    return { branch: `braid/${w.braid.number}-${braidSlug}`, slug: w.braid.number, folder: w.braid.number, why };
+    return { branch: `braid/${w.braid.number}-${braidSlug}`, slug: w.braid.number, folder: workFolder(w.braid.number, null), why };
   }
   const strand = w.braid.strands.find((s) => s.letter === letter);
   const card = w.card.strands.find((s) => s.id === `${w.braid.number}/${letter}`);
@@ -74,12 +72,15 @@ function target(w: World, letter: string | null): { branch: string; slug: string
     throw new UsageError(`no strand ${w.braid.number}/${letter}`);
   }
   const slug = /\/[A-Z]-(.+)$/.exec(strand.folder)?.[1] ?? "";
-  return { branch: `braid/${w.braid.number}/${letter}-${slug}`, slug, folder: `${w.braid.number}-${letter}`, why: notReady(w, card) };
+  return { branch: `braid/${w.braid.number}/${letter}-${slug}`, slug, folder: workFolder(w.braid.number, letter), why: notReady(w, card) };
 }
 
 export async function startCommand(root: string, args: readonly string[], src: Sources = {}, env: NodeJS.ProcessEnv = process.env): Promise<string> {
-  const { number, letter, force } = parse(args);
+  const { number, letter, force, review } = parse(args);
   const w = await read(root, number, "start", src);
+  if (review) {
+    return startReview(root, w, number, letter, env);
+  }
   const t = target(w, letter);
   const id = letter === null ? number : `${number}/${letter}`;
   if (t.why !== null && !force) {
@@ -113,4 +114,32 @@ export async function startCommand(root: string, args: readonly string[], src: S
   must(root, ["worktree", "add", "--track", "-b", t.branch, folder, `${REMOTE}/${t.branch}`], `${t.branch} is pushed but the worktree failed`);
   closeRequest(root, id);
   return `branch ${t.branch}\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n`;
+}
+
+/** `braid start <id> --review`: the reviewer's detached checkout of the open PR's head, in `<number>-<letter>-review`. Starts no agent; the item's worker and branch are left alone. */
+function startReview(root: string, w: World, number: string, letter: string | null, env: NodeJS.ProcessEnv): string {
+  const id = letter === null ? number : `${number}/${letter}`;
+  if (letter === null && w.braid.strands.length > 0) {
+    throw new UsageError(`${number} has strands: review one of them (braid start ${number}/<letter> --review)`);
+  }
+  const card = letter === null ? w.card : w.card.strands.find((s) => s.id === id);
+  if (card === undefined) {
+    throw new UsageError(`no strand ${id}`);
+  }
+  if (card.pr?.state !== "open") {
+    throw new UsageError(`${id} has no open PR to review; nothing was created`);
+  }
+  const ref = tip(w.refs.filter((r) => r.number === number && r.letter === letter));
+  if (ref === undefined) {
+    throw new UsageError(`${id} has no branch, local or pushed; nothing was created`);
+  }
+  const folder = join(worktreesDir(env), repoName(root), reviewFolder(number, letter));
+  if (existsSync(folder)) {
+    throw new UsageError(`${folder} already exists; nothing was created`);
+  }
+  const remote = `refs/remotes/${REMOTE}/${ref.branch}`;
+  must(root, ["fetch", REMOTE, `+refs/heads/${ref.branch}:${remote}`], `can't fetch ${ref.branch} from ${REMOTE}; nothing was created`);
+  const commit = must(root, ["rev-parse", "--verify", `${remote}^{commit}`], `can't read ${ref.branch}`);
+  must(root, ["worktree", "add", "--detach", folder, commit], "the review checkout failed");
+  return [`review checkout of PR #${card.pr.number} (${ref.branch})`, `commit ${commit}`, `folder ${isAbsolute(folder) ? folder : resolve(folder)}`, ""].join("\n");
 }

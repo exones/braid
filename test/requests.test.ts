@@ -274,3 +274,56 @@ test("filterLive is pure, and takes the state in either letter case", () => {
   assert.equal(filterLive(list, pr("OPEN", "b".repeat(40))).length, 1);
   assert.equal(filterLive(list, () => null).length, 2);
 });
+
+const { takeOverStale } = (await load("../dist/braids/requests.js")) as { takeOverStale: (lock: string, staleMs?: number) => boolean };
+
+test("a stale lock goes to one waiter only: the second looks again and leaves the first one's new lock alone", () => {
+  const w = world();
+  const lock = `${requestsFile(w.root)}.lock`;
+  mkdirSync(dirname(lock), { recursive: true });
+  writeFileSync(lock, "");
+  const old = new Date(Date.now() - 60_000);
+  utimesSync(lock, old, old);
+  // Both waiters found it stale. The first takes it over and creates its own lock.
+  assert.equal(takeOverStale(lock), true);
+  assert.equal(existsSync(lock), false);
+  writeFileSync(lock, "", { flag: "wx" });
+  // The second still believes the old one is stale: it must see the fresh lock and take nothing.
+  assert.equal(takeOverStale(lock), false);
+  assert.equal(existsSync(lock), true, "the first waiter's lock stands");
+  assert.equal(existsSync(`${lock}.takeover`), false, "the guard is released");
+  // A takeover that is under way blocks the other; one left by a dead process is cleared after 30 s.
+  const guard = `${lock}.takeover`;
+  writeFileSync(guard, "");
+  utimesSync(lock, old, old);
+  assert.equal(takeOverStale(lock), false, "someone else is taking over");
+  assert.equal(existsSync(lock), true);
+  utimesSync(guard, old, old);
+  assert.equal(takeOverStale(lock), false, "the dead guard is cleared first");
+  assert.equal(takeOverStale(lock), true);
+});
+
+test("overlapping writers in separate processes lose no update when they start on a stale lock", async () => {
+  const w = world();
+  const lock = `${requestsFile(w.root)}.lock`;
+  mkdirSync(dirname(lock), { recursive: true });
+  writeFileSync(lock, "");
+  const old = new Date(Date.now() - 60_000);
+  utimesSync(lock, old, old);
+  const script = join(scratch, "writer-stale.mjs");
+  writeFileSync(script, `import { openRequest } from ${JSON.stringify(pathToFileURL(fileURLToPath(new URL("../dist/braids/requests.js", import.meta.url))).href)};
+const [root, id] = process.argv.slice(2);
+for (let i = 0; i < 6; i++) openRequest(root, { id: id + i, kind: "question", text: "x", at: "2026-11-15T12:00:00Z", thread: null });`);
+  const run = (id: string) => new Promise<number | null>((done) => spawn(process.execPath, [script, w.root, id]).on("close", done));
+  const codes = await Promise.all(["0001/A", "0002/B", "0003/C", "0004/D", "0005/E", "0006/F"].map(run));
+  assert.deepEqual(codes, [0, 0, 0, 0, 0, 0]);
+  assert.equal(loadRequests(w.root).length, 36);
+  assert.equal(existsSync(lock), false);
+});
+
+test("the state folder ignores itself, so it never shows as untracked", () => {
+  const w = world();
+  openRequest(w.root, req("0001"));
+  assert.equal(readFileSync(join(dirname(requestsFile(w.root)), ".gitignore"), "utf8"), "*\n");
+  assert.equal(git(w.root, "status", "--porcelain", "--untracked-files=all"), "");
+});

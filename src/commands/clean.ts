@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { loadLiveBraids } from "../braids/branches.js";
 import { UsageError } from "./braids.js";
 import { read, type Sources } from "./coordinate.js";
+import { reviewFolder } from "../braids/worktrees.js";
 import { repoName, worktreesDir } from "./start.js";
 
 interface Worktree {
@@ -84,6 +85,25 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
     for (const item of items) {
       if (item.card.pr?.state !== "merged") {
         continue;
+      }
+      // The reviewer's detached checkout of the PR head (`braid start <id> --review`) goes with the merged item.
+      const revPath = norm(join(mine, reviewFolder(number, item.letter)));
+      const rev = listed.find((t) => norm(t.path) === revPath);
+      if (rev !== undefined) {
+        const what = `${item.id}: review checkout ${rev.path} (PR #${item.card.pr.number} merged)`;
+        if (norm(rev.path) === here) {
+          lines.push(`skip ${what}: checked out in this checkout`);
+        } else if (!yes) {
+          lines.push(`would remove ${what}`);
+        } else if (existsSync(rev.path) && !free(rev.path)) {
+          lines.push(`skip ${what}: still in use, retry later`);
+        } else if (!existsSync(rev.path)) {
+          git(root, ["worktree", "prune"]);
+          lines.push(`removed ${what}`);
+        } else {
+          const r = git(root, ["worktree", "remove", rev.path]);
+          lines.push(r.status === 0 ? `removed ${what}` : `skip ${what}: not removed (${(r.stderr || r.stdout).trim().split("\n")[0] ?? ""})`);
+        }
       }
       for (const ref of w.refs.filter((r) => r.local && r.number === number && r.letter === item.letter)) {
         const tree = listed.find((t) => t.branch === ref.branch);
