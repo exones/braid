@@ -39,7 +39,7 @@ Expected size: about 150 lines of mockup HTML and 4 to 6 screenshots; no product
 ## Acceptance
 
 - [x] Mockups cover every case listed under Change
-- [ ] The user approved them (the coordinator records it)
+- [x] The user approved them (the coordinator records it)
 
 ## Definition of done
 
