@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, realpathSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, beforeEach, test } from "node:test";
@@ -94,7 +94,7 @@ test("ask opens a request that every worktree shares; a new ask replaces it; ans
   assert.match(asked, /0001\/A: decision request opened: Which name should it have\?/);
   assert.equal(existsSync(join(w.root, ".braid", "requests.json")), true);
   assert.equal(existsSync(join(w.other, ".braid")), false, "the store is in the main checkout only");
-  assert.equal(requestsFile(w.other), requestsFile(w.root));
+  assert.equal(realpathSync.native(requestsFile(w.other)), realpathSync.native(requestsFile(w.root)));
   const listed = (await requestsCommand(w.other, [], { gh: w.gh, now: () => new Date("2026-11-15T12:30:00Z") })) as string;
   assert.equal(listed, "0001/A  decision  30m  Which name should it have?\n");
   askCommand(w.other, ["0001/A", "Plan ok?", "--kind", "plan"], { now: w.clock });
