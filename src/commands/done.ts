@@ -122,7 +122,7 @@ function target(w: World, letter: string | null): Target {
 }
 
 /** The checks every open PR must pass before braid done merges it or stamps it. */
-function ready(root: string, w: World, t: Target, pr: PrView, head: string): void {
+function ready(root: string, w: World, t: Target, pr: PrView, head: string, caller: string): void {
   const base = t.letter === null ? mainBranch(root) : t.braidBranch;
   const fail = (why: string) => {
     throw new UsageError(`${t.id} not done: ${why}; nothing changed`);
@@ -143,8 +143,10 @@ function ready(root: string, w: World, t: Target, pr: PrView, head: string): voi
   if (w.t3.status.state !== "ok") {
     fail(`T3 could not be read (${w.t3.status.reason}), so a running worker can't be ruled out`);
   }
-  if ((w.t3.threads.get(t.key) ?? []).some((th) => th.state === "running")) {
-    fail(`a worker thread for ${t.key} is still running`);
+  // The caller's own thread (--thread) is skipped: a coordinator on the braid branch matches its braid.
+  const running = (w.t3.threads.get(t.key) ?? []).find((th) => th.state === "running" && threadShort(th.id) !== caller);
+  if (running !== undefined) {
+    fail(`a worker thread for ${t.key} is still running (${running.id}${running.title === undefined ? "" : `, "${running.title}"`})`);
   }
   must(root, ["fetch", "-q", REMOTE, `+refs/heads/${pr.headRefName}:refs/remotes/${REMOTE}/${pr.headRefName}`], `can't fetch ${pr.headRefName}`);
   const at = (path: string) => git(root, ["show", `${pr.headRefOid}:${path}`]);
@@ -294,7 +296,7 @@ export async function doneCommand(root: string, args: readonly string[], opts: D
         throw new UsageError(`${t.id} not done: PR #${found.number} is ${pr.state.toLowerCase()} now; run braid done again; nothing changed`);
       }
       onBraidBranch(root, t);
-      ready(root, w, t, pr, head);
+      ready(root, w, t, pr, head, thread);
       gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
       return `merged PR #${pr.number} at ${pr.headRefOid}\n${stampStrand(root, t, number, log, pr.number)}`;
     }
@@ -326,11 +328,11 @@ export async function doneCommand(root: string, args: readonly string[], opts: D
       return `${t.id} is already Done at ${pr.headRefOid}; nothing changed\n`;
     }
     await waitGreen(root, run, t, pr.number, pr.headRefOid, opts);
-    ready(root, w, t, view(run, root, pr.number), head);
+    ready(root, w, t, view(run, root, pr.number), head, thread);
     gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
     return `${t.id} is already Done at ${pr.headRefOid}\nmerged PR #${pr.number} at ${pr.headRefOid}\n`;
   }
-  ready(root, w, t, pr, head);
+  ready(root, w, t, pr, head, thread);
   const commit = stampBranch(root, t, number, log, pr);
   let out = `${t.id} done: Done on ${pr.headRefName} in ${commit}\nhead ${commit}\n`;
   if (merge) {

@@ -189,14 +189,20 @@ test("a strand's open PR is refused without --merge, and for each failed conditi
   await refuse(merge, /PR #5 goes into main, not braid\/0001-alpha/);
   w.prs[0]!.base = "braid/0001-alpha";
   w.setThreads([{ threadId: "x", status: "running", linkedPullRequest: { number: 5 } }]);
-  await refuse(merge, /a worker thread for 0001\/A is still running/);
+  await refuse(merge, /a worker thread for 0001\/A is still running \(x\)/);
+  w.setThreads([{ threadId: "mcp:launch:abcd1234ef", title: "Coordinator", status: "running", linkedPullRequest: { number: 5 } }, { threadId: "workerthread1", title: "Worker A", status: "running", linkedPullRequest: { number: 5 } }]);
+  await refuse([...merge, "--thread", "mcp:launch:abcd1234ef"], /still running \(workerthread1, "Worker A"\)/);
+  w.setThreads([{ threadId: "mcp:launch:abcd1234ef", status: "running", linkedPullRequest: { number: 5 } }]);
+  await refuse(merge, /still running \(mcp:launch:abcd1234ef\)/);
   w.setThreads([]);
   w.setT3Down(true);
   await refuse(merge, /T3 could not be read .* a running worker can't be ruled out/);
   w.setT3Down(false);
+  // Only the caller's own thread runs: the check is passed (the next refusal is the unticked box below).
+  w.setThreads([{ threadId: "mcp:launch:abcd1234ef", status: "running", linkedPullRequest: { number: 5 } }]);
   w.workerCommit("braid/0001/A-first", "braids/0001-alpha/A-first/brief.md", brief("0001/A", "In Progress", "\n## Acceptance\n\n- [ ] it works\n"));
-  const unticked = w.headOf("braid/0001/A-first").slice(0, 7);
-  await refuse(["0001/A", "--head", unticked, "--merge"], /unticked boxes at [0-9a-f]{7}: it works/);
+  const mine = w.headOf("braid/0001/A-first").slice(0, 7);
+  await refuse(["0001/A", "--head", mine, "--merge", "--thread", "mcp:launch:abcd1234ef"], /unticked boxes at [0-9a-f]{7}: it works/);
   assert.equal(w.merges.length, 0);
   assert.equal(w.headOf("braid/0001-alpha"), before);
 });
