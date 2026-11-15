@@ -65,8 +65,11 @@ main h1{font-size:20px;margin:0 0 6px}
 .banner{margin:14px 0;padding:10px 14px;border-radius:8px;max-width:75ch}
 .banner b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
 .banner .btns{margin-top:8px;display:flex;gap:6px}
+.tp{position:relative}.tp::after{content:attr(data-tip);display:none;position:absolute;left:-6px;top:22px;width:270px;z-index:9;background:#1d2330;color:#fff;font:12px/1.4 system-ui,sans-serif;font-weight:400;padding:6px 9px;border-radius:6px;white-space:normal;text-align:left;box-shadow:0 4px 12px #0003}
+.tp:hover::after,.tp.show::after{display:block}
+.tgl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);cursor:pointer}
 </style></head><body>
-<header><b>braid · attention board</b><span class="repo">Each braid sits in the lane where it needs you most. · sample · braids/</span><span class="sp"></span><span class="cnt">read-only · refreshes every 30 s</span></header>
+<header><b>braid · attention board</b><span class="repo">Each braid sits in the lane where it needs you most. · sample · braids/</span><span class="sp"></span><label class="tgl"><input type="checkbox" id="det"> Details</label><span class="cnt">read-only · refreshes every 30 s</span></header>
 <div class="note" id="note"></div><div id="app"></div>
 <script>
 const svg=(p,w)=>'<svg width="'+(w||15)+'" height="'+(w||15)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
@@ -80,20 +83,20 @@ const I={
  stall:ic('i-stall','Stalled: nobody is working and nothing was asked',svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')),
  ag:ic('i-ag','agent running',svg('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8 6.2 21l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>')),
  ci:ic('i-ci','checks running',svg('<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>')),
- rv:ic('i-rv','review running',svg(EYEP)),
+ rv:ic('i-rv','review running',svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>')),
  eye:n=>ic('i-eye','PR #'+n+' to review',svg(EYEP)),
  tick:ic('i-tick','Done',svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'))};
 const cls={'To Do':'l-todo','Working':'l-prog','To Review':'l-rev','Needs You':'l-wait','Done':'l-done'};
 const dot=l=>'<span class="dot '+cls[l]+'"></span>';
 // strand: [letter,title,lane,icons[],need,kind,age]; braid-level request: ask
-const NEED=(k,t,age)=>'<div class="need n-'+k+'">'+t+'<small>asked '+age+'</small></div>';
+const NEED=(k,t,age)=>'<div class="need n-'+k+'">'+t+'<small>'+age+'</small></div>';
 const B=[
-{id:'0010',title:'Sample login flow',tier:'tier:L',strands:[['A','Login form','Done',[I.tick]],['B','Session storage','To Review',[I.eye(12)],'Merge PR #12','rev','2 h ago'],['C','Password reset','To Do',[]]]},
-{id:'0011',title:'Sample search',tier:'tier:M',strands:[['A','Search index','Working',[I.ag]],['B','Search page','Needs You',[I.x],'Checks failed: verify (windows-latest); fix or retry','bad','14 min ago']]},
-{id:'0012',title:'Sample export',tier:'tier:M',strands:[['A','CSV export','Needs You',[I.q],'Which date format should the CSV use, ISO or local?','wait','35 min ago'],['B','PDF export','Needs You',[I.flag('approve-layout')],'Decide: approve the PDF layout (approve-layout)','wait','1 h ago'],['C','Export tests','To Review',[I.eye(17)],'Merge PR #17','rev','3 h ago']]},
-{id:'0013',title:'Sample billing',tier:'tier:S',strands:[['A','Invoice page','Needs You',[I.stall],'Stalled: nobody is working and nothing was asked','bad','25 min ago']]},
-{id:'0014',title:'Sample import',tier:'tier:M',ask:{icons:[I.plan],need:'Approve the plan: 3 strands, A to C',kind:'wait',age:'20 min ago'},strands:[['A','Parser','To Do',[]],['B','Mapper','To Do',[]],['C','Report','To Do',[]]]},
-{id:'0015',title:'Sample audit log',tier:'tier:M',ask:{icons:[I.flag('spike-direction')],need:'Decide: which spike option to build (spike-direction)',kind:'wait',age:'2 h ago'},strands:[['A','Spike: storage options','Done',[I.tick]]]},
+{id:'0010',title:'Sample login flow',tier:'tier:L',strands:[['A','Login form','Done',[I.tick]],['B','Session storage','To Review',[I.eye(12)],'Merge PR #12','rev','asked 2 h ago'],['C','Password reset','To Do',[]]]},
+{id:'0011',title:'Sample search',tier:'tier:M',strands:[['A','Search index','Working',[I.ag]],['B','Search page','Needs You',[I.x],'Checks failed: verify (windows-latest); fix or retry','bad','for 14 min']]},
+{id:'0012',title:'Sample export',tier:'tier:M',strands:[['A','CSV export','Needs You',[I.q],'Which date format should the CSV use, ISO or local?','wait','asked 35 min ago'],['B','PDF export','Needs You',[I.flag('approve-layout')],'Decide: approve the PDF layout (approve-layout)','wait','asked 1 h ago'],['C','Export tests','To Review',[I.eye(17)],'Merge PR #17','rev','asked 3 h ago']]},
+{id:'0013',title:'Sample billing',tier:'tier:S',strands:[['A','Invoice page','Needs You',[I.stall],'Stalled: nobody is working and nothing was asked','bad','for 25 min']]},
+{id:'0014',title:'Sample import',tier:'tier:M',ask:{icons:[I.plan],need:'Approve the plan: 3 strands, A to C',kind:'wait',age:'asked 20 min ago'},strands:[['A','Parser','To Do',[]],['B','Mapper','To Do',[]],['C','Report','To Do',[]]]},
+{id:'0015',title:'Sample audit log',tier:'tier:M',ask:{icons:[I.flag('spike-direction')],need:'Decide: which spike option to build (spike-direction)',kind:'wait',age:'asked 2 h ago'},strands:[['A','Spike: storage options','Done',[I.tick]]]},
 {id:'0016',title:'Sample themes',tier:'tier:S',strands:[['A','Colour tokens','Working',[I.ci]],['B','Dark mode','To Do',[]]]},
 {id:'0018',title:'Sample reports',tier:'tier:M',strands:[['A','Report model','Working',[I.ag]],['B','Report page','Working',[I.ag]],['C','Report export','To Do',[]]]},
 {id:'0019',title:'Sample cache',tier:'tier:S',strands:[['A','Cache layer','Working',[I.rv]]]},
@@ -103,33 +106,44 @@ const ORDER=['Needs You','To Review','Working','To Do','Done'];
 const laneOf=b=>b.ask?'Needs You':ORDER.find(l=>b.strands.some(s=>s[2]===l));
 const pick=b=>{if(b.ask)return {n:b.ask.need,k:b.ask.kind,a:b.ask.age,who:null};
  const s=b.strands.filter(s=>s[4]).sort((x,y)=>ORDER.indexOf(x[2])-ORDER.indexOf(y[2]))[0];return s&&{n:s[4],k:s[5],a:s[6],who:b.id+'/'+s[0]}};
+const retitle=(html,t)=>html.replace(/ title="[^"]*"/,' data-tip="'+t.replace(/"/g,'&quot;')+'"').replace('class="ic ','class="ic tp ');
+const full=t=>t.n+' — '+(t.who?'strand '+t.who:'braid, no strand involved')+' · '+t.a;
 const marks=b=>{const seen=[];const add=h=>{if(!seen.includes(h))seen.push(h)};if(b.ask)b.ask.icons.forEach(add);
- ORDER.forEach(l=>b.strands.filter(s=>s[2]===l).forEach(s=>s[3].forEach(add)));return '<span class="icons">'+seen.join('')+'</span>'};
+ ORDER.forEach(l=>b.strands.filter(s=>s[2]===l).forEach(s=>s[3].forEach(add)));const user=['Needs You','To Review'].includes(laneOf(b));let out=user?seen.slice(0,1):seen;
+ if(user&&!D&&pick(b)){const t=pick(b),more=b.strands.filter(s=>s[4]).length-(t.who?1:0);out=out.map(h=>retitle(h,full(t)+(more>0?' (+'+more+' more in strands)':'')));if(TIP&&b.id==='0012'&&laneOf(b)==='Needs You')out=out.map(h=>h.replace('ic tp','ic tp show'))}
+ return '<span class="icons">'+out.join('')+'</span>'};
 function card(b,open){const done=b.strands.filter(s=>s[2]==='Done').length,n=b.strands.length,t=pick(b);
  const more=b.strands.filter(s=>s[4]).length-(t&&t.who?1:0);
- const line=t&&laneOf(b)!=='Working'?'<div class="need n-'+t.k+'">'+t.n+'<small>'+(more>0&&laneOf(b)!=='Working'?'+'+more+' more in strands · ':'')+(t.who?'strand '+t.who:'braid, no strand involved')+' · asked '+t.a+'</small></div>':'';
+ const line=D&&!open&&t&&laneOf(b)!=='Working'?'<div class="need n-'+t.k+'">'+t.n+'<small>'+(more>0&&laneOf(b)!=='Working'?'+'+more+' more in strands · ':'')+(t.who?'strand '+t.who:'braid, no strand involved')+' · '+t.a+'</small></div>':'';
  return '<div class="card"><div class="row"><span class="id">'+b.id+'</span><span class="badge">'+b.tier+'</span>'+marks(b)+'<span style="flex:1"></span><span class="cnt">'+(open?'▾':'▸')+' strands</span></div><div class="t">'+b.title+'</div>'
  +'<div class="row"><div class="bar"><i style="width:'+(done/n*100)+'%"></i></div><span class="cnt">'+done+'/'+n+'</span></div>'+line
- +(open?'<div class="strands">'+b.strands.map(s=>'<div class="strand">'+dot(s[2])+'<span class="sid">'+s[0]+'</span><span style="flex:1">'+s[1]+'</span><span class="icons">'+s[3].join('')+'</span>'+(s[4]?NEED(s[5],s[4],s[6]):'')+'</div>').join('')+'</div>':'')+'</div>'}
+ +(open?'<div class="strands">'+b.strands.map(s=>'<div class="strand">'+dot(s[2])+'<span class="sid">'+s[0]+'</span><span style="flex:1">'+s[1]+'</span><span class="icons">'+(s[4]&&!D?s[3].map(h=>retitle(h,s[4]+' — '+s[6])).join(''):s[3].join(''))+'</span>'+(s[4]&&D?NEED(s[5],s[4],s[6]):'')+'</div>').join('')+'</div>':'')+'</div>'}
 function board(ids,open,cols){const L=['To Do','Working','To Review','Needs You','Done'].filter(l=>!cols||cols.includes(l));
  return '<div class="lanes" style="grid-template-columns:repeat('+L.length+',1fr)">'+L.map(l=>{const c=B.filter(b=>laneOf(b)===l&&(!ids||ids.includes(b.id)));return '<div class="lane'+(cols&&cols.length===1?' grid':'')+'"><h3><span>'+dot(l)+l+'</span><span>'+c.length+'</span></h3>'+c.map(b=>card(b,open&&open.includes(b.id))).join('')+'</div>'}).join('')+'</div>'}
 function page(b){const t=pick(b);
  return '<div class="page"><nav><a class="back">← Board</a><h2>'+b.id+' '+b.title+'</h2><div class="cnt" style="display:flex;gap:6px;align-items:center">'+dot(laneOf(b))+'Needs You '+marks(b)+'</div><div class="item sel">Braid brief</div>'
  +b.strands.map(x=>'<div class="item sub">'+dot(x[2])+'<span style="flex:1">'+x[0]+' · '+x[1]+'</span><span class="icons">'+x[3].join('')+'</span></div>').join('')+'</nav>'
- +'<main><div class="cnt">'+b.id+'</div><h1>'+b.title+'</h1><div class="banner n-'+t.k+'"><b>Needs you · asked '+t.a+'</b>'+t.n+'<div class="who">Answer in the coordinator thread; the card leaves Needs You when the coordinator acts.</div></div><p class="cnt">(Brief, plan and tabs unchanged.)</p></main></div>'}
+ +'<main><div class="cnt">'+b.id+'</div><h1>'+b.title+'</h1><div class="banner n-'+t.k+'"><b>Needs you · '+t.a+'</b>'+t.n+'<div class="who">Answer in the coordinator thread; the card leaves Needs You when the coordinator acts.</div></div><p class="cnt">(Brief, plan and tabs unchanged.)</p></main></div>'}
 function legend(){const r=(i,n,h)=>'<span>'+i+'</span><span><code>'+n+'</code></span><span>'+h+'</span>';
  return '<div class="legend"><h2>Needs You: the icon says why, the line says what</h2>'
  +r(I.q,'question','"Question: waiting for your answer"')+r(I.flag('scope'),'decision','"Decision needed: &lt;stop-case key&gt;"; the key also ends the line')
- +r(I.plan,'plan approval','new icon: "Plan approval needed"')+r(I.x,'checks failed','after 10 min, no agent running')+r(I.stall,'stalled','new icon: after 10 min, nobody working, nothing asked')
+ +r(I.plan,'plan approval','new icon: "Plan approval needed"')+r(I.x,'checks failed','after 10 min, no agent running; line ends "for N min"')+r(I.stall,'stalled','new icon: after 10 min, nobody working, nothing asked; line ends "for N min"')
  +'<h2>To Review</h2>'+r(I.eye(12),'review','"PR #12 to review"; line: "Merge PR #12", with the age of the request')
- +'<h2>Working (no extra lane)</h2>'+r(I.ag,'agent running','worker or reviewer agent')+r(I.ci,'checks running','new icon, spins; only CI is running')+r(I.rv,'review running','new icon; only a review is running')
- +'<h2>Done</h2>'+r(I.tick,'done','')+'</div>'}
-const h=location.hash.slice(1),A=document.getElementById('app'),N=document.getElementById('note');
+ +'<h2>Working (no extra lane)</h2>'+r(I.ag,'agent running','worker or reviewer agent')+r(I.ci,'checks running','new icon, spins; only CI is running')+r(I.rv,'review running','new icon, magnifier; only a review is running')
+ +'<h2>Details toggle (header)</h2>'+r('<span class="cnt">☑</span>','on','request lines shown (default)')+r('<span class="cnt">☐</span>','off','lines hidden; the icon tooltip holds the text. Kept in a cookie')+'<h2>Done</h2>'+r(I.tick,'done','')+'</div>'}
+const HP=location.hash.slice(1).split('&'),h=HP[0],P=Object.fromEntries(HP.slice(1).map(x=>x.split('=')));
+const ck=(document.cookie.match(/(?:^|; )details=(on|off)/)||[])[1];
+const D=(P.details||ck||'on')==='on',TIP=!!P.tip;
+const det=document.getElementById('det');det.checked=D;
+det.onchange=()=>{document.cookie='details='+(det.checked?'on':'off')+'; max-age=31536000; path=/';location.hash=h+(P.details?'&details='+(det.checked?'on':'off'):'');location.reload()};
+const A=document.getElementById('app'),N=document.getElementById('note');
 const V={
- board:()=>{N.textContent='1 · The board. Cards on your side carry one line saying what is needed; Working and To Do cards stay quiet.';return board(null,['0012'])},
- needs:()=>{N.textContent='2 · Needs You, one reason each: question, decision (stop-case key), plan approval, checks failed, stalled. Strand rows repeat the line.';return board(['0012','0011','0013','0014'],[],['Needs You'])},
+ board:()=>{N.textContent='1 · The board, Details on. Cards on your side carry one line saying what is needed and only their most urgent icon; an expanded card shows the text on its strand rows instead.';return board(null,['0012'])},
+ needs:()=>{N.textContent='2 · Needs You, one reason each: question, decision (stop-case key), plan approval, checks failed, stalled. Details on.';return board(['0012','0011','0013','0014'],[],['Needs You'])},
  braids:()=>{N.textContent='3 · A strand needs you (0012, line names the strand) vs the coordinator asked (0014, 0015: no strand involved), and a To Review card with PR and age of the request.';return board(['0012','0015','0010','0014'],['0010'],['To Review','Needs You'])},
- working:()=>{N.textContent='4 · Working: agents running (wrench), only CI running (spinner), only a review running (eye). Same lane, no request line, nothing asked of you.';return board(['0018','0016','0019'],['0018','0016','0019'],['Working'])},
+ working:()=>{N.textContent='4 · Working: agents running (wrench), only CI running (spinner), only a review running (magnifier). Same lane, no request line, nothing asked of you.';return board(['0018','0016','0019'],['0018','0016','0019'],['Working'])},
+ off:()=>{N.textContent='7 · The board with Details off: no request lines; the text is the tooltip of the reason icon (hover).';return board(null,['0012'])},
+ tip:()=>{N.textContent='8 · Details off, hovering the question mark of 0012: the tooltip holds the full text, strand and age.';return board(['0012','0011','0013','0014'],[],['Needs You'])},
  legend:()=>{N.textContent='5 · Legend. Two new reason icons (plan, stalled), two for Working detail (checks, review).';return legend()},
  page:()=>{N.textContent='6 · A braid page shows the request as a banner above the brief, same text as the card.';return page(B.find(b=>b.id==='0014'))}};
 A.innerHTML=(V[h]||V.board)();
