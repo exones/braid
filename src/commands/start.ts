@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type { BranchRef } from "../braids/branches.js";
+import { closeRequest } from "../braids/requests.js";
 import { UsageError } from "./braids.js";
 import { notReady, read, type Sources, type World } from "./coordinate.js";
 
@@ -110,5 +111,6 @@ export async function startCommand(root: string, args: readonly string[], src: S
 
   must(root, ["push", REMOTE, `${commit}:refs/heads/${t.branch}`], `can't push ${t.branch} to ${REMOTE}; nothing was created`);
   must(root, ["worktree", "add", "--track", "-b", t.branch, folder, `${REMOTE}/${t.branch}`], `${t.branch} is pushed but the worktree failed`);
+  closeRequest(root, id);
   return `branch ${t.branch}\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n`;
 }

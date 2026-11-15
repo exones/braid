@@ -7,6 +7,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { appendLog, now, threadShort } from "../braids/logs.js";
+import { closeRequest } from "../braids/requests.js";
 import { loadBraids } from "../braids/store.js";
 import { runGh, runsOf, type GhRunner } from "../board/github.js";
 import { UsageError } from "./braids.js";
@@ -250,7 +251,18 @@ async function waitGreen(root: string, run: GhRunner, t: Target, pr: number, hea
   }
 }
 
+/** Marks an item Done; whatever the outcome, an item that is Done has no open request left. */
 export async function doneCommand(root: string, args: readonly string[], opts: DoneOptions = {}): Promise<string> {
+  const out = await doneItem(root, args, opts);
+  const id = /^(\d{1,4})(?:\/([A-Z]))?$/;
+  const m = id.exec(args.find((a) => id.test(a)) ?? "");
+  if (m !== null) {
+    closeRequest(root, `${(m[1] ?? "").padStart(4, "0")}${m[2] === undefined ? "" : `/${m[2]}`}`);
+  }
+  return out;
+}
+
+async function doneItem(root: string, args: readonly string[], opts: DoneOptions): Promise<string> {
   const { positionals, values } = parse("braid done", args, { head: { type: "string" }, merge: { type: "boolean" }, log: { type: "string" }, thread: { type: "string" } });
   const m = positionals.length === 1 ? /^(\d{1,4})(?:\/([A-Z]))?$/.exec(positionals[0] ?? "") : null;
   if (m === null) {
