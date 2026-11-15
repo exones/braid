@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { existsSync, realpathSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, realpathSync, utimesSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, beforeEach, test } from "node:test";
@@ -11,20 +11,23 @@ after(() => rmSync(scratch, { recursive: true, force: true }));
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 type Cmd = (root: string, args: string[], opts?: object) => string | Promise<string>;
-const { handoverCommand, askCommand, requestsCommand, answerCommand, age } = (await load("../dist/commands/requests.js")) as {
+const { handoverCommand, askCommand, requestsCommand, answerCommand } = (await load("../dist/commands/requests.js")) as {
   handoverCommand: Cmd;
   askCommand: Cmd;
   requestsCommand: Cmd;
   answerCommand: (root: string, cwd: string, args: string[]) => string;
-  age: (at: string, now: Date) => string;
 };
 const { startCommand } = (await load("../dist/commands/start.js")) as { startCommand: (root: string, args: string[], src: object, env: object) => Promise<string> };
 const { doneCommand } = (await load("../dist/commands/done.js")) as { doneCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
 const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
-const { loadRequests, requestsFile } = (await load("../dist/braids/requests.js")) as {
+const { loadRequests, requestsFile, openRequest, liveRequests, filterLive, age } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
   requestsFile: (root: string) => string;
+  openRequest: (root: string, request: object) => void;
+  liveRequests: (root: string, prOf: (n: number) => { state: string; headRefOid: string } | null) => { id: string }[];
+  filterLive: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => object[];
+  age: (at: string, now: Date) => string;
 };
 beforeEach(() => {
   resetGithubMemory();
@@ -214,4 +217,60 @@ test("age is minutes, hours or days", () => {
   assert.equal(age(at, new Date("2026-11-15T12:05:00Z")), "5m");
   assert.equal(age(at, new Date("2026-11-15T15:00:00Z")), "3h");
   assert.equal(age(at, new Date("2026-11-18T12:00:00Z")), "3d");
+});
+
+const req = (id: string, extra: object = {}) => ({ id, kind: "question", text: id, at: "2026-11-15T12:00:00Z", thread: null, ...extra });
+
+test("a write from another worktree during liveRequests' GitHub call is not lost", () => {
+  const w = world();
+  const head = "a".repeat(40);
+  openRequest(w.root, req("0001/A", { kind: "review", pr: 5, head }));
+  const live = liveRequests(w.root, () => {
+    openRequest(w.other, req("0001", { text: "new during the call" })); // another writer, in between
+    return { state: "MERGED", headRefOid: head };
+  });
+  assert.deepEqual(live.map((r) => r.id), ["0001"]);
+  assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0001"], "the void request went, the new one stayed");
+  // A replacement opened for the same item during the call survives too.
+  openRequest(w.root, req("0001/A", { kind: "review", pr: 5, head }));
+  liveRequests(w.root, () => {
+    openRequest(w.other, req("0001/A", { kind: "review", pr: 5, head, at: "2026-11-15T13:00:00Z" }));
+    return { state: "MERGED", headRefOid: head };
+  });
+  assert.deepEqual(loadRequests(w.root).map((r) => r.id).sort(), ["0001", "0001/A"]);
+});
+
+test("overlapping writers in separate processes lose no update", async () => {
+  const w = world();
+  const script = join(scratch, "writer.mjs");
+  writeFileSync(script, `import { openRequest } from ${JSON.stringify(pathToFileURL(fileURLToPath(new URL("../dist/braids/requests.js", import.meta.url))).href)};
+const [root, id] = process.argv.slice(2);
+for (let i = 0; i < 8; i++) openRequest(root, { id: id + i, kind: "question", text: "x", at: "2026-11-15T12:00:00Z", thread: null });`);
+  const run = (id: string) => new Promise<number | null>((done) => spawn(process.execPath, [script, w.root, id]).on("close", done));
+  const codes = await Promise.all(["0001/A", "0002/B", "0003/C", "0004/D"].map(run));
+  assert.deepEqual(codes, [0, 0, 0, 0]);
+  assert.equal(loadRequests(w.root).length, 32);
+});
+
+test("a stale lock is taken over and the lock is released", () => {
+  const w = world();
+  const lock = `${requestsFile(w.root)}.lock`;
+  mkdirSync(dirname(lock), { recursive: true });
+  writeFileSync(lock, "");
+  const old = new Date(Date.now() - 60_000);
+  utimesSync(lock, old, old);
+  openRequest(w.root, req("0001"));
+  assert.equal(loadRequests(w.root).length, 1);
+  assert.equal(existsSync(lock), false, "the lock is released");
+});
+
+test("filterLive is pure, and takes the state in either letter case", () => {
+  const head = "a".repeat(40);
+  const list = [req("0001/A", { kind: "review", pr: 5, head }), req("0001", { kind: "decision" })];
+  const pr = (state: string, h = head) => () => ({ state, headRefOid: h });
+  assert.equal(filterLive(list, pr("OPEN")).length, 2);
+  assert.equal(filterLive(list, pr("open")).length, 2, "the board's lowercase state keeps the review");
+  assert.deepEqual(filterLive(list, pr("merged")).map((r) => (r as { id: string }).id), ["0001"]);
+  assert.equal(filterLive(list, pr("OPEN", "b".repeat(40))).length, 1);
+  assert.equal(filterLive(list, () => null).length, 2);
 });

@@ -2,7 +2,7 @@
 // needs the user (a request), and closes it again. The store is src/braids/requests.ts.
 import { threadShort } from "../braids/logs.js";
 import { loadBraids } from "../braids/store.js";
-import { closeRequest, KINDS, liveRequests, openRequest, type Kind, type PrNow, type Request } from "../braids/requests.js";
+import { age, closeRequest, KINDS, liveRequests, openRequest, type Kind, type PrNow, type Request } from "../braids/requests.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { UsageError } from "./braids.js";
 import { ciChecks } from "./coordinate.js";
@@ -108,12 +108,6 @@ export function answerCommand(root: string, cwd: string, args: readonly string[]
   return `${closed ? `${id}: request closed` : `${id}: no open request`}\n${logged}`;
 }
 
-/** `5m`, `2h`, `3d`: the age of a request. */
-export function age(at: string, now: Date): string {
-  const min = Math.max(0, Math.floor((now.getTime() - new Date(at).getTime()) / 60_000));
-  return min < 60 ? `${min}m` : min < 2880 ? `${Math.floor(min / 60)}h` : `${Math.floor(min / 1440)}d`;
-}
-
 export function requestsCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
   if (args.length > 0) {
     throw new UsageError(`braid requests takes no arguments; got: ${args.join(" ")}`);
@@ -123,7 +117,7 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
   const prOf = (number: number): PrNow => {
     try {
       const pr = view(run, root, number);
-      return { state: pr.state, head: pr.headRefOid };
+      return { state: pr.state, headRefOid: pr.headRefOid };
     } catch {
       return null;
     }
