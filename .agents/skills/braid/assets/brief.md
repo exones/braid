@@ -51,7 +51,6 @@ Expected size: about <N> lines in <K> files.
 ## Acceptance
 
 - [ ] <first testable outcome>
-- [ ] CI green on Windows and Ubuntu
 
 ## Definition of done
 
@@ -69,12 +68,19 @@ follow-ups, the coordinator creates them.
 braid edit 0012/A --status 'In Progress'                 # first commit
 braid brief 0012/A Plan --file -                         # before coding; or edit brief.md
 'Found X; decided Y.' | braid log 0012/A --thread <your thread id> --file -   # staged, not committed; with the commit it explains
-# tick the boxes you proved in brief.md; write report.md (or braid report 0012/A --file <path>)
-braid edit 0012/A --status Done                          # last commit, after CI is green
+# tick the boxes you proved in brief.md; write report.md (or braid report 0012/A --file <path>); never set Done
 
 # coordinator, on plan/ or the braid branch, for items that haven't started
 braid edit 0012/B --dep 0012/A --order 20                # --dep and --labels replace the list: repeat the others; `none` clears one
+
+# coordinator: mark an item Done (CI is checked by braid done, so briefs have no CI box)
+braid done 0012/A --log -                                # strand merged: on the braid branch, pulls, sets Done with the log entry, commits, pushes
+braid done 0012/A --head <reviewed sha> --merge --log -  # strand on request or in auto mode: checks, merges that head, then the same
+braid done 0013 --head <reviewed sha>                    # story or final PR: checks, a status-only commit on its branch; prints the new head
 ```
+
+Every refusal names the failed condition and changes nothing. `braid status` ends the line of a merged
+item that isn't Done with `run braid done <id>`.
 
 `report.md`: what changed, why, validation, anything open, then `For later items:` (changed names or
 interfaces, deviations from the plan, new decisions, or `none`) and `Needs the user:` (`none`, or
@@ -82,10 +88,10 @@ interfaces, deviations from the plan, new decisions, or `none`) and `Needs the u
 rewrites it; the history is in the log.
 
 The braid's log: after each strand merges into the braid branch, and before the next strand's branch
-is cut, the coordinator adds one entry on the braid branch:
+is cut, the coordinator adds one entry on the braid branch, in the commit that sets the strand Done:
 
 ```sh
-'0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.' | braid log 0012 --thread <your thread id> --file -
+'0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.' | braid done 0012/A --thread <your thread id> --log -
 ```
 
 Pass log and report text on standard input (`--file -`), as above, whenever it may hold quotes: on Windows the `braid.cmd` shim splits an argument that holds a quoted phrase.

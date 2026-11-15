@@ -20,7 +20,7 @@ The labels live in one place, `LANE_LABEL` in `src/board/marks.ts`. Stored statu
 
 For each braid and strand, the first rule that matches wins (`derive` in `src/board/model.ts`):
 
-1. A merged PR: Done. So is stored status `Done` when its PR is not open (none, or closed). A worker sets `Done` on the PR branch before the merge, so an open PR wins over a stored `Done` (rule 3).
+1. A merged PR: Done. So is stored status `Done` when it has no PR. An open PR wins over a stored `Done` (rule 3): `braid done` stamps a story or a braid's final PR `Done` on its branch before the user's merge (D43). A PR closed without merging never makes Done: a stored `Done` next to one reads as To Do (the state before `Done` isn't known), and the closed PR still shows on the card.
 2. A running T3 thread: Working, or Needs You with reason `question` when the thread has a pending request. Failing checks don't count while an agent works.
 3. An open PR: To Review, or Needs You with reason `checks failed` when its checks fail.
 4. T3 threads that stopped (interrupted or cancelled) and no PR: Needs You, reason `agent stopped`.
@@ -31,7 +31,7 @@ Needs You means a real block: a question, an agent that stopped, or failing chec
 ## Where the states come from
 
 - **Files:** each item's `brief.md`, read from its own branch when it has one ([Branches](braids-format.md#branches)).
-- **GitHub:** one `gh pr list` per refresh; a PR belongs to the item named by its head branch (`braid/0006-slug` or `braid/0006/A-slug`). Merged PRs are cached.
+- **GitHub:** one `gh pr list` per refresh; a PR belongs to the item named by its head branch (`braid/0006-slug` or `braid/0006/A-slug`). Merged and closed PRs are cached (an open one wins over both, a merged one over a closed one).
 - **T3:** `t3 thread list --project <main checkout>`, plus `t3 thread show` where needed (cached per thread). A thread belongs to an item by its linked PR; else by its `pullRequests` only when it lists exactly one, since a coordinator thread lists many; else by its worktree path, matched to `git worktree list`; else by its branch.
 - Without `gh` or T3 the board still works on the stored states and its header says why.
 

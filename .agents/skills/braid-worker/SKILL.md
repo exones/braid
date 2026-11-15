@@ -36,7 +36,7 @@ The PR goes into the base branch the first message names (`main` for a story, th
 
 ## Deliver
 
-0. Tick the acceptance and Definition of done boxes you proved, except a CI one, and write `report.md`: what changed, why, validation, anything open, then a `For later items:` line (changed names or interfaces, deviations from the plan, new decisions, ideas worth a later item, or `none`) and a `Needs the user:` line as in the final report.
+0. Tick the acceptance and Definition of done boxes you proved (leave a CI box to `braid done`, which checks CI), and write `report.md`: what changed, why, validation, anything open, then a `For later items:` line (changed names or interfaces, deviations from the plan, new decisions, ideas worth a later item, or `none`) and a `Needs the user:` line as in the final report.
 1. Commit your changes with Conventional Commit messages, staging only your files, and push: `git push -u origin <your branch>`.
 2. Open one PR into the base branch: `gh pr create --base <base branch> --title "<type>: <summary>" --body-file <file>`. Describe what changed, why, validation, and anything open. Then call `link_pull_request` with the PR URL.
 3. If `ci` is `none`, go to step 5. Follow host PR-wait instructions; otherwise call `watch_pull_request`, then run `gh pr checks <pr>` once. If every check has already finished, go to step 4. Otherwise end your turn; the watch wakes you.
@@ -44,10 +44,10 @@ The PR goes into the base branch the first message names (`main` for a story, th
    - Pending: end the turn.
    - Failed: read the log (`gh run view <run-id> --log-failed`), fix, run the gate, push, and end the turn.
    - Blocked: tell the coordinator the cause and who can fix it.
-   - Green and the item not yet Done: in one last commit tick the CI box and set Done (`braid edit <id> --status Done`), push, and end the turn.
-5. When every required check is green on your latest commit and the item is Done (with `ci: none`, set Done after the gate), stop any server or browser you started, call `unwatch_pull_request` if you watched, then write the final report below as your last chat message and send the same text to the coordinator with `t3_thread_send`, adding the head commit. You're done.
+   - Green: go to step 5. Make no commit after green and don't set the item Done: the coordinator does that with `braid done` after review.
+5. When every required check is green on your latest commit (with `ci: none`, once the gate passed), stop any server or browser you started, call `unwatch_pull_request` if you watched, then write the final report below as your last chat message and send the same text to the coordinator with `t3_thread_send`, adding the head commit. You're done.
 
-If the coordinator later sends review findings, fix them on the same branch and PR, rewrite `report.md` so it describes the PR as it stands (the history goes in your log), and repeat steps 3–5. Step 5 removed the PR watch, so after pushing fixes do step 3 again in full (watch, then check once); don't assume the old watch is still active. Leave the item Done.
+If the coordinator later sends review findings, fix them on the same branch and PR, rewrite `report.md` so it describes the PR as it stands (the history goes in your log), and repeat steps 3–5. Step 5 removed the PR watch, so after pushing fixes do step 3 again in full (watch, then check once); don't assume the old watch is still active. Leave the status `In Progress`.
 
 ## Final report
 

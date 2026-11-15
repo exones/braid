@@ -12,6 +12,8 @@ import { logEntry, reportItem } from "./commands/logs.js";
 import { nextCommand, statusCommand } from "./commands/coordinate.js";
 import { cleanCommand } from "./commands/clean.js";
 import { startCommand } from "./commands/start.js";
+import { doneCommand } from "./commands/done.js";
+import { factsCommand, recapCommand } from "./commands/facts.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
 export function readVersion(): string {
@@ -48,6 +50,9 @@ export function helpText(version: string): string {
     "  status <number>             One line per strand: status, lane, ask:<key>, branch, PR, ci checks, T3 thread (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id>                  Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
+    "  done <id> [--head <sha>] [--merge]  Mark an item Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first), a story or final PR on its branch (--log adds a braid log entry)",
+    "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case",
+    "  recap <id>                  A draft recap and braid log line from report.md, the PR (head, checks) and the facts, to edit",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
     "  board                       Open the read-only board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
@@ -188,9 +193,9 @@ async function main(argv: readonly string[]): Promise<void> {
     }
     return;
   }
-  if (argv[0] === "status" || argv[0] === "next" || argv[0] === "start" || argv[0] === "clean") {
+  if (argv[0] === "status" || argv[0] === "next" || argv[0] === "start" || argv[0] === "clean" || argv[0] === "done" || argv[0] === "facts" || argv[0] === "recap") {
     try {
-      const run = argv[0] === "status" ? statusCommand : argv[0] === "next" ? nextCommand : argv[0] === "start" ? startCommand : cleanCommand;
+      const run = argv[0] === "status" ? statusCommand : argv[0] === "next" ? nextCommand : argv[0] === "start" ? startCommand : argv[0] === "done" ? doneCommand : argv[0] === "facts" ? factsCommand : argv[0] === "recap" ? recapCommand : cleanCommand;
       process.stdout.write(await run(findRoot(process.cwd()), argv.slice(1)));
     } catch (error) {
       if (error instanceof UsageError || error instanceof GitError) {

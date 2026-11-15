@@ -158,6 +158,11 @@ function inHead(root: string, head: string, commit: string): boolean {
   return value;
 }
 
+/** Whether a strand's commit is already in its braid branch's tip, so the braid branch has its copy or a newer one. */
+function inBraid(root: string, tip: string | undefined, commit: string): boolean {
+  return tip !== undefined && inHead(root, tip, commit);
+}
+
 /** Per braid number or strand id, the branch to read: the newest commit, a local branch on a tie. */
 function winners(refs: readonly BranchRef[]): BranchRef[] {
   const best = new Map<string, BranchRef>();
@@ -213,7 +218,12 @@ export function loadLiveBraids(root: string): Braid[] {
   const headResult = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
   const head = headResult.status === 0 ? headResult.stdout.trim() : null;
   // Only each item's newest copy is checked against HEAD: if it is merged, the older ones are too old.
-  const refs = winners(braidBranches(root)).filter((ref) => head === null || !inHead(root, head, ref.commit));
+  const newest = winners(braidBranches(root));
+  const braidTips = new Map(newest.filter((r) => r.letter === null).map((r) => [r.number, r.commit]));
+  const refs = newest
+    .filter((ref) => head === null || !inHead(root, head, ref.commit))
+    // A merged strand branch stays on the remote and can be older than its braid branch's copy: that copy wins.
+    .filter((ref) => ref.letter === null || !inBraid(root, braidTips.get(ref.number), ref.commit));
   const tree = (ref: BranchRef) => gitTree(root, { branch: ref.branch, commit: ref.commit });
 
   for (const ref of refs.filter((r) => r.letter === null)) {
