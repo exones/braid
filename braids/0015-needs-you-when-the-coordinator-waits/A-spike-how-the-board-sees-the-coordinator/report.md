@@ -8,7 +8,7 @@
    - no agent thread of the braid is running,
    - no braid or strand PR has checks still pending.
 
-   The reason is `merge PR #N` when an open, green PR of the braid waits, otherwise `coordinator waiting`. A coordinator that is running with `pendingRequestCount > 0` gives `question`. The state clears without anyone setting anything: the user's answer starts a new run (`running`), or the user settles or snoozes the thread.
+   The reason is `merge PR #N` when an open, green PR of the braid waits, otherwise `coordinator waiting`. A coordinator that is running with `pendingRequestCount > 0` gives `question`. The state clears without anyone setting anything: the user's answer starts a new run (`running`), or the user settles or snoozes the thread. The addendum confirms it: waiting for a worker, under a PR watch and under `t3_background_wait` all read `completed`, `activeRunId: null`, unsettled, with no field that tells them apart. The guards are required, and background waits must stay in the foreground.
 
 Nothing has to be remembered, and it works for any provider T3 runs. The hooks, state files, GitHub labels and `stop:` labels I looked at are less reliable, cover fewer providers or cost more (comparison below). Two small requests to T3 would make the rule exact. For stories, the coordinator is not on the item's branch, so a story-level signal needs one recorded thread id (strand D, optional).
 
@@ -87,7 +87,7 @@ Board rules (in `derive`/`toCard`, for a braid with strands):
 3. Coordinator `completed`, not settled, not snoozed, no running thread on any strand, no braid or strand PR with pending checks: the braid goes to Needs You. The reason is `merge PR #N` if an open PR with green checks exists (strand, or the final PR), otherwise `coordinator waiting`.
 4. Otherwise the lanes come from the strands, as today.
 
-**Needed from the skills:** none for B/C. They rely on what the skill already says:
+**Needed from the skills:** one rule: long waits run in the foreground, never under `t3_background_wait` with the turn ended (addendum). Otherwise none for B/C. They rely on what the skill already says:
 - the coordinator works in a checkout on the braid branch;
 - it unwatches at every handover;
 - it asks with the question tool when it has one;
@@ -98,9 +98,36 @@ Write down as a rule, in the build PR's docs: the coordinator must not settle or
 **Needed from T3** (asks, not blockers):
 - (a) a watch flag (`watchedPullRequests` or `inInbox`) in `thread show`/`list`, which would remove the CI guard;
 - (b) `delegatedFrom` setting `parentThreadId` with `relationshipToParent: delegated`;
-- (c) what sets status `waiting`.
+- (c) what sets status `waiting`; (d) pending background or delegated work in `show`/`list` (addendum).
 
 **Stories:** the coordinator sits outside the story's branch, so B can't find it. A story's merge request already shows To Review. Its stop cases and plan questions would need the coordinator's thread id recorded once per item. That is strand D, only if the user wants it.
+
+## Addendum: waiting states observed
+
+The user approved this addendum on 2026-11-15. The coordinator put itself in three waiting states, one at a time. I read it from outside after each run had ended: `t3 thread show <id> --json` three times about 35 s apart, `t3_thread_read` (with `recentRuns`), and `t3_thread_list` with each status filter.
+
+| State (coordinator's last run) | `status` | `activeRunId` | `settled` / `snoozed` | `pendingRequestCount` | in list filter | anything new |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1. Waiting for a worker (run 389 ended 10:09:31Z; reads 10:09:38–10:11:10) | `completed` | null | false / false | 0 | `completed` only; not `waiting`, `idle` or `running` | none: same 30 fields |
+| 2. Under a PR watch on #94 (run 390 ended 10:11:18; the watch woke it at once for "all 2 checks passed", run 391 ended 10:11:32; reads 10:11:22–10:12:47) | `completed` | null | false / false | 0 | `completed` only | none: same 30 fields. #94 appears in `pullRequests` as `open`, `linkedPullRequest` stays null, no watch field |
+| 3. With `t3_background_wait` on a 15-minute background sleep (run 392 ended 10:13:06; reads 10:13:11–10:14:30) | `completed` | null | false / false | 0 | `completed` only | none in `show`, `list` or `read` |
+
+The CLI's text form (`t3 thread show --messages 1`) also prints just `completed` for state 3.
+
+Only one call told state 3 apart:
+- `t3_thread_wait` with `timeoutMs: 60000` returned at once: `status: completed`, `timedOut: false`.
+- The same call with `untilDelegatedWorkSettled: true` ran for 60 s and returned `timedOut: true`.
+
+So T3 knows about the background work, but `show`/`list` don't expose it. `t3_thread_wait` accepted `timeoutMs: 3600000` and `7200000` without error. On a finished run it returns at once, so I couldn't see whether it clamps them. The tool's own description says `t3_background_wait` "keeps this thread in Working" and is "Claude only". That Working state is not in any field I can read.
+
+**A watch wake is a run.** Starting the watch on a PR whose checks had already passed woke the coordinator at once: a short extra run (391, 14 s) that showed as `running` and then `completed` again. Every watch event does the same. A board that reads the coordinator during a wake sees it running. That is harmless under rule 1 (a running coordinator never makes the braid Working), and it leaves Needs You for those seconds.
+
+**What it changes.**
+- "Waiting looks finished" is now certain. All three waits look exactly like waiting for the user in everything the CLI shows. So rule C must keep its guards: no running agent, no pending checks. T3's `waiting` and `idle` statuses never appear for this thread, so they are no shortcut.
+- The watch is invisible. The "no pending checks" guard remains the only stand-in for "waiting on CI". A watch that waits for comments or a merge can't be told from waiting for the user, but the skill unwatches at every handover, so a watched PR in a handover is a skill bug.
+- A background wait is invisible to the board, which would show **Needs You** while the coordinator sleeps on a task. The skill's long waits (`braid done --merge` polls for up to 30 minutes) must therefore run in the foreground, where the run stays `running`, or the board needs T3 to expose background work. The board can't call `t3_thread_wait`: it's an MCP tool, and the call blocks.
+- T3 request (d): show pending background or delegated work in `thread show`/`list`, e.g. a `backgroundTaskCount` or the "Working" flag `t3_background_wait` sets. With (a) the watch flag and (d), the idle rule becomes exact without guards.
+- The recommendation is unchanged: B + C, with D as `question`. Strand C gains one acceptance line, and the skill one rule (below).
 
 ## Proposed build strands
 
@@ -111,6 +138,7 @@ Write down as a rule, in the build PR's docs: the coordinator must not settle or
   - [ ] `readT3` keeps unsettled, unsnoozed `completed` threads and marks a thread joined at a braid key (braid has strands) as the coordinator;
   - [ ] the rules above, tested with fake T3/GitHub data for: waiting for a worker (Working), for CI (no Needs You), for a merge (`merge PR #N`), for an answer (`coordinator waiting`), a question (`question`), and after a new run or a settle (cleared);
   - [ ] the coordinator's running never shows a strand as Working;
+  - [ ] a watch wake (a short `running` run) never puts the braid in Needs You;
   - [ ] `braid status` prints the same reason;
   - [ ] `docs/board.md` (rules, icons, "Where the states come from") and a decision in `docs/decisions.md` updated.
 - **D. Optional: stories' coordinator** (S). Acceptance:
@@ -131,7 +159,7 @@ Write down as a rule, in the build PR's docs: the coordinator must not settle or
 
 ## Open
 
-- What sets T3's `waiting` status is unknown.
+- What sets T3's `waiting` status is unknown; none of the three observed waits used it.
 - I didn't verify whether a Codex or Cursor coordinator's question raises `pendingRequestCount` the same way.
 - The worker-to-coordinator wake gap is seconds. On a 30 s refresh it rarely shows; C's tests should cover it.
 
