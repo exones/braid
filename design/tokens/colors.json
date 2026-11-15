@@ -1,0 +1,8 @@
+{
+  "navy": { "name": "Ledger Navy", "hex": "#082A48", "rgb": [8, 42, 72], "cmyk": [100, 75, 35, 50], "use": "Primary: wordmark, two strands, text" },
+  "violet": { "name": "Strand Violet", "hex": "#7835EF", "rgb": [120, 53, 239], "cmyk": [65, 78, 0, 0], "use": "Accent on light backgrounds" },
+  "violetLight": { "name": "Violet Light", "hex": "#A27BFF", "rgb": [162, 123, 255], "use": "Accent on dark backgrounds" },
+  "mist": { "name": "Mist", "hex": "#F4F2FB", "rgb": [244, 242, 251], "use": "Light surfaces" },
+  "slate": { "name": "Slate", "hex": "#5A6B80", "rgb": [90, 107, 128], "use": "Secondary text" },
+  "white": { "name": "White", "hex": "#FFFFFF", "rgb": [255, 255, 255], "use": "Backgrounds, reversed artwork" }
+}
