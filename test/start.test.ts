@@ -33,7 +33,6 @@ const ok = (data: unknown) => ({ status: 0, stdout: JSON.stringify(data), stderr
 const src = (prs: object[] = []) => ({
   gh: () => ok(prs),
   t3: (_r: string, args: readonly string[]) => Promise.resolve(args[1] === "list" ? ok([]) : ok({ thread: { branch: null, worktreePath: null, pendingRequestCount: 0 } })),
-  worktrees: () => new Map<string, string>(),
 });
 
 let n = 0;
@@ -250,4 +249,34 @@ test("clean says a worktree is still in use and keeps it (Windows holds a workin
     holder.kill();
     await new Promise((r) => setTimeout(r, 300));
   }
+});
+
+test("start --review checks out the open PR's head detached, apart from the worker; clean removes it with the merged item", async () => {
+  const { root, env, wt } = repo();
+  await startCommand(root, ["0001/B"], src(), env);
+  const worker = join(wt, "proj", "0001-B");
+  git(worker, "commit", "-q", "--allow-empty", "-m", "work");
+  git(worker, "push", "-q");
+  const head = git(worker, "rev-parse", "HEAD");
+  const branch = "braid/0001/B-second-one";
+  const open = { number: 9, url: "https://github.com/o/r/pull/9", state: "OPEN", headRefName: branch, statusCheckRollup: [] };
+  const folder = join(wt, "proj", "0001-B-review");
+  const out = await startCommand(root, ["0001/B", "--review"], src([open]), env);
+  assert.equal(out, `review checkout of PR #9 (${branch})\ncommit ${head}\nfolder ${folder}\n`);
+  assert.equal(git(folder, "rev-parse", "HEAD"), head);
+  assert.equal(git(folder, "rev-parse", "--abbrev-ref", "HEAD"), "HEAD", "detached");
+  assert.equal(git(worker, "rev-parse", "--abbrev-ref", "HEAD"), branch, "the worker's worktree is untouched");
+  await assert.rejects(startCommand(root, ["0001/B", "--review"], src([open]), env), /already exists/);
+  await assert.rejects(startCommand(root, ["0001/C", "--review"], src([open]), env), /0001\/C has no open PR to review/);
+  await assert.rejects(startCommand(root, ["0001", "--review"], src([open]), env), /has strands: review one of them/);
+
+  resetGithubMemory();
+  const done = { ...open, state: "MERGED", mergedAt: "2026-11-14T00:00:00Z" };
+  const dry = await cleanCommand(root, [], src([done]), env);
+  assert.match(dry, /would remove 0001\/B: review checkout .*0001-B-review \(PR #9 merged\)/);
+  assert.ok(existsSync(folder));
+  const cleaned = await cleanCommand(root, ["--yes"], src([done]), env);
+  assert.match(cleaned, /removed 0001\/B: review checkout/);
+  assert.equal(existsSync(folder), false);
+  assert.ok(existsSync(worker), "the worker's worktree has unmerged commits, so it stays");
 });

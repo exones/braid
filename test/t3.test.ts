@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { after, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -70,24 +70,34 @@ const prs = [
 ];
 const gh: Gh = () => ok(prs);
 
+// braid's worktrees are `<worktrees>/<repo>/<NNNN>[-<L>][-review]`; a thread anywhere else is no agent of an item.
+process.env.BRAID_WORKTREES_DIR = join(scratch, "worktrees");
+const at = (root: string, folder: string) => join(process.env.BRAID_WORKTREES_DIR as string, basename(root), folder);
+
 const threads = [
-  { threadId: "t-run", status: "running", link: "t3://a", pullRequests: [] },
-  { threadId: "t-ask", status: "running", pullRequests: [] },
-  { threadId: "t-stop", status: "interrupted", pullRequests: [] },
-  { threadId: "t-red", status: "running", pullRequests: [{ number: 40 }] },
-  { threadId: "t-stoppr", status: "cancelled", linkedPullRequest: { url: "https://github.com/o/r/pull/41" } },
-  { threadId: "t-done", status: "completed", pullRequests: [] },
+  { threadId: "t-run", status: "running", link: "t3://a" },
+  { threadId: "t-ask", status: "running" },
+  { threadId: "t-stop", status: "interrupted" },
+  { threadId: "t-rev", status: "running" },
+  { threadId: "t-coord", status: "running" },
+  { threadId: "t-hand", status: "running" },
+  { threadId: "t-done", status: "completed" },
 ];
 
-// `show` tells where a thread lives: here by branch, since a worktree match needs a real `git worktree`.
-const shown: Record<string, object> = {
-  "t-run": { branch: "braid/0001/A-run", worktreePath: null, pendingRequestCount: 0 },
-  "t-ask": { branch: "braid/0001/B-ask", worktreePath: null, pendingRequestCount: 2 },
-  "t-stop": { branch: "braid/0001/C-stop", worktreePath: null },
-  "t-red": { branch: null, worktreePath: null, pendingRequestCount: 0 },
-};
+// `show` tells where a thread lives.
+function placed(root: string): Record<string, object> {
+  return {
+    "t-run": { worktreePath: at(root, "0001-A"), pendingRequestCount: 0 },
+    "t-ask": { worktreePath: at(root, "0001-B"), pendingRequestCount: 2 },
+    "t-stop": { worktreePath: at(root, "0001-C") },
+    "t-rev": { worktreePath: at(root, "0001-D-review"), pendingRequestCount: 0 },
+    "t-coord": { worktreePath: at(root, "0001"), pendingRequestCount: 0 },
+    "t-hand": { worktreePath: join(scratch, "by-hand", "0001-E"), branch: "braid/0001/E-stoppr", pendingRequestCount: 0 },
+  };
+}
 
-function t3Stub(calls: string[] = [], list: object[] = threads): T3Run {
+function t3Stub(root: string, calls: string[] = [], list: object[] = threads): T3Run {
+  const shown = placed(root);
   return (_root, args) => {
     calls.push(args.join(" "));
     if (args[1] === "list") {
@@ -106,37 +116,58 @@ async function start(root: string, t3: T3Run, refreshMs = 30_000) {
   return { url, get: async (path: string) => (await (await fetch(`${url}${path}`)).json()) as any };
 }
 
-test("running, question and stopped threads put strands in the right lanes", async () => {
-  const { get } = await start(files(), t3Stub());
+test("only threads in braid's worktrees are agents: workers, reviewers and their questions", async () => {
+  const root = files();
+  const { get } = await start(root, t3Stub(root));
   const data = await get("api/board");
   assert.deepEqual(data.t3, { state: "ok" });
   const s = Object.fromEntries(data.braids[0].strands.map((x: any) => [x.id.slice(5), x]));
-  assert.deepEqual([s.A.lane, s.A.reason], ["In Progress", null]); // stored To Do, but an agent runs
-  assert.deepEqual([s.B.lane, s.B.reason], ["Waiting", "question"]);
-  assert.deepEqual([s.C.lane, s.C.reason], ["Waiting", "agent stopped"]);
-  assert.deepEqual([s.D.lane, s.D.reason], ["In Progress", null]); // failing checks, but an agent runs
-  assert.deepEqual([s.E.lane, s.E.reason], ["In Review", null]); // its agent stopped, but it has a PR
-  assert.deepEqual([s.F.lane, s.F.reason], ["In Progress", null]); // no thread: the stored status
+  assert.deepEqual([s.A.lane, s.A.activity, s.A.running], ["In Progress", "agent", true]); // stored To Do, but an agent runs
+  assert.deepEqual([s.B.lane, s.B.reason, s.B.need.kind], ["Waiting", "question", "question"]);
+  assert.deepEqual([s.C.lane, s.C.running], ["In Progress", false]); // an interrupted thread is nothing; stalled shows only after 10 minutes
+  assert.deepEqual([s.D.lane, s.D.reason, s.D.activity], ["In Progress", null, "review"]); // failing checks, but a reviewer runs on its checkout
+  assert.deepEqual([s.E.lane, s.E.running], ["In Progress", false]); // a thread started by hand elsewhere is no agent
+  assert.deepEqual([s.F.lane, s.F.running], ["In Progress", false]);
   assert.equal(data.braids[0].lane, "Waiting");
+  assert.equal(data.braids[0].need.text, "An agent asked a question: answer it in its thread");
+  assert.equal(data.braids[0].need.who, "0001/B");
   assert.equal((await get("api/item?id=0001/B")).reason, "question");
 });
 
-test("a thread is joined once: show is cached per thread, stopped threads with a PR need none", async () => {
+test("a coordinator on a braid branch with strands is no agent; a story's own worker is", async () => {
+  const root = repo({
+    "braids/0001-a/brief.md": brief("0001", "To Do"),
+    "braids/0001-a/A-run/brief.md": brief("0001/A", "To Do"),
+    "braids/0002-story/brief.md": brief("0002", "To Do"),
+  });
+  const shown: Record<string, object> = {
+    "t-coord": { worktreePath: at(root, "0001"), pendingRequestCount: 1 },
+    "t-story": { worktreePath: at(root, "0002"), pendingRequestCount: 0 },
+  };
+  const run: T3Run = (_root, args) =>
+    Promise.resolve(args[1] === "list" ? ok([{ threadId: "t-coord", status: "running" }, { threadId: "t-story", status: "running" }]) : ok({ thread: shown[args[2] ?? ""] ?? {} }));
+  const { get } = await start(root, run);
+  const [braid, story] = (await get("api/board")).braids;
+  assert.deepEqual([braid.lane, braid.running, braid.need], ["To Do", false, null]); // not even its question counts
+  assert.deepEqual([story.lane, story.running, story.activity], ["In Progress", true, "agent"]);
+});
+
+test("a thread is shown once per refresh while it runs; other threads never", async () => {
   const calls: string[] = [];
-  const { get } = await start(files(), t3Stub(calls));
+  const root = files();
+  const { get } = await start(root, t3Stub(root, calls));
   await get("api/board?fresh=1");
   await get("api/board?fresh=1");
   const shows = calls.filter((c) => c.startsWith("thread show"));
-  // Running threads are shown on every refresh (pending questions); t-stop only on the first.
-  assert.equal(shows.filter((c) => c.includes("t-stop ")).length, 1);
-  assert.equal(shows.filter((c) => c.includes("t-stoppr")).length, 0);
+  assert.equal(shows.filter((c) => c.includes("t-stop")).length, 0);
   assert.equal(shows.filter((c) => c.includes("t-done")).length, 0);
   assert.equal(shows.filter((c) => c.includes("t-run ")).length, 2);
 });
 
 test("a refresh inside the share window reads t3 once; fresh=1 reads again", async () => {
   const calls: string[] = [];
-  const { get } = await start(files(), t3Stub(calls));
+  const root = files();
+  const { get } = await start(root, t3Stub(root, calls));
   await get("api/board");
   await get("api/item?id=0001/A");
   const lists = () => calls.filter((c) => c.startsWith("thread list")).length;
@@ -158,7 +189,7 @@ test("without T3 the board still works and says so", async () => {
     assert.equal(data.t3.state, "unavailable");
     assert.match(data.t3.reason, reason);
     const lanes = data.braids[0].strands.map((x: any) => x.lane);
-    assert.deepEqual(lanes, ["To Do", "In Progress", "In Progress", "Waiting", "In Review", "In Progress"]);
+    assert.deepEqual(lanes, ["To Do", "In Progress", "In Progress", "In Progress", "In Progress", "In Progress"]);
   }
 });
 
@@ -177,20 +208,21 @@ async function firstRefresh(url: string): Promise<string> {
 }
 
 test("the event stream pushes a refresh on a timer", async () => {
-  const { url } = await start(files(), t3Stub(), 100);
+  const root = files();
+  const { url } = await start(root, t3Stub(root), 100);
   assert.match(await firstRefresh(url), /data: refresh/);
 });
 
 test("a change under braids/ pushes a refresh at once", async () => {
   const root = files();
-  const { url } = await start(root, t3Stub(), 600_000);
+  const { url } = await start(root, t3Stub(root), 600_000);
   const pending = firstRefresh(url);
   await new Promise((r) => setTimeout(r, 300));
   writeFileSync(join(root, "braids/0001-a/A-run/brief.md"), brief("0001/A", "Done"));
   assert.match(await pending, /data: refresh/);
 });
 
-test("the demo shows every lane and every Waiting reason from built-in samples", async () => {
+test("the demo shows every lane and every reason, request and alarm from built-in samples", async () => {
   const { server, url } = await board.startBoardWith(board.demoSources(), join(scratch, "no-web"));
   after(() => server.close());
   const data = (await (await fetch(`${url}api/board`)).json()) as any;
@@ -198,7 +230,10 @@ test("the demo shows every lane and every Waiting reason from built-in samples",
   assert.deepEqual(new Set(data.braids.map((b: any) => b.lane)), new Set(data.lanes));
   const strands = data.braids.flatMap((b: any) => b.strands);
   const reasons = new Set(strands.map((s: any) => s.reason).filter((r: unknown) => r !== null));
-  assert.deepEqual(reasons, new Set(["question", "agent stopped", "checks failed"]));
+  const braidReasons = data.braids.map((b: any) => b.reason).filter((r: unknown) => r !== null);
+  assert.deepEqual(new Set([...reasons, ...braidReasons]), new Set(["question", "decision", "plan", "checks failed", "stalled"]));
+  assert.deepEqual(new Set(strands.map((s: any) => s.activity).filter((a: unknown) => a !== null)), new Set(["agent", "review", "checks"]));
+  assert.equal(strands.some((s: any) => s.need?.kind === "review" && s.need.age === "2h"), true);
   assert.equal(strands.some((s: any) => s.ask === "approve-layout"), true);
   assert.equal(strands.some((s: any) => s.lane === "In Progress"), true);
   assert.equal(((await (await fetch(`${url}api/item?id=0008/A`)).json()) as any).report.startsWith("# Report"), true);
@@ -208,25 +243,9 @@ test("the demo shows every lane and every Waiting reason from built-in samples",
 });
 
 test("the demo data is reusable and loads without a repository", () => {
-  assert.equal(demo.demoBraids().length, 8);
+  assert.equal(demo.demoBraids().length, 11);
   assert.ok(demo.demoGithub());
   assert.ok(demo.demoT3());
-});
-
-test("a coordinator listing many PRs joins no strand; a linked PR wins over a longer list", async () => {
-  // The TASK-2.2 sample: a running coordinator thread with a dozen PRs of its own and no linked one.
-  const many = Array.from({ length: 18 }, (_, i) => ({ number: 39 + i, url: `https://github.com/o/r/pull/${39 + i}`, state: "open" }));
-  const coordinator = { threadId: "t-coord", status: "running", linkedPullRequest: null, pullRequests: many };
-  const { get } = await start(files(), t3Stub([], [coordinator]));
-  const s = Object.fromEntries((await get("api/board")).braids[0].strands.map((x: any) => [x.id.slice(5), x]));
-  assert.deepEqual([s.D.lane, s.D.reason], ["Waiting", "checks failed"]); // PR 40 is in its list, but it is not its PR
-  assert.equal(s.E.lane, "In Review"); // PR 41 too
-
-  resetT3Memory();
-  const worker = { threadId: "t-worker", status: "running", linkedPullRequest: { number: 40 }, pullRequests: many };
-  const linked = await start(files(), t3Stub([], [worker]));
-  const d = (await linked.get("api/board")).braids[0].strands.find((x: any) => x.id === "0001/D");
-  assert.equal(d.lane, "In Progress");
 });
 
 test("thread list is asked for the main checkout, also when the board starts in a linked worktree", async () => {

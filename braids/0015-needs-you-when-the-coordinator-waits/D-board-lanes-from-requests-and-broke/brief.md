@@ -41,15 +41,15 @@ Expected size: about 350 to 500 lines in 10 files, with tests.
 
 ## Acceptance
 
-- [ ] Each lane rule and both broke alarms are covered by tests with fake GitHub, T3 and requests, including: review running on a reviewer checkout (Working), a coordinator on the braid branch alone (not Working), a condition shorter than 10 minutes (no alarm)
-- [ ] `braid start <id> --review` creates the reviewer's checkout and `braid clean` removes it
-- [ ] The board matches the approved mockups; the demo shows every state and reason
-- [ ] `braid status` prints the same state, reason and request text as the board
+- [x] Each lane rule and both broke alarms are covered by tests with fake GitHub, T3 and requests, including: review running on a reviewer checkout (Working), a coordinator on the braid branch alone (not Working), a condition shorter than 10 minutes (no alarm)
+- [x] `braid start <id> --review` creates the reviewer's checkout and `braid clean` removes it
+- [x] The board matches the approved mockups; the demo shows every state and reason
+- [x] `braid status` prints the same state, reason and request text as the board
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written, with screenshots of the built board embedded
+- [x] The gate command from BRAID.md passes
+- [x] report.md written, with screenshots of the built board embedded
 
 ## Plan
 
