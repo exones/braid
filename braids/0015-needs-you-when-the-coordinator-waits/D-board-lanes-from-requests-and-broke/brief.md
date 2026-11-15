@@ -27,6 +27,7 @@ Expected size: about 350 to 500 lines in 10 files, with tests.
 - T3 is read only for "is an agent of this item running" and a running agent's pending question (which is Needs You, `question`, as today).
 - A braid shows the most urgent of its strands and its own requests.
 - Cards and `braid status` show the request's one-line text and age, as in the mockups. A "Details" toggle in the board header hides the line and moves its text to the reason icon's tooltip; the setting is kept in a cookie (user, 2026-11-15). `braid board --demo` covers every state and reason.
+- The board reads requests through `src/braids/requests.ts` only (`filterLive`, `age`, its main-checkout lookup) and never writes them. Harden the store's stale-lock takeover: two waiters must not both take a lock older than 30 s (0015/C review), with a test.
 - `docs/board.md` rewritten for the new rules; a decision in `docs/decisions.md` replacing the lane rules of D32 where they differ; screenshots in `docs/design/board-screenshots/`.
 
 ## Already decided
