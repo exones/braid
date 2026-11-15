@@ -1,0 +1,9 @@
+/* braid brand colours. See ../README.md#colour for usage and contrast. */
+:root {
+  --braid-navy: #082a48;         /* Ledger Navy: primary, wordmark, text */
+  --braid-violet: #7835ef;       /* Strand Violet: accent on light backgrounds */
+  --braid-violet-light: #a27bff; /* Violet Light: accent on dark backgrounds */
+  --braid-mist: #f4f2fb;         /* Mist: light surfaces */
+  --braid-slate: #5a6b80;        /* Slate: secondary text */
+  --braid-white: #ffffff;
+}

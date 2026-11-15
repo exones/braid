@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>braid - brand identity guidelines</title>
+<style>
+  @page { size: 1600px 900px; margin: 0; }
+  :root {
+    --navy: #082A48; --violet: #7835EF; --violet-light: #A27BFF;
+    --mist: #F4F2FB; --slate: #5A6B80; --white: #FFFFFF; --line: #DCD8EA;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: Poppins, "Segoe UI", sans-serif; color: var(--navy); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 1600px; height: 900px; position: relative; overflow: hidden; break-after: page; padding: 80px 104px; background: var(--white); }
+  .page:last-child { break-after: auto; }
+  .dark { background: var(--navy); color: var(--white); }
+  .mist { background: var(--mist); }
+  .eyebrow { font-size: 15px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--violet); margin: 0 0 14px; }
+  .dark .eyebrow { color: var(--violet-light); }
+  h1 { font-size: 48px; line-height: 1.1; font-weight: 700; margin: 0 0 32px; letter-spacing: -.01em; }
+  h1.big { font-size: 64px; }
+  h2 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+  p, li { font-size: 19px; line-height: 1.6; color: var(--slate); margin: 0 0 14px; }
+  strong { color: var(--navy); }
+  .dark p { color: #C9D3DF; }
+  .folio { position: absolute; left: 104px; right: 104px; bottom: 36px; display: flex; justify-content: space-between; font-size: 13px; color: var(--slate); letter-spacing: .06em; }
+  .dark .folio { color: #8EA0B5; }
+  .grid { display: grid; gap: 24px; }
+  .card { border: 1px solid var(--line); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; min-height: 0; }
+  .card .art { flex: 1; display: flex; align-items: center; justify-content: center; border-radius: 12px; min-height: 0; }
+  .card .art img { max-width: 84%; max-height: 78%; }
+  .card h2 { margin-top: 16px; }
+  .card p { font-size: 16px; margin: 0; }
+  .swatch { display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); }
+  .swatch .chip { flex: 1; }
+  .swatch div:last-child { padding: 20px; }
+  .swatch p { font-size: 15px; margin: 0 0 8px; }
+  .version { padding: 0; overflow: hidden; }
+  .version .art { border-radius: 0; }
+  .version .art img { max-width: 68%; }
+  .version div:last-child { padding: 20px 24px; }
+  code, .mono { font-family: "Cascadia Code", "Cascadia Mono", Consolas, monospace; }
+  .x { position: relative; }
+  .x p { margin-top: 16px; }
+  .x::after { content: "\00D7"; position: absolute; top: 12px; right: 14px; width: 32px; height: 32px; border-radius: 50%; background: #E5484D; color: #fff; font-size: 24px; line-height: 31px; text-align: center; font-weight: 600; }
+  table { border-collapse: collapse; font-size: 18px; width: 100%; margin-top: 12px; }
+  th, td { padding: 12px 0; border-bottom: 1px solid var(--line); text-align: right; }
+  th { font-weight: 600; }
+  th:first-child, td:first-child { text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+</style>
+</head>
+<body>
+
+<!-- 1. Cover -->
+<section class="page dark" style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
+  <img src="../logo/svg/braid-logo-primary-reversed.svg" style="height:430px" alt="braid">
+  <p style="margin-top:48px;font-size:20px;letter-spacing:.22em;text-transform:uppercase;">Brand identity guidelines</p>
+  <div class="folio"><span>braid · v1.0</span><span>November 2026</span></div>
+</section>
+
+<!-- 2. Concept -->
+<section class="page" style="display:grid;grid-template-columns:1fr 1.1fr;gap:80px;align-items:center;">
+  <div>
+    <p class="eyebrow">01 · The idea</p>
+    <h1 class="big">Many strands.<br>One braid.</h1>
+    <p>braid orchestrates coding agents. It splits a goal into <strong>braids</strong> and <strong>strands</strong>, hands each strand to an agent, and keeps a ledger of every step.</p>
+    <p>The symbol draws that work. Three strands start at their own points, cross over and under, and come together in one loop.</p>
+  </div>
+  <div class="grid" style="gap:36px;">
+    <img src="../logo/svg/braid-symbol-color.svg" style="width:100%;" alt="">
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:24px;">
+      <div><h2>Endpoints</h2><p style="font-size:16px">Each strand starts at a ring, like a commit in a history: a recorded point in the ledger.</p></div>
+      <div><h2>Weave</h2><p style="font-size:16px">Over-under crossings show agents working side by side without colliding.</p></div>
+      <div><h2>Loop</h2><p style="font-size:16px">The loop on the right is where the strands meet again: work merged back.</p></div>
+    </div>
+  </div>
+  <div class="folio"><span>braid · brand identity guidelines</span><span>02</span></div>
+</section>
+
+<!-- 3. Lockups -->
+<section class="page">
+  <p class="eyebrow">02 · Logo</p>
+  <h1>Four lockups</h1>
+  <div class="grid" style="grid-template-columns:1fr 1.6fr;grid-template-rows:290px 290px;">
+    <div class="card" style="grid-row:span 2"><div class="art"><img src="../logo/svg/braid-logo-primary-color.svg" style="max-height:90%"></div><h2>Primary</h2><p>The default. Use it wherever there is room: covers, README headers, slides, merchandise.</p></div>
+    <div class="card"><div class="art"><img src="../logo/svg/braid-logo-horizontal-color.svg"></div><h2>Horizontal</h2><p>Wide, short spaces: site headers, banners, letterheads.</p></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;">
+      <div class="card"><div class="art"><img src="../logo/svg/braid-symbol-color.svg" style="max-width:62%"></div><h2>Symbol</h2><p>Avatars, app icons, favicons, stickers.</p></div>
+      <div class="card"><div class="art"><img src="../logo/svg/braid-wordmark-color.svg" style="max-width:62%"></div><h2>Wordmark</h2><p>When the symbol is already close by.</p></div>
+    </div>
+  </div>
+  <div class="folio"><span>braid · brand identity guidelines</span><span>03</span></div>
+</section>
+
+<!-- 4. Colour versions -->
+<section class="page">
+  <p class="eyebrow">03 · Logo colour versions</p>
+  <h1>Choose by background</h1>
+  <div class="grid" style="grid-template-columns:repeat(4,1fr);height:580px;">
+    <div class="card version"><div class="art" style="background:#fff;border-bottom:1px solid var(--line)"><img src="../logo/svg/braid-logo-primary-color.svg"></div><div><h2>Colour</h2><p>White and light backgrounds. Always the first choice.</p></div></div>
+    <div class="card version"><div class="art" style="background:var(--navy)"><img src="../logo/svg/braid-logo-primary-reversed.svg"></div><div><h2>Reversed</h2><p>Navy and other dark backgrounds. Violet becomes Violet Light.</p></div></div>
+    <div class="card version"><div class="art" style="background:var(--mist)"><img src="../logo/svg/braid-logo-primary-mono-navy.svg"></div><div><h2>Mono navy</h2><p>One-colour print, embossing, engraving.</p></div></div>
+    <div class="card version"><div class="art" style="background:var(--violet)"><img src="../logo/svg/braid-logo-primary-mono-white.svg"></div><div><h2>Mono white</h2><p>Violet, photos and other colour fields with enough contrast.</p></div></div>
+  </div>
+  <div class="folio"><span>braid · brand identity guidelines</span><span>04</span></div>
+</section>
+
+<!-- 5. Clear space and minimum size -->
+<section class="page" style="display:grid;grid-template-columns:1.2fr 1fr;gap:80px;">
+  <div>
+    <p class="eyebrow">04 · Clear space and size</p>
+    <h1>Give it room</h1>
+    <div style="position:relative;display:inline-block;margin-top:8px;padding:56px;outline:2px dashed var(--violet-light);background:repeating-linear-gradient(45deg,#F4F2FB 0 10px,#fff 10px 20px);">
+      <div style="background:#fff;outline:1px solid var(--line)"><img src="../logo/svg/braid-logo-horizontal-color.svg" style="display:block;width:560px;"></div>
+      <span class="mono" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);color:var(--violet);font-size:20px;">x</span>
+      <span class="mono" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);color:var(--violet);font-size:20px;">x</span>
+    </div>
+    <p style="margin-top:28px;max-width:660px"><strong>x</strong> = the outer diameter of one endpoint ring. Keep at least x of empty space on every side. The SVG artboards include a small margin; measure clear space from the artwork, not the file edge.</p>
+  </div>
+  <div style="padding-top:112px">
+    <h2>Minimum sizes</h2>
+    <table>
+      <tr><th>Lockup</th><th>Screen</th><th>Print</th></tr>
+      <tr><td>Primary</td><td>120 px wide</td><td>30 mm</td></tr>
+      <tr><td>Horizontal</td><td>140 px wide</td><td>35 mm</td></tr>
+      <tr><td>Symbol</td><td>24 px wide</td><td>8 mm</td></tr>
+      <tr><td>Wordmark</td><td>64 px wide</td><td>16 mm</td></tr>
+    </table>
+    <p style="margin-top:20px;font-size:16px">Below 24 px, use <code>favicon.svg</code> or the favicon PNGs.</p>
+    <div style="display:flex;align-items:end;gap:32px;margin-top:16px">
+      <img src="../logo/svg/braid-logo-primary-color.svg" style="width:120px">
+      <img src="../logo/svg/braid-logo-horizontal-color.svg" style="width:140px">
+      <img src="../logo/svg/braid-symbol-color.svg" style="width:24px">
+    </div>
+    <p style="margin-top:8px;font-size:14px">Shown at minimum size.</p>
+  </div>
+  <div class="folio"><span>braid · brand identity guidelines</span><span>05</span></div>
+</section>
+
+<!-- 6. Colour -->
+<section class="page">
+  <p class="eyebrow">05 · Colour</p>
+  <h1>Navy carries, violet leads</h1>
+  <div class="grid" style="grid-template-columns:2fr 2fr 1.3fr 1.3fr 1.3fr;height:540px;gap:20px;">
+    <div class="swatch"><div class="chip" style="background:#082A48"></div><div><h2>Ledger Navy</h2><p class="mono">#082A48<br>RGB 8 42 72<br>CMYK 100 75 35 50</p><p>Primary. Wordmark, two strands, text.</p></div></div>
+    <div class="swatch"><div class="chip" style="background:#7835EF"></div><div><h2>Strand Violet</h2><p class="mono">#7835EF<br>RGB 120 53 239<br>CMYK 65 78 0 0</p><p>Accent. One strand, links, highlights.</p></div></div>
+    <div class="swatch"><div class="chip" style="background:#A27BFF"></div><div><h2>Violet Light</h2><p class="mono">#A27BFF<br>RGB 162 123 255</p><p>Violet on dark.</p></div></div>
+    <div class="swatch"><div class="chip" style="background:#F4F2FB"></div><div><h2>Mist</h2><p class="mono">#F4F2FB<br>RGB 244 242 251</p><p>Light surfaces.</p></div></div>
+    <div class="swatch"><div class="chip" style="background:#5A6B80"></div><div><h2>Slate</h2><p class="mono">#5A6B80<br>RGB 90 107 128</p><p>Secondary text.</p></div></div>
+  </div>
+  <p style="margin-top:20px;font-size:16px">Contrast (WCAG 2.2): Navy on white 14.6:1 · Violet on white 5.9:1 · Violet Light on Navy 4.8:1 · Slate on white 5.5:1. Don't set Strand Violet on Navy (2.5:1); use Violet Light. CMYK values are starting points; proof before print.</p>
+  <div class="folio"><span>braid · brand identity guidelines</span><span>06</span></div>
+</section>
+
+<!-- 7. Typography -->
+<section class="page" style="display:grid;grid-template-columns:1fr 1fr;gap:80px;">
+  <div>
+    <p class="eyebrow">06 · Typography</p>
+    <h1>Two typefaces</h1>
+    <p>The wordmark is custom lettering, supplied as outlines. Never retype it in a font.</p>
+    <p><strong>Poppins</strong> shares the wordmark's round, geometric shapes. Use it for headings, UI and body copy: 700 for headings, 600 for subheads, 400 for body.</p>
+    <p><strong>Cascadia Code</strong> is for commands, ids, ledger entries and anything a user types.</p>
+    <p style="font-size:16px">Both are free under the SIL Open Font License: Poppins from Google Fonts, Cascadia Code from github.com/microsoft/cascadia-code.</p>
+  </div>
+  <div style="padding-top:28px">
+    <div style="font-size:120px;font-weight:700;line-height:1">Aa</div>
+    <div style="font-size:42px;font-weight:700;margin-top:20px;line-height:1.15">Plan the goal. Split the work.</div>
+    <div style="font-size:28px;font-weight:600;margin-top:12px;color:var(--violet)">Every strand on the ledger.</div>
+    <p style="margin-top:12px;">braid hands each strand to an agent, arranges review and reports back when a PR is ready to merge.</p>
+    <div class="mono" style="margin-top:20px;background:var(--navy);color:#E6ECF3;border-radius:14px;padding:22px 28px;font-size:18px;line-height:1.7">
+      <span style="color:var(--violet-light)">$</span> braid status<br>
+      0015&nbsp;&nbsp;&nbsp;<span style="color:#8EA0B5">needs-you</span>&nbsp;&nbsp;coordinator waits<br>
+      0015/D&nbsp;<span style="color:var(--violet-light)">in-review</span>&nbsp;&nbsp;board lanes
+    </div>
+  </div>
+  <div class="folio"><span>braid · brand identity guidelines</span><span>07</span></div>
+</section>
+
+<!-- 8. Misuse -->
+<section class="page">
+  <p class="eyebrow">07 · Misuse</p>
+  <h1>Please don't</h1>
+  <div class="grid" style="grid-template-columns:repeat(4,1fr);grid-template-rows:270px 270px;">
+    <div class="card x"><div class="art"><img src="../logo/svg/braid-logo-horizontal-color.svg" style="transform:scaleX(1.4) scaleY(.7);max-width:60%"></div><p>Stretch or squash it.</p></div>
+    <div class="card x"><div class="art"><img src="../logo/svg/braid-logo-horizontal-color.svg" style="filter:hue-rotate(150deg)"></div><p>Recolour the strands.</p></div>
+    <div class="card x"><div class="art"><img src="../logo/svg/braid-logo-horizontal-color.svg" style="transform:rotate(-14deg);max-width:74%"></div><p>Rotate or tilt it.</p></div>
+    <div class="card x"><div class="art"><img src="../logo/svg/braid-logo-horizontal-color.svg" style="filter:drop-shadow(6px 8px 4px rgba(0,0,0,.45))"></div><p>Add shadows, glows or bevels.</p></div>
+    <div class="card x"><div class="art" style="gap:14px"><img src="../logo/svg/braid-symbol-color.svg" style="max-width:34%"><span style="font-family:'Times New Roman',serif;font-size:56px;font-style:italic">Braid</span></div><p>Retype the wordmark.</p></div>
+    <div class="card x"><div class="art" style="background:#7835EF"><img src="../logo/svg/braid-logo-horizontal-color.svg"></div><p>Put the colour logo on low-contrast colour.</p></div>
+    <div class="card x"><div class="art" style="background:repeating-linear-gradient(60deg,#F6C445 0 18px,#46B3E6 18px 36px,#E5484D 36px 54px)"><img src="../logo/svg/braid-logo-horizontal-color.svg"></div><p>Use busy backgrounds.</p></div>
+    <div class="card x"><div class="art" style="flex-direction:column;gap:8px"><img src="../logo/svg/braid-wordmark-color.svg" style="max-width:44%"><img src="../logo/svg/braid-symbol-color.svg" style="max-width:32%"></div><p>Rearrange the parts.</p></div>
+  </div>
+  <div class="folio"><span>braid · brand identity guidelines</span><span>08</span></div>
+</section>
+
+<!-- 9. Applications -->
+<section class="page mist">
+  <p class="eyebrow">08 · Applications</p>
+  <h1>In use</h1>
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:48px;align-items:start">
+    <div>
+      <img src="../icons/braid-app-icon.svg" style="width:220px;display:block">
+      <p style="margin-top:14px;font-size:16px">App icon and avatar</p>
+      <div style="display:flex;align-items:end;gap:16px;margin-top:24px">
+        <img src="../icons/braid-app-icon.svg" style="width:64px"><img src="../icons/braid-app-icon-light.svg" style="width:64px"><img src="../icons/favicon.svg" style="width:32px"><img src="../icons/favicon.svg" style="width:16px">
+      </div>
+      <p style="margin-top:12px;font-size:16px">Icon sizes down to a 16 px favicon</p>
+    </div>
+    <div>
+      <img src="../social/braid-social-preview.svg" style="width:100%;border-radius:14px;display:block;box-shadow:0 10px 30px rgba(8,42,72,.15)">
+      <p style="margin-top:14px;font-size:16px">GitHub social preview, 1280 × 640</p>
+    </div>
+  </div>
+  <div class="folio"><span>braid · brand identity guidelines</span><span>09</span></div>
+</section>
+
+</body>
+</html>
