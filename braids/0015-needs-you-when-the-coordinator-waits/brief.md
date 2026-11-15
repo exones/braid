@@ -18,5 +18,8 @@ The board tells the coordinator's thread from a worker's, and shows a braid in N
 
 ## Strands
 
-- A. Spike: how the board sees the coordinator (M, Opus as researcher). Its report proposes the build strands.
-- Build strands from A's report, created after the user decides.
+- A. Spike: how the board sees the coordinator (done). Its evidence stands; the user chose another design afterwards, in `states.md`: explicit requests plus delayed "broke" alarms.
+- B. Mockups: five lanes and what is needed (S, ui).
+- C. Requests: `braid handover` and `braid ask`, stored under `.braid/` (M).
+- D. Board: lanes from requests and broke alarms; `braid start --review`; the coordinator is never an agent (M, ui).
+- E. Skills: ask before every stop (L, process).
