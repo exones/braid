@@ -9,6 +9,7 @@
   - `braid facts` prints each stop-case diff fact with the case it points to: dependency and process files, deleted tests, skip and only markers, and a size over twice the brief's expected size.
   - `braid recap` drafts the recap and the braid log line from `report.md`, the PR head and checks, and the facts.
   - The skills call both commands instead of the hand-run steps, going from 9,384 to 9,131 words. Decision D44.
+- **E, final review fixes (#91).** The recap draft gets a Screenshots line, its log line follows the `assets/brief.md` template, branch parsing reuses `keyOfBranch`, the full case name `quality or scope` is kept, and D44 has its decision-log line. `braid facts` now reads the expected size from the number of lines (the upper end of a range); it used to take the file count.
 - The goal's separate `braid merge` became `braid done --merge` (A, option C).
 
 ## Why
@@ -19,13 +20,13 @@ The coordinator used to assemble the stop-case facts, recaps and merges by hand.
 
 - `npm run verify` passed on every strand, and CI passed on Windows and Ubuntu for each PR.
 - Independent reviews (grok-4.6) of C and D found nothing blocking. C's three suggestions were applied before its merge.
+- The final review of #90 (grok-4.6) found nothing blocking. Its five suggestions and one bug found by running `braid recap` are fixed in E (136 tests).
 - D was merged with `braid done 0014/D --merge --log -` from this branch's build, the command's first real use.
 
 ## Open
 
 - Auto mode's checks in `braid done --merge`: later, when unattended runs are wanted (the user, 2026-11-14).
 - What the user learned trying 0008: still to come.
-- Two small gaps in `braid recap` from D's review: the draft has no Screenshots line for `ui` items, and its log line doesn't follow the `assets/brief.md` template yet.
 
 For later items: coordinators use `braid done`, `braid facts` and `braid recap` once 0014 is in `main` and the skills are reinstalled. `workflow.md` allows the D43 Done stamp as an exception to "one writer per branch".
 
