@@ -7,10 +7,11 @@
 - `idOfBranch` dropped; `keyOfBranch` from `src/board/github.ts` is reused.
 - Needs the user keeps the full case name (`quality or scope (facts)`).
 - `docs/decisions.md`: dated D44 line in the Decision log.
+- Review fix: `expectedSize` takes the number directly before "lines" (the upper bound of `N to M` / `N-M`), else null; it no longer picks the file count ("about 40 to 80 lines in 4 files" is 80, not 4). The doc comment and `docs/braids-format.md` say so.
 
 ## Validation
 
-`npm run verify` passes (136 tests); new tests cover the Screenshots line (ui and non-ui), the log line shape and the full case name.
+`npm run verify` passes; tests cover the Screenshots line (ui and non-ui), the log line shape, the full case name and `expectedSize` for ranges, "in K files", "with tests", a plain count and no "lines".
 
 For later items: none
 Needs the user: none

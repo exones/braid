@@ -70,8 +70,12 @@ function world(size: string, change: (put: (path: string, text: string) => void,
   return { root, head, gh };
 }
 
-test("expectedSize takes the last number of the Expected size line", () => {
+test("expectedSize takes the number of lines, the upper bound of a range", () => {
+  assert.equal(expectedSize(brief("about 40 to 80 lines in 4 files")), 80);
   assert.equal(expectedSize(brief("about 250 to 400 lines with tests")), 400);
+  assert.equal(expectedSize(brief("about 30 lines in 2 files")), 30);
+  assert.equal(expectedSize(brief("about 10-20 lines")), 20);
+  assert.equal(expectedSize(brief("about 3 files")), null);
   assert.equal(expectedSize("## Goal\n\nnothing\n"), null);
 });
 

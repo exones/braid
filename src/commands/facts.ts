@@ -19,11 +19,11 @@ export interface Fact {
 
 const lines = (s: string): string[] => s.split(/\r?\n/).filter((l) => l !== "");
 
-/** The last number on the brief's "Expected size:" line, or null. */
+/** The number of lines on the brief's "Expected size:" line (the upper bound of `N to M` or `N-M`), or null when no number comes directly before "lines". */
 export function expectedSize(brief: string): number | null {
   const line = /^Expected size:(.*)$/m.exec(brief)?.[1] ?? "";
-  const nums = [...line.matchAll(/\d+/g)].map((m) => Number(m[0]));
-  return nums.length === 0 ? null : (nums[nums.length - 1] ?? null);
+  const found = /(\d+)\s*lines?\b/i.exec(line)?.[1];
+  return found === undefined ? null : Number(found);
 }
 
 /** The stop-case facts of `<base>...<head>`; empty when the diff shows none. */
