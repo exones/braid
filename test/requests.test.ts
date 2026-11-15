@@ -1,0 +1,217 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { after, beforeEach, test } from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const scratch = mkdtempSync(join(tmpdir(), "braid-requests-test-"));
+after(() => rmSync(scratch, { recursive: true, force: true }));
+
+const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
+type Cmd = (root: string, args: string[], opts?: object) => string | Promise<string>;
+const { handoverCommand, askCommand, requestsCommand, answerCommand, age } = (await load("../dist/commands/requests.js")) as {
+  handoverCommand: Cmd;
+  askCommand: Cmd;
+  requestsCommand: Cmd;
+  answerCommand: (root: string, cwd: string, args: string[]) => string;
+  age: (at: string, now: Date) => string;
+};
+const { startCommand } = (await load("../dist/commands/start.js")) as { startCommand: (root: string, args: string[], src: object, env: object) => Promise<string> };
+const { doneCommand } = (await load("../dist/commands/done.js")) as { doneCommand: Cmd };
+const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
+const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
+const { loadRequests, requestsFile } = (await load("../dist/braids/requests.js")) as {
+  loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
+  requestsFile: (root: string) => string;
+};
+beforeEach(() => {
+  resetGithubMemory();
+  resetT3Memory();
+});
+
+const git = (cwd: string, ...args: string[]) => {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8" });
+  assert.equal(r.status, 0, `git ${args.join(" ")}: ${r.stderr}`);
+  return r.stdout.trim();
+};
+const ok = (data: unknown) => ({ status: 0, stdout: JSON.stringify(data), stderr: "" });
+const brief = (id: string, status: string) => `---\nid: '${id}'\ntitle: "T ${id}"\nstatus: ${status}\nlabels: []\ndependencies: []\n---\n\n## Goal\n\nx\n`;
+const THREAD = "mcp:launch:aaaaaaaa11111111";
+const NOW = new Date("2026-11-15T12:00:00Z");
+
+interface Pr {
+  state: "OPEN" | "MERGED" | "CLOSED";
+  checks: string;
+  head: string;
+}
+
+/** A repository with braid 0001 (strand A, PR #5 on its branch), a bare remote, and a second worktree of it. */
+function world() {
+  const base = mkdtempSync(join(scratch, "w-"));
+  const root = join(base, "proj");
+  const remote = join(base, "remote.git");
+  const put = (path: string, text: string) => {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), text);
+  };
+  git(base, "init", "-q", "--bare", "remote.git");
+  git(base, "init", "-q", "-b", "main", root);
+  git(root, "config", "user.email", "t@example.com");
+  git(root, "config", "user.name", "t");
+  git(root, "remote", "add", "origin", remote);
+  put("BRAID.md", "---\nmain: main\nci: [verify]\n---\n");
+  put("braids/0001-alpha/brief.md", brief("0001", "In Progress"));
+  put("braids/0001-alpha/A-first/brief.md", brief("0001/A", "To Do"));
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "init");
+  git(root, "push", "-q", "origin", "main");
+  git(root, "push", "-q", "origin", "main:refs/heads/braid/0001-alpha");
+  git(root, "checkout", "-q", "-b", "braid/0001/A-first");
+  put("code.txt", "a\n");
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "feat: A");
+  git(root, "push", "-q", "origin", "braid/0001/A-first");
+  const first = git(root, "rev-parse", "HEAD");
+  git(root, "checkout", "-q", "main");
+  const other = join(base, "other");
+  git(root, "worktree", "add", "-q", "--detach", other, "main");
+  const pr: Pr = { state: "OPEN", checks: "SUCCESS", head: first };
+  const gh = (_r: string, args: readonly string[]) => {
+    const rollup = [{ name: "verify", conclusion: pr.checks === "PENDING" ? "" : pr.checks, status: pr.checks === "PENDING" ? "IN_PROGRESS" : "COMPLETED" }];
+    if (args[1] === "list") {
+      return ok([{ number: 5, url: "u/5", state: pr.state, headRefName: "braid/0001/A-first", statusCheckRollup: rollup }]);
+    }
+    return ok({ number: 5, url: "u/5", state: pr.state, baseRefName: "braid/0001-alpha", headRefName: "braid/0001/A-first", headRefOid: pr.head, mergeable: "MERGEABLE", statusCheckRollup: rollup });
+  };
+  return { root, other, pr, gh, first, clock: () => NOW };
+}
+
+test("ask opens a request that every worktree shares; a new ask replaces it; answer closes it", async () => {
+  const w = world();
+  const asked = askCommand(w.root, ["0001/A", "Which   name\nshould it have?", "--kind", "decision", "--key", "scope", "--thread", THREAD], { now: w.clock }) as string;
+  assert.match(asked, /0001\/A: decision request opened: Which name should it have\?/);
+  assert.equal(existsSync(join(w.root, ".braid", "requests.json")), true);
+  assert.equal(existsSync(join(w.other, ".braid")), false, "the store is in the main checkout only");
+  assert.equal(requestsFile(w.other), requestsFile(w.root));
+  const listed = (await requestsCommand(w.other, [], { gh: w.gh, now: () => new Date("2026-11-15T12:30:00Z") })) as string;
+  assert.equal(listed, "0001/A  decision  30m  Which name should it have?\n");
+  askCommand(w.other, ["0001/A", "Plan ok?", "--kind", "plan"], { now: w.clock });
+  assert.deepEqual(loadRequests(w.root).map((r) => [r.id, r.kind, r.text]), [["0001/A", "plan", "Plan ok?"]]);
+  assert.equal(readdirSync(join(w.root, ".braid")).filter((n) => n.endsWith(".tmp")).length, 0);
+  assert.match(answerCommand(w.other, w.other, ["0001/A"]), /request closed/);
+  assert.equal(await requestsCommand(w.root, [], { gh: w.gh }), "no open requests\n");
+  assert.match(answerCommand(w.root, w.root, ["0001/A"]), /no open request/);
+});
+
+test("ask refuses a bad kind, an empty text, an unknown item and a bad thread", () => {
+  const w = world();
+  assert.throws(() => askCommand(w.root, ["0001/A", "x", "--kind", "review"]), /--kind is question, decision or plan/);
+  assert.throws(() => askCommand(w.root, ["0001/A", "  "]), /must not be empty/);
+  assert.throws(() => askCommand(w.root, ["0009", "x"]), /no braid 0009/);
+  assert.throws(() => askCommand(w.root, ["0001/A", "x", "--thread", "abc"]), /--thread needs an id/);
+  assert.deepEqual(loadRequests(w.root), []);
+});
+
+test("answer --log adds the decision to the braid log, and a refused log leaves the request open", () => {
+  const w = world();
+  askCommand(w.root, ["0001", "Approve the plan?", "--kind", "plan"], { now: w.clock });
+  assert.throws(() => answerCommand(w.root, w.root, ["0001", "--log", join(w.root, "nope.txt")]), /can't read/);
+  assert.equal(loadRequests(w.root).length, 1);
+  writeFileSync(join(w.root, "decision.txt"), "User approved the plan.\n");
+  const out = answerCommand(w.root, w.root, ["0001", "--log", join(w.root, "decision.txt"), "--thread", THREAD]);
+  assert.match(out, /request closed/);
+  const log = readdirSync(join(w.root, "braids/0001-alpha")).find((n) => n.startsWith("log-"));
+  assert.ok(log !== undefined);
+  assert.match(readFileSync(join(w.root, "braids/0001-alpha", log), "utf8"), /User approved the plan\./);
+  assert.deepEqual(loadRequests(w.root), []);
+});
+
+test("handover opens a review request and prints the recap draft", async () => {
+  const w = world();
+  const out = (await handoverCommand(w.other, ["0001/A", "--head", w.first.slice(0, 7), "--thread", THREAD], { gh: w.gh, now: w.clock })) as string;
+  assert.match(out, new RegExp(`0001/A: review request opened for PR #5 at ${w.first}`));
+  assert.match(out, /ready for your merge/);
+  assert.match(out, /braid log line:/);
+  const [r] = loadRequests(w.root);
+  assert.equal(r?.kind, "review");
+  assert.equal(r?.head, w.first);
+});
+
+test("handover refuses a PR that is not open, not at the head or not green, and changes nothing", async () => {
+  const w = world();
+  const go = (head = w.first) => handoverCommand(w.root, ["0001/A", "--head", head], { gh: w.gh, now: w.clock }) as Promise<string>;
+  await assert.rejects(go("deadbeef"), /head is .*, not deadbeef/);
+  w.pr.checks = "FAILURE";
+  await assert.rejects(go(), /not green.*verify failing/);
+  w.pr.checks = "PENDING";
+  await assert.rejects(go(), /verify pending/);
+  w.pr.checks = "SUCCESS";
+  w.pr.state = "MERGED";
+  await assert.rejects(go(), /PR #5 is merged/);
+  w.pr.state = "CLOSED";
+  await assert.rejects(go(), /PR #5 is closed/);
+  assert.deepEqual(loadRequests(w.root), []);
+  await assert.rejects(handoverCommand(w.root, ["0001/A"], { gh: w.gh }) as Promise<string>, /usage: braid handover/);
+});
+
+test("a review request is void after a merge, a close or a moved head", async () => {
+  const changes: ((p: Pr) => void)[] = [(p) => (p.state = "MERGED"), (p) => (p.state = "CLOSED"), (p) => (p.head = "f".repeat(40))];
+  for (const change of changes) {
+    const w = world();
+    await handoverCommand(w.root, ["0001/A", "--head", w.first], { gh: w.gh, now: w.clock });
+    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /0001\/A  review  0m  review PR #5/);
+    change(w.pr);
+    assert.equal(await requestsCommand(w.root, [], { gh: w.gh, now: w.clock }), "no open requests\n");
+    assert.deepEqual(loadRequests(w.root), [], "the void request is dropped from the store");
+  }
+});
+
+test("a review request stays when GitHub can't be read; a question never self-closes on a PR", async () => {
+  const w = world();
+  await handoverCommand(w.root, ["0001/A", "--head", w.first], { gh: w.gh, now: w.clock });
+  askCommand(w.root, ["0001", "Decide?", "--kind", "decision"], { now: w.clock });
+  w.pr.state = "MERGED";
+  const down = () => ({ status: 1, stdout: "", stderr: "offline" });
+  const out = (await requestsCommand(w.root, [], { gh: down, now: w.clock })) as string;
+  assert.match(out, /0001\/A  review/);
+  assert.match(out, /0001  decision/);
+  assert.equal(((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string).trim(), "0001  decision  0m  Decide?");
+});
+
+test("braid start closes the request of the item it starts, and only that one", async () => {
+  const w = world();
+  askCommand(w.root, ["0001/A", "Start it?", "--kind", "decision"], { now: w.clock });
+  askCommand(w.root, ["0001", "Other braid question", "--kind", "question"], { now: w.clock });
+  const env = { BRAID_WORKTREES_DIR: join(dirname(w.root), "trees") };
+  git(w.root, "branch", "-D", "braid/0001/A-first");
+  git(w.root, "push", "-q", "origin", ":refs/heads/braid/0001/A-first");
+  git(w.root, "checkout", "-q", "-b", "braid/0001-alpha", "origin/braid/0001-alpha");
+  const none = () => ok([]);
+  const t3 = async () => ({ status: 1, stdout: "", stderr: "no t3" });
+  await startCommand(w.root, ["0001/A"], { gh: none, t3 }, env);
+  assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0001"]);
+});
+
+test("braid done closes the request when the item is Done; a refused done leaves it", async () => {
+  const w = world();
+  askCommand(w.root, ["0001/A", "Merge?", "--kind", "decision"], { now: w.clock });
+  const t3 = async () => ({ status: 1, stdout: "", stderr: "no t3" });
+  // No PR for the item: refused.
+  await assert.rejects(doneCommand(w.root, ["0001/A", "--thread", THREAD], { gh: () => ok([]), t3 }) as Promise<string>, /has no PR/);
+  assert.equal(loadRequests(w.root).length, 1);
+  // The PR merged: braid done stamps it on the braid branch, where this checkout is.
+  git(w.root, "checkout", "-q", "-b", "braid/0001-alpha", "origin/braid/0001-alpha");
+  const merged = () => ok([{ number: 5, url: "u/5", state: "MERGED", headRefName: "braid/0001/A-first", statusCheckRollup: [] }]);
+  const out = (await doneCommand(w.root, ["0001/A", "--thread", THREAD], { gh: merged, t3 })) as string;
+  assert.match(out, /0001\/A done/);
+  assert.deepEqual(loadRequests(w.root), []);
+});
+
+test("age is minutes, hours or days", () => {
+  const at = "2026-11-15T12:00:00Z";
+  assert.equal(age(at, new Date("2026-11-15T12:05:00Z")), "5m");
+  assert.equal(age(at, new Date("2026-11-15T15:00:00Z")), "3h");
+  assert.equal(age(at, new Date("2026-11-18T12:00:00Z")), "3d");
+});

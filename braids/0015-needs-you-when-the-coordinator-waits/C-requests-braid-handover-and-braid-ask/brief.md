@@ -40,14 +40,14 @@ Expected size: about 300 to 450 lines in 6 files, with tests.
 
 ## Acceptance
 
-- [ ] handover, ask, answer and requests work from any worktree of the repository and share one store, covered by tests
-- [ ] A review request is void after a merge, a close or a moved head; start and done close an item's request; covered by tests
-- [ ] handover refuses a PR that is not open, not at the head given or not green
+- [x] handover, ask, answer and requests work from any worktree of the repository and share one store, covered by tests
+- [x] A review request is void after a merge, a close or a moved head; start and done close an item's request; covered by tests
+- [x] handover refuses a PR that is not open, not at the head given or not green
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
