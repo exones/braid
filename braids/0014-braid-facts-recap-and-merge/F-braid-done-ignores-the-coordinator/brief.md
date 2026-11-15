@@ -1,7 +1,7 @@
 ---
 id: '0014/F'
 title: "braid done ignores the coordinator thread"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 50
