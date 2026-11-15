@@ -1,7 +1,7 @@
 ---
 id: '0015/D'
 title: "Board: lanes from requests and broke alarms"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: ['0015/B', '0015/C']
 order: 40
@@ -50,3 +50,13 @@ Expected size: about 350 to 500 lines in 10 files, with tests.
 
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written, with screenshots of the built board embedded
+
+## Plan
+
+1. `src/braids/worktrees.ts`: `worktreesDir`/`repoName` (moved from start.ts, re-exported). `src/braids/broke.ts`: first-seen times in `.braid/broke.json` of the main checkout.
+2. `t3.ts`: an agent is a running thread whose worktree is `<worktrees>/<repo>/<NNNN>[-<L>][-review]`; no PR/branch join, no stopped threads. `github.ts` also gives the PR head sha.
+3. `model.ts`: `derive` with the new first-match rules from `Signals` (live requests, clock, 10 min alarm); a braid with strands is never an agent's key and takes the most urgent of strands and own request; cards carry `need` (kind, text, age, strand) and `activity` (agent, review, checks).
+4. Board server, `braid status`, demo, `marks.ts` and the page (reason icons plan/stalled, activity icons, request line, Details toggle in a cookie, tooltip text).
+5. `braid start --review` and `braid clean` for `<NNNN>-<L>-review`; `braid done` drops the caller skip.
+6. Store lock: stale takeover by renaming the lock aside so only one waiter wins; test.
+7. Tests, `docs/board.md`, decision, screenshots, report.
