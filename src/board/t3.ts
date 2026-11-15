@@ -13,6 +13,8 @@ export interface T3Thread {
   /** Questions and approvals the agent waits on. */
   readonly pending: number;
   readonly link: string | null;
+  /** The thread's title, when T3 lists one. */
+  readonly title?: string | undefined;
 }
 
 export type T3State =
@@ -243,7 +245,7 @@ async function readFresh(root: string, github: Github, run: T3Runner, worktrees:
       key = keyOfBranch(branch ?? where.branch ?? "");
     }
     // Stopped threads that have a PR are the PR's business; only an agent that left no PR waits.
-    return key === null ? null : { key, thread: { id, state: running ? "running" : "stopped", pending: running ? (where?.pending ?? 0) : 0, link: str(t["link"]) } satisfies T3Thread };
+    return key === null ? null : { key, thread: { id, state: running ? "running" : "stopped", pending: running ? (where?.pending ?? 0) : 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
   });
   const threads = new Map<string, T3Thread[]>();
   for (const f of found) {

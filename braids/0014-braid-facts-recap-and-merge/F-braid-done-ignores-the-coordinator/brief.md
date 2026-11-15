@@ -1,7 +1,7 @@
 ---
 id: '0014/F'
 title: "braid done ignores the coordinator thread"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 50
@@ -36,10 +36,14 @@ Expected size: about 30 to 60 lines in 3 files.
 
 ## Acceptance
 
-- [ ] `braid done 0014 --head <sha> --thread <coordinator id>` passes the running-thread check when only the coordinator's thread runs, covered by a test
-- [ ] Another running thread still refuses, and the message names it
+- [x] `braid done 0014 --head <sha> --thread <coordinator id>` passes the running-thread check when only the coordinator's thread runs, covered by a test
+- [x] Another running thread still refuses, and the message names it
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Skip the caller's thread (`--thread`, compared by its 8-character short id) in the running-thread check; add the thread's title to `T3Thread` so the refusal names id and title; pass `--thread` in the coordinator's `braid done` commands in the braid skill; one sentence in `docs/braids-format.md`; tests.
