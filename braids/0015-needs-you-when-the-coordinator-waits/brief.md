@@ -22,6 +22,10 @@ When the coordinator waits for the user, its braid sits in Needs You with the re
 - **A `stop:<key>` label** the coordinator sets when it stops and removes when answered: works everywhere, but depends on the coordinator remembering both steps.
 - **The PR side:** a recap that asks for the user's merge already shows as To Review; maybe only stops other than merges need this at all.
 
+## Also in scope
+
+- The coordinator's own running thread is read as a worker (user, 2026-11-15, found finishing 0014): its checkout is on the braid branch, so the board puts the braid in Working while the coordinator only waits, as with 0014 and PR #90. `braid done` skips the caller's thread since 0014/F; the board needs its own way to tell the coordinator from a worker.
+
 ## Open questions
 
 - Which of these, alone or combined; whether the skills should require the question tool for stops.
