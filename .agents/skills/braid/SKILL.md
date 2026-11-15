@@ -95,7 +95,7 @@ When the worker reports green:
      PR: <url>, head commit <sha>. Focus: <what matters most here>.
      Send your result to thread <your thread id>.
      ```
-2. When nothing blocking remains, run the diff facts in [stop cases](references/stop-cases.md) and judge them against the cases. Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. When green on the latest commit: for a strand, give the user the recap and wait for their merge, or, when auto mode is on, merge it yourself under "Auto mode". For a story, run `braid done <id> --head <reviewed sha>`: it checks the PR (base, head, checks, mergeable, boxes, `report.md`, no running worker), commits Done on its branch and prints the new head; recap with that head once its checks are green. Otherwise you merge only under "Merge on request"; you don't re-run the gate or download artifacts.
+2. When nothing blocking remains, run `braid facts <pr>` and judge its facts against the [stop cases](references/stop-cases.md). Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. When green on the latest commit: for a strand, give the user the recap and wait for their merge, or, when auto mode is on, merge it yourself under "Auto mode". For a story, run `braid done <id> --head <reviewed sha>`: it checks the PR (base, head, checks, mergeable, boxes, `report.md`, no running worker), commits Done on its branch and prints the new head; recap with that head once its checks are green. Otherwise you merge only under "Merge on request"; you don't re-run the gate or download artifacts.
 3. Once `gh pr list --state all` shows the PR merged, interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID). Then run `braid clean --yes` to remove the merged item's worktree and branch. For a strand, in your worktree on the braid branch, run `braid done <id> --thread <your thread id> --log -` with the braid's log entry (brief template) on standard input: it pulls, sets the strand Done and commits both as `docs(braids): <id> done` (skip it when the merge ran through `braid done --merge`, which did this). Then fix any item that hasn't started and that the entry makes wrong, as in "Adjusting the plan". **Outline step:** if the next item is `Outline`, reread it, detail it into a full brief (asking the user what it leaves open), set it `To Do` and commit. Then start the next item; after the last strand, finish. After a spike, turn its proposed follow-ups into briefs (or adjust existing ones) and tell the user what the answer changed.
 
 ## Merge on request
@@ -123,7 +123,7 @@ A story is finished when the user merges its PR (`braid done` set Done in it bef
 
 ## Talking to the user
 
-When an item is merged, waiting for the user's merge, or blocked, give a recap based on the worker's `report.md` and checked against the diff; log the user's answers on stop cases on the braid:
+When an item is merged, waiting for the user's merge, or blocked, start from `braid recap <id>` (a draft from `report.md`, the PR's head and checks and `braid facts`, with the braid log line) and edit it; log the user's answers on stop cases on the braid:
 
 ```markdown
 **<id>: <title>** — merged | ready for your merge | blocked. PR: <link> at <head commit>
