@@ -1,7 +1,7 @@
 ---
 id: '0015/B'
 title: "Mockups: five lanes and what is needed"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S", "ui"]
 dependencies: []
 order: 20
@@ -38,10 +38,16 @@ Expected size: about 150 lines of mockup HTML and 4 to 6 screenshots; no product
 
 ## Acceptance
 
-- [ ] Mockups cover every case listed under Change
-- [ ] The user approved them (the coordinator records it)
+- [x] Mockups cover every case listed under Change
+- [x] The user approved them (the coordinator records it)
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written, with the screenshots embedded
+- [x] The gate command from BRAID.md passes
+- [x] report.md written, with the screenshots embedded
+
+## Plan
+
+- One mockup page, `docs/design/board-mockups/needs-you.html`, built from `live-lane.html` (same CSS and icons), with hash views on demo-style data.
+- New on a card: a one-line "what is needed" under the title (text, amber on Needs You, purple on To Review with the PR and the age of the request). New icons only where a reason has none: plan approval (clipboard), stalled (red clock); Working-only-CI gets a spinner.
+- Views, one screenshot each: board, Needs You reasons, braid with strand vs coordinator asking and To Review, Working variants, legend with hovers, braid page with request banner.
