@@ -1,7 +1,7 @@
 ---
 id: '0015/D'
 title: "Board: lanes from requests and broke alarms"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: ['0015/B', '0015/C']
 order: 40
