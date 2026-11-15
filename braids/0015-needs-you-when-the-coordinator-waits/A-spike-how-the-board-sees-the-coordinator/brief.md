@@ -24,6 +24,7 @@ Expected size: a report.md of about 150 lines; no product code.
 ## Change
 
 - `report.md` only: the question, the options with evidence, a recommendation, and proposed build strands (title, tier, acceptance). Probes may run against the live T3 but change nothing.
+- Scope addition (user, 2026-11-15, up to about 1 more hour): also weigh other ways the coordinator could show it waits for the user: harness hooks (Claude Code Stop/Notification, Codex and Cursor equivalents), a small state file the board reads, GitHub signals (PR label, draft, review request), T3 inbox or notification state and its MCP tools, and how other orchestrators and human-in-the-loop tools mark "waiting for a human". For each: reliability (does it depend on remembering?), whether it works across Claude, Codex and Cursor, and build cost; fold them into the same comparison and recommendation.
 
 ## Already decided
 
@@ -55,3 +56,11 @@ Options to weigh, alone or combined:
 ## Definition of done
 
 - [ ] report.md written: the answer, evidence, recommendation and proposed follow-ups
+
+## Plan
+
+1. Read the coordinator thread and the project thread list from the live T3 (CLI and MCP), and record the fields that tell coordinator, worker, reviewer and subagent apart.
+2. Probe `delegatedFrom` with an idle test thread of my own (no message, no worktree), then archive it.
+3. Check the waiting signals against what the coordinator does now (waiting on a worker, on CI, on the user) and against the board code (`readT3`, `derive`, `toCard`).
+4. Scope addition: weigh hooks, a state file, GitHub signals, T3 inbox and MCP state, and other orchestrators, for reliability, provider coverage and cost.
+5. Write report.md: answers, evidence, one recommendation with what it needs from skills and T3, proposed strands.
