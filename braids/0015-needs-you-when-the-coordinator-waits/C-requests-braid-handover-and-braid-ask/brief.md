@@ -1,7 +1,7 @@
 ---
 id: '0015/C'
 title: "Requests: braid handover and braid ask"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:architecture"]
 dependencies: []
 order: 30
@@ -48,3 +48,11 @@ Expected size: about 300 to 450 lines in 6 files, with tests.
 
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `src/braids/requests.ts`: the store. `.braid/requests.json` in the main checkout (from `git rev-parse --git-common-dir`, so any worktree shares it), written to a temp file and renamed. One request per item id; `openRequest` replaces. `liveRequests` reads and applies the self-closing rule: a `review` request is dropped when its PR (gh `pr view`) is not OPEN or its head differs; a PR that can't be read keeps the request.
+- `src/commands/requests.ts`: `braid handover`, `ask`, `answer`, `requests`. handover reuses `view` and `checksProblem` of done.ts (open, at `--head`, `ci` green), stores a review request, then prints the `braid recap` draft. ask takes the text as a positional or `--file -`. answer closes and, with `--log`, calls the `braid log` code on the item.
+- `braid start` and `braid done` close the item's request on success.
+- `src/cli.ts` routes the four commands and the help text; docs in `docs/braids-format.md`, a decision in `docs/decisions.md`.
+- Tests (`test/requests.test.ts`) on temporary repositories with a fake gh, including a second worktree.
