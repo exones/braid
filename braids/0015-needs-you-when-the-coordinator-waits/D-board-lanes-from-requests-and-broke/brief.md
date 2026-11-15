@@ -26,7 +26,7 @@ Expected size: about 350 to 500 lines in 10 files, with tests.
 - Agents of an item: only threads whose worktree braid created for it. `braid start <id> --review` adds the reviewer's detached checkout of the PR head in `<repo>/<number>-<letter>-review`; `braid clean` removes it. A thread on a braid branch that has strands is the coordinator and is never counted: not for the lane, not for a strand's wrench, and `braid done` no longer needs the caller skip to pass.
 - T3 is read only for "is an agent of this item running" and a running agent's pending question (which is Needs You, `question`, as today).
 - A braid shows the most urgent of its strands and its own requests.
-- Cards and `braid status` show the request's one-line text and age, as in the mockups. `braid board --demo` covers every state and reason.
+- Cards and `braid status` show the request's one-line text and age, as in the mockups. A "Details" toggle in the board header hides the line and moves its text to the reason icon's tooltip; the setting is kept in a cookie (user, 2026-11-15). `braid board --demo` covers every state and reason.
 - `docs/board.md` rewritten for the new rules; a decision in `docs/decisions.md` replacing the lane rules of D32 where they differ; screenshots in `docs/design/board-screenshots/`.
 
 ## Already decided
