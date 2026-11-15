@@ -49,13 +49,13 @@ Options to weigh, alone or combined:
 
 ## Acceptance
 
-- [ ] report.md answers both questions with evidence from the live T3 (commands and the fields they returned)
-- [ ] It recommends one approach and says what it needs from the skills and from T3
-- [ ] It proposes the build strands with tier and acceptance
+- [x] report.md answers both questions with evidence from the live T3 (commands and the fields they returned)
+- [x] It recommends one approach and says what it needs from the skills and from T3
+- [x] It proposes the build strands with tier and acceptance
 
 ## Definition of done
 
-- [ ] report.md written: the answer, evidence, recommendation and proposed follow-ups
+- [x] report.md written: the answer, evidence, recommendation and proposed follow-ups
 
 ## Plan
 
