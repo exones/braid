@@ -1,7 +1,7 @@
 ---
 id: '0015'
 title: "Needs You when the coordinator waits"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 delivery: epic
