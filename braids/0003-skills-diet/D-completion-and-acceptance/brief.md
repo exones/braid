@@ -1,7 +1,7 @@
 ---
 id: '0003/D'
 title: "Completion and acceptance"
-status: Outline
+status: To Do
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: []
 order: 15
@@ -12,19 +12,40 @@ order: 15
 Completion and acceptance are two separate things in braid, with names that say so (user, 2026-11-16):
 
 - **Completion**, by the worker, in good faith: it ticks the boxes of what it did and proved.
-- **Acceptance**, by the coordinator, once: after the review loop (reviewer, fixes back to the worker, re-check, green CI) the coordinator records that the item is accepted. Always run from the coordinator's thread.
+- **Acceptance**, by the coordinator, once: after the review loop (reviewer, fixes back to the worker, re-check, green CI), `braid accept` records that the item is accepted. Always run from the coordinator's thread.
 
 Why: a brief's "Acceptance" boxes are ticked by the worker today, so it looks as if the worker accepts its own work; and a box that needs someone else (0003/A's "the independent review confirms none is lost") costs a worker round and a CI run only to tick it.
 
-## Known so far
+Expected size: about 250 to 400 lines in 12 files, with tests.
 
-- Today: the worker ticks "the boxes it proved" (`braid/references/workflow.md`, `braid-worker/SKILL.md`); `braid done` refuses unticked boxes and is run only by the coordinator, after review and green CI; the coordinator never commits on a worker's branch except the Done stamp.
-- Direction: the brief's "Acceptance" section gets a completion name (for example "Done when"); briefs carry no box that needs someone other than the worker; acceptance is one coordinator step that records who accepted, at which head and with which review (`braid done`, or an alias such as `braid accept`).
-- Old briefs with "## Acceptance" keep working.
+## Start here
 
-## Open, to plan with the user
+- `src/commands/done.ts` (the checks, `--merge`, the Done stamp, `--log`), `src/cli.ts`, the brief parsing of box sections (`rg -n "Acceptance|Definition of done" src`).
+- `.agents/skills/braid/assets/brief.md`, `braid/SKILL.md`, `braid/references/workflow.md`, `braid/references/auto-mode.md`, `braid-worker/SKILL.md`, `braid-reviewer/SKILL.md`.
+- `docs/braids-format.md`, `docs/decisions.md`.
 
-- The section name, and whether "Definition of done" merges into it.
-- One acceptance command: rename `braid done`, an alias `braid accept`, or a separate step before Done; where acceptance is recorded (log, brief front matter, PR comment).
-- How the user's own approvals (mockups, plan) fit: requests and answers, not boxes?
-- Size and files: CLI (`done.ts`, brief parsing), `assets/brief.md`, the worker and coordinator skills, `docs/braids-format.md`, a decision.
+## Change
+
+- **Briefs:** one box section, `## Completion`, replaces `## Acceptance` and `## Definition of done` (their items fold into it). The template says: only what the worker can do and prove; no box that needs the reviewer, the coordinator or the user. The CLI still reads old briefs with `## Acceptance` and `## Definition of done`; existing briefs are not rewritten.
+- **`braid accept <id>`** replaces `braid done`, with the same checks, `--head`, `--merge`, `--log` and `--thread`. `braid done` stays as an alias that prints one line naming `braid accept` (the installed skills of other projects still say `braid done`).
+- **Recording an acceptance:** the braid log entry gets an "Accepted" line: the head, the review comment's link (or "reviewed by the coordinator" for tier S), and the coordinator's thread. `braid accept` also posts a short PR comment with the same facts.
+- **The user's approvals** (mockups, plans, skill wording) are never boxes: `braid ask --kind decision`, the answer recorded with `braid answer --log`. The report's "Decisions" summarises the decisions from the log, so the user finds them in one place.
+- **Skills and docs:** the worker ticks "Completion"; the coordinator accepts with `braid accept`; every `braid done` in the skills and docs becomes `braid accept`. Keep the skills' word count within +40. `docs/braids-format.md`; a decision in `docs/decisions.md`.
+
+## Already decided
+
+- Section name "Completion"; command `braid accept`; the acceptance in the log and a PR comment; user approvals through requests, then the log, then the report (user, 2026-11-16).
+- The `Done` status and lane keep their name.
+
+## Out of scope
+
+- Rewriting old briefs. The reviewer's practices (0003/B).
+
+## Completion
+
+- [ ] Briefs use `## Completion`; old briefs with `## Acceptance` / `## Definition of done` still pass `braid accept`'s box check (tested)
+- [ ] `braid accept` does what `braid done` did, writes the "Accepted" log line and posts the PR comment (tested with a fake gh); `braid done` is an alias with a hint
+- [ ] The skills, the brief template and the docs say completion for the worker and `braid accept` for the coordinator; word counts before and after in the report
+- [ ] `report.md` has a "Decisions" summary drawn from the log
+- [ ] The gate command from BRAID.md passes
+- [ ] report.md written: what changed, why, validation, anything open
