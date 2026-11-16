@@ -1,7 +1,7 @@
 ---
 id: '0003/A'
 title: "Skill rewrite: one place per rule"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 order: 10
