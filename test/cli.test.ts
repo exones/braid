@@ -32,3 +32,11 @@ test("unknown command fails", () => {
   assert.equal(r.status, 1);
   assert.equal(r.stderr, "error: unknown command: nope\nRun braid help.\n");
 });
+
+test("braid done is an alias of braid accept and says so", () => {
+  const r = braid("done");
+  assert.match(r.stderr, /braid done is now braid accept/);
+  assert.match(r.stderr, /usage: braid accept/);
+  assert.equal(r.status, 1);
+  assert.match(braid("--help").stdout, /accept <id>/);
+});

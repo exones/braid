@@ -41,12 +41,11 @@ Expected size: about <N> lines in <K> files.
 
 - <what not to touch or build>
 
-## Acceptance
+## Completion
+
+Only what the worker can do and prove; none for the reviewer, coordinator or user.
 
 - [ ] <first testable outcome>
-
-## Definition of done
-
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
 ```
@@ -60,20 +59,19 @@ braid brief 0012/A Plan --file -              # the plan, before coding; or edit
 'Found X; decided Y.' | braid log 0012/A --thread <your thread id> --file -
                                               # staged, not committed: commit it with the change it explains
 braid report 0012/A --file <path>             # or write report.md directly (template below)
-# tick the boxes you proved in brief.md; there is no CI box, braid done checks CI
+# tick the Completion boxes you proved; no CI box: braid accept checks CI
 
 # coordinator, on plan/ or the braid branch, for items that haven't started
 braid edit 0012/B --dep 0012/A --order 20     # --dep and --labels replace the list: repeat the others; `none` clears one
 
-# coordinator: mark an item Done
-braid done 0012/A --thread <your thread id> --log -
+# coordinator: accept an item (sets Done; logs and comments)
+braid accept 0012/A --thread <your thread id> --log -
                                               # strand merged: on the braid branch; pulls, sets Done with the log entry, commits, pushes
-braid done 0012/A --head <reviewed sha> --merge --log -
-                                              # strand on request or in auto mode: checks, merges that head, then the same
-braid done 0013 --head <reviewed sha>         # story or final PR: checks, a status-only commit on its branch; prints the new head
+braid accept 0012/A --head <reviewed sha> --review <link> --merge --log -
+                                              # strand on request or in auto mode: merges that head first
+braid accept 0013 --head <reviewed sha>         # story or final PR: checks, a status-only commit on its branch
 
-# the braid's log entry, on standard input of the braid done that sets the strand Done,
-# so it is written before the next strand's branch is cut
+# the braid's log entry, on standard input of the braid accept that sets the strand Done
 '0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.'
 
 # pass log and report text on standard input (--file -, --log -) whenever it may hold quotes:

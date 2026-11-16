@@ -12,8 +12,8 @@ after(() => rmSync(scratch, { recursive: true, force: true }));
 process.env.BRAID_WORKTREES_DIR = join(scratch, "worktrees");
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
-const { doneCommand, openBoxes } = (await load("../dist/commands/done.js")) as {
-  doneCommand: (root: string, args: string[], opts: object) => Promise<string>;
+const { acceptCommand, openBoxes } = (await load("../dist/commands/done.js")) as {
+  acceptCommand: (root: string, args: string[], opts: object) => Promise<string>;
   openBoxes: (brief: string) => string[];
 };
 const { statusCommand } = (await load("../dist/commands/coordinate.js")) as {
@@ -97,6 +97,7 @@ function world() {
     { number: 6, branch: "braid/0002-story", base: "main", state: "OPEN", checks: "SUCCESS", mergeable: "MERGEABLE" },
   ];
   const merges: string[][] = [];
+  const comments: string[] = [];
   const headOf = (branch: string) => git(root, "ls-remote", remote, `refs/heads/${branch}`).split("\t")[0] ?? "";
   const rollup = (p: FakePr) => [{ name: "verify", conclusion: p.checks === "PENDING" ? "" : p.checks, status: p.checks === "PENDING" ? "IN_PROGRESS" : "COMPLETED" }];
   const gh = (_r: string, args: readonly string[]) => {
@@ -109,6 +110,10 @@ function world() {
     }
     if (args[1] === "view") {
       return ok({ number: p.number, url: `u/${p.number}`, state: p.state, baseRefName: p.base, headRefName: p.branch, headRefOid: headOf(p.branch), mergeable: p.mergeable, statusCheckRollup: rollup(p) });
+    }
+    if (args[1] === "comment") {
+      comments.push(`${p.number}: ${args[args.indexOf("--body") + 1]}`);
+      return ok("");
     }
     if (args[1] === "merge") {
       merges.push([...args]);
@@ -138,6 +143,7 @@ function world() {
     worker,
     prs,
     merges,
+    comments,
     opts,
     headOf,
     setThreads: (t: object[]) => (threads = t),
@@ -160,13 +166,17 @@ test("a strand with an open PR: --merge merges the reviewed green head, then sta
   const head = w.headOf("braid/0001/A-first");
   const logFile = join(w.root, "..", "entry.md");
   writeFileSync(logFile, "0001/A merged: PR #5.\n");
-  const out = await doneCommand(w.root, ["0001/A", "--head", head.slice(0, 7), "--merge", "--log", logFile, "--thread", "mcp:launch:abcdef0123"], w.opts);
+  const out = await acceptCommand(w.root, ["0001/A", "--head", head.slice(0, 7), "--merge", "--review", "https://x/pr/5#c1", "--log", logFile, "--thread", "mcp:launch:abcdef0123"], w.opts);
   assert.match(out, new RegExp(`merged PR #5 at ${head}`));
   assert.match(out, /0001\/A done: PR #5 merged; Done on braid\/0001-alpha in [0-9a-f]{40}/);
   assert.deepEqual(w.merges[0], ["pr", "merge", "5", "--merge", "--match-head-commit", head]);
   assert.match(w.show("braid/0001-alpha", "braids/0001-alpha/A-first/brief.md"), /^status: Done$/m);
   assert.equal(git(w.root, "--git-dir", w.remote, "log", "-1", "--format=%s", "braid/0001-alpha"), "docs(braids): 0001/A done");
-  assert.match(w.show("braid/0001-alpha", "braids/0001-alpha/log-" + new Date().toISOString().slice(0, 10) + "-abcdef01.md"), /0001\/A merged: PR #5\./);
+  const logText = w.show("braid/0001-alpha", "braids/0001-alpha/log-" + new Date().toISOString().slice(0, 10) + "-abcdef01.md");
+  assert.match(logText, /0001\/A merged: PR #5\./);
+  const line = `Accepted: 0001/A at ${head.slice(0, 7)}; review: https://x/pr/5#c1; coordinator thread mcp:launch:abcdef0123.`;
+  assert.ok(logText.includes(line), logText);
+  assert.deepEqual(w.comments, [`5: ${line}`]);
   // The strand's own branch never got a Done commit.
   assert.equal(w.headOf("braid/0001/A-first"), head);
   assert.equal(git(w.root, "status", "--porcelain"), "");
@@ -176,7 +186,7 @@ test("a strand's open PR is refused without --merge, and for each failed conditi
   const w = world();
   const head = w.headOf("braid/0001/A-first").slice(0, 7);
   const before = w.headOf("braid/0001-alpha");
-  const refuse = async (args: string[], why: RegExp) => assert.rejects(doneCommand(w.root, args, w.opts), why);
+  const refuse = async (args: string[], why: RegExp) => assert.rejects(acceptCommand(w.root, args, w.opts), why);
   const merge = ["0001/A", "--head", head, "--merge"];
   await refuse(["0001/A"], /PR #5 is open, and a strand is marked Done after its merge/);
   await refuse(["0001/A", "--head", "abcdef0", "--merge"], /head is [0-9a-f]{7}, not the reviewed abcdef0/);
@@ -218,7 +228,7 @@ test("a strand without report.md is refused", async () => {
   git(w.worker, "commit", "-q", "-m", "drop report");
   git(w.worker, "push", "-q", "origin", "braid/0001/A-first");
   const head = w.headOf("braid/0001/A-first").slice(0, 7);
-  await assert.rejects(doneCommand(w.root, ["0001/A", "--head", head, "--merge"], w.opts), /no report\.md at/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--merge"], w.opts), /no report\.md at/);
   assert.equal(w.merges.length, 0);
 });
 
@@ -226,29 +236,29 @@ test("a strand merged in GitHub's UI is stamped on the braid branch, once", asyn
   const w = world();
   w.opts.gh(w.root, ["pr", "merge", "5", "--merge", "--match-head-commit", w.headOf("braid/0001/A-first")]);
   const hint = await statusCommand(w.root, ["0001"], w.opts);
-  assert.match(hint, /0001\/A  In Progress {2}Done .*run braid done 0001\/A/);
-  await assert.rejects(doneCommand(w.root, ["0001/A", "--merge"], w.opts), /already merged; run braid done 0001\/A without --head and --merge/);
-  const out = await doneCommand(w.root, ["0001/A"], w.opts);
+  assert.match(hint, /0001\/A  In Progress {2}Done .*run braid accept 0001\/A/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A", "--merge"], w.opts), /already merged; run braid accept 0001\/A without --head and --merge/);
+  const out = await acceptCommand(w.root, ["0001/A"], w.opts);
   assert.match(out, /0001\/A done: PR #5 merged; Done on braid\/0001-alpha/);
   assert.match(w.show("braid/0001-alpha", "braids/0001-alpha/A-first/brief.md"), /^status: Done$/m);
   // The pull brought the strand's own work in too.
   assert.ok(existsSync(join(w.root, "code.txt")));
   const tip = w.headOf("braid/0001-alpha");
   resetGithubMemory();
-  assert.match(await doneCommand(w.root, ["0001/A"], w.opts), /0001\/A is already Done on braid\/0001-alpha; nothing changed/);
+  assert.match(await acceptCommand(w.root, ["0001/A"], w.opts), /0001\/A is already Done on braid\/0001-alpha; nothing changed/);
   assert.equal(w.headOf("braid/0001-alpha"), tip);
   resetGithubMemory();
-  assert.doesNotMatch(await statusCommand(w.root, ["0001"], w.opts), /run braid done/);
+  assert.doesNotMatch(await statusCommand(w.root, ["0001"], w.opts), /run braid accept/);
 });
 
 test("an open strand PR with --merge is refused before the merge when this checkout can't take the stamp", async () => {
   const w = world();
   const head = w.headOf("braid/0001/A-first");
   git(w.root, "checkout", "-q", "main");
-  await assert.rejects(doneCommand(w.root, ["0001/A", "--head", head, "--merge"], w.opts), /this checkout is on main, not the braid branch braid\/0001-alpha/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--merge"], w.opts), /this checkout is on main, not the braid branch braid\/0001-alpha/);
   git(w.root, "checkout", "-q", "braid/0001-alpha");
   writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: [verify]\n---\nedited\n");
-  await assert.rejects(doneCommand(w.root, ["0001/A", "--head", head, "--merge"], w.opts), /uncommitted changes/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--merge"], w.opts), /uncommitted changes/);
   assert.equal(w.merges.length, 0);
   assert.equal(w.prs[0]!.state, "OPEN");
 });
@@ -257,16 +267,16 @@ test("the merged-strand stamp needs the braid branch checked out and no uncommit
   const w = world();
   w.opts.gh(w.root, ["pr", "merge", "5", "--merge", "--match-head-commit", w.headOf("braid/0001/A-first")]);
   git(w.root, "checkout", "-q", "main");
-  await assert.rejects(doneCommand(w.root, ["0001/A"], w.opts), /this checkout is on main, not the braid branch braid\/0001-alpha/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A"], w.opts), /this checkout is on main, not the braid branch braid\/0001-alpha/);
   git(w.root, "checkout", "-q", "braid/0001-alpha");
   writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: [verify]\n---\nedited\n");
-  await assert.rejects(doneCommand(w.root, ["0001/A"], w.opts), /uncommitted changes/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A"], w.opts), /uncommitted changes/);
 });
 
 test("a story's open PR gets a status-only commit on its branch; the new head is printed", async () => {
   const w = world();
   const head = w.headOf("braid/0002-story");
-  const out = await doneCommand(w.root, ["0002", "--head", head], w.opts);
+  const out = await acceptCommand(w.root, ["0002", "--head", head], w.opts);
   const now = w.headOf("braid/0002-story");
   assert.notEqual(now, head);
   assert.equal(out, `0002 done: Done on braid/0002-story in ${now}\nhead ${now}\n`);
@@ -275,8 +285,8 @@ test("a story's open PR gets a status-only commit on its branch; the new head is
   assert.equal(w.merges.length, 0);
   // No temporary worktree is left behind.
   assert.equal(git(w.root, "worktree", "list", "--porcelain").split("\n").filter((l) => l.startsWith("worktree ")).length, 1);
-  assert.match(await doneCommand(w.root, ["0002", "--head", now], w.opts), /0002 is already Done at [0-9a-f]{40}; nothing changed/);
-  await assert.rejects(doneCommand(w.root, ["0002"], w.opts), /give the reviewed head with --head/);
+  assert.match(await acceptCommand(w.root, ["0002", "--head", now], w.opts), /0002 is already Done at [0-9a-f]{40}; nothing changed/);
+  await assert.rejects(acceptCommand(w.root, ["0002"], w.opts), /give the reviewed head with --head/);
 });
 
 test("a story with --merge waits for green on the new head and merges exactly that head", async () => {
@@ -295,7 +305,7 @@ test("a story with --merge waits for green on the new head and merges exactly th
     }
     return w.opts.gh(r, args);
   };
-  const out = await doneCommand(w.root, ["0002", "--head", head, "--merge"], { ...w.opts, gh, sleep });
+  const out = await acceptCommand(w.root, ["0002", "--head", head, "--merge"], { ...w.opts, gh, sleep });
   const now = git(w.root, "--git-dir", w.remote, "rev-parse", "braid/0002-story");
   assert.match(out, new RegExp(`merged PR #6 at ${now}`));
   assert.equal(polls, 1);
@@ -305,7 +315,7 @@ test("a story with --merge waits for green on the new head and merges exactly th
 
 test("a story stamped before but not merged: a second call with --merge waits for green and merges that head", async () => {
   const w = world();
-  await doneCommand(w.root, ["0002", "--head", w.headOf("braid/0002-story")], w.opts);
+  await acceptCommand(w.root, ["0002", "--head", w.headOf("braid/0002-story")], w.opts);
   const stamped = w.headOf("braid/0002-story");
   assert.equal(w.merges.length, 0);
   // The stamp's checks are still running when the second call comes.
@@ -317,7 +327,7 @@ test("a story stamped before but not merged: a second call with --merge waits fo
     return Promise.resolve();
   };
   resetGithubMemory();
-  const out = await doneCommand(w.root, ["0002", "--head", stamped.slice(0, 7), "--merge"], { ...w.opts, sleep });
+  const out = await acceptCommand(w.root, ["0002", "--head", stamped.slice(0, 7), "--merge"], { ...w.opts, sleep });
   assert.equal(out, `0002 is already Done at ${stamped}\nmerged PR #6 at ${stamped}\n`);
   assert.equal(polls, 1);
   assert.deepEqual(w.merges[0], ["pr", "merge", "6", "--merge", "--match-head-commit", stamped]);
@@ -335,7 +345,7 @@ test("a story with --merge stops when the new head's checks fail, Done but not m
     }
     return w.opts.gh(r, args);
   };
-  await assert.rejects(doneCommand(w.root, ["0002", "--head", head, "--merge"], { ...w.opts, gh }), /0002 is Done in [0-9a-f]{7}, but ci checks not green .*verify failing; not merged/);
+  await assert.rejects(acceptCommand(w.root, ["0002", "--head", head, "--merge"], { ...w.opts, gh }), /0002 is Done in [0-9a-f]{7}, but ci checks not green .*verify failing; not merged/);
   assert.equal(w.merges.length, 0);
 });
 
@@ -345,10 +355,10 @@ test("a braid's final PR needs every strand Done at its head", async () => {
   w.workerCommit("braid/0001-alpha", "braids/0001-alpha/brief.md", brief("0001", "In Progress", TICKED));
   w.workerCommit("braid/0001-alpha", "braids/0001-alpha/report.md", "# braid report\n");
   const head = w.headOf("braid/0001-alpha");
-  await assert.rejects(doneCommand(w.root, ["0001", "--head", head], w.opts), /strands not Done at [0-9a-f]{7}: 0001\/A/);
+  await assert.rejects(acceptCommand(w.root, ["0001", "--head", head], w.opts), /strands not Done at [0-9a-f]{7}: 0001\/A/);
   w.workerCommit("braid/0001-alpha", "braids/0001-alpha/A-first/brief.md", brief("0001/A", "Done", TICKED));
   const ready = w.headOf("braid/0001-alpha");
-  const out = await doneCommand(w.root, ["0001", "--head", ready], w.opts);
+  const out = await acceptCommand(w.root, ["0001", "--head", ready], w.opts);
   assert.match(out, /^0001 done: Done on braid\/0001-alpha in /);
   assert.match(w.show("braid/0001-alpha", "braids/0001-alpha/brief.md"), /^status: Done$/m);
 });
@@ -356,23 +366,51 @@ test("a braid's final PR needs every strand Done at its head", async () => {
 test("refusals for no PR, a closed PR, a merged story without Done, and bad arguments", async () => {
   const w = world();
   w.prs.splice(0, 2);
-  await assert.rejects(doneCommand(w.root, ["0001/A"], w.opts), /0001\/A not done: it has no PR/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A"], w.opts), /0001\/A not accepted: it has no PR/);
   w.prs.push({ number: 8, branch: "braid/0001/A-first", base: "braid/0001-alpha", state: "CLOSED", checks: "SUCCESS", mergeable: "MERGEABLE" });
   resetGithubMemory();
-  await assert.rejects(doneCommand(w.root, ["0001/A"], w.opts), /PR #8 was closed without merging/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A"], w.opts), /PR #8 was closed without merging/);
   w.prs.push({ number: 9, branch: "braid/0002-story", base: "main", state: "MERGED", checks: "SUCCESS", mergeable: "MERGEABLE" });
   resetGithubMemory();
-  await assert.rejects(doneCommand(w.root, ["0002"], w.opts), /PR #9 is merged into main without Done, and braid never commits to main/);
+  await assert.rejects(acceptCommand(w.root, ["0002"], w.opts), /PR #9 is merged into main without Done, and braid never commits to main/);
   const down = { ...w.opts, gh: () => ({ status: 1, stdout: "", stderr: "gh auth login" }) };
   resetGithubMemory();
-  await assert.rejects(doneCommand(w.root, ["0001/A"], down), /GitHub could not be read/);
-  await assert.rejects(doneCommand(w.root, [], w.opts), /usage: braid done/);
-  await assert.rejects(doneCommand(w.root, ["0001/A", "--head", "xyz"], w.opts), /--head needs a commit sha/);
-  await assert.rejects(doneCommand(w.root, ["0001/Z"], w.opts), /no strand 0001\/Z/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A"], down), /GitHub could not be read/);
+  await assert.rejects(acceptCommand(w.root, [], w.opts), /usage: braid accept/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", "xyz"], w.opts), /--head needs a commit sha/);
+  await assert.rejects(acceptCommand(w.root, ["0001/Z"], w.opts), /no strand 0001\/Z/);
   assert.deepEqual(readdirSync(join(w.root, "braids", "0001-alpha")).sort(), ["A-first", "brief.md"]);
 });
 
 test("open boxes: unticked ones under Acceptance and Definition of done, except a CI box", () => {
   const text = "## Goal\n\n- [ ] not a box here\n\n## Acceptance\n\n- [x] done\n- [ ] open one\n- [ ] CI green on Windows and Ubuntu\n\n## Definition of done\n\n- [ ] report written\n\n## Plan\n\n- [ ] later\n";
   assert.deepEqual(openBoxes(text), ["open one", "report written"]);
+});
+
+test("a story accepted without --review says the coordinator reviewed it, and the comment is posted on its PR", async () => {
+  const w = world();
+  const head = w.headOf("braid/0002-story");
+  const logFile = join(w.root, "..", "entry2.md");
+  writeFileSync(logFile, "0002 ok.\n");
+  await acceptCommand(w.root, ["0002", "--head", head, "--log", logFile, "--thread", "mcp:launch:abcdef0123"], w.opts);
+  assert.deepEqual(w.comments, [`6: Accepted: 0002 at ${head.slice(0, 7)}; review: reviewed by the coordinator; coordinator thread mcp:launch:abcdef0123.`]);
+  assert.match(w.show("braid/0002-story", `braids/0002-story/log-${new Date().toISOString().slice(0, 10)}-abcdef01.md`), /review: reviewed by the coordinator/);
+});
+
+test("a refused accept posts no comment; a failing comment is only a warning", async () => {
+  const w = world();
+  const head = w.headOf("braid/0002-story");
+  w.prs[1]!.checks = "FAILURE";
+  await assert.rejects(acceptCommand(w.root, ["0002", "--head", head], w.opts), /not accepted/);
+  assert.deepEqual(w.comments, []);
+  w.prs[1]!.checks = "SUCCESS";
+  const failing = (r: string, a: readonly string[]) => (a[1] === "comment" ? { status: 1, stdout: "", stderr: "denied" } : (w.opts.gh as (r: string, a: readonly string[]) => object)(r, a));
+  const out = await acceptCommand(w.root, ["0002", "--head", head], { ...w.opts, gh: failing });
+  assert.match(out, /0002 done: Done on braid\/0002-story/);
+  assert.match(out, /warning: the PR comment was not posted \(denied\)/);
+});
+
+test("old briefs with Acceptance and Definition of done, and new ones with Completion, pass the box check", () => {
+  assert.deepEqual(openBoxes("## Completion\n\n- [x] a\n- [ ] b\n- [ ] CI green\n\n## Plan\n\n- [ ] later\n"), ["b"]);
+  assert.deepEqual(openBoxes("## Acceptance\n\n- [ ] x\n\n## Definition of done\n\n- [ ] y\n"), ["x", "y"]);
 });

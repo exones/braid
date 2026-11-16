@@ -17,15 +17,15 @@ How work is organized in a project that uses braid: what an item is, who writes 
 Each branch has one writer, and its copy of a brief is the truth on that branch.
 
 - The **coordinator** holds `plan/<slug>`, then the braid branch, and a new story's branch only until the worker is launched; for a lone story it holds no branch after launch. Only it creates and restructures items, on a branch it holds; a worker proposes them. It works in its own worktree, on the branch it holds, and never commits in the user's checkout.
-- The **worker** holds its item's branch and owns that item's folder on it: `In Progress` in its first commit, the plan before coding, log entries, the boxes it proved and `report.md`. It never sets `Done` and makes no commit after CI is green.
-- The coordinator never commits to a branch a worker holds. The one exception is the Done stamp that `braid done` commits on a story's or the final PR's branch after its worker has stopped.
+- The **worker** holds its item's branch and owns that item's folder on it: `In Progress` in its first commit, the plan before coding, log entries, its Completion boxes and `report.md`. It never accepts or sets `Done` and makes no commit after CI is green.
+- The coordinator never commits to a branch a worker holds. The one exception is the Done stamp that `braid accept` commits on a story's or the final PR's branch after its worker has stopped.
 - A change to a running item's brief goes to the worker as a message; the worker applies it, and merges the braid branch first if the change needs something the coordinator added there.
 - A goal's braid item is the coordinator's from the start: `In Progress` in the first commit after the planning merge, `Done` at the end.
-- **Done** is the coordinator's, through `braid done <id>`, where it holds the base:
+- **Acceptance** is the coordinator's, once, after review, fixes and green CI: `braid accept <id>` sets Done where it holds the base and records head, review link and thread in the log and on the PR:
   - a strand: after its merge, on the braid branch, in the commit that carries the braid's log entry;
   - a story or the final PR: after review and green CI, in a status-only commit on its branch before the handover.
 
-  `braid done` checks the PR first (base, reviewed head, `ci` checks, mergeable, boxes ticked, `report.md`, no running worker); a refusal names the condition that failed and changes nothing.
+  `braid accept` checks the PR first (base, reviewed head, `ci` checks, mergeable, Completion boxes ticked, `report.md`, no running worker); a refusal names the condition that failed and changes nothing.
 - So a brief changes on `main` only by merging a PR, and a strand shows `Done` on its braid branch once it is merged.
 
 ## Branches per case
@@ -38,7 +38,7 @@ Each branch has one writer, and its copy of a brief is the truth on that branch.
 
 Merge `main` into a braid branch before the next strand and before the final PR. Never rebase or force-push shared branches. Every commit uses Conventional Commits.
 
-The user looks at the work with `braid board` (read-only) from their own checkout of `main`. It reads each item from its own branch. An item shows To Review after `braid handover` and Needs You after `braid ask` (or on failing checks). Once merged it shows Done, and `braid status` ends its line with `run braid done <id>` until it is stamped.
+The user looks at the work with `braid board` (read-only) from their own checkout of `main`. It reads each item from its own branch. An item shows To Review after `braid handover` and Needs You after `braid ask` (or on failing checks). Once merged it shows Done, and `braid status` ends its line with `run braid accept <id>` until it is stamped.
 
 ## Starting the next item
 
