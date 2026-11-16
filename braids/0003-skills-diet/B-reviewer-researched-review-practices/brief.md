@@ -3,7 +3,7 @@ id: '0003/B'
 title: "Reviewer: researched review practices"
 status: To Do
 labels: ["kind:story", "tier:M", "ask:process"]
-dependencies: ['0003/A']
+dependencies: ['0003/D']
 order: 20
 ---
 

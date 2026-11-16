@@ -3,8 +3,8 @@ id: '0003/D'
 title: "Completion and acceptance"
 status: Outline
 labels: ["kind:story", "tier:M", "ask:process"]
-dependencies: ['0003/B']
-order: 30
+dependencies: []
+order: 15
 ---
 
 ## Goal
