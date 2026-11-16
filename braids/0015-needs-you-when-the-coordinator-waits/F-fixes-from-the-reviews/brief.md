@@ -1,7 +1,7 @@
 ---
 id: '0015/F'
 title: "Fixes from the reviews"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S", "ask:process"]
 dependencies: ['0015/E']
 order: 60
