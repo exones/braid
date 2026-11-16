@@ -6,7 +6,7 @@
 
 ## Lanes
 
-The lanes say what a braid asks of you, not the braid's own status. An item is on your side of the board in only two ways: someone **asked** you (a request), or something **broke** (detected). Everything else is Working. A braid with strands sits in the lane of its **most urgent** strand or its own request: Needs You, then To Review, then Working, then To Do. It is Done only when every strand is. The card's progress bar counts done strands, so it still shows how far the braid really is.
+The lanes say what a braid asks of you, not the braid's own status. An item is on your side of the board in only two ways: someone **asked** you (a request), or something **broke** (detected). Everything else is Working (or To Do, when not started). A braid with strands sits in the lane of its **most urgent** strand or its own request: Needs You, then To Review, then Working, then To Do. It is not Done when every strand is: with its final PR open it reads To Review (or Working), and Done only after that PR merges. The card's progress bar counts done strands, so it still shows how far the braid really is.
 
 | Lane | In code | Means | Your action | Colour |
 | --- | --- | --- | --- | --- |
@@ -45,7 +45,7 @@ Detected, not asked, and shown only after the condition has held for 10 minutes,
 
 ### Agents of an item
 
-Only a thread whose worktree braid created for that item counts: the worker's (`braid start <id>`, `<repo>/<number>-<letter>`, or `<number>` for a story) and the reviewer's (`braid start <id> --review`, a detached checkout of the PR head in `<repo>/<number>-<letter>-review`; `braid clean` removes it). Any other thread is no agent of any item, so the coordinator, which works on a braid branch with strands or in the main checkout, can't make a braid Working, can't stand for a strand's agent and can't block `braid done`. T3 is read for two facts only: whether an agent of the item runs, and a running agent's pending question.
+Only a thread whose worktree braid created for that item counts: the worker's (`braid start <id>`, `<repo>/<number>-<letter>`, or `<number>` for a story) and the reviewer's (`braid start <id> --review`, a detached checkout of the PR head in `<repo>/<number>-<letter>-review`, or `<number>-review` for a story or a braid whose final PR is open; `braid clean` removes it). In wrap-up (every strand Done, final PR open) the braid's card counts its reviewer threads as its agents (review activity; they hold back `checks failed`), shows the checks spinner while the final PR's checks run, and still never counts the coordinator. Any other thread is no agent of any item, so the coordinator, which works on a braid branch with strands or in the main checkout, can't make a braid Working, can't stand for a strand's agent and can't block `braid done`. T3 is read for two facts only: whether an agent of the item runs, and a running agent's pending question.
 
 ## Where the states come from
 

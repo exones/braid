@@ -1,7 +1,7 @@
 ---
 id: '0015/F'
 title: "Fixes from the reviews"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S", "ask:process"]
 dependencies: ['0015/E']
 order: 60
@@ -40,11 +40,15 @@ Code and docs:
 
 ## Acceptance
 
-- [ ] Points 1 to 4 done in the skills; word counts before and after in the report
-- [ ] Points 5 to 8 done, 6 to 8 covered by tests
-- [ ] `braid start 0015 --review` works on a braid with an open final PR
+- [x] Points 1 to 4 done in the skills; word counts before and after in the report
+- [x] Points 5 to 8 done, 6 to 8 covered by tests
+- [x] `braid start 0015 --review` works on a braid with an open final PR
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Skill edits 1–4 in place; `toCard` wrap-up passes the braid's reviewer threads to its own derive (activity, running, held-back alarm); `startReview` allows a braid with strands when its own PR is open (clean already handled `<n>-review`); docs/board.md and braids-format.md; tests in lanes and start.
