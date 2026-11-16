@@ -49,7 +49,7 @@ Both gates run `scripts/Verify.ps1`, which selects the toolchain first.
 1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Paths listed as frozen in `scripts/markdown-link-exclusions.json` (closed records kept as written) are not link-checked, but their text still is. A skill under `.agents/skills/<name>/` must not link outside its own folder.
 2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
 3. The OIDC release-shape guard.
-4. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`), `npm run build` (`tsc -p tsconfig.build.json`) and `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`).
+4. `npm run typecheck` (`tsc -p tsconfig.json --noEmit` and `tsc -p web/tsconfig.json --noEmit` for the board's web app), `npm run build` (`tsc -p tsconfig.build.json` and `vite build --config web/vite.config.ts`) and `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`).
 
 `npm run verify:full` (`Verify.ps1 -Full`) is what CI and the release workflow run. It adds the tooling tests and the package proof:
 

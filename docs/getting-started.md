@@ -20,7 +20,7 @@ pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a bra
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -SkipCli       # skills only
 ```
 
-The installer also installs the matching `braid` CLI, so the skills can always call it. From the same ref it runs `npm ci`, `npm run build` and `npm pack`, installs the tarball with `npm install -g`, and checks that `braid --version` prints that version, which it records as `cliVersion` in the stamp. It needs Node.js and npm on `PATH` ([development](development.md#nodejs-toolchain)) and runs before any skill is copied, so a failed build or version check leaves the installed skills as they were. `-SkipCli` leaves the CLI alone. Nothing is published to npm.
+The installer also installs the matching `braid` CLI, so the skills can always call it. From the same ref it runs `npm ci`, `npm run build` and `npm pack`, installs the tarball with `npm install -g`, and checks that `braid --version` prints that version, which it records as `cliVersion` in the stamp. It needs Node.js and npm on `PATH` ([development](development.md#nodejs-toolchain)) and runs before any skill is copied, so a failed build or version check leaves the installed skills as they were. `-SkipCli` leaves the CLI alone. The installer publishes nothing to npm; the current CLI isn't on npm yet (the published `0.1.0` is an older CLI, see [npm distribution](npm-distribution.md)).
 
 The script copies `.agents/skills/braid` and `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again.
 

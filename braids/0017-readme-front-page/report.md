@@ -16,6 +16,12 @@
 - The README's description of the project's hosting ("GitHub hosts source and Actions; npm is the package registry") is kept in `docs/development.md`, not on the front page.
 - `docs/npm-distribution.md` step 8 pointed at "the README procedure" for installing the tarball outside the checkout; the old README had no such procedure. It now points at `scripts/Test-Package.ps1` as described in development "The gates".
 
+## Review fixes (round 1)
+
+- README Quick start and getting-started no longer say braid isn't on npm: npm has `@exones/braid@0.1.0` (an older CLI) and `0.0.0-stage`; they now say the current CLI isn't on npm yet and link to npm distribution. The install path stays the checkout and `Install-Skills.ps1`.
+- development.md: the `typecheck` and `build` steps now match `package.json` (the web app's `tsc` and the `vite build`).
+- cli.md: errors from `braid check` are `<file>: <message>` lines without the `error:` prefix; said so.
+
 ## Validation
 
 - `npm run verify` passes with the new files tracked (docs gate: links and anchors in all new pages; 173 tests).

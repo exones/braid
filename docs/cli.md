@@ -65,7 +65,7 @@ Briefs and reports are plain Markdown files, so you may edit them directly; run 
 
 ## Exit codes
 
-Errors are printed on stderr, starting with `error:`.
+Errors are printed on stderr. Most start with `error:`; `braid check` lists each problem as `<file>: <message>` and ends with the error count.
 
 | Code | Means |
 | --- | --- |

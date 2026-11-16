@@ -39,7 +39,7 @@ braid ships as agent skills (`braid`, `braid-worker`, `braid-reviewer`) for Clau
 
 ## Quick start
 
-You need Node.js 26 (`>=26.13.0`), PowerShell 7.6+ and Git. braid isn't published on npm yet, so install it from a checkout:
+You need Node.js 26 (`>=26.13.0`), PowerShell 7.6+ and Git. The current CLI isn't on npm yet (the `@exones/braid@0.1.0` there is an older CLI, see [npm distribution](docs/npm-distribution.md)), so install it from a checkout:
 
 ```powershell
 git clone https://github.com/exones/braid.git
