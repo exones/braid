@@ -69,6 +69,11 @@ function statusOf(brief: string): string {
   return /^status:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(brief)?.[1] ?? "";
 }
 
+/** Whether the brief has a box section at all: a brief without one is refused, not passed. */
+export function hasBoxSection(brief: string): boolean {
+  return /^##\s+(completion|acceptance|definition of done)\s*$/im.test(brief);
+}
+
 /** Unticked boxes under Completion (or the older Acceptance and Definition of done); a box naming CI is left out, since braid accept checks CI itself. */
 export function openBoxes(brief: string): string[] {
   const open: string[] = [];
@@ -154,6 +159,9 @@ function ready(root: string, w: World, t: Target, pr: PrView, head: string): voi
   const brief = at(`${t.folder}/brief.md`);
   if (brief.status !== 0) {
     fail(`${t.folder}/brief.md is missing at ${pr.headRefOid.slice(0, 7)}`);
+  }
+  if (!hasBoxSection(brief.stdout)) {
+    fail(`${t.folder}/brief.md has no Completion section (nor Acceptance or Definition of done) at ${pr.headRefOid.slice(0, 7)}`);
   }
   const open = openBoxes(brief.stdout);
   if (open.length > 0) {
@@ -312,7 +320,7 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
   }
 
   const run = opts.gh ?? runGh;
-  const w = await read(root, number, "done", opts);
+  const w = await read(root, number, "accept", opts);
   const t = target(w, m[2] ?? null);
   if (w.github.status.state !== "ok") {
     throw new UsageError(`${t.id} not accepted: GitHub could not be read (${w.github.status.reason}); nothing changed`);
@@ -377,11 +385,11 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
   ready(root, w, t, pr, head);
   const a = accepted(pr.headRefOid);
   const commit = stampBranch(root, t, number, withAccepted(log, a), pr);
-  let out = `${t.id} done: Done on ${pr.headRefName} in ${commit}\nhead ${commit}\n`;
+  let out = `${t.id} done: Done on ${pr.headRefName} in ${commit}\nhead ${commit}\n${comment(run, root, pr.number, a)}`;
   if (merge) {
     await waitGreen(root, run, t, pr.number, commit, opts);
     gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", commit], `${t.id} is Done in ${commit.slice(0, 7)}, but PR #${pr.number} not merged`);
     out += `merged PR #${pr.number} at ${commit}\n`;
   }
-  return out + comment(run, root, pr.number, a);
+  return out;
 }

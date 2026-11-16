@@ -12,7 +12,8 @@ after(() => rmSync(scratch, { recursive: true, force: true }));
 process.env.BRAID_WORKTREES_DIR = join(scratch, "worktrees");
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
-const { acceptCommand, openBoxes } = (await load("../dist/commands/done.js")) as {
+const { acceptCommand, openBoxes, hasBoxSection } = (await load("../dist/commands/done.js")) as {
+  hasBoxSection: (brief: string) => boolean;
   acceptCommand: (root: string, args: string[], opts: object) => Promise<string>;
   openBoxes: (brief: string) => string[];
 };
@@ -346,6 +347,7 @@ test("a story with --merge stops when the new head's checks fail, Done but not m
     return w.opts.gh(r, args);
   };
   await assert.rejects(acceptCommand(w.root, ["0002", "--head", head, "--merge"], { ...w.opts, gh }), /0002 is Done in [0-9a-f]{7}, but ci checks not green .*verify failing; not merged/);
+  assert.equal(w.comments.length, 1);
   assert.equal(w.merges.length, 0);
 });
 
@@ -408,6 +410,17 @@ test("a refused accept posts no comment; a failing comment is only a warning", a
   const out = await acceptCommand(w.root, ["0002", "--head", head], { ...w.opts, gh: failing });
   assert.match(out, /0002 done: Done on braid\/0002-story/);
   assert.match(out, /warning: the PR comment was not posted \(denied\)/);
+});
+
+test("a brief with no Completion, Acceptance or Definition of done section is refused, not stamped", async () => {
+  const w = world();
+  w.workerCommit("braid/0002-story", "braids/0002-story/brief.md", brief("0002", "In Progress", "\n\n## Notes\n\n- [x] not a box section\n"));
+  const head = w.headOf("braid/0002-story");
+  await assert.rejects(acceptCommand(w.root, ["0002", "--head", head], w.opts), /no Completion section/);
+  assert.equal(w.headOf("braid/0002-story"), head);
+  assert.deepEqual(w.comments, []);
+  assert.equal(hasBoxSection("## Goal\n\nx\n"), false);
+  assert.equal(hasBoxSection("## Completion\n\n- [x] a\n"), true);
 });
 
 test("old briefs with Acceptance and Definition of done, and new ones with Completion, pass the box check", () => {

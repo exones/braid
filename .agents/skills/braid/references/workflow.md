@@ -21,7 +21,7 @@ Each branch has one writer, and its copy of a brief is the truth on that branch.
 - The coordinator never commits to a branch a worker holds. The one exception is the Done stamp that `braid accept` commits on a story's or the final PR's branch after its worker has stopped.
 - A change to a running item's brief goes to the worker as a message; the worker applies it, and merges the braid branch first if the change needs something the coordinator added there.
 - A goal's braid item is the coordinator's from the start: `In Progress` in the first commit after the planning merge, `Done` at the end.
-- **Acceptance** is the coordinator's, once, after review, fixes and green CI: `braid accept <id>` sets Done where it holds the base and records head, review link and thread in the log and on the PR:
+- **Acceptance** is the coordinator's, once, after review, fixes and green CI: `braid accept <id>` sets Done where it holds the base and records head, review link and thread:
   - a strand: after its merge, on the braid branch, in the commit that carries the braid's log entry;
   - a story or the final PR: after review and green CI, in a status-only commit on its branch before the handover.
 

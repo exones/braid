@@ -64,8 +64,8 @@ braid report 0012/A --file <path>             # or write report.md directly (tem
 # coordinator, on plan/ or the braid branch, for items that haven't started
 braid edit 0012/B --dep 0012/A --order 20     # --dep and --labels replace the list: repeat the others; `none` clears one
 
-# coordinator: accept an item (sets Done; logs and comments)
-braid accept 0012/A --thread <your thread id> --log -
+# coordinator: accept an item; <link>: the review comment (not for tier S)
+braid accept 0012/A --review <link> --thread <your thread id> --log -
                                               # strand merged: on the braid branch; pulls, sets Done with the log entry, commits, pushes
 braid accept 0012/A --head <reviewed sha> --review <link> --merge --log -
                                               # strand on request or in auto mode: merges that head first
@@ -83,6 +83,7 @@ braid accept 0013 --head <reviewed sha>         # story or final PR: checks, a s
 ```markdown
 <what changed, why, validation, anything open>
 
+Decisions: <the user's answers from the log, then your own, or none>
 For later items: <changed names or interfaces, deviations from the plan, new decisions, ideas worth a later item, or none>
 Needs the user: <none, or per stop case `<key>: <what it is about, then what is needed>`>
 ```

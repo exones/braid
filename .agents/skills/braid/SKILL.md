@@ -26,9 +26,9 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 ## Ground rules
 
 - Edit `brief.md` and `report.md` directly, then run `braid check`; use `braid` for new numbers and letters, status, labels, dependencies and logs.
-- One writer per branch, and acceptance (Done) is yours through `braid accept`: the workflow says who holds what.
+- One writer per branch, and acceptance (Done) is yours through `braid accept`.
 - Your commits are `docs(braids): …`, for example `docs(braids): 0012 phases: add 0012/A, 0012/B`.
-- Commit brief changes only at these points: the plan and its review rounds; the braid In Progress, after the planning merge; a growth or plan-change decision; a log entry; an item accepted (`braid accept`); an Outline detailed; the braid Done at the end. PRs and threads show progress in between.
+- Commit brief changes only at these points: the plan and its review rounds; the braid In Progress, after the planning merge; a growth or plan-change decision; a log entry; an item accepted (`braid accept`); an Outline detailed; the braid Done at the end.
 - Name threads `<repo> <id> <role>: <title>`, for example `chinese-trainer 0012/A review: data model`.
 - **Side ideas get a home.** When the user proposes something while an item runs, don't fold it in silently: `braid ask` whether to track it and where, with a recommendation: absorb it into the running item, a strand of an existing braid, an extended outline, or a new braid.
 - Never edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless the user asks. Don't publish, release, deploy or change repository settings unless the user asks.
@@ -113,7 +113,7 @@ When the worker reports green:
 5. **After the merge**, once `gh pr list --state all` shows the PR merged:
    1. Interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID).
    2. Run `braid clean --yes` to remove the item's worktree and branch.
-   3. For a strand, on the braid branch, run `braid accept <id> --thread <your thread id> --log -` with the braid's log entry (brief template) on standard input; it commits as `docs(braids): <id> done`. Skip this when the merge ran through `braid accept --merge`, which did it.
+   3. For a strand, on the braid branch, run `braid accept <id> --review <link> --thread <your thread id> --log -` with the braid's log entry on standard input; it commits as `docs(braids): <id> done`. Skip this when the merge ran through `braid accept --merge`, which did it.
    4. Fix any item that hasn't started and that the entry makes wrong, as in "Adjusting the plan".
    5. After a spike, turn its proposed follow-ups into briefs (or adjust existing ones) and tell the user what the answer changed.
    6. If the next item is `Outline`, reread it, detail it into a full brief (`braid ask` for what it leaves open), set it `To Do` and commit.
@@ -121,7 +121,7 @@ When the worker reports green:
 
 ## Merge on request
 
-When the user asks you to merge a named PR, or says "merge it" right after a recap that handed one over, merge it with `braid accept <id> --head <head commit of your last recap of it> --thread <your thread id> --merge` (for a strand add `--log -` with the braid's log entry). If you haven't recapped the PR, or its head has moved since, don't merge: show what changed and `braid ask`; `braid accept` refuses a moved head. Then continue with "After the merge".
+When the user asks you to merge a named PR, or says "merge it" right after a recap that handed one over, merge it with `braid accept <id> --head <head commit of your last recap of it> --review <link> --thread <your thread id> --merge` (for a strand add `--log -` with the braid's log entry). If you haven't recapped the PR, or its head has moved since, don't merge: show what changed and `braid ask`; `braid accept` refuses a moved head. Then continue with "After the merge".
 
 ## Auto mode
 
