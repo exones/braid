@@ -1,6 +1,6 @@
 # Stop cases
 
-The cases where braid waits for the user. Every role judges against this list and uses these keys.
+The cases where braid waits for the user (`braid ask --key <key>`, or a handover recap). Every role judges against this list and uses these keys.
 
 | Key | Meaning | Examples |
 | --- | --- | --- |
