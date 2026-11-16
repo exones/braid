@@ -1,7 +1,7 @@
 ---
 id: '0003/D'
 title: "Completion and acceptance"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: []
 order: 15
