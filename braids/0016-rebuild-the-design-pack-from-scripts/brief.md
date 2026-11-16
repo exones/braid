@@ -43,13 +43,21 @@ Expected size: about 250 lines in 4 files.
 
 ## Acceptance
 
-- [ ] `node design/source/build/build.mjs` regenerates every SVG in `design/`, byte-identical to `main`; any difference is explained in `report.md` and renders identically.
-- [ ] `node design/source/build/render.mjs` regenerates every PNG and the PDF with the same names and pixel sizes as on `main`, with no visible change.
-- [ ] `render.mjs` finds the browser on Linux (or is shown to by its search list) and honours the override variable.
-- [ ] `design/README.md` explains how to rebuild and what to edit for common changes.
-- [ ] The PR commits the scripts, the geometry and the README, plus regenerated files only if their bytes changed.
+- [x] `node design/source/build/build.mjs` regenerates every SVG in `design/`, byte-identical to `main`; any difference is explained in `report.md` and renders identically.
+- [x] `node design/source/build/render.mjs` regenerates every PNG and the PDF with the same names and pixel sizes as on `main`, with no visible change.
+- [x] `render.mjs` finds the browser on Linux (or is shown to by its search list) and honours the override variable.
+- [x] `design/README.md` explains how to rebuild and what to edit for common changes.
+- [x] The PR commits the scripts, the geometry and the README, plus regenerated files only if their bytes changed.
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Copy `traced.json` to `design/source/build/logo-geometry.json`.
+2. Port `build.py` to `build.mjs` (same output, Python float formatting matched); tune-able values grouped at the top.
+3. Port `render.py` to `render.mjs` with a browser search per OS and `BRAID_BROWSER` override.
+4. Add the "Rebuild the files" section to `design/README.md`; fix the PDF-source line.
+5. Verify SVG/PNG bytes against `main`, PDF page count, and the missing-browser error.
