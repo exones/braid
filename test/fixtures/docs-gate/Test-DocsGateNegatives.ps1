@@ -6,8 +6,9 @@
 # An untracked Markdown file with a broken link must not fail the gate.
 # A tracked broken link under a frozen path passes; outside it, it fails.
 # A skill linking inside its own folder passes; linking outside it fails,
-# even when the target exists.
-# Identical copies of a shared skill reference pass; differing copies fail.
+# even when the target exists. A braid skill linking to another braid skill
+# passes; linking to any other skill, or from another skill to a braid one,
+# fails.
 # Does not call scripts/Verify.ps1.
 #Requires -Version 7.6
 $ErrorActionPreference = 'Stop'
@@ -220,14 +221,18 @@ try {
   Assert-Fails -Label 'skill-outside-link' -Pattern 'skill link leaves its folder in \.agents/skills/demo/SKILL\.md'
 
   Reset-Fixture
-  $shared = Convert-ToLfBytes "# Shared`n"
-  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/one/references/shared.md') -Bytes $shared
-  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/two/references/shared.md') -Bytes $shared
-  Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/one/references/shared.md', '.agents/skills/two/references/shared.md')
-  Assert-Passes -Label 'shared-reference-same'
-  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/two/references/shared.md') -Bytes (Convert-ToLfBytes "# Shared`n`nChanged.`n")
-  Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/two/references/shared.md')
-  Assert-Fails -Label 'shared-reference-differs' -Pattern 'shared skill reference differs: \.agents/skills/two/references/shared\.md'
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/braid/references/shared.md') -Bytes (Convert-ToLfBytes "# Shared`n")
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/other/notes.md') -Bytes (Convert-ToLfBytes "# Notes`n")
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/braid-demo/SKILL.md') -Bytes (Convert-ToLfBytes "# Demo`n`nSee [shared](../braid/references/shared.md).`n")
+  Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/braid/references/shared.md', '.agents/skills/other/notes.md', '.agents/skills/braid-demo/SKILL.md')
+  Assert-Passes -Label 'braid-skill-sibling-link'
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/braid-demo/SKILL.md') -Bytes (Convert-ToLfBytes "# Demo`n`nSee [notes](../other/notes.md).`n")
+  Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/braid-demo/SKILL.md')
+  Assert-Fails -Label 'braid-skill-other-link' -Pattern 'skill link leaves its folder in \.agents/skills/braid-demo/SKILL\.md'
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/braid-demo/SKILL.md') -Bytes (Convert-ToLfBytes "# Demo`n")
+  Write-Utf8 -Path (Join-Path $script:Work '.agents/skills/other/SKILL.md') -Bytes (Convert-ToLfBytes "# Other`n`nSee [shared](../braid/references/shared.md).`n")
+  Invoke-GitQuiet -GitArguments @('add', '--', '.agents/skills/braid-demo/SKILL.md', '.agents/skills/other/SKILL.md')
+  Assert-Fails -Label 'other-skill-braid-link' -Pattern 'skill link leaves its folder in \.agents/skills/other/SKILL\.md'
 
   Reset-Fixture
   $brokenAnchor = @(

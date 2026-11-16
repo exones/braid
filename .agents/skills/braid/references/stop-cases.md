@@ -16,6 +16,6 @@ The cases where braid waits for the user (`braid ask --key <key>`, or a handover
 ## Who records what
 
 - **Plan:** the coordinator adds an `ask:<key>` label to each brief where the plan already shows a case.
-- **Worker:** its `report.md` and chat report carry `Needs the user: none`, or `<key>: <one sentence>` per case.
+- **Worker:** its `report.md` and chat report carry `Needs the user: none`, or per case `<key>: <what it is about, then what is needed>`.
 - **Reviewer:** a `Needs the user` section in its PR comment, in the same form.
 - **Coordinator:** `braid facts <pr>`: it fetches, runs the diff checks for the PR's base and head and prints each fact with its case (`dependency`, `process`: workflow, instruction or skill files, deleted tests, skip or only markers; `quality or scope`: over twice the brief's expected size). A fact is context to weigh against the cases, not a verdict.

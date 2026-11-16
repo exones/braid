@@ -13,13 +13,14 @@ Do one item from its brief, hand it back, and stop.
 2. Check where you are with `git status -sb` and `git log -1 --oneline`. If the branch and commit match the first message, start working. If they don't, tell the coordinator what you see and don't write anything until it answers.
 3. Use `setup`, `shell` and `test` when provided; otherwise follow project conventions. In a new worktree, run setup before building or testing.
 
-The PR goes into the base branch the first message names (`main` for a story, the braid branch for a strand). You own your item's folder on your branch: edit `brief.md` and `report.md` directly and run `braid check`; use `braid edit` for status and `braid log --thread <your thread id>` for log entries ("Your thread id" in the first message, never the thread you send your result to). You don't create, split or restructure items or change other items. Commands are in `assets/brief.md` of the `braid` skill.
+The PR goes into the base branch the first message names (`main` for a story, the braid branch for a strand). You own your item's folder on your branch: edit `brief.md` and `report.md` directly and run `braid check`; use `braid edit` for status and `braid log --thread <your thread id>` for log entries ("Your thread id" in the first message, never the thread you send your result to). You don't create, split or restructure items or change other items. Commands are in [the brief template](../braid/assets/brief.md).
 
 ## Work
 
 - "Start here" and "Already decided" are context; you write the plan. Treat "Already decided" as settled; don't re-investigate it.
 - Set the item `In Progress` in your first commit (`braid edit <id> --status 'In Progress'`) and push that commit at once. Before coding, write your plan into the brief's `## Plan` section. Log decisions and findings with the commit they explain. Apply brief changes the coordinator sends.
 - **Converge loop.** If the item is `ui`, or the brief says the user chooses the shape (design, names, wording), first make a proposal on realistic test data (mockups for UI), commit it, report it and stop. Log each verdict the coordinator passes on; build only once the user approved.
+- **Context first.** Whatever is meant for the user (a proposal, a question, the `Needs the user` and `You` lines) starts with one or two short sentences of context: what it is about and why it comes up now, enough to answer without reading anything else. Name the thing itself, never a list number.
 - **Decided means documented.** When you build what the user decided, update in the same PR the doc that describes it (how) and the project's decisions record (why). Unconfirmed proposals stay in `report.md`.
 - Read affected code before editing; follow existing patterns.
 - Stay near the brief's expected size. If the work heads past about twice that, or needs changes outside the brief's scope, ask the coordinator before going on.
@@ -36,7 +37,7 @@ The PR goes into the base branch the first message names (`main` for a story, th
 
 ## Deliver
 
-0. Tick the acceptance and Definition of done boxes you proved (leave a CI box to `braid done`, which checks CI), and write `report.md`: what changed, why, validation, anything open, then a `For later items:` line (changed names or interfaces, deviations from the plan, new decisions, ideas worth a later item, or `none`) and a `Needs the user:` line as in the final report.
+0. Tick the acceptance and Definition of done boxes you proved, and write `report.md` as [the brief template](../braid/assets/brief.md#work-on-it) shows: what changed, why, validation, anything open, then the `For later items:` and `Needs the user:` lines.
 1. Commit your changes with Conventional Commit messages, staging only your files, and push: `git push -u origin <your branch>`.
 2. Open one PR into the base branch: `gh pr create --base <base branch> --title "<type>: <summary>" --body-file <file>`. Describe what changed, why, validation, and anything open. Then call `link_pull_request` with the PR URL.
 3. If `ci` is `none`, go to step 5. Follow host PR-wait instructions; otherwise call `watch_pull_request`, then run `gh pr checks <pr>` once. If every check has already finished, go to step 4. Otherwise end your turn; the watch wakes you.
@@ -59,8 +60,8 @@ Use plain language and this format even when blocked; then "Done" lists what got
 **Done:** 1–5 bullets on what changed and what it means for the project.
 **Decisions:** choices you made that the brief didn't settle, each with a one-line reason. "None" if none.
 **Deviations:** only if you departed from the brief: what and why.
-**Needs the user:** `none`, or `<key>: <one sentence>` per [stop case](references/stop-cases.md) the work shows.
-**You:** only if the user must act: the exact steps.
+**Needs the user:** `none`, or per [stop case](../braid/references/stop-cases.md) the work shows `<key>: <what it is about, then what is needed>`.
+**You:** only if the user must act: what it is for, then the exact steps.
 **Screenshots:** only for UI work: the final screens, embedded as images from your artifacts folder. Start the app with `run` from `BRAID.md`.
 ```
 

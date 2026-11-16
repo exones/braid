@@ -60,7 +60,7 @@ Both gates run `scripts/Verify.ps1`, which selects the toolchain first.
 
 `npm run verify:full` (`Verify.ps1 -Full`) is what CI and the release workflow run. It adds the tooling tests and the package proof:
 
-- The docs-gate negatives: a disposable repository that must fail for a broken link or anchor, a CR line ending, trailing whitespace, and a skill linking outside its folder, and must pass for a broken link under a frozen path.
+- The docs-gate negatives: a disposable repository that must fail for a broken link or anchor, a CR line ending, trailing whitespace, and a skill linking outside its folder (a braid skill may link to another braid skill), and must pass for a broken link under a frozen path.
 - The install-policy guard: real installs that `.npmrc` must refuse.
 - The shared Node.js toolchain fixture: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout, and interruption, in disposable roots without downloading Node.js.
 - `scripts/Test-Pester.ps1`, which runs the Pester suites under `test/pester/`. New PowerShell tests go there.
@@ -72,7 +72,7 @@ Both stop on the first native command with a nonzero exit code and return that c
 
 ## Braid skills in other projects
 
-The agent skills `braid`, `braid-worker` and `braid-reviewer` are developed in `.agents/skills/` and can drive work in any repository. Each skill folder is self-contained: the docs gate fails if a skill links outside its own folder.
+The agent skills `braid`, `braid-worker` and `braid-reviewer` are developed in `.agents/skills/` and can drive work in any repository. The three are installed together and may link to each other (the stop cases exist once, in `braid`); the docs gate fails if a skill links anywhere else outside its own folder.
 
 - `braid` is the one skill you talk to, for work of any size: a goal, a single story, or "run 0012". It decides whether the work is a story or a goal, keeps the items as braids in the target repository's `braids/` through the `braid` CLI, and launches the workers.
 - `braid-worker` and `braid-reviewer` are the skills of the worker and reviewer threads a coordinator launches. You don't start them yourself.
