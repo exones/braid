@@ -10,6 +10,8 @@ The board now shows five states, To Do, Working, To Review, Needs You and Done, 
 - **D. Board** ([report](D-board-lanes-from-requests-and-broke/report.md)): lanes from requests and the 10-minute "checks failed" and "stalled" alarms; agents are only threads in braid-made worktrees, so the coordinator never counts; `braid start <id> --review` makes the reviewer's checkout; the request text on cards and in `braid status` (D46).
 - **E. Skills** ([report](E-skills-ask-before-every-stop/report.md)): a turn that waits for the user ends with an open request; every stop names `braid handover` or `braid ask`; reviewers start with `braid start <id> --review`. +93 words.
 
+- **F. Fixes** ([report](F-fixes-from-the-reviews/report.md)): the review points of D, E and the final PR: skill wording (+26 words), `docs/board.md` lanes, the braid card in wrap-up counts its reviewer and shows the checks spinner, and `braid start <n> --review` works on a braid whose final PR is open.
+
 ## Working at the end
 
 - While the coordinator waits for the user, its braid sits in Needs You (or To Review) with what is needed; `braid answer`, the merge or the next `braid start` takes it out. Used for real on 0015/E: `braid handover` put it in To Review, `braid done --merge` closed it.
@@ -21,5 +23,5 @@ The board now shows five states, To Do, Working, To Review, Needs You and Done, 
 
 ## Open
 
-- The final review's findings, and the small points left from D and E, go into one fix strand.
+- The final review (PR #100) found nothing blocking; its suggestion and the points left from D and E were fixed in F.
 - For later: requests are local to one machine; T3 could tell its waits apart (the feature requests drafted in A's report, not sent).

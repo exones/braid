@@ -23,3 +23,4 @@ The board tells the coordinator's thread from a worker's, and shows a braid in N
 - C. Requests: `braid handover` and `braid ask`, stored under `.braid/` (M).
 - D. Board: lanes from requests and broke alarms; `braid start --review`; the coordinator is never an agent (M, ui).
 - E. Skills: ask before every stop (L, process).
+- F. Fixes from the reviews of D, E and the final PR (S).
