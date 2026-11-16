@@ -48,16 +48,16 @@ Expected size: about 400 lines in 8 files (mostly moved text), plus one image.
 
 ## Acceptance
 
-- [ ] The README opens with the logo (light and dark variants) and a one-line pitch, and reads as a project front page: what, how, screenshot, quick start, docs, contributing, licence; under about 120 lines.
-- [ ] Every still-true fact from the old README is in `docs/getting-started.md`, `docs/cli.md` or `docs/development.md`, or the report lists what was dropped as out of date and why.
-- [ ] `docs/cli.md` matches `braid help` command for command.
-- [ ] `AGENTS.md`, `BRAID.md`, `docs/npm-distribution.md` and `scripts/Test-Pester.ps1` no longer point at removed README sections; nothing else in `AGENTS.md` or `BRAID.md` changed.
-- [ ] The README renders correctly on GitHub in light and dark mode (checked on the PR branch; screenshots of both in the report's artifacts).
+- [x] The README opens with the logo (light and dark variants) and a one-line pitch, and reads as a project front page: what, how, screenshot, quick start, docs, contributing, licence; under about 120 lines.
+- [x] Every still-true fact from the old README is in `docs/getting-started.md`, `docs/cli.md` or `docs/development.md`, or the report lists what was dropped as out of date and why.
+- [x] `docs/cli.md` matches `braid help` command for command.
+- [x] `AGENTS.md`, `BRAID.md`, `docs/npm-distribution.md` and `scripts/Test-Pester.ps1` no longer point at removed README sections; nothing else in `AGENTS.md` or `BRAID.md` changed.
+- [x] The README renders correctly on GitHub in light and dark mode (checked on the PR branch; screenshots of both in the report's artifacts).
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
