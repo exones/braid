@@ -154,6 +154,13 @@ Describe 'Install-Skills.ps1' {
       @(Get-ChildItem -LiteralPath $root -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-reviewer', 'braid-worker')
       Get-Installed $root 'braid-reviewer/SKILL.md' | Should -Match '(?m)^name: braid-reviewer$'
       Test-Path -LiteralPath (Join-Path $root 'braid-reviewer/.braid-install.json') -PathType Leaf | Should -BeTrue
+      # One stop-cases.md, in braid; the other two skills link to it and the link resolves where they are installed.
+      @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter 'stop-cases.md').Count | Should -Be 1
+      foreach ($skill in @('braid-reviewer', 'braid-worker')) {
+        $link = '../braid/references/stop-cases.md'
+        Get-Installed $root "$skill/SKILL.md" | Should -Match ([regex]::Escape("]($link)"))
+        Test-Path -LiteralPath (Join-Path $root "$skill/$link") -PathType Leaf | Should -BeTrue
+      }
     }
 
     $result = Invoke-Install

@@ -22,7 +22,7 @@ Review someone else's PR with fresh eyes, report once, and stop.
 
 **Blocking bar:** an acceptance criterion not met, wrong behavior, a security or data-loss risk, missing tests on a risky path, a broken gate, or weakened or deleted tests. Everything else is a suggestion.
 
-**Needs the user:** judge the change against the [stop cases](references/stop-cases.md) yourself, not from the worker's report, and give the evidence (file and line, or command output) for each case you name.
+**Needs the user:** judge the change against the [stop cases](../braid/references/stop-cases.md) yourself, not from the worker's report, and give the evidence (file and line, or command output) for each case you name. The user reads this line without the rest of the review: say what it is about, then what is needed.
 
 ## Report
 
@@ -33,7 +33,7 @@ Review someone else's PR with fresh eyes, report once, and stop.
 
    **Blocking:** numbered findings, each with file, line and what must change; or "None".
    **Suggestions:** optional improvements; or "None".
-   **Needs the user:** `none`, or `<key>: <one sentence with evidence>` per case.
+   **Needs the user:** `none`, or per case `<key>: <what it is about, what is needed, the evidence>`.
    ```
 
 2. Send the coordinator's thread one message with `t3_thread_send`: blocking or not, the Needs the user line, the reviewed commit and the comment's link. You're done.
