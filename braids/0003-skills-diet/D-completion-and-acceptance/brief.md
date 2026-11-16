@@ -30,6 +30,7 @@ Expected size: about 250 to 400 lines in 12 files, with tests.
 - **`braid accept <id>`** replaces `braid done`, with the same checks, `--head`, `--merge`, `--log` and `--thread`. `braid done` stays as an alias that prints one line naming `braid accept` (the installed skills of other projects still say `braid done`).
 - **Recording an acceptance:** the braid log entry gets an "Accepted" line: the head, the review comment's link (or "reviewed by the coordinator" for tier S), and the coordinator's thread. `braid accept` also posts a short PR comment with the same facts.
 - **The user's approvals** (mockups, plans, skill wording) are never boxes: `braid ask --kind decision`, the answer recorded with `braid answer --log`. The report's "Decisions" summarises the decisions from the log, so the user finds them in one place.
+- **Recording the user's answer first** (`braid/SKILL.md`, "Talking to the user"): replace the loose "Record the answer…" line with one ordered rule: when the user replies to an open request, first `braid answer <id> --log -`, then act; if the reply leads to another question, end with a new `braid ask`. (On 2026-11-16 the coordinator acted on the answers to D's design questions without `braid answer` or a new ask, so the board kept showing the answered question.)
 - **Skills and docs:** the worker ticks "Completion"; the coordinator accepts with `braid accept`; every `braid done` in the skills and docs becomes `braid accept`. Keep the skills' word count within +40. `docs/braids-format.md`; a decision in `docs/decisions.md`.
 
 ## Already decided
@@ -46,6 +47,7 @@ Expected size: about 250 to 400 lines in 12 files, with tests.
 - [ ] Briefs use `## Completion`; old briefs with `## Acceptance` / `## Definition of done` still pass `braid accept`'s box check (tested)
 - [ ] `braid accept` does what `braid done` did, writes the "Accepted" log line and posts the PR comment (tested with a fake gh); `braid done` is an alias with a hint
 - [ ] The skills, the brief template and the docs say completion for the worker and `braid accept` for the coordinator; word counts before and after in the report
+- [ ] The ordered "answer first" rule replaces the loose line in "Talking to the user"
 - [ ] `report.md` has a "Decisions" summary drawn from the log
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
