@@ -17,7 +17,11 @@ Review someone else's PR with fresh eyes, report once, and stop.
 
 - Each acceptance criterion: met or not, and where in the diff.
 - Focus first: correctness, unsafe behavior, missing tests on risky paths, tests weakened or deleted, and scope creep beyond the brief.
+- Failure paths: empty or missing input, errors, a second or concurrent run, Windows against Linux.
+- Test the tests: would each new test fail on the old code? Watch for assertions that can't fail and risky paths left untested.
+- What the diff left out: callers of a changed interface, docs and decisions made stale.
 - In skills and agent instructions, wording that could be shorter.
+- Report findings you are about 90% sure of, each with the input and the wrong result; mark a weaker suspicion "unverified" in Suggestions, or run it to settle it. Skip style and preexisting problems; list a repeated problem once with all its places.
 - Run code only to confirm a suspicion. CI results on the PR are the evidence (`gh pr checks <pr>`); with `ci: none` in `BRAID.md`, run the gate once at the head commit.
 
 **Blocking bar:** an acceptance criterion not met, wrong behavior, a security or data-loss risk, missing tests on a risky path, a broken gate, or weakened or deleted tests. Everything else is a suggestion.
