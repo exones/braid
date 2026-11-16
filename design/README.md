@@ -112,6 +112,32 @@ Website favicon:
 
 GitHub social preview: upload [social/braid-social-preview.png](social/braid-social-preview.png) under the repository's Settings > General > Social preview.
 
+## Rebuild the files
+
+Every SVG, PNG and the PDF are generated. The scripts are in [source/build/](source/build/) and need only Node.js; `render.mjs` also needs Chrome or Edge. Run them from the repository root.
+
+| Script | What it does |
+| --- | --- |
+| [build.mjs](source/build/build.mjs) | Composes every SVG (lockups, app icons, favicon, social preview) from [logo-geometry.json](source/build/logo-geometry.json), the master geometry. |
+| [render.mjs](source/build/render.mjs) | Rasterizes every SVG to PNG and prints [brand-guidelines.html](source/brand-guidelines.html) to the PDF with headless Chrome or Edge. |
+
+```sh
+node design/source/build/build.mjs
+node design/source/build/render.mjs
+```
+
+Both write into `design/`; pass another folder as the first argument to write elsewhere. `render.mjs` looks for Chrome or Edge in the usual places on Windows, Linux and macOS. If yours is elsewhere, set `BRAID_BROWSER` to the executable. PDF bytes change on every render (internal ids and dates), so commit a regenerated PDF only when the guide changed.
+
+What to edit for common changes, all at the top of `build.mjs` unless noted:
+
+- **Colours:** `NAVY`, `VIOLET`, `VIOLET_LIGHT`, `WHITE`, `MIST`, and the `SCHEMES` table. Update [tokens/](tokens/) and the guide HTML by hand to match.
+- **Lockup ratio and spacing:** `HORIZONTAL_WORD_RATIO` (wordmark height against symbol height) and `HORIZONTAL_GAP`; the primary lockup is in the `primary` function.
+- **Artboard padding:** `PAD`. **Icon padding:** `ICON_INSET` for the app icons; the favicon inset is in its `squareIcon` call.
+- **Social text and layout:** the `SOCIAL` object.
+- **Export sizes:** the size lists in `render.mjs` (`1024, 512, 192`, `16, 32, 48`, and the 1x/`@2x` logo exports).
+
+Shape changes (the strands, the weave, the letters) are not made here. Edit the SVGs in a vector editor. Changing the geometry means replacing the paths in `logo-geometry.json`; the tracer that produced them is not part of this repository.
+
 ## Notes on the artwork
 
 The logo was drawn as a raster concept and traced to vector paths. The edges were smoothed before tracing and hold up at poster size. For large-format signage or embroidery, have the curves redrawn by hand first. A simpler symbol for sizes under 24 px could also follow if the favicon tile isn't enough.
