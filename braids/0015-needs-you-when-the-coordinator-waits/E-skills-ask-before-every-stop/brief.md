@@ -1,7 +1,7 @@
 ---
 id: '0015/E'
 title: "Skills: ask before every stop"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0015/D']
 order: 50
