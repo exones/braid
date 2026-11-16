@@ -8,8 +8,9 @@
 - `docs/development.md` (new): the old "Build and verify", "CLI" and "Continuous integration": requirements, toolchain installer, `.npmrc` policy, the two gates, CI, plus a short contributing paragraph from `AGENTS.md` facts.
 - `docs/images/board.png` (new): `braid board --demo`, Edge headless, 1440×860 at 2×.
 - Pointers: `AGENTS.md` lines 9 and 33, `BRAID.md` `setup:`, `docs/npm-distribution.md` step 8 and the `scripts/Test-Pester.ps1` comment now point at the new docs. Nothing else in `AGENTS.md` or `BRAID.md` changed.
+- `.agents/skills/braid/SKILL.md` line 16 (absorbed, approved by the user 2026-11-17): the install reference now names the braid repository's `docs/getting-started.md`, "Install the skills and the CLI", as plain text. No other skill edits.
 
-## Dropped as out of date
+## Dropped or moved
 
 - "The next implementation agent should preserve these files…" and the line on the gitignored MVP plan file (as the brief decided).
 - The README's description of the project's hosting ("GitHub hosts source and Actions; npm is the package registry") is kept in `docs/development.md`, not on the front page.
@@ -23,7 +24,7 @@
 
 ## Open
 
-- The installed `braid` skill (`.agents/skills/braid/SKILL.md` line 16) still tells users to install from "the braid repository's README, 'Braid skills in other projects'". That section is now `docs/getting-started.md`; the README's Quick start still shows the install command. Skills are out of scope here.
+- None.
 
-For later items: the braid skill's install pointer (above) should name `docs/getting-started.md`; the README links T3 Code at `https://github.com/pingdotgg/t3code`, worth a glance by the user; the social preview upload (`design/social/braid-social-preview.png`) is still a manual repository setting.
-Needs the user: process: the PR edits `AGENTS.md` and `BRAID.md` (pointer lines only, approved 2026-11-17); the user merges.
+For later items: the README links T3 Code at `https://github.com/pingdotgg/t3code`, worth a glance by the user; the social preview upload (`design/social/braid-social-preview.png`) is still a manual repository setting.
+Needs the user: process: the PR edits `AGENTS.md`, `BRAID.md` and `.agents/skills/braid/SKILL.md` (pointer lines only, approved 2026-11-17); the user merges.

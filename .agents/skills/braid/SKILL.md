@@ -13,7 +13,7 @@ Read `BRAID.md` at the repository root first (`gate`, `main`, `ci`, `run`, `mode
 
 Layout, ownership, branches per case, tiers and failure modes are in [the workflow](references/workflow.md). Fields, the brief and the exact commands are in [the brief template](assets/brief.md).
 
-Stop and tell the user what to run if `braid --version` fails (install it with the braid skills: the braid repository's README, "Braid skills in other projects"), or if the project has `backlog/` and no `braids/` (`braid import-backlog --dry-run`, then without `--dry-run`, and commit). If `BRAID.md` is missing, offer [the template](assets/braid-md.md); it is committed before workers launch, with `braids/**/temp/` in `.gitignore`.
+Stop and tell the user what to run if `braid --version` fails (install it with the braid skills: the braid repository's `docs/getting-started.md`, "Install the skills and the CLI"), or if the project has `backlog/` and no `braids/` (`braid import-backlog --dry-run`, then without `--dry-run`, and commit). If `BRAID.md` is missing, offer [the template](assets/braid-md.md); it is committed before workers launch, with `braids/**/temp/` in `.gitignore`.
 
 ## Ground rules
 

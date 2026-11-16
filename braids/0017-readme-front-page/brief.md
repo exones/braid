@@ -30,6 +30,7 @@ Expected size: about 400 lines in 8 files (mostly moved text), plus one image.
 - `docs/images/board.png` (new, or a name you choose under `docs/`): a fresh screenshot of `braid board --demo`, no mockup caption.
 - `AGENTS.md` line 9 and line 33, `BRAID.md` `setup:`: repoint to `docs/development.md` and `docs/getting-started.md`. Change only those pointers.
 - `docs/npm-distribution.md` step 8 and `scripts/Test-Pester.ps1` comment: repoint likewise.
+- `.agents/skills/braid/SKILL.md` line 16: the install reference names the braid repository's `docs/getting-started.md`, "Install the skills and the CLI", in plain text (absorbed, approved by the user 2026-11-17). No other skill edits.
 
 ## Already decided
 
