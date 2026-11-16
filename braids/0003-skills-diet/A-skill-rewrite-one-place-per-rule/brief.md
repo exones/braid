@@ -60,3 +60,14 @@ Phase 2, the rewrite (the option chosen):
 
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Phase 1 (done): `analysis.md`; the user chose "Dedupe plus plain wording".
+2. `braid/references/auto-mode.md`: the whole of auto mode, including the pieces scattered in `SKILL.md` and `workflow.md`.
+3. `braid/SKILL.md`: the coordinator's procedure only. Ownership, Done, branches, tiers and who merges are stated in `workflow.md` and named here by link. The dense paragraphs (waiting and wakes, accept and hand over, commit points, finish, resuming) become short steps. "Talking to the user" holds the open-request rule, the new context-first rule, the question format and the recap.
+4. `workflow.md`: the one place for items, writers, Done, branches, tiers, who merges, CI evidence and the converge loop; failure rows that repeat a skill rule become pointers.
+5. `assets/brief.md`: prose folded into the command examples and a `report.md` template.
+6. One `stop-cases.md` in `braid/references/`; worker and reviewer link to it. The docs gate accepts links between `braid` and `braid-*` skills and drops the same-file check; fixture, Pester test, README and D29 follow.
+7. Worker and reviewer: links, the context-first line, report templates; the worker keeps its own action lines (a role reads only its skill).
+8. `rules.md`: every removed, merged or rewritten rule with old text, new text or place, and why. `docs/decisions.md`: the decisions and the reason. Report with counts and every contradiction resolved.
