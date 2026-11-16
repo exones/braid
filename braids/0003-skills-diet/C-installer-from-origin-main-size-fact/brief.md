@@ -1,7 +1,7 @@
 ---
 id: '0003/C'
 title: "Installer from origin/main; size fact without braids"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: []
 order: 5
