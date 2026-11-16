@@ -51,7 +51,7 @@ Phase 2, the rewrite (the option chosen):
 
 - [x] `analysis.md` written and an option chosen by the user
 - [x] `braid/SKILL.md` at most 2,800 words; auto mode in `references/auto-mode.md` (2,954 words: the user said on 2026-11-16 that about 3,000 is fine and not to squeeze further for the count)
-- [ ] Each rule stated once; `rules.md` lists every removed or rewritten rule, and the independent review confirms none is lost
+- [x] Each rule stated once; `rules.md` lists every removed or rewritten rule, and the independent review confirms none is lost
 - [x] Every place where the skills ask the user for input applies the context-first rule
 - [x] `stop-cases.md` exists once and the installed skills still resolve it
 - [x] Word and line counts of every changed skill file, before and after, in the report
