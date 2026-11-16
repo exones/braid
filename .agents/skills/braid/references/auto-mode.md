@@ -16,7 +16,7 @@ Tier S gets an independent review too, as for tier M.
 Merge a strand's PR only when all seven hold:
 
 1. The worker reported green.
-2. On the PR branch every acceptance and Definition of done box is ticked and `report.md` is present.
+2. On the PR branch every Completion box is ticked and `report.md` is present.
 3. An independent `braid-reviewer` review found nothing blocking, and for tier L any re-check is finished.
 4. `gh pr checks` is green on the head commit for the `ci` names.
 5. The PR is mergeable and its base is the braid branch.
@@ -26,7 +26,7 @@ Merge a strand's PR only when all seven hold:
 Then:
 
 1. Post a PR comment with the commit, the review link, the checks, the four Needs the user sources and "merged by braid auto mode".
-2. Merge with `braid done <id> --head <sha> --thread <your thread id> --merge --log -`. It checks conditions 2, 4, 5 and 7 again, merges and stamps Done.
+2. Merge with `braid accept <id> --head <sha> --review <link> --thread <your thread id> --merge --log -`. It checks conditions 2, 4, 5 and 7 again, merges and stamps Done.
 3. Tell the user in one line, and do "After the merge" in the skill.
 4. Before the next item, wait until the braid branch's CI is green on the merge commit (`gh run list --commit <sha>`). If it is red, follow "Fixes" in the skill.
 

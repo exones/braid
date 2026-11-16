@@ -1,7 +1,7 @@
 ---
 id: '0003/D'
 title: "Completion and acceptance"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: []
 order: 15
@@ -44,10 +44,17 @@ Expected size: about 250 to 400 lines in 12 files, with tests.
 
 ## Completion
 
-- [ ] Briefs use `## Completion`; old briefs with `## Acceptance` / `## Definition of done` still pass `braid accept`'s box check (tested)
-- [ ] `braid accept` does what `braid done` did, writes the "Accepted" log line and posts the PR comment (tested with a fake gh); `braid done` is an alias with a hint
-- [ ] The skills, the brief template and the docs say completion for the worker and `braid accept` for the coordinator; word counts before and after in the report
-- [ ] The ordered "answer first" rule replaces the loose line in "Talking to the user"
-- [ ] `report.md` has a "Decisions" summary drawn from the log
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Briefs use `## Completion`; old briefs with `## Acceptance` / `## Definition of done` still pass `braid accept`'s box check (tested)
+- [x] `braid accept` does what `braid done` did, writes the "Accepted" log line and posts the PR comment (tested with a fake gh); `braid done` is an alias with a hint
+- [x] The skills, the brief template and the docs say completion for the worker and `braid accept` for the coordinator; word counts before and after in the report
+- [x] The ordered "answer first" rule replaces the loose line in "Talking to the user"
+- [x] `report.md` has a "Decisions" summary drawn from the log
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. src/commands/done.ts: openBoxes reads `Completion` too (old `Acceptance`, `Definition of done` stay). Rename the command to `accept` (acceptCommand, messages, usage); `braid done` is an alias: cli prints one hint line, then runs accept.
+2. Recording: with --log the entry gets an "Accepted" line (head, review link from new `--review <url>` or "reviewed by the coordinator", coordinator thread). Every accepted path also posts a PR comment through gh with the same facts; a failed comment is a warning, not a refusal.
+3. Tests: done.test.ts gets Completion + old-brief cases, accept log line, comment via fake gh, alias hint.
+4. Skills, brief template, docs, decisions entry; skill word counts before/after. Answer-first rule in braid/SKILL.md. Report with Decisions.
