@@ -78,10 +78,10 @@ The agent skills `braid`, `braid-worker` and `braid-reviewer` are developed in `
 - `braid-worker` and `braid-reviewer` are the skills of the worker and reviewer threads a coordinator launches. You don't start them yourself.
 - Ordinary questions and small direct edits need no skill.
 
-To make them available to Cursor, Codex and Claude in every project, install them from a committed ref:
+To make them available to Cursor, Codex and Claude in every project, install them from a committed ref (without `-Ref` the installer runs `git fetch origin main` and installs `origin/main`, never a possibly stale local `main`):
 
 ```powershell
-pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from main
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from origin/main
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a branch
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -SkipCli       # skills only
 ```

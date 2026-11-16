@@ -29,13 +29,13 @@ Expected size: about 40 to 100 lines in 5 files, with tests.
 
 ## Acceptance
 
-- [ ] The installer without `-Ref` fetches and installs `origin/main`; a Pester test covers it
-- [ ] The size fact ignores `braids/**`; a test covers it
+- [x] The installer without `-Ref` fetches and installs `origin/main`; a Pester test covers it
+- [x] The size fact ignores `braids/**`; a test covers it
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 

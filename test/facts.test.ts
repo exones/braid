@@ -108,6 +108,15 @@ test("braid facts: a diff over twice the expected size is a quality or scope fac
   assert.match(out, /^quality or scope: \d+ lines changed, over twice the brief's expected size of 10$/m);
 });
 
+test("braid facts: lines under braids/ are not counted in the size fact", async () => {
+  const w = world("about 10 lines", (put) => {
+    put("braids/0001-alpha/report.md", "x\n".repeat(200));
+    put("src/small.ts", "x\n".repeat(5));
+  });
+  const out = await factsCommand(w.root, ["7"], { gh: w.gh });
+  assert.doesNotMatch(out, /quality or scope/);
+});
+
 test("braid facts: bad arguments are usage errors", async () => {
   const w = world("about 10 lines", (put) => put("a.txt", "a\n"));
   await assert.rejects(factsCommand(w.root, [], { gh: w.gh }), /usage: braid facts/);

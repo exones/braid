@@ -12,11 +12,13 @@
 # It also builds the braid CLI from the same ref (npm ci, npm run build, npm
 # pack) and installs the tarball globally (npm install -g), then checks that
 # `braid --version` prints that version; the version goes into the stamp.
+# Without -Ref it runs `git fetch origin main` and installs origin/main, never
+# the local main, which can be stale.
 # -SkipCli leaves the CLI alone. -NpmCommand and -BraidCommand are test seams.
 #Requires -Version 7.6
 [CmdletBinding()]
 param(
-  [string]$Ref = 'main',
+  [string]$Ref,
   [string[]]$Target,
   [string]$RepositoryRoot = (Split-Path -Parent $PSScriptRoot),
   [switch]$Force,
@@ -55,6 +57,11 @@ if ($Target.Count -eq 0) {
     (Join-Path $userHome '.claude/skills'),
     (Join-Path $userHome '.braid/skills')
   )
+}
+
+if (-not $Ref) {
+  Invoke-Git @('fetch', '--quiet', 'origin', 'main') | Out-Null
+  $Ref = 'origin/main'
 }
 
 $commit = ([string](Invoke-Git @('rev-parse', '--verify', '--end-of-options', "$Ref^{commit}"))).Trim()

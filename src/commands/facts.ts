@@ -41,7 +41,8 @@ export function diffFacts(root: string, base: string, head: string, size: number
   const deleted = lines(must(root, ["diff", "--name-only", "--diff-filter=D", range], "git diff failed"));
   add("process", "deleted test", deleted.filter((f) => IS_TEST.test(f)));
   add("process", "skip or only marker added or removed", lines(must(root, ["diff", "--name-only", `-G${SKIP}`, range], "git diff failed")));
-  const stat = must(root, ["diff", "--numstat", range], "git diff failed");
+  // braids/** (the item's brief, report and logs) is not the change: it is left out of the size, as PR-size tools leave out generated files.
+  const stat = must(root, ["diff", "--numstat", range, "--", ".", ":(exclude)braids"], "git diff failed");
   const changed = lines(stat).reduce((n, l) => n + l.split("\t").slice(0, 2).reduce((a, x) => a + (Number(x) || 0), 0), 0);
   if (size !== null && changed > 2 * size) {
     facts.push({ key: "quality or scope", text: `${changed} lines changed, over twice the brief's expected size of ${size}` });
