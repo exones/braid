@@ -6,7 +6,7 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 
 - Names: the project and CLI are `braid`, the npm package is `@exones/braid`, and local state lives in `.braid/`. Leave `.agento/` and `.crew/` directories alone.
 - Product code: strict TypeScript on Node.js `>=26.13.0 <27`, ESM, compiled to `dist/`. Automation and scripts: PowerShell 7.6+ (`pwsh`).
-- Setup is in the README under "Build and verify". [BRAID.md](BRAID.md) holds the facts braid agents read: the gate (`npm run verify`, before every PR), the CI checks and the models.
+- Setup is in [docs/development.md](docs/development.md). [BRAID.md](BRAID.md) holds the facts braid agents read: the gate (`npm run verify`, before every PR), the CI checks and the models.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `docs:`, `build:`, `test:`, `chore:`). Merge with merge commits. Don't rebase or force-push shared branches.
 - Search with `rg`. In PowerShell, pass native command arguments as arrays and check `$LASTEXITCODE`.
 - Keep code and scripts cross-platform: CI runs on Windows and Ubuntu, and Windows-only path, line-ending or permission assumptions have broken Linux CI before.
@@ -30,7 +30,7 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 - Reviewing one item's PR: [braid-reviewer](.agents/skills/braid-reviewer/SKILL.md), only in a reviewer thread a coordinator launched.
 - Ordinary questions and small direct edits need no skill.
 - Items, tiers, branches and merges: [the workflow](.agents/skills/braid/references/workflow.md).
-- Using the skills in other projects: [README](README.md#braid-skills-in-other-projects).
+- Using the skills in other projects: [docs/getting-started.md](docs/getting-started.md).
 - Decisions and their reasons: [docs/decisions.md](docs/decisions.md). Later stages: [docs/roadmap.md](docs/roadmap.md).
 
 ## Providers and roles

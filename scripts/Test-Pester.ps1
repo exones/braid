@@ -1,5 +1,5 @@
 # Runs the Pester suites under test/pester. Needs Pester 5.5 or newer, which
-# this script does not install; see the README. Exits with Pester's failure
+# this script does not install; see docs/development.md. Exits with Pester's failure
 # count, so 0 means every test passed.
 # Does not call scripts/Verify.ps1.
 #Requires -Version 7.6

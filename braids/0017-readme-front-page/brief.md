@@ -58,3 +58,11 @@ Expected size: about 400 lines in 8 files (mostly moved text), plus one image.
 
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Sort the old README: the CLI block and exit codes go to `docs/cli.md` (full reference checked against `braid help`); "Build and verify", "CLI" (running from `dist/`) and "Continuous integration" go to `docs/development.md`; "Braid skills in other projects" goes to `docs/getting-started.md`; "Durable context" becomes the documentation table; the MVP-plan line and the "next implementation agent" line are dropped.
+2. Fresh screenshot of `braid board --demo` (Edge headless, 1440 px wide at 2x) as `docs/images/board.png`.
+3. New README: `<picture>` header with the primary lockup (`-reversed` dark, `-color` light), pitch, CI and MIT badges, What is braid, How it works (numbered steps), the screenshot, Quick start, a CLI taste, a documentation table, contributing, licence; under 120 lines.
+4. Repoint `AGENTS.md` lines 9 and 33, `BRAID.md` `setup:`, `docs/npm-distribution.md` step 8 and the `scripts/Test-Pester.ps1` comment.
+5. Gate, then check rendering on GitHub (light and dark) on the PR branch; report.
