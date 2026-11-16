@@ -32,7 +32,7 @@ interface Signals {
 }
 const model = (await load("../dist/board/model.js")) as {
   derive: (status: string, labels: string[], key: string, gh: unknown, t3: unknown, sig: Signals) => Derived;
-  toCard: (braid: unknown, gh: unknown, t3: unknown, sig: Signals) => { lane: string; running: boolean; need: { text: string; who: string | null; more: number } | null; reason: string | null; strands: { lane: string }[] };
+  toCard: (braid: unknown, gh: unknown, t3: unknown, sig: Signals) => { lane: string; running: boolean; activity: string | null; need: { text: string; who: string | null; more: number } | null; reason: string | null; strands: { lane: string }[] };
 };
 const signals = (await load("../dist/board/signals.js")) as {
   brokeClock: (initial: Record<string, string>, now: Date) => { alarm: Signals["alarm"]; seen: () => Record<string, string>; changed: () => boolean };
@@ -163,4 +163,21 @@ test("a braid's final PR: every strand Done, the braid's own PR open", () => {
   // Merged: Done again.
   const merged = { ...gh2, prs: new Map([...gh2.prs, ["0008", { number: 16, url: "u", state: "merged", checks: "passing" }]]) };
   assert.equal(model.toCard(braidKey("Done"), merged, coordinator, sig()).lane, "Done");
+});
+
+test("wrap-up: the braid's card shows its final PR's checks and counts its reviewers, never the coordinator", () => {
+  const braid = demo.demoBraids().find((b) => b.number === "0008");
+  const inProgress = { ...(braid as object), brief: { ...(braid as unknown as { brief: object }).brief, status: "In Progress" } };
+  const prs = (checks: string) => ({ status: { state: "ok" }, prs: new Map([["0008/A", { number: 15, url: "u", state: "merged", checks: "passing" }], ["0008", { number: 16, url: "u", state: "open", checks, failed: ["verify"] }]]) });
+  const coordinator = { status: { state: "ok" }, threads: new Map([["0008", [thread("worker", 0)]]]) };
+  const reviewer = { status: { state: "ok" }, threads: new Map([["0008", [thread("reviewer", 0)]]]) };
+  const pending = model.toCard(inProgress, prs("pending"), coordinator, sig());
+  assert.deepEqual([pending.lane, pending.activity, pending.running], ["In Progress", "checks", false], "checks spinner while they run");
+  const reviewing = model.toCard(inProgress, prs("pending"), reviewer, sig());
+  assert.deepEqual([reviewing.activity, reviewing.running], ["review", true], "a reviewer is its agent");
+  // Failing checks: the coordinator doesn't hold the alarm back, a reviewer does.
+  const heldBack = model.toCard(inProgress, prs("failing"), reviewer, sig([], { "0008 checks failed": 30 }));
+  assert.equal(heldBack.lane, "In Progress", "a reviewer running holds back checks failed");
+  const failed = model.toCard(inProgress, prs("failing"), coordinator, sig([], { "0008 checks failed": 30 }));
+  assert.equal(failed.lane, "Waiting");
 });

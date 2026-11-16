@@ -119,8 +119,9 @@ export async function startCommand(root: string, args: readonly string[], src: S
 /** `braid start <id> --review`: the reviewer's detached checkout of the open PR's head, in `<number>-<letter>-review`. Starts no agent; the item's worker and branch are left alone. */
 function startReview(root: string, w: World, number: string, letter: string | null, env: NodeJS.ProcessEnv): string {
   const id = letter === null ? number : `${number}/${letter}`;
-  if (letter === null && w.braid.strands.length > 0) {
-    throw new UsageError(`${number} has strands: review one of them (braid start ${number}/<letter> --review)`);
+  // A braid with strands has its own PR only at the end: the final PR, which reads open once every strand is merged.
+  if (letter === null && w.braid.strands.length > 0 && w.card.pr?.state !== "open") {
+    throw new UsageError(`${number} has strands and no open final PR: review a strand (braid start ${number}/<letter> --review)`);
   }
   const card = letter === null ? w.card : w.card.strands.find((s) => s.id === id);
   if (card === undefined) {

@@ -253,9 +253,11 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const pr = gh.prs.get(braid.number) ?? null;
   const req = sig.requests.get(braid.number);
   const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
-  let own: { lane: Lane; reason: Reason | null; need: Need | null } | null = null;
+  let own: { lane: Lane; reason: Reason | null; need: Need | null; agents?: readonly T3Thread[]; activity?: Activity | null } | null = null;
   if (finalPr) {
-    own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, { status: t3.status, threads: new Map() }, sig);
+    // The braid's reviewers (`<n>-review`) are its agents in wrap-up; the coordinator never counts.
+    const reviewers = (t3.threads.get(braid.number) ?? []).filter((t) => t.role === "reviewer");
+    own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, { status: t3.status, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []) }, sig);
   } else if (req !== undefined && pr?.state !== "merged") {
     own = requestLane(req, sig.now);
   }
@@ -275,8 +277,8 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     reason: top !== undefined && top.lane === "Waiting" ? top.reason : null,
     need: top === undefined ? null : { ...top.need, who: top.who, more: candidates.length - 1 },
     ask: null,
-    running: strands.some((s) => s.running),
-    activity: ACTIVITY.find((a) => strands.some((s) => s.activity === a)) ?? null,
+    running: strands.some((s) => s.running) || (own?.agents?.length ?? 0) > 0,
+    activity: ACTIVITY.find((a) => strands.some((s) => s.activity === a) || own?.activity === a) ?? null,
     done: strands.filter((s) => s.lane === "Done").length,
     total: strands.length,
     strands,

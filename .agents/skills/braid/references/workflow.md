@@ -88,11 +88,11 @@ item's recap embeds final screenshots.
 
 | What happened | What to do |
 | --- | --- |
-| A worker proposes growth beyond the mandate (goal or acceptance change, new tier L work, more than two strands or one prerequisite) | Tell the worker to stop at a clean point and note where it is. Ask the user. Record the answer in the braid's log. |
+| A worker proposes growth beyond the mandate (goal or acceptance change, new tier L work, more than two strands or one prerequisite) | Tell the worker to stop at a clean point and note where it is. `braid ask` the user. Record the answer in the braid's log. |
 | A brief is edited on two branches | Only the owning branch edits a brief. Merge the other branch in, keep both sides' sections, the more advanced status and the union of dependencies; log files never conflict. Run `braid check`. |
-| A worker ends without a report | If the PR is merged, the item is done. Else read its `report.md`, log and the PR; retry once with the same model and settings; then ask the user, naming the error. |
-| Branch protection refuses a merge | Never `--admin` or another bypass. In auto mode it is a stop: recap and wait for the user. |
+| A worker ends without a report | If the PR is merged, the item is done. Else read its `report.md`, log and the PR; retry once with the same model and settings; then `braid ask`, naming the error. |
+| Branch protection refuses a merge | Never `--admin` or another bypass. In auto mode it is a stop: `braid ask` and wait for the user. |
 | The braid branch's CI is red on a merge commit | Add a tier S fix strand and run it before the next item. A second red is a stop (`quality`). |
-| A PR's head moved after its recap or review | Don't merge. Show the user what changed and ask; in auto mode get the new head reviewed. |
+| A PR's head moved after its recap or review | Don't merge. Show the user what changed and `braid ask`; in auto mode get the new head reviewed. |
 | `braid edit --dep` says an id doesn't exist | Lookups read only the current checkout. Create the prerequisite on the branch where the dependency must resolve, or merge the branch that has it. |
 | A worktree folder can't be deleted | On Windows the worker's agent process holds it for a while after the report. `braid clean --yes` keeps it ("still in use"); run it again once the worker's session has ended. |
