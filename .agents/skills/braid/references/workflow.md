@@ -42,7 +42,7 @@ The user looks at the work with `braid board` (read-only) from their own checkou
 
 ## Starting the next item
 
-Goal: `braid next <number>` names the next ready strand or says why none is. One whose PR was closed unmerged follows "Resuming" in the skill. `braid start <id>` then makes its branch and worktree. Story: there is no next item.
+Goal: `braid next <number>` names the next ready strand or says why none is. One whose PR was closed unmerged follows [resuming](resuming.md). `braid start <id>` then makes its branch and worktree. Story: there is no next item.
 
 ## Tiers
 

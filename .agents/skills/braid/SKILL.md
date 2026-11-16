@@ -7,6 +7,8 @@ description: Plan a goal or a single story as braids in braids/, then deliver it
 
 Plan the user's goal or story as braids and strands, then deliver them through workers, one at a time; don't write product code.
 
+**Resuming.** If you are asked to run or continue a braid that already exists and has started, and you are in a new session or your context was summarized, read [resuming](references/resuming.md) before you do anything else. Nothing detects this for you: when unsure whether a braid has started, check `braid status <number>`.
+
 ## Project facts
 
 Read `BRAID.md` at the repository root first (`gate`, `main`, `ci`, `run`, `models`), and follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
@@ -19,7 +21,7 @@ Read these too; this skill names their rules without repeating them:
 - [The brief template](assets/brief.md): fields and the exact commands.
 - [Stop cases](references/stop-cases.md): when braid waits for the user.
 
-Stop and tell the user what to run if `braid --version` fails (install it with the braid skills: the braid repository's README, "Braid skills in other projects"), or if the project has `backlog/` and no `braids/` (`braid import-backlog --dry-run`, then without `--dry-run`, and commit). If `BRAID.md` is missing, offer [the template](assets/braid-md.md); it is committed before workers launch, with `braids/**/temp/` in `.gitignore`.
+If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRAID.md` is missing, follow [setup problems](references/setup.md) before anything else.
 
 ## Ground rules
 
@@ -161,17 +163,3 @@ The recap: edit the draft `braid handover` prints (from `report.md`, the PR's he
 **Screenshots:** for `ui` items: the final screens, embedded as images from the worker's artifacts folder.
 **Next:** the next item, or what you are waiting for.
 ```
-
-## Resuming
-
-Read `BRAID.md`, then rebuild the state:
-
-- Run `braid status <number>` and `braid next <number>`, and `braid view <number>` on the braid branch for the plan and the braid's log. `git branch` shows local `plan/` and `braid/` branches not yet pushed.
-- A running item: read its branch's copy (`git show <branch>:<path of its brief.md>`, and its logs) and its thread before relaunching anything; a checkpoint entry says where it stopped.
-- A `braid status` line ending in `run braid done <id>`: the item was merged but not stamped; run that.
-- A closed, unmerged PR of a story whose braid now has strands: it grew; continue as phases.
-- A strand whose folder is gone was dropped.
-- Otherwise read the item's log on its branch, then relaunch or `braid ask`.
-- An `auto` label on the braid: continue in auto mode.
-
-Continue with the next unfinished step. Beyond the log, put notes on the braid only for what a fresh session couldn't work out from these.
