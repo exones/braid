@@ -3,7 +3,7 @@
 ## What changed
 
 - **Each rule is stated once.** What holds for every role (items, writers, Done, branches, tiers, who merges) is in `workflow.md`; the coordinator skill keeps its steps and names those rules by link. A role's skill still carries the short line for what that role itself does, because a worker or reviewer reads only its own skill.
-- **Auto mode, resuming and setup problems are reference files** of the `braid` skill. `SKILL.md` says when to read each: the user asks for auto mode; a braid that already started is continued in a new session or after the context was summarized (stated in the skill's opening lines, with "nothing detects this for you"); a tool or file is missing.
+- **Auto mode, resuming and setup problems are reference files** of the `braid` skill. `SKILL.md` says when to read each: the user asks for auto mode; the coordinator doesn't have the braid's state in its own conversation (the user's definition, stated in the skill's opening lines with its three cases and what is not a resume); a tool or file is missing.
 - **The dense paragraphs are steps.** Waiting and wakes, review, hand over, "after the merge" and "Finish" are numbered steps or lists with one rule per line.
 - **Context first** is a new rule in "Talking to the user", and the worker's and reviewer's report lines for the user follow it.
 - **One `stop-cases.md`**, in `braid/references/`. The worker and reviewer skills link to it. The docs gate now lets the braid skills (`braid`, `braid-*`) link to each other and no longer compares copies.
@@ -27,10 +27,10 @@
 
 | File | Before | After |
 | --- | --- | --- |
-| `braid/SKILL.md` | 3,575 words, 142 lines | 2,882 words, 165 lines |
+| `braid/SKILL.md` | 3,575 words, 142 lines | 2,926 words, 165 lines |
 | `braid/references/workflow.md` | 1,461 / 98 | 1,444 / 81 |
 | `braid/references/auto-mode.md` | new | 437 / 41 |
-| `braid/references/resuming.md` | new | 222 / 15 |
+| `braid/references/resuming.md` | new | 285 / 21 |
 | `braid/references/setup.md` | new | 94 / 7 |
 | `braid/references/stop-cases.md` | 401 / 21 | 407 / 21 |
 | `braid/assets/brief.md` | 781 / 105 | 694 / 98 |
@@ -39,15 +39,15 @@
 | `braid-reviewer/SKILL.md` | 422 / 41 | 447 / 41 |
 | `braid-worker/references/stop-cases.md` | 401 / 21 | removed |
 | `braid-reviewer/references/stop-cases.md` | 401 / 21 | removed |
-| **All skill files** | **9,263 words, 553 lines** | **8,482 words, 574 lines** |
+| **All skill files** | **9,263 words, 553 lines** | **8,589 words, 580 lines** |
 
 Counted with `wc`. Outside `braids/` the PR changes 16 files, 279 lines added and 260 removed.
 
 ## Deviations
 
-- **`braid/SKILL.md` is 2,882 words, 82 over the 2,800 ceiling.** My estimate in the analysis (2,750) was too low: with every rule kept in the skill the rewrite came to 3,040, because lists read better but are not shorter. The user then chose to move "Resuming" and the setup problems out, said about 3,000 would also have been fine, and asked not to squeeze further for the count. The acceptance box is ticked on that statement, and its text in the brief says so.
-- **Lines went up by 21** (the brief expected net fewer): the words went down by 781, but paragraphs became lists.
-- **The totals are higher than the analysis said** (8,482 words against an estimated 7,700): `workflow.md` took in the rules that left `SKILL.md` and stayed near its old size.
+- **`braid/SKILL.md` is 2,926 words, 126 over the 2,800 ceiling.** My estimate in the analysis (2,750) was too low: with every rule kept in the skill the rewrite came to 3,040, because lists read better but are not shorter. The user then chose to move "Resuming" and the setup problems out, said about 3,000 would also have been fine, and asked not to squeeze further for the count. The acceptance box is ticked on that statement, and its text in the brief says so.
+- **Lines went up by 27** (the brief expected net fewer): the words went down by 674, but paragraphs became lists.
+- **The totals are higher than the analysis said** (8,589 words against an estimated 7,700): `workflow.md` took in the rules that left `SKILL.md` and stayed near its old size.
 - `rules.md` and `analysis.md` are not skill files and are not counted.
 
 ## Validation

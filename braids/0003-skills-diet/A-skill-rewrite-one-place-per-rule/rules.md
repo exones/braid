@@ -204,7 +204,7 @@ One principle decides where a duplicate survives. What is true for every role (i
 **A2. Resuming** → `references/resuming.md` (user's choice, 2026-11-16)
 
 - Old: S "Resuming", one paragraph of 164 words.
-- Now: the same rules as a list in `resuming.md`. S says, in its opening lines: "**Resuming.** If you are asked to run or continue a braid that already exists and has started, and you are in a new session or your context was summarized, read [resuming] before you do anything else. Nothing detects this for you: when unsure whether a braid has started, check `braid status <number>`."
+- Now: the same rules as a list in `resuming.md`. S says, in its opening lines: "**Resuming.** When you don't have this braid's state in your own conversation, read [resuming] before acting. That is the case when you are a new agent or thread given a braid someone else ran (the old one crashed, was closed, or the work moved), when your conversation was summarized and lost the working details, or when your session starts on a braid you didn't plan. Nothing detects this for you. The user's "continue" or "merge" in a conversation that still holds the work is not a resume, and neither is a failed worker ("Run an item")." The trigger is the user's definition (2026-11-16); the old section named none.
 
 **A3. Setup problems** → `references/setup.md` (user's choice, 2026-11-16)
 

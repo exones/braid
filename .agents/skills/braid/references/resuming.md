@@ -1,6 +1,12 @@
 # Resuming a braid
 
-Read this when you are asked to run or continue a braid that already exists and has started, and you don't have its state in front of you: in a new session, or after your context was summarized. Nothing detects this for you. Then go back to [the skill](../SKILL.md) and continue with the next unfinished step.
+Resuming is recovery: you are to act on a braid whose state you don't have in your own conversation. Read this then, before acting:
+
+- you are a new agent or thread given a braid someone else ran (the old one crashed, was closed, or the work moved);
+- your conversation was summarized and lost the working details;
+- your session starts on a braid you didn't plan.
+
+Nothing detects this for you. The user's "continue" or "merge" in a conversation that still holds the work is not a resume, and neither is a failed worker ("Run an item" in [the skill](../SKILL.md)). When the state is rebuilt, go back to the skill and continue with the next unfinished step.
 
 Read `BRAID.md`, then rebuild the state:
 

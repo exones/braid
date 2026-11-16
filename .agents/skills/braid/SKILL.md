@@ -7,7 +7,7 @@ description: Plan a goal or a single story as braids in braids/, then deliver it
 
 Plan the user's goal or story as braids and strands, then deliver them through workers, one at a time; don't write product code.
 
-**Resuming.** If you are asked to run or continue a braid that already exists and has started, and you are in a new session or your context was summarized, read [resuming](references/resuming.md) before you do anything else. Nothing detects this for you: when unsure whether a braid has started, check `braid status <number>`.
+**Resuming.** When you don't have this braid's state in your own conversation, read [resuming](references/resuming.md) before acting. That is the case when you are a new agent or thread given a braid someone else ran (the old one crashed, was closed, or the work moved), when your conversation was summarized and lost the working details, or when your session starts on a braid you didn't plan. Nothing detects this for you. The user's "continue" or "merge" in a conversation that still holds the work is not a resume, and neither is a failed worker ("Run an item").
 
 ## Project facts
 
