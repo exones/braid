@@ -49,17 +49,17 @@ Phase 2, the rewrite (the option chosen):
 
 ## Acceptance
 
-- [ ] `analysis.md` written and an option chosen by the user
-- [ ] `braid/SKILL.md` at most 2,800 words; auto mode in `references/auto-mode.md`
+- [x] `analysis.md` written and an option chosen by the user
+- [x] `braid/SKILL.md` at most 2,800 words; auto mode in `references/auto-mode.md` (2,882 words: the user said on 2026-11-16 that about 3,000 is fine and not to squeeze further for the count)
 - [ ] Each rule stated once; `rules.md` lists every removed or rewritten rule, and the independent review confirms none is lost
-- [ ] Every place where the skills ask the user for input applies the context-first rule
-- [ ] `stop-cases.md` exists once and the installed skills still resolve it
-- [ ] Word and line counts of every changed skill file, before and after, in the report
+- [x] Every place where the skills ask the user for input applies the context-first rule
+- [x] `stop-cases.md` exists once and the installed skills still resolve it
+- [x] Word and line counts of every changed skill file, before and after, in the report
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
