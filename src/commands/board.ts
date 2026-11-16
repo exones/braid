@@ -7,9 +7,10 @@ import { fileURLToPath } from "node:url";
 import { loadLiveBraids, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
-import { demoBraids, demoGithub, demoT3, demoTree } from "../board/demo.js";
+import { demoBraids, demoGithub, demoSignals, demoT3, demoTree } from "../board/demo.js";
 import { readGithub, runGh, type Github, type GhRunner } from "../board/github.js";
 import { toBoard, toDetail } from "../board/model.js";
+import { readSignals, type ReadSignals } from "../board/signals.js";
 import { readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { normaliseId, UsageError } from "./braids.js";
 
@@ -41,7 +42,8 @@ export interface Sources {
   readonly repo: string;
   braids(): Braid[];
   github(fresh: boolean): Github;
-  t3(github: Github, fresh: boolean): Promise<T3>;
+  t3(fresh: boolean): Promise<T3>;
+  signals(github: Github): ReadSignals;
   tree(item: Item): Tree;
   /** A folder whose changes refresh the page; null for none. */
   readonly watch: string | null;
@@ -52,7 +54,8 @@ export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = r
     repo: basename(root),
     braids: () => loadLiveBraids(root),
     github: (fresh) => readGithub(root, gh, fresh ? 0 : undefined),
-    t3: (github, fresh) => readT3(root, github, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
+    t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
+    signals: (github) => readSignals(root, github),
     tree: (item) => treeOf(root, item),
     watch: join(root, "braids"),
   };
@@ -65,6 +68,7 @@ export function demoSources(t3Down = false): Sources {
     braids: demoBraids,
     github: () => demoGithub(),
     t3: () => Promise.resolve(demoT3(t3Down)),
+    signals: () => demoSignals(),
     tree: () => demoTree(),
     watch: null,
   };
@@ -75,9 +79,12 @@ async function api(src: Sources, url: URL): Promise<Reply> {
     const braids = src.braids();
     const fresh = url.searchParams.get("fresh") === "1";
     const github = src.github(fresh);
-    const t3 = await src.t3(github, fresh);
+    const t3 = await src.t3(fresh);
+    const sig = src.signals(github);
     if (url.pathname === "/api/board") {
-      return json(200, toBoard(src.repo, braids, github, t3));
+      const board = toBoard(src.repo, braids, github, t3, sig);
+      sig.commit();
+      return json(200, board);
     }
     if (url.pathname !== "/api/item") {
       return json(404, { error: "no such endpoint" });
@@ -93,7 +100,9 @@ async function api(src: Sources, url: URL): Promise<Reply> {
     if (braid === undefined || item === undefined) {
       return json(404, { error: `no item ${id}` });
     }
-    return json(200, toDetail(src.tree(item), braid, item, github, t3));
+    const detail = toDetail(src.tree(item), braid, item, github, t3, sig);
+    sig.commit();
+    return json(200, detail);
   } catch (error) {
     if (error instanceof UsageError) {
       return json(400, { error: error.message });

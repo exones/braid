@@ -1,34 +1,26 @@
 ---
 id: '0015'
 title: "Needs You when the coordinator waits"
-status: Outline
-labels: ["kind:spike", "tier:M"]
-dependencies: ['0008']
+status: Done
+labels: ["kind:story", "tier:M"]
+dependencies: []
 delivery: epic
 ---
 
 ## Goal
 
-The board shows a braid in Needs You when the coordinator has stopped and is waiting for the user's answer (a stop case, a plan question, a merge request), preferably from the threads' own state rather than a label someone must remember to set (user, 2026-11-14).
+The board tells the coordinator's thread from a worker's, and shows a braid in Needs You when the coordinator has stopped to wait for the user (a stop case, a plan question, a merge request), preferably from T3's own thread state rather than a label someone must remember to set (user, 2026-11-14 and 2026-11-15).
 
 ## Working at the end
 
-When the coordinator waits for the user, its braid sits in Needs You with the reason; when the user answers, it leaves.
+- While the coordinator waits for the user, its braid sits in Needs You with the reason; when the user answers, it leaves.
+- The coordinator's own running thread never makes its braid read as Working (found finishing 0014: the coordinator's checkout is on the braid branch, so the board took its thread for a worker; `braid done` already skips the caller since 0014/F).
 
-## Possibilities to weigh
+## Strands
 
-- **The coordinator's pending question in T3:** when it asks with the host's question tool, `t3 thread show` reports `pendingRequestCount > 0`, as for workers today. The coordinator's thread joins its braid by its worktree (on the braid branch). Gaps: questions asked in plain chat don't count; a coordinator on `plan/` or `main` doesn't join a braid.
-- **A T3 "waiting for the user" state:** if T3 marks a thread whose last turn ended by asking the user (or adds such a field), read it. Needs T3 support; check what `t3 thread show` offers by then.
-- **A `stop:<key>` label** the coordinator sets when it stops and removes when answered: works everywhere, but depends on the coordinator remembering both steps.
-- **The PR side:** a recap that asks for the user's merge already shows as To Review; maybe only stops other than merges need this at all.
-
-## Also in scope
-
-- The coordinator's own running thread is read as a worker (user, 2026-11-15, found finishing 0014): its checkout is on the braid branch, so the board puts the braid in Working while the coordinator only waits, as with 0014 and PR #90. `braid done` skips the caller's thread since 0014/F; the board needs its own way to tell the coordinator from a worker.
-
-## Open questions
-
-- Which of these, alone or combined; whether the skills should require the question tool for stops.
-- Check T3's thread fields at the time (`t3 thread show --json`).
-
-Plan it fully when its turn comes, asking the user if needed.
+- A. Spike: how the board sees the coordinator (done). Its evidence stands; the user chose another design afterwards, in `states.md`: explicit requests plus delayed "broke" alarms.
+- B. Mockups: five lanes and what is needed (S, ui).
+- C. Requests: `braid handover` and `braid ask`, stored under `.braid/` (M).
+- D. Board: lanes from requests and broke alarms; `braid start --review`; the coordinator is never an agent (M, ui).
+- E. Skills: ask before every stop (L, process).
+- F. Fixes from the reviews of D, E and the final PR (S).

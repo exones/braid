@@ -11,7 +11,7 @@ Review someone else's PR with fresh eyes, report once, and stop.
 
 1. The first message gives the braid or strand id, the PR, the head commit, the focus, the coordinator's thread and, for a re-check after fixes, "commits since `<sha>`".
 2. Read `BRAID.md` (`gate`, `ci`), `AGENTS.md` or `CLAUDE.md`, the brief and, for a strand, its braid (`braid view <id>` in your worktree), and the diff (`gh pr diff <pr>`; for a re-check also `git diff <sha> <head commit>`).
-3. Your worktree is detached at the head commit; confirm with `git rev-parse HEAD`. If `gh pr view <pr> --json headRefOid` shows the PR has moved on, review the given head commit and say so in the report.
+3. Your worktree, from `braid start <id> --review`, is detached at the head commit; confirm with `git rev-parse HEAD`. If `gh pr view <pr> --json headRefOid` shows the PR has moved on, review the given head commit and say so in the report.
 
 ## Check
 

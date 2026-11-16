@@ -7,6 +7,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { appendLog, now, threadShort } from "../braids/logs.js";
+import { closeRequest } from "../braids/requests.js";
 import { loadBraids } from "../braids/store.js";
 import { runGh, runsOf, type GhRunner } from "../board/github.js";
 import { UsageError } from "./braids.js";
@@ -122,7 +123,7 @@ function target(w: World, letter: string | null): Target {
 }
 
 /** The checks every open PR must pass before braid done merges it or stamps it. */
-function ready(root: string, w: World, t: Target, pr: PrView, head: string, caller: string): void {
+function ready(root: string, w: World, t: Target, pr: PrView, head: string): void {
   const base = t.letter === null ? mainBranch(root) : t.braidBranch;
   const fail = (why: string) => {
     throw new UsageError(`${t.id} not done: ${why}; nothing changed`);
@@ -143,8 +144,8 @@ function ready(root: string, w: World, t: Target, pr: PrView, head: string, call
   if (w.t3.status.state !== "ok") {
     fail(`T3 could not be read (${w.t3.status.reason}), so a running worker can't be ruled out`);
   }
-  // The caller's own thread (--thread) is skipped: a coordinator on the braid branch matches its braid.
-  const running = (w.t3.threads.get(t.key) ?? []).find((th) => th.state === "running" && threadShort(th.id) !== caller);
+  // Only agents braid started count; the coordinator's own thread is no agent of any item.
+  const running = (w.t3.threads.get(t.key) ?? [])[0];
   if (running !== undefined) {
     fail(`a worker thread for ${t.key} is still running (${running.id}${running.title === undefined ? "" : `, "${running.title}"`})`);
   }
@@ -250,7 +251,18 @@ async function waitGreen(root: string, run: GhRunner, t: Target, pr: number, hea
   }
 }
 
+/** Marks an item Done; whatever the outcome, an item that is Done has no open request left. */
 export async function doneCommand(root: string, args: readonly string[], opts: DoneOptions = {}): Promise<string> {
+  const out = await doneItem(root, args, opts);
+  const id = /^(\d{1,4})(?:\/([A-Z]))?$/;
+  const m = id.exec(args.find((a) => id.test(a)) ?? "");
+  if (m !== null) {
+    closeRequest(root, `${(m[1] ?? "").padStart(4, "0")}${m[2] === undefined ? "" : `/${m[2]}`}`);
+  }
+  return out;
+}
+
+async function doneItem(root: string, args: readonly string[], opts: DoneOptions): Promise<string> {
   const { positionals, values } = parse("braid done", args, { head: { type: "string" }, merge: { type: "boolean" }, log: { type: "string" }, thread: { type: "string" } });
   const m = positionals.length === 1 ? /^(\d{1,4})(?:\/([A-Z]))?$/.exec(positionals[0] ?? "") : null;
   if (m === null) {
@@ -296,7 +308,7 @@ export async function doneCommand(root: string, args: readonly string[], opts: D
         throw new UsageError(`${t.id} not done: PR #${found.number} is ${pr.state.toLowerCase()} now; run braid done again; nothing changed`);
       }
       onBraidBranch(root, t);
-      ready(root, w, t, pr, head, thread);
+      ready(root, w, t, pr, head);
       gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
       return `merged PR #${pr.number} at ${pr.headRefOid}\n${stampStrand(root, t, number, log, pr.number)}`;
     }
@@ -328,11 +340,11 @@ export async function doneCommand(root: string, args: readonly string[], opts: D
       return `${t.id} is already Done at ${pr.headRefOid}; nothing changed\n`;
     }
     await waitGreen(root, run, t, pr.number, pr.headRefOid, opts);
-    ready(root, w, t, view(run, root, pr.number), head, thread);
+    ready(root, w, t, view(run, root, pr.number), head);
     gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
     return `${t.id} is already Done at ${pr.headRefOid}\nmerged PR #${pr.number} at ${pr.headRefOid}\n`;
   }
-  ready(root, w, t, pr, head, thread);
+  ready(root, w, t, pr, head);
   const commit = stampBranch(root, t, number, log, pr);
   let out = `${t.id} done: Done on ${pr.headRefName} in ${commit}\nhead ${commit}\n`;
   if (merge) {
