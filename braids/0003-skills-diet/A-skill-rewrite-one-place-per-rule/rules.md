@@ -22,7 +22,7 @@ One principle decides where a duplicate survives. What is true for every role (i
 - New, S "Talking to the user": "**Context first.** Start every question or decision for the user with one or two short sentences of context: what it is about and why it comes up now, enough to answer without reading anything above. Name the thing itself (the item's title, the file, the PR), never "option 2" of an earlier message. This holds for a stop, a recap's "Needs the user" and "You", a `braid ask` text and a plan question, and for a worker's or reviewer's question you pass on."
 - New, WK "Work": "**Context first.** Whatever is meant for the user (a proposal, a question, the `Needs the user` and `You` lines) starts with one or two short sentences of context: what it is about and why it comes up now, enough to answer without reading anything else. Name the thing itself, never a list number."
 - New, RV "Check": "The user reads this line without the rest of the review: say what it is about, then what is needed."
-- The templates follow it. `Needs the user` was "`<key>: <one sentence>`" and is now "`<key>: <what it is about, then what is needed>`" in the recap (S), the worker's final report (WK), `report.md` (B), the reviewer's comment (RV) and SC. The worker's `You` line was "the exact steps" and is now "what it is for, then the exact steps".
+- The templates follow it. `Needs the user` was "`<key>: <one sentence>`" and is now "`<key>: <what it is about, then what is needed>`" in the recap (S), the worker's final report (WK), `report.md` (B), the reviewer's comment (RV) and SC. The `You` line was "the exact steps" and is now "what it is for, then the exact steps", in the worker's final report and in the recap.
 - Why: the user had to ask back about almost every input braid asked for.
 
 ## Part 2: contradictions, and which side won
@@ -105,7 +105,7 @@ One principle decides where a duplicate survives. What is true for every role (i
 
 - Old places: S "Plan" step 2 ("Work for one PR is a **story**: a braid without strands...") and step 3 ("the lowest tier that fits, a few testable acceptance criteria, real dependencies only, `order` in run order, an `ask:<key>` label for each stop case the plan already shows"), W "Items are braids" and "Tiers", B "Fields" (the Outline definition, dependencies, order, labels).
 - Now: definitions in W "Items are braids" (the Outline sentence moved there from B: "An `Outline` holds only the goal, what works at the end, strand titles and open questions. It is never started as it is: the coordinator details it into a full brief when its turn comes."); "pick the lowest that fits" in W "Tiers"; dependencies, order and labels in B "Fields".
-- S "Plan" keeps the decision, shorter: "2. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`." and "3. Draft the briefs from the brief template, each with a few testable acceptance criteria."
+- S "Plan" keeps the decision, shorter: "2. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`." and "3. Draft the briefs from the brief template, each with a few testable acceptance criteria. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers")."
 
 **M7. The braid's log entry**
 
@@ -204,7 +204,7 @@ One principle decides where a duplicate survives. What is true for every role (i
 **A2. Resuming** → `references/resuming.md` (user's choice, 2026-11-16)
 
 - Old: S "Resuming", one paragraph of 164 words.
-- Now: the same rules as a list in `resuming.md`. S says, in its opening lines: "**Resuming.** When you don't have this braid's state in your own conversation, read [resuming] before acting. That is the case when you are a new agent or thread given a braid someone else ran (the old one crashed, was closed, or the work moved), when your conversation was summarized and lost the working details, or when your session starts on a braid you didn't plan. Nothing detects this for you. The user's "continue" or "merge" in a conversation that still holds the work is not a resume, and neither is a failed worker ("Run an item")." The trigger is the user's definition (2026-11-16); the old section named none.
+- Now: the same rules as a list in `resuming.md`, which starts from the recovery steps and leaves the trigger to S. S says, in its opening lines: "**Resuming.** When you don't have this braid's state in your own conversation, read [resuming] before acting. That is the case when you are a new agent or thread given a braid someone else ran (the old one crashed, was closed, or the work moved), when your conversation was summarized and lost the working details, or when your session starts on a braid you didn't plan. Nothing detects this for you. The user's "continue" or "merge" in a conversation that still holds the work is not a resume, and neither is a failed worker ("Run an item")." The trigger is the user's definition (2026-11-16); the old section named none.
 
 **A3. Setup problems** → `references/setup.md` (user's choice, 2026-11-16)
 
@@ -288,12 +288,17 @@ One principle decides where a duplicate survives. What is true for every role (i
 - "Who merges" is its own section (C2). "Items are braids" is one fact per bullet. The **Done** bullet lists its two cases on separate lines. The table cells that restated Done are shorter: "created on the new branch before launch; Done on it before the handover".
 - The opening sentence now says what the file holds: "what an item is, who writes where, who sets Done, which branches and PRs each case has, the tiers and who merges".
 
+**W16. Plan only, or start** (S "Plan" step 6; review fix)
+
+- Old: "Once approved, start the first ready strand without waiting, unless the user asked only for a plan: then show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub."
+- New: "If the user asked only for a plan, don't start: show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub. Otherwise start the first ready strand without waiting."
+- Why: the exception comes first, so a coordinator reading in order can't start before it reaches it. My first rewrite put the unconditional "start" first and lost the "unless"; the reviewer caught it.
+
 **W15. Small trims, same meaning** (S unless marked)
 
 - "Plan" step 1: "Ask the user only about things that change scope or acceptance." → "Ask the user only what changes scope or acceptance."
 - "Plan" step 2: "may stay `Outline` until their turn" → "may stay `Outline`" (the workflow says an Outline is detailed when its turn comes).
 - "Plan" step 4: "Check `git diff` first so that only the intended lines changed" → "Check with `git diff` that only the intended lines changed".
-- "Plan" step 6: "Once approved, start the first ready strand without waiting, unless the user asked only for a plan: then show the table..." → "Then start the first ready strand without waiting. If the user asked only for a plan, show the table...".
 - "Project facts": "Follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`)." moved from the end of the paragraph into its first sentence.
 - "Finish": "Their merge marks it done" → "Their merge finishes the goal".
 - "Talking to the user": "Edit the recap draft `braid handover` prints (...)" → "The recap: edit the draft `braid handover` prints (...)".

@@ -37,7 +37,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 1. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or acceptance.
 2. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
-3. Draft the briefs from [the brief template](assets/brief.md), each with a few testable acceptance criteria.
+3. Draft the briefs from [the brief template](assets/brief.md), each with a few testable acceptance criteria. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
 4. Create them and commit locally; push nothing yet.
    - **Goal:** in your worktree on `plan/<slug>` from `main`, `braid new`, then `braid strand new` per strand.
    - **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `braid new`, then `git branch -m braid/<number>-<slug>` (its folder name).
@@ -46,7 +46,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 5. On approval, squash the commits into one `docs(braids): plan <id>` (`git reset --soft <commit the branch was cut from>`, then commit) and push once.
    - **Goal:** create and push the braid branch `braid/<number>-<slug>` from `main`, open the planning PR from `plan/<slug>` into it and tell the user. Its merge records the approval: keep the plan request open until then, or `braid ask` for that merge. Then pull the braid branch and set the braid `In Progress` in its next commit.
    - **Story:** remove the temporary worktree; the worker starts on that branch.
-6. Then start the first ready strand without waiting. If the user asked only for a plan, show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub.
+6. If the user asked only for a plan, don't start: show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub. Otherwise start the first ready strand without waiting.
 
 ## Run an item
 
@@ -159,7 +159,7 @@ The recap: edit the draft `braid handover` prints (from `report.md`, the PR's he
 **Decisions:** choices the brief didn't settle, each with a one-line reason; growth and plan changes under the mandate. "None" if none.
 **Deviations:** only if the work departed from the brief: what and why.
 **Needs the user:** `none`, or per case `<key> (<source>): <what it is about, then what is needed>`; the source is plan, worker, reviewer or facts.
-**You:** only if the user must act: the exact steps, for example "merge PR <link>".
+**You:** only if the user must act: what it is for, then the exact steps, for example "merge PR <link>".
 **Screenshots:** for `ui` items: the final screens, embedded as images from the worker's artifacts folder.
 **Next:** the next item, or what you are waiting for.
 ```

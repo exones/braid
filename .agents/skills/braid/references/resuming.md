@@ -1,14 +1,8 @@
 # Resuming a braid
 
-Resuming is recovery: you are to act on a braid whose state you don't have in your own conversation. Read this then, before acting:
+How to rebuild a braid's state when you don't have it in your own conversation; [the skill](../SKILL.md) says when that is. Afterwards go back to the skill and continue with the next unfinished step.
 
-- you are a new agent or thread given a braid someone else ran (the old one crashed, was closed, or the work moved);
-- your conversation was summarized and lost the working details;
-- your session starts on a braid you didn't plan.
-
-Nothing detects this for you. The user's "continue" or "merge" in a conversation that still holds the work is not a resume, and neither is a failed worker ("Run an item" in [the skill](../SKILL.md)). When the state is rebuilt, go back to the skill and continue with the next unfinished step.
-
-Read `BRAID.md`, then rebuild the state:
+Read `BRAID.md`, then:
 
 - Run `braid status <number>` and `braid next <number>`, and `braid view <number>` on the braid branch for the plan and the braid's log. `git branch` shows local `plan/` and `braid/` branches not yet pushed.
 - A running item: read its branch's copy (`git show <branch>:<path of its brief.md>`, and its logs) and its thread before relaunching anything; a checkpoint entry says where it stopped.
