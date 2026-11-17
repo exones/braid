@@ -1,7 +1,7 @@
 ---
 id: '0009/D'
 title: "Start: a new coordinator thread per braid"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M", "ui", "ask:process"]
 dependencies: ['0009/A', '0009/B']
 order: 40
