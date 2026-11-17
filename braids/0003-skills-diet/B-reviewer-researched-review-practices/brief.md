@@ -1,7 +1,7 @@
 ---
 id: '0003/B'
 title: "Reviewer: researched review practices"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: ['0003/D']
 order: 20
@@ -12,6 +12,10 @@ order: 20
 The `braid-reviewer` skill finds more of what matters, using practices from well-regarded code-review skills and prompts, and stays short (user's PR #50 review).
 
 Expected size: about 30 to 80 lines in 2 files.
+
+## Plan
+
+Second pass, after the user found the first research thin: read vendor review prompts (Anthropic, OpenAI, Cursor, Greptile, GitHub), Google's reviewer guide and studies on what reviews miss and on false positives; record each source in research.md with adopted or not and why; revise the Check bullets in the reviewer skill from that and from the PR review; update report.md.
 
 ## Start here
 
@@ -33,10 +37,10 @@ Expected size: about 30 to 80 lines in 2 files.
 
 ## Acceptance
 
-- [ ] The reviewer skill adds researched practices; the sources are named in the report
-- [ ] Word count before and after in the report
+- [x] The reviewer skill adds researched practices; the sources are named in the report
+- [x] Word count before and after in the report
 
 ## Definition of done
 
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
