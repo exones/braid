@@ -4,7 +4,7 @@ main: main
 ci: [verify (ubuntu-latest), verify (windows-latest)]
 auto: allowed
 shell: pwsh 7.6+
-setup: npm ci, with Node.js 26 on PATH (README "Build and verify")
+setup: npm ci, with Node.js 26 on PATH (docs/development.md)
 test: "npm run build && node --test test/<file>.test.ts; Pester suites: pwsh -NoProfile -File scripts/Test-Pester.ps1"
 run: npm run build, then node dist/cli.js --help (a CLI; no UI)
 models:
