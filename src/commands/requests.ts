@@ -61,14 +61,15 @@ export async function handoverCommand(root: string, args: readonly string[], opt
   if (!pr.headRefOid.startsWith(head.toLowerCase())) {
     fail(`PR #${pr.number}'s head is ${pr.headRefOid.slice(0, 7)}, not ${head}`);
   }
-  const checks = checksProblem(ciChecks(root), pr);
+  const notes: string[] = [];
+  const checks = checksProblem(ciChecks(root), pr, { root, run, notes });
   if (checks !== null) {
     fail(checks.why);
   }
   const at = (opts.now ?? (() => new Date()))();
   openRequest(root, { id, kind: "review", text: `review PR #${pr.number} at ${pr.headRefOid.slice(0, 7)}`, at: at.toISOString(), thread, pr: pr.number, head: pr.headRefOid });
   const recap = await recapCommand(root, [id], { gh: run });
-  return `${id}: review request opened for PR #${pr.number} at ${pr.headRefOid}\n\n${recap}`;
+  return `${notes.map((n) => `${n}\n`).join("")}${id}: review request opened for PR #${pr.number} at ${pr.headRefOid}\n\n${recap}`;
 }
 
 export function askCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {

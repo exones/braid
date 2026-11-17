@@ -87,8 +87,13 @@ export async function startCommand(root: string, args: readonly string[], src: S
     throw new UsageError(`${id} is not ready: ${t.why} (--force starts it anyway)`);
   }
   const own = w.refs.filter((r) => r.number === number && r.letter === letter);
-  if (own.length > 0) {
-    throw new UsageError(`${id} already has the branch ${own[0]?.branch ?? ""}; nothing was created`);
+  // A story the coordinator planned has its branch already; a strand never does.
+  const own1 = tip(own);
+  if (own1 !== undefined && letter !== null) {
+    throw new UsageError(`${id} already has the branch ${own1.branch}; nothing was created`);
+  }
+  if (own1 !== undefined) {
+    return startOnExisting(root, id, own1, join(worktreesDir(env), repoName(root), t.folder));
   }
 
   // The base: a strand starts from its braid's branch tip, a story from main.
@@ -114,6 +119,26 @@ export async function startCommand(root: string, args: readonly string[], src: S
   must(root, ["worktree", "add", "--track", "-b", t.branch, folder, `${REMOTE}/${t.branch}`], `${t.branch} is pushed but the worktree failed`);
   closeRequest(root, id);
   return `branch ${t.branch}\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n`;
+}
+
+/** A planned story: its worktree on the branch that already exists, tracking `origin/` when only the remote has it. */
+function startOnExisting(root: string, id: string, ref: BranchRef, folder: string): string {
+  const name = ref.local ? ref.branch : ref.branch.slice(ref.branch.indexOf("/") + 1);
+  if (existsSync(folder)) {
+    throw new UsageError(`${folder} already exists; nothing was created`);
+  }
+  const checkedOut = git(root, ["worktree", "list", "--porcelain"]).stdout.split(/\r?\n/).includes(`branch refs/heads/${name}`);
+  if (checkedOut) {
+    throw new UsageError(`${id} already has the branch ${name}, checked out in a worktree; nothing was created`);
+  }
+  if (ref.local) {
+    must(root, ["worktree", "add", folder, name], `can't make the worktree on ${name}`);
+  } else {
+    must(root, ["worktree", "add", "--track", "-b", name, folder, ref.branch], `can't make the worktree on ${ref.branch}`);
+  }
+  closeRequest(root, id);
+  const commit = must(folder, ["rev-parse", "HEAD"], "can't read the new worktree");
+  return `branch ${name} (existing)\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n`;
 }
 
 /** `braid start <id> --review`: the reviewer's detached checkout of the open PR's head, in `<number>-<letter>-review`. Starts no agent; the item's worker and branch are left alone. */
