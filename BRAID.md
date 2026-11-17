@@ -8,7 +8,7 @@ setup: npm ci, with Node.js 26 on PATH (docs/development.md)
 test: "npm run build && node --test test/<file>.test.ts; Pester suites: pwsh -NoProfile -File scripts/Test-Pester.ps1"
 run: npm run build, then node dist/cli.js --help (a CLI; no UI)
 models:
-  coordinator: Claude_Everix / claude-opus-5-5 / effort=high
+  coordinator: Claude_Everix / claude-opus-5-5 / effort=medium
   worker:
     story: Claude_Everix / claude-sonnet-5-5 / effort=medium
     task: Claude_Everix / claude-sonnet-5-5 / effort=medium
