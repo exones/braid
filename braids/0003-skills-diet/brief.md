@@ -31,3 +31,9 @@ The braid skills are shorter and clearer: each rule stated in one place, auto mo
 
 - Dropped: `--add-ref` on a parent (braids have no references field; branch and PRs are found by convention and shown on the board). The planning PR's number goes into the plan's log entry instead (user, 2026-11-16).
 - Strand A's worker runs on Fable 5.2, medium effort; only that strand (user, 2026-11-16).
+
+## Completion
+
+- [x] Strands A to E Done on the braid branch
+- [x] `main` merged in; the gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, decisions from the log, anything open
