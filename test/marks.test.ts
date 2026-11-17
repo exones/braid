@@ -144,6 +144,8 @@ test("a braid shows the most urgent of its strands and its own request", () => {
     ["0009", "Working"],
     ["0010", "Working"],
     ["0011", "To Do"],
+    ["0012", "To Do"],
+    ["0013", "To Do"],
   ]);
 });
 

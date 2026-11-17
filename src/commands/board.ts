@@ -8,11 +8,11 @@ import { fileURLToPath } from "node:url";
 import { loadLiveBraids, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
-import { demoBraids, demoGithub, demoSignals, demoT3, demoTree } from "../board/demo.js";
+import { DEMO_START, demoBraids, demoGithub, demoSignals, demoT3, demoTree } from "../board/demo.js";
 import { readGithub, runGh, type Github, type GhRunner } from "../board/github.js";
-import { mergeOf, toBoard, toDetail } from "../board/model.js";
+import { coordinatorWarning, mergeOf, toBoard, toCard, toDetail, type StartContext } from "../board/model.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
-import { readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
+import { mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { normaliseId, UsageError } from "./braids.js";
 
 const TYPES: Readonly<Record<string, string>> = {
@@ -48,6 +48,10 @@ export interface Sources {
   tree(item: Item): Tree;
   /** A folder whose changes refresh the page; null for none. */
   readonly watch: string | null;
+  /** What BRAID.md says about the main branch and the coordinator's model. */
+  start(): StartContext;
+  /** The T3 project folder (the main checkout). */
+  project(): string;
   /** The action registered under `name`, or undefined. `POST /api/action/<name>` runs it. */
   action(name: string): Action | undefined;
 }
@@ -102,6 +106,88 @@ export function mergeAction(src: Sources, root: string, t3: T3Runner): Action {
   };
 }
 
+/** What BRAID.md says about the main branch and the coordinator (`models.coordinator: <provider> / <model> / effort=…`). */
+export function readStartContext(root: string): StartContext {
+  const text = existsSync(join(root, "BRAID.md")) ? readFileSync(join(root, "BRAID.md"), "utf8") : "";
+  const model = /^\s+coordinator:\s*([^\s/]+)\s*\/\s*([^\s/]+)\s*\//m.exec(text);
+  return { main: /^main:\s*([\w./-]+)\s*$/m.exec(text)?.[1] ?? "main", expected: model === null ? null : { provider: model[1] ?? "", model: model[2] ?? "" } };
+}
+
+const jsonOf = (text: string): Record<string, unknown> | null => {
+  try {
+    const v: unknown = JSON.parse(text);
+    return typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+};
+const strOf = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
+const asObj = (v: unknown): Record<string, unknown> | null => (typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
+
+/** The first message of a new coordinator: the brief's own words, then where its worktree stands. */
+export function coordinatorMessage(id: string, start: { base: string; branch: string; planned: boolean }): string {
+  const where = `This worktree is on \`${start.branch}\`, started from \`${start.base}\`: `;
+  return `Use the braid skill and run ${id}.
+
+${
+    start.planned
+      ? `${where}you are resuming a braid you didn't plan: read the braid skill's "Resuming" first. Switch to the braid branch (\`git switch ${start.base.replace(/^origin\//, "")}\`). If that fails because it is checked out elsewhere, keep working on \`${start.branch}\`, merged up to the braid branch, or \`braid ask\`.`
+      : `${where}plan the braid here.`
+  }`;
+}
+
+/**
+ * Start: launches a new coordinator thread for a To Do braid with `t3 thread start`, with no model flags
+ * (T3 uses the project's default), the first message on standard input and a worktree from the braid branch
+ * or, for a braid not planned yet, from the main branch on `plan/<slug>`. The body is `{ id }`. The server
+ * recomputes the card from fresh reads and refuses (400, `Start: <reason>`) when Start is off. After the launch
+ * it reads the thread and warns when its provider or model differ from BRAID.md's coordinator.
+ */
+export function startAction(src: Sources, root: string, t3: T3Runner): Action {
+  return async (body) => {
+    const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>)["id"] : undefined;
+    if (typeof raw !== "string") {
+      throw new UsageError("start needs { id }: the braid to start");
+    }
+    const id = normaliseId(raw);
+    const braid = src.braids().find((b) => b.number === id);
+    if (braid === undefined) {
+      throw new UsageError(`Start: no braid ${id}`);
+    }
+    const github = src.github(true);
+    const ctx = src.start();
+    const card = toCard(braid, github, await src.t3(true), src.signals(github), ctx);
+    if (card.start.reason !== null) {
+      throw new UsageError(`Start: ${card.start.reason}`);
+    }
+    const { base, branch } = card.start;
+    if (!/^[\w./-]+$/.test(base) || !/^[\w./-]+$/.test(branch)) {
+      throw new UsageError(`Start: the branch names ${base} and ${branch} are not plain`);
+    }
+    // The title goes through cmd.exe on Windows: no quote or shell character may reach it.
+    const title = `${src.repo} ${id} coordinator: ${card.title}`.replace(/["%^&|<>!\s]+/g, " ").trim();
+    const args = ["thread", "start", src.project(), "-", "--title", title, "--worktree", base, "--branch", branch, "--json"];
+    const started = await t3(root, args, coordinatorMessage(id, card.start));
+    if (started.error !== undefined || started.status !== 0) {
+      const first = (started.stderr.trim().split("\n")[0] ?? "") || started.error?.message || "t3 failed";
+      throw new UsageError(`Not started: ${first}`);
+    }
+    const out = jsonOf(started.stdout);
+    const thread = strOf(out?.["threadId"]) ?? strOf(out?.["id"]) ?? strOf(asObj(out?.["thread"])?.["threadId"]);
+    let warning: string | null = null;
+    let link: string | null = strOf(out?.["link"]);
+    if (thread !== null) {
+      const shown = jsonOf((await t3(root, ["thread", "show", thread, "--json"])).stdout);
+      const t = asObj(shown?.["thread"]) ?? shown;
+      if (t !== null) {
+        link = strOf(t["link"]) ?? link;
+        warning = coordinatorWarning({ provider: strOf(t["providerInstanceId"]), model: strOf(t["model"]) }, ctx);
+      }
+    }
+    return { ok: true, id, thread, link, base, branch, planned: card.start.planned, warning };
+  };
+}
+
 export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = runT3): Sources {
   const src: Sources = {
     repo: basename(root),
@@ -111,9 +197,11 @@ export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = r
     signals: (github) => readSignals(root, github),
     tree: (item) => treeOf(root, item),
     watch: join(root, "braids"),
+    start: () => readStartContext(root),
+    project: () => mainCheckout(root),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3) };
   return src;
 }
 
@@ -127,6 +215,8 @@ export function demoSources(t3Down = false): Sources {
     signals: () => demoSignals(),
     tree: () => demoTree(),
     watch: null,
+    start: () => DEMO_START,
+    project: () => ".",
     // A demo board accepts every action and fakes the result; nothing is written.
     action: () => () => ({ ok: true, demo: true }),
   };
@@ -140,7 +230,7 @@ async function api(src: Sources, url: URL): Promise<Reply> {
     const t3 = await src.t3(fresh);
     const sig = src.signals(github);
     if (url.pathname === "/api/board") {
-      const board = toBoard(src.repo, braids, github, t3, sig);
+      const board = toBoard(src.repo, braids, github, t3, sig, src.start());
       sig.commit();
       return json(200, board);
     }
@@ -158,7 +248,7 @@ async function api(src: Sources, url: URL): Promise<Reply> {
     if (braid === undefined || item === undefined) {
       return json(404, { error: `no item ${id}` });
     }
-    const detail = toDetail(src.tree(item), braid, item, github, t3, sig);
+    const detail = toDetail(src.tree(item), braid, item, github, t3, sig, src.start());
     sig.commit();
     return json(200, detail);
   } catch (error) {

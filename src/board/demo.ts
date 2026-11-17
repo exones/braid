@@ -4,7 +4,8 @@ import { loadTree, type Braid, type Tree } from "../braids/store.js";
 import type { Request } from "../braids/requests.js";
 import type { Github } from "./github.js";
 import type { ReadSignals } from "./signals.js";
-import type { T3, T3Thread } from "./t3.js";
+import type { StartContext } from "./model.js";
+import type { T3, T3Coordinator, T3Thread } from "./t3.js";
 
 const brief = (id: string, title: string, status: string, extra = ""): string =>
   `---\nid: '${id}'\ntitle: ${title}\nstatus: ${status}\n${extra}---\n\n## Goal\n\n${title}. Sample text from \`braid board --demo\`.\n\n## Acceptance\n\n- It works.\n`;
@@ -43,6 +44,8 @@ const FILES: Readonly<Record<string, string>> = {
   "braids/0010-sample-cache/brief.md": brief("0010", "Sample cache", "In Progress", "labels:\n  - tier:S\n"),
   "braids/0010-sample-cache/A-layer/brief.md": brief("0010/A", "Cache layer", "In Progress"),
   "braids/0011-sample-notices/brief.md": brief("0011", "Sample notifications", "To Do", "labels:\n  - tier:S\n"),
+  "braids/0012-sample-import-csv/brief.md": brief("0012", "Sample CSV import", "To Do", "labels:\n  - tier:M\n"),
+  "braids/0013-sample-audit-trail/brief.md": brief("0013", "Sample audit trail", "To Do", "labels:\n  - tier:M\n"),
 };
 
 /** The sample files as a read-only tree; no disk is touched. */
@@ -103,13 +106,23 @@ export function demoGithub(): Github {
 
 const thread = (id: string, role: T3Thread["role"], pending = 0): T3Thread => ({ id, role, pending, link: `https://t3.example/thread/${id}` });
 
+/** What the demo's BRAID.md says. */
+export const DEMO_START: StartContext = { main: "main", expected: { provider: "Claude_Everix", model: "claude-opus-5-5" } };
+
+/** Coordinators: 0011's runs on the model BRAID.md names, 0013's on another one (the card warns). */
+const demoCoordinators = new Map<string, T3Coordinator>([
+  ["0011", { id: "demo-6", link: "https://t3.example/thread/demo-6", provider: "Claude_Everix", model: "claude-opus-5-5" }],
+  ["0013", { id: "demo-7", link: "https://t3.example/thread/demo-7", provider: "Claude_Everix", model: "claude-sonnet-5-5" }],
+]);
+
 /** Agents: 0002/A, 0009/A and 0009/B run, 0003/A asks a question, 0010/A is being reviewed; 0002/B has failing checks and no agent. */
 export function demoT3(down = false): T3 {
   if (down) {
-    return { status: { state: "unavailable", reason: "T3 is not running" }, threads: new Map() };
+    return { status: { state: "unavailable", reason: "T3 is not running" }, threads: new Map(), coordinators: new Map() };
   }
   return {
     status: { state: "ok" },
+    coordinators: demoCoordinators,
     threads: new Map<string, readonly T3Thread[]>([
       ["0002/A", [thread("demo-1", "worker")]],
       ["0003/A", [thread("demo-2", "worker", 1)]],

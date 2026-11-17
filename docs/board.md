@@ -98,13 +98,13 @@ The page updates every 30 s while it is open, 200 ms after a file under `braids/
 
 ## Actions and the session token
 
-The board can also act, but only through `POST /api/action/<name>`, and only for the page this `braid board` run opened. Actions are registered by name in `src/commands/board.ts` (`Sources.action`); the endpoint itself adds none that changes anything. Today there is one, `merge` (below). A request is refused with 403 unless it carries this run's token in the `x-braid-token` header, its `Host` is `127.0.0.1:<port>` and any `Origin` it sends is `http://127.0.0.1:<port>`. Unknown names give 404, a body that isn't JSON 400, a body over 64 KB 413, and other methods 405 as before.
+The board can also act, but only through `POST /api/action/<name>`, and only for the page this `braid board` run opened. Actions are registered by name in `src/commands/board.ts` (`Sources.action`); the endpoint itself adds none that changes anything. Today there are two, `merge` and `start` (below). A request is refused with 403 unless it carries this run's token in the `x-braid-token` header, its `Host` is `127.0.0.1:<port>` and any `Origin` it sends is `http://127.0.0.1:<port>`. Unknown names give 404, a body that isn't JSON 400, a body over 64 KB 413, and other methods 405 as before.
 
 The token is 24 random bytes, new on every run. The command opens and prints `http://127.0.0.1:<port>/#token=<hex>`: a fragment never goes to a server log or a `Referer`. The page (`web/src/api.ts`) moves it into `sessionStorage`, removes it from the address bar and sends it with `postAction`. It is nowhere else: not in a file, a cookie or a GET URL. A second tab opened without the fragment can't act.
 
 ## Open thread and Merge on request
 
-**Open thread.** A card or strand row whose item has a running agent in T3 (a worker's, else a reviewer's) carries a small button that opens that thread (`link` of `t3 thread list`, `thread` in the board data). Where there is no thread there is no button. A braid with strands has none on its card: its coordinator isn't an agent of any item (above), so the board doesn't know that thread; open the strand's.
+**Open thread.** A card or strand row whose item has a running agent in T3 (a worker's, else a reviewer's) carries a small button that opens that thread (`link` of `t3 thread list`, `thread` in the board data). Where there is no thread there is no button. A braid card carries its running coordinator's thread (see Start) when it has no agent's.
 
 **Merge on request.** The board never merges. A card or strand row in To Review with an open `review` request has a Merge button; it opens a confirmation (PR, head commit, the branch it merges into, each check). On confirm the board posts `merge` with the item and the shown head. The server reads GitHub and the requests again, and refuses with the reason unless the item still has an open review request with a coordinator thread, the PR's head is still the shown one and its checks are green. Then it sends the request's coordinator thread `Merge #<n> at <head>, from the board.` with `t3 thread send`; the coordinator (skill: "Merge on request") merges as for "merge it", and the card leaves To Review when the PR merges. Until then the button is off and says so, per head (kept in `sessionStorage`).
 
@@ -113,6 +113,22 @@ The token is 24 random bytes, new on every run. The command opens and prints `ht
 ![The confirmation](design/board-screenshots/42-merge-confirmation.png)
 
 The button is off, and its tooltip reads `Merge: <reason>`, when the item has no open review request, the request has no coordinator thread, the PR isn't open, or its checks failed (the failing names), are still running or are missing. A refused confirmation shows its reason in the dialog.
+
+## Start
+
+**Start** on a To Do braid card launches a **new coordinator thread** in T3 that runs the braid. After a confirmation (what launches, the model, the base branch) the board posts `start` with the braid. The server recomputes the card from fresh reads, refuses with `Start: <reason>` when it is off, and runs `t3 thread start <main checkout> - --title "<repo> <id> coordinator: <title>" --worktree <base> --branch <name> --json` with the first message on standard input: `Use the braid skill and run <id>.` and a sentence saying where the worktree stands. It passes no model flags, so T3 uses the project's default model; the board can't read a thread's effort. The braid skill's coordinator then launches its workers as before; the board binds no worktree itself.
+
+The base and branch name let the coordinator work on the braid's branches. A braid with a braid branch (its brief was read from `braid/<number>-<slug>`) starts from that branch on `coordinator/<number>-<slug>`: Git allows a branch in one worktree only, and the coordinator switches to the braid branch. A braid not planned yet starts from the main branch (`main` of `BRAID.md`) on `plan/<slug>`, where the coordinator plans it.
+
+After the launch the server reads the thread (`t3 thread show <id> --json`); a coordinator thread of a braid (running, titled `<repo> <number> coordinator: …` in `t3 thread list`) also shows on its card, with its open button. The card warns, in the style of the Needs You notes, when the thread's provider or model differ from `BRAID.md`'s `models.coordinator`; the effort can't be read. The board can't read the project's default model before the launch either, so the confirmation names what `BRAID.md` expects, not what T3 will use.
+
+Start is off, and its tooltip reads `Start: <reason>`, when the braid isn't To Do, a coordinator thread for it is running, or T3 isn't reachable (checked in that order). A refused or failed launch shows its reason in the dialog. Starting a single strand and parallel runs are not part of it (0011).
+
+![To Do braids: Start, a running coordinator, and the model warning](design/board-screenshots/44-start-and-coordinator-warning.png)
+
+![The confirmation](design/board-screenshots/45-start-confirmation.png)
+
+![Started, and Start off with its reason](design/board-screenshots/47-start-disabled.png)
 
 ## Demo
 

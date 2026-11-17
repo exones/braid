@@ -1,7 +1,7 @@
 ---
 id: '0009/D'
 title: "Start: a new coordinator thread per braid"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M", "ui", "ask:process"]
 dependencies: ['0009/A', '0009/B']
 order: 40
@@ -32,12 +32,21 @@ Expected size: about 250 lines in 6 files, with tests.
 
 - Starting single strands from the board. Parallel runs (0011).
 
+## Plan
+
+1. `t3.ts`: the runner takes standard input; `readT3` also reads running threads titled `<repo> <number> coordinator: …` (provider and model come from `t3 thread list`).
+2. `model.ts`: `start` (base, branch, reason) and `coordinator` (link, warning) on each braid card, from `BRAID.md`'s main branch and coordinator model.
+3. `board.ts`: the `start` action (`t3 thread start`, then `show`); `BRAID.md` is read for the context.
+4. Web: Start button with confirmation, `Start: <reason>` tooltip, warning on the card.
+5. Tests with a fake `t3`; `BRAID.md` effort medium; `docs/board.md`, D52; screenshots from the demo board.
+
+
 ## Completion
 
-- [ ] Start launches one coordinator thread with the title, base and first message above (tested with a fake `t3`)
-- [ ] The warning shows when the thread's provider or model differ from `BRAID.md` (tested)
-- [ ] Start is disabled with its reason in the three cases above (tested)
-- [ ] `BRAID.md`'s coordinator effort is `medium`
-- [ ] Final screenshots in the report, light and dark
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Start launches one coordinator thread with the title, base and first message above (tested with a fake `t3`)
+- [x] The warning shows when the thread's provider or model differ from `BRAID.md` (tested)
+- [x] Start is disabled with its reason in the three cases above (tested)
+- [x] `BRAID.md`'s coordinator effort is `medium`
+- [x] Final screenshots in the report, light and dark
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, strandMarks, type Marks } from "../../src/board/marks.ts";
-import { postAction, useBoard, useItem, useTick, type MergeInfo, type Tick, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
+import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
 
 /** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
 interface Route {
@@ -167,31 +167,6 @@ function Badge({ children, tone = "bg-slate-200 text-slate-700" }: { children: R
   return <span className={`rounded-full px-2 py-px text-[11px] ${tone}`}>{children}</span>;
 }
 
-/** A small icon button that is disabled in this version; the tooltip says why. */
-function ActionIcon({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>
-        <span className="inline-flex" tabIndex={0} aria-label={`${label} (not available yet)`}>
-          <button
-            type="button"
-            disabled
-            aria-label={label}
-            className="flex size-6 cursor-not-allowed items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-slate-400"
-          >
-            {children}
-          </button>
-        </span>
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">
-          {label}: not available yet
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
-  );
-}
-
 const StartIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M7 4.5v15l13-7.5z" />
@@ -343,12 +318,105 @@ function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
   );
 }
 
-/** Open thread where the item has a thread; Start on To Do items (not yet), Merge on In Review items. */
-function Actions({ id, lane, thread, merge }: { id: string; lane: Lane; thread: string | null; merge: MergeInfo | null }) {
+/** The warning style of the mockups (`#warn`): a coordinator on another model than BRAID.md names. */
+function Warn({ children }: { children: ReactNode }) {
+  return <div role="status" className="mt-1.5 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-1.5 py-1 text-[12.5px] leading-snug text-amber-900">{children}</div>;
+}
+
+interface Launched {
+  readonly link: string | null;
+  readonly warning: string | null;
+}
+
+/**
+ * Start: opens the confirmation; on confirm the server launches a new coordinator thread for the braid.
+ * Off, with `Start: <reason>` in the tooltip, when T3 isn't reachable, the braid isn't To Do or a coordinator runs.
+ */
+function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; onLaunched?: (l: Launched) => void }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [launched, setLaunched] = useState<Launched | null>(null);
+  const confirm = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const l = await postAction<Launched>("start", { id });
+      setLaunched(l);
+      onLaunched?.(l);
+      setOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const reason = start.reason ?? (launched === null ? null : "a coordinator for this braid was just started");
+  if (reason !== null) {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        {launched !== null && <small className="text-[11px] text-green-700">Coordinator started</small>}
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <span className="inline-flex" tabIndex={0} aria-label={`Start: ${reason}`}>
+              <button type="button" disabled aria-label="Start" className={`${BUTTON} cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400`}>
+                <StartIcon />
+              </button>
+            </span>
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Start: {reason}</Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
+      </span>
+    );
+  }
+  return (
+    <Dialog.Root open={open} onOpenChange={(o) => { setOpen(o); setError(null); }}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <Dialog.Trigger asChild>
+            <button type="button" aria-label="Start" onClick={(e) => e.stopPropagation()} className={`${BUTTON} cursor-pointer border-blue-600 bg-blue-600 text-white hover:bg-blue-700`}>
+              <StartIcon />
+            </button>
+          </Dialog.Trigger>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Start: launch a coordinator</Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-slate-900/40" />
+        <Dialog.Content onClick={(e) => e.stopPropagation()} className="fixed left-1/2 top-1/2 w-[440px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-xl">
+          <Dialog.Title className="text-base font-semibold">Start braid {id}?</Dialog.Title>
+          <Dialog.Description className="mb-3 text-slate-500">A new coordinator thread runs it.</Dialog.Description>
+          <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+            <dt className="text-slate-500">Launches</dt>
+            <dd>a new <b>coordinator thread</b> in T3 that runs the braid and starts its workers</dd>
+            <dt className="text-slate-500">Model</dt>
+            <dd>T3 project default{start.expected !== null && <>; BRAID.md names <code className="text-xs">{start.expected}</code></>}</dd>
+            <dt className="text-slate-500">Base branch</dt>
+            <dd><code className="break-all text-xs">{start.base}</code>{start.planned ? <> (the braid branch)</> : <> (not planned yet: it plans on <code className="text-xs">{start.branch}</code>)</>}</dd>
+          </dl>
+          {error !== null && <p role="alert" className="mt-3 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2.5 py-1.5 text-[13px] text-red-900">{error}</p>}
+          <div className="mt-4 flex justify-end gap-2">
+            <Dialog.Close className="cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 hover:border-blue-600">Cancel</Dialog.Close>
+            <button type="button" disabled={busy} onClick={() => void confirm()} className="flex cursor-pointer items-center gap-1.5 rounded-md border border-blue-600 bg-blue-600 px-3 py-1 font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">
+              <StartIcon /> {busy ? "Starting…" : "Start coordinator"}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+/** Open thread where the item has a thread; Start on a To Do braid; Merge on In Review items. */
+function Actions({ id, lane, thread, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <OpenThread link={thread} />
-      {lane === "To Do" && <ActionIcon label="Start"><StartIcon /></ActionIcon>}
+      {start !== null && <StartButton id={id} start={start} {...(onLaunched === undefined ? {} : { onLaunched })} />}
       {lane === "In Review" && <MergeButton id={id} merge={merge} />}
     </span>
   );
@@ -384,6 +452,7 @@ function PrLink({ pr }: { pr: PullRequest | null }) {
 
 function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
   const [open, setOpen] = useState(false);
+  const [launched, setLaunched] = useState<Launched | null>(null);
   const tier = braid.labels.filter((l) => l.startsWith("tier:"));
   return (
     <div
@@ -445,14 +514,15 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
               </span>
               <PrLink pr={s.pr} />
               <Marks marks={strandMarks(s, details)} />
-              <span onClick={(e) => e.stopPropagation()}><Actions id={s.id} lane={s.lane === "To Do" ? "Done" : s.lane} thread={s.thread} merge={s.merge} /></span>
+              <span onClick={(e) => e.stopPropagation()}><Actions id={s.id} lane={s.lane} thread={s.thread} merge={s.merge} /></span>
               {details && s.need !== null && <NeedLine need={s.need} className="ml-[34px] basis-full" />}
             </div>
           ))}
         </div>
       )}
+      {(braid.coordinator?.warning ?? launched?.warning ?? null) !== null && <Warn>{braid.coordinator?.warning ?? launched?.warning}</Warn>}
       <div className="mt-2 flex min-h-6 justify-end">
-        {braid.total === 0 || braid.merge !== null ? <Actions id={braid.id} lane={braid.lane} thread={braid.thread} merge={braid.merge} /> : <OpenThread link={braid.thread} />}
+        <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.thread ?? braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
       </div>
     </div>
   );
@@ -504,8 +574,9 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <Badge key={l} tone="bg-indigo-100 text-indigo-800">{l}</Badge>
         ))}
         <span className="flex-1" />
-        <Actions id={item.id} lane={item.lane} thread={item.thread} merge={item.merge} />
+        <Actions id={item.id} lane={item.lane} thread={item.thread ?? (item.id.includes("/") ? null : item.braid.coordinator?.link ?? null)} merge={item.merge} start={item.id.includes("/") ? null : item.braid.start} />
       </div>
+      {!item.id.includes("/") && item.braid.coordinator?.warning != null && <Warn>{item.braid.coordinator.warning}</Warn>}
       {item.need !== null && (
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.need)}`}>
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
