@@ -1,7 +1,7 @@
 ---
 id: '0009/E'
 title: "Docs: the board's actions everywhere"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S", "docs"]
 dependencies: []
 order: 50
@@ -30,6 +30,6 @@ Expected size: about 20 lines in 2 to 4 docs files.
 
 ## Completion
 
-- [ ] No current doc calls the board read-only; getting-started names Start, Merge and Open thread
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, anything open
+- [x] No current doc calls the board read-only; getting-started names Start, Merge and Open thread
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, anything open
