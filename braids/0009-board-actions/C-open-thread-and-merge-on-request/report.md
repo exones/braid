@@ -6,6 +6,8 @@
 - Skill "Merge on request" covers the board's message. Docs: `docs/board.md`, new D51, D50 reworded for requests without `Origin`; "read-only" removed from the CLI help, `docs/cli.md`, `README.md`, `docs/getting-started.md`, `docs/braids-format.md` and the page header.
 - Tests (`test/board-merge.test.ts`, `test/board-actions.test.ts`): thread links in demo data; merge info and reasons; the message sent to the request's thread with the confirmed head, with a fake `t3`; refusals for no request, no thread, red or running checks, a moved head and `t3` failing (nothing sent); a body over 64 KB gets 413 and runs no action; no `Origin` passes with token and `Host`.
 
+- Review changes (the user's, 2026-11-17): the skill's "Merge on request" has the board's message in a sentence of its own, with the same meaning; a braid with strands whose lane would be To Do shows Working when its own status is In Progress or a strand is Done (`braidLane` in `src/board/model.ts`, tested in `test/lanes.test.ts`); the confirmation quotes the full message, ", from the board." included.
+
 ## Why
 
 The user's decision of 2026-11-17: the board asks the coordinator that handed the PR over; it doesn't merge (D51).
@@ -27,6 +29,7 @@ The app has no dark theme (only the 0009/A mockups drew one), so these are light
 ## Open
 
 - A braid card with strands has no Open thread: its coordinator isn't an agent of any item, so the board doesn't know that thread (the mockups drew one). Strand rows carry theirs. Showing the coordinator needs T3 threads that aren't item agents to be read; not done here.
+- Decisions (the user's, 2026-11-17): the two review changes above, and the full message in the confirmation.
 - The "asked" state lives in the page (`sessionStorage`), keyed by item and head, not on the server: a second browser shows Merge on again.
 - The confirmation shows the head as a short sha without its commit subject (the mockup had the subject).
 - `t3 thread send` was only run against a fake `t3`; the real command wasn't called.

@@ -121,7 +121,9 @@ When the worker reports green:
 
 ## Merge on request
 
-When the user asks you to merge a named PR, says "merge it" right after a recap that handed one over, or the board sends your thread `Merge #<n> at <head>, from the board.` (the user confirmed it there; the board never merges itself), merge it with `braid accept <id> --head <head commit of your last recap of it> --review <link> --thread <your thread id> --merge` (for a strand add `--log -` with the braid's log entry). If you haven't recapped the PR, or its head has moved since, don't merge: show what changed and `braid ask`; `braid accept` refuses a moved head. Then continue with "After the merge": for a strand all of it; for a story or a final PR only its steps 1 and 2, since that merge finishes the item.
+When the user asks you to merge a named PR, or says "merge it" right after a recap that handed one over, merge it with `braid accept <id> --head <head commit of your last recap of it> --review <link> --thread <your thread id> --merge` (for a strand add `--log -` with the braid's log entry). If you haven't recapped the PR, or its head has moved since, don't merge: show what changed and `braid ask`; `braid accept` refuses a moved head. Then continue with "After the merge": for a strand all of it; for a story or a final PR only its steps 1 and 2, since that merge finishes the item.
+
+The board's message `Merge #<n> at <head>, from the board.` in your thread is the user's confirmed request to merge that PR; the board never merges itself. Treat it as "merge it" for that PR: merge with the head of your last recap as above. If you haven't recapped the PR, or its head isn't the message's, don't merge: `braid ask`.
 
 ## Auto mode
 

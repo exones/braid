@@ -329,7 +329,7 @@ function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
               ))}
             </dd>
           </dl>
-          <p className="mt-3 text-xs text-slate-500">Tells the coordinator that handed over the PR: “Merge #{merge.pr} at {short(merge.head)}”. The board does not merge itself.</p>
+          <p className="mt-3 text-xs text-slate-500">Tells the coordinator that handed over the PR: “Merge #{merge.pr} at {short(merge.head)}, from the board.” The board does not merge itself.</p>
           {error !== null && <p role="alert" className="mt-3 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2.5 py-1.5 text-[13px] text-red-900">{error}</p>}
           <div className="mt-4 flex justify-end gap-2">
             <Dialog.Close className="cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 hover:border-blue-600">Cancel</Dialog.Close>

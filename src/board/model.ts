@@ -280,6 +280,15 @@ export function mergeOf(key: string, gh: Github, sig: Signals): MergeInfo | null
   return { pr: req.pr, head: req.head ?? pr?.head ?? null, target: pr?.base ?? null, branch: pr?.branch ?? null, checks: pr?.checks ?? null, runs: pr?.runs ?? [], reason };
 }
 
+/**
+ * A braid with strands: the lane of its most urgent strand or own request. When that comes out To Do but
+ * the braid has started (stored In Progress, or a strand is Done), it is Working: the work is between strands.
+ */
+export function braidLane(status: Status, strands: readonly { readonly lane: Lane }[], own: { readonly lane: Lane } | null): Lane {
+  const lane = laneOfLanes([...strands.map((s) => s.lane), ...(own === null ? [] : [own.lane])]);
+  return lane === "To Do" && (status === "In Progress" || strands.some((s) => s.lane === "Done")) ? "In Progress" : lane;
+}
+
 const ACTIVITY: readonly Activity[] = ["agent", "review", "checks"];
 
 export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals()): BraidCard {
@@ -328,7 +337,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     id: braid.brief.id,
     title: braid.brief.title,
     status: braid.brief.status,
-    lane: laneOfLanes([...strands.map((s) => s.lane), ...(own === null ? [] : [own.lane])]),
+    lane: braidLane(braid.brief.status, strands, own),
     labels: braid.brief.labels,
     branch: braid.source?.branch ?? null,
     pr,
