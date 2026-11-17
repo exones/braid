@@ -31,7 +31,7 @@ braid ships as agent skills (`braid`, `braid-worker`, `braid-reviewer`) for Clau
 2. **Work.** It starts each strand on its own branch and launches a worker, which implements it, runs the gate and opens a PR with CI green.
 3. **Review.** A reviewer agent checks the PR against the brief; findings go back to the worker.
 4. **Merge.** You get a short recap and merge. For a goal, auto mode can merge strands into the goal's branch for you; the final PR into `main` is always yours.
-5. **Watch.** `braid board` shows where the work needs you.
+5. **Watch.** `braid board` shows where the work needs you, and can Start a braid, ask the coordinator to Merge and open a thread ([the board](docs/board.md)).
 
 <p align="center">
   <img src="docs/images/board.png" alt="The braid attention board: lanes To Do, Working, To Review, Needs You and Done, with sample braids" width="900">
@@ -73,7 +73,7 @@ The full list is in [the CLI reference](docs/cli.md).
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Installing the skills and CLI, `BRAID.md`, setting up a repository, auto mode. |
 | [CLI reference](docs/cli.md) | Every command, with examples and exit codes. |
-| [The attention board](docs/board.md) | What `braid board` shows and how it decides. |
+| [The attention board](docs/board.md) | What `braid board` shows, how it decides, and its actions (Start, Merge, Open thread). |
 | [The braids/ format](docs/braids-format.md) | The files in `braids/`, branches and each command's behaviour. |
 | [Workflow](.agents/skills/braid/references/workflow.md) | Items, tiers, branches, merges and checks. |
 | [Skills](.agents/skills/braid/SKILL.md) | How agents plan ([braid](.agents/skills/braid/SKILL.md)), do ([worker](.agents/skills/braid-worker/SKILL.md)) and review ([reviewer](.agents/skills/braid-reviewer/SKILL.md)) items. |
