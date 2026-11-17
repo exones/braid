@@ -1,7 +1,7 @@
 ---
 id: '0017'
 title: "README front page with the brand design"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 delivery: epic
