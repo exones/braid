@@ -1,7 +1,7 @@
 ---
 id: '0009/A'
 title: "Mockups of the actions"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S", "ui"]
 dependencies: []
 order: 10
