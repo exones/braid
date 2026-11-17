@@ -126,12 +126,13 @@ const asObj = (v: unknown): Record<string, unknown> | null => (typeof v === "obj
 
 /** The first message of a new coordinator: the brief's own words, then where its worktree stands. */
 export function coordinatorMessage(id: string, start: { base: string; branch: string; planned: boolean }): string {
+  const where = `This worktree is on \`${start.branch}\`, started from \`${start.base}\`: `;
   return `Use the braid skill and run ${id}.
 
 ${
     start.planned
-      ? `This worktree is on \`${start.branch}\`, started from \`${start.base}\`: switch to the braid branch (\`${start.base}\`) to work on it.`
-      : `This worktree is on \`${start.branch}\`, started from \`${start.base}\`: plan the braid here.`
+      ? `${where}you are resuming a braid you didn't plan: read the braid skill's "Resuming" first. Switch to the braid branch (\`git switch ${start.base.replace(/^origin\//, "")}\`). If that fails because it is checked out elsewhere, keep working on \`${start.branch}\`, merged up to the braid branch, or \`braid ask\`.`
+      : `${where}plan the braid here.`
   }`;
 }
 

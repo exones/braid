@@ -332,7 +332,7 @@ interface Launched {
  * Start: opens the confirmation; on confirm the server launches a new coordinator thread for the braid.
  * Off, with `Start: <reason>` in the tooltip, when T3 isn't reachable, the braid isn't To Do or a coordinator runs.
  */
-function StartButton({ id, start }: { id: string; start: StartInfo }) {
+function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; onLaunched?: (l: Launched) => void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -341,7 +341,9 @@ function StartButton({ id, start }: { id: string; start: StartInfo }) {
     setBusy(true);
     setError(null);
     try {
-      setLaunched(await postAction<Launched>("start", { id }));
+      const l = await postAction<Launched>("start", { id });
+      setLaunched(l);
+      onLaunched?.(l);
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -410,11 +412,11 @@ function StartButton({ id, start }: { id: string; start: StartInfo }) {
 }
 
 /** Open thread where the item has a thread; Start on a To Do braid; Merge on In Review items. */
-function Actions({ id, lane, thread, merge, start = null }: { id: string; lane: Lane; thread: string | null; merge: MergeInfo | null; start?: StartInfo | null }) {
+function Actions({ id, lane, thread, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <OpenThread link={thread} />
-      {start !== null && <StartButton id={id} start={start} />}
+      {start !== null && <StartButton id={id} start={start} {...(onLaunched === undefined ? {} : { onLaunched })} />}
       {lane === "In Review" && <MergeButton id={id} merge={merge} />}
     </span>
   );
@@ -450,6 +452,7 @@ function PrLink({ pr }: { pr: PullRequest | null }) {
 
 function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
   const [open, setOpen] = useState(false);
+  const [launched, setLaunched] = useState<Launched | null>(null);
   const tier = braid.labels.filter((l) => l.startsWith("tier:"));
   return (
     <div
@@ -517,9 +520,9 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
           ))}
         </div>
       )}
-      {braid.coordinator?.warning != null && <Warn>{braid.coordinator.warning}</Warn>}
+      {(braid.coordinator?.warning ?? launched?.warning ?? null) !== null && <Warn>{braid.coordinator?.warning ?? launched?.warning}</Warn>}
       <div className="mt-2 flex min-h-6 justify-end">
-        <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.thread ?? braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} />
+        <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.thread ?? braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
       </div>
     </div>
   );

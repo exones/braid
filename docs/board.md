@@ -104,7 +104,7 @@ The token is 24 random bytes, new on every run. The command opens and prints `ht
 
 ## Open thread and Merge on request
 
-**Open thread.** A card or strand row whose item has a running agent in T3 (a worker's, else a reviewer's) carries a small button that opens that thread (`link` of `t3 thread list`, `thread` in the board data). Where there is no thread there is no button. A braid with strands has none on its card: its coordinator isn't an agent of any item (above), so the board doesn't know that thread; open the strand's.
+**Open thread.** A card or strand row whose item has a running agent in T3 (a worker's, else a reviewer's) carries a small button that opens that thread (`link` of `t3 thread list`, `thread` in the board data). Where there is no thread there is no button. A braid card carries its running coordinator's thread (see Start) when it has no agent's.
 
 **Merge on request.** The board never merges. A card or strand row in To Review with an open `review` request has a Merge button; it opens a confirmation (PR, head commit, the branch it merges into, each check). On confirm the board posts `merge` with the item and the shown head. The server reads GitHub and the requests again, and refuses with the reason unless the item still has an open review request with a coordinator thread, the PR's head is still the shown one and its checks are green. Then it sends the request's coordinator thread `Merge #<n> at <head>, from the board.` with `t3 thread send`; the coordinator (skill: "Merge on request") merges as for "merge it", and the card leaves To Review when the PR merges. Until then the button is off and says so, per head (kept in `sessionStorage`).
 

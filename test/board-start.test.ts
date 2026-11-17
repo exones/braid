@@ -111,7 +111,7 @@ test("a braid with a braid branch starts from it, on a coordinator branch; one n
   const t3 = fake();
   await board.startAction(src, scratch, t3.run)({ id: "12" });
   assert.deepEqual(t3.calls[0]?.args.slice(6, 10), ["--worktree", "origin/braid/0012-sample-import-csv", "--branch", "coordinator/0012-sample-import-csv"]);
-  assert.match(t3.calls[0]?.input ?? "", /switch to the braid branch/);
+  assert.match(t3.calls[0]?.input ?? "", /resuming a braid you didn.t plan.*git switch braid\/0012-sample-import-csv.*checked out elsewhere/s);
   assert.match(board.coordinatorMessage("0012", { base: "main", branch: "plan/x", planned: false }), /plan the braid here/);
 });
 
