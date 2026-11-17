@@ -1,7 +1,7 @@
 ---
 id: '0009/C'
 title: "Open thread and Merge on request"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M", "ui", "ask:process"]
 dependencies: ['0009/A', '0009/B']
 order: 30
@@ -32,6 +32,13 @@ Expected size: about 250 lines in 7 files, with tests.
 ## Out of scope
 
 - Start (0009/D). The board merging a PR itself. Auto mode.
+
+## Plan
+
+- Model: `thread` (link of the worker's, else reviewer's thread) and `merge` (`MergeInfo`: PR, head, target, checks, reason it's off) on cards, strands and details; the PR gets `base` and `branch`.
+- Server: `mergeAction` registered as `merge`: re-reads GitHub and requests, refuses with the reason, then `t3 thread send`.
+- Page: Open thread link button, Merge button with the confirmation dialog; the asked state is kept in `sessionStorage` per head.
+- Tests with the demo data and a fake `t3`; 413 and no-Origin tests; docs, D51 and the skill.
 
 ## Completion
 

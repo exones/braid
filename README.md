@@ -62,7 +62,7 @@ braid list               # braids and their strands, with status and run order
 braid view 0002          # one braid: fields, report, logs, strands and its brief
 braid new 'Search page'  # a new braid with the next free number
 braid status 0008        # each strand: lane, branch, PR, CI checks, agent thread
-braid board              # the read-only board in your browser
+braid board              # the board in your browser
 ```
 
 The full list is in [the CLI reference](docs/cli.md).

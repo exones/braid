@@ -32,6 +32,20 @@ export interface Need {
   readonly more: number;
 }
 
+/** What Merge on request needs of an item with an open review request: what the confirmation shows, and why it can't be asked for yet. */
+export interface MergeInfo {
+  readonly pr: number;
+  /** The head commit the request handed over (full sha); null when the request has none. */
+  readonly head: string | null;
+  /** The branch the PR merges into; null when GitHub wasn't read. */
+  readonly target: string | null;
+  readonly branch: string | null;
+  readonly checks: PullRequest["checks"] | null;
+  readonly runs: NonNullable<PullRequest["runs"]>;
+  /** Why Merge is off (the tooltip reads `Merge: <reason>`); null when it can be asked for. */
+  readonly reason: string | null;
+}
+
 export interface StrandCard {
   readonly id: string;
   readonly title: string;
@@ -49,6 +63,10 @@ export interface StrandCard {
   /** Whether an agent of this strand runs (a worker or a reviewer). */
   readonly running: boolean;
   readonly activity: Activity | null;
+  /** The T3 link of the agent thread (a worker's, else a reviewer's); null when none runs. */
+  readonly thread: string | null;
+  /** The open review request, when there is one. */
+  readonly merge: MergeInfo | null;
 }
 
 export interface BraidCard {
@@ -70,6 +88,10 @@ export interface BraidCard {
   readonly done: number;
   readonly total: number;
   readonly strands: readonly StrandCard[];
+  /** The T3 link of the thread of a braid without strands; null for a braid with strands. */
+  readonly thread: string | null;
+  /** The open review request of the braid itself (a story, or a goal's final PR). */
+  readonly merge: MergeInfo | null;
 }
 
 export interface BoardData {
@@ -101,6 +123,8 @@ export interface ItemDetail {
   readonly ask: string | null;
   readonly running: boolean;
   readonly activity: Activity | null;
+  readonly thread: string | null;
+  readonly merge: MergeInfo | null;
   readonly brief: string;
   readonly report: string | null;
   readonly logs: readonly { readonly name: string; readonly text: string }[];
@@ -224,6 +248,38 @@ export function laneOfLanes(lanes: readonly Lane[]): Lane {
   return URGENCY.find((lane) => lanes.includes(lane)) ?? "To Do";
 }
 
+/** The thread to open for an item: a worker's, else a reviewer's. */
+export function threadLink(agents: readonly T3Thread[]): string | null {
+  return (agents.find((t) => t.role === "worker") ?? agents[0])?.link ?? null;
+}
+
+/**
+ * The open review request of an item as Merge on request needs it, or null when there is none. The
+ * reason is the first thing that stops the board from asking the coordinator: no coordinator thread on
+ * the request, no PR read, or checks that aren't green.
+ */
+export function mergeOf(key: string, gh: Github, sig: Signals): MergeInfo | null {
+  const req = sig.requests.get(key);
+  if (req === undefined || req.kind !== "review" || req.pr === undefined) {
+    return null;
+  }
+  const pr = [...gh.prs.values()].find((p) => p.number === req.pr);
+  const names = pr?.failed ?? [];
+  const reason =
+    req.thread === null
+      ? "no coordinator thread on the review request"
+      : pr === undefined || pr.state !== "open"
+        ? "the PR isn't open (or GitHub can't be read)"
+        : pr.checks === "failing"
+          ? `Checks failed${names.length > 0 ? `: ${names.join(", ")}` : ""}`
+          : pr.checks === "pending"
+            ? "Checks are still running."
+            : pr.checks === "none"
+              ? "the PR has no checks"
+              : null;
+  return { pr: req.pr, head: req.head ?? pr?.head ?? null, target: pr?.base ?? null, branch: pr?.branch ?? null, checks: pr?.checks ?? null, runs: pr?.runs ?? [], reason };
+}
+
 const ACTIVITY: readonly Activity[] = ["agent", "review", "checks"];
 
 export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals()): BraidCard {
@@ -241,11 +297,13 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
       ask: d.ask,
       running: d.agents.length > 0,
       activity: d.activity,
+      thread: threadLink(d.agents),
+      merge: mergeOf(`${braid.number}/${s.letter}`, gh, sig),
     };
   });
   if (strands.length === 0) {
     const own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands };
+    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: threadLink(own.agents), merge: mergeOf(braid.number, gh, sig) };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -282,6 +340,8 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     done: strands.filter((s) => s.lane === "Done").length,
     total: strands.length,
     strands,
+    thread: threadLink(own?.agents ?? []),
+    merge: own === null || pr?.state === "merged" ? null : mergeOf(braid.number, gh, sig),
   };
 }
 
@@ -309,6 +369,8 @@ export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T
     ask: own?.ask ?? null,
     running: own?.running ?? false,
     activity: own?.activity ?? null,
+    thread: own?.thread ?? null,
+    merge: own?.merge ?? null,
     brief: item.brief.body.trim(),
     report: item.hasReport ? tree.read(`${item.folder}/report.md`) : null,
     logs: item.logs.map((name) => ({ name, text: tree.read(`${item.folder}/${name}`) ?? "" })),

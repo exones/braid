@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Tabs, Tooltip } from "radix-ui";
+import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, strandMarks, type Marks } from "../../src/board/marks.ts";
-import { useBoard, useItem, useTick, type Tick, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
+import { postAction, useBoard, useItem, useTick, type MergeInfo, type Tick, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
 
 /** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
 interface Route {
@@ -206,15 +206,152 @@ const MergeIcon = () => (
   </svg>
 );
 
-/** Start belongs on To Do items, Merge on In Review items; other lanes show nothing. */
-function Actions({ lane }: { lane: Lane }) {
-  if (lane === "To Do") {
-    return <ActionIcon label="Start"><StartIcon /></ActionIcon>;
+const OpenIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </svg>
+);
+
+const BUTTON = "flex size-6 items-center justify-center rounded-md border";
+
+/** Open thread: a small button that opens the item's T3 thread; nothing is drawn when there is no thread. */
+function OpenThread({ link }: { link: string | null }) {
+  if (link === null) {
+    return null;
   }
-  if (lane === "In Review") {
-    return <ActionIcon label="Merge"><MergeIcon /></ActionIcon>;
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <a href={link} target="_blank" rel="noreferrer" aria-label="Open thread in T3" onClick={(e) => e.stopPropagation()} className={`${BUTTON} border-slate-200 bg-white text-slate-600 hover:border-blue-600`}>
+          <OpenIcon />
+        </a>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Open thread in T3</Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
+
+const ASKED_KEY = "braid-merge-asked";
+type Asked = Record<string, { head: string; at: string }>;
+const readAsked = (): Asked => {
+  try {
+    return JSON.parse(sessionStorage.getItem(ASKED_KEY) ?? "{}") as Asked;
+  } catch {
+    return {};
   }
-  return null;
+};
+
+const short = (head: string | null): string => (head ?? "unknown").slice(0, 7);
+const CHECK_MARK = { passing: "text-green-600", failing: "text-red-600", pending: "text-amber-500" } as const;
+
+/**
+ * Merge on request: opens the confirmation; on confirm the server asks the coordinator that handed the PR
+ * over. Off, with its reason in the tooltip, when there is no open review request or coordinator thread,
+ * the checks aren't green, or the coordinator was already asked for this head.
+ */
+function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [asked, setAsked] = useState(readAsked);
+  const sent = merge?.head == null ? undefined : asked[id]?.head === merge.head ? asked[id] : undefined;
+  const reason = merge === null ? "no open review request" : sent !== undefined ? `asked the coordinator at ${sent.at}; waiting for it to merge` : merge.reason;
+  const confirm = async () => {
+    if (merge?.head == null) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await postAction("merge", { id, head: merge.head });
+      const next = { ...readAsked(), [id]: { head: merge.head, at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) } };
+      sessionStorage.setItem(ASKED_KEY, JSON.stringify(next));
+      setAsked(next);
+      setOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (merge === null || reason !== null) {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        {sent !== undefined && <small className="text-[11px] text-violet-700">Asked to merge #{merge?.pr} at {short(sent.head)}</small>}
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <span className="inline-flex" tabIndex={0} aria-label={`Merge: ${reason ?? ""}`}>
+              <button type="button" disabled aria-label="Merge" className={`${BUTTON} cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400`}>
+                <MergeIcon />
+              </button>
+            </span>
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Merge: {reason}</Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
+      </span>
+    );
+  }
+  return (
+    <Dialog.Root open={open} onOpenChange={(o) => { setOpen(o); setError(null); }}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <Dialog.Trigger asChild>
+            <button type="button" aria-label="Merge" onClick={(e) => e.stopPropagation()} className={`${BUTTON} cursor-pointer border-violet-600 bg-violet-600 text-white hover:bg-violet-700`}>
+              <MergeIcon />
+            </button>
+          </Dialog.Trigger>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Merge: ask the coordinator</Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-slate-900/40" />
+        <Dialog.Content onClick={(e) => e.stopPropagation()} className="fixed left-1/2 top-1/2 w-[440px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-xl">
+          <Dialog.Title className="text-base font-semibold">Merge PR #{merge.pr}?</Dialog.Title>
+          <Dialog.Description className="mb-3 text-slate-500">{id}</Dialog.Description>
+          <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+            <dt className="text-slate-500">PR</dt>
+            <dd>#{merge.pr}{merge.branch !== null && <> <code className="break-all text-xs">{merge.branch}</code></>}</dd>
+            <dt className="text-slate-500">Head commit</dt>
+            <dd><code className="text-xs">{short(merge.head)}</code></dd>
+            <dt className="text-slate-500">Merges into</dt>
+            <dd><code className="break-all text-xs">{merge.target ?? "unknown"}</code></dd>
+            <dt className="text-slate-500">Checks</dt>
+            <dd>
+              {merge.runs.length === 0 && (merge.checks ?? "unknown")}
+              {merge.runs.map((c) => (
+                <div key={c.name}><span className={CHECK_MARK[c.result]}>{c.result === "passing" ? "✓" : c.result === "failing" ? "✗" : "…"}</span> {c.name}</div>
+              ))}
+            </dd>
+          </dl>
+          <p className="mt-3 text-xs text-slate-500">Tells the coordinator that handed over the PR: “Merge #{merge.pr} at {short(merge.head)}”. The board does not merge itself.</p>
+          {error !== null && <p role="alert" className="mt-3 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2.5 py-1.5 text-[13px] text-red-900">{error}</p>}
+          <div className="mt-4 flex justify-end gap-2">
+            <Dialog.Close className="cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 hover:border-blue-600">Cancel</Dialog.Close>
+            <button type="button" disabled={busy} onClick={() => void confirm()} className="flex cursor-pointer items-center gap-1.5 rounded-md border border-violet-600 bg-violet-600 px-3 py-1 font-semibold text-white hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60">
+              <MergeIcon /> {busy ? "Asking…" : "Ask coordinator to merge"}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+/** Open thread where the item has a thread; Start on To Do items (not yet), Merge on In Review items. */
+function Actions({ id, lane, thread, merge }: { id: string; lane: Lane; thread: string | null; merge: MergeInfo | null }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <OpenThread link={thread} />
+      {lane === "To Do" && <ActionIcon label="Start"><StartIcon /></ActionIcon>}
+      {lane === "In Review" && <MergeButton id={id} merge={merge} />}
+    </span>
+  );
 }
 
 /** Says which branch a card's state came from, when not from the checked-out files. */
@@ -308,13 +445,14 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
               </span>
               <PrLink pr={s.pr} />
               <Marks marks={strandMarks(s, details)} />
+              <span onClick={(e) => e.stopPropagation()}><Actions id={s.id} lane={s.lane === "To Do" ? "Done" : s.lane} thread={s.thread} merge={s.merge} /></span>
               {details && s.need !== null && <NeedLine need={s.need} className="ml-[34px] basis-full" />}
             </div>
           ))}
         </div>
       )}
       <div className="mt-2 flex min-h-6 justify-end">
-        <Actions lane={braid.lane} />
+        {braid.total === 0 || braid.merge !== null ? <Actions id={braid.id} lane={braid.lane} thread={braid.thread} merge={braid.merge} /> : <OpenThread link={braid.thread} />}
       </div>
     </div>
   );
@@ -366,7 +504,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <Badge key={l} tone="bg-indigo-100 text-indigo-800">{l}</Badge>
         ))}
         <span className="flex-1" />
-        <Actions lane={item.lane} />
+        <Actions id={item.id} lane={item.lane} thread={item.thread} merge={item.merge} />
       </div>
       {item.need !== null && (
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.need)}`}>
@@ -508,7 +646,7 @@ export function App() {
             <input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details
           </label>
           <span className="text-xs text-slate-500">
-            {notes.length > 0 ? `${notes.join(" · ")} · ` : "read-only · "}refreshes every 30 s
+            {notes.length > 0 ? `${notes.join(" · ")} · ` : ""}refreshes every 30 s
           </span>
           <button
             type="button"
