@@ -24,6 +24,8 @@ The braid skills are shorter and clearer: each rule stated in one place, auto mo
 - A. Skill rewrite: one place per rule (L, process). Analysis first, then the rewrite.
 - B. Reviewer: researched review practices (M, process).
 - C. Installer from `origin/main`; size fact without `braids/**` (S).
+- D. Completion and acceptance (M, process): `## Completion`, `braid accept`, approvals through requests.
+- E. Research briefs and the recap template (S, process).
 
 ## Already decided
 
