@@ -1,7 +1,7 @@
 ---
 id: '0018'
 title: "Installer fetches a remote ref before installing"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S", "ask:process"]
 dependencies: []
 delivery: epic
