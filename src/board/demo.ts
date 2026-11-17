@@ -72,13 +72,17 @@ export function demoBraids(): Braid[] {
   return loadTree(demoTree());
 }
 
+const demoHead = (number: number): string => `${number.toString(16).padStart(7, "0")}${"0".repeat(33)}`;
+
 const pr = (number: number, state: "open" | "merged", checks: "passing" | "failing" | "pending" | "none") => ({
   ...(checks === "failing" ? { failed: ["verify (windows-latest)"] } : {}),
   number,
   url: `https://github.com/example/sample/pull/${number}`,
   state,
   checks,
-  head: `${number.toString(16).padStart(7, "0")}${"0".repeat(33)}`,
+  base: "main",
+  branch: `braid/sample-${number}`,
+  head: demoHead(number),
 });
 
 export function demoGithub(): Github {
@@ -97,7 +101,7 @@ export function demoGithub(): Github {
   };
 }
 
-const thread = (id: string, role: T3Thread["role"], pending = 0): T3Thread => ({ id, role, pending, link: null });
+const thread = (id: string, role: T3Thread["role"], pending = 0): T3Thread => ({ id, role, pending, link: `https://t3.example/thread/${id}` });
 
 /** Agents: 0002/A, 0009/A and 0009/B run, 0003/A asks a question, 0010/A is being reviewed; 0002/B has failing checks and no agent. */
 export function demoT3(down = false): T3 {
@@ -123,9 +127,9 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
   const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
   const request = (id: string, kind: Request["kind"], text: string, minutes: number, extra: Partial<Request> = {}): Request => ({ id, kind, text, at: at(minutes), thread: null, ...extra });
   const requests: Request[] = [
-    request("0001/B", "review", "review PR #12 at 0000012", 120, { pr: 12 }),
+    request("0001/B", "review", "review PR #12 at 0000012", 120, { pr: 12, head: demoHead(12), thread: "demo-coordinator" }),
     request("0003/B", "decision", "Decide: approve the PDF layout (approve-layout)", 60, { key: "approve-layout" }),
-    request("0003/C", "review", "review PR #17 at 0000011", 180, { pr: 17 }),
+    request("0003/C", "review", "review PR #17 at 0000011", 180, { pr: 17, head: demoHead(17) }),
     request("0004/B", "question", "Which rounding rule should refunds use, half-up or banker's?", 35),
     request("0006", "decision", "Decide: which spike option to build (spike-direction)", 120, { key: "spike-direction" }),
     request("0007", "plan", "Approve the plan: 3 strands, A to C", 20),
