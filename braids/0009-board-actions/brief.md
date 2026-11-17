@@ -1,8 +1,8 @@
 ---
 id: '0009'
 title: "Board actions"
-status: To Do
-labels: ["kind:goal", "tier:L", "ui"]
+status: In Progress
+labels: ["kind:goal", "tier:L", "ui", "auto"]
 dependencies: ['0008']
 order: 90
 delivery: epic
