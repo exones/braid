@@ -5,7 +5,7 @@ import { execFile, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
-import { agentsDir, itemOfFolder } from "../braids/worktrees.js";
+import { agentsDir, itemOfFolder, repoNameOf } from "../braids/worktrees.js";
 
 export interface T3Thread {
   readonly id: string;
@@ -22,8 +22,19 @@ export type T3State =
   | { readonly state: "ok" }
   | { readonly state: "unavailable"; readonly reason: string };
 
+/** A running coordinator thread of a braid: its title reads `<repo> <number> coordinator: <title>`. */
+export interface T3Coordinator {
+  readonly id: string;
+  readonly link: string | null;
+  /** The provider instance and model the thread runs on, as T3 lists them. */
+  readonly provider: string | null;
+  readonly model: string | null;
+}
+
 export interface T3 {
   readonly status: T3State;
+  /** Running coordinator threads per braid number (`0006`). */
+  readonly coordinators?: ReadonlyMap<string, T3Coordinator>;
   /** Running agents per item key (`0006` or `0006/A`). */
   readonly threads: ReadonlyMap<string, readonly T3Thread[]>;
 }
@@ -37,21 +48,21 @@ export interface T3Result {
   readonly error?: Error | undefined;
 }
 
-/** Runs `t3` with these arguments in `root`; replaced in tests. */
-export type T3Runner = (root: string, args: readonly string[]) => Promise<T3Result>;
+/** Runs `t3` with these arguments in `root`, with `input` on its standard input when given; replaced in tests. */
+export type T3Runner = (root: string, args: readonly string[], input?: string) => Promise<T3Result>;
 
 function t3Command(): string {
   const home = join(homedir(), ".t3", "bin", process.platform === "win32" ? "t3.cmd" : "t3");
   return existsSync(home) ? home : "t3";
 }
 
-export const runT3: T3Runner = (root, args) =>
+export const runT3: T3Runner = (root, args, input) =>
   new Promise((done) => {
     const command = t3Command();
     // A .cmd file can only run through cmd.exe on Windows; the arguments are fixed words and ids.
     const win = process.platform === "win32";
     const quote = (s: string) => (/[^\w./:=@\\-]/.test(s) ? `"${s}"` : s);
-    execFile(
+    const child = execFile(
       win ? "cmd.exe" : command,
       win ? ["/d", "/s", "/c", `"${[command, ...args].map(quote).join(" ")}"`] : [...args],
       { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 30_000, windowsHide: true, windowsVerbatimArguments: win },
@@ -60,6 +71,8 @@ export const runT3: T3Runner = (root, args) =>
         done({ status: code, stdout, stderr, error: error !== null && code === null ? error : undefined });
       },
     );
+    child.stdin?.on("error", () => {});
+    child.stdin?.end(input ?? "");
   });
 
 type Json = Record<string, unknown>;
@@ -169,13 +182,21 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
     const owner = path !== null && folder !== null && folder.startsWith(`${mine}/`) && !folder.slice(mine.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
     return owner === null ? null : { key: owner.key, thread: { id, role: owner.role, pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
   });
+  const repo = repoNameOf(root) ?? basename(root);
+  const coordinators = new Map<string, T3Coordinator>();
+  for (const { t, id } of wanted) {
+    const number = str(t["title"])?.startsWith(`${repo} `) === true ? /^(\d{4}) coordinator\b/.exec((str(t["title"]) ?? "").slice(repo.length + 1))?.[1] : undefined;
+    if (number !== undefined && !coordinators.has(number)) {
+      coordinators.set(number, { id, link: str(t["link"]), provider: str(t["providerInstanceId"]), model: str(t["model"]) });
+    }
+  }
   const threads = new Map<string, T3Thread[]>();
   for (const f of found) {
     if (f !== null) {
       threads.set(f.key, [...(threads.get(f.key) ?? []), f.thread]);
     }
   }
-  return { status: { state: "ok" }, threads };
+  return { status: { state: "ok" }, threads, coordinators };
 }
 
 /** Forgets what was read, for tests. */

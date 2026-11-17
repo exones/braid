@@ -4,7 +4,8 @@ import { loadTree, type Braid, type Tree } from "../braids/store.js";
 import type { Request } from "../braids/requests.js";
 import type { Github } from "./github.js";
 import type { ReadSignals } from "./signals.js";
-import type { T3, T3Thread } from "./t3.js";
+import type { StartContext } from "./model.js";
+import type { T3, T3Coordinator, T3Thread } from "./t3.js";
 
 const brief = (id: string, title: string, status: string, extra = ""): string =>
   `---\nid: '${id}'\ntitle: ${title}\nstatus: ${status}\n${extra}---\n\n## Goal\n\n${title}. Sample text from \`braid board --demo\`.\n\n## Acceptance\n\n- It works.\n`;
@@ -43,6 +44,8 @@ const FILES: Readonly<Record<string, string>> = {
   "braids/0010-sample-cache/brief.md": brief("0010", "Sample cache", "In Progress", "labels:\n  - tier:S\n"),
   "braids/0010-sample-cache/A-layer/brief.md": brief("0010/A", "Cache layer", "In Progress"),
   "braids/0011-sample-notices/brief.md": brief("0011", "Sample notifications", "To Do", "labels:\n  - tier:S\n"),
+  "braids/0012-sample-import-csv/brief.md": brief("0012", "Sample CSV import", "To Do", "labels:\n  - tier:M\n"),
+  "braids/0013-sample-audit-trail/brief.md": brief("0013", "Sample audit trail", "To Do", "labels:\n  - tier:M\n"),
 };
 
 /** The sample files as a read-only tree; no disk is touched. */
@@ -72,13 +75,17 @@ export function demoBraids(): Braid[] {
   return loadTree(demoTree());
 }
 
+const demoHead = (number: number): string => `${number.toString(16).padStart(7, "0")}${"0".repeat(33)}`;
+
 const pr = (number: number, state: "open" | "merged", checks: "passing" | "failing" | "pending" | "none") => ({
   ...(checks === "failing" ? { failed: ["verify (windows-latest)"] } : {}),
   number,
   url: `https://github.com/example/sample/pull/${number}`,
   state,
   checks,
-  head: `${number.toString(16).padStart(7, "0")}${"0".repeat(33)}`,
+  base: "main",
+  branch: `braid/sample-${number}`,
+  head: demoHead(number),
 });
 
 export function demoGithub(): Github {
@@ -97,15 +104,25 @@ export function demoGithub(): Github {
   };
 }
 
-const thread = (id: string, role: T3Thread["role"], pending = 0): T3Thread => ({ id, role, pending, link: null });
+const thread = (id: string, role: T3Thread["role"], pending = 0): T3Thread => ({ id, role, pending, link: `https://t3.example/thread/${id}` });
+
+/** What the demo's BRAID.md says. */
+export const DEMO_START: StartContext = { main: "main", expected: { provider: "Claude_Everix", model: "claude-opus-5-5" } };
+
+/** Coordinators: 0011's runs on the model BRAID.md names, 0013's on another one (the card warns). */
+const demoCoordinators = new Map<string, T3Coordinator>([
+  ["0011", { id: "demo-6", link: "https://t3.example/thread/demo-6", provider: "Claude_Everix", model: "claude-opus-5-5" }],
+  ["0013", { id: "demo-7", link: "https://t3.example/thread/demo-7", provider: "Claude_Everix", model: "claude-sonnet-5-5" }],
+]);
 
 /** Agents: 0002/A, 0009/A and 0009/B run, 0003/A asks a question, 0010/A is being reviewed; 0002/B has failing checks and no agent. */
 export function demoT3(down = false): T3 {
   if (down) {
-    return { status: { state: "unavailable", reason: "T3 is not running" }, threads: new Map() };
+    return { status: { state: "unavailable", reason: "T3 is not running" }, threads: new Map(), coordinators: new Map() };
   }
   return {
     status: { state: "ok" },
+    coordinators: demoCoordinators,
     threads: new Map<string, readonly T3Thread[]>([
       ["0002/A", [thread("demo-1", "worker")]],
       ["0003/A", [thread("demo-2", "worker", 1)]],
@@ -123,9 +140,9 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
   const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
   const request = (id: string, kind: Request["kind"], text: string, minutes: number, extra: Partial<Request> = {}): Request => ({ id, kind, text, at: at(minutes), thread: null, ...extra });
   const requests: Request[] = [
-    request("0001/B", "review", "review PR #12 at 0000012", 120, { pr: 12 }),
+    request("0001/B", "review", "review PR #12 at 0000012", 120, { pr: 12, head: demoHead(12), thread: "demo-coordinator" }),
     request("0003/B", "decision", "Decide: approve the PDF layout (approve-layout)", 60, { key: "approve-layout" }),
-    request("0003/C", "review", "review PR #17 at 0000011", 180, { pr: 17 }),
+    request("0003/C", "review", "review PR #17 at 0000011", 180, { pr: 17, head: demoHead(17) }),
     request("0004/B", "question", "Which rounding rule should refunds use, half-up or banker's?", 35),
     request("0006", "decision", "Decide: which spike option to build (spike-direction)", 120, { key: "spike-direction" }),
     request("0007", "plan", "Approve the plan: 3 strands, A to C", 20),

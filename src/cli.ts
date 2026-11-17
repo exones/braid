@@ -59,7 +59,7 @@ export function helpText(version: string): string {
     "  answer <id>                 Close the item's request (--log <file>|- adds your decision to the braid log; --thread)",
     "  requests                    List the open requests: item, kind, age, text",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
-    "  board                       Open the read-only board in the browser (--no-open: only print the address; --demo: sample data)",
+    "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
     "",
     "Options:",

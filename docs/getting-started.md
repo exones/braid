@@ -61,4 +61,4 @@ A goal's plan is merged into its braid branch, so `main` gets its briefs with th
 
 ## See the board
 
-Run `braid board` in your own checkout of `main`. It reads each item from its own branch, so a strand whose PR braid handed to you for your merge shows To Review; braid marks it Done on the braid branch after the merge (`braid accept`). The board is read-only; ask `braid` for changes. `braid board --demo` shows it on sample data. What the lanes mean: [the attention board](board.md).
+Run `braid board` in your own checkout of `main`. It reads each item from its own branch, so a strand whose PR braid handed to you for your merge shows To Review; braid marks it Done on the braid branch after the merge (`braid accept`). The board shows where the work needs you; it can also act: Start launches a braid's coordinator, Open thread opens an item's T3 thread, and Merge asks the coordinator that handed over the PR to merge it (the board never merges itself). Ask `braid` for anything else. `braid board --demo` shows it on sample data. What the lanes mean: [the attention board](board.md).

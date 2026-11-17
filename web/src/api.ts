@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BoardData, ItemDetail } from "../../src/board/model.ts";
 
-export type { BoardData, BraidCard, ItemDetail, Lane, Need, StrandCard } from "../../src/board/model.ts";
+export type { BoardData, BraidCard, ItemDetail, Lane, CoordinatorInfo, MergeInfo, Need, StartInfo, StrandCard } from "../../src/board/model.ts";
 export type { PullRequest } from "../../src/board/github.ts";
 
 export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
@@ -15,6 +15,33 @@ async function get<T>(url: string): Promise<T> {
     throw new Error(message);
   }
   return body as T;
+}
+
+const TOKEN_KEY = "braid-token";
+
+/** The session token: taken once from the `#token=` fragment of the opened URL, then kept in session storage. */
+function sessionToken(): string | null {
+  const fromUrl = /^#token=([0-9a-f]+)$/.exec(location.hash)?.[1];
+  if (fromUrl !== undefined) {
+    sessionStorage.setItem(TOKEN_KEY, fromUrl);
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+  return sessionStorage.getItem(TOKEN_KEY);
+}
+sessionToken();
+
+/** Runs the board action `name` on the server with the session token; the reply is the action's result. */
+export async function postAction<T = unknown>(name: string, body: unknown = {}): Promise<T> {
+  const response = await fetch(`/api/action/${encodeURIComponent(name)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-braid-token": sessionToken() ?? "" },
+    body: JSON.stringify(body),
+  });
+  const reply: unknown = await response.json();
+  if (!response.ok) {
+    throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : response.statusText);
+  }
+  return reply as T;
 }
 
 /** A reload request: `n` changes on every one; `fresh` skips the server's short-lived reads. */
