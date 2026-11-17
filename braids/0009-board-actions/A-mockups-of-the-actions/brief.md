@@ -1,7 +1,7 @@
 ---
 id: '0009/A'
 title: "Mockups of the actions"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S", "ui"]
 dependencies: []
 order: 10
@@ -34,9 +34,13 @@ Expected size: about 300 lines of HTML and CSS in `docs/design/board-mockups/`.
 
 - Any server or React code.
 
+## Plan
+
+One self-contained page `actions.html` (hash views, `#<view>&light|dark`) with nine views on demo data: Start, its confirmation, the model warning, running/failed, Merge confirmation, merging/merged, refusals, Open thread, disabled tooltips. PNGs of every view in both themes next to it.
+
 ## Completion
 
-- [ ] Mockups for Start, Merge and Open thread, with their confirmations, states and disabled reasons, light and dark
-- [ ] Screenshots in the report
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockups for Start, Merge and Open thread, with their confirmations, states and disabled reasons, light and dark
+- [x] Screenshots in the report
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
