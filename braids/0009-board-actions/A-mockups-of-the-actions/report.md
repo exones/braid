@@ -2,7 +2,7 @@
 
 `docs/design/board-mockups/actions.html`: static mockups (demo data, no server or React code) of the three board actions, light and dark (`actions.html#<view>&light` or `&dark`). PNGs of each view are `actions-<view>-<theme>.png` beside it.
 
-1. **start**: Start on To Do cards; no open button without a thread.
+1. **start**: Start on To Do cards (card and row buttons are icon-only: name and disabled reason in the tooltip, plus an aria-label; dialog buttons keep their words); no open button without a thread.
 2. **confirm**: Start confirmation: new coordinator thread, T3's project default model vs BRAID.md, base branch.
 3. **warn**: same dialog when T3's model differs from BRAID.md (warning; "Start anyway").
 4. **running**: Start waiting, started (card in Working), and a failed launch with its reason.
