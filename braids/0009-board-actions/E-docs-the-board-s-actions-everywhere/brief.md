@@ -1,7 +1,7 @@
 ---
 id: '0009/E'
 title: "Docs: the board's actions everywhere"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S", "docs"]
 dependencies: []
 order: 50
