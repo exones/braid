@@ -1,7 +1,7 @@
 ---
 id: '0009'
 title: "Board actions"
-status: Done
+status: In Progress
 labels: ["kind:goal", "tier:L", "ui", "auto"]
 dependencies: ['0008']
 order: 90
@@ -25,6 +25,7 @@ The board can act, locally: **Start** a braid by launching a new coordinator thr
 - B. Write path and session token (M).
 - C. Open thread and Merge on request (M, process).
 - D. Start: a new coordinator thread per braid (M, process).
+- E. Docs: the board's actions everywhere (S), from the final review.
 
 ## Already decided
 
@@ -37,6 +38,6 @@ The board can act, locally: **Start** a braid by launching a new coordinator thr
 
 ## Completion
 
-- [x] Strands A to D Done on the braid branch
+- [ ] Strands A to E Done on the braid branch
 - [x] `main` merged in; the gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, decisions from the log, anything open
