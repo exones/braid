@@ -1,130 +1,94 @@
-# braid
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="design/logo/svg/braid-logo-primary-reversed.svg">
+    <img src="design/logo/svg/braid-logo-primary-color.svg" alt="braid" width="220">
+  </picture>
+</p>
 
-braid is a TypeScript/Node.js CLI for agent-driven work. PowerShell provides build and verification automation. GitHub hosts source and Actions; npm (`@exones/braid`) is the package registry. Licensed under [MIT](LICENSE).
+<p align="center"><strong>Orchestrates agents. Keeps the ledger. Braids the work.</strong></p>
 
-The CLI reads, creates, edits, logs and reports on the braids (work items) and strands (their parts) in a repository's `braids/` folder; the format is in [docs/braids-format.md](docs/braids-format.md):
+<p align="center">
+  <a href="https://github.com/exones/braid/actions/workflows/ci.yml"><img src="https://github.com/exones/braid/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-082A48" alt="MIT licence"></a>
+</p>
 
-```powershell
-braid list          # braids and their strands, with status and run order
-braid view 0002     # one braid: fields, report, logs, strands and its brief
-braid view 0002/A   # one strand
-braid new 'Braids folder' --labels 'kind:story,tier:L'   # the next free number
-braid strand new 0002 'Read braids' --order 1           # the next free letter
-braid edit 0002/A --status 'In Progress'                # status, title, labels, dependencies, order, delivery
-braid brief 0002 Goal --file goal.md                    # set a section; --file - reads standard input
-braid log 0002/A --thread mcp:launch:5d80964a 'Parser done'   # a dated entry in that thread's log file, staged with git add
-braid log 0002/A --checkpoint 'Paused after the parser'       # a checkpoint entry; no thread: the log-<date>-user.md file
-braid report 0002/A --file report.md                    # write report.md; --append adds to it
-braid import-backlog --dry-run   # list the braids a Backlog.md backlog/ would become; without --dry-run, write braids/
-braid check         # validate every brief under braids/; lists each error with its file, exit 2 on any
-braid status 0008   # one braid's strands: status, lane, branch, PR, ci checks, T3 thread
-braid next 0008     # the next strand to run, or why none is ready
-braid start 0008/B  # its branch from the braid tip, pushed, plus a worktree in $BRAID_WORKTREES_DIR (default ~/braid-worktrees)
-braid clean 0008   # dry run: worktrees and local branches of merged items; --yes removes them
-braid board         # open the read-only board in the browser (127.0.0.1, free port)
-braid board --demo  # the same board on built-in sample data: no repository, gh or t3 is read
-braid --version     # print the version
-braid help          # show usage
-```
+braid runs a software project with coding agents: you state a goal, braid splits it into work items, gives each one to an agent, has another agent review it, and hands you the finished pull requests to merge. Every step is written down in your repository, so the work can be picked up from the files alone.
 
-Briefs and reports are plain Markdown files, so you may edit them directly; run `braid check` afterwards to catch a broken front matter, a wrong id or a bad folder name.
+## What is braid
 
-For how work is planned, assigned to agents, reviewed and merged, see the [workflow](.agents/skills/braid/references/workflow.md) and [AGENTS.md](AGENTS.md).
+- **A coordinator** is the agent you talk to. It plans the work with you, launches the other agents and reports back.
+- **Workers** each do one item on their own branch and worktree, run the project's gate and open a PR.
+- **Reviewers** check each PR independently against its brief before it reaches you.
+- **Braids and strands** are the work items: a braid is a story or a goal, and a goal's braid is split into strands, its parts, which run in order.
+- **The ledger** is the `braids/` folder: one folder per braid and strand with its brief, logs and report, plain Markdown kept in Git and managed with the `braid` CLI.
+- **You merge.** braid never merges into `main` unless you tell it to, and it stops and asks when a decision is yours.
 
-## Build and verify
+braid ships as agent skills (`braid`, `braid-worker`, `braid-reviewer`) for Claude, Codex and Cursor, plus the `braid` CLI they use. Agents run as threads in [T3 Code](https://github.com/pingdotgg/t3code).
 
-braid requires Node.js `>=26.13.0 <27`, PowerShell 7.6 or newer (`pwsh`), and Pester 5.5 or newer for the PowerShell tests (`Install-PSResource -Name Pester -Version 5.7.1 -Scope CurrentUser`; CI installs it when the runner lacks it). A compatible `node` already on `PATH`, with the npm that shipped in that same install, is used as-is. A version-manager launcher such as Volta's counts too: the runtime it points to (`process.execPath`) is what gets checked and used. With Volta, `package.json` pins `"volta": { "node": "26.13.0" }`, so `node` inside this checkout is already the right version. Otherwise, on Windows, the installer reuses or downloads the official Node.js `26.13.0` archive into `%LOCALAPPDATA%\braid\toolchains`. `BRAID_TOOLCHAIN_DIR` can name an absolute alternate root; it does not change the pin or the checksums. The installer does not replace the system Node.js, and it does not read, migrate, or delete a checkout-local `.tools/` directory. `.tools/`, `node_modules/`, `dist/`, and `.braid/` are gitignored. `.agents/` skills and `epics/` evidence stay tracked.
+## How it works
 
-From the repository root:
+1. **Plan.** Tell the coordinator a goal in a thread. It writes the braids and strands into `braids/` and waits for your go.
+2. **Work.** It starts each strand on its own branch and launches a worker, which implements it, runs the gate and opens a PR with CI green.
+3. **Review.** A reviewer agent checks the PR against the brief; findings go back to the worker.
+4. **Merge.** You get a short recap and merge. For a goal, auto mode can merge strands into the goal's branch for you; the final PR into `main` is always yours.
+5. **Watch.** `braid board` shows where the work needs you.
 
-```powershell
-$nodeDir = pwsh -NoProfile -File .\scripts\Install-NodeToolchain.ps1
-$env:Path = "$nodeDir;$env:Path"
-node --version
-npm ci
-npm run verify
-```
+<p align="center">
+  <img src="docs/images/board.png" alt="The braid attention board: lanes To Do, Working, To Review, Needs You and Done, with sample braids" width="900">
+</p>
 
-The installer writes progress to stderr and writes only the toolchain directory to stdout. `node --version` prints the selected Node.js version: any compatible 26.x already on `PATH`, or `v26.13.0` for the Windows fallback. That fallback downloads `https://nodejs.org/dist/v26.13.0/`, checks the archive SHA-256 against that directory's `SHASUMS256.txt`, and also requires the checksum pinned in `scripts/Install-NodeToolchain.ps1`. The published directory is `node-v26.13.0-<platform>` (`win-x64` or `win-arm64`). A later run reuses it offline when `node.exe`, the bundled npm, and `.braid-toolchain.json` still match the pin, platform, and archive hash. A relative `BRAID_TOOLCHAIN_DIR`, a corrupt completed directory, or a lock held longer than 120 seconds fails with the directory and the recovery step. The corrupt directory is left in place. Other versions are not replaced.
+## Quick start
 
-`.npmrc` sets `engine-strict=true`, `strict-allow-scripts=true`, `allow-git=none`, and `allow-remote=none`. `npm ci` refuses a Node.js older than 26.13.0, including this machine's default 24.x install. It also refuses an unreviewed dependency install script, a git dependency, and a remote URL dependency. `npm run verify` can be launched by that older npm; `scripts/Verify.ps1` uses the same resolution as the installer and runs the npm that shipped with the selected Node.js.
-
-Both gates run `scripts/Verify.ps1`, which selects the toolchain first.
-
-`npm run verify` is the quick offline pre-PR gate (about 20 seconds) and the `gate` in [BRAID.md](BRAID.md):
-
-1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Paths listed as frozen in `scripts/markdown-link-exclusions.json` (closed records kept as written) are not link-checked, but their text still is. A skill under `.agents/skills/<name>/` must not link outside its own folder.
-2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
-3. The OIDC release-shape guard.
-4. `npm run typecheck` (`tsc -p tsconfig.json --noEmit`), `npm run build` (`tsc -p tsconfig.build.json`) and `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`).
-
-`npm run verify:full` (`Verify.ps1 -Full`) is what CI and the release workflow run. It adds the tooling tests and the package proof:
-
-- The docs-gate negatives: a disposable repository that must fail for a broken link or anchor, a CR line ending, trailing whitespace, and a skill linking outside its folder, and must pass for a broken link under a frozen path.
-- The install-policy guard: real installs that `.npmrc` must refuse.
-- The shared Node.js toolchain fixture: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout, and interruption, in disposable roots without downloading Node.js.
-- `scripts/Test-Pester.ps1`, which runs the Pester suites under `test/pester/`. New PowerShell tests go there.
-- `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs `braid --version` and `braid help` through the installed executable.
-
-Run `verify:full` locally when you change those tools, `.npmrc`, packaging or the release workflow. External skill validators are not part of either gate; run them when a change edits skill content.
-
-Both stop on the first native command with a nonzero exit code and return that code. Dependencies must already be installed with `npm ci`. A dirty worktree is a pre-commit probe. GitHub Actions sets `BRAID_REQUIRE_CLEAN=1`, so the hosted pack must come from a clean checkout. The tarball and its provenance file are written to `artifacts/package/` and are not committed.
-
-## Braid skills in other projects
-
-The agent skills `braid`, `braid-worker` and `braid-reviewer` are developed in `.agents/skills/` and can drive work in any repository. Each skill folder is self-contained: the docs gate fails if a skill links outside its own folder.
-
-- `braid` is the one skill you talk to, for work of any size: a goal, a single story, or "run 0012". It decides whether the work is a story or a goal, keeps the items as braids in the target repository's `braids/` through the `braid` CLI, and launches the workers.
-- `braid-worker` and `braid-reviewer` are the skills of the worker and reviewer threads a coordinator launches. You don't start them yourself.
-- Ordinary questions and small direct edits need no skill.
-
-To make them available to Cursor, Codex and Claude in every project, install them from a committed ref:
+You need Node.js 26 (`>=26.13.0`), PowerShell 7.6+ and Git. The current CLI isn't on npm yet (the `@exones/braid@0.1.0` there is an older CLI, see [npm distribution](docs/npm-distribution.md)), so install it from a checkout:
 
 ```powershell
-pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from main
-pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a branch
-pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -SkipCli       # skills only
+git clone https://github.com/exones/braid.git
+cd braid
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1   # the skills for Claude, Codex and Cursor, plus the braid CLI
 ```
 
-The installer also installs the matching `braid` CLI, so the skills can always call it. From the same ref it runs `npm ci`, `npm run build` and `npm pack`, installs the tarball with `npm install -g`, and checks that `braid --version` prints that version, which it records as `cliVersion` in the stamp. It needs Node.js and npm on `PATH` (see "Build and verify") and runs before any skill is copied, so a failed build or version check leaves the installed skills as they were. `-SkipCli` leaves the CLI alone. Nothing is published to npm.
+Then, in the repository you want braid to work on:
 
-The script copies `.agents/skills/braid` and `.agents/skills/braid-*` from that ref into `~/.cursor/skills`, `~/.codex/skills`, `~/.claude/skills` and `~/.braid/skills`, and writes `.braid-install.json` (ref and commit) into each installed skill. Uncommitted edits are never installed. To update after a skill change is merged, run it again. A folder of the same name that the script did not install is left alone unless `-Force` is given. Every target is checked before anything is replaced, and an installed braid skill that is no longer in the ref (such as the old `braid-coordinate`) is removed. `-Target` replaces the default folders.
+1. Add a `BRAID.md` from the [template](.agents/skills/braid/assets/braid-md.md): the gate command, the CI checks and the models per role.
+2. Add `braids/**/temp/` to `.gitignore`, commit and push.
+3. Open the repository as a T3 project and start a thread with `braid`: "braid: add dark mode to the settings page".
 
-A target repository needs a `BRAID.md` at its root with the facts the skills read: the `gate` command, the `main` branch, the required `ci` checks (`none` if it has no hosted CI), `auto: allowed` to permit auto mode, optional `shell`, `setup` and `test` commands, how to `run` the app, and `models`: the provider, model and options for each role, with optional overrides per tier (`worker.L`) or kind (`worker.spike`); the tier key wins over the kind key, then the plain role. A role may name a skill, such as `braid-reviewer` for the reviewer. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
+The details, including Backlog.md import and auto mode, are in [getting started](docs/getting-started.md).
 
-To set up a target repository for `braid`:
+## The CLI
 
-1. Install the skills and the `braid` CLI once per machine with the installer above. If `braid` is missing, the `braid` skill stops and points here.
-2. Create `BRAID.md` from the [`braid` template](.agents/skills/braid/assets/braid-md.md) and add `braids/**/temp/` to `.gitignore`.
-3. A project whose work is in Backlog.md (`backlog/` and no `braids/`) runs `braid import-backlog --dry-run`, then `braid import-backlog`, once; the skill stops and asks for this until it is done.
-4. Commit on `main` and push, add the repository as a T3 project and start a thread there with `braid`.
+```powershell
+braid list               # braids and their strands, with status and run order
+braid view 0002          # one braid: fields, report, logs, strands and its brief
+braid new 'Search page'  # a new braid with the next free number
+braid status 0008        # each strand: lane, branch, PR, CI checks, agent thread
+braid board              # the read-only board in your browser
+```
 
-**Auto mode.** You merge every PR yourself, unless you tell `braid` to merge one ("merge it" after its recap, and it merges exactly the commit it showed you) or auto mode merges a strand into its braid branch; auto mode never merges a story or the final PR into `main`. For a goal, you can ask for auto mode if `BRAID.md` has `auto: allowed` and real CI (`ci` not `none`): `braid` then merges each strand PR into the braid branch itself once the worker is green, an independent review found nothing blocking, CI is green and nobody flagged a stop case, and it leaves a comment on the PR saying why. It stops and asks you on any stop case, when a review is still blocking after 2 rounds of fixes, or when branch protection refuses; "stop auto" or "pause" switches it off. A goal's plan is merged into its braid branch, so `main` gets its briefs with the final PR.
+The full list is in [the CLI reference](docs/cli.md).
 
-To see the items, run `braid board` in your own checkout of `main`. It reads each item from its own branch, so a strand whose PR braid handed to you for your merge shows To Review; braid marks it Done on the braid branch after the merge (`braid done`). The board is read-only; ask `braid` for changes.
+## Documentation
 
-This repository's own [BRAID.md](BRAID.md) is an example; `epics/` holds its past records, read-only. Why `braid` keeps items in `braids/` is decision D33 in [docs/decisions.md](docs/decisions.md).
+| Page | What's in it |
+| --- | --- |
+| [Getting started](docs/getting-started.md) | Installing the skills and CLI, `BRAID.md`, setting up a repository, auto mode. |
+| [CLI reference](docs/cli.md) | Every command, with examples and exit codes. |
+| [The attention board](docs/board.md) | What `braid board` shows and how it decides. |
+| [The braids/ format](docs/braids-format.md) | The files in `braids/`, branches and each command's behaviour. |
+| [Workflow](.agents/skills/braid/references/workflow.md) | Items, tiers, branches, merges and checks. |
+| [Skills](.agents/skills/braid/SKILL.md) | How agents plan ([braid](.agents/skills/braid/SKILL.md)), do ([worker](.agents/skills/braid-worker/SKILL.md)) and review ([reviewer](.agents/skills/braid-reviewer/SKILL.md)) items. |
+| [Decisions](docs/decisions.md) | Current requirements and their reasons. |
+| [Roadmap](docs/roadmap.md) | What comes next. |
+| [npm distribution](docs/npm-distribution.md) | The release path and the steps before publication. |
+| [Development](docs/development.md) | Building, testing, the gates and CI. |
+| [Brand](design/README.md) | The logo, colours and their use. |
 
-## CLI
+This repository is planned and built with braid: its own items are in [`braids/`](braids/), past epics in [`epics/`](epics/README.md). [`inspiration/`](inspiration/README.md) is reference material only; its permissions, hosts and credentials don't apply here.
 
-After `npm run build`, run `node dist/cli.js <command>`, for example `node dist/cli.js help`. Usage errors exit 1 and broken braid files exit 2, with the message on stderr.
+## Contributing
 
-## Continuous integration
+Issues and pull requests are welcome. Building, testing and the pre-PR gate (`npm run verify`) are in [development](docs/development.md); agents also read [AGENTS.md](AGENTS.md).
 
-`.github/workflows/ci.yml` runs `npm ci` and `npm run verify:full` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`, for pull requests and for pushes to `main` and braid branches (`braid/<number>-<slug>`). A push that only changes files under `epics/` (past records) or `braids/` (briefs, reports and logs) doesn't run CI. Setup-node puts that runtime on `PATH`, so CI uses it instead of the shared Windows store. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
+## Licence
 
-The workflow uses pinned checkout, setup-node, and upload-artifact actions and the runner's PowerShell installation. It needs no T3 access, private infrastructure, or npm publishing credentials. `.github/workflows/release.yml` is a manual dispatch and is not part of this pull-request gate.
-
-## Durable context
-
-- [Workflow](.agents/skills/braid/references/workflow.md): items, tiers, branches, merges, and checks.
-- [The attention board](docs/board.md): what `braid board` shows and how it decides.
-- [Decisions](docs/decisions.md): current requirements and their rationale.
-- [Roadmap](docs/roadmap.md): what comes next.
-- [braid skill](.agents/skills/braid/SKILL.md) (goals and stories in `braids/`), [worker skill](.agents/skills/braid-worker/SKILL.md) and [reviewer skill](.agents/skills/braid-reviewer/SKILL.md): how agents plan, do and review items.
-- [npm distribution](docs/npm-distribution.md): selected release path and account/setup steps needed before publication.
-- [Epics](epics/README.md): past epics, read-only; new work is in `braids/`.
-- Original MVP plan `t3_multi-agent_mvp_86005e32.plan.md` (gitignored local input, not a tracked file): longer-term design input. Its PowerShell-only implementation and original milestone order have been superseded by the decisions and roadmap above.
-- [Inspiration](inspiration/README.md): reference material; its historical permissions, hosts, credentials, and deployment instructions do not authorize actions for this project.
-
-The next implementation agent should preserve these files and continue from the current checkpoint. A chat transcript must not be required to continue.
+[MIT](LICENSE)

@@ -59,7 +59,7 @@ These are nonsecret setup actions. They do not block local tarball proof. Do not
 
 7. Dispatch `release.yml` and enter `publish` in `confirm`. After a trusted publish works, set the package's publishing access to "Require two-factor authentication and disallow tokens."
 
-8. Keep the versioned tarball and provenance file as the installable fallback. Attaching them to a GitHub Release is a separate authorization. Install that tarball outside the checkout using the README procedure. That install does not start the next stage.
+8. Keep the versioned tarball and provenance file as the installable fallback. Attaching them to a GitHub Release is a separate authorization. Install that tarball outside the checkout as `scripts/Test-Package.ps1` does ([development](development.md#the-gates)). That install does not start the next stage.
 
 ## User involvement before publishing
 
