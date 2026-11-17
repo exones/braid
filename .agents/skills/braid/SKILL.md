@@ -151,16 +151,4 @@ A goal, when every strand is Done on the braid branch:
 - **A reply to an open request:** first `braid answer <id> --log -`, then act; a new question means a new `braid ask`.
 - The user's approvals are never boxes: `braid ask --kind decision`; the report's "Decisions" sums up the logged answers.
 
-The recap: edit the draft `braid handover` prints (from `report.md`, the PR's head and checks, `braid facts` and the braid log line); for an item merged or blocked, `braid recap <id>` prints it without a handover.
-
-```markdown
-**<id>: <title>** — merged | ready for your merge | blocked. PR: <link> at <head commit>
-
-**Done:** 1–5 bullets on what changed and what it means for the project.
-**Decisions:** choices the brief didn't settle, each with a one-line reason; growth and plan changes under the mandate. "None" if none.
-**Deviations:** only if the work departed from the brief: what and why.
-**Needs the user:** `none`, or per case `<key> (<source>): <what it is about, then what is needed>`; the source is plan, worker, reviewer or facts.
-**You:** only if the user must act: what it is for, then the exact steps, for example "merge PR <link>".
-**Screenshots:** for `ui` items: the final screens, embedded as images from the worker's artifacts folder.
-**Next:** the next item, or what you are waiting for.
-```
+The recap: edit the draft `braid handover` prints (`braid recap <id>` for an item merged or blocked). It already has every field, filled from `report.md`, the PR's head and checks, `braid facts` and the braid log line. Add only what the draft lacks: context first, the exact steps under "You", growth and plan changes under the mandate in **Decisions**, **Deviations**, **Next**, and the worker's final screens for a `ui` item.

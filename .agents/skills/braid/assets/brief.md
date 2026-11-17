@@ -25,6 +25,8 @@ braid strand new 0012 'Title' --labels 'kind:task,tier:S' --order 10
 
 Expected size: about <N> lines in <K> files.
 
+For a spike, or a story that includes research, add under Change: look at <how wide: how many sources, of which kinds>, read each one rather than its title, and record each in `sources.md` in the item folder; name that file in Completion.
+
 ## Start here
 
 - `<path>`: <what to look at and why, in reading order; context, not a plan: the worker writes the plan>
@@ -46,6 +48,7 @@ Expected size: about <N> lines in <K> files.
 Only what the worker can do and prove; none for the reviewer, coordinator or user.
 
 - [ ] <first testable outcome>
+- [ ] Research items only: `sources.md` in the item folder (per source: link, how it was read (whole, part, search result only), what it says, adopted or not and why)
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
 ```
