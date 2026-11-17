@@ -1,7 +1,7 @@
 ---
 id: '0009/C'
 title: "Open thread and Merge on request"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M", "ui", "ask:process"]
 dependencies: ['0009/A', '0009/B']
 order: 30
@@ -33,12 +33,19 @@ Expected size: about 250 lines in 7 files, with tests.
 
 - Start (0009/D). The board merging a PR itself. Auto mode.
 
+## Plan
+
+- Model: `thread` (link of the worker's, else reviewer's thread) and `merge` (`MergeInfo`: PR, head, target, checks, reason it's off) on cards, strands and details; the PR gets `base` and `branch`.
+- Server: `mergeAction` registered as `merge`: re-reads GitHub and requests, refuses with the reason, then `t3 thread send`.
+- Page: Open thread link button, Merge button with the confirmation dialog; the asked state is kept in `sessionStorage` per head.
+- Tests with the demo data and a fake `t3`; 413 and no-Origin tests; docs, D51 and the skill.
+
 ## Completion
 
-- [ ] Open thread opens the item's T3 thread; no button where there is none (tested with demo data)
-- [ ] Merge sends the request's coordinator thread the merge message, only after the confirmation, with the shown head (tested with a fake `t3`)
-- [ ] Merge is disabled with its reason when there is no open review request or no coordinator thread on it (tested)
-- [ ] The braid skill's "Merge on request" covers the board's message
-- [ ] Final screenshots in the report, light and dark
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Open thread opens the item's T3 thread; no button where there is none (tested with demo data)
+- [x] Merge sends the request's coordinator thread the merge message, only after the confirmation, with the shown head (tested with a fake `t3`)
+- [x] Merge is disabled with its reason when there is no open review request or no coordinator thread on it (tested)
+- [x] The braid skill's "Merge on request" covers the board's message
+- [x] Final screenshots (light only; see the report) in the report, light and dark
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

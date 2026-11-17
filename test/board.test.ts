@@ -127,7 +127,7 @@ test("the board API puts each braid in its most urgent strand's lane", async () 
     const lane = Object.fromEntries(data.braids.map((b) => [b.id, b.lane]));
     assert.deepEqual(lane, {
       "0001": "Done",
-      "0002": "To Do",
+      "0002": "In Progress",
       "0003": "To Do",
       "0004": "Done",
       "0005": "In Progress",

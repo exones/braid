@@ -181,3 +181,16 @@ test("wrap-up: the braid's card shows its final PR's checks and counts its revie
   const failed = model.toCard(inProgress, prs("failing"), coordinator, sig([], { "0008 checks failed": 30 }));
   assert.equal(failed.lane, "Waiting");
 });
+
+test("a started braid whose strands are all To Do shows Working: its own status is In Progress, or a strand is Done", () => {
+  const braid = demo.demoBraids().find((b) => b.number === "0007") as unknown as { brief: { status: string }; strands: { brief: { status: string } }[] }; // three strands, all To Do
+  const withStatus = (status: string, firstStrand = "To Do") => ({
+    ...braid,
+    brief: { ...braid.brief, status },
+    strands: braid.strands.map((s, i) => ({ ...s, brief: { ...s.brief, status: i === 0 ? firstStrand : "To Do" } })),
+  });
+  const card = (b: unknown) => model.toCard(b, gh(null), t3(), sig()).lane;
+  assert.equal(card(withStatus("In Progress")), "In Progress", "the braid's own status says started");
+  assert.equal(card(withStatus("To Do", "Done")), "In Progress", "a Done strand says started, between strands");
+  assert.equal(card(withStatus("To Do")), "To Do", "nothing started stays To Do");
+});

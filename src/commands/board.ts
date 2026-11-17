@@ -10,7 +10,7 @@ import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
 import { demoBraids, demoGithub, demoSignals, demoT3, demoTree } from "../board/demo.js";
 import { readGithub, runGh, type Github, type GhRunner } from "../board/github.js";
-import { toBoard, toDetail } from "../board/model.js";
+import { mergeOf, toBoard, toDetail } from "../board/model.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
 import { readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { normaliseId, UsageError } from "./braids.js";
@@ -58,11 +58,52 @@ export type Action = (body: unknown) => unknown;
 /** The request header that carries the session token. */
 export const TOKEN_HEADER = "x-braid-token";
 
-/** Actions that change something are registered here by the strands that add them; none yet. */
-const ACTIONS: Readonly<Record<string, Action>> = {};
+const MERGE_BODY = /^[0-9a-f]{7,40}$/;
+
+/**
+ * Merge on request: asks the coordinator that handed the PR over to merge it. Nothing is merged here.
+ * The body is `{ id, head }`, the item and the head commit the confirmation showed; the server reads
+ * GitHub and the requests again and refuses (400, with the reason) unless the item still has an open
+ * review request with a coordinator thread, its PR still has that head, and its checks are green. Then it
+ * sends that thread `Merge #<n> at <head>, from the board.` with `t3 thread send`.
+ */
+export function mergeAction(src: Sources, root: string, t3: T3Runner): Action {
+  return async (body) => {
+    const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    if (typeof b["id"] !== "string" || typeof b["head"] !== "string" || !MERGE_BODY.test(b["head"])) {
+      throw new UsageError("merge needs { id, head }: the item and the head commit the confirmation showed");
+    }
+    const id = normaliseId(b["id"]);
+    const shown = b["head"];
+    const github = src.github(true);
+    const sig = src.signals(github);
+    const merge = mergeOf(id, github, sig);
+    if (merge === null) {
+      throw new UsageError(`Merge: ${id} has no open review request`);
+    }
+    if (merge.reason !== null) {
+      throw new UsageError(`Merge: ${merge.reason}`);
+    }
+    const current = [...github.prs.values()].find((p) => p.number === merge.pr)?.head ?? merge.head;
+    if (current === undefined || current === null || !current.startsWith(shown)) {
+      throw new UsageError(`Not merged: the PR head moved. You confirmed ${shown.slice(0, 7)}, the PR is now ${(current ?? "unknown").slice(0, 7)}. Check the new commit, then ask again.`);
+    }
+    const thread = sig.requests.get(id)?.thread ?? null;
+    if (thread === null) {
+      throw new UsageError("Merge: no coordinator thread on the review request");
+    }
+    const message = `Merge #${merge.pr} at ${current}, from the board.`;
+    const sent = await t3(root, ["thread", "send", thread, message]);
+    if (sent.error !== undefined || sent.status !== 0) {
+      const first = (sent.stderr.trim().split("\n")[0] ?? "") || sent.error?.message || "t3 failed";
+      throw new UsageError(`Not asked: ${first}`);
+    }
+    return { ok: true, id, pr: merge.pr, head: current, message };
+  };
+}
 
 export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = runT3): Sources {
-  return {
+  const src: Sources = {
     repo: basename(root),
     braids: () => loadLiveBraids(root),
     github: (fresh) => readGithub(root, gh, fresh ? 0 : undefined),
@@ -70,8 +111,10 @@ export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = r
     signals: (github) => readSignals(root, github),
     tree: (item) => treeOf(root, item),
     watch: join(root, "braids"),
-    action: (name) => (Object.hasOwn(ACTIONS, name) ? ACTIONS[name] : undefined),
+    action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3) };
+  return src;
 }
 
 /** The samples of `braid board --demo`: no repository, `gh` or `t3` is touched. */

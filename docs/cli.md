@@ -1,6 +1,6 @@
 # The braid CLI
 
-`braid` reads, creates, edits, logs and reports on the braids (work items) and strands (their parts) in a repository's `braids/` folder, and serves the read-only board. The file format is in [the braids/ format](braids-format.md); each command's full behaviour is under [Commands](braids-format.md#commands) there.
+`braid` reads, creates, edits, logs and reports on the braids (work items) and strands (their parts) in a repository's `braids/` folder, and serves the board. The file format is in [the braids/ format](braids-format.md); each command's full behaviour is under [Commands](braids-format.md#commands) there.
 
 braid finds the repository from the current folder: the nearest folder upwards that holds `braids/` or `.git`.
 
@@ -31,7 +31,7 @@ These are the commands `braid help` lists, in its order.
 | `braid answer <id>` | Close the item's request (`--log <file>\|-` adds your decision to the braid log; `--thread`). |
 | `braid requests` | List the open requests: item, kind, age, text. |
 | `braid clean [<number>\|<id>] [--yes]` | Remove worktrees and local branches of merged items (a dry run without `--yes`; never forces). |
-| `braid board` | Open the read-only board in the browser (`--no-open` only prints the address; `--demo` uses sample data). |
+| `braid board` | Open the board in the browser (`--no-open` only prints the address; `--demo` uses sample data). |
 | `braid help` | Show the help. |
 
 Options: `braid --version` prints the version; `braid --help` shows the help.
@@ -57,7 +57,7 @@ braid status 0008   # one braid's strands: status, lane, branch, PR, ci checks, 
 braid next 0008     # the next strand to run, or why none is ready
 braid start 0008/B  # its branch from the braid tip, pushed, plus a worktree in $BRAID_WORKTREES_DIR (default ~/braid-worktrees)
 braid clean 0008    # dry run: worktrees and local branches of merged items; --yes removes them
-braid board         # open the read-only board in the browser (127.0.0.1, free port)
+braid board         # open the board in the browser (127.0.0.1, free port)
 braid board --demo  # the same board on built-in sample data: no repository, gh or t3 is read
 ```
 

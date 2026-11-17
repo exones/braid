@@ -126,3 +126,25 @@ test("braid board prints the URL with the token in its fragment", async () => {
     await exited;
   }
 });
+
+test("a body over 64 KB gets 413 and runs no action", async () => {
+  calls.length = 0;
+  await withBoard(sources(), async (port, token) => {
+    const big = JSON.stringify({ pad: "x".repeat(64 * 1024 + 1) });
+    // The server may close the connection while the body is still being sent; either way no action ran.
+    const r = await post(port, "/api/action/echo", { "x-braid-token": token }, big).catch(() => ({ status: 413, text: "" }));
+    assert.equal(r.status, 413);
+    assert.deepEqual(calls, []);
+    const ok = await post(port, "/api/action/echo", { "x-braid-token": token }, JSON.stringify({ pad: "x".repeat(60 * 1024) }));
+    assert.equal(ok.status, 200);
+  });
+});
+
+test("a request without Origin passes with the token and a matching Host", async () => {
+  calls.length = 0;
+  await withBoard(sources(), async (port, token) => {
+    const r = await post(port, "/api/action/echo", { "x-braid-token": token }, '{"a":2}');
+    assert.equal(r.status, 200);
+    assert.deepEqual(calls, [{ a: 2 }]);
+  });
+});

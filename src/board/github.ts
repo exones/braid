@@ -12,6 +12,10 @@ export interface PullRequest {
   readonly checks: Checks;
   /** The head commit (full sha), when GitHub gave it; a review request is void when it moves. */
   readonly head?: string;
+  /** The branch it merges into, when GitHub gave it. */
+  readonly base?: string;
+  /** The branch it comes from. */
+  readonly branch?: string;
   /** Names of the failing checks, when GitHub gave them. */
   readonly failed?: readonly string[];
   /** Each check by name with its own result, for an open PR. */
@@ -49,6 +53,7 @@ interface RawPr {
   readonly state: string;
   readonly headRefName: string;
   readonly headRefOid?: string;
+  readonly baseRefName?: string;
   readonly mergedAt?: string | null;
   readonly statusCheckRollup?: readonly { readonly name?: string | null; readonly context?: string | null; readonly conclusion?: string | null; readonly state?: string | null; readonly status?: string | null }[] | null;
 }
@@ -104,7 +109,7 @@ export function keyOfBranch(branch: string): string | null {
   return BRAID_BRANCH.exec(branch)?.[1] ?? null;
 }
 
-const FIELDS = "number,url,state,headRefName,headRefOid,mergedAt,statusCheckRollup";
+const FIELDS = "number,url,state,headRefName,headRefOid,baseRefName,mergedAt,statusCheckRollup";
 
 // Merged PRs never change (closed ones rarely do), so they are kept for the life of the process, per repository folder.
 interface Memory {
@@ -190,7 +195,7 @@ function readFresh(root: string, run: GhRunner): Github {
   for (const [raw, state] of [...closed.map((p) => [p, "closed"] as const), ...merged.map((p) => [p, "merged"] as const), ...open.map((p) => [p, "open"] as const)]) {
     const key = keyOfBranch(raw.headRefName);
     if (key !== null) {
-      prs.set(key, { number: raw.number, url: raw.url, state, ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), checks: state === "open" ? checksOf(raw.statusCheckRollup) : state === "merged" ? "passing" : "none", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
+      prs.set(key, { number: raw.number, url: raw.url, state, ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), ...(raw.baseRefName === undefined ? {} : { base: raw.baseRefName }), branch: raw.headRefName, checks: state === "open" ? checksOf(raw.statusCheckRollup) : state === "merged" ? "passing" : "none", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
     }
   }
   return { status: { state: "ok" }, prs };
