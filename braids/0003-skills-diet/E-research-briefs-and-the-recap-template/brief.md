@@ -1,7 +1,7 @@
 ---
 id: '0003/E'
 title: "Research briefs and the recap template"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S", "ask:process"]
 dependencies: []
 order: 40
@@ -31,8 +31,8 @@ Expected size: about 10 to 30 lines in 3 files.
 
 ## Completion
 
-- [ ] The brief template asks research items for a sources file, how wide to look, and names it in Completion
-- [ ] The recap template no longer repeats the handover draft
-- [ ] Word counts before and after in the report
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open, decisions
+- [x] The brief template asks research items for a sources file, how wide to look, and names it in Completion
+- [x] The recap template no longer repeats the handover draft
+- [x] Word counts before and after in the report
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open, decisions
