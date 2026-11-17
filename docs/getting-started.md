@@ -4,7 +4,7 @@ How to install the braid skills and CLI, set up a repository for braid, and foll
 
 ## The skills
 
-The agent skills `braid`, `braid-worker` and `braid-reviewer` are developed in this repository's `.agents/skills/` and can drive work in any repository. Each skill folder is self-contained: the docs gate fails if a skill links outside its own folder.
+The agent skills `braid`, `braid-worker` and `braid-reviewer` are developed in this repository's `.agents/skills/` and can drive work in any repository. The three are installed together and may link to each other (the stop cases exist once, in `braid`); the docs gate fails if a skill links anywhere else outside its own folder.
 
 - `braid` is the one skill you talk to, for work of any size: a goal, a single story, or "run 0012". It decides whether the work is a story or a goal, keeps the items as braids in the target repository's `braids/` through the `braid` CLI, and launches the workers.
 - `braid-worker` and `braid-reviewer` are the skills of the worker and reviewer threads a coordinator launches. You don't start them yourself.
@@ -12,10 +12,10 @@ The agent skills `braid`, `braid-worker` and `braid-reviewer` are developed in t
 
 ## Install the skills and the CLI
 
-To make the skills available to Cursor, Codex and Claude in every project, install them from a committed ref of a checkout of this repository:
+To make the skills available to Cursor, Codex and Claude in every project, install them from a committed ref of a checkout of this repository (without `-Ref` the installer runs `git fetch origin main` and installs `origin/main`, never a possibly stale local `main`):
 
 ```powershell
-pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from main
+pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from origin/main
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -Ref <branch>  # to try a branch
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1 -SkipCli       # skills only
 ```
@@ -61,4 +61,4 @@ A goal's plan is merged into its braid branch, so `main` gets its briefs with th
 
 ## See the board
 
-Run `braid board` in your own checkout of `main`. It reads each item from its own branch, so a strand whose PR braid handed to you for your merge shows To Review; braid marks it Done on the braid branch after the merge (`braid done`). The board is read-only; ask `braid` for changes. `braid board --demo` shows it on sample data. What the lanes mean: [the attention board](board.md).
+Run `braid board` in your own checkout of `main`. It reads each item from its own branch, so a strand whose PR braid handed to you for your merge shows To Review; braid marks it Done on the braid branch after the merge (`braid accept`). The board is read-only; ask `braid` for changes. `braid board --demo` shows it on sample data. What the lanes mean: [the attention board](board.md).

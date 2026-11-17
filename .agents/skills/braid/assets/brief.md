@@ -1,29 +1,22 @@
 # A braid brief
 
-An item is a braid (`0012`) or one of its strands (`0012/A`), a folder under `braids/` with a
-`brief.md` (front matter, then the brief), an optional `report.md` and one log file per thread. The
-coordinator creates it; its worker owns it from then on. `braid` holds the logic (numbers, letters,
-logs); edit `brief.md` and `report.md` directly like any Markdown file, then run `braid check`, which
-must print `braids OK`. The format is `braid help` and the braid repository's `docs/braids-format.md`.
+An item is a braid (`0012`) or one of its strands (`0012/A`): a folder under `braids/` with a `brief.md` (front matter, then the brief), an optional `report.md` and one log file per thread. Who creates, owns and finishes an item is in [the workflow](../references/workflow.md). The format is `braid help` and the braid repository's `docs/braids-format.md`.
 
 ## Fields
 
-- `status`: `Outline`, `To Do`, `In Progress` or `Done`. An Outline holds only the goal, what works at
-  the end, strand titles and open questions; it is detailed into a full brief when its turn comes.
-- `labels`: `kind:story|task|spike` and `tier:S|M|L`, plus `ui` for new or noticeably changed
-  user-facing UI, and `ask:<key>` for each [stop case](../references/stop-cases.md) the plan already shows.
-- `dependencies`: real prerequisites only. `order`: run order among a braid's strands, 10, 20, 30, so
-  one can slot in between.
+- `status`: `Outline`, `To Do`, `In Progress` or `Done` (workflow, "Items are braids").
+- `labels`: `kind:story|task|spike` and `tier:S|M|L` (workflow, "Tiers"), plus `ui` for new or noticeably changed user-facing UI, and `ask:<key>` for each [stop case](../references/stop-cases.md) the plan already shows.
+- `dependencies`: real prerequisites only. `order`: run order among a braid's strands, 10, 20, 30, so one can slot in between.
 - `delivery`: leave the default `epic`; the strands of a braid merge into its branch, then one PR into `main`.
 
-## Create (coordinator, on a branch it holds)
+## Create
 
 ```sh
-braid new 'Title' --labels 'kind:story,tier:M' --dep 0003    # prints the id and folder
+# coordinator, on a branch it holds; each prints the id and folder
+braid new 'Title' --labels 'kind:story,tier:M' --dep 0003
 braid strand new 0012 'Title' --labels 'kind:task,tier:S' --order 10
+# then write the body below into the printed folder's brief.md, under the front matter
 ```
-
-Then write the body into the printed folder's `brief.md`, below the front matter:
 
 ```markdown
 ## Goal
@@ -32,9 +25,11 @@ Then write the body into the printed folder's `brief.md`, below the front matter
 
 Expected size: about <N> lines in <K> files.
 
+For a spike, or a story that includes research, add under Change: look at <how wide: how many sources, of which kinds>, read each one rather than its title, and record each in `sources.md` in the item folder; name that file in Completion.
+
 ## Start here
 
-- `<path>`: <what to look at and why, in reading order>
+- `<path>`: <what to look at and why, in reading order; context, not a plan: the worker writes the plan>
 
 ## Change
 
@@ -42,64 +37,65 @@ Expected size: about <N> lines in <K> files.
 
 ## Already decided
 
-- <a fact or choice; don't re-investigate>
+- <a fact or choice; settled, not to be re-investigated>
 
 ## Out of scope
 
 - <what not to touch or build>
 
-## Acceptance
+## Completion
+
+Only what the worker can do and prove; none for the reviewer, coordinator or user. A goal's own brief has no worker: its boxes cover the whole, and the coordinator ticks them at "Finish".
 
 - [ ] <first testable outcome>
-
-## Definition of done
-
+- [ ] Research items only: `sources.md` in the item folder (per source: link, how it was read (whole, part, search result only), what it says, adopted or not and why)
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
 ```
 
-A spike's answer, evidence and proposed follow-ups are its `report.md`; the worker proposes
-follow-ups, the coordinator creates them.
-
 ## Work on it
 
 ```sh
-# worker, on its strand branch
-braid edit 0012/A --status 'In Progress'                 # first commit
-braid brief 0012/A Plan --file -                         # before coding; or edit brief.md
-'Found X; decided Y.' | braid log 0012/A --thread <your thread id> --file -   # staged, not committed; with the commit it explains
-# tick the boxes you proved in brief.md; write report.md (or braid report 0012/A --file <path>); never set Done
+# worker, on its item's branch
+braid edit 0012/A --status 'In Progress'      # first commit
+braid brief 0012/A Plan --file -              # the plan, before coding; or edit brief.md
+'Found X; decided Y.' | braid log 0012/A --thread <your thread id> --file -
+                                              # staged, not committed: commit it with the change it explains
+braid report 0012/A --file <path>             # or write report.md directly (template below)
+# tick the Completion boxes you proved; no CI box: braid accept checks CI
 
 # coordinator, on plan/ or the braid branch, for items that haven't started
-braid edit 0012/B --dep 0012/A --order 20                # --dep and --labels replace the list: repeat the others; `none` clears one
+braid edit 0012/B --dep 0012/A --order 20     # --dep and --labels replace the list: repeat the others; `none` clears one
 
-# coordinator: mark an item Done (CI is checked by braid done, so briefs have no CI box)
-braid done 0012/A --log -                                # strand merged: on the braid branch, pulls, sets Done with the log entry, commits, pushes
-braid done 0012/A --head <reviewed sha> --merge --log -  # strand on request or in auto mode: checks, merges that head, then the same
-braid done 0013 --head <reviewed sha>                    # story or final PR: checks, a status-only commit on its branch; prints the new head
+# coordinator: accept an item; <link>: the review comment (not for tier S)
+braid accept 0012/A --review <link> --thread <your thread id> --log -
+                                              # strand merged: on the braid branch; pulls, sets Done with the log entry, commits, pushes
+braid accept 0012/A --head <reviewed sha> --review <link> --merge --log -
+                                              # strand on request or in auto mode: merges that head first
+braid accept 0013 --head <reviewed sha> --review <link> --thread <your thread id>
+                                              # story or final PR: checks, a status-only commit on its branch
+
+# the braid's log entry, on standard input of the braid accept that sets the strand Done
+'0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.'
+
+# pass log and report text on standard input (--file -, --log -) whenever it may hold quotes:
+# on Windows the braid.cmd shim splits an argument that holds a quoted phrase
 ```
 
-Every refusal names the failed condition and changes nothing. `braid status` ends the line of a merged
-item that isn't Done with `run braid done <id>`.
+`report.md`:
 
-`report.md`: what changed, why, validation, anything open, then `For later items:` (changed names or
-interfaces, deviations from the plan, new decisions, or `none`) and `Needs the user:` (`none`, or
-`<key>: <one sentence>` per case). It describes the PR as it stands: after a fix round the worker
-rewrites it; the history is in the log.
+```markdown
+<what changed, why, validation, anything open>
 
-The braid's log: after each strand merges into the braid branch, and before the next strand's branch
-is cut, the coordinator adds one entry on the braid branch, in the commit that sets the strand Done:
-
-```sh
-'0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.' | braid done 0012/A --thread <your thread id> --log -
+Decisions: <the user's answers from the log, then your own, or none>
+For later items: <changed names or interfaces, deviations from the plan, new decisions, ideas worth a later item, or none>
+Needs the user: <none, or per stop case `<key>: <what it is about, then what is needed>`>
 ```
-
-Pass log and report text on standard input (`--file -`), as above, whenever it may hold quotes: on Windows the `braid.cmd` shim splits an argument that holds a quoted phrase.
 
 ## Read
 
 ```sh
 braid list                 # every braid and its strands: id, status, order, title
 braid view 0012/A          # fields, folder, report, logs and the brief
-braid check                # after any direct edit, and after a merge conflict in braids/
+braid check                # after any direct edit of brief.md or report.md, and after a merge conflict in braids/; must print `braids OK`
 ```

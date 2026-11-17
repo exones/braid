@@ -12,7 +12,7 @@ import { logEntry, reportItem } from "./commands/logs.js";
 import { nextCommand, statusCommand } from "./commands/coordinate.js";
 import { cleanCommand } from "./commands/clean.js";
 import { startCommand } from "./commands/start.js";
-import { doneCommand } from "./commands/done.js";
+import { acceptCommand } from "./commands/done.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
 import { answerCommand, askCommand, handoverCommand, requestsCommand } from "./commands/requests.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
@@ -51,7 +51,7 @@ export function helpText(version: string): string {
     "  status <number>             One line per strand: status, lane (as the board shows it), ask:<key>, branch, PR, ci checks, T3 thread, and the request text of an item on your side (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id> [--force|--review]  Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check); --review: a detached checkout of the open PR head for the reviewer",
-    "  done <id> [--head <sha>] [--merge]  Mark an item Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first), a story or final PR on its branch (--log adds a braid log entry)",
+    "  accept <id> [--head <sha>] [--merge]  Accept an item and mark it Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first), a story or final PR on its branch (--log adds a braid log entry, --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case",
     "  recap <id>                  A draft recap and braid log line from report.md, the PR (head, checks) and the facts, to edit",
     "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints the recap draft (--thread)",
@@ -204,9 +204,12 @@ async function main(argv: readonly string[]): Promise<void> {
     }
     return;
   }
-  if (argv[0] === "status" || argv[0] === "next" || argv[0] === "start" || argv[0] === "clean" || argv[0] === "done" || argv[0] === "facts" || argv[0] === "recap" || argv[0] === "handover") {
+  if (argv[0] === "status" || argv[0] === "next" || argv[0] === "start" || argv[0] === "clean" || argv[0] === "accept" || argv[0] === "done" || argv[0] === "facts" || argv[0] === "recap" || argv[0] === "handover") {
     try {
-      const run = argv[0] === "status" ? statusCommand : argv[0] === "next" ? nextCommand : argv[0] === "start" ? startCommand : argv[0] === "done" ? doneCommand : argv[0] === "facts" ? factsCommand : argv[0] === "recap" ? recapCommand : argv[0] === "handover" ? handoverCommand : cleanCommand;
+      const run = argv[0] === "status" ? statusCommand : argv[0] === "next" ? nextCommand : argv[0] === "start" ? startCommand : argv[0] === "accept" || argv[0] === "done" ? acceptCommand : argv[0] === "facts" ? factsCommand : argv[0] === "recap" ? recapCommand : argv[0] === "handover" ? handoverCommand : cleanCommand;
+      if (argv[0] === "done") {
+        process.stderr.write("braid done is now braid accept; running braid accept\n");
+      }
       process.stdout.write(await run(findRoot(process.cwd()), argv.slice(1)));
     } catch (error) {
       if (error instanceof UsageError || error instanceof GitError) {

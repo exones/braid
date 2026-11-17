@@ -12,6 +12,9 @@ BeforeAll {
     if ($LASTEXITCODE -ne 0) {
       throw "git $($GitArguments -join ' ') exited $LASTEXITCODE"
     }
+    if ($GitArguments[0] -eq 'commit') {
+      & git -C $script:Repo push -q origin main | Out-Null
+    }
   }
 
   function Write-RepoFile {
@@ -59,6 +62,8 @@ Describe 'Install-Skills.ps1' {
     foreach ($name in @('other', 'braidx', 'my-braid', 'Braid-Upper')) {
       Write-RepoFile ".agents/skills/$name/SKILL.md" "not braid`n"
     }
+    & git init -q --bare -b main (Join-Path $work 'origin.git')
+    Invoke-RepoGit @('remote', 'add', 'origin', (Join-Path $work 'origin.git'))
     Invoke-RepoGit @('add', '-A')
     Invoke-RepoGit @('commit', '-q', '-m', 'v1')
     $script:First = (& git -C $script:Repo rev-parse HEAD).Trim()
@@ -74,7 +79,7 @@ Describe 'Install-Skills.ps1' {
       (Get-Installed $root 'braid/.braid-install.json' | ConvertFrom-Json).commit | Should -Be $script:First
       $stamp = Get-Installed $root 'braid-demo/.braid-install.json' | ConvertFrom-Json
       $stamp.commit | Should -Be $script:First
-      $stamp.ref | Should -Be 'main'
+      $stamp.ref | Should -Be 'origin/main'
       @(Get-ChildItem -LiteralPath $root -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo')
     }
   }
@@ -149,6 +154,13 @@ Describe 'Install-Skills.ps1' {
       @(Get-ChildItem -LiteralPath $root -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-reviewer', 'braid-worker')
       Get-Installed $root 'braid-reviewer/SKILL.md' | Should -Match '(?m)^name: braid-reviewer$'
       Test-Path -LiteralPath (Join-Path $root 'braid-reviewer/.braid-install.json') -PathType Leaf | Should -BeTrue
+      # One stop-cases.md, in braid; the other two skills link to it and the link resolves where they are installed.
+      @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter 'stop-cases.md').Count | Should -Be 1
+      foreach ($skill in @('braid-reviewer', 'braid-worker')) {
+        $link = '../braid/references/stop-cases.md'
+        Get-Installed $root "$skill/SKILL.md" | Should -Match ([regex]::Escape("]($link)"))
+        Test-Path -LiteralPath (Join-Path $root "$skill/$link") -PathType Leaf | Should -BeTrue
+      }
     }
 
     $result = Invoke-Install
@@ -156,6 +168,31 @@ Describe 'Install-Skills.ps1' {
     foreach ($root in @($script:TargetA, $script:TargetB)) {
       @(Get-ChildItem -LiteralPath $root -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo')
     }
+  }
+
+  It 'without -Ref fetches and installs origin/main, not a stale local main' {
+    # origin gets v2 from a second clone; the local main stays at v1
+    $other = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
+    & git clone -q (Join-Path (Split-Path -Parent $script:Repo) 'origin.git') $other
+    & git -C $other config user.email fixture@example.invalid
+    & git -C $other config user.name fixture
+    [System.IO.File]::WriteAllText((Join-Path $other '.agents/skills/braid-demo/SKILL.md'), "v2`n")
+    & git -C $other commit -q -am v2
+    & git -C $other push -q origin main
+    $newest = (& git -C $other rev-parse HEAD).Trim()
+
+    $result = Invoke-Install
+    $result.Code | Should -Be 0 -Because $result.Text
+    Get-Installed $script:TargetA 'braid-demo/SKILL.md' | Should -Be "v2`n"
+    (Get-Installed $script:TargetA 'braid-demo/.braid-install.json' | ConvertFrom-Json).commit | Should -Be $newest
+    (& git -C $script:Repo rev-parse main).Trim() | Should -Be $script:First
+  }
+
+  It 'fails without -Ref when origin cannot be fetched' {
+    Invoke-RepoGit @('remote', 'remove', 'origin')
+    $result = Invoke-Install
+    $result.Code | Should -Not -Be 0
+    $result.Text | Should -Match 'fetch'
   }
 
   It 'fails for a ref that does not exist' {

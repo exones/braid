@@ -15,14 +15,19 @@ Review someone else's PR with fresh eyes, report once, and stop.
 
 ## Check
 
-- Each acceptance criterion: met or not, and where in the diff.
+- Each Completion box: met or not, and where in the diff.
 - Focus first: correctness, unsafe behavior, missing tests on risky paths, tests weakened or deleted, and scope creep beyond the brief.
+- Read around the diff: whole changed functions, their callers, docs and decisions made stale.
+- Failure paths: empty or missing input, errors (also swallowed ones), a second or concurrent run, Windows against Linux.
+- Test the tests: would each new test fail on the old code? Watch for assertions that can't fail.
 - In skills and agent instructions, wording that could be shorter.
+- A code finding names the input and the wrong result. A likely blocking problem you couldn't confirm stays Blocking, marked so, unless a run disproves it; "unverified" is for weaker suspicions, in Suggestions.
+- Skip style and preexisting problems; list a repeated problem once with all its places; say what you could not check.
 - Run code only to confirm a suspicion. CI results on the PR are the evidence (`gh pr checks <pr>`); with `ci: none` in `BRAID.md`, run the gate once at the head commit.
 
-**Blocking bar:** an acceptance criterion not met, wrong behavior, a security or data-loss risk, missing tests on a risky path, a broken gate, or weakened or deleted tests. Everything else is a suggestion.
+**Blocking bar:** a Completion box not met, wrong behavior, a security or data-loss risk, missing tests on a risky path, a broken gate, or weakened or deleted tests. Everything else is a suggestion.
 
-**Needs the user:** judge the change against the [stop cases](references/stop-cases.md) yourself, not from the worker's report, and give the evidence (file and line, or command output) for each case you name.
+**Needs the user:** judge the change against the [stop cases](../braid/references/stop-cases.md) yourself, not from the worker's report, and give the evidence (file and line, or command output) for each case you name. The user reads this line without the rest of the review: say what it is about, then what is needed.
 
 ## Report
 
@@ -33,7 +38,7 @@ Review someone else's PR with fresh eyes, report once, and stop.
 
    **Blocking:** numbered findings, each with file, line and what must change; or "None".
    **Suggestions:** optional improvements; or "None".
-   **Needs the user:** `none`, or `<key>: <one sentence with evidence>` per case.
+   **Needs the user:** `none`, or per case `<key>: <what it is about, what is needed, the evidence>`.
    ```
 
 2. Send the coordinator's thread one message with `t3_thread_send`: blocking or not, the Needs the user line, the reviewed commit and the comment's link. You're done.

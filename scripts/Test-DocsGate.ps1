@@ -8,8 +8,8 @@
 # whose links are not validated; their text is still checked.
 # Skills: a relative link in .agents/skills/<name>/ must stay inside that
 # folder, because skills are installed elsewhere and used from other projects.
-# A file with the same path under references/ in two skills is a shared copy
-# and must be byte-identical in the worktree.
+# The braid skills (braid and braid-*) are installed together by
+# scripts/Install-Skills.ps1, so they may also link to each other.
 # Text: index blobs and worktree bytes. An empty `git diff --check` is not
 # this check; a clean checkout still has to fail when a blob contains CR
 # or trailing whitespace.
@@ -450,7 +450,10 @@ function Add-SkillContainmentFindings {
     if ($file.Path -notmatch '^\.agents/skills/([^/]+)/.+\.md$') {
       continue
     }
-    $skillRoot = [System.IO.Path]::GetFullPath((Join-Path $script:RepoRoot ".agents/skills/$($Matches[1])"))
+    $skillName = $Matches[1]
+    $skillsRoot = [System.IO.Path]::GetFullPath((Join-Path $script:RepoRoot '.agents/skills'))
+    $skillRoot = Join-Path $skillsRoot $skillName
+    $family = '^braid(-[a-z0-9-]+)?$'
     $fullPath = Join-Path $script:RepoRoot $file.Path
     if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
       continue
@@ -468,6 +471,11 @@ function Add-SkillContainmentFindings {
       $resolved = [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $fullPath) $relative))
       $inside = $resolved.Equals($skillRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
         $resolved.StartsWith($skillRoot + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)
+      if (-not $inside -and $skillName -cmatch $family -and
+        $resolved.StartsWith($skillsRoot + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $sibling = $resolved.Substring($skillsRoot.Length + 1).Split([char[]]@('\', '/'))
+        $inside = $sibling.Count -gt 1 -and $sibling[0] -cmatch $family
+      }
       if (-not $inside) {
         $Findings.Add("skill link leaves its folder in $($file.Path): $target")
       }
@@ -475,32 +483,8 @@ function Add-SkillContainmentFindings {
   }
 }
 
-function Add-SharedReferenceFindings {
-  param([Parameter(Mandatory = $true)][AllowEmptyCollection()][System.Collections.Generic.List[string]]$Findings)
-  $first = @{}
-  foreach ($file in (Get-IndexFiles)) {
-    if ($file.Path -notmatch '^\.agents/skills/[^/]+/(references/.+)$') {
-      continue
-    }
-    $name = $Matches[1]
-    $fullPath = Join-Path $script:RepoRoot $file.Path
-    if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
-      continue
-    }
-    $bytes = [System.IO.File]::ReadAllBytes($fullPath)
-    if (-not $first.ContainsKey($name)) {
-      $first[$name] = [pscustomobject]@{ Path = $file.Path; Bytes = $bytes }
-      continue
-    }
-    if (-not (Test-SameBytes -Left $first[$name].Bytes -Right $bytes)) {
-      $Findings.Add("shared skill reference differs: $($file.Path) and $($first[$name].Path)")
-    }
-  }
-}
-
 $failures = [System.Collections.Generic.List[string]]::new()
 Add-SkillContainmentFindings -Findings $failures
-Add-SharedReferenceFindings -Findings $failures
 $linkConfig = Get-LinkConfig
 $linkFindings = @(Get-LinkFindings -Frozen ([string[]]$linkConfig.Frozen))
 $exclusions = @($linkConfig.Exclusions)

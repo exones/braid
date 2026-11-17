@@ -18,7 +18,7 @@ const { handoverCommand, askCommand, requestsCommand, answerCommand } = (await l
   answerCommand: (root: string, cwd: string, args: string[]) => string;
 };
 const { startCommand } = (await load("../dist/commands/start.js")) as { startCommand: (root: string, args: string[], src: object, env: object) => Promise<string> };
-const { doneCommand } = (await load("../dist/commands/done.js")) as { doneCommand: Cmd };
+const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
 const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
 const { loadRequests, requestsFile, openRequest, liveRequests, filterLive, age } = (await load("../dist/braids/requests.js")) as {
@@ -197,17 +197,17 @@ test("braid start closes the request of the item it starts, and only that one", 
   assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0001"]);
 });
 
-test("braid done closes the request when the item is Done; a refused done leaves it", async () => {
+test("braid accept closes the request when the item is Done; a refused done leaves it", async () => {
   const w = world();
   askCommand(w.root, ["0001/A", "Merge?", "--kind", "decision"], { now: w.clock });
   const t3 = async () => ({ status: 1, stdout: "", stderr: "no t3" });
   // No PR for the item: refused.
-  await assert.rejects(doneCommand(w.root, ["0001/A", "--thread", THREAD], { gh: () => ok([]), t3 }) as Promise<string>, /has no PR/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A", "--thread", THREAD], { gh: () => ok([]), t3 }) as Promise<string>, /has no PR/);
   assert.equal(loadRequests(w.root).length, 1);
   // The PR merged: braid done stamps it on the braid branch, where this checkout is.
   git(w.root, "checkout", "-q", "-b", "braid/0001-alpha", "origin/braid/0001-alpha");
-  const merged = () => ok([{ number: 5, url: "u/5", state: "MERGED", headRefName: "braid/0001/A-first", statusCheckRollup: [] }]);
-  const out = (await doneCommand(w.root, ["0001/A", "--thread", THREAD], { gh: merged, t3 })) as string;
+  const merged = (_r: string, args: readonly string[]) => (args[1] === "list" ? ok([{ number: 5, url: "u/5", state: "MERGED", headRefName: "braid/0001/A-first", statusCheckRollup: [] }]) : ok({ number: 5, headRefOid: "abcdef0123456789" }));
+  const out = (await acceptCommand(w.root, ["0001/A", "--thread", THREAD], { gh: merged, t3 })) as string;
   assert.match(out, /0001\/A done/);
   assert.deepEqual(loadRequests(w.root), []);
 });
