@@ -37,6 +37,6 @@ The board can act, locally: **Start** a braid by launching a new coordinator thr
 
 ## Completion
 
-- [ ] Strands A to D Done on the braid branch
-- [ ] `main` merged in; the gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, decisions from the log, anything open
+- [x] Strands A to D Done on the braid branch
+- [x] `main` merged in; the gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, decisions from the log, anything open
