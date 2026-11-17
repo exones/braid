@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, beforeEach, test } from "node:test";
@@ -294,4 +294,39 @@ folder ${braidFolder}
   const cleanedBraid = await cleanCommand(root, ["0001", "--yes"], src([done, finalDone]), env);
   assert.match(cleanedBraid, /removed 0001: review checkout .*0001-review/);
   assert.equal(existsSync(braidFolder), false);
+});
+
+test("a planned story's pushed branch gets its worktree, tracking origin/; a local-only branch is checked out as is", async () => {
+  const { root, env, wt } = repo(false);
+  const planned = git(root, "rev-parse", "main");
+  git(root, "push", "-q", "origin", "main:refs/heads/braid/0002-story");
+  git(root, "fetch", "-q", "origin");
+  const out = await startCommand(root, ["0002"], src(), env);
+  const folder = join(wt, "proj", "0002");
+  assert.equal(out, "branch braid/0002-story (existing)"+"\n"+"commit " + planned + "\n"+"folder " + folder + "\n");
+  assert.equal(git(folder, "rev-parse", "--abbrev-ref", "HEAD"), "braid/0002-story");
+  assert.equal(git(folder, "rev-parse", "--abbrev-ref", "@{upstream}"), "origin/braid/0002-story");
+  // A local branch only.
+  const b = repo(false);
+  git(b.root, "branch", "braid/0002-story");
+  await startCommand(b.root, ["0002"], src(), b.env);
+  assert.equal(git(join(b.wt, "proj", "0002"), "rev-parse", "--abbrev-ref", "HEAD"), "braid/0002-story");
+});
+
+test("a story with an existing branch is still refused with a PR open, a worktree, or a status other than To Do", async () => {
+  const a = repo(false);
+  git(a.root, "push", "-q", "origin", "main:refs/heads/braid/0002-story");
+  const pr = { number: 7, url: "u/7", state: "OPEN", headRefName: "braid/0002-story", statusCheckRollup: [] };
+  await assert.rejects(startCommand(a.root, ["0002"], src([pr]), a.env), /PR #7 is open/);
+  mkdirSync(join(a.wt, "proj", "0002"), { recursive: true });
+  await assert.rejects(startCommand(a.root, ["0002"], src(), a.env), /already exists/);
+  const c = repo(false);
+  git(c.root, "push", "-q", "origin", "main:refs/heads/braid/0002-story");
+  writeFileSync(join(c.root, "braids/0002-story/brief.md"), readFileSync(join(c.root, "braids/0002-story/brief.md"), "utf8").replace("status: To Do", "status: In Progress"));
+  await assert.rejects(startCommand(c.root, ["0002"], src(), c.env), /status In Progress/);
+  // Checked out in a worktree already.
+  const d = repo(false);
+  git(d.root, "branch", "braid/0002-story");
+  git(d.root, "worktree", "add", "-q", join(d.wt, "elsewhere"), "braid/0002-story");
+  await assert.rejects(startCommand(d.root, ["0002"], src(), d.env), /checked out in a worktree/);
 });

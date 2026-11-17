@@ -81,14 +81,20 @@ function world() {
   const other = join(base, "other");
   git(root, "worktree", "add", "-q", "--detach", other, "main");
   const pr: Pr = { state: "OPEN", checks: "SUCCESS", head: first };
+  /** Commits whose `verify` check passed, as `gh api .../check-runs` reports it. */
+  const green = new Set<string>();
   const gh = (_r: string, args: readonly string[]) => {
+    if (args[0] === "api") {
+      const sha = /commits\/([0-9a-f]+)\/check-runs/.exec(args[1] ?? "")?.[1] ?? "";
+      return ok({ check_runs: green.has(sha) ? [{ name: "verify", status: "completed", conclusion: "success" }] : [] });
+    }
     const rollup = [{ name: "verify", conclusion: pr.checks === "PENDING" ? "" : pr.checks, status: pr.checks === "PENDING" ? "IN_PROGRESS" : "COMPLETED" }];
     if (args[1] === "list") {
       return ok([{ number: 5, url: "u/5", state: pr.state, headRefName: "braid/0001/A-first", statusCheckRollup: rollup }]);
     }
     return ok({ number: 5, url: "u/5", state: pr.state, baseRefName: "braid/0001-alpha", headRefName: "braid/0001/A-first", headRefOid: pr.head, mergeable: "MERGEABLE", statusCheckRollup: rollup });
   };
-  return { root, other, pr, gh, first, clock: () => NOW };
+  return { root, other, pr, gh, first, green, clock: () => NOW };
 }
 
 test("ask opens a request that every worktree shares; a new ask replaces it; answer closes it", async () => {
@@ -326,4 +332,29 @@ test("the state folder ignores itself, so it never shows as untracked", () => {
   openRequest(w.root, req("0001"));
   assert.equal(readFileSync(join(dirname(requestsFile(w.root)), ".gitignore"), "utf8"), "*\n");
   assert.equal(git(w.root, "status", "--porcelain", "--untracked-files=all"), "");
+});
+
+test("handover passes a head with no checks that only adds braids/ changes on a green commit, and names that commit", async () => {
+  const w = world();
+  w.green.add(w.first);
+  let n = 0;
+  const on = (path: string) => {
+    git(w.root, "checkout", "-q", "braid/0001/A-first");
+    mkdirSync(dirname(join(w.root, path)), { recursive: true });
+    writeFileSync(join(w.root, path), `x${++n}\n`);
+    git(w.root, "add", "-A");
+    git(w.root, "commit", "-q", "-m", "next");
+    git(w.root, "checkout", "-q", "main");
+    return git(w.root, "rev-parse", "braid/0001/A-first");
+  };
+  w.pr.head = on("braids/0001-alpha/A-first/report.md");
+  w.pr.checks = "PENDING";
+  const out = (await handoverCommand(w.root, ["0001/A", "--head", w.pr.head], { gh: w.gh, now: w.clock })) as string;
+  assert.match(out, new RegExp("checks skipped on " + w.pr.head.slice(0, 7) + ": only braids/ changed since " + w.first.slice(0, 7)));
+  // A code change on top refuses; so does a failed check on the head.
+  w.pr.head = on("code.txt");
+  await assert.rejects(handoverCommand(w.root, ["0001/A", "--head", w.pr.head], { gh: w.gh, now: w.clock }) as Promise<string>, /verify pending/);
+  w.pr.head = on("braids/0001-alpha/A-first/report.md");
+  w.pr.checks = "FAILURE";
+  await assert.rejects(handoverCommand(w.root, ["0001/A", "--head", w.pr.head], { gh: w.gh, now: w.clock }) as Promise<string>, /verify failing/);
 });

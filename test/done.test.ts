@@ -101,7 +101,13 @@ function world() {
   const comments: string[] = [];
   const headOf = (branch: string) => git(root, "ls-remote", remote, `refs/heads/${branch}`).split("\t")[0] ?? "";
   const rollup = (p: FakePr) => [{ name: "verify", conclusion: p.checks === "PENDING" ? "" : p.checks, status: p.checks === "PENDING" ? "IN_PROGRESS" : "COMPLETED" }];
+  /** Commits whose `verify` check passed, as `gh api .../check-runs` reports it. */
+  const green = new Set<string>();
   const gh = (_r: string, args: readonly string[]) => {
+    if (args[0] === "api") {
+      const sha = /commits\/([0-9a-f]+)\/check-runs/.exec(args[1] ?? "")?.[1] ?? "";
+      return ok({ check_runs: green.has(sha) ? [{ name: "verify", status: "completed", conclusion: "success" }] : [] });
+    }
     if (args[1] === "list") {
       return ok(prs.map((p) => ({ number: p.number, url: `u/${p.number}`, state: p.state, headRefName: p.branch, statusCheckRollup: rollup(p) })));
     }
@@ -145,6 +151,7 @@ function world() {
     prs,
     merges,
     comments,
+    green,
     opts,
     headOf,
     setThreads: (t: object[]) => (threads = t),
@@ -426,4 +433,30 @@ test("a brief with no Completion, Acceptance or Definition of done section is re
 test("old briefs with Acceptance and Definition of done, and new ones with Completion, pass the box check", () => {
   assert.deepEqual(openBoxes("## Completion\n\n- [x] a\n- [ ] b\n- [ ] CI green\n\n## Plan\n\n- [ ] later\n"), ["b"]);
   assert.deepEqual(openBoxes("## Acceptance\n\n- [ ] x\n\n## Definition of done\n\n- [ ] y\n"), ["x", "y"]);
+});
+
+test("a head with no checks that only adds braids/ changes on a green commit is accepted, with and without --merge", async () => {
+  const w = world();
+  const code = w.headOf("braid/0002-story");
+  w.green.add(code);
+  // The story's own commit changed braids/ only (brief, report), so the whole branch above main counts; main has no green record, so the PR's green is the base.
+  w.workerCommit("braid/0002-story", "braids/0002-story/report.md", "# more"+"\n");
+  const head = w.headOf("braid/0002-story");
+  w.prs[1]!.checks = "PENDING";
+  const out = await acceptCommand(w.root, ["0002", "--head", head, "--merge"], w.opts);
+  assert.match(out, new RegExp("checks skipped on " + head.slice(0, 7) + ": only braids/ changed since " + code.slice(0, 7)));
+  assert.equal(w.merges.length, 1);
+});
+
+test("a code change on top of the green commit, or a failed check on the head, still refuses accept", async () => {
+  const w = world();
+  w.green.add(w.headOf("braid/0002-story"));
+  w.workerCommit("braid/0002-story", "code.txt", "b"+"\n");
+  w.prs[1]!.checks = "PENDING";
+  await assert.rejects(acceptCommand(w.root, ["0002", "--head", w.headOf("braid/0002-story")], w.opts), /verify pending/);
+  w.workerCommit("braid/0002-story", "braids/0002-story/report.md", "# x"+"\n");
+  w.green.add(git(w.root, "--git-dir", w.remote, "rev-parse", "braid/0002-story~1"));
+  w.prs[1]!.checks = "FAILURE";
+  await assert.rejects(acceptCommand(w.root, ["0002", "--head", w.headOf("braid/0002-story")], w.opts), /verify failing/);
+  assert.equal(w.merges.length, 0);
 });

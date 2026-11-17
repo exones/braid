@@ -128,7 +128,7 @@ export async function recapCommand(root: string, args: readonly string[], opts: 
   const names = ciChecks(root);
   const runs = runsOf(pr.statusCheckRollup);
   const checks = (names.length === 0 ? runs.map((r) => r.name) : names).map((n) => `${n} ${runs.find((r) => r.name === n)?.result ?? "pending"}`).join(", ");
-  const problem = checksProblem(names, pr);
+  const problem = checksProblem(names, pr, { root, run });
   const worker = field(report, "Needs the user");
   const quiet = worker === null || /^`?none`?\.?$/i.test(worker);
   const needs = facts.map((f) => `${f.key} (facts): ${f.text}`);

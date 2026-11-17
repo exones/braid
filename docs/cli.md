@@ -22,11 +22,11 @@ These are the commands `braid help` lists, in its order.
 | `braid check` | Check every brief under `braids/`; list each error with its file (exit 2 on any). |
 | `braid status <number>` | One line per strand: status, lane (as the board shows it), `ask:<key>`, branch, PR, `ci` checks, T3 thread, and the request text of an item on your side. Reads GitHub and T3, no fetch. |
 | `braid next <number>` | The next strand to run, or why none is ready. |
-| `braid start <id> [--force\|--review]` | Create the strand branch from its braid branch, push it and add a worktree (`--force` skips the ready check); `--review` makes a detached checkout of the open PR head for the reviewer. |
-| `braid accept <id> [--head <sha>] [--merge] [--review <url>]` | Accept an item and mark it Done after checks (`braid done` is the old name): a strand on the braid branch after its merge (`--merge` merges the reviewed head first), a story or final PR on its branch (`--log` adds a braid log entry). |
+| `braid start <id> [--force\|--review]` | Create the strand branch from its braid branch, push it and add a worktree; a planned story whose branch already exists gets its worktree on it (`--force` skips the ready check); `--review` makes a detached checkout of the open PR head for the reviewer. |
+| `braid accept <id> [--head <sha>] [--merge] [--review <url>]` | Accept an item and mark it Done after checks (`braid done` is the old name): a strand on the braid branch after its merge (`--merge` merges the reviewed head first), a story or final PR on its branch (`--log` adds a braid log entry). Checks missing or pending on a head that only adds `braids/` changes on a green commit don't block it. |
 | `braid facts <pr>` | The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case. |
 | `braid recap <id>` | A draft recap and braid log line from `report.md`, the PR (head, checks) and the facts, to edit. |
-| `braid handover <id> --head <sha>` | Open a review request after checking the PR is open, at that head and green; prints the recap draft (`--thread`). |
+| `braid handover <id> --head <sha>` | Open a review request after checking the PR is open, at that head and green (a head with only `braids/` changes on a green commit counts as green); prints the recap draft (`--thread`). |
 | `braid ask <id> <text>` | Open a request for what the coordinator needs from you (`--kind question\|decision\|plan`, `--key <stop case>`, `--thread`, `--file -`). |
 | `braid answer <id>` | Close the item's request (`--log <file>\|-` adds your decision to the braid log; `--thread`). |
 | `braid requests` | List the open requests: item, kind, age, text. |
