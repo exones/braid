@@ -396,7 +396,7 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
             <dt className="text-slate-500">Model</dt>
             <dd>T3 project default{start.expected !== null && <>; BRAID.md names <code className="text-xs">{start.expected}</code></>}</dd>
             <dt className="text-slate-500">Base branch</dt>
-            <dd><code className="break-all text-xs">{start.base}</code>{start.planned ? <> (the braid branch)</> : <> (not planned yet: it plans on <code className="text-xs">{start.branch}</code>)</>}</dd>
+            <dd><code className="break-all text-xs">{start.base}</code>{start.planned ? <> (the braid branch)</> : <> (the main branch; the item has no braid branch yet)</>}</dd>
           </dl>
           {error !== null && <p role="alert" className="mt-3 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2.5 py-1.5 text-[13px] text-red-900">{error}</p>}
           <div className="mt-4 flex justify-end gap-2">

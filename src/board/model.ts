@@ -60,7 +60,7 @@ export interface StartInfo {
   /** The branch the new worktree starts from, and the name of its branch. */
   readonly base: string;
   readonly branch: string;
-  /** Whether the braid already has a braid branch; false: the coordinator plans it on `plan/<slug>` from the main branch. */
+  /** Whether the braid already has a braid branch; false: it is in braids/ on the main branch only, and the coordinator details or runs it from there. */
   readonly planned: boolean;
   /** `<provider> / <model>` from BRAID.md; null when BRAID.md names none. */
   readonly expected: string | null;
@@ -335,10 +335,11 @@ export function coordinatorWarning(thread: Pick<T3Coordinator, "provider" | "mod
 }
 
 /**
- * Start on a braid: the coordinator's worktree starts from the braid branch when the brief was read
- * from one (its branch is `coordinator/<number>-<slug>`: the braid branch itself is held by no one, and
- * Git allows a branch in one worktree only; the coordinator switches to it), else from the main
- * branch on `plan/<slug>`, where it plans the braid. Off when the braid isn't To Do, a coordinator runs, or T3 can't be read.
+ * Start on a braid. Every braid on the board is in braids/, so the coordinator's branch is always
+ * `coordinator/<number>-<slug>` (the braid branch itself is held by no one, and Git allows a branch in one
+ * worktree only; the coordinator switches to it). It starts from the braid branch when the brief was read
+ * from one, else from the main branch, where the item exists without a branch. Both bases are remote
+ * branches (`origin/…`): the local ones go stale. Off when the braid isn't To Do, a coordinator runs, or T3 can't be read.
  */
 export function startOf(braid: Braid, lane: Lane, t3: T3, ctx: StartContext): StartInfo {
   const slug = slugOf(braid.folder) ?? "braid";
@@ -346,8 +347,8 @@ export function startOf(braid: Braid, lane: Lane, t3: T3, ctx: StartContext): St
   const planned = source !== null && /(^|\/)braid\/\d{4}-/.test(source);
   const reason = lane !== "To Do" ? "the braid isn't To Do" : t3.coordinators?.has(braid.number) === true ? "a coordinator for this braid is running" : t3.status.state !== "ok" ? "T3 isn't reachable" : null;
   return {
-    base: planned ? (source ?? ctx.main) : ctx.main,
-    branch: planned ? `coordinator/${braid.number}-${slug}` : `plan/${slug}`,
+    base: `origin/${planned ? (source ?? "").replace(/^origin\//, "") : ctx.main}`,
+    branch: `coordinator/${braid.number}-${slug}`,
     planned,
     expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}`,
     reason,

@@ -30,7 +30,7 @@ These are the commands `braid help` lists, in its order.
 | `braid ask <id> <text>` | Open a request for what the coordinator needs from you (`--kind question\|decision\|plan`, `--key <stop case>`, `--thread`, `--file -`). |
 | `braid answer <id>` | Close the item's request (`--log <file>\|-` adds your decision to the braid log; `--thread`). |
 | `braid requests` | List the open requests: item, kind, age, text. |
-| `braid clean [<number>\|<id>] [--yes]` | Remove worktrees and local branches of merged items (a dry run without `--yes`; never forces). |
+| `braid clean [<number>\|<id>] [--yes]` | Remove worktrees and local branches of merged items and of merged `plan/<slug>` branches (a dry run without `--yes`; never forces; a dirty or busy worktree is kept). |
 | `braid board` | Open the board in the browser (`--no-open` only prints the address; `--demo` uses sample data). |
 | `braid help` | Show the help. |
 
