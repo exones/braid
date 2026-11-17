@@ -12,6 +12,8 @@ The braid skills state each rule once, ask the user with context first, separate
 
 The final PR also merges `main` (0016, 0017): 0017 moved the README's install and gate text to `docs/`, so 0003's wording there moved with it (`docs/getting-started.md`, `docs/development.md`, `docs/cli.md`), and `references/setup.md` now points to `docs/getting-started.md`.
 
+Review fixes on the final PR (the user's go, 2026-11-17): a goal's brief has Completion boxes too, ticked by the coordinator at Finish (`braid accept` refuses a brief without them); after a merge on request of a story or final PR, only steps 1 and 2 of "After the merge" run, so Finish can't loop; the story `braid accept` example passes `--review` and `--thread`; "acceptance criteria" became "Completion boxes".
+
 ## Word counts (`wc -w`)
 
 | File | Before 0003 | Now |

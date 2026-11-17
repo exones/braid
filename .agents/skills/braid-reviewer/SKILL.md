@@ -15,7 +15,7 @@ Review someone else's PR with fresh eyes, report once, and stop.
 
 ## Check
 
-- Each acceptance criterion: met or not, and where in the diff.
+- Each Completion box: met or not, and where in the diff.
 - Focus first: correctness, unsafe behavior, missing tests on risky paths, tests weakened or deleted, and scope creep beyond the brief.
 - Read around the diff: whole changed functions, their callers, docs and decisions made stale.
 - Failure paths: empty or missing input, errors (also swallowed ones), a second or concurrent run, Windows against Linux.
@@ -25,7 +25,7 @@ Review someone else's PR with fresh eyes, report once, and stop.
 - Skip style and preexisting problems; list a repeated problem once with all its places; say what you could not check.
 - Run code only to confirm a suspicion. CI results on the PR are the evidence (`gh pr checks <pr>`); with `ci: none` in `BRAID.md`, run the gate once at the head commit.
 
-**Blocking bar:** an acceptance criterion not met, wrong behavior, a security or data-loss risk, missing tests on a risky path, a broken gate, or weakened or deleted tests. Everything else is a suggestion.
+**Blocking bar:** a Completion box not met, wrong behavior, a security or data-loss risk, missing tests on a risky path, a broken gate, or weakened or deleted tests. Everything else is a suggestion.
 
 **Needs the user:** judge the change against the [stop cases](../braid/references/stop-cases.md) yourself, not from the worker's report, and give the evidence (file and line, or command output) for each case you name. The user reads this line without the rest of the review: say what it is about, then what is needed.
 

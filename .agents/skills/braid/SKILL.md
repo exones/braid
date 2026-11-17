@@ -37,12 +37,12 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 1. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or acceptance.
 2. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
-3. Draft the briefs from [the brief template](assets/brief.md), each with a few testable acceptance criteria. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
+3. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
 4. Create them and commit locally; push nothing yet.
    - **Goal:** in your worktree on `plan/<slug>` from `main`, `braid new`, then `braid strand new` per strand.
    - **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `braid new`, then `git branch -m braid/<number>-<slug>` (its folder name).
 
-   Show the user the plan (titles, kinds, tiers, order, dependencies, acceptance, `ask:` labels) with links to the brief files, and `braid ask <number> "Approve the plan" --kind plan`. Each round of the user's comments is one local commit, `docs(braids): <id> amend: <what>`. Check with `git diff` that only the intended lines changed, then tell the user briefly what changed (no pasted diff).
+   Show the user the plan (titles, kinds, tiers, order, dependencies, Completion boxes, `ask:` labels) with links to the brief files, and `braid ask <number> "Approve the plan" --kind plan`. Each round of the user's comments is one local commit, `docs(braids): <id> amend: <what>`. Check with `git diff` that only the intended lines changed, then tell the user briefly what changed (no pasted diff).
 5. On approval, squash the commits into one `docs(braids): plan <id>` (`git reset --soft <commit the branch was cut from>`, then commit) and push once.
    - **Goal:** create and push the braid branch `braid/<number>-<slug>` from `main`, open the planning PR from `plan/<slug>` into it and tell the user. Its merge records the approval: keep the plan request open until then, or `braid ask` for that merge. Then pull the braid branch and set the braid `In Progress` in its next commit.
    - **Story:** remove the temporary worktree; the worker starts on that branch.
@@ -80,7 +80,7 @@ One implementation worker at a time. The next item is under "Starting the next i
 
 A worker that finds more work stops and sends you one proposal: **absorb** it (same PR, within about twice the expected size), split off a **prerequisite**, or turn the story into **phases**. Its own steps are in its skill; these are yours.
 
-- **Mandate.** You may add up to two strands or one prerequisite of tier S or M without asking, logging why on the braid and in the next recap. Anything more, new tier L work, or a change to the goal or acceptance criteria goes to the user first (`braid ask <id> "<what is needed>" --key scope`); tell the worker to stop at a clean point and note where it is.
+- **Mandate.** You may add up to two strands or one prerequisite of tier S or M without asking, logging why on the braid and in the next recap. Anything more, new tier L work, or a change to the goal or its Completion boxes goes to the user first (`braid ask <id> "<what is needed>" --key scope`); tell the worker to stop at a clean point and note where it is.
 - **Absorb:** tell the worker.
 - **Prerequisite of a strand:** create it as another strand of that braid on the braid branch, push, and tell the worker (it merges the braid branch and adds the dependency). Run the prerequisite next, and tell the worker when it is merged.
 - **Prerequisite of a lone story:** create it as its own story into `main`, and tell the worker when it is merged.
@@ -121,7 +121,7 @@ When the worker reports green:
 
 ## Merge on request
 
-When the user asks you to merge a named PR, or says "merge it" right after a recap that handed one over, merge it with `braid accept <id> --head <head commit of your last recap of it> --review <link> --thread <your thread id> --merge` (for a strand add `--log -` with the braid's log entry). If you haven't recapped the PR, or its head has moved since, don't merge: show what changed and `braid ask`; `braid accept` refuses a moved head. Then continue with "After the merge".
+When the user asks you to merge a named PR, or says "merge it" right after a recap that handed one over, merge it with `braid accept <id> --head <head commit of your last recap of it> --review <link> --thread <your thread id> --merge` (for a strand add `--log -` with the braid's log entry). If you haven't recapped the PR, or its head has moved since, don't merge: show what changed and `braid ask`; `braid accept` refuses a moved head. Then continue with "After the merge": for a strand all of it; for a story or a final PR only its steps 1 and 2, since that merge finishes the item.
 
 ## Auto mode
 

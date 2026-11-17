@@ -45,7 +45,7 @@ For a spike, or a story that includes research, add under Change: look at <how w
 
 ## Completion
 
-Only what the worker can do and prove; none for the reviewer, coordinator or user.
+Only what the worker can do and prove; none for the reviewer, coordinator or user. A goal's brief has them too, for the whole; the coordinator ticks those at "Finish".
 
 - [ ] <first testable outcome>
 - [ ] Research items only: `sources.md` in the item folder (per source: link, how it was read (whole, part, search result only), what it says, adopted or not and why)
@@ -72,7 +72,8 @@ braid accept 0012/A --review <link> --thread <your thread id> --log -
                                               # strand merged: on the braid branch; pulls, sets Done with the log entry, commits, pushes
 braid accept 0012/A --head <reviewed sha> --review <link> --merge --log -
                                               # strand on request or in auto mode: merges that head first
-braid accept 0013 --head <reviewed sha>         # story or final PR: checks, a status-only commit on its branch
+braid accept 0013 --head <reviewed sha> --review <link> --thread <your thread id>
+                                              # story or final PR: checks, a status-only commit on its branch
 
 # the braid's log entry, on standard input of the braid accept that sets the strand Done
 '0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.'
