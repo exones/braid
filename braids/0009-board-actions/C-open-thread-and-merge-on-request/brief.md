@@ -42,10 +42,10 @@ Expected size: about 250 lines in 7 files, with tests.
 
 ## Completion
 
-- [ ] Open thread opens the item's T3 thread; no button where there is none (tested with demo data)
-- [ ] Merge sends the request's coordinator thread the merge message, only after the confirmation, with the shown head (tested with a fake `t3`)
-- [ ] Merge is disabled with its reason when there is no open review request or no coordinator thread on it (tested)
-- [ ] The braid skill's "Merge on request" covers the board's message
-- [ ] Final screenshots in the report, light and dark
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Open thread opens the item's T3 thread; no button where there is none (tested with demo data)
+- [x] Merge sends the request's coordinator thread the merge message, only after the confirmation, with the shown head (tested with a fake `t3`)
+- [x] Merge is disabled with its reason when there is no open review request or no coordinator thread on it (tested)
+- [x] The braid skill's "Merge on request" covers the board's message
+- [x] Final screenshots (light only; see the report) in the report, light and dark
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
