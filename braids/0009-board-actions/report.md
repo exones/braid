@@ -9,6 +9,7 @@ The board can act, locally, behind a per-run session token:
 - **Merge on request (0009/C, #118).** The board never merges. After a confirmation (PR, head commit, target branch, checks) it sends the coordinator that handed the PR over `Merge #<n> at <head>, from the board.`; the braid skill's "Merge on request" treats that as the user's "merge it" for that head. D51. Also a lane fix: a braid In Progress, or with a strand Done, shows Working instead of To Do.
 - **Start (0009/D, #119).** On a To Do braid card, Start launches a new coordinator thread with `t3 thread start`, with no model flags (the project default, Opus 5.5 medium). A planned braid starts on `coordinator/<n>-<slug>` and is told to resume and switch to the braid branch; an unplanned one starts on `plan/<slug>` from `main`. The card warns after the launch when the thread's provider or model differ from `BRAID.md`; Start is disabled with `Start: <reason>` when T3 is unreachable, the braid isn't To Do or a coordinator runs. `BRAID.md`'s coordinator effort is now medium. D52.
 - **Mockups (0009/A, #116)** came first; the user approved them with icon-only buttons.
+- **Docs (0009/E, #121).** README, getting-started and the roadmap name the board's actions; no current doc calls the board read-only. Added after the final review, at the user's request.
 
 ## Why
 
@@ -28,10 +29,12 @@ Story 6 of the braid plan: acting from the board without switching to a chat, an
 - Run in auto mode; mockups approved with icon-only buttons.
 - The skill's board case of "Merge on request" is its own sentence, and the lane fix went into 0009/C; the reviewer's wording fix ("your last recap's head isn't the message's … show what changed") was applied before the merge.
 - The user merged the two process strands (#118, #119) on request.
+- The final review's docs suggestions go into this braid as 0009/E rather than a later item (keep the docs up to date).
 
 ## Anything open
 
 - Start has run only against a fake `t3`. The reviewer confirmed the real `t3 thread start --json` shape (`{ threadId, projectId, runId }`) from T3's source; the first real Start is the live check.
 - A second Start fails with T3's message if `plan/<slug>` or `coordinator/<n>-<slug>` already exists.
 - Screenshots of 0009/C and 0009/D are light only: the app has no dark theme yet.
+- Start's just-launched lock is in page state only: a reload before T3 lists the new coordinator offers Start again (T3 then refuses the existing branch).
 - For later items: pass the coordinator's settings explicitly once `t3 thread start` has `--option` (T3 nightly); starting a single strand from the board.
