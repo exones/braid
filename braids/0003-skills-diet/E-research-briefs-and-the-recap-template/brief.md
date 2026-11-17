@@ -1,7 +1,7 @@
 ---
 id: '0003/E'
 title: "Research briefs and the recap template"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S", "ask:process"]
 dependencies: []
 order: 40
