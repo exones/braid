@@ -26,7 +26,8 @@ Expected size: about 250 lines in 7 files, with tests.
 - **Open thread:** the thread link in the board data; a small button on cards and strand rows that have a thread, opening it in T3.
 - **Merge on request:** the board doesn't merge itself; it asks the coordinator that handed the PR over (user, 2026-11-17). On a card with an open review request, the button opens the confirmation (PR, head commit, target branch, checks). On confirm the server sends that request's coordinator thread `Merge #<n> at <head>, from the board.` with `t3 thread send`, and the card shows the merge as asked for until the coordinator merges. No open review request, or no coordinator thread on it: the button is disabled with the reason.
 - **The skill** ("Merge on request"): a message from the board in that form is the user's request to merge that PR at that head; the coordinator merges as for "merge it" (the head must match its recap), then continues with "After the merge".
-- `docs/board.md`.
+- `docs/board.md`, and the places that still call the board read-only: `src/cli.ts` (help), `docs/cli.md`, `docs/getting-started.md`, `docs/braids-format.md`, the "read-only" in the header of `web/src/App.tsx`.
+- From the review of 0009/B: a test that a POST body over 64 KB gets 413 and runs no action; D50 says a request without `Origin` passes with the token and a matching `Host` (as the code and `docs/board.md` do).
 
 ## Out of scope
 
