@@ -1,7 +1,7 @@
 ---
 id: '0003/B'
 title: "Reviewer: researched review practices"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: ['0003/D']
 order: 20
