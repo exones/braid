@@ -19,6 +19,7 @@ Expected size: about 250 lines in 7 files, with tests.
 - `src/board/t3.ts` (`T3Thread.link`, read but not passed on), `src/board/model.ts` (`BoardData`).
 - `src/braids/requests.ts`: an open review request (from `braid handover`) holds the PR, its head and the coordinator thread that handed it over.
 - `.agents/skills/braid/SKILL.md`, "Merge on request".
+- From the review of 0009/A: the mockups draw no tooltip for "no open review request" or "no coordinator thread"; write those in the same pattern (`Merge: <reason>`). After a refusal for non-green checks, Merge stays disabled with that tooltip while the checks are still red.
 
 ## Change
 

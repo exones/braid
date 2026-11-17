@@ -19,6 +19,7 @@ Expected size: about 250 lines in 6 files, with tests.
 - `src/board/t3.ts` (`runT3`, `t3Command`), `t3 thread start --help` (T3 0.1.6: `--title --provider --model --worktree --branch --json`; no effort option).
 - `braids/0002-ground-research/B-spike-the-board-s-path-starting-agents/report.md`: the T3 CLI notes.
 - `BRAID.md` `models.coordinator`; the braid skill's thread naming (`<repo> <id> <role>: <title>`).
+- From the review of 0009/A: the mockups warn at confirm time (`#warn`, the project default against `BRAID.md`) but draw no warning after launch, when the thread's provider or model differ; show it on the card in the same style as `#warn`. They also draw no tooltip for "a coordinator for this braid is running" or "not To Do"; write those as `Start: <reason>`.
 
 ## Change
 
