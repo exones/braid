@@ -1,7 +1,7 @@
 ---
 id: '0019'
 title: "braid start on a planned story; braids-only commits need no new CI"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S"]
 dependencies: []
 delivery: epic
