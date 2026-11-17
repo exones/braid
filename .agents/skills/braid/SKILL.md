@@ -35,7 +35,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 ## Plan
 
-1. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or acceptance.
+1. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
 2. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
 3. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
 4. Create them and commit locally; push nothing yet.

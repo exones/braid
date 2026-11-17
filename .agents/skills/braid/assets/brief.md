@@ -45,7 +45,7 @@ For a spike, or a story that includes research, add under Change: look at <how w
 
 ## Completion
 
-Only what the worker can do and prove; none for the reviewer, coordinator or user. A goal's brief has them too, for the whole; the coordinator ticks those at "Finish".
+Only what the worker can do and prove; none for the reviewer, coordinator or user. A goal's own brief has no worker: its boxes cover the whole, and the coordinator ticks them at "Finish".
 
 - [ ] <first testable outcome>
 - [ ] Research items only: `sources.md` in the item folder (per source: link, how it was read (whole, part, search result only), what it says, adopted or not and why)
