@@ -1,7 +1,7 @@
 ---
 id: '0003'
 title: "Skills diet: shorter braid skills, one place per rule"
-status: In Progress
+status: Done
 labels: ["kind:goal", "tier:L"]
 dependencies: []
 order: 30
