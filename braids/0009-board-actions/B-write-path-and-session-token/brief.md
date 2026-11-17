@@ -1,7 +1,7 @@
 ---
 id: '0009/B'
 title: "Write path and session token"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 20
