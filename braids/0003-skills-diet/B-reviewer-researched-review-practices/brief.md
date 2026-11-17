@@ -15,7 +15,7 @@ Expected size: about 30 to 80 lines in 2 files.
 
 ## Plan
 
-Research review prompts online, pick four practices, add them as short bullets under Check in the reviewer skill, name the sources in report.md.
+Second pass, after the user found the first research thin: read vendor review prompts (Anthropic, OpenAI, Cursor, Greptile, GitHub), Google's reviewer guide and studies on what reviews miss and on false positives; record each source in research.md with adopted or not and why; revise the Check bullets in the reviewer skill from that and from the PR review; update report.md.
 
 ## Start here
 

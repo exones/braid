@@ -2,38 +2,49 @@
 
 ## What changed
 
-`.agents/skills/braid-reviewer/SKILL.md`, Check section: four bullets added, none touching the blocking bar or the stop cases.
+`.agents/skills/braid-reviewer/SKILL.md`, Check section only: five lines added to the base. The blocking bar and the stop cases are untouched.
 
-- Failure paths: empty or missing input, errors, second or concurrent run, Windows against Linux.
-- Test the tests: would each new test fail on the old code; assertions that can't fail; risky paths untested.
-- What the diff left out: callers of a changed interface, docs and decisions made stale.
-- A confidence bar: report findings about 90% sure of, each with the input and the wrong result; weaker suspicions go to Suggestions as "unverified" or get a quick run; skip style and preexisting problems; one entry for a repeated problem.
+- **Read around the diff**: whole changed functions, their callers, docs and decisions made stale.
+- **Failure paths**: empty or missing input, errors (also swallowed ones), a second or concurrent run, Windows against Linux.
+- **Test the tests**: would each new test fail on the old code; assertions that can't fail.
+- **What a finding is**: a code finding names the input and the wrong result. A likely blocking problem the reviewer couldn't confirm stays Blocking, marked so, unless a run disproves it; "unverified" is for weaker suspicions, in Suggestions.
+- **What to leave out and what to admit**: skip style and preexisting problems; a repeated problem once with all its places; say what you could not check.
+
+New file `research.md` in this folder: 23 sources, each with a link, how it was read, what it says, and adopted or not and why.
 
 ## Why
 
-These are the practices that recur in published review prompts and match what PRs #96 to #102 needed: #96's blocking finding was a lost-update race (a failure path a second writer exposes), and #98's suggestions were commands and docs left stale (what the diff left out).
+The first version rested on four sources, one not retrieved and one misdescribed, and its "about 90% sure" bar could move a likely bug out of Blocking. The second pass read the sources and changed three things:
+
+- **No percentage.** The gate is evidence (the input and the wrong result), not a self-estimate. Greptile found a model's rating of its own comments "nearly random"; OpenAI's and Anthropic's prompts ask for the concrete scenario.
+- **Blocking-class suspicions are kept.** Benchmarks show AI review misses most real bugs (best recall about 33% in CR-Bench) and that pushing for silence loses security bugs first. braid's reviewer posts one comment sorted by a blocking bar, so it has no noise problem that a floor would solve.
+- **Read around the diff** is new. It is the largest single cause of wrong findings in SWR-Bench (48%) and the main difficulty reviewers report in the Microsoft study; it also absorbs the old "what the diff left out" bullet.
+
+From the review of this PR: the two repeated clauses ("risky paths left untested", "or run it to settle it") are gone, and the source notes it corrected are fixed in research.md.
 
 ## Sources
 
-- Claude Code `code-review` plugin (marketplace page and third-party mirrors; official text not retrieved): findings scored 0 to 100, only 80 and above posted, nothing posted when none remain. https://claude.com/plugins/code-review
-- Agent Patterns, "Signal over volume in AI review": confidence floor of about 90%, silence when nothing clears it, cluster repeated issues, skip style and intentional patterns; also the caveat that a clean result is not proof. https://agentpatterns.ai/code-review/signal-over-volume-in-ai-review/
-- Cubic, "learnings from building AI agents": narrow, specific checks cut false positives by 51% (vendor figure). https://www.cubic.dev/blog/learnings-from-building-ai-agents
-- Search results on false positives (codeant.ai, zenml.io summaries): explicit criteria beat self-reported confidence alone, which is poorly calibrated, so the bar asks for a concrete input and wrong result, not a number only.
+Full list with links and verdicts: [research.md](research.md). In short:
 
-Not adopted: parallel scoring agents and dismissal tracking (need machinery braid doesn't have; out of scope).
+- Vendor prompts, read in full: Anthropic's `code-review` plugin, `pr-review-toolkit` agents and `security-review` command; OpenAI Codex's review rubric and sample review skill.
+- Vendor write-ups: Anthropic's Code Review documentation, Cursor (Bugbot), Greptile, Cubic, GitHub (Copilot review), Agent Patterns.
+- Human review: Google's Engineering Practices reviewer guide (four pages, in full), Conventional Comments, Linear.
+- Studies: Bacchelli and Bird 2013, Czerwonka et al. 2015, Sadowski et al. 2018 (papers read); SWR-Bench and CR-Bench (pages read); three more from their abstracts only, marked so.
+- Not used and said so: OWASP's guide (only a landing page loaded), postmortems (no primary report found), and the two sites the first report cited from search summaries.
 
 ## Word count
 
-`braid-reviewer/SKILL.md`: 447 before, 547 after (+100). Total of the lines added is 4 bullets (3 in Check plus the bar), well inside the brief's 30 to 80 lines.
+`braid-reviewer/SKILL.md` by `wc -w`: 447 before this item, 547 after the first version, 555 now (+108 against the base, +8 against the first version). Five lines added to the base file.
 
 ## Validation
 
-`npm run verify` (gate) run before the PR; see the PR checks. The installer test reads the reviewer skill only for installation, not wording.
+`npm run verify` (the gate) passed locally before the push; CI on the PR runs it on Ubuntu and Windows. No test reads the skill's wording. `braid check` passes.
 
 ## Open
 
-Wording is the user's to review.
+- The wording is the user's to accept.
+- "say what you could not check" is the one addition the review did not ask for. It is seven words, backed by four sources; drop it if it doesn't earn its place.
 
-For later items: none
+For later items: research.md lists what was not adopted because it needs machinery (a second validating reviewer, merging several independent reviews, learning from the user's verdicts on past findings); the second is the cheapest to try if reviews keep missing things.
 
-Needs the user: process: the braid-reviewer skill changes (`.agents/skills/braid-reviewer/SKILL.md`); the user reviews the wording.
+Needs the user: process: the braid-reviewer skill wording changes (`.agents/skills/braid-reviewer/SKILL.md`, Check section); the user reviews and merges it.
