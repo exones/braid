@@ -34,8 +34,8 @@ Expected size: about 40 lines in 3 files, with tests.
 
 ## Completion
 
-- [ ] `-Ref origin/main` with a stale local `origin/main` installs the remote's head (Pester test)
-- [ ] A failed fetch with `-Ref origin/<branch>` stops before anything is installed (Pester test)
-- [ ] A local branch or commit ref is installed without a fetch (Pester test)
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `-Ref origin/main` with a stale local `origin/main` installs the remote's head (Pester test)
+- [x] A failed fetch with `-Ref origin/<branch>` stops before anything is installed (Pester test)
+- [x] A local branch or commit ref is installed without a fetch (Pester test)
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

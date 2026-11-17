@@ -188,6 +188,45 @@ Describe 'Install-Skills.ps1' {
     (& git -C $script:Repo rev-parse main).Trim() | Should -Be $script:First
   }
 
+  It 'with -Ref origin/main fetches first and installs the remote head, not a stale origin/main' {
+    $other = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
+    & git clone -q (Join-Path (Split-Path -Parent $script:Repo) 'origin.git') $other
+    & git -C $other config user.email fixture@example.invalid
+    & git -C $other config user.name fixture
+    [System.IO.File]::WriteAllText((Join-Path $other '.agents/skills/braid-demo/SKILL.md'), "v2`n")
+    & git -C $other commit -q -am v2
+    & git -C $other push -q origin main
+    $newest = (& git -C $other rev-parse HEAD).Trim()
+    (& git -C $script:Repo rev-parse origin/main).Trim() | Should -Be $script:First
+
+    $result = Invoke-Install -Extra @('-Ref', 'origin/main')
+    $result.Code | Should -Be 0 -Because $result.Text
+    Get-Installed $script:TargetA 'braid-demo/SKILL.md' | Should -Be "v2`n"
+    (Get-Installed $script:TargetA 'braid-demo/.braid-install.json' | ConvertFrom-Json).commit | Should -Be $newest
+  }
+
+  It 'fails before installing anything when the fetch for -Ref origin/<branch> fails' {
+    $result = Invoke-Install -Extra @('-Ref', 'origin/no-such-branch')
+    $result.Code | Should -Not -Be 0
+    $result.Text | Should -Match 'fetch'
+    Test-Path -LiteralPath (Join-Path $script:TargetA 'braid-demo') | Should -BeFalse
+
+    Invoke-RepoGit @('remote', 'remove', 'origin')
+    $result = Invoke-Install -Extra @('-Ref', 'origin/main')
+    $result.Code | Should -Not -Be 0
+    $result.Text | Should -Match 'fetch'
+    Test-Path -LiteralPath (Join-Path $script:TargetA 'braid-demo') | Should -BeFalse
+  }
+
+  It 'installs a local branch or a commit ref without fetching' {
+    Invoke-RepoGit @('remote', 'remove', 'origin')
+    foreach ($ref in @('main', $script:First)) {
+      $result = Invoke-Install -Extra @('-Ref', $ref)
+      $result.Code | Should -Be 0 -Because $result.Text
+      Get-Installed $script:TargetA 'braid-demo/SKILL.md' | Should -Be "v1`n"
+    }
+  }
+
   It 'fails without -Ref when origin cannot be fetched' {
     Invoke-RepoGit @('remote', 'remove', 'origin')
     $result = Invoke-Install

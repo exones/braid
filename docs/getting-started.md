@@ -12,7 +12,7 @@ The agent skills `braid`, `braid-worker` and `braid-reviewer` are developed in t
 
 ## Install the skills and the CLI
 
-To make the skills available to Cursor, Codex and Claude in every project, install them from a committed ref of a checkout of this repository (without `-Ref` the installer runs `git fetch origin main` and installs `origin/main`, never a possibly stale local `main`):
+To make the skills available to Cursor, Codex and Claude in every project, install them from a committed ref of a checkout of this repository (without `-Ref` the installer runs `git fetch origin main` and installs `origin/main`, never a possibly stale local `main`; `-Ref origin/<branch>` fetches that branch first, other refs are installed as they are):
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Install-Skills.ps1               # from origin/main
