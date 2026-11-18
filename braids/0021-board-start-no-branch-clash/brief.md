@@ -1,7 +1,7 @@
 ---
 id: '0021'
 title: "Board Start: no branch clash"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: []
 order: 205
