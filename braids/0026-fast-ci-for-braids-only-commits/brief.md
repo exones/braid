@@ -1,7 +1,7 @@
 ---
 id: '0026'
 title: "Fast CI for braids-only commits"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 delivery: epic
