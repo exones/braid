@@ -1,7 +1,7 @@
 ---
 id: '0027/D'
 title: "braid view reads braids on other branches"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: ['0027/C']
 order: 40
