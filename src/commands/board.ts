@@ -8,7 +8,8 @@ import { fileURLToPath } from "node:url";
 import { loadLiveBraids, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
-import { DEMO_START, demoBraids, demoGithub, demoSignals, demoT3, demoTree } from "../board/demo.js";
+import { DEMO_START, demoBraids, demoGithub, demoInbox, demoSignals, demoT3, demoTree } from "../board/demo.js";
+import { inboxOf, type InboxData } from "../board/inbox.js";
 import { readGithub, runGh, type Github, type GhRunner } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toBoard, toCard, toDetail, type StartContext } from "../board/model.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
@@ -50,6 +51,8 @@ export interface Sources {
   readonly watch: string | null;
   /** What BRAID.md says about the main branch and the coordinator's model. */
   start(): StartContext;
+  /** The open inbox entries; `fetch` (the Refresh button) fetches `braid-inbox` from origin first. */
+  inbox(fetch: boolean): InboxData;
   /** The T3 project folder (the main checkout). */
   project(): string;
   /** The action registered under `name`, or undefined. `POST /api/action/<name>` runs it. */
@@ -198,6 +201,7 @@ export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = r
     tree: (item) => treeOf(root, item),
     watch: join(root, "braids"),
     start: () => readStartContext(root),
+    inbox: (fetch) => inboxOf(root, fetch),
     project: () => mainCheckout(root),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
@@ -216,6 +220,7 @@ export function demoSources(t3Down = false): Sources {
     tree: () => demoTree(),
     watch: null,
     start: () => DEMO_START,
+    inbox: () => demoInbox(),
     project: () => ".",
     // A demo board accepts every action and fakes the result; nothing is written.
     action: () => () => ({ ok: true, demo: true }),
@@ -230,7 +235,7 @@ async function api(src: Sources, url: URL): Promise<Reply> {
     const t3 = await src.t3(fresh);
     const sig = src.signals(github);
     if (url.pathname === "/api/board") {
-      const board = toBoard(src.repo, braids, github, t3, sig, src.start());
+      const board = toBoard(src.repo, braids, github, t3, sig, src.start(), src.inbox(fresh));
       sig.commit();
       return json(200, board);
     }

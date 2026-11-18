@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>braid board - inbox mockup</title>
+<style>
+:root{--bg:#f1f5f9;--ink:#0f172a;--mut:#64748b;--line:#e2e8f0;--acc:#2563eb}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line)}
+header b{font-size:16px}.mut{color:var(--mut)}.sp{flex:1}
+.tgl{font-size:12px}
+header button{font:inherit;font-size:12px;padding:2px 9px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.inbox-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid var(--line);border-radius:99px;background:#fff;font-size:12px;color:var(--ink);text-decoration:none;cursor:pointer}
+.inbox-chip:hover,.inbox-chip.on{border-color:var(--acc)}
+.inbox-chip svg{color:var(--mut)}
+.inbox-chip .n{font-weight:700}.inbox-chip .sep{color:#cbd5e1}.inbox-chip.zero{color:var(--mut)}
+.lanes{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 20px;align-items:start}
+.lane{background:#e2e8f0b3;border-radius:12px;padding:10px;min-height:150px}
+.lane h3{margin:2px 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;box-shadow:0 1px 2px #0001}
+.card .id{color:var(--mut);font-size:12px}.card .t{font-weight:600;margin:2px 0 6px}
+.bar{height:5px;background:#e6e9f0;border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:#16a34a}
+.need{margin-top:6px;font-size:12.5px;border-radius:6px;padding:4px 7px;background:#fff6e0;color:#7a4d00;border-left:3px solid #f59e0b}
+.page{padding:18px 28px;max-width:1200px}
+.page h1{font-size:20px;margin:0 0 2px}.page .back{color:var(--acc);font-size:13px;cursor:pointer;text-decoration:none}
+.page .lead{color:var(--mut);margin:0 0 8px;max-width:80ch}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.col{background:#e2e8f0b3;border-radius:12px;padding:12px}
+.col h2{margin:0 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;align-items:baseline;gap:8px}
+.col h2 .n{font-size:16px;color:var(--ink);letter-spacing:0}
+.col h2 small{text-transform:none;letter-spacing:0;font-size:12px;font-weight:400}
+.e{background:#fff;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;box-shadow:0 1px 2px #0001}
+.e>.h{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;cursor:pointer}
+.e>.h:hover{background:#f8fafc;border-radius:8px}
+.chev{color:var(--mut);margin-top:4px;flex:none}.e.open .chev{transform:rotate(90deg)}
+.e .t{font-weight:600}
+.e .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:3px;font-size:12px;color:var(--mut)}
+.badge{font-size:11px;padding:0 7px;border-radius:99px;background:#e8ebf3;color:#49506a;white-space:nowrap}
+.src{background:#eef2ff;color:#3b4aa0;font-family:ui-monospace,Consolas,monospace}
+.passed{background:#fff1d6;color:#8a5a00}
+.prev{margin-top:3px;color:#475569;font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.e.open .prev{display:none}
+.body{display:none;padding:8px 11px 10px 31px;border-top:1px dashed var(--line)}
+.e.open .body{display:block}
+.body p{margin:0 0 6px;max-width:68ch}.body ul{margin:0 0 6px;padding-left:18px}.code,code{background:#eef0f5;padding:0 4px;border-radius:4px}
+.refs{font-size:12px;color:var(--mut);margin-top:4px}.refs a{color:var(--acc)}
+.age{white-space:nowrap}
+.empty{background:#fff;border:1px dashed #cbd5e1;border-radius:8px;padding:16px;color:var(--mut);font-size:13px}
+.empty b{display:block;color:var(--ink);margin-bottom:2px}
+.fetch{font-size:12px;color:var(--mut);margin:0 0 12px}
+</style></head><body>
+<header><b>braid · attention board</b><span class="mut">Each braid sits in the lane where it needs you most. · sample · braids/</span><span class="sp"></span>
+<span id="chip"></span><label class="tgl"><input type="checkbox" checked> Details</label><span class="mut" style="font-size:12px">refreshes every 30 s</span><button>Refresh</button></header>
+<div id="app"></div>
+<script>
+const L=[
+ {id:'2026-11-18-k3fa',title:'`braid note --from` rejects "review 0012/A" with a trailing space',text:'Found in the review of PR #118. `parseFrom` trims nothing, so a pasted `review 0012/A ` fails with "unknown source". Where: `src/commands/inbox.ts`. Why it matters: the coordinator pastes sources from chat.',from:'review 0012/A',ref:['PR #118 comment on inbox.ts:41'],age:'2 h ago',passed:0},
+ {id:'2026-11-17-p9zx',title:'Windows: `braid inbox show` prints the item folder with backslashes',text:'The report of 0020/A names it under Open. Output is correct but docs/cli.md shows forward slashes; pick one and say so.',from:'0020/A',ref:[],age:'yesterday',passed:0},
+ {id:'2026-11-12-m2qe',title:'Board: the Merge confirmation lists checks in a random order',text:'From `For later items:` of 0009/C. Sort by name so the same PR always reads the same.',from:'0009/C',ref:['PR #96'],age:'6 days ago',passed:1},
+ {id:'2026-11-16-r7ab',title:'README install section still says Node 24',text:'Seen while writing the PR body of #124. The engines field says `>=26.13.0 <27`.',from:'PR #124',ref:[],age:'2 days ago',passed:0},
+];
+const I=[
+ {id:'2026-11-18-q1wd',title:'A "what changed since I looked" view',text:'When I come back after a day, I want one place that says which braids moved lane since my last visit, newest first.\n\n- Not a notification feed: it is read when I open the board.\n- Could be a mark on the cards instead of a page.\n\nUnsure whether the board should remember my last visit (a cookie) or `braid recap` should.',age:'today'},
+ {id:'2026-11-15-w8nn',title:'Run two workers at once on independent strands',text:'Strands without a dependency between them could run in parallel. The board would show two wrenches on the braid.',age:'3 days ago'},
+ {id:'2026-11-10-t5cc',title:'Phone board: swipe between lanes',text:'The phone layout stacks the lanes; swiping would be faster.',age:'8 days ago'},
+];
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const inl=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>');
+const md=s=>s.split(/\n\n/).map(p=>/^- /.test(p)?'<ul>'+p.split('\n').map(l=>'<li>'+inl(l.slice(2))+'</li>').join('')+'</ul>':'<p>'+inl(p)+'</p>').join('');
+const chev='<svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
+const tray='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>';
+const h=location.hash.replace(/^#/,'');const view=h.split('&')[0]||'board';const empty=/empty/.test(h);
+const ls=empty?[]:L,is=empty?[]:I;
+const z=!ls.length&&!is.length;
+const on=view==='inbox'||view==='open';
+document.getElementById('chip').innerHTML=`<a class="inbox-chip${on?' on':''}${z?' zero':''}" href="#inbox" title="Open the inbox: leftovers and ideas">${tray} Inbox <span class="n">${ls.length}</span> leftovers <span class="sep">·</span> <span class="n">${is.length}</span> ideas</a>`;
+const lane=(n,c,cards)=>`<section class="lane"><h3><span class="dot" style="background:${c}"></span>${n}</h3>${cards}</section>`;
+const card=(id,t,p,need)=>`<div class="card"><div class="id">${id}</div><div class="t">${t}</div><div class="bar"><i style="width:${p}%"></i></div>${need?`<div class="need">${need}</div>`:''}</div>`;
+const board=()=>`<div class="lanes">`+
+ lane('To Do','#cbd5e1',card('0021','Skill diet round two',0))+
+ lane('Working','#2563eb',card('0020','Gap inbox',50)+card('0019','braid start on a planned story',80))+
+ lane('To Review','#7c3aed',card('0018','Installer fetches a remote ref',100))+
+ lane('Needs You','#f59e0b',card('0015','Needs You when the coordinator waits',90,'Decision: the sweep proposal for 3 leftovers'))+
+ lane('Done','#16a34a',card('0017','README front page',100))+`</div>`;
+function entry(e,kind,open){
+ const meta=kind==='L'?`<span class="badge src">${esc(e.from)}</span>${e.passed?`<span class="badge passed" title="A sweep proposed it and you passed it over; at 2 it is dropped">passed over ×${e.passed}</span>`:''}<span class="age">${e.age}</span>`:`<span class="age">${e.age}</span>`;
+ const refs=e.ref&&e.ref.length?`<div class="refs">Links: ${e.ref.map(r=>`<a href="#">${esc(r)}</a>`).join(' · ')}</div>`:'';
+ const first=e.text.split('\n')[0];
+ return `<div class="e${open?' open':''}"><div class="h" onclick="this.parentNode.classList.toggle('open')">${chev}<div style="flex:1;min-width:0"><div class="t">${inl(e.title)}</div><div class="meta">${meta}</div>${kind==='I'?`<div class="prev">${esc(first)}</div>`:''}</div></div><div class="body">${md(e.text)}${refs}<div class="refs">${e.id}</div></div></div>`}
+const emptyBox=k=>k==='L'?`<div class="empty"><b>No open leftovers.</b>Agents add them with <code>braid note "…" --from &lt;item&gt;</code>. A sweep is proposed at 3.</div>`:`<div class="empty"><b>No ideas yet.</b>Write one down with <code>$braid-idea &lt;a sentence&gt;</code>.</div>`;
+const inbox=(o)=>`<div class="page"><a class="back" href="#board">← Board</a><h1>Inbox</h1>
+ <p class="lead">Small findings agents left behind, and ideas you wrote down. Nothing here needs an answer now: leftovers are swept in one batch, ideas wait until you pick one. Read only.</p>
+ <div class="fetch">Read from the local copy of <code>braid-inbox</code>; Refresh fetches the remote first.</div>
+ <div class="cols"><section class="col"><h2><span class="n">${ls.length}</span> Leftovers ${ls.length>=3?'<small>· sweep due</small>':''}</h2>${ls.length?ls.map((e,i)=>entry(e,'L',o&&i===0)).join(''):emptyBox('L')}</section>
+ <section class="col"><h2><span class="n">${is.length}</span> Ideas</h2>${is.length?is.map((e,i)=>entry(e,'I',o&&i===0)).join(''):emptyBox('I')}</section></div></div>`;
+document.getElementById('app').innerHTML=view==='board'?board():inbox(view==='open');
+</script></body></html>

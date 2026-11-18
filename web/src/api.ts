@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BoardData, ItemDetail } from "../../src/board/model.ts";
 
+export type { InboxData, InboxEntry } from "../../src/board/inbox.ts";
 export type { BoardData, BraidCard, ItemDetail, Lane, CoordinatorInfo, MergeInfo, Need, StartInfo, StrandCard } from "../../src/board/model.ts";
 export type { PullRequest } from "../../src/board/github.ts";
 

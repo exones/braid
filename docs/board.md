@@ -92,6 +92,20 @@ A braid or strand page shows the request as a banner above the brief, with the s
 
 ![A braid page: the plan waits for approval](design/board-screenshots/35-braid-page-plan.png)
 
+## The inbox
+
+The header chip `Inbox N leftovers · M ideas` (grey when both are 0) opens the Inbox page (`#/inbox`, "← Board" returns). The inbox is not a lane and puts nothing in Needs You: capturing asks the user nothing, and the sweep proposal reaches you as a `braid ask`, which the board already shows (decision D54 in [decisions](decisions.md); the storage is [the inbox](braids-format.md#the-inbox)).
+
+![The board with the inbox chip](design/board-screenshots/51-board-inbox-chip.png)
+
+The page is read only and has two lists, **Leftovers** (with "sweep due" at 3 or more open) and **Ideas**, each headed by its open count. Each entry is a collapsed row: its title, for a leftover its source (`review 0012/A`, `0020/A`, `PR #124`), the age, and an amber "passed over ×N" when a sweep passed it over; an idea also shows the first line of its text. A click opens the full text, its links and its id. An empty list says what fills it (`braid note`, `$braid-idea`).
+
+![The inbox page, one leftover and one idea open](design/board-screenshots/52-inbox-open.png)
+
+![An empty inbox](design/board-screenshots/53-inbox-empty.png)
+
+`/api/board` carries it as `inbox: { leftovers, ideas, note }` (`src/board/inbox.ts`): the open entries, newest first, each with `kind`, `id`, `title`, `text` (after the title line), `from`, `ref`, `age` and `passed`. Every refresh (the 30 s reload and file changes) reads the local `braid-inbox` and `origin/braid-inbox` refs; the **Refresh** button (`?fresh=1`) fetches `braid-inbox` first, so an entry captured in another clone shows up. `note` says when that fetch failed (the local copy is shown) or an entry is malformed and left out. The demo board has sample entries.
+
 ## Refresh
 
 The page updates every 30 s while it is open, 200 ms after a file under `braids/` changes, and by its Refresh button (a fresh read, `?fresh=1`). Updates are pushed over `/api/events`. Each refresh also notes the first sighting of a broke condition in `.braid/broke.json`; that is the only thing the board writes on its own.
