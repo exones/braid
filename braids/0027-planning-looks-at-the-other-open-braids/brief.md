@@ -11,13 +11,14 @@ delivery: epic
 
 A coordinator plans a new braid without knowing what the other unfinished braids already cover, so it can plan a duplicate, or a goal that contradicts a decision another open braid has made. Most of them don't show on `main`: a braid lives on its braid branch from the planning merge until its final PR, and a plan being drafted lives only on `plan/<slug>`. Observed while planning this braid: 0024, 0025 and 0026 were open only on their branches, and `braid list` on `main` showed none of them. After this goal, planning starts with a look at every unfinished braid, wherever it lives; each overlap becomes a `related` link, and a duplicate or a contradiction is put to the user before the plan is approved.
 
-Expected size: about 500 lines in 12 files over three strands.
+Expected size: about 500 lines in 12 files over three strands; 0027/D, added after the final review, about 120 more.
 
 ## Strands
 
 - 0027/A `braid list --open`: every unfinished braid (Outline, To Do, In Progress) from the working tree, braid branches and `plan/` branches, local and on `origin`, with where it lives and the first lines of its Goal.
 - 0027/B A `related` front-matter field: `braid new` and `braid edit --related`, shown by `braid view` (its own ids) and `braid list --open`, back-links by `braid view --links`, unknown ids a warning in `braid check`.
 - 0027/C The braid skill: a "Look around" step in Plan; the brief template and the plan request carry the links and any warning.
+- 0027/D `braid view` reads a braid or strand where it lives (its live copy, with `Read from:`), and the skill says so; added after the final review of #148.
 
 ## Already decided
 
