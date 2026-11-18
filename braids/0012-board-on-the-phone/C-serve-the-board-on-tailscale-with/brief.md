@@ -1,7 +1,7 @@
 ---
 id: '0012/C'
 title: "Serve the board on Tailscale with identity checks"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:security", "ask:architecture"]
 dependencies: []
 order: 30
@@ -56,6 +56,14 @@ Expected size: about 450 lines in 6 to 9 files, half of it tests.
 ## Out of scope
 
 - HTTPS in any form, Funnel, `tailscale serve`, a sign-in or pairing code, several users (user, 2026-11-18: plain HTTP for now). Nothing specific to one machine or tailnet: names and addresses come from `tailscale status` at run time.
+
+## Plan
+
+1. `src/board/tailnet.ts`: a `TailscaleRunner` (`tailscale <args>`, 3 s timeout); `readTailnet` from `tailscale status --json` (running, IPs, MagicDNS name, owner login from `User[Self.UserID]`; a tagged machine has no owner and refuses); `tailnetAddress(host, tailnet)` (`tailscale`, one of the IPs, or the MagicDNS name, else a refusal saying why); `whoisGate` (whois `<ip>:<port>`, allowed only for the owner's login and no node tags; errors, bad JSON and a timeout refuse; 5 s cache per remote address, in-flight calls shared).
+2. `src/commands/board.ts`: the request handler is shared by two listeners. The Tailscale listener (on the local listener's port number if free, else a free one) runs the whois gate on every request, then checks `Host` against its address and MagicDNS name with the port. Its actions need a matching `Origin` when sent and the `x-braid-request` header (a custom header forces a CORS preflight the server never answers); no token there; `open` is refused with 403. `--host <address>` in `runBoard`, refused before anything listens; it prints the phone URL and who may use it.
+3. Page: `postAction` always sends `x-braid-request`; off `127.0.0.1` Open thread is only the `t3code://` app link, at every width.
+4. Tests (fake runner, the Tailscale listener bound to 127.0.0.1 in tests): address refusals, whois cases × page/data/action, owner allowed (Start, Merge) and `open` refused, Host/Origin/header refusals.
+5. docs/board.md, docs/cli.md, D60; report.md with what the T3 phone app does with the link.
 
 ## Completion
 
