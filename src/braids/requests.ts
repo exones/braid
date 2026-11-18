@@ -67,6 +67,9 @@ function writeFile(file: string, list: readonly Request[]): void {
   renameSync(tmp, file);
 }
 
+/** Waiting for a lock gave up. */
+export class LockError extends Error {}
+
 const LOCK_STALE_MS = 30_000;
 const LOCK_WAIT_MS = 10_000;
 
@@ -107,8 +110,8 @@ export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): bo
   return false;
 }
 
-/** Runs `fn` holding the store's lock: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up after 10 s. Never call GitHub inside `fn`. */
-function locked<T>(file: string, fn: () => T): T {
+/** Runs `fn` holding the lock of `file`: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up after 10 s. Never call GitHub inside `fn`. */
+export function locked<T>(file: string, fn: () => T, what = "the requests store"): T {
   ensureStateDir(dirname(file));
   const lock = `${file}.lock`;
   const give = Date.now() + LOCK_WAIT_MS;
@@ -124,7 +127,7 @@ function locked<T>(file: string, fn: () => T): T {
         continue;
       }
       if (Date.now() > give) {
-        throw new Error(`the requests store is locked (${lock}); remove it if no braid command is running`);
+        throw new LockError(`${what} is locked (${lock}); remove it if no braid command is running`);
       }
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
     }

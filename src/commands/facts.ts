@@ -1,6 +1,7 @@
 // `braid facts <pr>` and `braid recap <id>`: the coordinator's diff facts and a draft recap, from the PR and the item's files at its head.
 // They read and print only: the coordinator still judges each fact against the stop cases.
 import { keyOfBranch, readGithub, runGh, runsOf, type GhRunner } from "../board/github.js";
+import { openCounts, SWEEP_DUE } from "../inbox/branch.js";
 import { UsageError } from "./braids.js";
 import { ciChecks } from "./coordinate.js";
 import { checksProblem, git, must, view, type PrView } from "./done.js";
@@ -152,5 +153,9 @@ export async function recapCommand(root: string, args: readonly string[], opts: 
     "",
     `braid log line: ${key} merged: PR #${pr.number}, ${pr.headRefOid.slice(0, 7)}. Done: <edit: short report>. For later items: ${field(report, "For later items") ?? "<edit: or none>"}. Plan changes: <edit: or none>. User decided: <edit: or none>. (${title}; checks ${problem === null ? "green" : "not green"}; needs the user: ${needsLine === "" ? "none" : "see recap"})`,
   ];
+  const due = openCounts(root).leftovers;
+  if (due >= SWEEP_DUE) {
+    out.push(`Sweep due: ${due} open leftovers`);
+  }
   return `${out.join("\n")}\n`;
 }

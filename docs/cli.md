@@ -10,7 +10,7 @@ These are the commands `braid help` lists, in its order.
 
 | Command | What it does |
 | --- | --- |
-| `braid list` | List braids and their strands in run order: id, status, order and title. |
+| `braid list` | List braids and their strands in run order: id, status, order and title, then `Inbox: <open> leftovers, <ideas> ideas` (counts only, from the local refs). |
 | `braid view <id>` | Show a braid (`0002`) or a strand (`0002/A`): fields, report, logs, strands and its brief. |
 | `braid new <title>` | Create a braid with the next free number. |
 | `braid strand new <braid> <title>` | Create a strand with the next free letter. |
@@ -25,11 +25,19 @@ These are the commands `braid help` lists, in its order.
 | `braid start <id> [--force\|--review]` | Create the strand branch from its braid branch, push it and add a worktree; a planned story whose branch already exists gets its worktree on it (`--force` skips the ready check); `--review` makes a detached checkout of the open PR head for the reviewer. |
 | `braid accept <id> [--head <sha>] [--merge] [--review <url>]` | Accept an item and mark it Done after checks (`braid done` is the old name): a strand on the braid branch after its merge (`--merge` merges the reviewed head first), a story or final PR on its branch (`--log` adds a braid log entry). Checks missing or pending on a head that only adds `braids/` changes on a green commit don't block it. |
 | `braid facts <pr>` | The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case. |
-| `braid recap <id>` | A draft recap and braid log line from `report.md`, the PR (head, checks) and the facts, to edit. |
+| `braid recap <id>` | A draft recap and braid log line from `report.md`, the PR (head, checks) and the facts, to edit; ends with `Sweep due: <n> open leftovers` at 3 or more open leftovers. |
 | `braid handover <id> --head <sha>` | Open a review request after checking the PR is open, at that head and green (a head with only `braids/` changes on a green commit counts as green); prints the recap draft (`--thread`). |
 | `braid ask <id> <text>` | Open a request for what the coordinator needs from you (`--kind question\|decision\|plan`, `--key <stop case>`, `--thread`, `--file -`). |
 | `braid answer <id>` | Close the item's request (`--log <file>\|-` adds your decision to the braid log; `--thread`). |
 | `braid requests` | List the open requests: item, kind, age, text. |
+| `braid note <text> --from <source>` | Capture a leftover on the `braid-inbox` branch and push it (source: `0012/A`, `review 0012/A`, `PR #12` or `user`; `--ref <url>` repeats; `--file -`). |
+| `braid note --idea <text>` | Capture an idea on the `braid-inbox` branch and push it (`from: user` unless `--from`; `--file -`). |
+| `braid inbox` | List the open inbox entries: kind, id, age, source, passed, title (`--leftovers`, `--ideas`, `--all` adds taken and dropped, `--no-fetch`). |
+| `braid inbox show <id>` | Print one inbox entry in full, with the item folder its source names. |
+| `braid inbox take <entry>... --into <braid id>[,<braid id>...]` | Mark open entries `taken`, with `into` set. |
+| `braid inbox pass <leftover>...` | Pass open leftovers over in a sweep: `passed` + 1; at 2 the leftover is dropped (`why: passed over in 2 sweeps`). An idea is refused. |
+| `braid inbox drop <entry>... --why "<reason>"` | Mark open entries `dropped`, with `why` set. |
+| `braid inbox reopen <entry>` | Bring a dropped or taken entry back to `open`: `why` and `into` removed, `passed` back to 0. |
 | `braid clean [<number>\|<id>] [--yes]` | Remove worktrees and local branches of merged items and of merged `plan/<slug>` branches (a dry run without `--yes`; never forces; a dirty or busy worktree is kept). |
 | `braid board` | Open the board in the browser (`--no-open` only prints the address; `--demo` uses sample data). |
 | `braid help` | Show the help. |
@@ -56,6 +64,9 @@ braid check         # validate every brief under braids/; lists each error with 
 braid status 0008   # one braid's strands: status, lane, branch, PR, ci checks, T3 thread
 braid next 0008     # the next strand to run, or why none is ready
 braid start 0008/B  # its branch from the braid tip, pushed, plus a worktree in $BRAID_WORKTREES_DIR (default ~/braid-worktrees)
+braid note 'Retry the fetch in braid start' --from 'review 0008/B' --ref <comment url>   # a leftover on braid-inbox, pushed at once
+braid note --idea 'A phone view of the board'   # an idea
+braid inbox         # the open leftovers and ideas; braid inbox show <id> prints one
 braid clean 0008    # dry run: worktrees and local branches of merged items; --yes removes them
 braid board         # open the board in the browser (127.0.0.1, free port)
 braid board --demo  # the same board on built-in sample data: no repository, gh or t3 is read

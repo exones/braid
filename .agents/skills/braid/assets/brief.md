@@ -76,7 +76,7 @@ braid accept 0013 --head <reviewed sha> --review <link> --thread <your thread id
                                               # story or final PR: checks, a status-only commit on its branch
 
 # the braid's log entry, on standard input of the braid accept that sets the strand Done
-'0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.'
+'0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <notes for later strands, and the ids of the leftovers captured, or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.'
 
 # pass log and report text on standard input (--file -, --log -) whenever it may hold quotes:
 # on Windows the braid.cmd shim splits an argument that holds a quoted phrase
@@ -88,7 +88,7 @@ braid accept 0013 --head <reviewed sha> --review <link> --thread <your thread id
 <what changed, why, validation, anything open>
 
 Decisions: <the user's answers from the log, then your own, or none>
-For later items: <changed names or interfaces, deviations from the plan, new decisions, ideas worth a later item, or none>
+For later items: <for later strands: changed names or interfaces, deviations from the plan, new decisions; then gaps for a later item, each self-contained (what, where, why); or none>
 Needs the user: <none, or per stop case `<key>: <what it is about, then what is needed>`>
 ```
 

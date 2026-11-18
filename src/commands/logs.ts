@@ -9,7 +9,7 @@ import { UsageError } from "./braids.js";
 import { find, parse, readText, str } from "./edit.js";
 
 /** The text from `--file`, `--text` or, for braid log, the one positional. */
-function input(command: string, values: Parameters<typeof readText>[0], cwd: string, positional: string | undefined): string {
+export function input(command: string, values: Parameters<typeof readText>[0], cwd: string, positional: string | undefined): string {
   const file = str(values, "file");
   const text = positional === undefined ? values : { ...values, text: positional };
   const given = file === undefined || file === "-" ? text : { ...text, file: resolve(cwd, file) };

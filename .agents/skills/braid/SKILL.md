@@ -30,23 +30,24 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 - Your commits are `docs(braids): …`, for example `docs(braids): 0012 phases: add 0012/A, 0012/B`.
 - Commit brief changes only at these points: the plan and its review rounds; the braid In Progress, after the planning merge; a growth or plan-change decision; a log entry; an item accepted (`braid accept`); an Outline detailed; the braid Done at the end.
 - Name every thread `<emoji> <repo> <id> <role>: <title>`: 🧠 `coordinator`, 💻 `worker`, 👀 `review`, 🧪 `research`; the repo is the GitHub repository's name and the title is the item's name exactly as its brief has it. Never write one by hand: launch each thread with the output of `braid title <id> --role <role>`, for example `💻 braid 0021 worker: Board Start: no branch clash`. When a coordinator takes a braid (plan or resume), it sets its own thread's title to `braid title <number> --role coordinator` (`t3_thread_update` in T3, else the host's rename).
-- **Side ideas get a home.** When the user proposes something while an item runs, don't fold it in silently: `braid ask` whether to track it and where, with a recommendation: absorb it into the running item, a strand of an existing braid, an extended outline, or a new braid.
+- **Gaps go by the table.** Route each gap as the workflow's "Gaps and the inbox" says, without asking the user, and capture what goes to the inbox with `braid note` ("Capture"). Never fold anything in silently.
 - Never edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless the user asks. Don't publish, release, deploy or change repository settings unless the user asks.
 
 ## Plan
 
-1. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
-2. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
-3. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
-4. Create them and commit locally; push nothing yet.
+1. Before planning a new braid, propose a sweep if any leftover is open ("Sweep"). When the user asks for an idea to become braids, plan from it as from any goal, and once the plan is approved, `braid inbox take <idea> --into <braid ids>`. Never propose ideas yourself.
+2. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
+3. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
+4. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
+5. Create them and commit locally; push nothing yet.
    - **Goal:** in your worktree on `plan/<slug>` from `main`, `braid new`, then `braid strand new` per strand.
    - **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `braid new`, then `git branch -m braid/<number>-<slug>` (its folder name).
 
    Show the user the plan (titles, kinds, tiers, order, dependencies, Completion boxes, `ask:` labels) with links to the brief files, and `braid ask <number> "Approve the plan" --kind plan`. Each round of the user's comments is one local commit, `docs(braids): <id> amend: <what>`. Check with `git diff` that only the intended lines changed, then tell the user briefly what changed (no pasted diff).
-5. On approval, squash the commits into one `docs(braids): plan <id>` (`git reset --soft <commit the branch was cut from>`, then commit) and push once.
+6. On approval, squash the commits into one `docs(braids): plan <id>` (`git reset --soft <commit the branch was cut from>`, then commit) and push once.
    - **Goal:** create and push the braid branch `braid/<number>-<slug>` from `main`, open the planning PR from `plan/<slug>` into it and tell the user. Its merge records the approval: keep the plan request open until then, or `braid ask` for that merge. Then pull the braid branch and set the braid `In Progress` in its next commit.
    - **Story:** remove the temporary worktree; the worker starts on that branch.
-6. If the user asked only for a plan, don't start: show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub. Otherwise start the first ready strand without waiting.
+7. If the user asked only for a plan, don't start: show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub. Otherwise start the first ready strand without waiting.
 
 ## Run an item
 
@@ -96,7 +97,7 @@ When the worker reports green:
    - M and L: run `braid start <id> --review` and launch an independent reviewer as a top-level thread on the folder it prints, with `title` the output of `braid title <id> --role review`, its model and the first message below (add the `SKILL.md` path if needed). Wait as in "Run an item" step 3.
    - L, when blocking fixes substantially changed failure or recovery behavior: have the reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its first message.
    - Use a fresh review task when the host requires it; never resume a delegated reviewer with `t3_thread_send`.
-   - Send blocking findings, and small factual errors in docs, to the same worker to fix on the same PR; decide non-blocking ones yourself.
+   - Send blocking findings, and small factual errors in docs, to the same worker to fix on the same PR; route non-blocking ones by the table (workflow, "Gaps and the inbox").
    - Still blocking after two fix rounds: add the `ask:quality` label to the item (`braid edit <id> --labels`, repeating the others).
 
    ```text
@@ -106,11 +107,12 @@ When the worker reports green:
    ```
 2. **Facts.** When nothing blocking remains, run `braid facts <pr>` and judge its facts against the [stop cases](references/stop-cases.md).
 3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. You don't re-run the gate or download artifacts.
-4. **Hand over** when the checks are green on the latest commit.
+4. **Capture** before the handover, as leftovers ("Capture"): the non-blocking findings not fixed in the PR (`--from 'review <id>'`, `--ref` the review comment), and the report's unfinished bits and `For later items:` gaps (`--from <id>`, `--ref` the PR). Notes for the braid's later strands (names, interfaces) stay in the log line, which names the entry ids instead of repeating the text.
+5. **Hand over** when the checks are green on the latest commit.
    - A strand: run `braid handover <id> --head <sha> --thread <your thread id>`, edit the recap it prints and wait for the user's merge.
    - A story: first run `braid accept <id> --head <reviewed sha> --review <link> --thread <your thread id>`; when the new head it prints is green, hand that head over the same way.
    - You merge only under "Merge on request" or "Auto mode".
-5. **After the merge**, once `gh pr list --state all` shows the PR merged:
+6. **After the merge**, once `gh pr list --state all` shows the PR merged:
    1. Interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID).
    2. Run `braid clean --yes` to remove the item's worktree and branch.
    3. For a strand, on the braid branch, run `braid accept <id> --review <link> --thread <your thread id> --log -` with the braid's log entry on standard input; it commits as `docs(braids): <id> done`. Skip this when the merge ran through `braid accept --merge`, which did it.
@@ -118,6 +120,21 @@ When the worker reports green:
    5. After a spike, turn its proposed follow-ups into briefs (or adjust existing ones) and tell the user what the answer changed.
    6. If the next item is `Outline`, reread it, detail it into a full brief (`braid ask` for what it leaves open), set it `To Do` and commit.
    7. Start the next item; after the last strand, finish.
+
+## Capture
+
+- Before your first capture in a session, run `braid inbox --no-fetch`. If `braid` has no `inbox` command, follow [setup problems](references/setup.md) (an old `braid` is updated the way it is installed).
+- Write each leftover as the workflow says (title, what, where, why, `--from`, `--ref`), through `braid note --file -`; it commits and pushes to `braid-inbox` itself.
+- The user's side observation while an item runs: capture it at once, a new idea as the `braid-idea` skill writes one, or a leftover when it is about the work at hand.
+
+## Sweep
+
+A sweep empties the leftovers in one decision of the user. It never covers ideas.
+
+1. **When.** At a recap whose draft says `Sweep due` (3 or more open leftovers), or before planning the next braid with at least one open leftover. Auto mode runs no recap, so it checks after each strand merge ([auto mode](references/auto-mode.md), "Merging", step 3). Auto mode never decides a sweep: it asks the user too, and the strands go on while the answer is pending.
+2. **Propose** with `braid inbox` and `braid ask <id> "<what is needed>" --kind decision`, never on an item whose handover request is open (an item has one open request, and a new one replaces it): for a strand on its braid's number; for a lone story after its merge; before planning, in the plan request of the braid being planned. Propose one sweep story (`kind:task`, label `sweep`, the lowest tier that fits), naming which leftovers go in and which are dropped, and why. A leftover too big for it becomes its own braid, or is dropped and noted again as an idea. Before planning, the proposal may also fold a related leftover into the braid being planned.
+3. **Record** the answer: create the story (Plan, step 5, Story) with a brief that copies each taken leftover's text, source and links, and push its branch; then `braid inbox take <ids> --into <number>`, `braid inbox drop <ids> --why "<reason>"`, and `braid inbox pass <ids>` for the rest (a second pass drops one).
+4. **Run** the sweep story after the current braid. At most one sweep is pending: a later proposal adds to that story's brief on its branch.
 
 ## Merge on request
 
@@ -142,7 +159,7 @@ A goal, when every strand is Done on the braid branch:
 
 1. Merge `main` into the braid branch, open one PR from it into `main` and watch it.
 2. In one commit, tick the braid's boxes that now hold, write its `report.md` naming any box left open and why, and add a closing log entry.
-3. Take the PR through "Accept and hand over" as a story of the braid's tier: review, facts, checks, `braid accept <number>`, then unwatch it and hand over the new head once its CI is green.
+3. Take the PR through "Accept and hand over" as a story of the braid's tier: review, facts, checks, capture, `braid accept <number>`, then unwatch it and hand over the new head once its CI is green.
 4. Wait for the user. Their merge finishes the goal: don't commit or open a PR after it.
 
 ## Talking to the user
@@ -153,4 +170,4 @@ A goal, when every strand is Done on the braid branch:
 - **A reply to an open request:** first `braid answer <id> --log -`, then act; a new question means a new `braid ask`.
 - The user's approvals are never boxes: `braid ask --kind decision`; the report's "Decisions" sums up the logged answers.
 
-The recap: edit the draft `braid handover` prints (`braid recap <id>` for an item merged or blocked). It already has every field, filled from `report.md`, the PR's head and checks, `braid facts` and the braid log line. Add only what the draft lacks: context first, the exact steps under "You", growth and plan changes under the mandate in **Decisions**, **Deviations**, **Next**, and the worker's final screens for a `ui` item.
+The recap: edit the draft `braid handover` prints (`braid recap <id>` for an item merged or blocked). It already has every field, filled from `report.md`, the PR's head and checks, `braid facts` and the braid log line. Add only what the draft lacks: context first, the exact steps under "You", growth and plan changes under the mandate in **Decisions**, **Deviations**, **Next**, and the worker's final screens for a `ui` item. Keep the draft's last line `Sweep due: …` when it is there, and never list inbox entries or ideas in a recap.

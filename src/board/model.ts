@@ -2,6 +2,7 @@ import { type Github, type PullRequest } from "./github.js";
 import { NO_T3, type T3, type T3Coordinator, type T3Thread } from "./t3.js";
 import type { Status } from "../braids/brief.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
+import { NO_INBOX, type InboxData } from "./inbox.js";
 import { age, type Request } from "../braids/requests.js";
 
 export const LANES = ["To Do", "In Progress", "In Review", "Waiting", "Done"] as const;
@@ -134,6 +135,8 @@ export interface BoardData {
   /** Whether T3 could be read; when not, no agent states show. */
   readonly t3: T3["status"];
   readonly braids: readonly BraidCard[];
+  /** The open inbox entries: leftovers and ideas, read only. Not a lane. */
+  readonly inbox: InboxData;
 }
 
 export interface ItemDetail {
@@ -447,8 +450,8 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   };
 }
 
-export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): BoardData {
-  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)) };
+export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX): BoardData {
+  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox };
 }
 
 export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): ItemDetail {

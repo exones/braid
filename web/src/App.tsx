@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, strandMarks, type Marks } from "../../src/board/marks.ts";
-import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
+import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
 
 /** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
 interface Route {
@@ -538,6 +538,102 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
   );
 }
 
+const SWEEP_DUE = 3;
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={`mt-1 flex-none text-slate-500 ${open ? "rotate-90" : ""}`}>
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+/** The header chip: the open counts; it opens the Inbox page. */
+function InboxChip({ inbox, on }: { inbox: InboxData; on: boolean }) {
+  const zero = inbox.leftovers.length === 0 && inbox.ideas.length === 0;
+  return (
+    <a
+      href="#/inbox"
+      title="Open the inbox: leftovers and ideas"
+      className={`inline-flex items-center gap-1.5 rounded-full border bg-white px-2.5 py-0.5 text-xs no-underline hover:border-blue-600 ${on ? "border-blue-600" : "border-slate-200"} ${zero ? "text-slate-500" : "text-slate-900"}`}
+    >
+      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="text-slate-500">
+        <path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z" />
+      </svg>
+      Inbox <b>{inbox.leftovers.length}</b> leftovers <span className="text-slate-300">·</span> <b>{inbox.ideas.length}</b> ideas
+    </a>
+  );
+}
+
+/** A title with `code` spans. */
+function Title({ text }: { text: string }) {
+  return <>{text.split(/(`[^`]+`)/).map((p, i) => (p.startsWith("`") && p.length > 1 ? <code key={i} className="rounded bg-slate-100 px-1 font-mono text-[12px]">{p.slice(1, -1)}</code> : p))}</>;
+}
+
+function InboxRow({ entry }: { entry: InboxEntry }) {
+  const [open, setOpen] = useState(false);
+  const preview = entry.kind === "idea" ? entry.text.split("\n").find((l) => l.trim() !== "") ?? "" : "";
+  return (
+    <div className="mb-2 rounded-lg border border-slate-200 bg-white shadow-sm" data-entry={entry.id}>
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex w-full cursor-pointer items-start gap-2 rounded-lg bg-transparent px-2.5 py-2 text-left hover:bg-slate-50">
+        <Chevron open={open} />
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold"><Title text={entry.title} /></span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+            {entry.kind === "leftover" && entry.from !== null && <span className="rounded-full bg-indigo-50 px-1.5 font-mono text-[11px] text-indigo-800">{entry.from}</span>}
+            {entry.passed > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[11px] text-amber-800" title="A sweep proposed it and you passed it over; at 2 it is dropped">passed over ×{entry.passed}</span>}
+            {entry.age !== null && <span className="whitespace-nowrap">{entry.age} ago</span>}
+          </span>
+          {!open && preview !== "" && <span className="mt-0.5 line-clamp-2 block text-[13px] text-slate-600">{preview}</span>}
+        </span>
+      </button>
+      {open && (
+        <div className="border-t border-dashed border-slate-200 py-2 pr-3 pl-8">
+          <Md text={entry.text} empty="" />
+          {entry.ref.length > 0 && <div className="mt-1 text-xs text-slate-500">Links: {entry.ref.join(" · ")}</div>}
+          <div className="mt-1 text-xs text-slate-500">{entry.id}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InboxColumn({ title, entries, note, empty }: { title: string; entries: readonly InboxEntry[]; note?: string; empty: ReactNode }) {
+  return (
+    <section aria-label={title} className="rounded-xl bg-slate-200/70 p-3">
+      <h2 className="mb-2.5 flex items-baseline gap-2 px-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        <span className="text-base text-slate-900">{entries.length}</span>
+        {title}
+        {note !== undefined && <small className="font-normal tracking-normal normal-case">{note}</small>}
+      </h2>
+      {entries.length === 0 ? <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-[13px] text-slate-500">{empty}</div> : entries.map((e) => <InboxRow key={e.id} entry={e} />)}
+    </section>
+  );
+}
+
+/** The inbox: the open leftovers and ideas, read only. */
+function InboxPage({ inbox }: { inbox: InboxData }) {
+  return (
+    <main className="max-w-[1200px] px-7 py-5">
+      <a href="#/" className="text-[13px] text-blue-600 no-underline">← Board</a>
+      <h1 className="text-xl font-bold">Inbox</h1>
+      <p className="mb-2 max-w-[80ch] text-slate-500">Small findings agents left behind, and ideas you wrote down. Nothing here needs an answer now: leftovers are swept in one batch, ideas wait until you pick one. Read only.</p>
+      <p className="mb-3 text-xs text-slate-500">
+        Read from the local copy of <code>braid-inbox</code>; Refresh fetches the remote first.{inbox.note !== null && <b className="ml-1 text-amber-700">{inbox.note}.</b>}
+      </p>
+      <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+        <InboxColumn
+          title="Leftovers"
+          entries={inbox.leftovers}
+          {...(inbox.leftovers.length >= SWEEP_DUE ? { note: "· sweep due" } : {})}
+          empty={<><b className="block text-slate-900">No open leftovers.</b>Agents add them with <code>braid note "…" --from &lt;item&gt;</code>. A sweep is proposed at {SWEEP_DUE}.</>}
+        />
+        <InboxColumn title="Ideas" entries={inbox.ideas} empty={<><b className="block text-slate-900">No ideas yet.</b>Write one down with <code>$braid-idea &lt;a sentence&gt;</code>.</>} />
+      </div>
+    </main>
+  );
+}
+
 function Board({ data, details }: { data: BoardData; details: boolean }) {
   return (
     <div className="grid grid-cols-5 items-start gap-3 p-4">
@@ -723,6 +819,7 @@ export function App() {
           <b className="text-base" title="Each braid sits in the lane where it needs you most.">braid · attention board</b>
           {board.state === "ready" && <span className="text-slate-500">Each braid sits in the lane where it needs you most. · {board.data.repo} · braids/</span>}
           <span className="flex-1" />
+          {board.state === "ready" && <InboxChip inbox={board.data.inbox} on={route.id === "inbox"} />}
           <label className="flex cursor-pointer items-center gap-1.5 text-xs" title="Show the line on each card saying what is needed; off moves the text into the icon's tooltip">
             <input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details
           </label>
@@ -737,7 +834,9 @@ export function App() {
             Refresh
           </button>
         </header>
-        {route.id === null ? (
+        {route.id === "inbox" ? (
+          <Status loaded={board}>{(data) => <InboxPage inbox={data.inbox} />}</Status>
+        ) : route.id === null ? (
           <Status loaded={board}>{(data) => <Board data={data} details={details} />}</Status>
         ) : (
           <ItemPage id={route.id} tab={route.tab} tick={tick} />
