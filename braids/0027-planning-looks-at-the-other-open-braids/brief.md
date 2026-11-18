@@ -29,8 +29,8 @@ Expected size: about 500 lines in 12 files over three strands.
 
 ## Completion
 
-- [ ] `braid list --open` shows every unfinished braid, including those only on a braid or `plan/` branch
-- [ ] Briefs carry `related` links, shown both ways
-- [ ] The braid skill's Plan looks at the open braids, links overlaps and puts duplicates and contradictions to the user
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid list --open` shows every unfinished braid, including those only on a braid or `plan/` branch
+- [x] Briefs carry `related` links, shown both ways
+- [x] The braid skill's Plan looks at the open braids, links overlaps and puts duplicates and contradictions to the user
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
