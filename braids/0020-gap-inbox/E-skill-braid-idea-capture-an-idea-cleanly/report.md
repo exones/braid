@@ -11,7 +11,7 @@
 
   The idea's shape: a title, the idea restated (when it touches an existing braid, it says what it adds), `Why:`, `Related:`, `Open questions:`, and the user's words quoted, with their answer after "then:" if a question was asked. Empty sections are left out, and there's no plan, tiers or estimates.
 - `test/pester/Install-Skills.Tests.ps1`: the real-repository install now expects `braid-idea` too, and checks that its link to `braid/references/setup.md` resolves where it is installed.
-- `README.md` (the skills sentence and the Skills row), `docs/getting-started.md` (the skills list) and D55 in `docs/decisions.md`, with its log line.
+- `README.md` (the skills sentence and the Skills row), `docs/getting-started.md` (the skills list) and D56 in `docs/decisions.md`, with its log line.
 
 ## Why
 

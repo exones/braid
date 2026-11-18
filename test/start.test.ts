@@ -330,3 +330,26 @@ test("a story with an existing branch is still refused with a PR open, a worktre
   git(d.root, "worktree", "add", "-q", join(d.wt, "elsewhere"), "braid/0002-story");
   await assert.rejects(startCommand(d.root, ["0002"], src(), d.env), /checked out in a worktree/);
 });
+
+test("clean removes a merged plan/ branch and its clean worktree, and skips a dirty one and one without a merged PR", async () => {
+  const { root, env, wt } = await started();
+  for (const slug of ["gone", "dirty", "open"]) {
+    git(root, "branch", `plan/${slug}`);
+  }
+  git(root, "worktree", "add", "-q", join(wt, "plan-gone"), "plan/gone");
+  git(root, "worktree", "add", "-q", join(wt, "plan-dirty"), "plan/dirty");
+  writeFileSync(join(wt, "plan-dirty", "scratch.txt"), "x");
+  const prs = [merged(30, "plan/gone"), merged(31, "plan/dirty"), { ...merged(32, "plan/open"), state: "OPEN", mergedAt: null }];
+  const dry = await cleanCommand(root, [], src(prs), env);
+  assert.match(dry, /would remove planning branch plan\/gone and worktree .*plan-gone \(PR #30 merged\)/);
+  assert.match(dry, /skip planning branch plan\/dirty .*: its worktree has changes/);
+  assert.doesNotMatch(dry, /plan\/open/);
+  assert.ok(existsSync(join(wt, "plan-gone")));
+  const out = await cleanCommand(root, ["--yes"], src(prs), env);
+  assert.match(out, /removed planning branch plan\/gone/);
+  assert.equal(existsSync(join(wt, "plan-gone")), false);
+  assert.ok(gone(root, "plan/gone"));
+  assert.ok(existsSync(join(wt, "plan-dirty")));
+  assert.equal(gone(root, "plan/dirty"), false);
+  assert.equal(gone(root, "plan/open"), false);
+});

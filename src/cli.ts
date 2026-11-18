@@ -7,7 +7,7 @@ import { checkBraids } from "./braids/check.js";
 import { runBoard } from "./commands/board.js";
 import { GitError } from "./braids/numbers.js";
 import { LockError } from "./braids/requests.js";
-import { listBraids, UsageError, viewItem } from "./commands/braids.js";
+import { listBraids, titleCommand, UsageError, viewItem } from "./commands/braids.js";
 import { ImportRefusal, importBacklog } from "./backlog/import.js";
 import { logEntry, reportItem } from "./commands/logs.js";
 import { nextCommand, statusCommand } from "./commands/coordinate.js";
@@ -44,6 +44,7 @@ export function helpText(version: string): string {
     "  view <id>                   Show a braid (0002) or a strand (0002/A)",
     "  new <title>                 Create a braid with the next free number",
     "  strand new <braid> <title>  Create a strand with the next free letter",
+    "  title <id> --role <role>    Print the thread title for an item: <emoji> <repo> <id> <role>: <title> (role coordinator, worker, review or research)",
     "  edit <id>                   Change --status, --title, --labels, --dep, --order, --delivery (none clears a list or the order)",
     "  brief <id> <section>        Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
@@ -93,7 +94,7 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report"]);
+const BRAID_COMMANDS = new Set(["note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
@@ -143,6 +144,8 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
       }
       return newStrand(root, rest);
     }
+    case "title":
+      return titleCommand(root, args);
     case "edit":
       return editItem(root, args);
     case "log":

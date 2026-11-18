@@ -61,7 +61,7 @@ export interface StartInfo {
   /** The branch the new worktree starts from, and the name of its branch. */
   readonly base: string;
   readonly branch: string;
-  /** Whether the braid already has a braid branch; false: the coordinator plans it on `plan/<slug>` from the main branch. */
+  /** Whether the braid already has a braid branch; false: it is in braids/ on the main branch only, and the coordinator details or runs it from there. */
   readonly planned: boolean;
   /** `<provider> / <model>` from BRAID.md; null when BRAID.md names none. */
   readonly expected: string | null;
@@ -69,7 +69,7 @@ export interface StartInfo {
   readonly reason: string | null;
 }
 
-/** The running coordinator thread of a braid, and a warning when it runs on another provider or model than BRAID.md names. */
+/** The coordinator thread of a braid (running, else idle), and a warning when it runs on another provider or model than BRAID.md names. */
 export interface CoordinatorInfo {
   readonly link: string | null;
   readonly warning: string | null;
@@ -122,7 +122,7 @@ export interface BraidCard {
   /** The open review request of the braid itself (a story, or a goal's final PR). */
   readonly merge: MergeInfo | null;
   readonly start: StartInfo;
-  /** The braid's running coordinator thread; null when none runs. */
+  /** The braid's coordinator thread, running or idle; null when it has none. */
   readonly coordinator: CoordinatorInfo | null;
 }
 
@@ -287,6 +287,11 @@ export function threadLink(agents: readonly T3Thread[]): string | null {
   return (agents.find((t) => t.role === "worker") ?? agents[0])?.link ?? null;
 }
 
+/** The thread to open for an item: a running agent's, else the newest idle (not running, not archived) thread of the item; an idle one never for a Done item (its old threads outlive `braid clean`). */
+export function openThread(key: string, agents: readonly T3Thread[], t3: T3, lane: Lane): string | null {
+  return threadLink(agents) ?? (lane === "Done" ? null : threadLink(t3.idle?.get(key) ?? []));
+}
+
 /**
  * The open review request of an item as Merge on request needs it, or null when there is none. The
  * reason is the first thing that stops the board from asking the coordinator: no coordinator thread on
@@ -338,28 +343,41 @@ export function coordinatorWarning(thread: Pick<T3Coordinator, "provider" | "mod
 }
 
 /**
- * Start on a braid: the coordinator's worktree starts from the braid branch when the brief was read
- * from one (its branch is `coordinator/<number>-<slug>`: the braid branch itself is held by no one, and
- * Git allows a branch in one worktree only; the coordinator switches to it), else from the main
- * branch on `plan/<slug>`, where it plans the braid. Off when the braid isn't To Do, a coordinator runs, or T3 can't be read.
+ * Start on a braid. Every braid on the board is in braids/, so the coordinator's branch is always
+ * `coordinator/<number>-<slug>` (the braid branch itself is held by no one, and Git allows a branch in one
+ * worktree only; the coordinator switches to it). It starts from the braid branch when the brief was read
+ * from one, else from the main branch, where the item exists without a branch. Both bases are remote
+ * branches (`origin/…`): the local ones go stale. Off when the braid isn't To Do, a coordinator runs, or T3 can't be read.
  */
 export function startOf(braid: Braid, lane: Lane, t3: T3, ctx: StartContext): StartInfo {
   const slug = slugOf(braid.folder) ?? "braid";
   const source = braid.source?.branch ?? null;
   const planned = source !== null && /(^|\/)braid\/\d{4}-/.test(source);
-  const reason = lane !== "To Do" ? "the braid isn't To Do" : t3.coordinators?.has(braid.number) === true ? "a coordinator for this braid is running" : t3.status.state !== "ok" ? "T3 isn't reachable" : null;
+  const reason = t3.coordinators?.has(braid.number) === true ? "a coordinator for this braid is running" : lane !== "To Do" ? "the braid isn't To Do" : t3.status.state !== "ok" ? "T3 isn't reachable" : null;
   return {
-    base: planned ? (source ?? ctx.main) : ctx.main,
-    branch: planned ? `coordinator/${braid.number}-${slug}` : `plan/${slug}`,
+    base: `origin/${planned ? (source ?? "").replace(/^origin\//, "") : ctx.main}`,
+    branch: `coordinator/${braid.number}-${slug}`,
     planned,
     expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}`,
     reason,
   };
 }
 
-function coordinatorOf(number: string, t3: T3, ctx: StartContext): CoordinatorInfo | null {
-  const c = t3.coordinators?.get(number);
+function coordinatorOf(number: string, t3: T3, ctx: StartContext, lane: Lane): CoordinatorInfo | null {
+  const c = t3.coordinators?.get(number) ?? (lane === "Done" ? undefined : t3.idleCoordinators?.get(number));
   return c === undefined ? null : { link: c.link, warning: coordinatorWarning(c, ctx) };
+}
+
+/**
+ * A braid that would read To Do is Working while it is being planned: a coordinator thread of it runs, or a planning PR
+ * into its braid branch is open (checks activity while that PR's checks run). Only To Do is lifted; the coordinator is still no agent.
+ */
+function planned(number: string, lane: Lane, gh: Github, t3: T3): { readonly lane: Lane; readonly activity: Activity | null } | null {
+  const plan = gh.planning?.get(number);
+  if (lane !== "To Do" || (plan === undefined && t3.coordinators?.has(number) !== true)) {
+    return null;
+  }
+  return { lane: "In Progress", activity: plan?.checks === "pending" ? "checks" : null };
 }
 
 export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): BraidCard {
@@ -377,13 +395,15 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
       ask: d.ask,
       running: d.agents.length > 0,
       activity: d.activity,
-      thread: threadLink(d.agents),
+      thread: openThread(`${braid.number}/${s.letter}`, d.agents, t3, d.lane),
       merge: mergeOf(`${braid.number}/${s.letter}`, gh, sig),
     };
   });
   if (strands.length === 0) {
-    const own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: threadLink(own.agents), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx) };
+    const derived = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
+    const lift = planned(braid.number, derived.lane, gh, t3);
+    const own = lift === null ? derived : { ...derived, ...lift };
+    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane) };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -404,7 +424,9 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     ...strands.flatMap((s) => (s.need === null ? [] : [{ lane: s.lane, reason: s.reason, need: s.need, who: s.id as string | null }])),
   ];
   const top = [...candidates].sort((a, b) => URGENCY.indexOf(a.lane) - URGENCY.indexOf(b.lane))[0];
-  const lane = braidLane(braid.brief.status, strands, own);
+  const base = braidLane(braid.brief.status, strands, own);
+  const lift = planned(braid.number, base, gh, t3);
+  const lane = lift?.lane ?? base;
   return {
     id: braid.brief.id,
     title: braid.brief.title,
@@ -417,14 +439,14 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     need: top === undefined ? null : { ...top.need, who: top.who, more: candidates.length - 1 },
     ask: null,
     running: strands.some((s) => s.running) || (own?.agents?.length ?? 0) > 0,
-    activity: ACTIVITY.find((a) => strands.some((s) => s.activity === a) || own?.activity === a) ?? null,
+    activity: ACTIVITY.find((a) => strands.some((s) => s.activity === a) || own?.activity === a || lift?.activity === a) ?? null,
     done: strands.filter((s) => s.lane === "Done").length,
     total: strands.length,
     strands,
-    thread: threadLink(own?.agents ?? []),
+    thread: openThread(braid.number, own?.agents ?? [], t3, lane),
     merge: own === null || pr?.state === "merged" ? null : mergeOf(braid.number, gh, sig),
     start: startOf(braid, lane, t3, ctx),
-    coordinator: coordinatorOf(braid.number, t3, ctx),
+    coordinator: coordinatorOf(braid.number, t3, ctx, lane),
   };
 }
 

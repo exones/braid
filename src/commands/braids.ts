@@ -1,5 +1,6 @@
 import type { Brief } from "../braids/brief.js";
 import { openCounts } from "../inbox/branch.js";
+import { ROLES, threadTitle, titleRepoName, type TitleRole } from "../braids/title.js";
 import { loadBraids, type Braid, type Item, type Strand } from "../braids/store.js";
 
 export class UsageError extends Error {
@@ -72,6 +73,25 @@ function render(item: Item, extra: string[]): string {
     lines.push("", body);
   }
   return `${lines.join("\n")}\n`;
+}
+
+/** `braid title <id> --role <role>`: the full thread title of an item; its name is the brief's title, exactly. */
+export function titleCommand(root: string, args: readonly string[]): string {
+  const at = args.indexOf("--role");
+  const role = at === -1 ? undefined : args[at + 1];
+  const rest = args.filter((_, i) => i !== at && i !== at + 1);
+  if (rest.length !== 1 || role === undefined || !Object.hasOwn(ROLES, role)) {
+    throw new UsageError(`usage: braid title <id> --role ${Object.keys(ROLES).join("|")}`);
+  }
+  const id = normaliseId(rest[0] ?? "");
+  const [number, letter] = id.split("/");
+  const braid = loadBraids(root).find((b) => b.number === number);
+  const item = letter === undefined ? braid : braid?.strands.find((s) => s.letter === letter);
+  if (item === undefined) {
+    throw new UsageError(`no item ${id}`);
+  }
+  return `${threadTitle(titleRepoName(root), id, role as TitleRole, item.brief.title)}
+`;
 }
 
 export function viewItem(root: string, raw: string | undefined): string {

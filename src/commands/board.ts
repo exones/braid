@@ -1,9 +1,9 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { basename, extname, join, resolve, sep } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadLiveBraids, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
@@ -12,6 +12,7 @@ import { DEMO_START, demoBraids, demoGithub, demoInbox, demoSignals, demoT3, dem
 import { inboxOf, type InboxData } from "../board/inbox.js";
 import { readGithub, runGh, type Github, type GhRunner } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toBoard, toCard, toDetail, type StartContext } from "../board/model.js";
+import { threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
 import { mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { normaliseId, UsageError } from "./braids.js";
@@ -135,18 +136,46 @@ export function coordinatorMessage(id: string, start: { base: string; branch: st
 ${
     start.planned
       ? `${where}you are resuming a braid you didn't plan: read the braid skill's "Resuming" first. Switch to the braid branch (\`git switch ${start.base.replace(/^origin\//, "")}\`). If that fails because it is checked out elsewhere, keep working on \`${start.branch}\`, merged up to the braid branch, or \`braid ask\`.`
-      : `${where}plan the braid here.`
+      : `${where}the item already exists in braids/ on the main branch and has no braid branch yet. Detail it or run it as its state says; don't plan it again.`
   }`;
+}
+
+export interface GitResult {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+/** Runs `git` in a folder; Start's fetch and branch checks go through it. */
+export type GitRunner = (root: string, args: readonly string[]) => GitResult;
+export const runGit: GitRunner = (root, args) => {
+  const r = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: 60_000 });
+  return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr || r.error?.message || "" };
+};
+
+const firstLine = (r: GitResult): string => r.stderr.trim().split("\n")[0] || "git failed";
+
+/** Every branch name, local and on origin. A listing that fails is a `Start: <reason>` refusal: a name is never guessed free. */
+function takenBranches(git: GitRunner, root: string): Set<string> {
+  const local = git(root, ["branch", "--list", "--format=%(refname:short)"]);
+  const remote = git(root, ["ls-remote", "--heads", "origin"]);
+  if (local.status !== 0 || remote.status !== 0) {
+    throw new UsageError(`Start: branches can't be listed (${firstLine(local.status !== 0 ? local : remote)})`);
+  }
+  const names = new Set(local.stdout.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== ""));
+  for (const m of remote.stdout.matchAll(/\srefs\/heads\/(\S+)/g)) {
+    names.add(m[1] ?? "");
+  }
+  return names;
 }
 
 /**
  * Start: launches a new coordinator thread for a To Do braid with `t3 thread start`, with no model flags
  * (T3 uses the project's default), the first message on standard input and a worktree from the braid branch
- * or, for a braid not planned yet, from the main branch on `plan/<slug>`. The body is `{ id }`. The server
+ * or main branch after a fetch (the name gets -2, -3 when taken). The body is `{ id }`. The server
  * recomputes the card from fresh reads and refuses (400, `Start: <reason>`) when Start is off. After the launch
  * it reads the thread and warns when its provider or model differ from BRAID.md's coordinator.
  */
-export function startAction(src: Sources, root: string, t3: T3Runner): Action {
+export function startAction(src: Sources, root: string, t3: T3Runner, git: GitRunner = runGit): Action {
   return async (body) => {
     const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>)["id"] : undefined;
     if (typeof raw !== "string") {
@@ -163,14 +192,31 @@ export function startAction(src: Sources, root: string, t3: T3Runner): Action {
     if (card.start.reason !== null) {
       throw new UsageError(`Start: ${card.start.reason}`);
     }
-    const { base, branch } = card.start;
+    const fetched = git(root, ["fetch", "origin"]);
+    if (fetched.status !== 0) {
+      throw new UsageError(`Start: git fetch failed (${firstLine(fetched)})`);
+    }
+    // A braid branch only this checkout has can't come from origin; the main branch must.
+    let base = card.start.base;
+    if (git(root, ["rev-parse", "--verify", "--quiet", base]).status !== 0) {
+      const local = base.replace(/^origin\//, "");
+      if (!card.start.planned || git(root, ["rev-parse", "--verify", "--quiet", local]).status !== 0) {
+        throw new UsageError(`Start: ${base} not found after the fetch`);
+      }
+      base = local;
+    }
+    const taken = takenBranches(git, root);
+    let branch = card.start.branch;
+    for (let n = 2; taken.has(branch); n++) {
+      branch = `${card.start.branch}-${n}`;
+    }
     if (!/^[\w./-]+$/.test(base) || !/^[\w./-]+$/.test(branch)) {
       throw new UsageError(`Start: the branch names ${base} and ${branch} are not plain`);
     }
     // The title goes through cmd.exe on Windows: no quote or shell character may reach it.
-    const title = `${src.repo} ${id} coordinator: ${card.title}`.replace(/["%^&|<>!\s]+/g, " ").trim();
+    const title = threadTitle(src.repo, id, "coordinator", card.title).replace(/["%^&|<>!\s]+/g, " ").trim();
     const args = ["thread", "start", src.project(), "-", "--title", title, "--worktree", base, "--branch", branch, "--json"];
-    const started = await t3(root, args, coordinatorMessage(id, card.start));
+    const started = await t3(root, args, coordinatorMessage(id, { ...card.start, base, branch }));
     if (started.error !== undefined || started.status !== 0) {
       const first = (started.stderr.trim().split("\n")[0] ?? "") || started.error?.message || "t3 failed";
       throw new UsageError(`Not started: ${first}`);
@@ -191,9 +237,73 @@ export function startAction(src: Sources, root: string, t3: T3Runner): Action {
   };
 }
 
+export type Opener = (url: string) => Promise<void>;
+
+/** Opens a URL with the OS (the T3 desktop app registers `t3code:`): no shell string is built, the URL is one argument. */
+export const openWithOs: Opener = (url) =>
+  new Promise((done, fail) => {
+    const [cmd, args] = process.platform === "win32" ? (["cmd", ["/c", "start", "", url]] as const) : process.platform === "darwin" ? (["open", [url]] as const) : (["xdg-open", [url]] as const);
+    const child = spawn(cmd, args, { stdio: "ignore", detached: true, windowsHide: true });
+    child.once("error", fail);
+    child.once("spawn", () => {
+      child.unref();
+      done();
+    });
+  });
+
+const T3_SEGMENT = /^[\w.%~-]+$/;
+
+/** `t3code://threads/<env>/<thread>` from T3's thread link (`http://127.0.0.1:3773/<env>/<thread>`); null when the link isn't that shape. */
+export function t3codeUrl(link: string): string | null {
+  let path: string;
+  try {
+    path = new URL(link).pathname;
+  } catch {
+    return null;
+  }
+  const m = /^\/([^/]+)\/([^/]+)\/?$/.exec(path);
+  return m !== null && T3_SEGMENT.test(m[1] ?? "") && T3_SEGMENT.test(m[2] ?? "") ? `t3code://threads/${m[1]}/${m[2]}` : null;
+}
+
+/**
+ * Open thread: opens the item's thread in the T3 desktop app. The body is `{ id }`, a braid or strand; the server
+ * picks the thread by the same rule as the board's button (a strand's thread; a braid's agent thread, else its
+ * coordinator) from fresh reads, so a client can't pass a URL. Refuses (400) when there is no thread.
+ */
+export function openAction(src: Sources, open: Opener = openWithOs): Action {
+  return async (body) => {
+    const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>)["id"] : undefined;
+    if (typeof raw !== "string") {
+      throw new UsageError("open needs { id }: the braid or strand whose thread to open");
+    }
+    const id = normaliseId(raw);
+    const [number, letter] = id.split("/");
+    const braid = src.braids().find((b) => b.number === number);
+    if (braid === undefined) {
+      throw new UsageError(`Open thread: no braid ${number}`);
+    }
+    const github = src.github(true);
+    const card = toCard(braid, github, await src.t3(true), src.signals(github), src.start());
+    const link = letter === undefined ? (card.thread ?? card.coordinator?.link ?? null) : (card.strands.find((s) => s.id === id)?.thread ?? null);
+    if (link === null) {
+      throw new UsageError(`Open thread: ${id} has no thread`);
+    }
+    const url = t3codeUrl(link);
+    if (url === null) {
+      throw new UsageError(`Open thread: T3's link isn't one the app can open (${link})`);
+    }
+    try {
+      await open(url);
+    } catch (e) {
+      throw new UsageError(`Open thread: the OS couldn't open ${url} (${e instanceof Error ? e.message : "failed"})`);
+    }
+    return { ok: true, id, url };
+  };
+}
+
 export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = runT3): Sources {
   const src: Sources = {
-    repo: basename(root),
+    repo: titleRepoName(root),
     braids: () => loadLiveBraids(root),
     github: (fresh) => readGithub(root, gh, fresh ? 0 : undefined),
     t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
@@ -205,7 +315,7 @@ export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = r
     project: () => mainCheckout(root),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), open: openAction(src) };
   return src;
 }
 

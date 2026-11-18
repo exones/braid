@@ -30,6 +30,10 @@ export interface Github {
   readonly status: GithubState;
   /** The PR to show per item key (`0006` or `0006/A`): the open one, else the newest merged one, else the newest closed (unmerged) one. */
   readonly prs: ReadonlyMap<string, PullRequest>;
+  /** Merged PRs of planning branches (`plan/<slug>`), by head branch: the PR number. `braid clean` removes those branches. */
+  readonly plans?: ReadonlyMap<string, number>;
+  /** Open planning PRs (head `plan/<slug>`, base `braid/<number>-<slug>`) by the braid number of the base. Never the braid's own PR, so they are not in `prs`. */
+  readonly planning?: ReadonlyMap<string, PullRequest>;
 }
 
 export interface GhResult {
@@ -198,7 +202,20 @@ function readFresh(root: string, run: GhRunner): Github {
       prs.set(key, { number: raw.number, url: raw.url, state, ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), ...(raw.baseRefName === undefined ? {} : { base: raw.baseRefName }), branch: raw.headRefName, checks: state === "open" ? checksOf(raw.statusCheckRollup) : state === "merged" ? "passing" : "none", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
     }
   }
-  return { status: { state: "ok" }, prs };
+  const plans = new Map<string, number>();
+  for (const p of merged) {
+    if (p.headRefName.startsWith("plan/") && !open.some((o) => o.headRefName === p.headRefName)) {
+      plans.set(p.headRefName, p.number);
+    }
+  }
+  const planning = new Map<string, PullRequest>();
+  for (const raw of open) {
+    const number = raw.headRefName.startsWith("plan/") && raw.baseRefName !== undefined ? BRAID_BRANCH.exec(raw.baseRefName)?.[1] : undefined;
+    if (number !== undefined && !planning.has(number)) {
+      planning.set(number, { number: raw.number, url: raw.url, state: "open", ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), base: raw.baseRefName ?? "", branch: raw.headRefName, checks: checksOf(raw.statusCheckRollup), failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) });
+    }
+  }
+  return { status: { state: "ok" }, prs, plans, planning };
 }
 
 /** Forgets what was read, for tests. */

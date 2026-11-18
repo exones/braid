@@ -242,3 +242,14 @@ test("closed PRs are cached and dropped when they reopen", () => {
   assert.equal(readGithub(root, gh, 0).prs.get("0001/A")?.state, "open");
   assert.deepEqual(calls, ["all", "open", "open"]);
 });
+
+test("an open planning PR into a braid branch is kept apart from the braid's PRs", async () => {
+  const root = repo({ "braids/0006-solo/brief.md": brief("0006", "To Do") });
+  const plan = (number: number, state: string) => ({ ...pr(number, state, "plan/solo", green), baseRefName: "braid/0006-solo", mergedAt: state === "MERGED" ? "2026-11-18T00:00:00Z" : null });
+  const open = await board(root, () => ok([plan(30, "OPEN")]));
+  assert.equal(open.data.braids[0].lane, "In Progress");
+  assert.equal(open.data.braids[0].pr, null);
+  const merged = await board(repo({ "braids/0006-solo/brief.md": brief("0006", "To Do") }), () => ok([plan(31, "MERGED")]));
+  assert.equal(merged.data.braids[0].lane, "To Do", "a merged planning PR never makes the braid Done");
+  assert.equal(merged.data.braids[0].pr, null);
+});

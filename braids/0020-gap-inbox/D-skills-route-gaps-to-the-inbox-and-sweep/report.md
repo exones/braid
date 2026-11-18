@@ -13,7 +13,7 @@
   - Finish: the final PR's "Accept and hand over" list names the capture step too.
   - The recap keeps the draft's `Sweep due` line and never lists entries or ideas.
 - `.agents/skills/braid/assets/brief.md`: the braid log line's `For later items:` names notes for later strands and the captured entry ids; the report's line splits notes for later strands from self-contained gaps.
-- `docs/decisions.md`: D56 and its log line; D33 now says the skills route gaps to the inbox (D56 replaced "give side ideas a home").
+- `docs/decisions.md`: D57 and its log line; D33 now says the skills route gaps to the inbox (D57 replaced "give side ideas a home").
 
 ## Why
 
@@ -27,7 +27,7 @@ The braid 0020's plan: gaps stop costing the user a decision each; they are capt
 
 ## Open
 
-- Size: about 70 changed lines in 4 files plus D56, within the brief's range.
+- Size: about 70 changed lines in 4 files plus D57, within the brief's range.
 - Review at 27c8b79 (not blocking): its three suggestions are taken (the sweep's request target, D33, capture in Finish).
 
 Decisions: the user's, from the plan: recaps never list inbox entries or ideas, only the `Sweep due` line. Mine: the routing table and the leftover rule live in the workflow (true for every role, per D47), the coordinator's steps in the skill; in auto mode the strands go on while a sweep answer is pending.

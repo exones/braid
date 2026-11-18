@@ -5,7 +5,7 @@
 - `src/board/inbox.ts`: `inboxOf(root, fetch)` reads `braid-inbox` (`readInbox` from 0020/A) and returns the open entries, newest first, as `{ leftovers, ideas, note }`; each entry has `kind`, `id`, `title`, `text` (after the title line), `from`, `ref`, `age` and `passed`. `note` says a fetch failed or a malformed entry was left out.
 - `/api/board` carries it as `inbox`. Every refresh reads the local refs; the Refresh button (`?fresh=1`) fetches `braid-inbox` first. `Sources` gained `inbox(fetch)`; the demo board has sample entries (`demoInbox`).
 - The page (`web/src/App.tsx`), as the user approved: a header chip `Inbox N leftovers · M ideas` opens `#/inbox`, a read-only page with a Leftovers and an Ideas list. Rows are collapsed (title, source, age, "passed over ×N"; ideas also their first line) and open to the full text, links and id. Empty lists say what fills them.
-- Docs: `docs/board.md` ("The inbox", three screenshots), D54 in `docs/decisions.md`.
+- Docs: `docs/board.md` ("The inbox", three screenshots), D55 in `docs/decisions.md`.
 
 ## Why
 

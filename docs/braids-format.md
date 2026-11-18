@@ -100,7 +100,7 @@ The status on such a branch is newer than the one in the checked-out files, so `
 
 ## The inbox
 
-Small leftovers and the user's ideas live outside `braids/`, on one branch of their own, `braid-inbox` (D53). It starts as an orphan commit, shares no history with `main` and is never merged into it, like `gh-pages`. Its name matches neither braid branch shape, so the board, `braid clean` and the cross-branch reads ignore it, and pushes to it run no CI.
+Small leftovers and the user's ideas live outside `braids/`, on one branch of their own, `braid-inbox` (D54). It starts as an orphan commit, shares no history with `main` and is never merged into it, like `gh-pages`. Its name matches neither braid branch shape, so the board, `braid clean` and the cross-branch reads ignore it, and pushes to it run no CI.
 
 - `leftovers/<id>.md`: a gap found during an item that isn't fixed in its PR: a non-blocking review finding, an unfinished bit a report names, a worker's `For later items:`. The text says what is wrong or missing, where (files, functions) and why it matters, so an agent who never saw the item understands it.
 - `ideas/<id>.md`: the user's idea, written by the `braid-idea` skill.

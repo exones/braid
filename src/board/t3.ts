@@ -1,10 +1,11 @@
 // What T3 knows about the agents: one `t3 thread list --json` per refresh, plus `show --json` for
-// each running thread. An agent of an item is a running thread whose worktree braid created for it
+// each running thread; an idle thread is placed by its title. An agent of an item is a running thread whose worktree braid created for it
 // (`braid start`); any other thread, a coordinator's included, is not an agent of any item.
 import { execFile, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
+import { parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { agentsDir, itemOfFolder, repoNameOf } from "../braids/worktrees.js";
 
 export interface T3Thread {
@@ -22,7 +23,7 @@ export type T3State =
   | { readonly state: "ok" }
   | { readonly state: "unavailable"; readonly reason: string };
 
-/** A running coordinator thread of a braid: its title reads `<repo> <number> coordinator: <title>`. */
+/** A coordinator thread of a braid: its title reads `<emoji> <repo> <number> coordinator: <title>`. */
 export interface T3Coordinator {
   readonly id: string;
   readonly link: string | null;
@@ -37,6 +38,13 @@ export interface T3 {
   readonly coordinators?: ReadonlyMap<string, T3Coordinator>;
   /** Running agents per item key (`0006` or `0006/A`). */
   readonly threads: ReadonlyMap<string, readonly T3Thread[]>;
+  /**
+   * Threads of an item that are not running and not archived (a worker waiting for CI, a finished reviewer), newest
+   * first, per item key. They are no agents (no lane reads them); the board only opens them.
+   */
+  readonly idle?: ReadonlyMap<string, readonly T3Thread[]>;
+  /** The newest coordinator thread per braid number that is not running and not archived. */
+  readonly idleCoordinators?: ReadonlyMap<string, T3Coordinator>;
 }
 
 export const NO_T3: T3 = { status: { state: "unavailable", reason: "T3 was not read" }, threads: new Map() };
@@ -136,7 +144,7 @@ export interface T3Options {
 }
 
 /**
- * Reads the threads of running and stopped agents. Any failure, including T3 not running, gives
+ * Reads the threads of running agents, and the idle (not running, not archived) ones the board only opens. Any failure, including T3 not running, gives
  * `unavailable` with the reason, never an error.
  */
 export function readT3(root: string, options: T3Options = {}): Promise<T3> {
@@ -148,6 +156,11 @@ export function readT3(root: string, options: T3Options = {}): Promise<T3> {
   const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDir(root), options.project ?? mainCheckout(root));
   recent.set(root, { at: Date.now(), t3 });
   return t3;
+}
+
+/** A thread T3 marks archived (`archived: true`, an `archivedAt` time, or the status `archived`): it gets no button. */
+function archived(t: Json): boolean {
+  return t["archived"] === true || (t["archivedAt"] !== undefined && t["archivedAt"] !== null) || t["status"] === "archived";
 }
 
 async function readFresh(root: string, run: T3Runner, agents: string, project: string): Promise<T3> {
@@ -170,33 +183,61 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
   const wanted = (Array.isArray(all) ? all : [])
     .map(obj)
     .filter((t): t is Json => t !== null)
+    .filter((t) => !archived(t))
     .map((t) => ({ t, id: str(t["threadId"]) ?? str(t["id"]), status: str(t["status"]) }))
-    .filter((x): x is { t: Json; id: string; status: string } => x.id !== null && x.status === "running");
+    .filter((x): x is { t: Json; id: string; status: string } => x.id !== null)
+    .map((x) => ({ ...x, running: x.status === "running" }));
 
   const mine = norm(agents);
-  const found = await pool(wanted, async ({ t, id }) => {
-    const where = await show(run, root, id);
-    const path = where?.worktreePath ?? null;
-    // Only a worktree directly inside the braid worktree folder, named for an item, is an agent's.
+  // Only a worktree directly inside the braid worktree folder, named for an item, is an agent's.
+  const ownerOf = (path: string | null) => {
     const folder = path === null ? null : norm(path);
-    const owner = path !== null && folder !== null && folder.startsWith(`${mine}/`) && !folder.slice(mine.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
-    return owner === null ? null : { key: owner.key, thread: { id, role: owner.role, pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
+    return path !== null && folder !== null && folder.startsWith(`${mine}/`) && !folder.slice(mine.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
+  };
+  const repos = new Set([titleRepoName(root), repoNameOf(root) ?? basename(root)]);
+  // The title of a braid thread of this repository (`<emoji> <repo> <id> <role>: <title>`); other titles are no braid thread's.
+  const titled = (t: Json) => {
+    const p = parseThreadTitle(str(t["title"]) ?? "");
+    return p !== null && repos.has(p.repo) ? p : null;
+  };
+  // Running threads are shown (`t3 thread show`: worktree and pending questions). An idle thread is placed by its title alone.
+  const found = await pool(wanted, async ({ t, id, running }) => {
+    let where: Where | null = null;
+    let key: string | null = null;
+    let role: "worker" | "reviewer" | null = null;
+    if (running) {
+      where = await show(run, root, id);
+      const owner = ownerOf(where?.worktreePath ?? null);
+      key = owner?.key ?? null;
+      role = owner?.role ?? null;
+    } else {
+      const p = titled(t);
+      if (p !== null && (p.role === "worker" || p.role === "review")) {
+        key = p.id;
+        role = p.role === "worker" ? "worker" : "reviewer";
+      }
+    }
+    return key === null || role === null ? null : { key, running, thread: { id, role, pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
   });
-  const repo = repoNameOf(root) ?? basename(root);
   const coordinators = new Map<string, T3Coordinator>();
-  for (const { t, id } of wanted) {
-    const number = str(t["title"])?.startsWith(`${repo} `) === true ? /^(\d{4}) coordinator\b/.exec((str(t["title"]) ?? "").slice(repo.length + 1))?.[1] : undefined;
-    if (number !== undefined && !coordinators.has(number)) {
-      coordinators.set(number, { id, link: str(t["link"]), provider: str(t["providerInstanceId"]), model: str(t["model"]) });
+  const idleCoordinators = new Map<string, T3Coordinator>();
+  for (const { t, id, running } of wanted) {
+    const p = titled(t);
+    const number = p?.role === "coordinator" && !p.id.includes("/") ? p.id : undefined;
+    const into = running ? coordinators : idleCoordinators;
+    if (number !== undefined && !into.has(number)) {
+      into.set(number, { id, link: str(t["link"]), provider: str(t["providerInstanceId"]), model: str(t["model"]) });
     }
   }
   const threads = new Map<string, T3Thread[]>();
+  const idle = new Map<string, T3Thread[]>();
   for (const f of found) {
     if (f !== null) {
-      threads.set(f.key, [...(threads.get(f.key) ?? []), f.thread]);
+      const into = f.running ? threads : idle;
+      into.set(f.key, [...(into.get(f.key) ?? []), f.thread]);
     }
   }
-  return { status: { state: "ok" }, threads, coordinators };
+  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators };
 }
 
 /** Forgets what was read, for tests. */
