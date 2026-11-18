@@ -1,7 +1,7 @@
 ---
 id: '0027/B'
 title: "Related braids: a related field, shown both ways"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:architecture"]
 dependencies: ['0027/A']
 order: 20
