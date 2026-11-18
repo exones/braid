@@ -13,7 +13,7 @@
 
 ## Validation
 
-- `npm run verify` passes (222 tests); `main` (0022) merged in. New `test/title.test.ts`; `test/board-start.test.ts` uses a fake `t3` that records `show` calls and finds idle worker, review and coordinator threads by title, with and without emoji.
+- `npm run verify` passes (223 tests); `main` (0022) merged in. New `test/title.test.ts`; `test/board-start.test.ts` uses a fake `t3` that records `show` calls and finds idle worker, review and coordinator threads by title, with and without emoji.
 - `braid clean` (dry run) on this repo: 1m53 before, about 15 s now (the remaining time is the one GitHub read, the one T3 read for running threads, and git checks).
 
 ## Open
