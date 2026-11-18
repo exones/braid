@@ -1,7 +1,7 @@
 ---
 id: '0020/C'
 title: "Board: the inbox"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: ['0020/A']
 order: 30
