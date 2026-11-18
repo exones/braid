@@ -1,4 +1,5 @@
 import type { Brief } from "../braids/brief.js";
+import { openCounts } from "../inbox/branch.js";
 import { loadBraids, type Braid, type Item, type Strand } from "../braids/store.js";
 
 export class UsageError extends Error {
@@ -25,6 +26,8 @@ export function listBraids(root: string): string {
       lines.push(strandLine(strand));
     }
   }
+  const inbox = openCounts(root);
+  lines.push("", `Inbox: ${inbox.leftovers} leftovers, ${inbox.ideas} ideas`);
   return `${lines.join("\n")}\n`;
 }
 

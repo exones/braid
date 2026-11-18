@@ -281,3 +281,17 @@ function write(root: string, change: (current: InboxView) => InboxChange): Write
     }
   }
 }
+
+/** Open entries per kind, from the local refs without fetching; zeros when there is no inbox or it cannot be read. */
+export function openCounts(root: string): { readonly leftovers: number; readonly ideas: number } {
+  try {
+    const { entries } = readInbox(root);
+    const open = entries.filter((e) => e.status === "open");
+    return { leftovers: open.filter((e) => e.kind === "leftover").length, ideas: open.filter((e) => e.kind === "idea").length };
+  } catch {
+    return { leftovers: 0, ideas: 0 };
+  }
+}
+
+/** Open leftovers at which a recap says a sweep is due. */
+export const SWEEP_DUE = 3;

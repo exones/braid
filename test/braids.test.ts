@@ -43,6 +43,8 @@ test("list shows braids by number and strands in run order", () => {
       "  0002/B  To Do         3  Create and edit",
       "0003  Outline      Read-only board",
       "",
+      "Inbox: 0 leftovers, 0 ideas",
+      "",
     ].join("\n"),
   );
 });
@@ -154,14 +156,14 @@ test("CRLF briefs are read", () => {
   const root = repo({ "braids/0001-one/brief.md": good.replaceAll("\n", "\r\n") + "\r\n## Goal\r\n" });
   const r = braid(root, "list");
   assert.equal(r.stderr, "");
-  assert.equal(r.stdout, "0001  To Do        One\n");
+  assert.equal(r.stdout, "0001  To Do        One\n\nInbox: 0 leftovers, 0 ideas\n");
 });
 
 test("a brief with a UTF-8 BOM is read", () => {
   const root = repo({ "braids/0001-one/brief.md": `﻿${good}` });
   const r = braid(root, "list");
   assert.equal(r.stderr, "");
-  assert.equal(r.stdout, "0001  To Do        One\n");
+  assert.equal(r.stdout, "0001  To Do        One\n\nInbox: 0 leftovers, 0 ideas\n");
 });
 
 test("quoted list items keep escaped and doubled quotes and commas", () => {
@@ -194,6 +196,8 @@ test("strands without order run last, by letter", () => {
       "  0001/A  To Do         2  SA",
       "  0001/B  To Do         -  SB",
       "  0001/D  To Do         -  SD",
+      "",
+      "Inbox: 0 leftovers, 0 ideas",
       "",
     ].join("\n"),
   );

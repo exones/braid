@@ -1,7 +1,7 @@
 ---
 id: '0020/B'
 title: "Sweep due in recaps, counts in braid list"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0020/A']
 order: 20
@@ -40,8 +40,8 @@ Expected size: about 120 to 200 lines in 4 to 5 files, with tests.
 
 ## Completion
 
-- [ ] `braid recap` and `braid handover` end with `Sweep due: <n> open leftovers` at 3 or more open leftovers and say nothing about the inbox below that; covered by tests
-- [ ] `braid list` shows the open counts of both kinds; covered by a test
-- [ ] `docs/braids-format.md` and `docs/cli.md` describe it
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid recap` and `braid handover` end with `Sweep due: <n> open leftovers` at 3 or more open leftovers and say nothing about the inbox below that; covered by tests
+- [x] `braid list` shows the open counts of both kinds; covered by a test
+- [x] `docs/braids-format.md` and `docs/cli.md` describe it
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

@@ -150,3 +150,21 @@ test("braid recap: no facts and a quiet worker gives Needs the user: none; a mis
   await assert.rejects(recapCommand(w.root, ["0001"], { gh: none }), /0001 has no PR/);
   await assert.rejects(recapCommand(w.root, ["nope"], { gh: w.gh }), /usage: braid recap/);
 });
+
+test("braid recap: Sweep due appears only at 3 or more open leftovers, with no entries or ideas", async () => {
+  const w = world("about 10 lines", (put) => put("a.txt", "a\n"));
+  const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
+  const note = (...args: string[]) => {
+    const r = spawnSync(process.execPath, [cli, "note", ...args], { cwd: w.root, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+  };
+  note("--idea", "An idea");
+  note("Secret one", "--from", "0001/A");
+  note("Secret two", "--from", "0001/A");
+  const quiet = await recapCommand(w.root, ["1"], { gh: w.gh });
+  assert.doesNotMatch(quiet, /Sweep due|inbox|Secret/i);
+  note("Secret three", "--from", "user");
+  const out = await recapCommand(w.root, ["1"], { gh: w.gh });
+  assert.equal(out.trimEnd().split("\n").at(-1), "Sweep due: 3 open leftovers");
+  assert.doesNotMatch(out, /Secret|idea/i);
+});
