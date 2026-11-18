@@ -1,7 +1,7 @@
 ---
 id: '0027/A'
 title: "braid list --open: every unfinished braid, wherever it lives"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 10
@@ -43,9 +43,15 @@ Expected size: about 200 lines in 5 files.
 
 ## Completion
 
-- [ ] `braid list --open` lists a braid found only on a braid branch and one only on a local `plan/` branch, with their sources, and leaves out Done braids (tests)
-- [ ] `braid list` without the option prints what it did before (test)
-- [ ] `braid new` prints the `Open braids:` line (test)
-- [ ] `docs/braids-format.md` describes both
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid list --open` lists a braid found only on a braid branch and one only on a local `plan/` branch, with their sources, and leaves out Done braids (tests)
+- [x] `braid list` without the option prints what it did before (test)
+- [x] `braid new` prints the `Open braids:` line (test)
+- [x] `docs/braids-format.md` describes both
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## plan
+
+- `loadOpenBraids` in `src/braids/branches.ts`: `loadLiveBraids` plus braids found only on local or `origin/` `plan/*` branches not merged into HEAD (newest copy first; never overriding another source), Done filtered out.
+- `listOpen` and `openBraidsLine` in `src/commands/braids.ts`; `--open` and `--no-fetch` in `src/cli.ts`; the `Open braids:` line at the end of `braid new`.
+- Tests with a fixture repository (`test/open.test.ts`); update `braid new` expectations; `docs/braids-format.md`.

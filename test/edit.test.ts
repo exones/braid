@@ -27,6 +27,9 @@ const env: NodeJS.ProcessEnv = {
   GIT_COMMITTER_EMAIL: "test@example.invalid",
 };
 
+/** Drops the `Open braids:` line `braid new` ends with; its own test is in open.test.ts. */
+const noOpen = (out: string): string => out.replace(/Open braids: \d+ \(braid list --open\)\n$/, "");
+
 function braid(cwd: string, args: readonly string[], input?: string) {
   return spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", cwd, env, ...(input === undefined ? {} : { input }) });
 }
@@ -71,9 +74,9 @@ const brief = (root: string, folder: string) => readFileSync(join(root, folder, 
 
 test("a braid with two strands is created and edited entirely from the CLI", () => {
   const root = repo();
-  assert.equal(ok(root, "new", "Fresh start", "--status", "Done"), "Created 0001 braids/0001-fresh-start\n");
+  assert.equal(noOpen(ok(root, "new", "Fresh start", "--status", "Done")), "Created 0001 braids/0001-fresh-start\n");
   assert.equal(
-    ok(root, "new", 'Braids folder: the "format"', "--labels", "kind:story,tier:L", "--dep", "1", "--delivery", "main"),
+    noOpen(ok(root, "new", 'Braids folder: the "format"', "--labels", "kind:story,tier:L", "--dep", "1", "--delivery", "main")),
     "Created 0002 braids/0002-braids-folder-the-format\n",
   );
   assert.equal(
@@ -181,13 +184,13 @@ test("braid numbers on remote branches and in deleted folders are not reused", (
   commitAll(one, "two braids");
   rmSync(join(one, "braids", "0002-second"), { recursive: true });
   commitAll(one, "drop the second");
-  assert.equal(ok(one, "new", "Third", "--no-fetch"), "Created 0003 braids/0003-third\n");
+  assert.equal(noOpen(ok(one, "new", "Third", "--no-fetch")), "Created 0003 braids/0003-third\n");
   git(one, "push", "-q", "origin", "plan");
 
   // Clone two hasn't fetched: --no-fetch only sees what it knows, a plain new fetches first.
-  assert.equal(ok(two, "new", "Local", "--no-fetch"), "Created 0001 braids/0001-local\n");
+  assert.equal(noOpen(ok(two, "new", "Local", "--no-fetch")), "Created 0001 braids/0001-local\n");
   rmSync(join(two, "braids"), { recursive: true });
-  assert.equal(ok(two, "new", "Other clone"), "Created 0003 braids/0003-other-clone\n");
+  assert.equal(noOpen(ok(two, "new", "Other clone")), "Created 0003 braids/0003-other-clone\n");
 });
 
 test("strand letters are never reused, also across branches", () => {
@@ -235,13 +238,13 @@ test("a failed fetch stops new unless --no-fetch", () => {
   const r = braid(root, ["new", "X"]);
   assert.equal(r.status, 1);
   assert.match(r.stderr, /^error: git fetch failed.*--no-fetch/);
-  assert.equal(ok(root, "new", "X", "--no-fetch"), "Created 0001 braids/0001-x\n");
+  assert.equal(noOpen(ok(root, "new", "X", "--no-fetch")), "Created 0001 braids/0001-x\n");
 });
 
 test("a folder that isn't a Git repository still gets numbers and letters", () => {
   const root = dir("plain");
   mkdirSync(join(root, "braids"));
-  assert.equal(ok(root, "new", "Ünïcode — title!"), "Created 0001 braids/0001-unicode-title\n");
+  assert.equal(noOpen(ok(root, "new", "Ünïcode — title!")), "Created 0001 braids/0001-unicode-title\n");
   assert.equal(ok(root, "strand", "new", "1", "!!!"), "Created 0001/A braids/0001-unicode-title/A-strand\n");
 });
 
@@ -371,5 +374,5 @@ test("refs outside branches, like T3 checkpoints, don't take numbers or letters"
   git(root, "update-ref", "refs/t3/checkpoints/x", "HEAD");
   git(root, "switch", "-q", "main");
   git(root, "branch", "-D", "draft");
-  assert.equal(ok(root, "new", "Next", "--no-fetch"), "Created 0002 braids/0002-next\n");
+  assert.equal(noOpen(ok(root, "new", "Next", "--no-fetch")), "Created 0002 braids/0002-next\n");
 });

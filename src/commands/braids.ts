@@ -1,6 +1,9 @@
 import type { Brief } from "../braids/brief.js";
+import type { Said } from "./inbox.js";
 import { openCounts } from "../inbox/branch.js";
 import { ROLES, threadTitle, titleRepoName, type TitleRole } from "../braids/title.js";
+import { loadOpenBraids } from "../braids/branches.js";
+import { fetchRemotes } from "../braids/numbers.js";
 import { loadBraids, type Braid, type Item, type Strand } from "../braids/store.js";
 
 export class UsageError extends Error {
@@ -30,6 +33,52 @@ export function listBraids(root: string): string {
   const inbox = openCounts(root);
   lines.push("", `Inbox: ${inbox.leftovers} leftovers, ${inbox.ideas} ideas`);
   return `${lines.join("\n")}\n`;
+}
+
+const GOAL_LIMIT = 300;
+
+/** The first paragraph of the `## Goal` section, cut at about `GOAL_LIMIT` characters at a word. */
+function goalParagraph(braid: Braid): string {
+  const goal = braid.brief.sections.find((s) => s.title === "Goal")?.text ?? "";
+  const text = (goal.split(/\n\s*\n/)[0] ?? "").replace(/\s+/g, " ").trim();
+  if (text.length <= GOAL_LIMIT) {
+    return text;
+  }
+  const cut = text.slice(0, GOAL_LIMIT);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), GOAL_LIMIT / 2))}...`;
+}
+
+/** `braid list --open`: every braid that is not Done, wherever it lives, with the start of its goal. */
+export function listOpen(root: string, fetch: boolean): Said {
+  let stderr = "";
+  if (fetch) {
+    try {
+      fetchRemotes(root);
+    } catch (error) {
+      stderr = `warning: ${error instanceof Error ? error.message : String(error)}; going on with what is local\n`;
+    }
+  }
+  const braids = loadOpenBraids(root);
+  if (braids.length === 0) {
+    return { stdout: "No open braids.\n", stderr };
+  }
+  const blocks = braids.map((braid) => {
+    const lines = [`${braid.brief.id}  ${braid.brief.status}  ${braid.brief.title}`, `  read from: ${braid.source?.branch ?? "main"}`];
+    const goal = goalParagraph(braid);
+    if (goal !== "") {
+      lines.push("", `  ${goal}`);
+    }
+    if (braid.strands.length > 0) {
+      lines.push("", ...braid.strands.map((s) => strandLine(s)));
+    }
+    return lines.join("\n");
+  });
+  return { stdout: `${blocks.join("\n\n")}\n`, stderr };
+}
+
+/** `Open braids: <n> (braid list --open)`, the last line of `braid new`. */
+export function openBraidsLine(root: string): string {
+  return `Open braids: ${loadOpenBraids(root).length} (braid list --open)\n`;
 }
 
 /** Accepts `2`, `0002`, `0002/A` and `2/a`; returns `0002` or `0002/A`. */
