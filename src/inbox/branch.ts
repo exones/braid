@@ -7,6 +7,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GitError } from "../braids/numbers.js";
+import { catBatch, gitAsync } from "../braids/gitio.js";
 import { locked, mainCheckout } from "../braids/requests.js";
 import { isProblem, parseEntry, type Entry, type Problem } from "./entries.js";
 
@@ -83,7 +84,10 @@ function files(root: string, commit: string): Map<string, string> {
 
 /** When each file was first added (author time), from one `git log`. */
 function created(root: string, commit: string): Map<string, number> {
-  const out = must(root, ["log", "--diff-filter=A", "--name-only", "--format=%x01%at", commit, "--", ...FOLDERS]);
+  return parseCreated(must(root, ["log", "--diff-filter=A", "--name-only", "--format=%x01%at", commit, "--", ...FOLDERS]));
+}
+
+function parseCreated(out: string): Map<string, number> {
   const map = new Map<string, number>();
   // Newest first: the last commit that adds a file is the one that created it.
   for (const block of out.split("\x01")) {
@@ -154,6 +158,79 @@ export function readInbox(root: string, options: { fetch?: boolean } = {}): Inbo
   entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const problems = [...theirs.problems.filter((p) => !pending.has(p.file)), ...ours.problems.filter((p) => pending.has(p.file))];
   return { commit: remote, entries, problems, fetched };
+}
+
+const firstOf = (r: { stdout: string; stderr: string }): string => firstLine(r.stderr || r.stdout);
+
+async function fetchInboxAsync(root: string): Promise<FetchResult> {
+  if ((await gitAsync(root, ["remote", "get-url", REMOTE])).status !== 0) {
+    return { state: "offline", why: `no remote ${REMOTE}` };
+  }
+  const ls = await gitAsync(root, ["ls-remote", "--exit-code", REMOTE, LOCAL]);
+  if (ls.status === 2) {
+    return { state: "absent" };
+  }
+  if (ls.status !== 0) {
+    return { state: "offline", why: firstOf(ls) };
+  }
+  const f = await gitAsync(root, ["fetch", "--quiet", "--no-tags", REMOTE, `+${LOCAL}:${TRACKING}`]);
+  return f.status === 0 ? { state: "present" } : { state: "offline", why: firstLine(f.stderr) };
+}
+
+async function readInboxAtAsync(root: string, commit: string | null): Promise<Inbox> {
+  if (commit === null) {
+    return { commit, entries: [], problems: [] };
+  }
+  const [listing, log] = await Promise.all([gitAsync(root, ["ls-tree", "-r", "-z", commit, "--", ...FOLDERS]), gitAsync(root, ["log", "--diff-filter=A", "--name-only", "--format=%x01%at", commit, "--", ...FOLDERS])]);
+  if (listing.status !== 0 || log.status !== 0) {
+    throw new GitError(`git ${listing.status !== 0 ? "ls-tree" : "log"} failed: ${(listing.status !== 0 ? listing : log).stderr.trim()}`);
+  }
+  const times = parseCreated(log.stdout);
+  const found: { path: string; blob: string }[] = [];
+  for (const record of listing.stdout.split("\0")) {
+    const m = /^\d+ blob (\w+)	(.+)$/s.exec(record);
+    if (m !== null) {
+      found.push({ path: m[2] ?? "", blob: m[1] ?? "" });
+    }
+  }
+  // One `git cat-file --batch` for all entries, not a process each.
+  const texts = await catBatch(root, found.map((f) => f.blob));
+  const entries: Entry[] = [];
+  const problems: Problem[] = [];
+  for (const [i, { path }] of found.entries()) {
+    const text = texts[i];
+    if (text === null || text === undefined) {
+      throw new GitError(`git cat-file failed for ${path}`);
+    }
+    const parsed = parseEntry(path, text, times.get(path) ?? null);
+    if (isProblem(parsed)) {
+      problems.push(parsed);
+    } else {
+      entries.push(parsed);
+    }
+  }
+  entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return { commit, entries, problems };
+}
+
+/**
+ * `readInbox` without blocking the process, for the board: the same entries, read with one `git cat-file --batch`
+ * instead of a process per entry. Branches that have diverged (rare) are read by the synchronous version.
+ */
+export async function readInboxAsync(root: string, options: { fetch?: boolean } = {}): Promise<Inbox & { readonly fetched: FetchResult | null }> {
+  const fetched = options.fetch === true ? await fetchInboxAsync(root) : null;
+  const ref = async (name: string): Promise<string | null> => {
+    const r = await gitAsync(root, ["rev-parse", "--verify", "--quiet", `${name}^{commit}`]);
+    return r.status === 0 ? r.stdout.trim() : null;
+  };
+  const [local, remote] = await Promise.all([ref(LOCAL), ref(TRACKING)]);
+  if (local === null || remote === null || local === remote || (await gitAsync(root, ["merge-base", "--is-ancestor", local, remote])).status === 0) {
+    return { ...(await readInboxAtAsync(root, remote ?? local)), fetched };
+  }
+  if ((await gitAsync(root, ["merge-base", "--is-ancestor", remote, local])).status === 0) {
+    return { ...(await readInboxAtAsync(root, local)), fetched };
+  }
+  return { ...readInbox(root), fetched };
 }
 
 /** What a write sees of the branch before it changes it. */

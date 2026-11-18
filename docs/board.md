@@ -111,7 +111,15 @@ The page is read only and has two lists, **Leftovers** (with "sweep due" at 3 or
 
 ## Refresh
 
-The page updates every 30 s while it is open, 200 ms after a file under `braids/` changes, and by its Refresh button (a fresh read, `?fresh=1`). Updates are pushed over `/api/events`. Each refresh also notes the first sighting of a broke condition in `.braid/broke.json`; that is the only thing the board writes on its own.
+The server reads GitHub, T3, the braids and the inbox in the background, never inside a request, and keeps the latest complete result as a **snapshot**. `/api/board` and `/api/item` answer from it, so opening an item costs no `gh` or `t3` call, and `gh` runs without blocking the server (a static file is served while it runs). A snapshot is stored only when every source has been read; before the first one exists a request waits for it, and a failed read of the braids is stored as the error the page shows. Reads run one at a time: a refresh asked for while one runs queues exactly one more read, however many asks come.
+
+A read starts when the server starts, every 30 s, 200 ms after a file under `braids/` changes, and on the page's Refresh button (`?fresh=1`, which also fetches `braid-inbox` and answers when its read is done). When a new snapshot is stored it is pushed over `/api/events` and open pages fetch it; until then they keep showing the last one. Each read notes the first sighting of a broke condition in `.braid/broke.json`, once per read; that is the only thing the board writes on its own.
+
+Open thread (and Coordinator, `{ id, thread: "coordinator" }`) takes the thread's link from the snapshot (a link doesn't change) and reads T3 again only when the snapshot has none. Start and Merge still read GitHub and T3 fresh before they act.
+
+To see what a read costs, start the board with `BRAID_BOARD_TIMINGS=1`: each read prints `board read: braids 160 ms, github 690 ms, t3 2800 ms, signals 50 ms, done dates 60 ms, inbox 150 ms, board 2 ms` to standard error. GitHub and T3 are read in parallel with the braids, so the times overlap.
+
+The reads are cheap by design: the Done dates of all Done items come from one `git log` of the history and one `git cat-file --batch` (the rule is unchanged: the oldest commit of the unbroken run of `status: Done`, following renames; an item whose first version is already Done is checked with its own `git log --follow`, because the one log may not pair its rename); the braids from branches and the inbox entries are read through one `git cat-file --batch` each, and `git` runs without blocking the server; T3 reads are unchanged: every read runs `thread show` for every running thread (in parallel), because `thread list` gives no pending count and its `updatedAt` lags `thread show`, so a skip could hide a pending question. The inbox costs about 1.3 s only on Refresh, which fetches `braid-inbox` from origin; a read without Refresh takes about 150 ms.
 
 ## Actions and the session token
 
