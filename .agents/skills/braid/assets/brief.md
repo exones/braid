@@ -7,13 +7,14 @@ An item is a braid (`0012`) or one of its strands (`0012/A`): a folder under `br
 - `status`: `Outline`, `To Do`, `In Progress` or `Done` (workflow, "Items are braids").
 - `labels`: `kind:story|task|spike` and `tier:S|M|L` (workflow, "Tiers"), plus `ui` for new or noticeably changed user-facing UI, and `ask:<key>` for each [stop case](../references/stop-cases.md) the plan already shows.
 - `dependencies`: real prerequisites only. `order`: run order among a braid's strands, 10, 20, 30, so one can slot in between.
+- `related`: braids only: open braids this one overlaps, takes a decision from, or splits work with (the skill, "Plan" step 3); each also gets a line under "Already decided".
 - `delivery`: leave the default `epic`; the strands of a braid merge into its branch, then one PR into `main`.
 
 ## Create
 
 ```sh
 # coordinator, on a branch it holds; each prints the id and folder
-braid new 'Title' --labels 'kind:story,tier:M' --dep 0003
+braid new 'Title' --labels 'kind:story,tier:M' --dep 0003 --related 0025
 braid strand new 0012 'Title' --labels 'kind:task,tier:S' --order 10
 # then write the body below into the printed folder's brief.md, under the front matter
 ```
@@ -38,6 +39,7 @@ For a spike, or a story that includes research, add under Change: look at <how w
 ## Already decided
 
 - <a fact or choice; settled, not to be re-investigated>
+- Related to <id> (<title>, on `<branch>`): <what is shared>; <how the two stay apart: order, which merges first>.
 
 ## Out of scope
 

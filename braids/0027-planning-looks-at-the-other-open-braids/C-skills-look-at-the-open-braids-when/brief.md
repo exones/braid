@@ -42,8 +42,14 @@ Expected size: about 40 lines in 3 files.
 
 ## Completion
 
-- [ ] "Plan" has the look-around step with the three cases above
-- [ ] The plan shown to the user names the related braids and puts duplicates and contradictions to the user
-- [ ] The brief template shows `--related` and the related line
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] "Plan" has the look-around step with the three cases above
+- [x] The plan shown to the user names the related braids and puts duplicates and contradictions to the user
+- [x] The brief template shows `--related` and the related line
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `SKILL.md`, "Plan": a new step 3 "Look around" after "Understand the goal" (later steps renumber; the Sweep reference "Plan, step 5, Story" becomes step 6). It runs `braid list --open`, reads the briefs that touch the same commands, files or decisions, and judges each into the three cases: overlap (`related` plus an "Already decided" line), needs the other's result (dependency or a start-after line), duplicate or contradiction (`related` and a warning in the plan request with the options; the answer goes into the log).
+- `SKILL.md`, the "Show the user the plan" step: lists related braids and any warning, context first, in the plan request.
+- `assets/brief.md`: `--related` in "Create", the related line as an example under "Already decided"; "Fields" gets `related` one line pointing to the Plan step.
