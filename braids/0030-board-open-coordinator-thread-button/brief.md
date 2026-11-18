@@ -1,7 +1,7 @@
 ---
 id: '0030'
 title: "Board: Open coordinator thread button"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: []
 delivery: epic
