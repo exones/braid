@@ -5,11 +5,11 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from "node:net";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadLiveBraids, treeOf } from "../braids/branches.js";
+import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
 import { DEMO_START, demoBraids, demoGithub, demoInbox, demoSignals, demoT3, demoTree } from "../board/demo.js";
-import { inboxOf, type InboxData } from "../board/inbox.js";
+import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toBoard, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
 import { t3codeUrl } from "../board/marks.js";
@@ -45,7 +45,7 @@ function json(status: number, body: unknown): Reply {
 /** Where the board gets its data: the repository, `gh` and `t3`, or the built-in samples. */
 export interface Sources {
   readonly repo: string;
-  braids(): Braid[];
+  braids(): Braid[] | Promise<Braid[]>;
   github(fresh: boolean): Github | Promise<Github>;
   t3(fresh: boolean): Promise<T3>;
   signals(github: Github): ReadSignals;
@@ -55,7 +55,7 @@ export interface Sources {
   /** What BRAID.md says about the main branch and the coordinator's model. */
   start(): StartContext;
   /** The open inbox entries; `fetch` (the Refresh button) fetches `braid-inbox` from origin first. */
-  inbox(fetch: boolean): InboxData;
+  inbox(fetch: boolean): InboxData | Promise<InboxData>;
   /** The T3 project folder (the main checkout). */
   project(): string;
   /** The action registered under `name`, or undefined. `POST /api/action/<name>` runs it. */
@@ -184,7 +184,7 @@ export function startAction(src: Sources, root: string, t3: T3Runner, git: GitRu
       throw new UsageError("start needs { id }: the braid to start");
     }
     const id = normaliseId(raw);
-    const braid = src.braids().find((b) => b.number === id);
+    const braid = (await src.braids()).find((b) => b.number === id);
     if (braid === undefined) {
       throw new UsageError(`Start: no braid ${id}`);
     }
@@ -268,7 +268,7 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
     }
     const id = normaliseId(raw);
     const [number, letter] = id.split("/");
-    const braid = src.braids().find((b) => b.number === number);
+    const braid = (await src.braids()).find((b) => b.number === number);
     if (braid === undefined) {
       throw new UsageError(`Open thread: no braid ${number}`);
     }
@@ -300,14 +300,14 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
 export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
   const src: Sources = {
     repo: titleRepoName(root),
-    braids: () => loadLiveBraids(root),
+    braids: () => loadLiveBraidsAsync(root),
     github: (fresh) => readGithubAsync(root, gh, fresh ? 0 : undefined),
     t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
     signals: (github) => readSignals(root, github),
     tree: (item) => treeOf(root, item),
     watch: join(root, "braids"),
     start: () => readStartContext(root),
-    inbox: (fetch) => inboxOf(root, fetch),
+    inbox: (fetch) => inboxOfAsync(root, fetch),
     project: () => mainCheckout(root),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
@@ -487,6 +487,14 @@ function listen(server: Server, address: string, port: number, strict = false): 
 const inUse = (port: number, address: string, e: unknown): Error =>
   (e as NodeJS.ErrnoException).code === "EADDRINUSE" ? new UsageError(`--port ${port} is already in use on ${address}; pick another port`) : e instanceof Error ? e : new Error(String(e));
 
+const isFolder = (path: string): boolean => {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Starts the board server on 127.0.0.1 with a free port. Resolves once it is listening. Pages
  * listen to `/api/events` and refetch on each message: every `refreshMs` while the server runs,
@@ -535,6 +543,7 @@ export function startBoardWith(
       const braids = await timed("braids", () => src.braids());
       const [gh, threads] = [await github, await t3];
       const sig = await timed("signals", () => src.signals(gh));
+      await timed("done dates", () => sig.prepare?.(braids));
       const inbox = await timed("inbox", () => src.inbox(fetch));
       const start = src.start();
       const board = await timed("board", () => {
@@ -676,9 +685,14 @@ export function startBoardWith(
     }
     timer = setInterval(() => void refresh(), refreshMs);
     timer.unref();
+    const watched = src.watch ?? "";
     if (src.watch !== null && existsSync(src.watch)) {
       try {
-        watcher = watch(src.watch, { recursive: true }, () => {
+        watcher = watch(src.watch, { recursive: true }, (event, name) => {
+          // Reading the braids can report a change of a folder itself (Windows); that is no edit: an edit also reports its file.
+          if (event === "change" && name !== null && isFolder(join(watched, name))) {
+            return;
+          }
           clearTimeout(debounce);
           debounce = setTimeout(() => void refresh(), 200);
           debounce.unref();
