@@ -10,6 +10,7 @@ Each project gets one inbox: the branch `braid-inbox`, an orphan never merged in
 - **0020/C, the board** (PR #129, D55): a header chip with the counts opens a read-only `#/inbox` page with Leftovers and Ideas, as in the mockups the user approved. Refresh fetches `braid-inbox`; the 30 s reload doesn't.
 - **0020/E, the `braid-idea` skill** (PR #130, D56): `$braid-idea <a sentence>` checks for `braid inbox`, reads only what the idea touches, asks one question only when it must, and writes a short idea in the shape the user approved (title, restatement, Why, Related, Open questions, the user's words).
 - **0020/D, the coordinator skills** (PR #131, D57): the workflow's new section "Gaps and the inbox" holds the routing table, the two kinds and how to write a self-contained leftover, with `braid-inbox` as the one exception to "one writer per branch". The `braid` skill replaces "Side ideas get a home": the coordinator captures leftovers with `braid note` before each handover, proposes one sweep story at `Sweep due` or before planning, never decides a sweep in auto mode, and never lists entries or ideas in a recap.
+- **0020/G, final review fixes** (PR #133): from Fable's final review, auto mode checks the inbox after each strand merge and proposes a sweep at 3 or more open leftovers (unless one is open or pending); the offline warning quotes Git's `fatal:` line; a write refuses, changing nothing, while `braid-inbox` is checked out in any worktree.
 
 ## Why
 
@@ -18,6 +19,7 @@ Small leftovers cost the user a decision each, and stayed scattered across brief
 ## Validation
 
 - `npm run verify` passes on the braid branch after merging `main` (246 tests).
+- The final review by Fable, at the user's request, found nothing blocking; three of its suggestions became 0020/G, which Fable re-checked.
 - Each strand passed its own gate and both CI checks, and had an independent review with nothing blocking (re-checks for A and F after their fixes; the suggestions of C and D were taken).
 - Tests cover the first capture, two clones racing, offline captures and their replay, a capture from a dirty worktree, malformed entries, every sweep command with a refused push, the recap at 2 and 3 leftovers, the list counts, and the board's API data, including a failed fetch.
 - Merging `main`: main had taken D53 (a braid being planned shows Working), so this braid's decisions became D54 to D57. Conflicts in `src/cli.ts`, `src/commands/braids.ts`, `docs/cli.md` and the `braid` skill kept both sides (0023's thread titles and the inbox).
