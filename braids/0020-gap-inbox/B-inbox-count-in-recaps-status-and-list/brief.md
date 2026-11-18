@@ -1,7 +1,7 @@
 ---
 id: '0020/B'
 title: "Sweep due in recaps, counts in braid list"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: ['0020/A']
 order: 20
