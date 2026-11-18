@@ -161,3 +161,21 @@ test("a read ends only when every source it started has settled; the next succes
   assert.deepEqual(events, ["github start", "github end", "github start", "github end"], "gh was not started again before the first call settled");
   assert.equal((await timed("api/board")).response.status, 200);
 });
+
+test("Open thread with thread: coordinator takes the coordinator link from the snapshot, and refuses a strand or another thread value", async () => {
+  const base = board.demoSources();
+  const src: Sources = {
+    ...base,
+    github: () => assert.fail("gh must not be read"),
+    t3: () => assert.fail("t3 must not be read"),
+  };
+  const card = { id: "0010", thread: "http://127.0.0.1:3773/env/worker", coordinator: { link: "http://127.0.0.1:3773/env/coord" }, strands: [{ id: "0010/A", thread: "http://127.0.0.1:3773/env/a" }] };
+  const snapshot = () => Promise.resolve({ braids: [card] });
+  const opened: string[] = [];
+  const run = (body: unknown) => board.openAction(src, (url) => (opened.push(url), Promise.resolve()))(body, snapshot);
+  await run({ id: "0010", thread: "coordinator" });
+  await run({ id: "0010" });
+  assert.deepEqual(opened, ["t3code://threads/env/coord", "t3code://threads/env/worker"]);
+  await assert.rejects(run({ id: "0010/A", thread: "coordinator" }), /is a strand; only a braid has a coordinator thread/);
+  await assert.rejects(run({ id: "0010", thread: "worker" }), /thread can only be "coordinator"/);
+});

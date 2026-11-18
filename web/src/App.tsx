@@ -189,6 +189,12 @@ const OpenIcon = () => (
 );
 
 /** A 24 px icon button; below `md` (a phone) it is at least 44 px and carries its one-word label. */
+const CoordinatorIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="7" r="3" />
+    <path d="M5 20a7 7 0 0 1 14 0M12 12v3" />
+  </svg>
+);
 const BUTTON = "flex size-6 items-center justify-center gap-1.5 rounded-md border max-md:size-auto max-md:min-h-11 max-md:min-w-11 max-md:px-4 max-md:text-sm max-md:font-semibold";
 
 /** The label shown on a phone only; desktop buttons are icon-only with a tooltip. */
@@ -200,23 +206,28 @@ const RemoteContext = createContext(false);
 /**
  * Open thread: a small button that opens the item's thread in the T3 desktop app (the server opens it); on a phone, the
  * thread's `t3code://` app link. Over Tailscale (the server refuses `open` there) only the app link, at every width.
- * Nothing is drawn when there is no thread.
+ * Nothing is drawn when there is no thread. `coordinator` is the braid's Coordinator button: the same, for the coordinator
+ * thread (the server is asked with `thread: "coordinator"`), a person icon and an accent colour.
  */
-function OpenThread({ id, link }: { id: string; link: string | null }) {
+function OpenThread({ id, link, coordinator = false }: { id: string; link: string | null; coordinator?: boolean }) {
   const remoteBoard = useContext(RemoteContext);
   const [error, setError] = useState<string | null>(null);
   if (link === null) {
     return null;
   }
   const app = t3codeUrl(link);
+  const name = coordinator ? "Coordinator" : "Open thread";
+  const what = coordinator ? "Open the coordinator thread" : "Open thread";
+  const Icon = coordinator ? CoordinatorIcon : OpenIcon;
+  const tone = coordinator ? "border-blue-600 text-blue-700" : "border-slate-200 text-slate-700";
   if (remoteBoard && app === null) {
     return null;
   }
   return (
     <>
       {app !== null && (
-        <a href={app} onClick={(e) => e.stopPropagation()} aria-label="Open thread in the T3 app" title="Open thread in the T3 app" className={`${BUTTON} border-slate-200 bg-white text-slate-700 no-underline ${remoteBoard ? "" : "md:hidden"}`}>
-          <OpenIcon /> <Label>Open thread</Label>
+        <a href={app} onClick={(e) => e.stopPropagation()} aria-label={`${what} in the T3 app`} title={`${what} in the T3 app`} className={`${BUTTON} ${tone} bg-white no-underline ${remoteBoard ? "" : "md:hidden"}`}>
+          <Icon /> <Label>{name}</Label>
         </a>
       )}
     {!remoteBoard && (
@@ -224,19 +235,19 @@ function OpenThread({ id, link }: { id: string; link: string | null }) {
       <Tooltip.Trigger asChild>
         <button
           type="button"
-          aria-label="Open thread in T3"
+          aria-label={`${what} in T3`}
           onClick={(e) => {
             e.stopPropagation();
             setError(null);
-            postAction("open", { id }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
+            postAction("open", coordinator ? { id, thread: "coordinator" } : { id }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
           }}
-          className={`${BUTTON} ${app === null ? "" : "max-md:hidden"} ${error === null ? "border-slate-200 text-slate-600" : "border-red-600 text-red-700"} bg-white hover:border-blue-600`}
+          className={`${BUTTON} ${app === null ? "" : "max-md:hidden"} ${error === null ? tone : "border-red-600 text-red-700"} bg-white hover:border-blue-600`}
         >
-          <OpenIcon /> <Label>Open thread</Label>
+          <Icon /> <Label>{name}</Label>
         </button>
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">{error ?? "Open thread in T3"}</Tooltip.Content>
+        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">{error ?? `${what} in T3`}</Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
     )}
@@ -447,11 +458,12 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
   );
 }
 
-/** Open thread where the item has a thread; Start on a To Do braid; Merge on In Review items. */
-function Actions({ id, lane, thread, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
+/** Open thread where the item has a thread, Coordinator on a braid with a coordinator thread; Start on a To Do braid; Merge on In Review items. */
+function Actions({ id, lane, thread, coordinator = null, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; coordinator?: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5 max-md:gap-2">
       <OpenThread id={id} link={thread} />
+      <OpenThread id={id} link={coordinator} coordinator />
       {start !== null && <StartButton id={id} start={start} {...(onLaunched === undefined ? {} : { onLaunched })} />}
       {lane === "In Review" && <MergeButton id={id} merge={merge} />}
     </span>
@@ -558,7 +570,7 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
       )}
       {(braid.coordinator?.warning ?? launched?.warning ?? null) !== null && <Warn>{braid.coordinator?.warning ?? launched?.warning}</Warn>}
       <div className="mt-2 flex min-h-6 justify-end">
-        <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.thread ?? braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
+        <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.total === 0 ? braid.thread : null} coordinator={braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
       </div>
     </div>
   );
@@ -790,7 +802,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <Badge key={l} tone="bg-indigo-100 text-indigo-800">{l}</Badge>
         ))}
         <span className="flex-1" />
-        <Actions id={item.id} lane={item.lane} thread={item.thread ?? (item.id.includes("/") ? null : item.braid.coordinator?.link ?? null)} merge={item.merge} start={item.id.includes("/") ? null : item.braid.start} />
+        <Actions id={item.id} lane={item.lane} thread={item.id.includes("/") || item.braid.total === 0 ? item.thread : null} coordinator={item.id.includes("/") ? null : item.braid.coordinator?.link ?? null} merge={item.merge} start={item.id.includes("/") ? null : item.braid.start} />
       </div>
       {!item.id.includes("/") && item.braid.coordinator?.warning != null && <Warn>{item.braid.coordinator.warning}</Warn>}
       {item.need !== null && (

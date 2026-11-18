@@ -256,15 +256,23 @@ export const openWithOs: Opener = (url) =>
 export { t3codeUrl };
 
 /**
- * Open thread: opens the item's thread in the T3 desktop app. The body is `{ id }`, a braid or strand; the server
- * picks the thread by the same rule as the board's button (a strand's thread; a braid's agent thread, else its
- * coordinator) from fresh reads, so a client can't pass a URL. Refuses (400) when there is no thread.
+ * Open thread: opens the item's thread in the T3 desktop app. The body is `{ id }`, a braid or strand, or
+ * `{ id, thread: "coordinator" }`, a braid whose coordinator thread to open (running, else the newest idle one).
+ * Without `thread` the server picks by the same rule as the board's button (a strand's thread; a braid's agent
+ * thread, else its coordinator). It reads fresh, so a client can't pass a URL (any `url` or `link` in the body is
+ * ignored). Refuses (400) when there is no such thread, for a strand with `thread`, or for another `thread` value.
  */
 export function openAction(src: Sources, open: Opener = openWithOs): Action {
   return async (body, snapshot) => {
-    const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>)["id"] : undefined;
+    const fields = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const raw = fields["id"];
     if (typeof raw !== "string") {
       throw new UsageError("open needs { id }: the braid or strand whose thread to open");
+    }
+    // `thread: "coordinator"` asks for the braid's coordinator thread instead of its agent's; the link is still the server's pick.
+    const want = fields["thread"];
+    if (want !== undefined && want !== "coordinator") {
+      throw new UsageError('open: thread can only be "coordinator"');
     }
     const id = normaliseId(raw);
     const [number, letter] = id.split("/");
@@ -272,8 +280,12 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
     if (braid === undefined) {
       throw new UsageError(`Open thread: no braid ${number}`);
     }
-    const linkOf = (card: { thread: string | null; coordinator: { link: string | null } | null; strands: readonly { id: string; thread: string | null }[] }): string | null =>
-      letter === undefined ? (card.thread ?? card.coordinator?.link ?? null) : (card.strands.find((s) => s.id === id)?.thread ?? null);
+    if (want === "coordinator" && letter !== undefined) {
+      throw new UsageError(`Open thread: ${id} is a strand; only a braid has a coordinator thread`);
+    }
+    type OpenCard = { thread: string | null; coordinator: { link: string | null } | null; strands: readonly { id: string; thread: string | null }[] };
+    const linkOf = (card: OpenCard): string | null =>
+      want === "coordinator" ? (card.coordinator?.link ?? null) : letter === undefined ? (card.thread ?? card.coordinator?.link ?? null) : (card.strands.find((s) => s.id === id)?.thread ?? null);
     // A thread's link doesn't change: the snapshot has it. Only when it has none is T3 read again.
     const known = (await snapshot?.())?.braids.find((c) => c.id === number);
     let link = known === undefined ? null : linkOf(known);
@@ -282,7 +294,7 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
       link = linkOf(toCard(braid, github, await src.t3(true), src.signals(github), src.start()));
     }
     if (link === null) {
-      throw new UsageError(`Open thread: ${id} has no thread`);
+      throw new UsageError(`Open thread: ${id} has no ${want === "coordinator" ? "coordinator " : ""}thread`);
     }
     const url = t3codeUrl(link);
     if (url === null) {

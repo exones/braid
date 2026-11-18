@@ -4,7 +4,7 @@
 - The braids from branches are read asynchronously: the merge checks, the trees and all briefs go through `git` without blocking, and the briefs through one `git cat-file --batch` process (`loadLiveBraidsAsync`, `src/braids/gitio.ts`). Files are cached by blob id, so one text in many commits is read once. The sync `loadLiveBraids` stays for the CLI.
 - The inbox is read asynchronously with one `git cat-file --batch` for all entries (`inboxOfAsync`); diverged inbox branches (rare) use the old sync read.
 - T3 reads are unchanged: every read runs `thread show` for every running thread. A cache keyed on `thread list`'s `updatedAt` was dropped after review: that time lags `thread show` and carries no pending count, so a pending question could be missed.
-- `BRAID_BOARD_TIMINGS=1` names the `done dates` as their own source. docs/board.md and D63 describe the reads.
+- `BRAID_BOARD_TIMINGS=1` names the `done dates` as their own source. docs/board.md and D64 describe the reads.
 - The folder watcher ignores a `change` event of a folder itself: reading the braids reports one on Windows, and with the reads now running after the watcher starts it caused a spurious second read at start.
 
 ## Validation

@@ -1,7 +1,7 @@
 ---
 id: '0028/C'
 title: "Merge main: Coordinator button meets the snapshot"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 30
@@ -32,7 +32,7 @@ Expected size: about 60 lines in 4 files, tests included.
 
 ## Completion
 
-- [ ] A test shows `{ id, thread: "coordinator" }` opens the coordinator link from the snapshot without calling `t3`, and the 0030 refusals still hold
-- [ ] `rg "D63"` and `rg "D64"` each name only their own decision
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A test shows `{ id, thread: "coordinator" }` opens the coordinator link from the snapshot without calling `t3`, and the 0030 refusals still hold
+- [x] `rg "D63"` and `rg "D64"` each name only their own decision
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
