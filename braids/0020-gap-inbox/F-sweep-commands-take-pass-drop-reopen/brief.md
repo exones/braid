@@ -1,7 +1,7 @@
 ---
 id: '0020/F'
 title: "Sweep commands: take, pass, drop, reopen"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: ['0020/A']
 order: 15
