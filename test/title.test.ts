@@ -4,9 +4,16 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import test from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-const { parseThreadTitle, threadTitle, titleRepoName } = (await import("../dist/braids/title.js")) as typeof import("../src/braids/title.js");
-const { titleCommand } = (await import("../dist/commands/braids.js")) as typeof import("../src/commands/braids.js");
+const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
+
+const { parseThreadTitle, threadTitle, titleRepoName } = (await load("../dist/braids/title.js")) as {
+  parseThreadTitle(t: string): { repo: string; id: string; role: string; title: string } | null;
+  threadTitle(repo: string, id: string, role: string, title: string): string;
+  titleRepoName(root: string): string;
+};
+const { titleCommand } = (await load("../dist/commands/braids.js")) as { titleCommand(root: string, args: string[]): string };
 
 const git = (cwd: string, ...args: string[]) => assert.equal(spawnSync("git", args, { cwd, encoding: "utf8" }).status, 0);
 
