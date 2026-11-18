@@ -296,11 +296,11 @@ function planBranches(root: string): { branch: string; commit: string; time: num
 }
 
 /**
- * Every braid whose status is not Done, in number order, wherever it lives: what `loadLiveBraids`
- * reads, plus braids found only on a `plan/` branch not merged into HEAD. A `plan/` copy never
- * overrides a copy from the working tree or a braid branch.
+ * Every braid braid can see, in number order, Done ones too: what `loadLiveBraids` reads, plus
+ * braids found only on a `plan/` branch not merged into HEAD. A `plan/` copy never overrides a
+ * copy from the working tree or a braid branch.
  */
-export function loadOpenBraids(root: string): Braid[] {
+export function loadKnownBraids(root: string): Braid[] {
   const braids = loadLiveBraids(root);
   const known = new Set(braids.map((b) => b.number));
   const headResult = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
@@ -322,5 +322,10 @@ export function loadOpenBraids(root: string): Braid[] {
       }
     }
   }
-  return braids.filter((b) => b.brief.status !== "Done").sort((a, b) => (a.number < b.number ? -1 : a.number > b.number ? 1 : 0));
+  return braids.sort((a, b) => (a.number < b.number ? -1 : a.number > b.number ? 1 : 0));
+}
+
+/** Every braid whose status is not Done, wherever it lives (`loadKnownBraids`). */
+export function loadOpenBraids(root: string): Braid[] {
+  return loadKnownBraids(root).filter((b) => b.brief.status !== "Done");
 }

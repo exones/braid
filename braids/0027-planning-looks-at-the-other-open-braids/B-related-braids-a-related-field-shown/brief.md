@@ -1,7 +1,7 @@
 ---
 id: '0027/B'
 title: "Related braids: a related field, shown both ways"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:architecture"]
 dependencies: ['0027/A']
 order: 20
@@ -49,8 +49,18 @@ Required regression tests: a brief without `related` is written byte for byte as
 
 ## Completion
 
-- [ ] `related` is read, written, edited and checked as above (tests, including the regression tests)
-- [ ] `braid view` shows `related:` and `linked from:` (test)
-- [ ] `docs/braids-format.md` and `docs/decisions.md` updated
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `related` is read, written, edited and checked as above (tests, including the regression tests)
+- [x] `braid view` shows `related:` and `linked from:` (test)
+- [x] `docs/braids-format.md` and `docs/decisions.md` updated
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `brief.ts`: `related` key, braid ids only (`0025`), rejected on a strand, not itself; `Brief.related` (empty for strands).
+2. `write.ts`: `BriefFields.related`; written after `dependencies` only when non-empty (`import.ts` passes `[]`).
+3. `branches.ts`: `loadKnownBraids` (live + `plan/` copies, any status); `loadOpenBraids` filters it.
+4. `edit.ts`: `--related <ids>|none` on `braid new` / `braid edit` (braids only; replaces the list; an id in no source warns on stderr).
+5. `braids.ts`: `braid view <braid>` prints `Related:` and `Linked from:` with titles; `braid list --open` prints `related: …`.
+6. `check.ts` + `cli.ts`: warnings in `CheckResult`; an unknown related id is a warning on stderr, exit 0.
+7. Tests in `braids.test.ts`, `edit.test.ts`, `open.test.ts`; docs in `braids-format.md` and a new decision in `decisions.md`.
