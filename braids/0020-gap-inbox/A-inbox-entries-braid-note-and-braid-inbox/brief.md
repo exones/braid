@@ -59,14 +59,14 @@ Expected size: about 400 to 550 lines in 6 to 8 files, with tests.
 
 ## Completion
 
-- [ ] `braid note` and `braid note --idea` commit an entry to `braid-inbox` and push it, creating the branch the first time, without touching the checkout or index; covered by tests
-- [ ] Concurrent captures from two clones both land, without a force-push; covered by a test
-- [ ] An offline capture stays local with a warning and is pushed by the next write; covered by a test
-- [ ] `braid inbox` lists open entries of both kinds, `--all` adds taken and dropped ones, and a malformed entry is named while the rest are listed; covered by tests
-- [ ] `braid note` refuses a leftover without `--from` and stores `--ref` links; `braid inbox show` prints an entry in full; covered by tests
-- [ ] `braid help`, `docs/braids-format.md`, `docs/cli.md` and `docs/decisions.md` describe the inbox
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid note` and `braid note --idea` commit an entry to `braid-inbox` and push it, creating the branch the first time, without touching the checkout or index; covered by tests
+- [x] Concurrent captures from two clones both land, without a force-push; covered by a test
+- [x] An offline capture stays local with a warning and is pushed by the next write; covered by a test
+- [x] `braid inbox` lists open entries of both kinds, `--all` adds taken and dropped ones, and a malformed entry is named while the rest are listed; covered by tests
+- [x] `braid note` refuses a leftover without `--from` and stores `--ref` links; `braid inbox show` prints an entry in full; covered by tests
+- [x] `braid help`, `docs/braids-format.md`, `docs/cli.md` and `docs/decisions.md` describe the inbox
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 

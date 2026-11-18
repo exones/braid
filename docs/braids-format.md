@@ -98,6 +98,50 @@ The status on such a branch is newer than the one in the checked-out files, so `
 - A braid or strand that exists only on a branch shows too.
 - braid runs no `git fetch` for the board; remote branches are as fresh as the last fetch.
 
+## The inbox
+
+Small leftovers and the user's ideas live outside `braids/`, on one branch of their own, `braid-inbox` (D53). It starts as an orphan commit, shares no history with `main` and is never merged into it, like `gh-pages`. Its name matches neither braid branch shape, so the board, `braid clean` and the cross-branch reads ignore it, and pushes to it run no CI.
+
+- `leftovers/<id>.md`: a gap found during an item that isn't fixed in its PR: a non-blocking review finding, an unfinished bit a report names, a worker's `For later items:`. The text says what is wrong or missing, where (files, functions) and why it matters, so an agent who never saw the item understands it.
+- `ideas/<id>.md`: the user's idea, written by the `braid-idea` skill.
+- `<id>` is `<YYYY-MM-DD>-<short random>` (the UTC day and four or more lowercase letters or digits), like `2026-11-18-k3f9`. The folder is the kind, so an entry never moves; its status is front matter. braid never deletes an entry: taken and dropped ones stay as records.
+
+An entry is front matter, then a short Markdown text whose first line is its title:
+
+```markdown
+---
+from: "review 0012/A"
+ref: ["https://github.com/o/r/pull/40#discussion_r1"]
+status: open
+passed: 0
+---
+
+Retry the fetch in braid start
+
+startCommand (src/commands/start.ts) gives up on the first network error, so a flaky
+connection fails the whole start. One retry would cover it.
+```
+
+| Field | Meaning |
+| --- | --- |
+| `from` | Where it came from: an item id (`0012/A`), `review <item id>`, `PR #<n>` or `user`. Required for a leftover; an idea has `user` unless given. |
+| `ref` | Optional links to the context: the review comment, the PR, a commit. |
+| `status` | `open`, `taken` or `dropped`. |
+| `passed` | Leftovers only: how many sweeps passed it over, from 0. |
+| `into` | The braid ids it went to, when taken. |
+| `why` | The reason, when dropped. |
+
+Writers. Only braid commands write `braid-inbox` (`braid note`, and the sweep commands), each change as one commit with the message `docs(inbox): <id> <what>`, pushed at once. This is the one exception to "one writer per branch": distinct file names keep writers from conflicting. A write never touches a checkout, an index or the current branch: it builds the commit with Git's low-level commands (`hash-object`, a temporary index, `commit-tree`, `update-ref`), so it works from any worktree, with uncommitted changes, on any branch.
+
+- It fetches `braid-inbox` from `origin` first and builds on the remote tip, with any local commits the remote lacks replayed on top (their files, messages and authors). The first write anywhere creates the branch.
+- It pushes as a fast-forward and never forces. When the push is refused because someone pushed first, it fetches and redoes the commit on top, up to five times.
+- When `origin` can't be reached (offline, no remote) or the push fails for another reason, the commit stays on the local `braid-inbox` branch with a warning, and the next write pushes it.
+- A lock in the main checkout's `.braid/` (`inbox.lock`, as for requests) makes writers on one machine take turns.
+
+Readers. `braid inbox` fetches first; the reading functions read the refs without fetching unless asked. They read whichever is newer of the local `braid-inbox` and `origin/braid-inbox` (the descendant, else the later commit). An entry's age is the author time of the commit that added its file. A malformed entry (bad file name, front matter, `status`, a leftover without `from`, a `passed` that isn't a whole number, no text) is reported with its file and field, and the rest are still read.
+
+Recovery. Every clone that wrote or fetched the inbox keeps a copy (`braid-inbox` or `origin/braid-inbox`). If the remote branch is deleted, the next `braid note` pushes it again from that copy. If it is force-pushed to a different history, a write from a clone that still has the lost commits on its local `braid-inbox` replays them on top of the new remote tip, so the entries come back. By hand, from a clone that has the good commit (`git reflog show braid-inbox` finds it): `git push origin <good commit>:refs/heads/braid-inbox` when the remote branch is gone, or `git branch -f braid-inbox <good commit>` and then any `braid note` when it was rewritten.
+
 ## Commands
 
 - `braid check`: validates every brief and folder name under `braids/` against this page and lists every problem as `<file>: <message>` (with the line where there is one), then the error count; exit code 2 if there is any, 0 and `braids OK: <n> braids, <m> strands` if there is none. Unlike the other commands it does not stop at the first error.
@@ -121,6 +165,8 @@ The status on such a branch is newer than the one in the checked-out files, so `
   - `braid answer <id> [--log <file>|-] [--thread <id>]`: closes the item's request; `--log` first adds the user's decision to the item's braid log as `braid log` does (a refused log leaves the request open).
   - `braid requests`: lists the open requests, oldest first: item, kind, age (`5m`, `3h`, `2d`) and text.
   - Self-closing, applied whenever requests are read: a `review` request is void, and dropped, when its PR is merged, closed or at another head (a PR GitHub can't be read for keeps it). `braid start` and `braid accept` close any request on their item.
+- `braid note "<text>" --from <source> [--ref <url>]... [--file -]`: writes an open leftover to [the inbox](#the-inbox) and pushes it; without `--from` it refuses. `<source>` is an item id (`0012/A`), `review <item id>`, `PR #<n>` or `user`. `braid note --idea "<text>" [--from <source>] [--file -]` writes an open idea, `from: user` unless `--from` is given. The text is the argument, `--file <path>` or `--file -` (standard input). Both print the entry id, whether it was pushed and the commit; a commit kept locally adds a warning on standard error.
+- `braid inbox [--leftovers|--ideas] [--all] [--no-fetch]`: fetches `braid-inbox` (a failed fetch warns and lists the local copy), then lists the open entries, leftovers first: kind, id, age, source, `passed <n>` for a leftover, and the title. `--all` adds the taken and dropped ones, with a status column. Each malformed entry follows as `malformed: <file>: <field>: <message>`. `braid inbox show <id>` prints one entry in full: its fields, when it was created, the item folder that `from` names when it exists (in the working tree or on a braid branch), and its text.
 - `braid clean [<number>|<id>] [--yes]`: for every item whose PR is merged (all braids, or one braid's `<number>`, or the one strand `<id>` named), lists the worktree and the local branch it would remove (and the item's reviewer checkout from `braid start --review`, which holds no branch), and removes them only with `--yes`. It never forces, and it only removes a branch whose tip is in the history of this checkout's `HEAD` (`git merge-base --is-ancestor`); a branch merged on GitHub but not in `HEAD` (not pulled yet, or squash-merged) is kept with the reason, because `git branch -d` alone would also accept a branch merged into its upstream: a worktree with changes or one still in use (on Windows a worker's process keeps the folder as its working directory for a while after it reports; the output says `still in use, retry later`) is kept, and the branch is deleted with `git branch -d` only, so a branch with commits that are not merged here stays (`kept branch`). It never touches remote branches or the branch checked out in this checkout, and a worktree outside `$BRAID_WORKTREES_DIR/<repo>` is left alone unless its strand is named. GitHub must be readable.
 - `braid new <title>`: a new braid with the next free number, its folder (the slug comes from the title, or `--slug`) and a `brief.md` with status `To Do`.
 - `braid strand new <braid> <title>`: a new strand in that braid with the next free letter.
