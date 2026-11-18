@@ -1,7 +1,7 @@
 ---
 id: '0012/A'
 title: "Mockups: phone layout and the new lane order"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S", "ui"]
 dependencies: []
 order: 10
@@ -37,10 +37,14 @@ Expected size: about 400 lines in 3 to 6 files (HTML mockups and screenshots; no
 
 - Changing `web/src` or anything the board runs; the server and Tailscale (0012/C).
 
+## Plan
+
+One self-contained `docs/design/board-mockups/phone-lanes.html` (hash-routed screens, demo-like data), screenshots 29 to 40 with headless Chrome. Desktop: lane order, Done closed and opened. Phone: A tabs, B swipe, C picker, 390 px.
+
 ## Completion
 
-- [ ] Mockups of the desktop lane order and of Done collapsed and opened, on demo data
-- [ ] 2 or 3 phone variants with notes, at about 390 px wide, tap targets at least 44 px
-- [ ] Screenshots of each screen in `docs/design/board-mockups/`
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, the variants, anything open; the worker stops for the user's choice
+- [x] Mockups of the desktop lane order and of Done collapsed and opened, on demo data
+- [x] 2 or 3 phone variants with notes, at about 390 px wide, tap targets at least 44 px
+- [x] Screenshots of each screen in `docs/design/board-mockups/`
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, the variants, anything open; the worker stops for the user's choice
