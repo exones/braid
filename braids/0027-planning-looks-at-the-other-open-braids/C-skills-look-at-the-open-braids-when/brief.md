@@ -1,7 +1,7 @@
 ---
 id: '0027/C'
 title: "Skills: look at the open braids when planning"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0027/A', '0027/B']
 order: 30
