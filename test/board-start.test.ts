@@ -352,3 +352,10 @@ test("idle threads are found by title alone (with or without the emoji): worker,
   assert.deepEqual([...read.idleCoordinators.keys()], ["0030"]);
   assert.deepEqual(shown, ["r1"], "only the running thread is shown");
 });
+
+test("Start is off with the coordinator's reason even when the running coordinator lifted the braid to Working", async () => {
+  const src = board.demoSources();
+  const all = await cards(src);
+  const c = all.find((x) => x.coordinator !== null && x.start.reason === "a coordinator for this braid is running");
+  assert.ok(c, "a demo braid with a running coordinator");
+});

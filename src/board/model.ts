@@ -350,7 +350,7 @@ export function startOf(braid: Braid, lane: Lane, t3: T3, ctx: StartContext): St
   const slug = slugOf(braid.folder) ?? "braid";
   const source = braid.source?.branch ?? null;
   const planned = source !== null && /(^|\/)braid\/\d{4}-/.test(source);
-  const reason = lane !== "To Do" ? "the braid isn't To Do" : t3.coordinators?.has(braid.number) === true ? "a coordinator for this braid is running" : t3.status.state !== "ok" ? "T3 isn't reachable" : null;
+  const reason = t3.coordinators?.has(braid.number) === true ? "a coordinator for this braid is running" : lane !== "To Do" ? "the braid isn't To Do" : t3.status.state !== "ok" ? "T3 isn't reachable" : null;
   return {
     base: `origin/${planned ? (source ?? "").replace(/^origin\//, "") : ctx.main}`,
     branch: `coordinator/${braid.number}-${slug}`,
@@ -363,6 +363,18 @@ export function startOf(braid: Braid, lane: Lane, t3: T3, ctx: StartContext): St
 function coordinatorOf(number: string, t3: T3, ctx: StartContext, lane: Lane): CoordinatorInfo | null {
   const c = t3.coordinators?.get(number) ?? (lane === "Done" ? undefined : t3.idleCoordinators?.get(number));
   return c === undefined ? null : { link: c.link, warning: coordinatorWarning(c, ctx) };
+}
+
+/**
+ * A braid that would read To Do is Working while it is being planned: a coordinator thread of it runs, or a planning PR
+ * into its braid branch is open (checks activity while that PR's checks run). Only To Do is lifted; the coordinator is still no agent.
+ */
+function planned(number: string, lane: Lane, gh: Github, t3: T3): { readonly lane: Lane; readonly activity: Activity | null } | null {
+  const plan = gh.planning?.get(number);
+  if (lane !== "To Do" || (plan === undefined && t3.coordinators?.has(number) !== true)) {
+    return null;
+  }
+  return { lane: "In Progress", activity: plan?.checks === "pending" ? "checks" : null };
 }
 
 export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): BraidCard {
@@ -385,7 +397,9 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     };
   });
   if (strands.length === 0) {
-    const own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
+    const derived = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
+    const lift = planned(braid.number, derived.lane, gh, t3);
+    const own = lift === null ? derived : { ...derived, ...lift };
     return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane) };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
@@ -407,7 +421,9 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     ...strands.flatMap((s) => (s.need === null ? [] : [{ lane: s.lane, reason: s.reason, need: s.need, who: s.id as string | null }])),
   ];
   const top = [...candidates].sort((a, b) => URGENCY.indexOf(a.lane) - URGENCY.indexOf(b.lane))[0];
-  const lane = braidLane(braid.brief.status, strands, own);
+  const base = braidLane(braid.brief.status, strands, own);
+  const lift = planned(braid.number, base, gh, t3);
+  const lane = lift?.lane ?? base;
   return {
     id: braid.brief.id,
     title: braid.brief.title,
@@ -420,7 +436,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     need: top === undefined ? null : { ...top.need, who: top.who, more: candidates.length - 1 },
     ask: null,
     running: strands.some((s) => s.running) || (own?.agents?.length ?? 0) > 0,
-    activity: ACTIVITY.find((a) => strands.some((s) => s.activity === a) || own?.activity === a) ?? null,
+    activity: ACTIVITY.find((a) => strands.some((s) => s.activity === a) || own?.activity === a || lift?.activity === a) ?? null,
     done: strands.filter((s) => s.lane === "Done").length,
     total: strands.length,
     strands,

@@ -32,6 +32,8 @@ export interface Github {
   readonly prs: ReadonlyMap<string, PullRequest>;
   /** Merged PRs of planning branches (`plan/<slug>`), by head branch: the PR number. `braid clean` removes those branches. */
   readonly plans?: ReadonlyMap<string, number>;
+  /** Open planning PRs (head `plan/<slug>`, base `braid/<number>-<slug>`) by the braid number of the base. Never the braid's own PR, so they are not in `prs`. */
+  readonly planning?: ReadonlyMap<string, PullRequest>;
 }
 
 export interface GhResult {
@@ -206,7 +208,14 @@ function readFresh(root: string, run: GhRunner): Github {
       plans.set(p.headRefName, p.number);
     }
   }
-  return { status: { state: "ok" }, prs, plans };
+  const planning = new Map<string, PullRequest>();
+  for (const raw of open) {
+    const number = raw.headRefName.startsWith("plan/") && raw.baseRefName !== undefined ? BRAID_BRANCH.exec(raw.baseRefName)?.[1] : undefined;
+    if (number !== undefined && !planning.has(number)) {
+      planning.set(number, { number: raw.number, url: raw.url, state: "open", ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), base: raw.baseRefName ?? "", branch: raw.headRefName, checks: checksOf(raw.statusCheckRollup), failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) });
+    }
+  }
+  return { status: { state: "ok" }, prs, plans, planning };
 }
 
 /** Forgets what was read, for tests. */
