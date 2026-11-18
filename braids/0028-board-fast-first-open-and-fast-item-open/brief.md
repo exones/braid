@@ -50,6 +50,6 @@ Starts after braid 0012 (board on the phone) has merged into `main`; merge `main
 
 ## Completion
 
-- [ ] Every strand is Done on the braid branch
-- [ ] `docs/board.md` describes how the board reads and refreshes after the change
-- [ ] report.md gives the measured times before and after on this repository
+- [x] Every strand is Done on the braid branch
+- [x] `docs/board.md` describes how the board reads and refreshes after the change
+- [x] report.md gives the measured times before and after on this repository
