@@ -8,6 +8,7 @@ import { entryPath, ENTRY_ID, formatEntry, KINDS, newEntryId, type Entry, type E
 import { UsageError } from "./braids.js";
 import { find, parse } from "./edit.js";
 import { input } from "./logs.js";
+import { SWEEP_VERBS, sweepCommand } from "./sweep.js";
 
 /** A command's output with warnings for standard error. */
 export interface Said {
@@ -70,6 +71,10 @@ function table(rows: readonly (readonly string[])[]): string {
 }
 
 export function inboxCommand(root: string, args: readonly string[]): Said {
+  const verb = SWEEP_VERBS.find((v) => v === args[0]);
+  if (verb !== undefined) {
+    return sweepCommand(root, verb, args.slice(1));
+  }
   const { positionals, values } = parse("braid inbox", args, {
     leftovers: { type: "boolean" },
     ideas: { type: "boolean" },

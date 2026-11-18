@@ -1,7 +1,7 @@
 ---
 id: '0020/F'
 title: "Sweep commands: take, pass, drop, reopen"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0020/A']
 order: 15
@@ -39,8 +39,12 @@ Expected size: about 200 to 300 lines in 3 to 4 files, with tests.
 
 ## Completion
 
-- [ ] take, pass (dropping a leftover at 2 and refusing an idea), drop and reopen change entries on `braid-inbox` as described, one commit per command; covered by tests
-- [ ] An unknown entry id makes the command change nothing; covered by a test
-- [ ] `braid help`, `docs/braids-format.md` and `docs/cli.md` describe the commands
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] take, pass (dropping a leftover at 2 and refusing an idea), drop and reopen change entries on `braid-inbox` as described, one commit per command; covered by tests
+- [x] An unknown entry id makes the command change nothing; covered by a test
+- [x] `braid help`, `docs/braids-format.md` and `docs/cli.md` describe the commands
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+One new file `src/commands/sweep.ts` with the four verbs, dispatched from `inboxCommand` when the first argument is `take`, `pass`, `drop` or `reopen`. Each runs inside `writeInbox`: its `change` loads and validates every named entry on the current view (so a typo throws before any commit, and the check repeats on the fetched tip after a refused push), then returns all changed files as one commit. Tests in `test/inbox-sweep.test.ts`; docs in cli.md, braids-format.md and `braid help`.

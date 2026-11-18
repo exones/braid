@@ -34,6 +34,10 @@ These are the commands `braid help` lists, in its order.
 | `braid note --idea <text>` | Capture an idea on the `braid-inbox` branch and push it (`from: user` unless `--from`; `--file -`). |
 | `braid inbox` | List the open inbox entries: kind, id, age, source, passed, title (`--leftovers`, `--ideas`, `--all` adds taken and dropped, `--no-fetch`). |
 | `braid inbox show <id>` | Print one inbox entry in full, with the item folder its source names. |
+| `braid inbox take <entry>... --into <braid id>[,<braid id>...]` | Mark open entries `taken`, with `into` set. |
+| `braid inbox pass <leftover>...` | Pass open leftovers over in a sweep: `passed` + 1; at 2 the leftover is dropped (`why: passed over in 2 sweeps`). An idea is refused. |
+| `braid inbox drop <entry>... --why "<reason>"` | Mark open entries `dropped`, with `why` set. |
+| `braid inbox reopen <entry>` | Bring a dropped or taken entry back to `open`: `why` and `into` removed, `passed` back to 0. |
 | `braid clean [<number>\|<id>] [--yes]` | Remove worktrees and local branches of merged items (a dry run without `--yes`; never forces). |
 | `braid board` | Open the board in the browser (`--no-open` only prints the address; `--demo` uses sample data). |
 | `braid help` | Show the help. |
