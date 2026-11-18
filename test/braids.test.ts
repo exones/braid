@@ -73,7 +73,6 @@ test("view shows a braid with its fields, files, strands and brief", () => {
       "Logs:",
       "  log-2026-11-14-user.md",
       "Related: none",
-      "Linked from: none",
       "Strands:",
       "  0002/A  Done          1  Read braids",
       "  0002/C  Outline       2  Logs and reports",

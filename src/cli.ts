@@ -41,7 +41,7 @@ export function helpText(version: string): string {
     "",
     "Commands:",
     "  list [--open]               List braids and their strands in run order; --open: every unfinished braid on any branch, with its goal (--no-fetch)",
-    "  view <id>                   Show a braid (0002) or a strand (0002/A)",
+    "  view <id> [--links]         Show a braid (0002) or a strand (0002/A); --links adds the open braids that link to a braid",
     "  new <title>                 Create a braid with the next free number",
     "  strand new <braid> <title>  Create a strand with the next free letter",
     "  title <id> --role <role>    Print the thread title for an item: <emoji> <repo> <id> <role>: <title> (role coordinator, worker, review or research)",
@@ -138,11 +138,13 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
         throw new UsageError(`braid list takes no arguments; got: ${args.join(" ")}`);
       }
       return listBraids(root);
-    case "view":
-      if (args.length > 1) {
+    case "view": {
+      const ids = args.filter((a) => a !== "--links");
+      if (ids.length > 1) {
         throw new UsageError(`braid view takes one id; got: ${args.join(" ")}`);
       }
-      return viewItem(root, args[0]);
+      return viewItem(root, ids[0], args.includes("--links"));
+    }
     case "new":
       return newBraid(root, args);
     case "strand": {

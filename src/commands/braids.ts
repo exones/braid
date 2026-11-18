@@ -147,21 +147,17 @@ export function titleCommand(root: string, args: readonly string[]): string {
 }
 
 /**
- * `Related:` (this braid's links, with titles) and `Linked from:` (the open braids whose `related`
- * names it), read from every source `braid list --open` reads, since a link is stored one way only.
+ * `Linked from:` for `braid view --links`: the open braids whose `related` names this braid, with
+ * titles, read from every source `braid list --open` reads, since a link is stored one way only.
  */
-function links(root: string, braid: Braid): string[] {
-  const known = loadKnownBraids(root);
-  const title = (id: string) => known.find((b) => b.number === id)?.brief.title ?? "(not found here)";
-  const block = (label: string, ids: readonly string[]) =>
-    ids.length === 0 ? [`${label}: none`] : [`${label}:`, ...ids.map((id) => `  ${id}  ${title(id)}`)];
-  const from = known
-    .filter((b) => b.brief.status !== "Done" && b.number !== braid.number && b.brief.related.includes(braid.number))
-    .map((b) => b.number);
-  return [...block("Related", braid.brief.related), ...block("Linked from", from)];
+function linkedFrom(root: string, braid: Braid): string[] {
+  const from = loadKnownBraids(root).filter(
+    (b) => b.brief.status !== "Done" && b.number !== braid.number && b.brief.related.includes(braid.number),
+  );
+  return from.length === 0 ? ["Linked from: none"] : ["Linked from:", ...from.map((b) => `  ${b.number}  ${b.brief.title}`)];
 }
 
-export function viewItem(root: string, raw: string | undefined): string {
+export function viewItem(root: string, raw: string | undefined, links = false): string {
   if (raw === undefined) {
     throw new UsageError("braid view needs an id, like 0002 or 0002/A");
   }
@@ -174,7 +170,11 @@ export function viewItem(root: string, raw: string | undefined): string {
   if (letter === undefined) {
     const strands =
       braid.strands.length === 0 ? ["Strands: none"] : ["Strands:", ...braid.strands.map((s) => strandLine(s, true))];
-    return render(braid, [...links(root, braid), ...strands]);
+    const related = `Related: ${braid.brief.related.length === 0 ? "none" : braid.brief.related.join(", ")}`;
+    return render(braid, [related, ...(links ? linkedFrom(root, braid) : []), ...strands]);
+  }
+  if (links) {
+    throw new UsageError("--links shows the braids that link to a braid; give a braid id like 0002, not a strand");
   }
   const strand = braid.strands.find((s) => s.letter === letter);
   if (strand === undefined) {

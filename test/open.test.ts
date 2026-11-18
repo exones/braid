@@ -186,16 +186,22 @@ test("related links show both ways: back-links come from a braid branch and from
   commitAt(root, "braid/0005-bad", "2026-01-01T00:00:00Z", { "braids/0005-bad/brief.md": linked("0005", "To Do", "'0005'") });
   git(root, "checkout", "-q", "main");
 
-  const view = braid(root, "view", "0002");
+  const plain = braid(root, "view", "0002");
+  assert.equal(plain.status, 0, plain.stderr);
+  assert.match(plain.stdout, /\nRelated: none\nStrands:\n/);
+  assert.doesNotMatch(plain.stdout, /Linked from/);
+  const view = braid(root, "view", "0002", "--links");
   assert.equal(view.status, 0, view.stderr);
   assert.match(view.stdout, /\nRelated: none\nLinked from:\n {2}0003 {2}Title 0003\n {2}0004 {2}Title 0004\nStrands:\n/);
+  assert.match(braid(root, "view", "0002/A", "--links").stderr, /--links shows the braids that link to a braid/);
   const v4 = braid(root, "view", "0003");
   assert.equal(v4.status, 1, "0003 lives only on its branch; braid view reads the working tree");
 
   git(root, "checkout", "-q", "plan/c");
   const own = braid(root, "view", "0004");
   assert.equal(own.status, 0, own.stderr);
-  assert.match(own.stdout, /\nRelated:\n {2}0002 {2}Title 0002\n {2}0003 {2}Title 0003\nLinked from: none\n/);
+  assert.match(own.stdout, /\nRelated: 0002, 0003\nStrands: none\n/);
+  assert.match(braid(root, "view", "4", "--links").stdout, /\nRelated: 0002, 0003\nLinked from: none\nStrands: none\n/);
   git(root, "checkout", "-q", "main");
 
   const list = braid(root, "list", "--open", "--no-fetch");
