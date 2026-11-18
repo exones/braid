@@ -40,12 +40,12 @@ Expected size: about 60 lines in 3 files.
 
 ## Completion
 
-- [ ] On this item's own PR, a commit that changes only `braids/` (for example the worker's `report.md` commit) after a green code commit shows both `verify` checks passing via the fast path. Record that run's link and duration in report.md.
-- [ ] A commit that changes code runs the full suite. This PR's code commits prove it; record the link.
-- [ ] Any failure while deciding falls back to the full suite. Show it in the step's logic and describe it in report.md.
-- [ ] docs/decisions.md has the new decision, and D49 is no longer wrong.
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] On this item's own PR, a commit that changes only `braids/` (for example the worker's `report.md` commit) after a green code commit shows both `verify` checks passing via the fast path. Record that run's link and duration in report.md.
+- [x] A commit that changes code runs the full suite. This PR's code commits prove it; record the link.
+- [x] Any failure while deciding falls back to the full suite. Show it in the step's logic and describe it in report.md.
+- [x] docs/decisions.md has the new decision, and D49 is no longer wrong.
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
