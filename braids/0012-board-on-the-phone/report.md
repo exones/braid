@@ -1,0 +1,9 @@
+The board works on a phone over Tailscale. 0012/A made the mockups and the user chose the phone layout; 0012/B built the new lane order (Needs You, To Review, Working, To Do, Done), Done collapsed to its 10 newest with Show more (ordered by the commit that set Done), and the phone layout (tab bar with counts, swipe, icon-and-label buttons, Open thread as the `t3code://` app link); 0012/C added `braid board --host`, a second listener on this machine's Tailscale address where every request is checked with `tailscale whois` for the node owner's login, failing closed, with Host and cross-site checks and the `open` action refused. The local `127.0.0.1` board is unchanged.
+
+Validation: 0012/D fixed two factual doc errors the final review found. Each strand passed `npm run verify` and CI on Windows and Ubuntu, with an independent review (0012/B three rounds, one blocking finding on renamed folders, fixed). 0012/C was merged by the user after the `security` stop.
+
+Open: the swipe and the `t3code://` app link have not been tried on a real phone. All Completion boxes hold.
+
+Decisions: the user chose the Tailscale identity (no pairing code), plain HTTP for now (no HTTPS in any form), read and act from the phone, Open thread through the phone's T3 app, phone variant A (tab bar with counts) plus swipe, icon-and-label buttons on the phone, the new lane order on desktop and phone, Done collapsed to the 10 newest with Show more, ordered by the commit that set Done (not the PR merge date), no sweep before planning; and merged 0012/C after reading the access rules. Mine: decision numbers D59 (lane order) and D60 (Tailscale), since main took D58.
+For later items: the three 0012/C leftovers (2026-11-18-ty0o, 2026-11-18-phl4, 2026-11-18-z0ug) were fixed in 0012/E: a Host allowlist unit test, the page told remote by the server, and `braid board --port`. The --host plus --port test uses 127.0.0.2, which macOS lacks by default.
+Needs the user: none
