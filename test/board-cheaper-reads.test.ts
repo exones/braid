@@ -124,7 +124,7 @@ test("the braids from branches are read through one git cat-file --batch process
 });
 
 const ok = (data: unknown) => ({ status: 0, stdout: JSON.stringify(data), stderr: "" });
-test("a running thread with an unchanged updatedAt isn't shown again; a changed one is", async () => {
+test("every running thread is shown on every read, also with an unchanged updatedAt", async () => {
   const shows: string[] = [];
   let updatedAt = "2026-11-18T10:00:00Z";
   const run = async (_root: string, args: readonly string[]) => {
@@ -139,10 +139,11 @@ test("a running thread with an unchanged updatedAt isn't shown again; a changed 
   assert.deepEqual(shows.sort(), ["t1", "t2"]);
   shows.length = 0;
   await read();
-  assert.deepEqual(shows, [], "nothing changed, nothing shown");
+  assert.deepEqual(shows.sort(), ["t1", "t2"], "nothing changed, every thread is shown again");
   updatedAt = "2026-11-18T11:00:00Z";
+  shows.length = 0;
   await read();
-  assert.deepEqual(shows, ["t1"], "only the thread whose updatedAt changed");
+  assert.deepEqual(shows.sort(), ["t1", "t2"]);
 });
 
 test("a static file is served while a slow read of the board's git sources runs", async () => {
