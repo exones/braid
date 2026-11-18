@@ -64,11 +64,19 @@ Expected size: about 60 to 120 changed lines in 5 to 7 files under `.agents/skil
 
 ## Completion
 
-- [ ] "Side ideas get a home" is replaced by the routing table, stated once and linked from where it applies; the workflow names the `braid-inbox` exception
-- [ ] The coordinator skill captures non-blocking findings, `For later items:` and the user's side observations with `braid note` before the handover, in the right kind, and the log line names entry ids
-- [ ] The skill states how to write a self-contained leftover (title, what, where, why, `--from`, `--ref`), with one example
-- [ ] The coordinator skill proposes a sweep story of leftovers at 3 open leftovers or before planning, records the answer with the sweep commands, runs it after the current braid, never in auto mode, and never proposes ideas for review
-- [ ] The skills check for `braid inbox` before the first capture
-- [ ] No other rule in the skills contradicts the new routing (searched for, and the search listed in report.md)
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] "Side ideas get a home" is replaced by the routing table, stated once and linked from where it applies; the workflow names the `braid-inbox` exception
+- [x] The coordinator skill captures non-blocking findings, `For later items:` and the user's side observations with `braid note` before the handover, in the right kind, and the log line names entry ids
+- [x] The skill states how to write a self-contained leftover (title, what, where, why, `--from`, `--ref`), with one example
+- [x] The coordinator skill proposes a sweep story of leftovers at 3 open leftovers or before planning, records the answer with the sweep commands, runs it after the current braid, never in auto mode, and never proposes ideas for review
+- [x] The skills check for `braid inbox` before the first capture
+- [x] No other rule in the skills contradicts the new routing (searched for, and the search listed in report.md)
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Workflow: a new section "Gaps and the inbox": the two kinds, the routing table, how to write a leftover (one example), and "One writer per branch" names `braid-inbox` as the exception (braid commands only). Stated once there, for every role.
+2. Coordinator skill: "Side ideas get a home" becomes a short rule linking the table; capture with `braid note` before `braid handover` (review findings, `For later items:`/unfinished bits, the user's side observations at once); the `braid inbox` check before the first capture; a "Sweep" section (triggers, `braid ask --kind decision`, take/pass/drop, one pending sweep story after the current braid, fold into the next braid, never in auto mode); ideas only on the user's request (Plan step 1); the recap keeps "Sweep due" and never lists entries.
+3. Brief template: the braid log line's `For later items:` names entry ids; the report line separates notes for later strands from gaps.
+4. Worker and reviewer skills: only where wording conflicts.
+5. docs/decisions.md: D56 with its log line; README only if it describes the old rule.
