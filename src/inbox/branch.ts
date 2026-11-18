@@ -46,7 +46,7 @@ function isAncestor(root: string, a: string, b: string): boolean {
 }
 
 function firstLine(text: string): string {
-  return text.trim().split(/\r?\n/).pop() ?? "";
+  return text.split(/\r?\n/).find((line) => line.trim() !== "")?.trim() ?? "";
 }
 
 /** What a fetch found: the remote has the branch (`present`), has none (`absent`), or couldn't be reached. */
@@ -253,7 +253,26 @@ export function writeInbox(root: string, change: (current: InboxView) => InboxCh
   return locked(lock, () => write(root, change), "the inbox");
 }
 
+/** Refuses a write while a worktree has `braid-inbox` checked out: moving the branch would leave it showing newer entries as staged deletions. */
+function refuseCheckedOut(root: string): void {
+  const r = git(root, ["worktree", "list", "--porcelain"]);
+  if (r.status !== 0) {
+    return;
+  }
+  for (const block of r.stdout.split(/\r?\n\r?\n/)) {
+    const lines = block.split(/\r?\n/);
+    const path = lines.find((l) => l.startsWith("worktree "))?.slice("worktree ".length);
+    if (path !== undefined && lines.includes(`branch ${LOCAL}`)) {
+      throw new GitError(
+        `${INBOX_BRANCH} is checked out in the worktree ${path}; a write would move it under that worktree and leave newer entries staged for deletion. ` +
+          `Leave it first (in that worktree: git switch --detach, or remove it with git worktree remove), then run the command again. Nothing was changed.`,
+      );
+    }
+  }
+}
+
 function write(root: string, change: (current: InboxView) => InboxChange): WriteResult {
+  refuseCheckedOut(root);
   for (let attempt = 1; ; attempt++) {
     const fetched = fetchInbox(root);
     const local = refCommit(root, LOCAL);
