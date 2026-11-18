@@ -1,7 +1,7 @@
 ---
 id: '0012/E'
 title: "Leftovers: Host allowlist test, remote detection, --port"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 50
