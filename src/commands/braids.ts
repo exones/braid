@@ -120,7 +120,8 @@ function files(item: Item): string[] {
 function render(item: Item, extra: string[]): string {
   const brief = item.brief;
   const body = brief.body.trim();
-  const lines = [`${brief.id}  ${brief.title}`, "", ...fields(brief), ...files(item), ...extra];
+  const from = item.source === null ? [] : [`Read from: ${item.source.branch}`];
+  const lines = [`${brief.id}  ${brief.title}`, "", ...fields(brief), ...from, ...files(item), ...extra];
   if (body !== "") {
     lines.push("", body);
   }
@@ -157,13 +158,15 @@ function linkedFrom(root: string, braid: Braid): string[] {
   return from.length === 0 ? ["Linked from: none"] : ["Linked from:", ...from.map((b) => `  ${b.number}  ${b.brief.title}`)];
 }
 
+/** `braid view <id>`: the item's live copy, read from that braid number's branches and the working tree. */
 export function viewItem(root: string, raw: string | undefined, links = false): string {
   if (raw === undefined) {
     throw new UsageError("braid view needs an id, like 0002 or 0002/A");
   }
   const id = normaliseId(raw);
   const [number, letter] = id.split("/");
-  const braid: Braid | undefined = loadBraids(root).find((b) => b.number === number);
+  // The live copy, as `braid list --open` shows it: a newer one on a branch wins over the working tree's.
+  const braid: Braid | undefined = loadKnownBraids(root, number).find((b) => b.number === number);
   if (braid === undefined) {
     throw new UsageError(`no braid ${number}`);
   }

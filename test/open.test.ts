@@ -194,8 +194,9 @@ test("related links show both ways: back-links come from a braid branch and from
   assert.equal(view.status, 0, view.stderr);
   assert.match(view.stdout, /\nRelated: none\nLinked from:\n {2}0003 {2}Title 0003\n {2}0004 {2}Title 0004\nStrands:\n/);
   assert.match(braid(root, "view", "0002/A", "--links").stderr, /--links shows the braids that link to a braid/);
-  const v4 = braid(root, "view", "0003");
-  assert.equal(v4.status, 1, "0003 lives only on its branch; braid view reads the working tree");
+  const v3 = braid(root, "view", "0003");
+  assert.equal(v3.status, 0, v3.stderr);
+  assert.match(v3.stdout, /\nRead from: braid\/0003-b\n[^]*\nRelated: 0002\n/);
 
   git(root, "checkout", "-q", "plan/c");
   const own = braid(root, "view", "0004");
@@ -210,6 +211,37 @@ test("related links show both ways: back-links come from a braid branch and from
   assert.match(list.stdout, /0004 {2}To Do {2}Title 0004\n {2}read from: plan\/c\n {2}related: 0002, 0003\n/);
   assert.match(list.stdout, /0002 {2}Outline {2}Title 0002\n {2}read from: main\n\n/);
   assert.doesNotMatch(list.stdout, /0005/);
+});
+
+test("braid view reads the live copy: braid, strand and plan branches, and not a merged branch", () => {
+  const root = fixture();
+  const view = (id: string) => {
+    const r = braid(root, "view", id);
+    assert.equal(r.status, 0, r.stderr);
+    return r.stdout;
+  };
+  // Only on a braid branch, and only on a local plan/ branch.
+  assert.match(view("3"), /^0003 {2}Title 0003\n\nStatus: In Progress\n[^]*\nDelivery: epic\nRead from: braid\/0003-b\nFolder: braids\/0003-b\n/);
+  assert.match(view("0004"), /\nStatus: To Do\n[^]*\nRead from: plan\/c\nFolder: braids\/0004-c\n/);
+  // On the working tree, newer on its braid branch: the branch copy.
+  commitAt(root, "braid/0002-outline", "2026-01-01T00:00:00Z", {
+    "braids/0002-outline/brief.md": brief("0002", "In Progress", "Branch copy."),
+  });
+  git(root, "checkout", "-q", "main");
+  const live = view("0002");
+  assert.match(live, /\nStatus: In Progress\n[^]*\nRead from: braid\/0002-outline\n/);
+  assert.match(live, /\nBranch copy\.\n/);
+  // A strand only on its strand branch; strand A comes from its braid's branch, as in `braid list --open`.
+  commitAt(root, "braid/0002/B-y", "2026-01-02T00:00:00Z", { "braids/0002-outline/B-y/brief.md": brief("0002/B", "In Progress") });
+  git(root, "checkout", "-q", "main");
+  assert.match(view("2/b"), /^0002\/B {2}Title 0002\/B\n\nStatus: In Progress\n[^]*\nRead from: braid\/0002\/B-y\nFolder: braids\/0002-outline\/B-y\n/);
+  assert.match(view("0002/A"), /\nRead from: braid\/0002-outline\n/);
+  // Merged into HEAD: the working tree's copy, no Read from.
+  git(root, "merge", "-q", "--no-ff", "-m", "merge", "braid/0002-outline");
+  const merged = view("0002");
+  assert.match(merged, /\nStatus: In Progress\n/);
+  assert.doesNotMatch(merged, /Read from/);
+  assert.equal(braid(root, "view", "0099").status, 1);
 });
 
 test("braid check: a related id found in no source warns with exit 0; one on a branch is fine", () => {
