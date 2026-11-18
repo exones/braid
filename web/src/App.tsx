@@ -3,7 +3,7 @@ import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, strandMarks, t3codeUrl, type Marks } from "../../src/board/marks.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
-import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
+import { postAction, remoteBoard, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
 
 /** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
 interface Route {
@@ -194,20 +194,28 @@ const BUTTON = "flex size-6 items-center justify-center gap-1.5 rounded-md borde
 /** The label shown on a phone only; desktop buttons are icon-only with a tooltip. */
 const Label = ({ children }: { children: ReactNode }) => <span className="md:hidden">{children}</span>;
 
-/** Open thread: a small button that opens the item's thread in the T3 desktop app (the server opens it); nothing is drawn when there is no thread. */
+/**
+ * Open thread: a small button that opens the item's thread in the T3 desktop app (the server opens it); on a phone, the
+ * thread's `t3code://` app link. Over Tailscale (the server refuses `open` there) only the app link, at every width.
+ * Nothing is drawn when there is no thread.
+ */
 function OpenThread({ id, link }: { id: string; link: string | null }) {
   const [error, setError] = useState<string | null>(null);
   if (link === null) {
     return null;
   }
   const app = t3codeUrl(link);
+  if (remoteBoard && app === null) {
+    return null;
+  }
   return (
     <>
       {app !== null && (
-        <a href={app} onClick={(e) => e.stopPropagation()} className={`${BUTTON} border-slate-200 bg-white text-slate-700 no-underline md:hidden`}>
+        <a href={app} onClick={(e) => e.stopPropagation()} aria-label="Open thread in the T3 app" title="Open thread in the T3 app" className={`${BUTTON} border-slate-200 bg-white text-slate-700 no-underline ${remoteBoard ? "" : "md:hidden"}`}>
           <OpenIcon /> <Label>Open thread</Label>
         </a>
       )}
+    {!remoteBoard && (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
         <button
@@ -227,6 +235,7 @@ function OpenThread({ id, link }: { id: string; link: string | null }) {
         <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">{error ?? "Open thread in T3"}</Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
+    )}
     </>
   );
 }
