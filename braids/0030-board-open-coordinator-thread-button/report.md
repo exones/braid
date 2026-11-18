@@ -6,7 +6,7 @@
 - The server `open` action takes `{ id, thread: "coordinator" }` (`src/commands/board.ts`) and still picks the link itself. It refuses (400) with no coordinator thread, with a strand id, or with another `thread` value.
 - Both paths: on the phone and over Tailscale the button is the coordinator's `t3code://` app link (the existing `OpenThread` link logic); on the desktop it posts `open`.
 - Demo data: 0009 (running strands) has a running coordinator.
-- `docs/board.md` and decision D61 describe it.
+- `docs/board.md` and decision D63 describe it.
 
 ## Why
 
