@@ -1,7 +1,7 @@
 ---
 id: '0020/A'
 title: "The inbox branch: braid note and braid inbox"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:architecture"]
 dependencies: []
 order: 10
