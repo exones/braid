@@ -1,7 +1,7 @@
 ---
 id: '0020/E'
 title: "Skill braid-idea: capture an idea cleanly"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: ['0020/A']
 order: 35
