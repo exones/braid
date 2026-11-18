@@ -1,7 +1,7 @@
 ---
 id: '0022'
 title: "Board: a braid being planned shows Working"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 delivery: epic
