@@ -7,7 +7,7 @@ import { checkBraids } from "./braids/check.js";
 import { runBoard } from "./commands/board.js";
 import { GitError } from "./braids/numbers.js";
 import { LockError } from "./braids/requests.js";
-import { listBraids, titleCommand, UsageError, viewItem } from "./commands/braids.js";
+import { listBraids, listOpen, titleCommand, UsageError, viewItem } from "./commands/braids.js";
 import { ImportRefusal, importBacklog } from "./backlog/import.js";
 import { logEntry, reportItem } from "./commands/logs.js";
 import { nextCommand, statusCommand } from "./commands/coordinate.js";
@@ -40,7 +40,7 @@ export function helpText(version: string): string {
     "Usage: braid <command>",
     "",
     "Commands:",
-    "  list                        List braids and their strands in run order",
+    "  list [--open]               List braids and their strands in run order; --open: every unfinished braid on any branch, with its goal (--no-fetch)",
     "  view <id>                   Show a braid (0002) or a strand (0002/A)",
     "  new <title>                 Create a braid with the next free number",
     "  strand new <braid> <title>  Create a strand with the next free letter",
@@ -126,8 +126,15 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
       return importBacklog(root, args.includes("--dry-run"));
     }
     case "list":
+      if (args.includes("--open")) {
+        const extra = args.filter((a) => a !== "--open" && a !== "--no-fetch");
+        if (extra.length > 0) {
+          throw new UsageError(`braid list --open takes only --no-fetch; got: ${extra.join(" ")}`);
+        }
+        return listOpen(root, !args.includes("--no-fetch"));
+      }
       if (args.length > 0) {
-        throw new UsageError(`braid list takes no arguments; got: ${args.join(" ")}`);
+        throw new UsageError(`braid list takes no arguments except --open; got: ${args.join(" ")}`);
       }
       return listBraids(root);
     case "view":

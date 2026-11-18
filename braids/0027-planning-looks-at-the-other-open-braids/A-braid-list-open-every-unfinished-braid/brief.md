@@ -1,7 +1,7 @@
 ---
 id: '0027/A'
 title: "braid list --open: every unfinished braid, wherever it lives"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 10
@@ -49,3 +49,9 @@ Expected size: about 200 lines in 5 files.
 - [ ] `docs/braids-format.md` describes both
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## plan
+
+- `loadOpenBraids` in `src/braids/branches.ts`: `loadLiveBraids` plus braids found only on local or `origin/` `plan/*` branches not merged into HEAD (newest copy first; never overriding another source), Done filtered out.
+- `listOpen` and `openBraidsLine` in `src/commands/braids.ts`; `--open` and `--no-fetch` in `src/cli.ts`; the `Open braids:` line at the end of `braid new`.
+- Tests with a fixture repository (`test/open.test.ts`); update `braid new` expectations; `docs/braids-format.md`.

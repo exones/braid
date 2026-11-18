@@ -269,3 +269,58 @@ export function loadLiveBraids(root: string): Braid[] {
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([number, slot]) => ({ ...slot.item, number, strands: [...slot.strands.values()].sort(byRunOrder) }));
 }
+
+/** Local and remote-tracking `plan/<slug>` branches (a planning branch's name holds no braid number). */
+function planBranches(root: string): { branch: string; commit: string; time: number; local: boolean }[] {
+  const r = git(root, [
+    "for-each-ref",
+    "--format=%(refname)%00%(objectname)%00%(committerdate:unix)",
+    "refs/heads/plan/",
+    "refs/remotes/*/plan/*",
+  ]);
+  if (r.status !== 0) {
+    return [];
+  }
+  const refs: { branch: string; commit: string; time: number; local: boolean }[] = [];
+  for (const line of r.stdout.split("\n")) {
+    const [ref = "", commit = "", time = "0"] = line.split("\0");
+    const local = ref.startsWith("refs/heads/");
+    const remote = /^refs\/remotes\/([^/]+)\/(plan\/.+)$/.exec(ref);
+    const name = local ? ref.slice("refs/heads/".length) : remote === null ? undefined : `${remote[1] ?? ""}/${remote[2] ?? ""}`;
+    if (name !== undefined) {
+      refs.push({ branch: name, commit, time: Number(time), local });
+    }
+  }
+  // Newest first, a local branch on a tie: the first copy of a braid wins.
+  return refs.sort((a, b) => b.time - a.time || Number(b.local) - Number(a.local));
+}
+
+/**
+ * Every braid whose status is not Done, in number order, wherever it lives: what `loadLiveBraids`
+ * reads, plus braids found only on a `plan/` branch not merged into HEAD. A `plan/` copy never
+ * overrides a copy from the working tree or a braid branch.
+ */
+export function loadOpenBraids(root: string): Braid[] {
+  const braids = loadLiveBraids(root);
+  const known = new Set(braids.map((b) => b.number));
+  const headResult = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
+  const head = headResult.status === 0 ? headResult.stdout.trim() : null;
+  for (const ref of planBranches(root)) {
+    if (head !== null && inHead(root, head, ref.commit)) {
+      continue;
+    }
+    const t = gitTree(root, { branch: ref.branch, commit: ref.commit });
+    for (const entry of t.list("braids")) {
+      const number = entry.isDir ? BRAID_FOLDER.exec(entry.name)?.[1] : undefined;
+      if (number === undefined || known.has(number)) {
+        continue;
+      }
+      const braid = attempt(() => loadBraid(t, `braids/${entry.name}`, number));
+      if (braid !== null) {
+        known.add(number);
+        braids.push(braid);
+      }
+    }
+  }
+  return braids.filter((b) => b.brief.status !== "Done").sort((a, b) => (a.number < b.number ? -1 : a.number > b.number ? 1 : 0));
+}

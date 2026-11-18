@@ -7,7 +7,7 @@ import { BRAID_ID, DELIVERY_MODES, STATUSES, type Delivery, type Status } from "
 import { fetchRemotes, nextLetter, nextNumber, takenIds } from "../braids/numbers.js";
 import { loadBraids, type Braid, type Item } from "../braids/store.js";
 import { checkSectionText, setSection, slugify, writeBrief, type BriefFields } from "../braids/write.js";
-import { normaliseId, UsageError } from "./braids.js";
+import { normaliseId, openBraidsLine, UsageError } from "./braids.js";
 
 type Options = NonNullable<ParseArgsConfig["options"]>;
 
@@ -182,6 +182,7 @@ export function newBraid(root: string, args: readonly string[]): string {
   }
   const title = oneLine("title", positionals[0] ?? "");
   const { braids, taken } = prepareCreate(root, values);
+  const open = openBraidsLine(root);
   const number = nextNumber(taken);
   if (number === null) {
     throw new UsageError("no braid numbers left (9999 used)");
@@ -192,7 +193,7 @@ export function newBraid(root: string, args: readonly string[]): string {
   const dir = join(root, folder);
   mkdirSync(dir, { recursive: true });
   writeBrief(join(dir, "brief.md"), `${folder}/brief.md`, fields, "");
-  return `Created ${number} ${folder}\n`;
+  return `Created ${number} ${folder}\n${open}`;
 }
 
 /** `braid strand new <braid> <title>`: the next free letter inside the braid. */
