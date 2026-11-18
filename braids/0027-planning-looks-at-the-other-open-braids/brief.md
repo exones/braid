@@ -1,7 +1,7 @@
 ---
 id: '0027'
 title: "Planning looks at the other open braids"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: []
 delivery: epic
@@ -24,7 +24,7 @@ Expected size: about 500 lines in 12 files over three strands.
 - Only unfinished braids are compared, as the user asked. Done braids and `docs/decisions.md` are out of this goal.
 - Judging overlap, duplication and contradiction is the coordinator's reading, not a CLI heuristic: the CLI only gathers the braids and their goals.
 - A link is stored only in the brief that makes it, because the other braid's brief belongs to whoever holds its branch. `braid view` computes the back-links.
-- Related to 0025 (Sweep: inbox counts, on `braid/0025-sweep-inbox-counts`): it changes `listBraids` in `src/commands/braids.ts` and the `braid list` text in `docs/braids-format.md`, which 0027/A changes too. No contradiction; 0027/A starts after 0025 is merged, from a braid branch with `main` merged in.
+- Related to 0025 (Sweep: inbox counts, on `braid/0025-sweep-inbox-counts`): it changes `listBraids` in `src/commands/braids.ts` and the `braid list` text in `docs/braids-format.md`, which 0027/A changes too. No contradiction. 0027/A doesn't wait for 0025 (user, 2026-11-18): whichever lands second merges `main` and resolves `listBraids`.
 - Related to 0024 (Reviewer threads linked to their PR): it edits `.agents/skills/braid/SKILL.md`, "Accept and hand over"; 0027/C edits "Plan" in the same file. No contradiction; 0027/C merges `main` first if 0024 is merged by then.
 
 ## Completion

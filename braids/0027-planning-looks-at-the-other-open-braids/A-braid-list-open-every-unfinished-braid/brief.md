@@ -16,7 +16,7 @@ Expected size: about 200 lines in 5 files.
 ## Start here
 
 - `src/braids/branches.ts`: `braidBranches` and `loadLiveBraids`, which already merge the working tree with braid and strand branches (used by `braid status` and `braid clean`). They don't read `plan/` branches.
-- `src/commands/braids.ts`: `listBraids`, today's `braid list`. Braid 0025 changes it (an `Inbox:` line); start after 0025 is merged, with `main` merged into the braid branch.
+- `src/commands/braids.ts`: `listBraids`, today's `braid list`. Braid 0025 (on `braid/0025-sweep-inbox-counts`, not started) will change it too (an `Inbox:` line); don't wait for it. If 0025 is merged into `main` before your PR, merge `main` into the braid branch and yours.
 - `src/cli.ts`: the `list` case, which refuses any argument today.
 - `src/board/github.ts`: how planning PRs (`plan/<slug>` into `braid/<number>-<slug>`) are recognised. A `plan/` branch's name holds no braid number; its `braids/` tree does.
 - `docs/braids-format.md`: the `braid list` entry under the commands.
