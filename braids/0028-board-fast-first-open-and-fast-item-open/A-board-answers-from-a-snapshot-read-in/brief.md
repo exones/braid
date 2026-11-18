@@ -1,7 +1,7 @@
 ---
 id: '0028/A'
 title: "Board answers from a snapshot read in the background"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 10
@@ -42,11 +42,18 @@ Expected size: about 350 lines in 7 files, tests included.
 - Making the individual reads cheaper (0028/B).
 - Any partial view: the first open waits for the first complete snapshot (the sources may read in parallel).
 
+## Plan
+
+- `src/board/github.ts`: `readGithubAsync` and `runGhAsync` (`execFile`); the sync `readGithub` stays for the other commands. Both share the list/parse/assemble code.
+- `src/commands/board.ts`: a snapshot holder in `startBoardWith` (one read at a time, one queued); `api()` answers from it; actions get a `snapshot` accessor; Open thread uses it; timing line behind `BRAID_BOARD_TIMINGS=1`.
+- Git-based readers (braids from branches, signals, inbox) stay synchronous: making them cheap or async is 0028/B.
+- Tests in `test/board-snapshot.test.ts`; `docs/board.md` and a D63 row.
+
 ## Completion
 
-- [ ] A test with slow fake `gh` and `t3` shows that, once a snapshot exists, `/api/item` and the open action answer without calling either
-- [ ] A test shows a static file and `/api/board` are served while a slow `gh` read runs
-- [ ] A test shows that Start and Merge still read GitHub and T3 fresh
-- [ ] The timing line is documented, and report.md gives its numbers before and after for `/api/board` and `/api/item` on this repository
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A test with slow fake `gh` and `t3` shows that, once a snapshot exists, `/api/item` and the open action answer without calling either
+- [x] A test shows a static file and `/api/board` are served while a slow `gh` read runs
+- [x] A test shows that Start and Merge still read GitHub and T3 fresh
+- [x] The timing line is documented, and report.md gives its numbers before and after for `/api/board` and `/api/item` on this repository
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
