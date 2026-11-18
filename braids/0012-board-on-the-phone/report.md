@@ -1,6 +1,6 @@
 The board works on a phone over Tailscale. 0012/A made the mockups and the user chose the phone layout; 0012/B built the new lane order (Needs You, To Review, Working, To Do, Done), Done collapsed to its 10 newest with Show more (ordered by the commit that set Done), and the phone layout (tab bar with counts, swipe, icon-and-label buttons, Open thread as the `t3code://` app link); 0012/C added `braid board --host`, a second listener on this machine's Tailscale address where every request is checked with `tailscale whois` for the node owner's login, failing closed, with Host and cross-site checks and the `open` action refused. The local `127.0.0.1` board is unchanged.
 
-Validation: each strand passed `npm run verify` and CI on Windows and Ubuntu, with an independent review (0012/B three rounds, one blocking finding on renamed folders, fixed). 0012/C was merged by the user after the `security` stop.
+Validation: 0012/D fixed two factual doc errors the final review found. Each strand passed `npm run verify` and CI on Windows and Ubuntu, with an independent review (0012/B three rounds, one blocking finding on renamed folders, fixed). 0012/C was merged by the user after the `security` stop.
 
 Open: the swipe and the `t3code://` app link have not been tried on a real phone. All Completion boxes hold.
 
