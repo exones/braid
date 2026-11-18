@@ -43,12 +43,12 @@ Expected size: about 200 lines in 5 files.
 
 ## Completion
 
-- [ ] `braid list --open` lists a braid found only on a braid branch and one only on a local `plan/` branch, with their sources, and leaves out Done braids (tests)
-- [ ] `braid list` without the option prints what it did before (test)
-- [ ] `braid new` prints the `Open braids:` line (test)
-- [ ] `docs/braids-format.md` describes both
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid list --open` lists a braid found only on a braid branch and one only on a local `plan/` branch, with their sources, and leaves out Done braids (tests)
+- [x] `braid list` without the option prints what it did before (test)
+- [x] `braid new` prints the `Open braids:` line (test)
+- [x] `docs/braids-format.md` describes both
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## plan
 

@@ -40,9 +40,7 @@ const GOAL_LIMIT = 300;
 /** The first paragraph of the `## Goal` section, cut at about `GOAL_LIMIT` characters at a word. */
 function goalParagraph(braid: Braid): string {
   const goal = braid.brief.sections.find((s) => s.title === "Goal")?.text ?? "";
-  const text = (goal.split(/
-s*
-/)[0] ?? "").replace(/s+/g, " ").trim();
+  const text = (goal.split(/\n\s*\n/)[0] ?? "").replace(/\s+/g, " ").trim();
   if (text.length <= GOAL_LIMIT) {
     return text;
   }
@@ -57,14 +55,12 @@ export function listOpen(root: string, fetch: boolean): Said {
     try {
       fetchRemotes(root);
     } catch (error) {
-      stderr = `warning: ${error instanceof Error ? error.message : String(error)}; going on with what is local
-`;
+      stderr = `warning: ${error instanceof Error ? error.message : String(error)}; going on with what is local\n`;
     }
   }
   const braids = loadOpenBraids(root);
   if (braids.length === 0) {
-    return { stdout: "No open braids.
-", stderr };
+    return { stdout: "No open braids.\n", stderr };
   }
   const blocks = braids.map((braid) => {
     const lines = [`${braid.brief.id}  ${braid.brief.status}  ${braid.brief.title}`, `  read from: ${braid.source?.branch ?? "main"}`];
@@ -75,19 +71,14 @@ export function listOpen(root: string, fetch: boolean): Said {
     if (braid.strands.length > 0) {
       lines.push("", ...braid.strands.map((s) => strandLine(s)));
     }
-    return lines.join("
-");
+    return lines.join("\n");
   });
-  return { stdout: `${blocks.join("
-
-")}
-`, stderr };
+  return { stdout: `${blocks.join("\n\n")}\n`, stderr };
 }
 
 /** `Open braids: <n> (braid list --open)`, the last line of `braid new`. */
 export function openBraidsLine(root: string): string {
-  return `Open braids: ${loadOpenBraids(root).length} (braid list --open)
-`;
+  return `Open braids: ${loadOpenBraids(root).length} (braid list --open)\n`;
 }
 
 /** Accepts `2`, `0002`, `0002/A` and `2/a`; returns `0002` or `0002/A`. */

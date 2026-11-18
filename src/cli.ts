@@ -134,7 +134,7 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
         return listOpen(root, !args.includes("--no-fetch"));
       }
       if (args.length > 0) {
-        throw new UsageError(`braid list takes no arguments except --open; got: ${args.join(" ")}`);
+        throw new UsageError(`braid list takes no arguments; got: ${args.join(" ")}`);
       }
       return listBraids(root);
     case "view":
