@@ -3,7 +3,7 @@
 - The board server now reads GitHub, T3, the braids and the inbox in a background loop (start, every 30 s, 200 ms after a change under `braids/`, Refresh) and keeps the latest complete result as a snapshot. `/api/board` and `/api/item` answer from it; a new snapshot is pushed over `/api/events`. Reads run one at a time and a refresh asked for during a read queues exactly one more. The first request waits for the first complete snapshot; `?fresh=1` answers when its own read is done. Broke signals are committed once per read.
 - `gh` runs through `execFile` (`readGithubAsync`, `runGhAsync`), so the server answers other requests while it runs. The sync `readGithub` stays for the other commands.
 - Open thread takes the link from the snapshot and reads T3 only when the snapshot has none; Start and Merge still read GitHub and T3 fresh.
-- `BRAID_BOARD_TIMINGS=1` prints one line per read with each source's milliseconds. `docs/board.md` (Refresh) and decision D63 describe it.
+- `BRAID_BOARD_TIMINGS=1` prints one line per read with each source's milliseconds. `docs/board.md` (Refresh) and decision D64 describe it.
 
 ## Validation
 
