@@ -47,7 +47,10 @@ body.ph{width:390px;margin:0;background:#fff;min-height:844px;position:relative;
 .pg{padding:14px}.pg h1{font-size:19px;margin:2px 0 8px}.pg .back{display:flex;align-items:center;min-height:44px;color:var(--acc);font-size:15px}
 .banner{margin:10px 0;padding:10px 12px;border-radius:8px}.banner b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
 .strand{display:flex;gap:8px;align-items:center;min-height:44px;border-bottom:1px solid var(--line)}
-.actbar{position:fixed;bottom:0;width:390px;background:#fff;border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:10px}.actbar button{flex:1}
+.actbar{position:fixed;bottom:0;width:390px;background:#fff;border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:10px}.actbar .ib{flex:1}
+.ib{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:#fff;color:#475569;border-radius:6px;padding:0;font:inherit}
+.ib.sm{width:24px;height:24px}.ib.st{background:#2563eb;border-color:#2563eb;color:#fff}.ib.mg{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.ib.tap{padding:0 16px;font-size:14px;font-weight:600;border-radius:8px;min-width:44px;min-height:44px}.ib.tap.st,.ib.tap.mg{flex:0 0 auto}
 .notes{max-width:980px;margin:20px auto;padding:0 20px}.notes h2{margin:22px 0 4px;font-size:16px}.notes li{margin:3px 0}
 </style></head><body>
 <script>
@@ -64,11 +67,17 @@ const DN=[['0008','Sample mail','Nov 17'],['0006','Sample audit log','Nov 16'],[
 const ALL={'Needs You':NY,'To Review':TR,'Working':WK,'To Do':TD};
 const cntOf=l=>l==='Done'?DN.length:ALL[l].length;
 // card: mode 'start' -> Start button; 'x' -> Merge when a review is asked, else Open item; desktop adds Open thread
-function card(b,ph,mode,label){const [id,t,tier,d,n,need,k,age]=b;
+const SV=(p,f)=>'<svg width="'+(f?16:12)+'" height="'+(f?16:12)+'" viewBox="0 0 24 24" fill="'+(f?'currentColor':'none')+'" stroke="'+(f?'none':'currentColor')+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+const IC={start:SV('<path d="M7 4.5v15l13-7.5z"/>',1),merge:SV('<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 7v10M8 5c6 0 10 2 10 5"/>'),thread:SV('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>')};
+// icon button: desktop = 24 px icon with tooltip; phone = icon + one-word label, 44 px or more
+const BT={start:['Start','st','Start'],merge:['Merge','mg','Merge'],thread:['Open thread','','Open thread']};
+const ib=(k,ph)=>{const [tip,cl,lab]=BT[k];return ph?'<button class="ib tap '+cl+'">'+IC[k]+lab+'</button>':'<button class="ib sm '+cl+'" title="'+tip+'" aria-label="'+tip+'">'+IC[k]+'</button>'};
+// card: mode 'start' -> Start; 'x' -> Merge when a review is asked, else Open thread; phone Needs You also has Open item (opens the item page)
+function card(b,ph,mode){const [id,t,tier,d,n,need,k,age]=b;
  const line=need?'<div class="need n-'+k+'">'+need+'<small>'+age+'</small></div>':'';
- const c=ph?' tap':'';let btns='';
+ let btns='';
  if(mode){const merge=k==='rev';
-  btns='<div class="row btns">'+(merge?'<button class="pri'+c+'">Merge PR #12</button>':mode==='start'?'<button class="pri'+c+'">Start</button>':'<button class="'+c+'">'+(label||'Open item')+'</button>')+(ph?'':'<button>Open thread</button>')+'</div>'}
+  btns='<div class="row btns">'+(mode==='start'?ib('start',ph):(merge?ib('merge',ph):'')+ib('thread',ph))+(ph&&mode!=='start'?'<button class="ib tap">Open item</button>':'')+'</div>'}
  return '<div class="card"><div class="row"><span class="id">'+id+'</span><span class="badge">'+tier+'</span></div><div class="t">'+t+'</div><div class="row"><div class="bar"><i style="width:'+(n?d/n*100:0)+'%"></i></div><span class="cnt">'+d+'/'+n+'</span></div>'+line+btns+'</div>'}
 const doneRows=rows=>rows.map(r=>'<div class="done-row">'+dot('done')+'<span class="id">'+r[0]+'</span><span>'+r[1]+'</span><span class="d">'+r[2]+'</span></div>').join('');
 const hdr=sub=>'<header><b>braid · attention board</b><span class="sp"></span><span class="cnt">'+(sub||'read-only')+'</span></header>';
@@ -78,7 +87,7 @@ function desktop(open){
   return '<div class="lane"><h3><span>'+dot(c)+l+'</span><span>'+cntOf(l)+'</span></h3>'+ALL[l].map(b=>card(b,false,l==='To Do'?'start':'x')).join('')+'</div>'}).join('');
  return hdr()+'<div class="lanes">'+lanes+'</div>'}
 const tabsEl=on=>'<div class="tabs">'+LN.map(([l])=>'<a class="'+(l===on?'on':'')+'"><b>'+cntOf(l)+'</b>'+l.replace('Needs You','Needs you').replace('To Review','Review')+'</a>').join('')+'</div>';
-const needsCards=()=>card(NY[0],true,'x','Answer')+card(NY[1],true,'x')+card(NY[2],true,'x','Approve plan');
+const needsCards=()=>card(NY[0],true,'x')+card(NY[1],true,'x')+card(NY[2],true,'x');
 const page=(b,lane,btn)=>'<div class="pg"><a class="back">← Board</a><div class="cnt">'+b[0]+' · '+b[2]+'</div><h1>'+b[1]+'</h1><div class="row">'+dot(lane[1])+lane[0]+'</div>'+(b[5]?'<div class="banner n-'+b[6]+'"><b>'+(b[6]==='rev'?'To review':'Needs you')+'</b>'+b[5]+'<div class="cnt">'+b[7]+'</div></div>':'')+
  '<div class="strand">'+dot('done')+'A · First strand</div><div class="strand">'+dot('rev')+'B · Second strand</div><div class="strand">'+dot('todo')+'C · Third strand</div><p class="cnt">(Brief, plan and tabs as on desktop, one column. No Open thread on the phone.)</p></div><div class="actbar">'+btn+'</div>';
 const pickBar='<div class="pick">'+dot('wait')+'Needs You<span class="c">3 ▾</span></div><div class="pcards" style="margin-top:10px">'+'__C__'+'</div>';
@@ -86,21 +95,21 @@ const S={
  'desktop':()=>desktop(false),'done-open':()=>desktop(true),
  'a-needs':()=>hdr()+tabsEl('Needs You')+'<div class="pcards">'+needsCards()+'</div>',
  'a-todo':()=>hdr()+tabsEl('To Do')+'<div class="pcards">'+TD.map(b=>card(b,true,'start')).join('')+'</div>',
- 'a-page':()=>hdr('item')+page(TR[0],['To Review','rev'],'<button class="tap pri">Merge PR #12</button>'),
+ 'a-page':()=>hdr('item')+page(TR[0],['To Review','rev'],ib('merge',1)+ib('thread',1)),
  'b-needs':()=>hdr()+'<div class="strip"><span class="nm">'+dot('wait')+'Needs You <span class="cnt">3</span></span><span class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="cnt">swipe ›</span></div><div class="pcards">'+needsCards()+'</div>',
  'b-mid':()=>hdr()+'<div class="strip"><span class="arr">‹</span><span class="nm">Needs You → To Review</span><span class="dots"><i></i><i class="on"></i><i></i><i></i><i></i></span></div><div style="overflow:hidden"><div class="track"><div class="pcards">'+needsCards()+'</div><div class="pcards">'+TR.map(b=>card(b,true,'x')).join('')+'</div></div></div>',
- 'b-page':()=>hdr('item')+page(TD[0],['To Do','todo'],'<button class="tap pri">Start</button>'),
+ 'b-page':()=>hdr('item')+page(TD[0],['To Do','todo'],ib('start',1)),
  'c-needs':()=>hdr()+pickBar.replace('__C__',needsCards()),
  'c-picker':()=>hdr()+pickBar.replace('__C__',needsCards())+'<div class="scrim"></div><div class="sheet"><div class="grab"></div>'+LN.map(([l,c])=>'<a class="'+(l==='Needs You'?'on':'')+'">'+dot(c)+l+'<span class="c">'+cntOf(l)+'</span></a>').join('')+'</div>',
- 'c-page':()=>hdr('item')+page(TR[0],['To Review','rev'],'<button class="tap pri">Merge PR #12</button><button class="tap">Start</button>')
+ 'c-page':()=>hdr('item')+page(TR[0],['To Review','rev'],ib('merge',1)+ib('thread',1))
 };
 const NOTES=`<div class="notes"><h1>Phone variants and lane order (0012/A)</h1>
-<h2>Decided (all screens)</h2><ul><li>Lanes: Needs You, To Review, Working, To Do, Done. Needs You opens first on the phone.</li><li>Done is collapsed by default; opened it lists the 10 newest, newest first, then a "Show more" button (2 older items here).</li><li><b>Which date is "newest"?</b> Proposal: the date the item became Done (the commit that set the status): the board reads the repository and needs no GitHub call. The PR merge date is almost always the same day but needs <code>gh</code> and fails offline. The list shows that date. Please confirm.</li><li>Start, Merge and Answer buttons are 44 px high or more on the phone. "Open thread" is not offered on the phone, only on desktop.</li></ul>
+<h2>Decided (all screens)</h2><ul><li>Lanes: Needs You, To Review, Working, To Do, Done. Needs You opens first on the phone.</li><li>Done is collapsed by default; opened it lists the 10 newest, newest first, then a "Show more" button (2 older items here).</li><li><b>Which date is "newest"?</b> Proposal: the date the item became Done (the commit that set the status): the board reads the repository and needs no GitHub call. The PR merge date is almost always the same day but needs <code>gh</code> and fails offline. The list shows that date. Please confirm.</li><li>Phone buttons are 44 px high or more. Desktop buttons are icon-only with tooltips, as on the board today (Start, Merge, Open thread). On the phone the same icons carry a one-word label: Start, Merge, Open thread. There are no Answer or Approve plan buttons: answering happens in the coordinator's thread, so on the phone Open thread opens that thread in the phone's own T3 app through its <code>t3code://threads/&lt;env&gt;/&lt;thread&gt;</code> app link. "Open item" opens the item page.</li></ul>
 <h2>A · Tab bar with counts (screens 31, 32, 33)</h2><p>Five tabs under the header, each with its count; the active tab is underlined.</p><ul><li>Good: every lane and its count is visible at once, so you see that Needs You has 3. One tap to any lane. Familiar, nothing to discover.</li><li>Bad: five tabs in 390 px leave small labels ("To Review" is shortened to "Review"); a fixed strip of height; no swipe unless we add it.</li></ul>
 <h2>B · Swipe between lanes (screens 34, 35, 36)</h2><p>One lane fills the screen; a strip shows the lane name, its count and position dots; swipe left or right to move (35 shows mid-swipe, with ‹ › as a mouse fallback).</p><ul><li>Good: most room for cards; natural on a phone.</li><li>Bad: other lanes' counts are hidden, so a new request in To Review is invisible while you read Needs You; swiping can collide with the browser's back gesture and with scrolling; not discoverable.</li></ul>
 <h2>C · Lane picker (screens 37, 38, 39)</h2><p>One bar shows the current lane and count; a tap opens a bottom sheet with all five lanes and counts.</p><ul><li>Good: biggest tap targets (52 px rows), full lane names, scales if a lane is added, all counts one tap away.</li><li>Bad: two taps to change a lane instead of one; counts hidden until the sheet opens.</li></ul>
 <p><b>Approved (user, 2026-11-18): variant A plus swiping left/right between lanes.</b> "Newest" in Done is the date the item became Done (status commit). On the phone the Done tab works as on desktop: 10 newest, newest first, Show more.</p>
-<h2>Open</h2><ul><li>None: Done on the phone works as on desktop (decided).</li></ul></div>`;
+<h2>Open</h2><ul><li>None: Done on the phone works as on desktop (decided).</li></ul><h2>Verdict 2 (user, 2026-11-18)</h2><ul><li>Phone buttons: the board's icons plus a one-word label, 44 px or more; desktop stays icon-only.</li><li>No Answer or Approve plan button; Open thread (app link <code>t3code://threads/&lt;env&gt;/&lt;thread&gt;</code>) on the phone.</li></ul></div>`;
 const h=location.hash.slice(1)||'desktop';
 if(h==='notes'){document.body.innerHTML=NOTES}
 else{if(h!=='desktop'&&h!=='done-open')document.body.classList.add('ph');
