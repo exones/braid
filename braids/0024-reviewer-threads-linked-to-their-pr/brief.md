@@ -1,7 +1,7 @@
 ---
 id: '0024'
 title: "Reviewer threads linked to their PR"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L"]
 dependencies: []
 delivery: epic
