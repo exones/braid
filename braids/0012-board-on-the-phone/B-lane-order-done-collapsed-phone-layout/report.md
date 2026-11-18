@@ -7,7 +7,7 @@
 - Phone layout (under 768 px): tab bar with counts, one lane at a time, Needs You first, swipe left/right between lanes (touches starting within 30 px of a screen edge are ignored); buttons at least 44 px (measured 44 px high in a 390 px headless Chrome) with icon and label (Start, Merge, Open thread); Open thread is an `<a href="t3code://threads/<env>/<thread>">`; the item page is one column. `t3codeUrl` moved to `src/board/marks.ts` so the page can build the link.
 - Demo: 12 Done braids merged on different days, so Show more shows.
 - Docs: `docs/board.md` (lanes, Done, "On the phone", demo), D58 in `docs/decisions.md`, screenshots 61 to 65 in `docs/design/board-screenshots/`; the two stale lines in `phone-lanes.html` fixed.
-- Tests: lane order (API and labels), Done order and page (10, then 2 behind Show more), no-date ordering, `t3codeUrl`, and `test/done-date.test.ts` on a real Git history (the Done date, an unrelated later edit, a reopened and re-done item, a braid with strands, no repository).
+- Tests: lane order (API and labels), Done order and page (10, then 2 behind Show more), no-date ordering, `t3codeUrl`, and `test/done-date.test.ts` on a real Git history (the Done date, an unrelated later edit, a reopened and re-done item, a braid with strands, a renamed folder, no repository) and the cached miss.
 
 ## Why
 

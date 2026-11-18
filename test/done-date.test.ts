@@ -17,8 +17,9 @@ for (const key of ["HOME", "USERPROFILE", "XDG_CONFIG_HOME"]) {
 process.env["GIT_CONFIG_NOSYSTEM"] = "1";
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
-const { doneDate, resetDoneDates } = (await load("../dist/board/done.js")) as {
-  doneDate: (root: string, folder: string, source: { branch: string; commit: string } | null) => string | null;
+const { doneDate, headOf, resetDoneDates } = (await load("../dist/board/done.js")) as {
+  doneDate: (root: string, folder: string, source: { branch: string; commit: string } | null, run?: (root: string, args: readonly string[]) => { status: number | null; stdout: string }, head?: string | null) => string | null;
+  headOf: (root: string) => string | null;
   resetDoneDates: () => void;
 };
 const { toBoard, doneNewestFirst } = (await load("../dist/board/model.js")) as {
@@ -66,6 +67,12 @@ commit(3, { "braids/0004-again/brief.md": brief("0004", "In Progress") }, "0004 
 commit(7, { "braids/0004-again/brief.md": brief("0004", "Done") }, "0004 done again");
 commit(7, { "braids/0005-open/brief.md": brief("0005", "To Do") }, "0005");
 
+// 0006: set Done on day 4, then its folder renamed on day 12 (braid folders get renamed): the date stays day 4.
+commit(4, { "braids/0006-old/brief.md": brief("0006", "Done") }, "0006 done");
+clock = 12;
+git("mv", "braids/0006-old", "braids/0006-new");
+git("commit", "-q", "-m", "rename 0006");
+
 const noGithub = { status: { state: "unavailable", reason: "no gh" }, prs: new Map() };
 
 test("doneDate is the committer date of the commit that set status: Done, not a later edit", () => {
@@ -74,6 +81,33 @@ test("doneDate is the committer date of the commit that set status: Done, not a 
   assert.equal(doneDate(root, "braids/0002-pair/A-a", null), "2026-11-14T10:00:00.000Z");
   assert.equal(doneDate(root, "braids/0005-open", null), null, "never Done: no date");
   assert.equal(doneDate(join(scratch, "elsewhere"), "braids/0001-solo", null), null, "not a repository: no date, no error");
+});
+
+test("a renamed folder keeps the original Done date", () => {
+  resetDoneDates();
+  assert.equal(doneDate(root, "braids/0006-new", null), "2026-11-14T10:00:00.000Z", "the rename day is day 12");
+});
+
+test("a miss is kept per commit searched: no git log again until HEAD moves", () => {
+  resetDoneDates();
+  const calls: string[][] = []; // the `git log` searches (a search also reads versions with `git show`)
+  const run = (r: string, args: readonly string[]) => {
+    if (args[0] === "log") {
+      calls.push([...args]);
+    }
+    return spawnSync("git", args, { cwd: r, encoding: "utf8" }) as { status: number | null; stdout: string };
+  };
+  const head = headOf(root);
+  assert.notEqual(head, null);
+  assert.equal(doneDate(root, "braids/0005-open", null, run, head), null);
+  assert.equal(doneDate(root, "braids/0005-open", null, run, head), null);
+  assert.equal(calls.length, 1, "the second miss came from the cache");
+  commit(13, { "braids/0007-new/brief.md": brief("0007", "To Do") }, "0007");
+  assert.equal(doneDate(root, "braids/0005-open", null, run, headOf(root)), null);
+  assert.equal(calls.length, 2, "HEAD moved: searched again");
+  assert.equal(doneDate(root, "braids/0001-solo", null, run, headOf(root)), "2026-11-13T10:00:00.000Z");
+  assert.equal(doneDate(root, "braids/0001-solo", null, run, headOf(root)), "2026-11-13T10:00:00.000Z");
+  assert.equal(calls.length, 3, "a hit is kept too");
 });
 
 test("the board dates Done braids from Git alone, a braid with strands by its own Done commit, else its newest strand", () => {
@@ -89,5 +123,5 @@ test("the board dates Done braids from Git alone, a braid with strands by its ow
   assert.equal(by["0004"]?.doneAt, "2026-11-17T10:00:00.000Z");
   assert.equal(by["0005"]?.doneAt, null, "not Done: no date");
   const order = doneNewestFirst(board.braids.filter((b) => b.lane === "Done")).map((b) => b.id);
-  assert.deepEqual(order, ["0002", "0004", "0003", "0001"]);
+  assert.deepEqual(order, ["0002", "0004", "0003", "0006", "0001"]);
 });

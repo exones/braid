@@ -4,7 +4,7 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Github } from "./github.js";
-import { doneDate } from "./done.js";
+import { doneDate, headOf } from "./done.js";
 import { BROKE_MS, type BrokeReason, type Signals } from "./model.js";
 import { ensureStateDir, filterLive, loadRequests, mainCheckout, type PrNow, type Request } from "../braids/requests.js";
 
@@ -76,12 +76,16 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
   } catch {
     // not a repository: no requests, and no place to keep the alarms' clock
   }
+  let head: string | undefined;
   const clock = brokeClock(file === null ? {} : readBroke(file), now);
   return {
     now,
     requests: new Map(requests.map((r) => [r.id, r])),
     alarm: clock.alarm,
-    doneAt: (folder, source) => doneDate(root, folder, source),
+    doneAt: (folder, source) => {
+      head ??= headOf(root) ?? "";
+      return doneDate(root, folder, source, undefined, head === "" ? null : head);
+    },
     commit() {
       if (file === null || !clock.changed()) {
         return;
