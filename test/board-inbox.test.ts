@@ -103,13 +103,23 @@ test("/api/board carries the open entries: kind, id, title, text, source, age an
   assert.equal(idea?.text, "The phone layout stacks them.");
 });
 
-test("only open entries show, and the board's other data is untouched", async () => {
+const idOf = (stdout: string) => /Noted \w+ (\S+) /.exec(stdout)?.[1] ?? "";
+
+test("only open entries show: a taken or dropped entry is absent, a reopened one is back; the braids stay", async () => {
   const { a } = world();
   braid(a, "note", "Stay", "--from", "user");
-  braid(a, "note", "--idea", "An idea");
-  const data = await apiBoard({ ...board.demoSources(), inbox: (fetch) => inboxOf(a, fetch) });
-  assert.equal(data.inbox.leftovers.length + data.inbox.ideas.length, 2);
+  const dropped = idOf(braid(a, "note", "Dropped leftover", "--from", "user"));
+  const taken = idOf(braid(a, "note", "--idea", "Taken idea"));
+  braid(a, "note", "--idea", "Open idea");
+  braid(a, "inbox", "drop", dropped, "--why", "not worth it");
+  braid(a, "inbox", "take", taken, "--into", "0001");
+  const src: Sources = { ...board.demoSources(), inbox: (fetch) => inboxOf(a, fetch) };
+  const data = await apiBoard(src);
+  assert.deepEqual(data.inbox.leftovers.map((x) => x.title), ["Stay"]);
+  assert.deepEqual(data.inbox.ideas.map((x) => x.title), ["Open idea"]);
   assert.ok(data.braids.length > 0);
+  braid(a, "inbox", "reopen", dropped);
+  assert.deepEqual((await apiBoard(src)).inbox.leftovers.map((x) => x.title).sort(), ["Dropped leftover", "Stay"]);
 });
 
 test("a refresh without fetch reads the local refs; Refresh (?fresh=1) fetches braid-inbox", async () => {
@@ -125,12 +135,21 @@ test("a refresh without fetch reads the local refs; Refresh (?fresh=1) fetches b
   assert.equal(fresh.inbox.leftovers.length, 1);
 });
 
-test("without a braid-inbox branch the lists are empty; a failed fetch is said", async () => {
+test("without a braid-inbox branch the lists are empty", () => {
   const { a } = world();
-  const empty = inboxOf(a, false);
-  assert.deepEqual(empty, { leftovers: [], ideas: [], note: null });
+  assert.deepEqual(inboxOf(a, false), { leftovers: [], ideas: [], note: null });
+});
+
+test("a failed fetch on Refresh still returns the braids and the local entries, with the note", async () => {
+  const { a } = world();
+  braid(a, "note", "Local leftover", "--from", "user");
   git(a, "remote", "set-url", "origin", join(scratch, "missing.git"));
-  assert.match(inboxOf(a, true).note ?? "", /could not fetch/);
+  const data = await apiBoard({ ...board.demoSources(), inbox: (fetch) => inboxOf(a, fetch) }, "?fresh=1");
+  assert.ok(data.braids.length > 0);
+  assert.deepEqual(data.inbox.leftovers.map((x) => x.title), ["Local leftover"]);
+  assert.match(data.inbox.note ?? "", /could not fetch braid-inbox/);
+  // Without Refresh nothing is fetched, so nothing is said.
+  assert.equal((await apiBoard({ ...board.demoSources(), inbox: (fetch) => inboxOf(a, fetch) })).inbox.note, null);
 });
 
 test("the demo board has entries to show", async () => {

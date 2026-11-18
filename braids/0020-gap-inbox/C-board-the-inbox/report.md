@@ -13,7 +13,7 @@ The inbox shows the user what agents left behind and what they wrote down, witho
 
 ## Validation
 
-- `test/board-inbox.test.ts` (5 tests, temporary repositories with a bare remote and an isolated HOME and Git config): the API data (kinds, text, source, links, age, passed, ideas), only open entries, no fetch on a plain refresh and a fetch on `?fresh=1` (an idea captured in another clone appears), no branch gives empty lists and a failed fetch is said, the demo has entries (one passed over, one multi-paragraph idea).
+- `test/board-inbox.test.ts` (6 tests, temporary repositories with a bare remote and an isolated HOME and Git config): the API data (kinds, text, source, links, age, passed, ideas); only open entries show (a dropped and a taken entry are absent, a reopened one is back; the test fails without the open filter); no fetch on a plain refresh and a fetch on `?fresh=1` (an idea captured in another clone appears); no branch gives empty lists; a failed fetch on Refresh still returns the braids and the local leftover, with the note; the demo has entries.
 - `npm run verify` passes.
 - The screenshots come from `braid board --demo` (script in the artifacts folder).
 
