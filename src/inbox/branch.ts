@@ -127,7 +127,7 @@ export function readInboxAt(root: string, commit: string | null): Inbox {
 
 /** The commits on `local` that `remote` lacks, oldest first. */
 function pendingCommits(root: string, local: string, remote: string): string[] {
-  return must(root, ["rev-list", "--reverse", local, `^${remote}`]).split(/s+/).filter((c) => c !== "");
+  return must(root, ["rev-list", "--reverse", local, `^${remote}`]).split(/\s+/).filter((c) => c !== "");
 }
 
 /**

@@ -15,10 +15,10 @@ The braid's plan: one branch of its own that any thread or worktree can write wi
 
 ## Validation
 
-- `test/inbox.test.ts` (9 tests, temporary repositories with a bare remote and an isolated HOME and Git config): first capture creates an orphan `braid-inbox`; ideas with `from: user`; listing, filters and `show`; `--from` required and validated; `--file -`; two clones racing (a pre-push hook in one clone makes the other push first, so the first push is refused, redone on top, both entries land in a linear history; nothing forced: the other clone's commit is an ancestor of the remote tip); offline capture stays local with a warning and the next note pushes it; an offline commit replayed after someone else pushed, and listed together with the other clone's newer entries before that replay; a note from a worktree with staged, unstaged and untracked changes leaves status, index, diff, HEAD and branch identical; a hand-edited malformed entry is named while the rest list, and `--all` shows a dropped one.
-- `npm run verify` passes (216 tests).
+- `test/inbox.test.ts` (10 tests, temporary repositories with a bare remote and an isolated HOME and Git config): first capture creates an orphan `braid-inbox`; ideas with `from: user`; listing, filters and `show`; `--from` required and validated; `--file -`; two clones racing (a pre-push hook in one clone makes the other push first, so the first push is refused, redone on top, both entries land in a linear history; nothing forced: the other clone's commit is an ancestor of the remote tip); offline capture stays local with a warning and the next note pushes it; an offline commit replayed after someone else pushed, and listed together with the other clone's newer entries before that replay; two offline notes in one clone while the other pushes, all listed and all landing in order with the next write; a note from a worktree with staged, unstaged and untracked changes leaves status, index, diff, HEAD and branch identical; a hand-edited malformed entry is named while the rest list, and `--all` shows a dropped one.
+- `npm run verify` passes (217 tests).
 
-Review fixes (review at 89ba95f): reading unions diverged local and remote branches instead of picking the newer one, with a test; the race test checks ancestry instead of only the reflog.
+Review fixes (review at 89ba95f): reading unions diverged local and remote branches instead of picking the newer one, with a test; the race test checks ancestry instead of only the reflog. Second review: a lost backslash in `pendingCommits` (`/s+/`) broke reading and replaying two or more local-only commits; fixed, with the two-offline-notes test (it fails without the fix).
 
 ## Open
 

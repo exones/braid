@@ -190,6 +190,27 @@ test("an offline note made while someone else pushed is replayed on top of the r
   assert.ok(files.includes(`leftovers/${offline}.md`) && files.includes(`ideas/${last}.md`));
 });
 
+test("two offline notes in one clone while the other pushes: both are listed and both land with the next write", () => {
+  const w = world();
+  const a = w.clone("a");
+  const b = w.clone("b");
+  const first = idOf(ok(b, "note", "--idea", "first").stdout);
+  git(a, "remote", "set-url", "origin", join(w.base, "missing.git"));
+  const one = idOf(ok(a, "note", "offline one", "--from", "user").stdout);
+  const two = idOf(ok(a, "note", "offline two", "--from", "0001/A").stdout);
+  const fromB = idOf(ok(b, "note", "pushed by b", "--from", "0001").stdout);
+  git(a, "remote", "set-url", "origin", w.remote);
+  const listed = ok(a, "inbox");
+  assert.equal(listed.stderr, "");
+  for (const [id, title] of [[first, "first"], [one, "offline one"], [two, "offline two"], [fromB, "pushed by b"]]) {
+    assert.match(listed.stdout, new RegExp(`^\\w+\\s+${id}\\s.*${title}$`, "m"));
+  }
+  const last = idOf(ok(a, "note", "--idea", "online again").stdout);
+  assert.deepEqual(remoteFiles(w.remote).sort(), [`ideas/${first}.md`, `ideas/${last}.md`, `leftovers/${fromB}.md`, `leftovers/${one}.md`, `leftovers/${two}.md`].sort());
+  // Linear: b's commit stays in the remote history, a's two offline notes replayed on top in order.
+  assert.deepEqual(git(w.remote, "log", "--format=%s", "braid-inbox").split("\n"), [last, two, one, fromB, first].map((id) => `docs(inbox): ${id} note`));
+});
+
 test("a note from a worktree with uncommitted changes leaves its files, index and branch alone", () => {
   const w = world();
   const a = w.clone("a");
