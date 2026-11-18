@@ -1,7 +1,7 @@
 ---
 id: '0020/D'
 title: "Skills: route gaps to the inbox and sweep in batches"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0020/A', '0020/F', '0020/B', '0020/E']
 order: 40
