@@ -40,11 +40,19 @@ Expected size: about 120 lines in 6 files.
 - The sweep's leftovers (faster `braid list --open` and `braid check`, `docs/cli.md`, the template's `related` wording).
 - The board.
 
+## Plan
+
+- `src/braids/branches.ts`: `braidBranches`, `loadLiveBraids` and `loadKnownBraids` take an optional braid number. With it, `for-each-ref` lists only that number's braid and strand branches (`braid/<n>-*`, `braid/<n>/*`, local and remote), and `plan/` branches are read only when neither the working tree nor a braid branch has the braid (a `plan/` copy never overrides one anyway). Same winner and HEAD rules, so the copy is the one `braid list --open` shows.
+- `src/commands/braids.ts`: `viewItem` loads through `loadKnownBraids(root, number)`; `Read from: <branch>` after the fields when the item's copy came from a branch.
+- Tests in `test/open.test.ts`: reverse the old "reads the working tree" assertion and add the five cases.
+- Docs: Plan steps 3 and 5 of the braid skill, `docs/braids-format.md` `braid view`, D61.
+- Time `braid view` before and after on this repository.
+
 ## Completion
 
-- [ ] `braid view` shows a braid or strand that lives only on a braid, strand or `plan/` branch, and a newer branch copy over the working tree's, with `Read from:` (tests)
-- [ ] A merged branch adds nothing: the working tree's copy, no `Read from:` (test)
-- [ ] Timings of `braid view` before and after in report.md
-- [ ] Plan steps 3 and 5 of the braid skill, `docs/braids-format.md` and D61 updated
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid view` shows a braid or strand that lives only on a braid, strand or `plan/` branch, and a newer branch copy over the working tree's, with `Read from:` (tests)
+- [x] A merged branch adds nothing: the working tree's copy, no `Read from:` (test)
+- [x] Timings of `braid view` before and after in report.md
+- [x] Plan steps 3 and 5 of the braid skill, `docs/braids-format.md` and D61 updated
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
