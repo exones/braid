@@ -36,6 +36,11 @@ This item's wording and the idea's shape are the user's to choose. Start with a 
 - `braid note` commits and pushes the idea to `braid-inbox` itself, so the skill never commits in its checkout.
 - `README.md` lists the skill; `docs/decisions.md` gets a line on why it is a separate skill.
 
+## Plan
+
+1. Proposal (this commit): the draft `.agents/skills/braid-idea/SKILL.md` and three sample ideas in `report.md`; stop for the user's verdict.
+2. After approval: apply the verdict to SKILL.md; add a Pester or installer test case that `braid-*` folders, including `braid-idea`, are installed; `README.md` skills list; a line in `docs/decisions.md`; `npm run verify`; PR into `braid/0020-gap-inbox`.
+
 ## Already decided
 
 - A separate small skill, so the main skills stay lean (user, 2026-11-18).
