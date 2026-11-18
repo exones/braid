@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, strandMarks, t3codeUrl, type Marks } from "../../src/board/marks.ts";
@@ -649,6 +649,9 @@ function InboxPage({ inbox }: { inbox: InboxData }) {
 
 const SHORT_LABEL: Record<Lane, string> = { Waiting: "Needs you", "In Review": "Review", "In Progress": "Working", "To Do": "To Do", Done: "Done" };
 
+/** Touches starting within this many px of the left or right screen edge are the browser's back and forward gestures, not swipes. */
+const EDGE = 30;
+
 /** The day a Done braid became Done, as "Nov 17"; empty when the date isn't known. */
 const dayOf = (iso: string | null): string => (iso === null ? "" : new Date(iso).toLocaleDateString("en", { month: "short", day: "numeric" }));
 
@@ -692,7 +695,7 @@ function DoneLane({ cards }: { cards: readonly BraidCard[] }) {
  */
 function Board({ data, details }: { data: BoardData; details: boolean }) {
   const [active, setActive] = useState<Lane>(data.lanes[0] ?? "Waiting");
-  const [touch, setTouch] = useState<{ x: number; y: number } | null>(null);
+  const touch = useRef<{ x: number; y: number } | null>(null);
   const move = (by: number) => {
     const next = data.lanes[data.lanes.indexOf(active) + by];
     if (next !== undefined) {
@@ -720,14 +723,16 @@ function Board({ data, details }: { data: BoardData; details: boolean }) {
         className="grid grid-cols-5 items-start gap-3 p-4 max-md:grid-cols-1 max-md:px-3.5"
         onTouchStart={(e) => {
           const t = e.touches[0];
-          setTouch(t === undefined ? null : { x: t.clientX, y: t.clientY });
+          // A touch that starts at a screen edge is the browser's back or forward gesture, not a swipe.
+          touch.current = t === undefined || t.clientX < EDGE || t.clientX > innerWidth - EDGE ? null : { x: t.clientX, y: t.clientY };
         }}
         onTouchEnd={(e) => {
           const t = e.changedTouches[0];
-          if (touch !== null && t !== undefined && Math.abs(t.clientX - touch.x) > 60 && Math.abs(t.clientX - touch.x) > 2 * Math.abs(t.clientY - touch.y)) {
-            move(t.clientX < touch.x ? 1 : -1);
+          const start = touch.current;
+          if (start !== null && t !== undefined && Math.abs(t.clientX - start.x) > 60 && Math.abs(t.clientX - start.x) > 2 * Math.abs(t.clientY - start.y)) {
+            move(t.clientX < start.x ? 1 : -1);
           }
-          setTouch(null);
+          touch.current = null;
         }}
       >
         {data.lanes.map((lane) => {

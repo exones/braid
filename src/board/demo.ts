@@ -68,6 +68,9 @@ const FILES: Readonly<Record<string, string>> = {
   ...Object.fromEntries(OLDER_DONE.map(([number, title]) => [`braids/${number}-sample-done/brief.md`, brief(number, title, "Done", "labels:\n  - tier:S\n")])),
 };
 
+/** Days since each Done sample braid's brief was set Done (the demo has no history to read). */
+const DONE_DAYS: Readonly<Record<string, number>> = { "0008": 1, ...Object.fromEntries(OLDER_DONE.map(([number, , days]) => [number, days])) };
+
 /** The sample files as a read-only tree; no disk is touched. */
 export function demoTree(): Tree {
   const names = Object.keys(FILES);
@@ -97,10 +100,7 @@ export function demoBraids(): Braid[] {
 
 const demoHead = (number: number): string => `${number.toString(16).padStart(7, "0")}${"0".repeat(33)}`;
 
-const DAY = 86_400_000;
-
-const pr = (number: number, state: "open" | "merged", checks: "passing" | "failing" | "pending" | "none", mergedDaysAgo?: number) => ({
-  ...(state === "merged" && mergedDaysAgo !== undefined ? { mergedAt: new Date(Date.now() - mergedDaysAgo * DAY).toISOString() } : {}),
+const pr = (number: number, state: "open" | "merged", checks: "passing" | "failing" | "pending" | "none") => ({
   ...(checks === "failing" ? { failed: ["verify (windows-latest)"] } : {}),
   number,
   url: `https://github.com/example/sample/pull/${number}`,
@@ -121,9 +121,9 @@ export function demoGithub(): Github {
       ["0003/C", pr(17, "open", "passing")],
       ["0005/A", pr(18, "open", "pending")],
       ["0010/A", pr(19, "open", "passing")],
-      ["0008/A", pr(15, "merged", "passing", 1)],
-      ["0008", pr(16, "merged", "passing", 1)],
-      ...OLDER_DONE.map(([number, , days], i) => [number, pr(30 + i, "merged", "passing", days)] as const),
+      ["0008/A", pr(15, "merged", "passing")],
+      ["0008", pr(16, "merged", "passing")],
+      ...OLDER_DONE.map(([number], i) => [number, pr(30 + i, "merged", "passing")] as const),
     ]),
   };
 }
@@ -183,6 +183,10 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     now,
     requests: new Map(requests.map((r) => [r.id, r])),
     alarm: (id, _reason, holds) => (holds === true && began[id] !== undefined ? at(began[id] ?? 0) : null),
+    doneAt: (folder) => {
+      const days = DONE_DAYS[/^braids\/(\d{4})-/.exec(folder)?.[1] ?? ""];
+      return days === undefined ? null : new Date(now.getTime() - days * 86_400_000).toISOString();
+    },
     commit() {},
   };
 }
