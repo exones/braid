@@ -67,10 +67,10 @@ Expected size: about 450 lines in 6 to 9 files, half of it tests.
 
 ## Completion
 
-- [ ] `--host` serves on this machine's Tailscale address only and refuses every other address, with tests
-- [ ] Every request over it is checked with tailscaled whois and allowed for the owner's login only, failing closed, with the regression tests above
-- [ ] Actions over it are safe from cross-site pages; the `open` action is refused there and Open thread is the app link
-- [ ] The local board is unchanged
-- [ ] docs/board.md, docs/cli.md and D60 in docs/decisions.md describe it
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `--host` serves on this machine's Tailscale address only and refuses every other address, with tests
+- [x] Every request over it is checked with tailscaled whois and allowed for the owner's login only, failing closed, with the regression tests above
+- [x] Actions over it are safe from cross-site pages; the `open` action is refused there and Open thread is the app link
+- [x] The local board is unchanged
+- [x] docs/board.md, docs/cli.md and D60 in docs/decisions.md describe it
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

@@ -31,11 +31,15 @@ function sessionToken(): string | null {
 }
 sessionToken();
 
+/** True when the page came over Tailscale (`braid board --host`), not from the local 127.0.0.1 board: there the server refuses `open`. */
+export const remoteBoard = location.hostname !== "127.0.0.1";
+
 /** Runs the board action `name` on the server with the session token; the reply is the action's result. */
 export async function postAction<T = unknown>(name: string, body: unknown = {}): Promise<T> {
   const response = await fetch(`/api/action/${encodeURIComponent(name)}`, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-braid-token": sessionToken() ?? "" },
+    // x-braid-request: a header a cross-site page can't send without a CORS preflight; the Tailscale listener requires it (D60).
+    headers: { "content-type": "application/json", "x-braid-token": sessionToken() ?? "", "x-braid-request": "1" },
     body: JSON.stringify(body),
   });
   const reply: unknown = await response.json();
