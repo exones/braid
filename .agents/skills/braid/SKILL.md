@@ -37,17 +37,23 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 1. Before planning a new braid, propose a sweep if any leftover is open ("Sweep"). When the user asks for an idea to become braids, plan from it as from any goal, and once the plan is approved, `braid inbox take <idea> --into <braid ids>`. Never propose ideas yourself.
 2. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
-3. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
-4. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
-5. Create them and commit locally; push nothing yet.
+3. Look around: `braid list --open` shows every unfinished braid, wherever it lives. Read the brief (`braid view`) of each whose goal touches the same commands, files or decisions, and judge it:
+   - **Overlap without conflict:** `related`, and one line under "Already decided" saying what is shared and how the two stay apart (order, which merges first).
+   - **One needs the other's result:** a dependency if the id resolves here; otherwise that line says to start after the other braid merges.
+   - **Duplicate or contradiction:** the other already covers this goal or part of it, or this goal undoes or conflicts with its goal or an "Already decided" line. `related`, and a `scope` warning in the plan request (step 6): the other braid's id, title and branch, the conflicting text, and the options (narrow this plan, fold it into the other braid, change the other through its coordinator, go on as planned). Draft the plan anyway; the user's answer decides, and goes into the braid's log.
+
+   Never edit another braid's brief for a link: its side shows it with `braid view --links`.
+4. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
+5. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
+6. Create them and commit locally; push nothing yet.
    - **Goal:** in your worktree on `plan/<slug>` from `main`, `braid new`, then `braid strand new` per strand.
    - **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `braid new`, then `git branch -m braid/<number>-<slug>` (its folder name).
 
-   Show the user the plan (titles, kinds, tiers, order, dependencies, Completion boxes, `ask:` labels) with links to the brief files, and `braid ask <number> "Approve the plan" --kind plan`. Each round of the user's comments is one local commit, `docs(braids): <id> amend: <what>`. Check with `git diff` that only the intended lines changed, then tell the user briefly what changed (no pasted diff).
-6. On approval, squash the commits into one `docs(braids): plan <id>` (`git reset --soft <commit the branch was cut from>`, then commit) and push once.
+   Show the user the plan (titles, kinds, tiers, order, dependencies, related braids, Completion boxes, `ask:` labels) with links to the brief files, leading with any warning from step 3, and `braid ask <number> "Approve the plan" --kind plan`. Each round of the user's comments is one local commit, `docs(braids): <id> amend: <what>`. Check with `git diff` that only the intended lines changed, then tell the user briefly what changed (no pasted diff).
+7. On approval, squash the commits into one `docs(braids): plan <id>` (`git reset --soft <commit the branch was cut from>`, then commit) and push once.
    - **Goal:** create and push the braid branch `braid/<number>-<slug>` from `main`, open the planning PR from `plan/<slug>` into it and tell the user. Its merge records the approval: keep the plan request open until then, or `braid ask` for that merge. Then pull the braid branch and set the braid `In Progress` in its next commit.
    - **Story:** remove the temporary worktree; the worker starts on that branch.
-7. If the user asked only for a plan, don't start: show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub. Otherwise start the first ready strand without waiting.
+8. If the user asked only for a plan, don't start: show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub. Otherwise start the first ready strand without waiting.
 
 ## Run an item
 
@@ -134,7 +140,7 @@ A sweep empties the leftovers in one decision of the user. It never covers ideas
 
 1. **When.** At a recap whose draft says `Sweep due` (3 or more open leftovers), or before planning the next braid with at least one open leftover. Auto mode runs no recap, so it checks after each strand merge ([auto mode](references/auto-mode.md), "Merging", step 3). Auto mode never decides a sweep: it asks the user too, and the strands go on while the answer is pending.
 2. **Propose** with `braid inbox` and `braid ask <id> "<what is needed>" --kind decision`, never on an item whose handover request is open (an item has one open request, and a new one replaces it): for a strand on its braid's number; for a lone story after its merge; before planning, in the plan request of the braid being planned. Propose one sweep story (`kind:task`, label `sweep`, the lowest tier that fits), naming which leftovers go in and which are dropped, and why. A leftover too big for it becomes its own braid, or is dropped and noted again as an idea. Before planning, the proposal may also fold a related leftover into the braid being planned.
-3. **Record** the answer: create the story (Plan, step 5, Story) with a brief that copies each taken leftover's text, source and links, and push its branch; then `braid inbox take <ids> --into <number>`, `braid inbox drop <ids> --why "<reason>"`, and `braid inbox pass <ids>` for the rest (a second pass drops one).
+3. **Record** the answer: create the story (Plan, step 6, Story) with a brief that copies each taken leftover's text, source and links, and push its branch; then `braid inbox take <ids> --into <number>`, `braid inbox drop <ids> --why "<reason>"`, and `braid inbox pass <ids>` for the rest (a second pass drops one).
 4. **Run** the sweep story after the current braid. At most one sweep is pending: a later proposal adds to that story's brief on its branch.
 
 ## Merge on request
