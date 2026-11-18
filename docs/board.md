@@ -10,11 +10,13 @@ The lanes say what a braid asks of you, not the braid's own status. An item is o
 
 | Lane | In code | Means | Your action | Colour |
 | --- | --- | --- | --- | --- |
-| To Do | `To Do` | not started; `Outline` items show here with a badge | none | light grey |
-| Working | `In Progress` | agents have it: implementing, CI, review, fix rounds, the coordinator planning or waiting for agents | none | blue |
-| To Review | `In Review` | a PR was handed to you: reviewed, green, with a recap | merge, or ask for changes | purple |
 | Needs You | `Waiting` | nothing moves until you act; the card says what is needed in one line | answer | amber |
+| To Review | `In Review` | a PR was handed to you: reviewed, green, with a recap | merge, or ask for changes | purple |
+| Working | `In Progress` | agents have it: implementing, CI, review, fix rounds, the coordinator planning or waiting for agents | none | blue |
+| To Do | `To Do` | not started; `Outline` items show here with a badge | none | light grey |
 | Done | `Done` | merged | none | green |
+
+The lanes stand in this order left to right (`LANES` in `src/board/model.ts`, the same order as the urgency above), on the phone as well. **Done is collapsed**: the lane shows only its count and "Show done". Opened, it lists braids as rows (number, title, the day it became Done), **newest first**, the 10 newest, and "Show more (n)" adds 10 more. "Became Done" is the date of the newest commit that set `status: Done` in the item's brief, read from Git (the brief's history, `git log --follow`, from the commit the brief was read from, else HEAD: the oldest commit of the unbroken run of versions that say `status: Done`; `src/board/done.ts`), so a renamed folder keeps its date, so it needs no GitHub and covers items Done without a PR; it is the commit's committer date, and a result, a miss included, is kept per commit searched for the life of the board process, so an item without a date doesn't run `git log` on every refresh. A braid with strands takes its own Done commit; when its own brief never says Done (its strands did the work), its newest strand's. A Done braid whose date Git doesn't give sorts after the dated ones, highest number first. `doneNewestFirst` and `DONE_PAGE` in `src/board/model.ts` do the ordering and the page size.
 
 The labels live in one place, `LANE_LABEL` in `src/board/marks.ts`. Stored statuses in `brief.md` keep their names (`Outline`, `To Do`, `In Progress`, `Done`). The design is in `braids/0015-needs-you-when-the-coordinator-waits/states.md`.
 
@@ -147,9 +149,18 @@ Start is off, and its tooltip reads `Start: <reason>`, when a coordinator thread
 
 ![Started, and Start off with its reason](design/board-screenshots/47-start-disabled.png)
 
+## On the phone
+
+One page serves desktop and phone; below Tailwind's `md` breakpoint (768 px) CSS and small UI changes make it a phone layout, not a second app (screenshots: `docs/design/board-screenshots/63-phone-needs-you.png`, `64-phone-working.png`, `65-phone-done.png`; the approved design is `docs/design/board-mockups/phone-lanes.html`, variant A).
+
+- A **tab bar with counts** (Needs you, Review, Working, To Do, Done) replaces the five columns; one lane shows at a time, Needs You first. **Swiping** left or right changes lane (a horizontal move of over 60 px that is at least twice the vertical one; a touch starting within 30 px of the screen's left or right edge is the browser's back or forward gesture and is ignored). The Done tab works as on desktop: collapsed, then the 10 newest and Show more.
+- Buttons are at least 44 px high and wide, and each shows its icon with a short label: Start, Merge, Open thread (the desktop keeps 24 px icon buttons with tooltips).
+- **Open thread is a link** to the thread's `t3code://threads/<env>/<thread>` app link (`t3codeUrl` in `src/board/marks.ts`), opened by the phone's own T3 app, not the `open` action, which opens the app on the machine running the board. A thread link that isn't of that shape shows no link there and falls back to the button.
+- The item page becomes one column, and the header wraps. Answering a request still happens in the coordinator's thread: the board has no Answer or Approve button.
+
 ## Demo
 
-`braid board --demo` serves built-in sample braids (`src/board/demo.ts`) with faked GitHub, T3 and requests, so every lane, request kind, alarm and icon shows. It reads no repository, `gh` or `t3`, and writes nothing (not even the broke clock). It accepts every action with the token and fakes the result (`{ ok: true, demo: true }`), so the action states can be shown. `--demo-t3-down` shows the note for T3 not running. The screenshots in `docs/design/board-screenshots/` come from it; the mockups the user approved are in `docs/design/board-mockups/` (`needs-you.html`, screens 21 to 28).
+`braid board --demo` serves built-in sample braids (`src/board/demo.ts`) with faked GitHub, T3 and requests, so every lane, request kind, alarm and icon shows, and enough Done braids (12, set Done on different days) to show Show more. It reads no repository, `gh` or `t3`, and writes nothing (not even the broke clock). It accepts every action with the token and fakes the result (`{ ok: true, demo: true }`), so the action states can be shown. `--demo-t3-down` shows the note for T3 not running. The screenshots in `docs/design/board-screenshots/` come from it; the mockups the user approved are in `docs/design/board-mockups/` (`needs-you.html`, screens 21 to 28).
 
 ## Changing the board
 

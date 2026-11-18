@@ -12,6 +12,7 @@ import { DEMO_START, demoBraids, demoGithub, demoInbox, demoSignals, demoT3, dem
 import { inboxOf, type InboxData } from "../board/inbox.js";
 import { readGithub, runGh, type Github, type GhRunner } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toBoard, toCard, toDetail, type StartContext } from "../board/model.js";
+import { t3codeUrl } from "../board/marks.js";
 import { threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
 import { mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
@@ -251,19 +252,7 @@ export const openWithOs: Opener = (url) =>
     });
   });
 
-const T3_SEGMENT = /^[\w.%~-]+$/;
-
-/** `t3code://threads/<env>/<thread>` from T3's thread link (`http://127.0.0.1:3773/<env>/<thread>`); null when the link isn't that shape. */
-export function t3codeUrl(link: string): string | null {
-  let path: string;
-  try {
-    path = new URL(link).pathname;
-  } catch {
-    return null;
-  }
-  const m = /^\/([^/]+)\/([^/]+)\/?$/.exec(path);
-  return m !== null && T3_SEGMENT.test(m[1] ?? "") && T3_SEGMENT.test(m[2] ?? "") ? `t3code://threads/${m[1]}/${m[2]}` : null;
-}
+export { t3codeUrl };
 
 /**
  * Open thread: opens the item's thread in the T3 desktop app. The body is `{ id }`, a braid or strand; the server
