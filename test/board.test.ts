@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 const fixture = fileURLToPath(new URL("./fixtures/braids-repo", import.meta.url));
 const scratch = mkdtempSync(join(tmpdir(), "braid-board-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 let repos = 0;
 function repo(files: Record<string, string>): string {
@@ -94,7 +94,10 @@ async function withBoard<T>(root: string, run: (url: string) => Promise<T>): Pro
     });
     return await run(url);
   } finally {
+    // The board reads in the background and its `git` children hold the folder; wait until it is gone.
+    const gone = new Promise((done) => child.once("exit", done));
     child.kill();
+    await gone;
   }
 }
 

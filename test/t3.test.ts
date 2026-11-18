@@ -161,7 +161,7 @@ test("a running thread is shown once per refresh; an idle one is not shown at al
   const shows = calls.filter((c) => c.startsWith("thread show"));
   assert.equal(shows.filter((c) => c.includes("t-stop")).length, 0);
   assert.equal(shows.filter((c) => c.includes("t-done")).length, 0);
-  assert.equal(shows.filter((c) => c.includes("t-run ")).length, 2);
+  assert.equal(shows.filter((c) => c.includes("t-run ")).length, 3); // the read at start, then one per fresh=1
 });
 
 test("a refresh inside the share window reads t3 once; fresh=1 reads again", async () => {
