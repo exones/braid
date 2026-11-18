@@ -2,7 +2,7 @@
 id: '0027'
 title: "Planning looks at the other open braids"
 status: In Progress
-labels: ["kind:story", "tier:L"]
+labels: ["kind:story", "tier:L", "auto"]
 dependencies: []
 delivery: epic
 ---
