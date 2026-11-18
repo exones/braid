@@ -1,7 +1,7 @@
 ---
 id: '0012/C'
 title: "Serve the board on Tailscale with identity checks"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:security", "ask:architecture"]
 dependencies: []
 order: 30
