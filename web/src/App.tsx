@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, strandMarks, t3codeUrl, type Marks } from "../../src/board/marks.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
-import { postAction, remoteBoard, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
+import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
 
 /** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
 interface Route {
@@ -194,12 +194,16 @@ const BUTTON = "flex size-6 items-center justify-center gap-1.5 rounded-md borde
 /** The label shown on a phone only; desktop buttons are icon-only with a tooltip. */
 const Label = ({ children }: { children: ReactNode }) => <span className="md:hidden">{children}</span>;
 
+/** Whether the server says this page came over Tailscale (`remote` in the board data), not from the local board. */
+const RemoteContext = createContext(false);
+
 /**
  * Open thread: a small button that opens the item's thread in the T3 desktop app (the server opens it); on a phone, the
  * thread's `t3code://` app link. Over Tailscale (the server refuses `open` there) only the app link, at every width.
  * Nothing is drawn when there is no thread.
  */
 function OpenThread({ id, link }: { id: string; link: string | null }) {
+  const remoteBoard = useContext(RemoteContext);
   const [error, setError] = useState<string | null>(null);
   if (link === null) {
     return null;
@@ -919,6 +923,7 @@ export function App() {
         ].filter((n) => n !== null)
       : [];
   return (
+    <RemoteContext value={board.state !== "ready" || board.data.remote}>
     <Tooltip.Provider>
       <div className="min-h-screen bg-slate-100 text-sm text-slate-900">
         <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-white px-5 py-2.5">
@@ -949,5 +954,6 @@ export function App() {
         )}
       </div>
     </Tooltip.Provider>
+    </RemoteContext>
   );
 }

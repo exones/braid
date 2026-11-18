@@ -142,6 +142,8 @@ export interface BoardData {
   readonly braids: readonly BraidCard[];
   /** The open inbox entries: leftovers and ideas, read only. Not a lane. */
   readonly inbox: InboxData;
+  /** True when this answer goes to the Tailscale listener (the phone): there the server refuses `open`. The server sets it per listener; `toBoard` says false. */
+  readonly remote: boolean;
 }
 
 export interface ItemDetail {
@@ -468,7 +470,7 @@ export function doneNewestFirst<T extends { readonly id: string; readonly doneAt
 }
 
 export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX): BoardData {
-  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox };
+  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox, remote: false };
 }
 
 export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): ItemDetail {

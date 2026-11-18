@@ -31,9 +31,6 @@ function sessionToken(): string | null {
 }
 sessionToken();
 
-/** True when the page came over Tailscale (`braid board --host`), not from the local 127.0.0.1 board: there the server refuses `open`. */
-export const remoteBoard = location.hostname !== "127.0.0.1";
-
 /** Runs the board action `name` on the server with the session token; the reply is the action's result. */
 export async function postAction<T = unknown>(name: string, body: unknown = {}): Promise<T> {
   const response = await fetch(`/api/action/${encodeURIComponent(name)}`, {
