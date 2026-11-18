@@ -189,20 +189,30 @@ const OpenIcon = () => (
 
 const BUTTON = "flex size-6 items-center justify-center rounded-md border";
 
-/** Open thread: a small button that opens the item's T3 thread; nothing is drawn when there is no thread. */
-function OpenThread({ link }: { link: string | null }) {
+/** Open thread: a small button that opens the item's thread in the T3 desktop app (the server opens it); nothing is drawn when there is no thread. */
+function OpenThread({ id, link }: { id: string; link: string | null }) {
+  const [error, setError] = useState<string | null>(null);
   if (link === null) {
     return null;
   }
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
-        <a href={link} target="_blank" rel="noreferrer" aria-label="Open thread in T3" onClick={(e) => e.stopPropagation()} className={`${BUTTON} border-slate-200 bg-white text-slate-600 hover:border-blue-600`}>
+        <button
+          type="button"
+          aria-label="Open thread in T3"
+          onClick={(e) => {
+            e.stopPropagation();
+            setError(null);
+            postAction("open", { id }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
+          }}
+          className={`${BUTTON} ${error === null ? "border-slate-200 text-slate-600" : "border-red-600 text-red-700"} bg-white hover:border-blue-600`}
+        >
           <OpenIcon />
-        </a>
+        </button>
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Open thread in T3</Tooltip.Content>
+        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">{error ?? "Open thread in T3"}</Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
   );
@@ -415,7 +425,7 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
 function Actions({ id, lane, thread, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <OpenThread link={thread} />
+      <OpenThread id={id} link={thread} />
       {start !== null && <StartButton id={id} start={start} {...(onLaunched === undefined ? {} : { onLaunched })} />}
       {lane === "In Review" && <MergeButton id={id} merge={merge} />}
     </span>

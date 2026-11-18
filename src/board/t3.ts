@@ -133,6 +133,9 @@ async function pool<T, R>(items: readonly T[], work: (item: T) => Promise<R>, si
   return out;
 }
 
+/** Idle threads without a worktree path in `thread list` that get a `thread show`: the newest this many. */
+const IDLE_SHOW_CAP = 40;
+
 export interface T3Options {
   readonly run?: T3Runner;
   /** The folder holding the worktrees braid created (`<worktrees>/<repo>`); derived from the repository when not given. */
@@ -188,12 +191,35 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
     .map((x) => ({ ...x, running: x.status === "running" }));
 
   const mine = norm(agents);
-  const found = await pool(wanted, async ({ t, id, running }) => {
-    const where = await show(run, root, id);
-    const path = where?.worktreePath ?? null;
-    // Only a worktree directly inside the braid worktree folder, named for an item, is an agent's.
+  // Only a worktree directly inside the braid worktree folder, named for an item, is an agent's.
+  const ownerOf = (path: string | null) => {
     const folder = path === null ? null : norm(path);
-    const owner = path !== null && folder !== null && folder.startsWith(`${mine}/`) && !folder.slice(mine.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
+    return path !== null && folder !== null && folder.startsWith(`${mine}/`) && !folder.slice(mine.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
+  };
+  // Running threads are always shown (`t3 thread show`: worktree and pending questions). An idle thread only needs its item:
+  // when `thread list` gives its worktree path, that decides without a show (a folder that is gone, or not an item's, drops
+  // it); without a path, a coordinator's title says it is no item's thread, and only the newest IDLE_SHOW_CAP are shown.
+  let idleSeen = 0;
+  const plan = wanted.map((w) => ({ ...w, idleRank: w.running ? -1 : idleSeen++ }));
+  const found = await pool(plan, async ({ t, id, running, idleRank }) => {
+    let where: Where | null = null;
+    let path: string | null;
+    if (running) {
+      where = await show(run, root, id);
+      path = where?.worktreePath ?? null;
+    } else {
+      path = str(t["worktreePath"]);
+      if (path === null) {
+        if (idleRank >= IDLE_SHOW_CAP || /^\S+ \d{4} coordinator\b/.test(str(t["title"]) ?? "")) {
+          return null;
+        }
+        where = await show(run, root, id);
+        path = where?.worktreePath ?? null;
+      } else if (!existsSync(path)) {
+        return null;
+      }
+    }
+    const owner = ownerOf(path);
     return owner === null ? null : { key: owner.key, running, thread: { id, role: owner.role, pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
   });
   const repo = repoNameOf(root) ?? basename(root);

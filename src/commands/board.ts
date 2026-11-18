@@ -233,6 +233,70 @@ export function startAction(src: Sources, root: string, t3: T3Runner, git: GitRu
   };
 }
 
+export type Opener = (url: string) => Promise<void>;
+
+/** Opens a URL with the OS (the T3 desktop app registers `t3code:`): no shell string is built, the URL is one argument. */
+export const openWithOs: Opener = (url) =>
+  new Promise((done, fail) => {
+    const [cmd, args] = process.platform === "win32" ? (["cmd", ["/c", "start", "", url]] as const) : process.platform === "darwin" ? (["open", [url]] as const) : (["xdg-open", [url]] as const);
+    const child = spawn(cmd, args, { stdio: "ignore", detached: true, windowsHide: true });
+    child.once("error", fail);
+    child.once("spawn", () => {
+      child.unref();
+      done();
+    });
+  });
+
+const T3_SEGMENT = /^[\w.%~-]+$/;
+
+/** `t3code://threads/<env>/<thread>` from T3's thread link (`http://127.0.0.1:3773/<env>/<thread>`); null when the link isn't that shape. */
+export function t3codeUrl(link: string): string | null {
+  let path: string;
+  try {
+    path = new URL(link).pathname;
+  } catch {
+    return null;
+  }
+  const m = /^\/([^/]+)\/([^/]+)\/?$/.exec(path);
+  return m !== null && T3_SEGMENT.test(m[1] ?? "") && T3_SEGMENT.test(m[2] ?? "") ? `t3code://threads/${m[1]}/${m[2]}` : null;
+}
+
+/**
+ * Open thread: opens the item's thread in the T3 desktop app. The body is `{ id }`, a braid or strand; the server
+ * picks the thread by the same rule as the board's button (a strand's thread; a braid's agent thread, else its
+ * coordinator) from fresh reads, so a client can't pass a URL. Refuses (400) when there is no thread.
+ */
+export function openAction(src: Sources, open: Opener = openWithOs): Action {
+  return async (body) => {
+    const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>)["id"] : undefined;
+    if (typeof raw !== "string") {
+      throw new UsageError("open needs { id }: the braid or strand whose thread to open");
+    }
+    const id = normaliseId(raw);
+    const [number, letter] = id.split("/");
+    const braid = src.braids().find((b) => b.number === number);
+    if (braid === undefined) {
+      throw new UsageError(`Open thread: no braid ${number}`);
+    }
+    const github = src.github(true);
+    const card = toCard(braid, github, await src.t3(true), src.signals(github), src.start());
+    const link = letter === undefined ? (card.thread ?? card.coordinator?.link ?? null) : (card.strands.find((s) => s.id === id)?.thread ?? null);
+    if (link === null) {
+      throw new UsageError(`Open thread: ${id} has no thread`);
+    }
+    const url = t3codeUrl(link);
+    if (url === null) {
+      throw new UsageError(`Open thread: T3's link isn't one the app can open (${link})`);
+    }
+    try {
+      await open(url);
+    } catch (e) {
+      throw new UsageError(`Open thread: the OS couldn't open ${url} (${e instanceof Error ? e.message : "failed"})`);
+    }
+    return { ok: true, id, url };
+  };
+}
+
 export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = runT3): Sources {
   const src: Sources = {
     repo: basename(root),
@@ -246,7 +310,7 @@ export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = r
     project: () => mainCheckout(root),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), open: openAction(src) };
   return src;
 }
 

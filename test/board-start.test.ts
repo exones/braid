@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
@@ -56,6 +56,7 @@ const board = (await load("../dist/commands/board.js")) as {
   startAction(src: Sources, root: string, t3: (root: string, args: readonly string[], input?: string) => Promise<Result>, git?: (root: string, args: readonly string[]) => Result): (body: unknown) => Promise<Started>;
   readStartContext(root: string): { main: string; expected: { provider: string; model: string } | null };
   coordinatorMessage(id: string, start: { base: string; branch: string; planned: boolean }): string;
+  openAction?: unknown;
 };
 const model = (await load("../dist/board/model.js")) as { toBoard(repo: string, braids: unknown, gh: unknown, t3: unknown, sig: unknown, ctx: unknown): { braids: Card[] } };
 const demo = await load("../dist/board/demo.js");
@@ -293,4 +294,60 @@ test("the card opens an idle worker thread and an idle coordinator, and Start st
   assert.ok(rows.length > 0);
   assert.ok(rows.some((s) => s.id === doneRow.id));
   assert.ok(rows.every((s) => s.thread === null), "a Done row has no idle thread");
+});
+
+test("open: the server opens t3code://threads/<env>/<thread> for the item's own thread, never a client's URL; no thread is refused", async () => {
+  const { openAction, t3codeUrl } = board as unknown as { openAction(src: Sources, open: (url: string) => Promise<void>): (body: unknown) => Promise<{ ok: boolean; url: string }>; t3codeUrl(link: string): string | null };
+  const opened: string[] = [];
+  const open = (url: string): Promise<void> => {
+    opened.push(url);
+    return Promise.resolve();
+  };
+  const act = openAction(board.demoSources(), open);
+  assert.deepEqual(await act({ id: "0002/A" }), { ok: true, id: "0002/A", url: "t3code://threads/thread/demo-1" });
+  assert.equal((await act({ id: "2/b" })).url, "t3code://threads/thread/demo-8", "an idle thread opens too");
+  assert.equal((await act({ id: "0011" })).url, "t3code://threads/thread/demo-6", "a braid without an agent opens its coordinator");
+  assert.deepEqual(opened, ["t3code://threads/thread/demo-1", "t3code://threads/thread/demo-8", "t3code://threads/thread/demo-6"]);
+  await assert.rejects(act({ id: "0012" }), /Open thread: 0012 has no thread/);
+  await assert.rejects(act({ id: "0099" }), /no braid 0099/);
+  await assert.rejects(act({ id: "0002/A", url: "t3code://evil" , link: "x" }).then(() => act({})), /open needs \{ id \}/);
+  assert.equal(opened.length, 4, "an extra url in the body is ignored, not opened");
+  assert.ok(!opened.some((u) => u.includes("evil")));
+  await assert.rejects(openAction(board.demoSources(), () => Promise.reject(new Error("no handler")))({ id: "0002/A" }), /the OS couldn't open t3code:\/\/threads\/thread\/demo-1 \(no handler\)/);
+  assert.equal(t3codeUrl("http://127.0.0.1:3773/env-1/th%3A1/"), "t3code://threads/env-1/th%3A1");
+  assert.equal(t3codeUrl("http://127.0.0.1:3773/a/b/c"), null);
+  assert.equal(t3codeUrl("http://h/a/b c\"&x"), null);
+  assert.equal(t3codeUrl("not a url"), null);
+});
+
+test("idle threads: the list's worktree path decides without a show; a missing folder or a non-item folder is dropped; coordinators and the old tail are not shown", async () => {
+  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<{ idle: Map<string, { id: string }[]>; threads: Map<string, { id: string }[]> }> };
+  const root = join(scratch, "demo");
+  const agents = join(scratch, "agents-cheap");
+  mkdirSync(join(agents, "0030-A"), { recursive: true });
+  mkdirSync(join(agents, "notes"), { recursive: true });
+  const listed = [
+    { threadId: "i1", status: "idle", worktreePath: join(agents, "0030-A"), link: "http://t3/i1" },
+    { threadId: "i2", status: "idle", worktreePath: join(agents, "0030-B"), link: "http://t3/i2" },
+    { threadId: "i3", status: "idle", worktreePath: join(agents, "notes"), link: "http://t3/i3" },
+    { threadId: "i4", status: "idle", worktreePath: join(scratch, "elsewhere"), link: "http://t3/i4" },
+    { threadId: "r1", status: "running", link: "http://t3/r1" },
+    { threadId: "c1", status: "idle", title: "demo 0030 coordinator: x" },
+    ...Array.from({ length: 45 }, (_, n) => ({ threadId: `old${n}`, status: "completed" })),
+  ];
+  const shown: string[] = [];
+  const run = (_root: string, args: readonly string[]): Promise<Result> => {
+    if (args[1] === "list") {
+      return Promise.resolve({ status: 0, stdout: JSON.stringify(listed), stderr: "" });
+    }
+    shown.push(args[2] ?? "");
+    return Promise.resolve({ status: 0, stdout: JSON.stringify({ thread: { worktreePath: join(agents, "0030-A"), pendingRequestCount: 0 } }), stderr: "" });
+  };
+  const read = await t3.readT3(root, { run, ttlMs: 0, agents, project: root });
+  assert.deepEqual(read.idle.get("0030/A")?.slice(0, 1).map((t) => t.id), ["i1"]);
+  assert.equal(read.idle.has("0030/B"), false);
+  assert.equal(shown.includes("i1") || shown.includes("i2") || shown.includes("i3") || shown.includes("i4") || shown.includes("c1"), false, "no show for a thread whose list gave a path, or a coordinator");
+  assert.ok(shown.includes("r1"), "a running thread is always shown");
+  const old = shown.filter((s) => s.startsWith("old")).length;
+  assert.ok(old > 0 && old <= 40, `at most 40 old threads shown, got ${old}`);
 });

@@ -41,4 +41,6 @@ Expected size: about 100 lines in 4 files, with tests.
 - [x] `braid clean` removes a merged `plan/` branch and its clean worktree, and skips a dirty or busy one (tested)
 - [x] The gate command from BRAID.md passes
 - [x] Open thread shows for an item's idle, non-archived thread (tested)
+- [x] Open thread posts `open`; the server opens `t3code://threads/<env>/<thread>` for the item's own thread with the OS and refuses when there is none (tested with a fake opener)
+- [x] Idle threads cost no `t3 thread show` when `thread list` gives their worktree path, and at most 40 when it doesn't (tested)
 - [x] report.md written: what changed, why, validation, anything open
