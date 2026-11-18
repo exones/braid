@@ -67,7 +67,7 @@ export function helpText(version: string): string {
     "  inbox take <entry>... --into <braid id>[,<braid id>...]  Mark entries taken into braids (one commit on braid-inbox)",
     "  inbox pass <leftover>...    Pass leftovers over in a sweep: passed + 1; at 2 the leftover is dropped (an idea is refused)",
     "  inbox drop <entry>... --why <reason>  Drop entries with a reason",
-    "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why removed, passed 0)",
+    "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
     "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",

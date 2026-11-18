@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
@@ -121,4 +121,44 @@ test("an unknown or malformed id makes a command change nothing", () => {
   assert.equal(again.status, 1);
   assert.match(again.stderr, /reopen it first/);
   assert.match(braid(w.a, "inbox", "reopen", w.l2).stderr, /only a dropped or taken entry/);
+});
+
+test("reopening a taken entry clears into, why and passed", () => {
+  const w = setup();
+  ok(w.a, "inbox", "pass", w.l1);
+  ok(w.a, "inbox", "take", w.l1, "--into", "0021,0022");
+  assert.match(w.show(w.l1), /into: \["0021", "0022"\]/);
+  ok(w.a, "inbox", "reopen", w.l1);
+  assert.match(w.show(w.l1), /^---\nfrom: "0001\/A"\nstatus: open\npassed: 0\n---\n\nFirst/);
+  ok(w.a, "inbox", "drop", w.l1, "--why", "x");
+  ok(w.a, "inbox", "reopen", w.l1);
+  assert.doesNotMatch(w.show(w.l1), /why:|into:/);
+});
+
+test("a refused push re-runs the change on the fetched tip", () => {
+  const w = setup();
+  const base = join(w.a, "..");
+  git(base, "clone", "-q", w.remote, "b");
+  const b = join(base, "b");
+  const slash = (p: string) => p.replaceAll("\\", "/");
+  // While a pushes its pass, b passes the same leftover first, so a's push is refused.
+  const marker = join(base, "raced");
+  const hook = join(w.a, ".git", "hooks", "pre-push");
+  writeFileSync(
+    hook,
+    `#!/bin/sh
+[ -f "${slash(marker)}" ] && exit 0
+touch "${slash(marker)}"
+unset $(git rev-parse --local-env-vars)
+cd "${slash(b)}" && "${slash(process.execPath)}" "${slash(cli)}" inbox pass ${w.l2} > "${slash(join(base, "b.out"))}" 2>&1
+exit 0
+`,
+  );
+  chmodSync(hook, 0o755);
+  const r = ok(w.a, "inbox", "pass", w.l2);
+  assert.match(r.stdout, /pushed to origin/);
+  // b made it passed 1; a's change ran again on that tip and made it 2: dropped.
+  assert.match(w.show(w.l2), /status: dropped\npassed: 2\nwhy: "passed over in 2 sweeps"/);
+  assert.match(r.stdout, /1 of them dropped/);
+  assert.equal(git(w.remote, "log", "--format=%s", "-2", "braid-inbox"), "docs(inbox): sweep: pass 1, drop 1\ndocs(inbox): sweep: pass 1");
 });

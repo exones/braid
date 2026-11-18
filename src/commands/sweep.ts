@@ -102,7 +102,7 @@ export function sweepCommand(root: string, verb: Verb, args: readonly string[]):
         files.set(e.file, save(e, { status: "dropped", why }));
         counts.dropped++;
       } else if (verb === "reopen") {
-        files.set(e.file, save(e, { status: "open", why: null, passed: e.kind === "leftover" ? 0 : null }));
+        files.set(e.file, save(e, { status: "open", why: null, into: [], passed: e.kind === "leftover" ? 0 : null }));
         counts.reopened++;
       } else {
         const passed = (e.passed ?? 0) + 1;

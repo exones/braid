@@ -15,7 +15,7 @@ The sweep needs commands that change entries on `braid-inbox` without hand-editi
 
 ## Validation
 
-- `test/inbox-sweep.test.ts` (3 tests, temporary repositories with a bare remote and an isolated HOME and Git config): all four verbs change the files and push as one commit each; two passes drop a leftover with the reason; reopen resets it; an idea is refused by `pass` with nothing changed; an unknown id, a malformed id, a missing `--why` or `--into`, bad braid ids and a wrong state leave the branch head unchanged (local and remote).
+- `test/inbox-sweep.test.ts` (5 tests, temporary repositories with a bare remote and an isolated HOME and Git config): all four verbs change the files and push as one commit each; two passes drop a leftover with the reason; reopen resets it; taking then reopening a leftover clears `into`, `why` and `passed`; a pre-push hook makes another clone pass the same leftover first, so the refused push re-runs the change on the fetched tip and the result is passed 2, dropped, as a second commit on top; an idea is refused by `pass` with nothing changed; an unknown id, a malformed id, a missing `--why` or `--into`, bad braid ids and a wrong state leave the branch head unchanged (local and remote).
 - `npm run verify` passes.
 
 ## Open
@@ -24,3 +24,5 @@ The sweep needs commands that change entries on `braid-inbox` without hand-editi
 
 For later items: none.
 Needs the user: none.
+
+Review fix (at 7268609): `reopen` kept `into` of a taken entry; it now clears it (with a test). Added the refused-push test and `into` in the `braid help` line.
