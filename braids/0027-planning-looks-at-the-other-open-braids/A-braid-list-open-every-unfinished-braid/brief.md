@@ -1,7 +1,7 @@
 ---
 id: '0027/A'
 title: "braid list --open: every unfinished braid, wherever it lives"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 10
