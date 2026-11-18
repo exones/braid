@@ -1,7 +1,7 @@
 ---
 id: '0020'
 title: "Gap inbox: small findings and side ideas without a decision each"
-status: In Progress
+status: Done
 labels: ["kind:goal", "tier:L", "ask:architecture", "ask:process", "auto"]
 dependencies: []
 delivery: epic
