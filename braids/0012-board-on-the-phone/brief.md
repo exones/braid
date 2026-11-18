@@ -1,7 +1,7 @@
 ---
 id: '0012'
 title: "Board on the phone"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ui", "ask:security", "ask:architecture", "auto"]
 dependencies: ['0009']
 order: 120
