@@ -38,8 +38,8 @@ Update docs/board.md, docs/cli.md and D60 where they describe these.
 
 ## Completion
 
-- [ ] A unit test locks the Tailscale Host allowlist to the Tailscale IP and MagicDNS name with the port
-- [ ] The page knows it is remote from the server, not its hostname; a local board opened as localhost keeps Open thread, with a test
-- [ ] `braid board --port <n>` serves both listeners on that port and refuses a port in use, with tests; docs updated
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written
+- [x] A unit test locks the Tailscale Host allowlist to the Tailscale IP and MagicDNS name with the port
+- [x] The page knows it is remote from the server, not its hostname; a local board opened as localhost keeps Open thread, with a test
+- [x] `braid board --port <n>` serves both listeners on that port and refuses a port in use, with tests; docs updated
+- [x] The gate command from BRAID.md passes
+- [x] report.md written

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { request, type Server } from "node:http";
+import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -43,10 +43,11 @@ interface Started {
 interface TailnetModule {
   readTailnet(run: Runner): Promise<Tailnet>;
   tailnetAddress(host: string, tailnet: Tailnet): string;
+  tailnetHosts(address: string, name: string | null, port: number): string[];
   whoisGate(owner: string, run: Runner, options?: { ttlMs?: number; timeoutMs?: number; now?: () => number }): Gate;
 }
 interface BoardModule {
-  startBoardWith(src: Sources, web: string, refreshMs?: number, token?: string, tailnet?: TailnetListen): Promise<Started>;
+  startBoardWith(src: Sources, web: string, refreshMs?: number, token?: string, tailnet?: TailnetListen, port?: number): Promise<Started>;
   demoSources(): Sources;
   runBoard(root: string, args: readonly string[], tailscale?: Runner): Promise<void>;
 }
@@ -240,4 +241,88 @@ test("with --host the local board keeps its token, Host and Origin checks, and o
     assert.equal((await call(local, "POST", "/api/action/open", { ...ACT, host: lhost, "x-braid-token": token, origin: `http://${lhost}` }, "{}")).status, 200);
   });
   assert.deepEqual(actions, ["open"]);
+});
+
+// --- the Host allowlist, the remote field, --port
+
+test("tailnetHosts allows the Tailscale address and the MagicDNS name with the port, and nothing else", () => {
+  assert.deepEqual(tn.tailnetHosts("100.64.0.7", NAME, 8123), ["100.64.0.7:8123", `${NAME}:8123`]);
+  assert.deepEqual(tn.tailnetHosts("100.64.0.7", null, 8123), ["100.64.0.7:8123"]);
+  assert.deepEqual(tn.tailnetHosts("fd7a:115c:a1e0::7", NAME, 80), ["[fd7a:115c:a1e0::7]:80", `${NAME}:80`]);
+  const hosts = tn.tailnetHosts("100.64.0.7", NAME, 8123);
+  for (const bad of ["127.0.0.1:8123", "localhost:8123", "0.0.0.0:8123", "100.64.0.7", NAME, "100.64.0.7:8124", `${NAME}:8124`, "evil.example:8123"]) {
+    assert.ok(!hosts.includes(bad), bad);
+  }
+});
+
+test("the board data says remote: true on the Tailscale listener, false on the local one whatever Host it was opened by", async () => {
+  await withTailnet("owner", async (port, host, local) => {
+    const remote = JSON.parse((await call(port, "GET", "/api/board", { host })).text) as { remote: boolean };
+    assert.equal(remote.remote, true);
+    const mine = JSON.parse((await call(local, "GET", "/api/board", { host: `127.0.0.1:${local}` })).text) as { remote: boolean };
+    assert.equal(mine.remote, false);
+    const named = JSON.parse((await call(local, "GET", "/api/board", { host: `localhost:${local}` })).text) as { remote: boolean };
+    assert.equal(named.remote, false);
+  });
+});
+
+async function freePort(): Promise<number> {
+  const probe = createServer();
+  await new Promise<void>((done) => probe.listen(0, "127.0.0.1", done));
+  const { port } = probe.address() as AddressInfo;
+  await new Promise((done) => probe.close(done));
+  return port;
+}
+
+test("--port serves the local listener on that port; one in use is refused and nothing stays listening", async () => {
+  const port = await freePort();
+  const started = await board.startBoardWith(sources(), web, undefined, undefined, undefined, port);
+  try {
+    assert.equal((started.server.address() as AddressInfo).port, port);
+    assert.equal(started.url, `http://127.0.0.1:${port}/`);
+    await assert.rejects(board.startBoardWith(sources(), web, undefined, undefined, undefined, port), /--port \d+ is already in use on 127\.0\.0\.1/);
+    assert.equal((await call(port, "GET", "/api/board", { host: `127.0.0.1:${port}` })).status, 200);
+  } finally {
+    started.server.close();
+    started.server.closeAllConnections();
+  }
+});
+
+test("--port with --host serves both listeners on that port; a port in use on the Tailscale address is refused", async () => {
+  const port = await freePort();
+  const gate = tn.whoisGate(OWNER, WHOIS["owner"]!, { timeoutMs: 50 });
+  // Distinct loopback addresses stand in for 127.0.0.1 and the Tailscale IP.
+  const started = await board.startBoardWith(sources(), web, undefined, undefined, { address: "127.0.0.2", name: NAME, gate }, port);
+  try {
+    assert.equal((started.server.address() as AddressInfo).port, port);
+    assert.equal((started.tailnet?.server.address() as AddressInfo).port, port);
+    assert.equal(started.tailnet?.url, `http://${NAME}:${port}/`);
+  } finally {
+    started.server.close();
+    started.server.closeAllConnections();
+  }
+  const blocker = createServer();
+  await new Promise<void>((done) => blocker.listen(port, "127.0.0.2", done));
+  try {
+    await assert.rejects(board.startBoardWith(sources(), web, undefined, undefined, { address: "127.0.0.2", name: NAME, gate }, port), /--port \d+ is already in use on 127\.0\.0\.2/);
+    // Nothing stays on the local address.
+    await assert.rejects(call(port, "GET", "/", { host: `127.0.0.1:${port}` }), /ECONNREFUSED/);
+  } finally {
+    await new Promise((done) => blocker.close(done));
+  }
+});
+
+test("braid board --port refuses a bad number or one in use before anything starts", async () => {
+  for (const bad of ["0", "70000", "abc", "-1"]) {
+    await assert.rejects(board.runBoard(scratch, ["--demo", "--no-open", "--port", bad]), /--port needs a port number/);
+  }
+  await assert.rejects(board.runBoard(scratch, ["--demo", "--no-open", "--port"]), /--port needs a port number/);
+  const blocker = createServer();
+  await new Promise<void>((done) => blocker.listen(0, "127.0.0.1", done));
+  const { port } = blocker.address() as AddressInfo;
+  try {
+    await assert.rejects(board.runBoard(scratch, ["--demo", "--no-open", "--port", String(port)]), /already in use/);
+  } finally {
+    await new Promise((done) => blocker.close(done));
+  }
 });

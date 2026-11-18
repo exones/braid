@@ -327,7 +327,7 @@ export function demoSources(t3Down = false): Sources {
   };
 }
 
-async function api(src: Sources, url: URL): Promise<Reply> {
+async function api(src: Sources, url: URL, remote: boolean): Promise<Reply> {
   try {
     const braids = src.braids();
     const fresh = url.searchParams.get("fresh") === "1";
@@ -337,7 +337,7 @@ async function api(src: Sources, url: URL): Promise<Reply> {
     if (url.pathname === "/api/board") {
       const board = toBoard(src.repo, braids, github, t3, sig, src.start(), src.inbox(fresh));
       sig.commit();
-      return json(200, board);
+      return json(200, { ...board, remote });
     }
     if (url.pathname !== "/api/item") {
       return json(404, { error: "no such endpoint" });
@@ -463,8 +463,8 @@ export interface Started {
   readonly tailnet?: { readonly server: Server; readonly url: string };
 }
 
-/** Listens on `address`, on `port` when it is free there, else on a free port. */
-function listen(server: Server, address: string, port: number): Promise<number> {
+/** Listens on `address`, on `port` when it is free there, else on a free port; `strict` (an explicit `--port`) refuses a port in use instead. */
+function listen(server: Server, address: string, port: number, strict = false): Promise<number> {
   const at = (p: number) =>
     new Promise<number>((done, fail) => {
       const failed = (e: Error) => fail(e);
@@ -474,8 +474,11 @@ function listen(server: Server, address: string, port: number): Promise<number> 
         done((server.address() as AddressInfo).port);
       });
     });
-  return port === 0 ? at(0) : at(port).catch((e: NodeJS.ErrnoException) => (e.code === "EADDRINUSE" ? at(0) : Promise.reject(e)));
+  return port === 0 ? at(0) : at(port).catch((e: NodeJS.ErrnoException) => (e.code === "EADDRINUSE" && !strict ? at(0) : Promise.reject(e)));
 }
+
+const inUse = (port: number, address: string, e: unknown): Error =>
+  (e as NodeJS.ErrnoException).code === "EADDRINUSE" ? new UsageError(`--port ${port} is already in use on ${address}; pick another port`) : e instanceof Error ? e : new Error(String(e));
 
 /**
  * Starts the board server on 127.0.0.1 with a free port. Resolves once it is listening. Pages
@@ -484,6 +487,7 @@ function listen(server: Server, address: string, port: number): Promise<number> 
  * the run's session `token` (a random one unless given) in the `x-braid-token` header. With `tailnet`,
  * a second listener serves the same board on a Tailscale address (D60): every request passes the whois
  * gate and a Host check first, actions need the `x-braid-request` header instead of the token, and `open` is refused.
+ * `fixedPort` (`--port`) is the port of both listeners; one that is in use is refused (UsageError) and nothing stays listening.
  */
 export function startBoardWith(
   src: Sources,
@@ -491,6 +495,7 @@ export function startBoardWith(
   refreshMs: number = REFRESH_MS,
   token: string = randomBytes(24).toString("hex"),
   tailnet?: TailnetListen,
+  fixedPort = 0,
 ): Promise<Started> {
   const base = resolve(webDir);
   const clients = new Set<ServerResponse>();
@@ -532,7 +537,7 @@ export function startBoardWith(
         return;
       }
       if (url.pathname.startsWith("/api/")) {
-        const out = await api(src, url);
+        const out = await api(src, url, listener.kind === "tailnet");
         res.writeHead(out.status, { "content-type": TYPES[".json"] ?? "", "cache-control": "no-store" }).end(out.body);
         return;
       }
@@ -562,16 +567,21 @@ export function startBoardWith(
     }
   });
   return (async () => {
-    const port = await listen(server, "127.0.0.1", 0);
+    const port = await listen(server, "127.0.0.1", fixedPort, fixedPort !== 0).catch((e: unknown) => {
+      throw fixedPort !== 0 ? inUse(fixedPort, "127.0.0.1", e) : e;
+    });
     origin = `http://127.0.0.1:${port}`;
     let shared: Started["tailnet"];
     if (remote !== undefined && tailnet !== undefined) {
       try {
-        const remotePort = await listen(remote, tailnet.address, port);
+        const remotePort = await listen(remote, tailnet.address, port, fixedPort !== 0);
         hosts = tailnetHosts(tailnet.address, tailnet.name, remotePort).map((h) => h.toLowerCase());
         shared = { server: remote, url: `http://${hosts[hosts.length - 1] ?? ""}/` };
       } catch (e) {
         server.close();
+        if (fixedPort !== 0) {
+          throw inUse(fixedPort, tailnet.address, e);
+        }
         throw new UsageError(`--host: can't listen on ${tailnet.address} (${e instanceof Error ? e.message : "failed"})`);
       }
     }
@@ -595,8 +605,8 @@ export function startBoardWith(
 }
 
 /** Starts the board for the repository at `root`. */
-export function startBoard(root: string, webDir: string = defaultWebDir(), gh: GhRunner = runGh, t3: T3Runner = runT3, refreshMs: number = REFRESH_MS, tailnet?: TailnetListen): Promise<Started> {
-  return startBoardWith(repoSources(root, gh, t3), webDir, refreshMs, undefined, tailnet);
+export function startBoard(root: string, webDir: string = defaultWebDir(), gh: GhRunner = runGh, t3: T3Runner = runT3, refreshMs: number = REFRESH_MS, tailnet?: TailnetListen, fixedPort = 0): Promise<Started> {
+  return startBoardWith(repoSources(root, gh, t3), webDir, refreshMs, undefined, tailnet, fixedPort);
 }
 
 /** Opens `url` in the default browser; a failure only means the user opens it by hand. */
@@ -626,10 +636,17 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   if (at !== -1 && (host === undefined || host.startsWith("--"))) {
     throw new UsageError("--host needs an address: tailscale, this machine's Tailscale IP or its MagicDNS name");
   }
-  const rest = at === -1 ? args : [...args.slice(0, at), ...args.slice(at + 2)];
+  let rest = at === -1 ? args : [...args.slice(0, at), ...args.slice(at + 2)];
+  const pat = rest.indexOf("--port");
+  const portArg = pat === -1 ? undefined : rest[pat + 1];
+  if (pat !== -1 && (portArg === undefined || !/^\d+$/.test(portArg) || Number(portArg) < 1 || Number(portArg) > 65535)) {
+    throw new UsageError("--port needs a port number from 1 to 65535");
+  }
+  const fixedPort = portArg === undefined ? 0 : Number(portArg);
+  rest = pat === -1 ? rest : [...rest.slice(0, pat), ...rest.slice(pat + 2)];
   const unknown = rest.filter((a) => !flags.includes(a));
   if (unknown.length > 0) {
-    throw new UsageError(`braid board takes only ${flags.join(", ")}, --host <address>; got: ${unknown.join(" ")}`);
+    throw new UsageError(`braid board takes only ${flags.join(", ")}, --host <address>, --port <n>; got: ${unknown.join(" ")}`);
   }
   const t3Down = args.includes("--demo-t3-down");
   const demo = args.includes("--demo") || t3Down;
@@ -639,7 +656,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   if (!existsSync(join(webDir, "index.html"))) {
     throw new UsageError("the board page is not built; run npm run build");
   }
-  const started = demo ? await startBoardWith(demoSources(t3Down), webDir, REFRESH_MS, undefined, tailnet) : await startBoard(root, webDir, runGh, runT3, REFRESH_MS, tailnet);
+  const started = demo ? await startBoardWith(demoSources(t3Down), webDir, REFRESH_MS, undefined, tailnet, fixedPort) : await startBoard(root, webDir, runGh, runT3, REFRESH_MS, tailnet, fixedPort);
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
   process.stdout.write(`braid board${demo ? " (demo: sample data; nothing is read or written)" : ""}: ${url}\n`);
