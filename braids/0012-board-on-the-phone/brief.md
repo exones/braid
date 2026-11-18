@@ -1,8 +1,8 @@
 ---
 id: '0012'
 title: "Board on the phone"
-status: Outline
-labels: ["kind:story", "tier:M", "ui"]
+status: To Do
+labels: ["kind:story", "tier:L", "ui", "ask:security", "ask:architecture"]
 dependencies: ['0009']
 order: 120
 delivery: epic
@@ -10,15 +10,36 @@ delivery: epic
 
 ## Goal
 
-Story 9 of the braid plan (user, 2026-11-14). A board layout that fits a phone: one lane at a time, larger tap targets. `braid board --host <address>` serves it on the user's Tailscale network: opt-in, never on all networks by default. Board actions over the network need real authentication (Tailscale identity or sign-in), building on the token of braid 0009.
+Story 9 of the braid plan (user, 2026-11-14). The board works on the user's phone: a layout that fits a phone screen, served by `braid board` on the user's Tailscale network, opt-in, with only the user's own Tailscale identity allowed to read or act. On the way, the board's lanes get a new order and Done stops filling the screen (user, 2026-11-18).
 
 ## Working at the end
 
-Open the board on the phone over Tailscale and act on a braid safely.
+Open the board on the phone over Tailscale, see Needs You first, and Start or Merge a braid from there; a device of another Tailscale user, or any address outside Tailscale, gets nothing.
 
-## Open questions
+## Strands
 
-- Whether the read-only part moves right after the MVP, ahead of 0008 to 0011.
-- Which authentication: Tailscale identity or a sign-in.
+- 0012/A Mockups: phone layout and the new lane order (S, ui): variants on the demo data; the user chooses.
+- 0012/B Lane order, Done collapsed, phone layout (M, ui): builds what the user approved in A.
+- 0012/C Serve the board on Tailscale with identity checks (L): `braid board --host`, the identity check, actions over the network.
 
-Plan it fully when its turn comes, asking the user if needed.
+## Already decided
+
+- Lane order everywhere (desktop and phone): Needs You, To Review, Working, To Do, Done (user, 2026-11-18).
+- Done is collapsed by default; opened, it shows the 10 newest items, newest first, and a "Show more" button (user, 2026-11-18).
+- How the phone switches lanes is chosen from mockups (user, 2026-11-18).
+- Authentication is the Tailscale identity: braid asks tailscaled who each connection is, and only the Tailscale login that owns this machine may read or act. No pairing code, no password (user, 2026-11-18).
+- The phone can read and act (Start, Merge on request). Open thread stays desktop-only: T3 deep links don't open on a phone (user, 2026-11-18).
+- Never on all networks: no `0.0.0.0`, no LAN address; the local `127.0.0.1` board and its token stay as they are (D50).
+
+## Out of scope
+
+- HTTPS in any form (a `tailscale cert` certificate or `tailscale serve`): plain HTTP inside the tailnet for now; the browser shows "Not secure" (user, 2026-11-18). Other sign-in methods, several users.
+- Opening T3 threads from the phone.
+
+## Completion
+
+- [ ] Every strand Done on the braid branch
+- [ ] The lanes show in the new order, with Done collapsed to the 10 newest and Show more
+- [ ] The board fits a phone screen in the layout the user approved
+- [ ] `braid board --host` serves it on this machine's Tailscale address only, to this machine's Tailscale user only, reads and actions alike
+- [ ] docs/board.md, docs/cli.md and docs/decisions.md describe it
