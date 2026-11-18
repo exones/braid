@@ -1,11 +1,12 @@
 // `braid clean [<number>|<id>] [--yes]`: removes the worktrees and local branches of items whose
-// PR is merged. A dry run unless `--yes`. It never forces and keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
+// PR is merged, and of merged planning branches (`plan/<slug>`). A dry run unless `--yes`. It never forces and keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
 // changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay.
 import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadLiveBraids } from "../braids/branches.js";
 import { UsageError } from "./braids.js";
+import { readGithub, runGh } from "../board/github.js";
 import { read, type Sources } from "./coordinate.js";
 import { reviewFolder } from "../braids/worktrees.js";
 import { repoName, worktreesDir } from "./start.js";
@@ -56,6 +57,46 @@ function free(folder: string): boolean {
     return false;
   }
   return true;
+}
+
+/** Merged `plan/<slug>` branches (the PR that planned a goal) and their worktrees, kept when the worktree is dirty or in use. */
+function plans(root: string, yes: boolean, src: Sources, listed: readonly Worktree[], here: string, lines: string[]): void {
+  const merged = readGithub(root, src.gh ?? runGh, 0).plans ?? new Map<string, number>();
+  for (const branch of git(root, ["branch", "--list", "--format=%(refname:short)", "plan/*"]).stdout.split("\n").map((l) => l.trim()).filter((l) => l !== "")) {
+    const pr = merged.get(branch);
+    if (pr === undefined) {
+      continue;
+    }
+    const tree = listed.find((t) => t.branch === branch);
+    const what = `planning branch ${branch}${tree === undefined ? "" : ` and worktree ${tree.path}`} (PR #${pr} merged)`;
+    let skip: string | null = null;
+    if (tree !== undefined && norm(tree.path) === here) {
+      skip = "checked out in this checkout";
+    } else if (git(root, ["merge-base", "--is-ancestor", branch, "HEAD"]).status !== 0) {
+      skip = "merged on GitHub, but its commits are not in this checkout's HEAD: pull first, or delete it by hand";
+    } else if (tree !== undefined && existsSync(tree.path) && git(tree.path, ["status", "--porcelain"]).stdout.trim() !== "") {
+      skip = "its worktree has changes";
+    } else if (tree !== undefined && existsSync(tree.path) && yes && !free(tree.path)) {
+      skip = "still in use, retry later";
+    }
+    if (skip !== null) {
+      lines.push(`skip ${what}: ${skip}`);
+    } else if (!yes) {
+      lines.push(`would remove ${what}`);
+    } else {
+      if (tree !== undefined && existsSync(tree.path)) {
+        const r = git(root, ["worktree", "remove", tree.path]);
+        if (r.status !== 0) {
+          lines.push(`skip ${what}: worktree not removed (${(r.stderr || r.stdout).trim().split("\n")[0] ?? ""})`);
+          continue;
+        }
+      } else if (tree !== undefined) {
+        git(root, ["worktree", "prune"]);
+      }
+      const b = git(root, ["branch", "-d", branch]);
+      lines.push(b.status === 0 ? `removed ${what}` : `kept ${branch}: not fully merged here (${(b.stderr || b.stdout).trim().split("\n")[0] ?? ""})`);
+    }
+  }
 }
 
 export async function cleanCommand(root: string, args: readonly string[], src: Sources = {}, env: NodeJS.ProcessEnv = process.env): Promise<string> {
@@ -144,6 +185,9 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
     if (w.t3.status.state !== "ok") {
       notes = `note: T3 could not be read (${w.t3.status.reason}); a running agent in a merged item's worktree can't be ruled out\n`;
     }
+  }
+  if (only === null) {
+    plans(root, yes, src, listed, here, lines);
   }
   const head = lines.length === 0 ? "nothing to clean\n" : `${lines.join("\n")}\n`;
   return `${head}${yes || lines.length === 0 ? "" : "dry run: run again with --yes to do it\n"}${notes}`;

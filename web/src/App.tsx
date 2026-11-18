@@ -189,20 +189,30 @@ const OpenIcon = () => (
 
 const BUTTON = "flex size-6 items-center justify-center rounded-md border";
 
-/** Open thread: a small button that opens the item's T3 thread; nothing is drawn when there is no thread. */
-function OpenThread({ link }: { link: string | null }) {
+/** Open thread: a small button that opens the item's thread in the T3 desktop app (the server opens it); nothing is drawn when there is no thread. */
+function OpenThread({ id, link }: { id: string; link: string | null }) {
+  const [error, setError] = useState<string | null>(null);
   if (link === null) {
     return null;
   }
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
-        <a href={link} target="_blank" rel="noreferrer" aria-label="Open thread in T3" onClick={(e) => e.stopPropagation()} className={`${BUTTON} border-slate-200 bg-white text-slate-600 hover:border-blue-600`}>
+        <button
+          type="button"
+          aria-label="Open thread in T3"
+          onClick={(e) => {
+            e.stopPropagation();
+            setError(null);
+            postAction("open", { id }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
+          }}
+          className={`${BUTTON} ${error === null ? "border-slate-200 text-slate-600" : "border-red-600 text-red-700"} bg-white hover:border-blue-600`}
+        >
           <OpenIcon />
-        </a>
+        </button>
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Open thread in T3</Tooltip.Content>
+        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">{error ?? "Open thread in T3"}</Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
   );
@@ -396,7 +406,7 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
             <dt className="text-slate-500">Model</dt>
             <dd>T3 project default{start.expected !== null && <>; BRAID.md names <code className="text-xs">{start.expected}</code></>}</dd>
             <dt className="text-slate-500">Base branch</dt>
-            <dd><code className="break-all text-xs">{start.base}</code>{start.planned ? <> (the braid branch)</> : <> (not planned yet: it plans on <code className="text-xs">{start.branch}</code>)</>}</dd>
+            <dd><code className="break-all text-xs">{start.base}</code>{start.planned ? <> (the braid branch)</> : <> (the main branch; the item has no braid branch yet)</>}</dd>
           </dl>
           {error !== null && <p role="alert" className="mt-3 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2.5 py-1.5 text-[13px] text-red-900">{error}</p>}
           <div className="mt-4 flex justify-end gap-2">
@@ -415,7 +425,7 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
 function Actions({ id, lane, thread, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <OpenThread link={thread} />
+      <OpenThread id={id} link={thread} />
       {start !== null && <StartButton id={id} start={start} {...(onLaunched === undefined ? {} : { onLaunched })} />}
       {lane === "In Review" && <MergeButton id={id} merge={merge} />}
     </span>

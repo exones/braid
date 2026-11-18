@@ -30,6 +30,8 @@ export interface Github {
   readonly status: GithubState;
   /** The PR to show per item key (`0006` or `0006/A`): the open one, else the newest merged one, else the newest closed (unmerged) one. */
   readonly prs: ReadonlyMap<string, PullRequest>;
+  /** Merged PRs of planning branches (`plan/<slug>`), by head branch: the PR number. `braid clean` removes those branches. */
+  readonly plans?: ReadonlyMap<string, number>;
 }
 
 export interface GhResult {
@@ -198,7 +200,13 @@ function readFresh(root: string, run: GhRunner): Github {
       prs.set(key, { number: raw.number, url: raw.url, state, ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), ...(raw.baseRefName === undefined ? {} : { base: raw.baseRefName }), branch: raw.headRefName, checks: state === "open" ? checksOf(raw.statusCheckRollup) : state === "merged" ? "passing" : "none", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
     }
   }
-  return { status: { state: "ok" }, prs };
+  const plans = new Map<string, number>();
+  for (const p of merged) {
+    if (p.headRefName.startsWith("plan/") && !open.some((o) => o.headRefName === p.headRefName)) {
+      plans.set(p.headRefName, p.number);
+    }
+  }
+  return { status: { state: "ok" }, prs, plans };
 }
 
 /** Forgets what was read, for tests. */
