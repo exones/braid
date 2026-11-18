@@ -47,11 +47,18 @@ Expected size: about 150 lines in 7 files.
 
 ## Completion
 
-- [ ] A To Do or Outline braid with a running coordinator thread is in Working on the board and in `braid status`, with and without strands; with no coordinator and no planning PR it is in To Do (tests)
-- [ ] A braid with an open planning PR into its braid branch is in Working, with the checks activity while the checks run; after that PR merges or closes, the PR alone no longer moves the lane, and the braid is never Done because of it (tests)
-- [ ] An open request on the braid still wins: Needs You or To Review with a running coordinator and an open planning PR (test)
-- [ ] A running coordinator changes no strand's lane and no alarm (test)
-- [ ] Start on a braid with a running coordinator is off with the reason "a coordinator for this braid is running" (test)
-- [ ] `docs/board.md` states the rule, and `docs/decisions.md` has the new decision amending D46
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A To Do or Outline braid with a running coordinator thread is in Working on the board and in `braid status`, with and without strands; with no coordinator and no planning PR it is in To Do (tests)
+- [x] A braid with an open planning PR into its braid branch is in Working, with the checks activity while the checks run; after that PR merges or closes, the PR alone no longer moves the lane, and the braid is never Done because of it (tests)
+- [x] An open request on the braid still wins: Needs You or To Review with a running coordinator and an open planning PR (test)
+- [x] A running coordinator changes no strand's lane and no alarm (test)
+- [x] Start on a braid with a running coordinator is off with the reason "a coordinator for this braid is running" (test)
+- [x] `docs/board.md` states the rule, and `docs/decisions.md` has the new decision amending D46
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `github.ts`: new `planning` map (open `plan/*` PRs by base braid number), apart from `prs`.
+- `model.ts`: `planned()` lifts a To Do braid (own derive, or after `braidLane`) to Working when a coordinator runs or a planning PR is open; checks activity while its checks are pending. `startOf` checks the coordinator before the lane.
+- `braid status` uses `toCard`, so it follows with no change in `coordinate.ts`.
+- Tests in lanes, github and board-start; `docs/board.md` rule 7, D53.

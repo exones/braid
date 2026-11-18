@@ -351,3 +351,10 @@ test("idle threads: the list's worktree path decides without a show; a missing f
   const old = shown.filter((s) => s.startsWith("old")).length;
   assert.ok(old > 0 && old <= 40, `at most 40 old threads shown, got ${old}`);
 });
+
+test("Start is off with the coordinator's reason even when the running coordinator lifted the braid to Working", async () => {
+  const src = board.demoSources();
+  const all = await cards(src);
+  const c = all.find((x) => x.coordinator !== null && x.start.reason === "a coordinator for this braid is running");
+  assert.ok(c, "a demo braid with a running coordinator");
+});

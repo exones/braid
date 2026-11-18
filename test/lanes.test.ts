@@ -194,3 +194,24 @@ test("a started braid whose strands are all To Do shows Working: its own status 
   assert.equal(card(withStatus("To Do", "Done")), "In Progress", "a Done strand says started, between strands");
   assert.equal(card(withStatus("To Do")), "To Do", "nothing started stays To Do");
 });
+
+// A braid being planned: a running coordinator thread or an open planning PR lifts only To Do.
+test("a braid being planned is Working: a running coordinator or an open planning PR lifts To Do, nothing else", () => {
+  const base = demo.demoBraids().find((b) => b.number === "0007") as unknown as { brief: { status: string }; strands: { brief: { status: string } }[] };
+  const todo = { ...base, brief: { ...base.brief, status: "To Do" }, strands: base.strands.map((s) => ({ ...s, brief: { ...s.brief, status: "To Do" } })) };
+  const solo = { ...todo, strands: [] as unknown[] };
+  const coordinator = (running = true) => ({ status: { state: "ok" }, threads: new Map(), coordinators: new Map(running ? [["0007", { id: "c", link: null, provider: null, model: null }]] : []) });
+  const planning = (checks: string, state = "open") => ({ status: { state: "ok" }, prs: new Map(), planning: new Map(state === "open" ? [["0007", { number: 9, url: "u", state: "open", checks }]] : []) });
+  const card = (b: unknown, g: unknown, t: unknown, s: Signals = sig()) => model.toCard(b, g, t, s);
+  for (const b of [todo, solo]) {
+    assert.equal(card(b, gh(null), coordinator()).lane, "In Progress", "a running coordinator");
+    assert.equal(card(b, gh(null), coordinator(false)).lane, "To Do", "no coordinator, no planning PR");
+    assert.equal(card(b, planning("passing"), coordinator(false)).lane, "In Progress", "an open planning PR");
+    assert.equal(card(b, planning("pending"), coordinator(false)).activity, "checks", "its checks run");
+    assert.equal(card(b, planning("passing", "merged"), coordinator(false)).lane, "To Do", "a merged or closed one lifts nothing and never makes Done");
+    assert.equal(card(b, planning("passing"), coordinator(false), sig([{ ...request("plan"), id: "0007" }])).lane, "Waiting", "an open request wins");
+    assert.equal(card(b, planning("passing"), coordinator(), sig([{ ...request("review", { pr: 7 }), id: "0007" }])).lane, "In Review", "so does a review request");
+  }
+  const c = card(todo, gh(null), coordinator());
+  assert.deepEqual([c.running, c.need, c.strands.map((s) => s.lane)], [false, null, ["To Do", "To Do", "To Do"]], "the coordinator is no agent and changes no strand");
+});
