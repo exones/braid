@@ -9,7 +9,8 @@
 
 - New `test/board-snapshot.test.ts`: slow fake sources; once a snapshot exists `/api/item` and Open thread answer in under 500 ms with no further GitHub/T3 read; a static file and `/api/board` are served during a slow read; queued refreshes; Start and Merge read fresh.
 - Two existing tests adapted: `test/t3.test.ts` counts the read at start; `test/board.test.ts` retries removing its temp folder (the board's background `git` children hold it for a moment on Windows).
-- Gate `npm run verify`: see PR checks.
+- A read ends only when every source call it started (`gh`, `t3`) has settled, also when another source throws: a test has braids throw while a slow `gh` runs and shows the next read doesn't start `gh` before the first settled, and that the next successful read replaces the failure (a malformed brief stays a 500 until then).
+- Gate `npm run verify` passes (290 tests).
 
 Times on this repository (26 braids, ~200 T3 threads), `braid board` run in this checkout, same machine, ms per request:
 

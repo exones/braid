@@ -130,3 +130,34 @@ test("Start and Merge still read GitHub and T3 fresh", async () => {
   await mergeAction(src, scratch, t3)({ id: "0001/B", head }).catch(() => {});
   assert.deepEqual(calls.github, [true], "merge reads GitHub fresh");
 });
+
+test("a read ends only when every source it started has settled; the next successful read replaces a failed one", async () => {
+  const base = board.demoSources();
+  const events: string[] = [];
+  let broken = true;
+  const src: Sources = {
+    ...base,
+    braids: () => {
+      if (broken) {
+        throw new Error("braids unreadable");
+      }
+      return base.braids();
+    },
+    github: async (fresh) => {
+      events.push("github start");
+      await sleep(600);
+      events.push("github end");
+      return base.github(fresh);
+    },
+  };
+  const { timed } = await serve(src);
+  // The read at start fails at once on braids while its slow gh still runs; a second read is asked for meanwhile.
+  await sleep(50);
+  broken = false;
+  const second = timed("api/board?fresh=1");
+  const failed = await timed("api/board");
+  assert.equal((await second).response.status, 200, "the next successful read replaces the failure");
+  assert.ok([200, 500].includes(failed.response.status));
+  assert.deepEqual(events, ["github start", "github end", "github start", "github end"], "gh was not started again before the first call settled");
+  assert.equal((await timed("api/board")).response.status, 200);
+});

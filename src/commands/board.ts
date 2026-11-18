@@ -526,11 +526,12 @@ export function startBoardWith(
         marks.push(`${name} ${Math.round(performance.now() - began)} ms`);
       }
     };
+    // Every source call this read starts settles before it ends, so the next read never overlaps a `gh` or `t3` still running.
+    const github = timed("github", () => src.github(true));
+    const t3 = timed("t3", () => src.t3(true));
+    github.catch(() => {}); // their failure is reported when they are awaited below
+    t3.catch(() => {});
     try {
-      const github = timed("github", () => src.github(true));
-      const t3 = timed("t3", () => src.t3(true));
-      github.catch(() => {});
-      t3.catch(() => {});
       const braids = await timed("braids", () => src.braids());
       const [gh, threads] = [await github, await t3];
       const sig = await timed("signals", () => src.signals(gh));
@@ -545,9 +546,9 @@ export function startBoardWith(
     } catch (error) {
       return { ok: false, error };
     } finally {
+      await Promise.allSettled([github, t3]);
       if (process.env["BRAID_BOARD_TIMINGS"] === "1") {
-        process.stderr.write(`board read: ${marks.join(", ")}
-`);
+        process.stderr.write(`board read: ${marks.join(", ")}\n`);
       }
     }
   };
