@@ -1,81 +1,32 @@
 # Report: 0020/E Skill braid-idea: capture an idea cleanly
 
-## Proposal (waiting for the user's verdict)
+## What changed
 
-The draft skill is `.agents/skills/braid-idea/SKILL.md` on this branch. Below: what it would write from three one-sentence inputs, using this repository's braids.
+- `.agents/skills/braid-idea/SKILL.md` (36 lines), as the user approved on three samples. `$braid-idea <a sentence>` runs these steps:
+  1. Check `braid inbox --ideas --no-fetch`. If `braid` is missing or too old, follow the setup reference and stop.
+  2. Read only `braid list`, the touched briefs and the named files.
+  3. Ask one question only if the idea can't be stated without guessing.
+  4. Write the idea with `braid note --idea --file -` (never a commit in the checkout).
+  5. Show the id and the text, then stop.
 
-### 1. A clear input
+  The idea's shape: a title, the idea restated (when it touches an existing braid, it says what it adds), `Why:`, `Related:`, `Open questions:`, and the user's words quoted, with their answer after "then:" if a question was asked. Empty sections are left out, and there's no plan, tiers or estimates.
+- `test/pester/Install-Skills.Tests.ps1`: the real-repository install now expects `braid-idea` too, and checks that its link to `braid/references/setup.md` resolves where it is installed.
+- `README.md` (the skills sentence and the Skills row), `docs/getting-started.md` (the skills list) and D55 in `docs/decisions.md`, with its log line.
 
-> `$braid-idea braid recap should say how long the item took, from braid start to green CI`
+## Why
 
-No question; the skill reads `braid view 0014` (recap) and writes:
+The user wanted a place to drop an idea without it being forgotten. Capture is a separate small skill so the main skills stay lean.
 
-```markdown
-Recap shows how long an item took
+## Validation
 
-`braid recap` would add one line with the time an item took, from `braid start` to the
-first green CI run on its PR. The user sees at a glance which items ran long.
+- Proposal: the draft and three sample ideas (a clear input, a vague one with one question, and one touching 0012/0009). The user approved them; the verdict is in the log.
+- `pwsh -NoProfile -File scripts/Test-Pester.ps1`: 20 passed. The install test lists `braid-idea` and checks its setup link. It fails on a ref without the skill, because it compares the whole folder list.
+- `npm run verify` passes. It includes the docs gate, which checks the new skill's links.
+- Not tried end to end: the installed `braid` comes from `main` and has no `braid note` yet (the braid's "During this goal").
 
-Related: 0014 braid facts, recap and merge; 0008 Coordinator commands (braid start)
+## Open
 
-Open questions:
-- Wall time, or also the agent's active time?
+- The first real capture can happen only after this goal is merged and installed.
 
-In the user's words: "braid recap should say how long the item took, from braid start to green CI"
-```
-
-### 2. A vague input
-
-> `$braid-idea something to make reviews cheaper`
-
-"Cheaper" could mean money, time or the user's attention, and the idea is different for each, so the skill asks once:
-
-> Cheaper in what: the reviewer model's cost, the time a review round takes, or your own attention on reviews?
-
-User: "the cost, grok-4.6 on high for a two-line fix is overkill". The skill writes:
-
-```markdown
-Cheaper reviews for small changes
-
-A small PR (a few lines, a task or tier S) would get a cheaper review than a large one:
-a lighter model or a lower effort, instead of the reviewer from BRAID.md for every PR.
-
-Why: a full high-effort review of a two-line fix costs more than the change is worth.
-
-Related: BRAID.md `models.reviewer`; .agents/skills/braid-reviewer/SKILL.md
-
-Open questions:
-- What counts as small: lines changed, tier, or kind?
-- Skip the review altogether for the smallest ones?
-
-In the user's words: "something to make reviews cheaper", then: "the cost, grok-4.6 on high for a two-line fix is overkill"
-```
-
-### 3. An input that touches existing braids
-
-> `$braid-idea from the phone I want to start the next item, not just look at the board`
-
-The skill finds 0012 (Board on the phone, Outline: read and act over Tailscale) and 0009 (Board actions), and states how the idea relates to them instead of repeating them:
-
-```markdown
-Start the next item from the phone
-
-From the board on the phone, the user would start the next item (the action behind
-`braid next` and `braid start`), not only see the lanes. 0012 plans the phone layout and
-safe actions over Tailscale; this idea says starting an item is the action that matters
-most there.
-
-Related: 0012 Board on the phone (Outline); 0009 Board actions; 0008 Coordinator commands
-
-Open questions:
-- Should it start the worker thread too, or only mark the item and wait for a coordinator?
-
-In the user's words: "from the phone I want to start the next item, not just look at the board"
-```
-
-## Choices in the draft for the user to judge
-
-- Shape: title, restatement, `Why:`, `Related:`, `Open questions:`, the user's words. Empty sections are left out.
-- When the user answered a question, their answer is quoted too, after "then:".
-- Step 1 runs `braid inbox --ideas --no-fetch` (quick, offline) as the check that `braid` is new enough.
-- The skill doesn't research solutions; it reads only `braid list`, the touched briefs and the named files.
+For later items: none.
+Needs the user: process: a new skill, `braid-idea`, in `.agents/skills/`; the user merges skill changes (AGENTS.md).

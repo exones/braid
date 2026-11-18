@@ -59,9 +59,9 @@ This item's wording and the idea's shape are the user's to choose. Start with a 
 
 ## Completion
 
-- [ ] The proposal (draft SKILL.md and three sample ideas) shown to the user and approved before building, with the verdicts in the log
-- [ ] `.agents/skills/braid-idea/SKILL.md` written as approved: it checks for `braid inbox` first and writes ideas through `braid note --idea`
-- [ ] The installer installs `braid-idea`; covered by a test
-- [ ] `README.md` and `docs/decisions.md` describe it
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The proposal (draft SKILL.md and three sample ideas) shown to the user and approved before building, with the verdicts in the log
+- [x] `.agents/skills/braid-idea/SKILL.md` written as approved: it checks for `braid inbox` first and writes ideas through `braid note --idea`
+- [x] The installer installs `braid-idea`; covered by a test
+- [x] `README.md` and `docs/decisions.md` describe it
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
