@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>braid board – coordinator button mockup (0030)</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#3b5bdb;--chip:#e8ebf3;--rev:#7c3aed;--prog:#2563eb;--done:#16a34a;--lane:#eceef3}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+h2{font-size:13px;margin:0 0 6px;color:var(--mut)}.note{padding:8px 16px;color:var(--mut);font-size:12px}
+.wrap{display:flex;gap:24px;align-items:flex-start;padding:12px 16px;flex-wrap:wrap}
+.frame{background:var(--lane);border-radius:10px;padding:10px}.desk{width:520px}.phone{width:375px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px}
+.id{color:var(--mut);font-size:12px}.t{font-weight:600;margin:2px 0 6px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chip);color:var(--mut)}
+.bar{height:5px;background:var(--chip);border-radius:3px;flex:1;min-width:50px;overflow:hidden}.bar i{display:block;height:100%;background:var(--done)}
+.strand{display:flex;gap:6px;align-items:center;padding:4px 0;font-size:13px;border-top:1px dashed var(--line)}.sid{color:var(--mut);font-size:12px;width:16px}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--prog)}
+.acts{margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+button{font:inherit;font-size:12px;padding:3px 9px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);display:inline-flex;gap:5px;align-items:center}
+.phone button{padding:7px 12px;font-size:13px}
+button.co{border-color:var(--acc);color:var(--acc)}
+.cnt{font-size:12px;color:var(--mut)}.pick{outline:2px solid #f59e0b33}
+</style></head><body>
+<div class="note" id="note"></div><div class="wrap" id="app"></div>
+<script>
+const svg=p=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+const OPEN=svg('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>');
+const CO=svg('<circle cx="12" cy="7" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/><path d="M12 12v3"/>');
+const COS=svg('<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>');
+// variant -> buttons for a braid card (phone shows labels; desktop icon-only unless label variant)
+const V={
+ A:(ph)=>'<button class="co" title="Open the coordinator thread">'+CO+(ph||1?' Coordinator':'')+'</button><button title="Open thread (strand worker)">'+OPEN+(ph?' Open thread':'')+'</button>',
+ B:(ph)=>'<button class="co" title="Coordinator thread">'+CO+(ph?' Coordinator':'')+'</button><button title="Open thread">'+OPEN+(ph?' Open thread':'')+'</button>',
+ C:(ph)=>'<button title="Open the running worker thread">'+OPEN+' Worker</button><button title="Open the coordinator thread">'+CO+' Coordinator</button>'
+};
+const cardEl=(v,ph,c)=>'<div class="card"><div class="row"><span class="id">'+c.id+'</span><span class="badge">tier:M</span></div><div class="t">'+c.t+'</div><div class="row"><div class="bar"><i style="width:'+c.p+'%"></i></div><span class="cnt">'+c.d+'</span></div>'
+ +c.s.map(s=>'<div class="strand"><span class="dot"></span><span class="sid">'+s[0]+'</span><span style="flex:1">'+s[1]+'</span>'+(s[2]?'<button title="Open thread">'+OPEN+(ph?' Open thread':'')+'</button>':'')+'</div>').join('')
+ +'<div class="acts">'+(c.co?V[v](ph):'<button title="Open thread">'+OPEN+(ph?' Open thread':'')+'</button>')+'</div></div>';
+const c9={id:'0009',t:'Sample reports',p:33,d:'1/3',co:1,s:[['A','Report model',1],['B','Report page',1],['C','Report export',0]]};
+const c10={id:'0010',t:'Sample login flow',p:33,d:'1/3',co:1,s:[['A','Login form',0]]};
+const c2={id:'0002',t:'Sample search',p:0,d:'0/2',co:0,s:[['A','Search index',1],['B','Search page',1]]};
+const frame=(v,ph,title,body)=>'<div><h2>'+title+'</h2><div class="frame '+(ph?'phone':'desk')+'">'+body+'</div></div>';
+const all=v=>[c9,c10,c2].map(c=>cardEl(v,0,c)).join(''), allp=v=>[c9,c10,c2].map(c=>cardEl(v,1,c)).join('');
+const notes={
+ A:'A (proposed) · a "Coordinator" button next to Open thread on every braid card that has a coordinator thread (running, else the newest idle one). On the desktop both are small buttons; on the phone both have labels. Strand rows are unchanged. 0009: a strand runs and the coordinator is still reachable. 0010: idle coordinator. 0002: no coordinator thread, so no button.',
+ B:'B · same, but the Needs You row gets the same pair. (Shown with the Needs You item header.)',
+ C:'C · the braid card shows "Worker" instead of "Open thread" so the two are told apart by name, with the coordinator second.'
+};
+const H=location.hash.slice(1)||'A';const v=V[H]?H:'A';
+document.getElementById('note').textContent=notes[v];
+let out=frame(v,0,'Desktop, 520 px',all(v))+frame(v,1,'Phone, 375 px',allp(v));
+if(v==='B'){out='<div>'+frame(v,0,'Needs You row, desktop','<div class="card"><div class="row"><span class="id">0009</span><span class="badge">tier:M</span></div><div class="t">Sample reports</div><div class="cnt">0009/A asks: approve the layout</div><div class="acts">'+V.A(0)+'</div></div>')+'</div>'+frame(v,1,'Needs You row, phone','<div class="card"><div class="row"><span class="id">0009</span></div><div class="t">Sample reports</div><div class="cnt">0009/A asks: approve the layout</div><div class="acts">'+V.A(1)+'</div></div>');}
+document.getElementById('app').innerHTML=out;
+</script></body></html>
