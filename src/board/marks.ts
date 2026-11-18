@@ -5,10 +5,10 @@ import type { Activity, BraidCard, Lane, Need, StrandCard } from "./model.js";
 
 /** The words the board shows for each lane; the stored statuses and internal lanes keep their names. */
 export const LANE_LABEL: Readonly<Record<Lane, string>> = {
-  "To Do": "To Do",
-  "In Progress": "Working",
-  "In Review": "To Review",
   Waiting: "Needs You",
+  "In Review": "To Review",
+  "In Progress": "Working",
+  "To Do": "To Do",
   Done: "Done",
 };
 
@@ -142,4 +142,18 @@ export function cardMarks(card: BraidCard, details = true): Marks {
     }
   }
   return { reasons: [...reasons.values()], review: null, activities: [...activities.values()], done: card.lane === "Done" };
+}
+
+const T3_SEGMENT = /^[\w.%~-]+$/;
+
+/** `t3code://threads/<env>/<thread>` from T3's thread link (`http://127.0.0.1:3773/<env>/<thread>`); null when the link isn't that shape. */
+export function t3codeUrl(link: string): string | null {
+  let path: string;
+  try {
+    path = new URL(link).pathname;
+  } catch {
+    return null;
+  }
+  const m = /^\/([^/]+)\/([^/]+)\/?$/.exec(path);
+  return m !== null && T3_SEGMENT.test(m[1] ?? "") && T3_SEGMENT.test(m[2] ?? "") ? `t3code://threads/${m[1]}/${m[2]}` : null;
 }

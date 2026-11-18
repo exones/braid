@@ -10,11 +10,13 @@ The lanes say what a braid asks of you, not the braid's own status. An item is o
 
 | Lane | In code | Means | Your action | Colour |
 | --- | --- | --- | --- | --- |
-| To Do | `To Do` | not started; `Outline` items show here with a badge | none | light grey |
-| Working | `In Progress` | agents have it: implementing, CI, review, fix rounds, the coordinator planning or waiting for agents | none | blue |
-| To Review | `In Review` | a PR was handed to you: reviewed, green, with a recap | merge, or ask for changes | purple |
 | Needs You | `Waiting` | nothing moves until you act; the card says what is needed in one line | answer | amber |
+| To Review | `In Review` | a PR was handed to you: reviewed, green, with a recap | merge, or ask for changes | purple |
+| Working | `In Progress` | agents have it: implementing, CI, review, fix rounds, the coordinator planning or waiting for agents | none | blue |
+| To Do | `To Do` | not started; `Outline` items show here with a badge | none | light grey |
 | Done | `Done` | merged | none | green |
+
+The lanes stand in this order left to right (`LANES` in `src/board/model.ts`, the same order as the urgency above), on the phone as well. **Done is collapsed**: the lane shows only its count and "Show done". Opened, it lists braids as rows (number, title, the day it became Done), **newest first**, the 10 newest, and "Show more (n)" adds 10 more. "Became Done" is the date of the newest commit that set `status: Done` in the item's brief, read from Git (the brief's history, `git log --follow`, from the commit the brief was read from, else HEAD: the oldest commit of the unbroken run of versions that say `status: Done`; `src/board/done.ts`), so a renamed folder keeps its date, so it needs no GitHub and covers items Done without a PR; it is the commit's committer date, and a result, a miss included, is kept per commit searched for the life of the board process, so an item without a date doesn't run `git log` on every refresh. A braid with strands takes its own Done commit; when its own brief never says Done (its strands did the work), its newest strand's. A Done braid whose date Git doesn't give sorts after the dated ones, highest number first. `doneNewestFirst` and `DONE_PAGE` in `src/board/model.ts` do the ordering and the page size.
 
 The labels live in one place, `LANE_LABEL` in `src/board/marks.ts`. Stored statuses in `brief.md` keep their names (`Outline`, `To Do`, `In Progress`, `Done`). The design is in `braids/0015-needs-you-when-the-coordinator-waits/states.md`.
 
@@ -113,7 +115,7 @@ The page updates every 30 s while it is open, 200 ms after a file under `braids/
 
 ## Actions and the session token
 
-The board can also act, but only through `POST /api/action/<name>`, and only for the page this `braid board` run opened. Actions are registered by name in `src/commands/board.ts` (`Sources.action`); the endpoint itself adds none that changes anything. Today there are two, `merge` and `start` (below). A request is refused with 403 unless it carries this run's token in the `x-braid-token` header, its `Host` is `127.0.0.1:<port>` and any `Origin` it sends is `http://127.0.0.1:<port>`. Unknown names give 404, a body that isn't JSON 400, a body over 64 KB 413, and other methods 405 as before.
+The board can also act, but only through `POST /api/action/<name>`, and only for the page this `braid board` run opened. Actions are registered by name in `src/commands/board.ts` (`Sources.action`); the endpoint itself adds none that changes anything. Today there are three, `merge`, `start` and `open` (`open` on the local listener only; the first two below). On the local listener a request is refused with 403 unless it carries this run's token in the `x-braid-token` header, its `Host` is `127.0.0.1:<port>` and any `Origin` it sends is `http://127.0.0.1:<port>`. Unknown names give 404, a body that isn't JSON 400, a body over 64 KB 413, and other methods 405 as before. The Tailscale listener of `braid board --host` checks identity instead of the token ([On Tailscale](#on-tailscale)).
 
 The token is 24 random bytes, new on every run. The command opens and prints `http://127.0.0.1:<port>/#token=<hex>`: a fragment never goes to a server log or a `Referer`. The page (`web/src/api.ts`) moves it into `sessionStorage`, removes it from the address bar and sends it with `postAction`. It is nowhere else: not in a file, a cookie or a GET URL. A second tab opened without the fragment can't act.
 
@@ -147,9 +149,32 @@ Start is off, and its tooltip reads `Start: <reason>`, when a coordinator thread
 
 ![Started, and Start off with its reason](design/board-screenshots/47-start-disabled.png)
 
+## On the phone
+
+One page serves desktop and phone; below Tailwind's `md` breakpoint (768 px) CSS and small UI changes make it a phone layout, not a second app (screenshots: `docs/design/board-screenshots/63-phone-needs-you.png`, `64-phone-working.png`, `65-phone-done.png`; the approved design is `docs/design/board-mockups/phone-lanes.html`, variant A).
+
+- A **tab bar with counts** (Needs you, Review, Working, To Do, Done) replaces the five columns; one lane shows at a time, Needs You first. **Swiping** left or right changes lane (a horizontal move of over 60 px that is at least twice the vertical one; a touch starting within 30 px of the screen's left or right edge is the browser's back or forward gesture and is ignored). The Done tab works as on desktop: collapsed, then the 10 newest and Show more.
+- Buttons are at least 44 px high and wide, and each shows its icon with a short label: Start, Merge, Open thread (the desktop keeps 24 px icon buttons with tooltips).
+- **Open thread is a link** to the thread's `t3code://threads/<env>/<thread>` app link (`t3codeUrl` in `src/board/marks.ts`), opened by the phone's own T3 app, not the `open` action, which opens the app on the machine running the board. A thread link that isn't of that shape shows no link there and falls back to the button; over Tailscale the button isn't there (below).
+- The item page becomes one column, and the header wraps. Answering a request still happens in the coordinator's thread: the board has no Answer or Approve button.
+
+## On Tailscale
+
+`braid board --host <address>` also serves the board on this machine's Tailscale address, so the user can open it on their phone (D60). It is opt-in and never on all networks: the address must be `tailscale` (the IPv4 Tailscale address), one of this machine's Tailscale IPs, or its MagicDNS name, all read from `tailscale status --json` at start (`src/board/tailnet.ts`). `0.0.0.0`, `::`, a LAN or public address, `127.0.0.1` or another name are refused with the reason, and so is a start when Tailscale is down, logged out or has no address, or when this machine is a tagged node (no user owns it): nothing listens then. The `127.0.0.1` board stays as it is, token and all; the Tailscale listener is a second one, on the local port number when it is free there, else on a free port. The local port is random per run, so the phone URL changes with it; `--port <n>` puts both listeners on port `n` (a number from 1 to 65535, nothing is remembered in `.braid/`), and a port in use on either address is refused with a message and nothing keeps listening. `--port` also works without `--host`. The command prints `On Tailscale: http://<MagicDNS name>:<port>/` and the login that may use it. There is no HTTPS: inside the tailnet WireGuard encrypts the traffic, and the browser shows "Not secure".
+
+On the Tailscale listener every request, the page, the board data, the refresh events and the actions alike, is checked in this order:
+
+1. **Who.** braid asks tailscaled `tailscale whois --json <ip>:<port>` of the connection. It is allowed only when the peer's `UserProfile.LoginName` is the login that owns this machine (`User[Self.UserID]` in `tailscale status`) and the peer node has no tags. Another user of a shared tailnet, a shared-in node, a tagged node, an unknown peer, tailscaled stopped or logged out, unreadable output or a whois slower than 3 s: 403. An answer is kept 5 s per remote address. The refresh stream is checked when it opens; it carries only "refresh" and no data.
+2. **Host.** `Host` must be this listener's address or MagicDNS name with its port (`pc.tail1234.ts.net:<port>`), which stops DNS rebinding: 403 otherwise.
+3. **Actions** also need a matching `Origin` when one is sent (`http://<Host>`) and the `x-braid-request: 1` header that every board page sends. A page on another site can't send that header without a CORS preflight, and the board answers none (`OPTIONS` is 405), so another page open on the phone can't act through the board. The local token isn't used there: the page on Tailscale is another origin and never sees it.
+
+**Remote.** `GET /api/board` carries `remote: true` on this listener and `false` on the local one; the page decides from it, not from its address, whether to offer the server-side Open thread button. A local board opened as `http://localhost:<port>` keeps that button (its actions are still refused for that Host).
+
+Start and Merge work over Tailscale as on the PC. The `open` action is refused (403): it would open T3 on the machine running the board. On a page that came over Tailscale, Open thread is only the thread's `t3code://threads/<env>/<thread>` app link, at every width, opened by the T3 app on the phone; a thread link of another shape shows nothing there. T3's mobile app registers the `t3code` scheme and routes `threads/:environmentId/:threadId` to the thread, so the link opens the thread when the phone's T3 app is connected to this machine's T3 environment.
+
 ## Demo
 
-`braid board --demo` serves built-in sample braids (`src/board/demo.ts`) with faked GitHub, T3 and requests, so every lane, request kind, alarm and icon shows. It reads no repository, `gh` or `t3`, and writes nothing (not even the broke clock). It accepts every action with the token and fakes the result (`{ ok: true, demo: true }`), so the action states can be shown. `--demo-t3-down` shows the note for T3 not running. The screenshots in `docs/design/board-screenshots/` come from it; the mockups the user approved are in `docs/design/board-mockups/` (`needs-you.html`, screens 21 to 28).
+`braid board --demo` serves built-in sample braids (`src/board/demo.ts`) with faked GitHub, T3 and requests, so every lane, request kind, alarm and icon shows, and enough Done braids (12, set Done on different days) to show Show more. It reads no repository, `gh` or `t3`, and writes nothing (not even the broke clock). It accepts every action with the token and fakes the result (`{ ok: true, demo: true }`), so the action states can be shown. `--demo-t3-down` shows the note for T3 not running. The screenshots in `docs/design/board-screenshots/` come from it; the mockups the user approved are in `docs/design/board-mockups/` (`needs-you.html`, screens 21 to 28).
 
 ## Changing the board
 
