@@ -24,7 +24,11 @@ name: CI
 # PR branches are covered by pull_request; push runs only for the shared branches
 # (braid/* is a braid branch; its strands, braid/<n>/<letter>-<slug>, don't match),
 # so one push to a strand's PR branch doesn't run the suite twice (a story's does). A push that only changes
-# epics/ (past records) or braids/ (briefs and logs) skips CI; pull requests always run.
+# epics/ (past records) or braids/ (briefs and logs) skips CI. Pull requests always start the job, so the
+# `verify` checks report on every head, but the "Decide fast path" step lets a braids-only update pass in
+# seconds (D58): when the whole PR diff is under braids/ or epics/, or when the commits since the previous
+# head (github.event.before) are, and that previous head has a successful check run with this job's name.
+# Any error while deciding runs the full suite. checks: read is for that check-run lookup.
 on:
   push:
     branches: [main, 'braid/*']
@@ -34,6 +38,7 @@ on:
 permissions:
   contents: read
   actions: write
+  checks: read
 
 defaults:
   run:
@@ -52,8 +57,64 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Decide fast path
+        id: fast
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          REPO: ${{ github.repository }}
+          JOB_NAME: verify (${{ matrix.os }})
+        run: |
+          # Prints why it skips or doesn't. Any failure leaves skip=false (full suite).
+          $skip = 'false'
+          function Test-OnlyBraids([string[]]$files) {
+            return ($files.Count -gt 0) -and -not ($files | Where-Object { $_ -notmatch '^(braids|epics)/' })
+          }
+          try {
+            if ($env:EVENT -ne 'pull_request') {
+              Write-Output "Full suite: event is $($env:EVENT), not pull_request."
+            } else {
+              $all = @(git diff --name-only "$($env:BASE_SHA)...$($env:HEAD_SHA)")
+              if ($LASTEXITCODE -ne 0) { throw 'git diff against the base failed' }
+              if (Test-OnlyBraids $all) {
+                $skip = 'true'
+                Write-Output "Fast path: the PR changes only braids/ and epics/ against base $($env:BASE_SHA)."
+              } elseif ($env:ACTION -ne 'synchronize') {
+                Write-Output "Full suite: PR changes code and the action is '$($env:ACTION)', not synchronize."
+              } else {
+                $before = $env:BEFORE_SHA
+                $since = @(git diff --name-only "$before" "$($env:HEAD_SHA)")
+                if ($LASTEXITCODE -ne 0) { throw "git diff from $before failed (force-push or missing commit)" }
+                if (-not (Test-OnlyBraids $since)) {
+                  Write-Output "Full suite: changes since $before include files outside braids/ and epics/ (or none)."
+                } else {
+                  $ok = gh api "repos/$($env:REPO)/commits/$before/check-runs?per_page=100" `
+                    --jq "[.check_runs[] | select(.name == `"$($env:JOB_NAME)`" and .conclusion == `"success`")] | length"
+                  if ($LASTEXITCODE -ne 0) { throw 'check-runs API call failed' }
+                  if ([int]$ok -gt 0) {
+                    $skip = 'true'
+                    Write-Output "Fast path: only braids/ and epics/ changed since $before, which has a successful '$($env:JOB_NAME)' check."
+                  } else {
+                    Write-Output "Full suite: $before has no successful '$($env:JOB_NAME)' check."
+                  }
+                }
+              }
+            }
+          } catch {
+            $skip = 'false'
+            Write-Output "Full suite: could not decide ($($_.Exception.Message))."
+          }
+          "skip=$skip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Require PowerShell 7.6
+        if: steps.fast.outputs.skip != 'true'
         shell: pwsh
         run: |
           $version = $PSVersionTable.PSVersion
@@ -64,6 +125,7 @@ jobs:
           }
 
       - name: Require Pester 5.5
+        if: steps.fast.outputs.skip != 'true'
         shell: pwsh
         run: |
           if (-not (Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -ge [version]'5.5.0' })) {
@@ -72,6 +134,7 @@ jobs:
           Get-Module -ListAvailable -Name Pester | Sort-Object Version -Descending | Select-Object -First 1 Name, Version
 
       - name: Setup Node.js 26
+        if: steps.fast.outputs.skip != 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26"
@@ -79,10 +142,12 @@ jobs:
           cache: npm
 
       - name: Install dependencies
+        if: steps.fast.outputs.skip != 'true'
         shell: pwsh
         run: npm ci
 
       - name: Verify
+        if: steps.fast.outputs.skip != 'true'
         shell: pwsh
         env:
           BRAID_REQUIRE_CLEAN: "1"
@@ -90,6 +155,7 @@ jobs:
         run: npm run verify:full
 
       - name: Upload packed tarball
+        if: steps.fast.outputs.skip != 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: braid-package-${{ matrix.os }}
