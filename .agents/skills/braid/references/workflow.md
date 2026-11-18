@@ -1,6 +1,6 @@
 # Braid workflow
 
-How work is organized in a project that uses braid: what an item is, who writes where, who sets Done, which branches and PRs each case has, the tiers and who merges. Project values (gate, main branch, models) come from `BRAID.md`; this file never overrides them. Fields and commands are in [the brief template](../assets/brief.md); the coordinator's steps are in [the skill](../SKILL.md).
+How work is organized in a project that uses braid: what an item is, who writes where, who sets Done, where gaps go, which branches and PRs each case has, the tiers and who merges. Project values (gate, main branch, models) come from `BRAID.md`; this file never overrides them. Fields and commands are in [the brief template](../assets/brief.md); the coordinator's steps are in [the skill](../SKILL.md).
 
 ## Items are braids
 
@@ -27,6 +27,29 @@ Each branch has one writer, and its copy of a brief is the truth on that branch.
 
   `braid accept` checks the PR first (base, reviewed head, `ci` checks, mergeable, Completion boxes ticked, `report.md`, no running worker); a refusal names the condition that failed and changes nothing.
 - So a brief changes on `main` only by merging a PR, and a strand shows `Done` on its braid branch once it is merged.
+- The exception is the inbox branch `braid-inbox`: only braid commands write it (`braid note` and `braid inbox take|pass|drop|reopen`), each as one commit pushed at once, from any thread or worktree. Nobody commits to it by hand.
+
+## Gaps and the inbox
+
+A gap found during an item is routed by this table, without asking the user. The inbox holds two kinds of entry: **leftovers** (gaps no PR fixed) and **ideas** (the user's thoughts for later).
+
+| Found when | Goes to |
+| --- | --- |
+| Blocking | the same PR |
+| Non-blocking, small, in files the PR already touches, before merge | the same PR, if the coordinator decides so |
+| Anything else: non-blocking findings, unfinished bits, `For later items:` gaps | a leftover |
+| The user's side observation while an item runs | an idea if it is new, a leftover if it is about the work at hand |
+
+A leftover is read later by an agent who never saw the item. Write a title line, then two to five lines: what is wrong or missing, where (files, functions), and why it matters. Always give `--from`, and `--ref` with the review comment or PR link when there is one. Never a bare pointer such as "see the report".
+
+```sh
+'Retry the fetch in braid start
+
+startCommand (src/commands/start.ts) gives up on the first network error, so a flaky
+connection fails the whole start. One retry with a short wait would cover it.' | braid note --from 'review 0008/B' --ref <comment url> --file -
+```
+
+Ideas are written as the `braid-idea` skill describes. They never expire and are never proposed for review; only the user drops one or asks for it to become braids. Leftovers are emptied in batches by a sweep (the skill, "Sweep").
 
 ## Branches per case
 
