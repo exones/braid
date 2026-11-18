@@ -35,9 +35,10 @@ Expected size: about 100 lines in 4 files, with tests.
 
 ## Completion
 
-- [ ] Start on a braid in `braids/` without a braid branch starts from the main branch on `coordinator/<n>-<slug>`, and its first message says to detail or run the existing item (tested)
-- [ ] A taken branch name gets a suffix; Start never passes T3 an existing branch (tested with a fake `git`/`t3`)
-- [ ] Start's branch comes from `origin/<main>` (or `origin/<braid branch>`) after a fetch, not from the local branch (tested)
-- [ ] `braid clean` removes a merged `plan/` branch and its clean worktree, and skips a dirty or busy one (tested)
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Start on a braid in `braids/` without a braid branch starts from the main branch on `coordinator/<n>-<slug>`, and its first message says to detail or run the existing item (tested)
+- [x] A taken branch name gets a suffix; Start never passes T3 an existing branch (tested with a fake `git`/`t3`)
+- [x] Start's branch comes from `origin/<main>` (or `origin/<braid branch>`) after a fetch, not from the local branch (tested)
+- [x] `braid clean` removes a merged `plan/` branch and its clean worktree, and skips a dirty or busy one (tested)
+- [x] The gate command from BRAID.md passes
+- [x] Open thread shows for an item's idle, non-archived thread (tested)
+- [x] report.md written: what changed, why, validation, anything open

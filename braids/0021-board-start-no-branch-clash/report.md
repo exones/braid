@@ -5,6 +5,7 @@
 - Start's branch is always `coordinator/<n>-<slug>`: every braid on the board is already in `braids/`, so the `plan/<slug>` branch is gone. With a braid branch it starts from `origin/braid/…`; without one, from `origin/<main>`, and the first message says the item exists and is to be detailed or run, not planned again.
 - Before launching, Start runs `git fetch origin`, checks the base exists, lists local and remote branches and adds `-2`, `-3`, … to a taken name. A failed fetch, missing base or failed listing refuses with `Start: <reason>`; nothing is launched.
 - `braid clean` also removes merged `plan/<slug>` branches and their worktree when clean; it skips a dirty, busy or checked-out one and says so.
+- Open thread (added by the user): `src/board/t3.ts` now keeps non-archived threads that aren't running too, in `idle` (per item) and `idleCoordinators` (per braid). A card or strand's `thread` is the running agent's, else the newest idle thread; a braid's `coordinator` link is its running, else idle, coordinator. Lanes, Working, `braid accept`, pending questions and Start's "a coordinator is running" still read running threads only (the new maps are separate). The demo has an idle worker on 0002/B and an idle coordinator on 0010.
 - Docs: `docs/board.md`, `docs/cli.md`, D52. The Start dialog's base line no longer says "plans on plan/…".
 
 ## Why
@@ -16,6 +17,9 @@ The first real Start (0020) failed in T3 on the leftover `plan/gap-inbox`, and 0
 `test/board-start.test.ts` (fake git/t3: fetch order, origin bases, suffixes, refusals, message) and `test/start.test.ts` (real repo: clean of plan branches). `npm run verify` passes.
 
 ## Open
+
+I couldn't see how `t3 thread list` marks an archived thread; the board treats `archived: true`, a non-null `archivedAt` or status `archived` as archived. The idle read costs one `t3 thread show` per non-archived thread.
+
 
 A braid branch that exists only locally falls back to the local branch as base. Start's check and the `git worktree add` are not atomic (a branch created in between still clashes).
 

@@ -152,15 +152,15 @@ test("a coordinator on a braid branch with strands is no agent; a story's own wo
   assert.deepEqual([story.lane, story.running, story.activity], ["In Progress", true, "agent"]);
 });
 
-test("a thread is shown once per refresh while it runs; other threads never", async () => {
+test("a thread that is not archived is shown once per refresh, running or idle (an idle one is opened, not counted as an agent)", async () => {
   const calls: string[] = [];
   const root = files();
   const { get } = await start(root, t3Stub(root, calls));
   await get("api/board?fresh=1");
   await get("api/board?fresh=1");
   const shows = calls.filter((c) => c.startsWith("thread show"));
-  assert.equal(shows.filter((c) => c.includes("t-stop")).length, 0);
-  assert.equal(shows.filter((c) => c.includes("t-done")).length, 0);
+  assert.equal(shows.filter((c) => c.includes("t-stop")).length, 2);
+  assert.equal(shows.filter((c) => c.includes("t-done")).length, 2);
   assert.equal(shows.filter((c) => c.includes("t-run ")).length, 2);
 });
 

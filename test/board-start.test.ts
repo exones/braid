@@ -239,3 +239,41 @@ test("a running thread titled `<repo> <number> coordinator: …` is that braid's
   const read = await t3.readT3(root, { run, ttlMs: 0, agents: join(scratch, "agents"), project: root });
   assert.deepEqual([...read.coordinators], [["0012", { id: "c1", link: "http://t3/c1", provider: "Claude_Everix", model: "claude-opus-5-5" }]]);
 });
+
+test("Open thread: an idle, non-archived thread of an item or a braid's coordinator is kept for opening, a running one wins, an archived one is dropped", async () => {
+  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<{ coordinators: Map<string, unknown>; idleCoordinators: Map<string, { id: string }>; threads: Map<string, { id: string }[]>; idle: Map<string, { id: string; link: string | null }[]> }> };
+  const root = join(scratch, "demo");
+  const agents = join(scratch, "agents-idle");
+  const where: Record<string, string> = { w1: join(agents, "0020-A"), w2: join(agents, "0020-A"), w3: join(agents, "0020-B"), w4: join(agents, "0020-B") };
+  const listed = [
+    { threadId: "w1", status: "running", link: "http://t3/w1" },
+    { threadId: "w2", status: "completed", link: "http://t3/w2" },
+    { threadId: "w3", status: "idle", link: "http://t3/w3" },
+    { threadId: "w4", status: "idle", archived: true, link: "http://t3/w4" },
+    { threadId: "c1", status: "idle", title: "demo 0020 coordinator: Sample", link: "http://t3/c1" },
+    { threadId: "c2", status: "idle", archivedAt: "2026-11-18T00:00:00Z", title: "demo 0021 coordinator: Sample", link: "http://t3/c2" },
+  ];
+  const run = (_root: string, args: readonly string[]): Promise<Result> => {
+    const id = args[2] ?? "";
+    const out = args[1] === "list" ? listed : { thread: { worktreePath: where[id] ?? null, pendingRequestCount: 0 } };
+    return Promise.resolve({ status: 0, stdout: JSON.stringify(out), stderr: "" });
+  };
+  const read = await t3.readT3(root, { run, ttlMs: 0, agents, project: root });
+  assert.deepEqual(read.threads.get("0020/A")?.map((t) => t.id), ["w1"]);
+  assert.deepEqual(read.idle.get("0020/A")?.map((t) => t.id), ["w2"]);
+  assert.deepEqual(read.idle.get("0020/B")?.map((t) => [t.id, t.link]), [["w3", "http://t3/w3"]]);
+  assert.equal(read.threads.has("0020/B"), false, "an idle thread is no running agent");
+  assert.deepEqual([...read.idleCoordinators.keys()], ["0020"]);
+  assert.equal(read.coordinators.size, 0);
+});
+
+test("the card opens an idle worker thread and an idle coordinator, and Start stays off only for a running coordinator", async () => {
+  assert.equal((await card("0002")).coordinator, null);
+  const strand = (await cards()).find((c) => c.id === "0002") as unknown as { strands: { id: string; thread: string | null; running: boolean }[] };
+  const b = strand.strands.find((s) => s.id === "0002/B");
+  assert.equal(b?.thread, "https://t3.example/thread/demo-8");
+  assert.equal(b?.running, false);
+  const idle = await card("0010");
+  assert.equal(idle.coordinator?.link, "https://t3.example/thread/demo-9");
+  assert.equal((await card("0011")).start.reason, "a coordinator for this braid is running");
+});
