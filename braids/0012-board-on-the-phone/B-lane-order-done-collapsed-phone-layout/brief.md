@@ -1,7 +1,7 @@
 ---
 id: '0012/B'
 title: "Lane order, Done collapsed, phone layout"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: ['0012/A']
 order: 20
