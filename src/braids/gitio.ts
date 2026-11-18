@@ -9,12 +9,20 @@ export interface GitOut {
 }
 
 /** Told of every `git` process started here (its arguments), for tests. */
-let spy: ((args: readonly string[]) => void) | undefined;
+let spy: ((args: readonly string[], sync?: boolean) => void) | undefined;
 
 /** Sets or clears the observer of the processes started here, for tests. */
-export function spyOnGit(observer: ((args: readonly string[]) => void) | undefined): void {
+export function spyOnGit(observer: ((args: readonly string[], sync?: boolean) => void) | undefined): void {
   spy = observer;
 }
+
+/** Tells the observer a synchronous `git` process starts (the synchronous readers call this), for tests. */
+export function noteSyncGit(args: readonly string[]): void {
+  spy?.(args, true);
+}
+
+/** How long `git cat-file --batch` may run before it is killed. */
+export const BATCH_TIMEOUT_MS = 60_000;
 
 /** Runs `git` in `root` without blocking; never rejects. */
 export function gitAsync(root: string, args: readonly string[], env?: NodeJS.ProcessEnv): Promise<GitOut> {
@@ -36,18 +44,32 @@ export function gitAsync(root: string, args: readonly string[], env?: NodeJS.Pro
  * The texts of these objects (`<commit>:<path>` or a blob id), read through one `git cat-file --batch`
  * process; null for one that is missing or when Git fails.
  */
-export function catBatch(root: string, specs: readonly string[]): Promise<(string | null)[]> {
+export function catBatch(root: string, specs: readonly string[], timeoutMs: number = BATCH_TIMEOUT_MS, command: readonly string[] = ["git", "cat-file", "--batch"]): Promise<(string | null)[]> {
   if (specs.length === 0) {
     return Promise.resolve([]);
   }
   spy?.(["cat-file", "--batch"]);
-  return new Promise((done) => {
-    const child = spawn("git", ["cat-file", "--batch"], { cwd: root, windowsHide: true, stdio: ["pipe", "pipe", "ignore"] });
+  return new Promise((done, reject) => {
+    let failed = false;
+    const child = spawn(command[0] ?? "git", command.slice(1), { cwd: root, windowsHide: true, stdio: ["pipe", "pipe", "ignore"] });
     const chunks: Buffer[] = [];
+    // A hung git ends the read with an error (the board shows it) instead of waiting forever.
+    const timer = setTimeout(() => {
+      failed = true;
+      child.kill();
+      reject(new Error(`git cat-file --batch timed out after ${timeoutMs} ms`));
+    }, timeoutMs);
     child.stdout.on("data", (c: Buffer) => chunks.push(c));
     child.stdin.on("error", () => {});
-    child.on("error", () => done(specs.map(() => null)));
+    child.on("error", () => {
+      clearTimeout(timer);
+      done(specs.map(() => null));
+    });
     child.on("close", () => {
+      clearTimeout(timer);
+      if (failed) {
+        return;
+      }
       const all = Buffer.concat(chunks);
       const out: (string | null)[] = [];
       let at = 0;

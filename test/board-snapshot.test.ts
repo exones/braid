@@ -179,3 +179,20 @@ test("Open thread with thread: coordinator takes the coordinator link from the s
   await assert.rejects(run({ id: "0010/A", thread: "coordinator" }), /is a strand; only a braid has a coordinator thread/);
   await assert.rejects(run({ id: "0010", thread: "worker" }), /thread can only be "coordinator"/);
 });
+
+test("Open thread with a link in the snapshot doesn't reload the braids", async () => {
+  const base = board.demoSources();
+  let loads = 0;
+  const src: Sources = { ...base, braids: () => (loads++, base.braids()) };
+  const opened: string[] = [];
+  const { token, url, timed } = await serve({
+    ...src,
+    action: (name) => (name === "open" ? (body, snap) => board.openAction(src, (u) => (opened.push(u), Promise.resolve()))(body, snap) : undefined),
+  });
+  assert.equal((await timed("api/board")).response.status, 200);
+  const before = loads;
+  const open = await fetch(`${url}api/action/open`, { method: "POST", headers: { "x-braid-token": token, "content-type": "application/json" }, body: JSON.stringify({ id: "0002/A" }) });
+  assert.equal(open.status, 200);
+  assert.deepEqual(opened, ["t3code://threads/thread/demo-1"]);
+  assert.equal(loads, before, "the braids weren't loaded again");
+});

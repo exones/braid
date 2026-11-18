@@ -1,7 +1,7 @@
 ---
 id: '0031'
 title: "Sweep: board snapshot follow-ups"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M", "sweep"]
 dependencies: []
 delivery: epic
@@ -18,6 +18,14 @@ Expected size: about 200 lines in 7 files, tests included.
 - `braids/0028-board-fast-first-open-and-fast-item-open/report.md` and `docs/decisions.md` D64: what the snapshot does.
 - `src/commands/board.ts` (`openAction`, the snapshot holder), `src/braids/gitio.ts` (`catBatch`, `gitAsync`), `src/board/model.ts` (`toDetail`), `src/board/signals.ts`, `src/braids/requests.ts`.
 - `BRAID_BOARD_TIMINGS=1` (docs/board.md, Refresh) to time a read.
+
+## Plan
+
+1. docs/board.md: Open thread from the snapshot.
+2. catBatch: timeout, kill, reject.
+3. prefetchLive: also report.md and log files.
+4. openAction: use the snapshot card; load braids only as fallback.
+5. Measure signals; keep sync if under 100 ms.
 
 ## Change
 
@@ -40,10 +48,10 @@ The leftovers taken, each as written, with source and link:
 
 ## Completion
 
-- [ ] docs/board.md describes Open thread as taking the link from the snapshot
-- [ ] A test shows a hung `git cat-file --batch` ends the read with an error after the timeout and the process is killed
-- [ ] A test shows opening a branch-sourced item's detail runs no synchronous `git`
-- [ ] A test shows Open thread with a link in the snapshot doesn't reload the braids
-- [ ] The signals read is async, or report.md gives its measured time and why it stays
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] docs/board.md describes Open thread as taking the link from the snapshot
+- [x] A test shows a hung `git cat-file --batch` ends the read with an error after the timeout and the process is killed
+- [x] A test shows opening a branch-sourced item's detail runs no synchronous `git`
+- [x] A test shows Open thread with a link in the snapshot doesn't reload the braids
+- [x] The signals read is async, or report.md gives its measured time and why it stays
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
