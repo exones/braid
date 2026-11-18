@@ -24,28 +24,26 @@ const svg=p=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke
 const OPEN=svg('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>');
 const CO=svg('<circle cx="12" cy="7" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/><path d="M12 12v3"/>');
 const COS=svg('<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>');
-// variant -> buttons for a braid card (phone shows labels; desktop icon-only unless label variant)
-const V={
- A:(ph)=>'<button class="co" title="Open the coordinator thread">'+CO+(ph||1?' Coordinator':'')+'</button><button title="Open thread (strand worker)">'+OPEN+(ph?' Open thread':'')+'</button>',
- B:(ph)=>'<button class="co" title="Coordinator thread">'+CO+(ph?' Coordinator':'')+'</button><button title="Open thread">'+OPEN+(ph?' Open thread':'')+'</button>',
- C:(ph)=>'<button title="Open the running worker thread">'+OPEN+' Worker</button><button title="Open the coordinator thread">'+CO+' Coordinator</button>'
-};
-const cardEl=(v,ph,c)=>'<div class="card"><div class="row"><span class="id">'+c.id+'</span><span class="badge">tier:M</span></div><div class="t">'+c.t+'</div><div class="row"><div class="bar"><i style="width:'+c.p+'%"></i></div><span class="cnt">'+c.d+'</span></div>'
- +c.s.map(s=>'<div class="strand"><span class="dot"></span><span class="sid">'+s[0]+'</span><span style="flex:1">'+s[1]+'</span>'+(s[2]?'<button title="Open thread">'+OPEN+(ph?' Open thread':'')+'</button>':'')+'</div>').join('')
- +'<div class="acts">'+(c.co?V[v](ph):'<button title="Open thread">'+OPEN+(ph?' Open thread':'')+'</button>')+'</div></div>';
+const open=(ph)=>'<button title="Open thread" aria-label="Open thread">'+OPEN+(ph?' Open thread':'')+'</button>';
+const co=(ph)=>'<button class="co" title="Open the coordinator thread" aria-label="Open the coordinator thread">'+CO+(ph?' Coordinator':'')+'</button>';
+// rule: braid with strands -> bottom row is only the compact Coordinator button (strand rows keep their own Open thread);
+// story (no strands) -> Open thread (its worker) + Coordinator
+const cardEl=(ph,c)=>'<div class="card"><div class="row"><span class="id">'+c.id+'</span><span class="badge">tier:M</span></div><div class="t">'+c.t+'</div>'+(c.s.length?'<div class="row"><div class="bar"><i style="width:'+c.p+'%"></i></div><span class="cnt">'+c.d+'</span></div>':'')
+ +c.s.map(s=>'<div class="strand"><span class="dot"></span><span class="sid">'+s[0]+'</span><span style="flex:1">'+s[1]+'</span>'+(s[2]?open(ph):'')+'</div>').join('')
+ +(c.co||!c.s.length?'<div class="acts">'+(c.s.length?'':open(ph))+(c.co?co(ph):'')+'</div>':'')+'</div>';
 const c9={id:'0009',t:'Sample reports',p:33,d:'1/3',co:1,s:[['A','Report model',1],['B','Report page',1],['C','Report export',0]]};
 const c10={id:'0010',t:'Sample login flow',p:33,d:'1/3',co:1,s:[['A','Login form',0]]};
 const c2={id:'0002',t:'Sample search',p:0,d:'0/2',co:0,s:[['A','Search index',1],['B','Search page',1]]};
-const frame=(v,ph,title,body)=>'<div><h2>'+title+'</h2><div class="frame '+(ph?'phone':'desk')+'">'+body+'</div></div>';
-const all=v=>[c9,c10,c2].map(c=>cardEl(v,0,c)).join(''), allp=v=>[c9,c10,c2].map(c=>cardEl(v,1,c)).join('');
+const c11={id:'0011',t:'Sample story (no strands)',p:0,d:'',co:1,s:[]};
+const frame=(ph,title,body)=>'<div><h2>'+title+'</h2><div class="frame '+(ph?'phone':'desk')+'">'+body+'</div></div>';
+const cards=ph=>[c9,c10,c2,c11].map(c=>cardEl(ph,c)).join('');
+const need=(ph,c,msg)=>'<div class="card"><div class="row"><span class="id">'+c.id+'</span></div><div class="t">'+c.t+'</div><div class="cnt">'+msg+'</div><div class="acts">'+(c.s.length?'':open(ph))+co(ph)+'</div></div>';
 const notes={
- A:'A (proposed) · a "Coordinator" button next to Open thread on every braid card that has a coordinator thread (running, else the newest idle one). On the desktop both are small buttons; on the phone both have labels. Strand rows are unchanged. 0009: a strand runs and the coordinator is still reachable. 0010: idle coordinator. 0002: no coordinator thread, so no button.',
- B:'B · same, but the Needs You row gets the same pair. (Shown with the Needs You item header.)',
- C:'C · the braid card shows "Worker" instead of "Open thread" so the two are told apart by name, with the coordinator second.'
+ A:"A (proposed, per the user): braid card. With strands (0009, 0010, 0002) the bottom row is only the Coordinator button, as compact as a strand row's Open thread: icon-only with a tooltip on the desktop, icon plus label on the phone (like the strand buttons there). Each strand row keeps its own Open thread. No button when the braid has no coordinator thread (0002). A story with no strands (0011) keeps Open thread (its worker) plus Coordinator.",
+ B:"B: the Needs You row, same rule: 0009 (strands) shows only Coordinator; story 0011 shows Open thread plus Coordinator."
 };
-const H=location.hash.slice(1)||'A';const v=V[H]?H:'A';
+const H=location.hash.slice(1)||'A';const v=notes[H]?H:'A';
 document.getElementById('note').textContent=notes[v];
-let out=frame(v,0,'Desktop, 520 px',all(v))+frame(v,1,'Phone, 375 px',allp(v));
-if(v==='B'){out='<div>'+frame(v,0,'Needs You row, desktop','<div class="card"><div class="row"><span class="id">0009</span><span class="badge">tier:M</span></div><div class="t">Sample reports</div><div class="cnt">0009/A asks: approve the layout</div><div class="acts">'+V.A(0)+'</div></div>')+'</div>'+frame(v,1,'Needs You row, phone','<div class="card"><div class="row"><span class="id">0009</span></div><div class="t">Sample reports</div><div class="cnt">0009/A asks: approve the layout</div><div class="acts">'+V.A(1)+'</div></div>');}
-document.getElementById('app').innerHTML=out;
+document.getElementById('app').innerHTML=v==='A'?frame(0,'Desktop, 520 px',cards(0))+frame(1,'Phone, 375 px',cards(1)):
+ frame(0,'Needs You row, desktop',need(0,c9,'0009/A asks: approve the layout')+need(0,c11,'asks: approve the plan'))+frame(1,'Needs You row, phone',need(1,c9,'0009/A asks: approve the layout')+need(1,c11,'asks: approve the plan'));
 </script></body></html>
