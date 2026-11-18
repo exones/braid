@@ -23,7 +23,7 @@ A link lives only in the brief that makes it, since the other braid's brief belo
 
 - A braid CLI older than this change fails `braid check` and every read of a brief with `related` (`unknown key: related`). Fix: update the installed CLI before 0027/C's skills start writing links.
 - Decision number D61, not D59: the open braid 0012 already uses D59 and D60 on its branch.
-- `braid view` on a braid now runs the Git reads of `braid list --open` (no fetch); on this repository it stays well under a second, but it is more than before.
+- `braid view` on a braid now runs the Git reads of `braid list --open` (no fetch) for `Linked from:`: on this repository `braid view 0027` went from about 0.4 s to 3.4 s, the same as `braid list --open --no-fetch`. A strand's view is unchanged.
 
-For later items: none
+For later items: a faster reader of the open braids' briefs (only `brief.md` per braid, fewer Git calls) would bring `braid view` and `braid list --open` back under a second.
 Needs the user: none
