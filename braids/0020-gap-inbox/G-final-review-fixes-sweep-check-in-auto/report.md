@@ -6,7 +6,7 @@
 
 ## Decisions
 
-- The check runs at the start of each write attempt, before any fetch, inside the lock.
+- The check runs once per write, before the retry loop and before any fetch, inside the lock.
 
 ## Validation
 

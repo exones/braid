@@ -27,7 +27,7 @@ Then:
 
 1. Post a PR comment with the commit, the review link, the checks, the four Needs the user sources and "merged by braid auto mode".
 2. Merge with `braid accept <id> --head <sha> --review <link> --thread <your thread id> --merge --log -`. It checks conditions 2, 4, 5 and 7 again, merges and stamps Done.
-3. Tell the user in one line, and do "After the merge" in the skill. Auto mode runs no handover or recap, so check the inbox here: read the `Inbox:` line of `braid list` (or the draft of `braid recap <id>`). At 3 or more open leftovers, propose the sweep as the skill's "Sweep" says, on the braid's number, while the strands go on.
+3. Tell the user in one line, and do "After the merge" in the skill. Auto mode runs no handover or recap, so check the inbox here: read the `Inbox:` line of `braid list` (or the draft of `braid recap <id>`). At 3 or more open leftovers, propose the sweep as the skill's "Sweep" says, on the braid's number, while the strands go on, unless a sweep proposal is already open (an open request on the braid) or a sweep story is pending, in which case a later proposal adds to it as the skill's "Sweep" step 4 says.
 4. Before the next item, wait until the braid branch's CI is green on the merge commit (`gh run list --commit <sha>`). If it is red, follow "Fixes" in the skill.
 
 ## Stopping
