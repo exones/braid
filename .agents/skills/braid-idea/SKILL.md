@@ -22,7 +22,8 @@ Short and readable: no plan, strands, tiers or estimates. It is a seed, not a br
 ```markdown
 <Title: the idea in a few words>
 
-<The idea restated clearly in two to four sentences: what would be different for the user.>
+<The idea restated clearly in two to four sentences: what would be different for the user.
+When it touches an existing braid, say what it adds to it instead of repeating it.>
 
 Why: <the reason, only if the user said or clearly implied it>
 
@@ -31,4 +32,5 @@ Related: <braid ids with their titles, files>
 Open questions:
 - <what the user left open>
 
-In the user's words: "<the sentence, quoted as written, without $braid-idea>"
+In the user's words: "<the sentence as written, without $braid-idea>", then: "<their answer, if you asked>"
+```

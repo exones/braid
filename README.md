@@ -23,7 +23,7 @@ braid runs a software project with coding agents: you state a goal, braid splits
 - **The ledger** is the `braids/` folder: one folder per braid and strand with its brief, logs and report, plain Markdown kept in Git and managed with the `braid` CLI.
 - **You merge.** braid never merges into `main` unless you tell it to, and it stops and asks when a decision is yours.
 
-braid ships as agent skills (`braid`, `braid-worker`, `braid-reviewer`) for Claude, Codex and Cursor, plus the `braid` CLI they use. Agents run as threads in [T3 Code](https://github.com/pingdotgg/t3code).
+braid ships as agent skills (`braid`, `braid-worker`, `braid-reviewer`, `braid-idea`) for Claude, Codex and Cursor, plus the `braid` CLI they use. Agents run as threads in [T3 Code](https://github.com/pingdotgg/t3code).
 
 ## How it works
 
@@ -76,7 +76,7 @@ The full list is in [the CLI reference](docs/cli.md).
 | [The attention board](docs/board.md) | What `braid board` shows, how it decides, and its actions (Start, Merge, Open thread). |
 | [The braids/ format](docs/braids-format.md) | The files in `braids/`, branches and each command's behaviour. |
 | [Workflow](.agents/skills/braid/references/workflow.md) | Items, tiers, branches, merges and checks. |
-| [Skills](.agents/skills/braid/SKILL.md) | How agents plan ([braid](.agents/skills/braid/SKILL.md)), do ([worker](.agents/skills/braid-worker/SKILL.md)) and review ([reviewer](.agents/skills/braid-reviewer/SKILL.md)) items. |
+| [Skills](.agents/skills/braid/SKILL.md) | How agents plan ([braid](.agents/skills/braid/SKILL.md)), do ([worker](.agents/skills/braid-worker/SKILL.md)) and review ([reviewer](.agents/skills/braid-reviewer/SKILL.md)) items, and note your ideas for later ([idea](.agents/skills/braid-idea/SKILL.md)). |
 | [Decisions](docs/decisions.md) | Current requirements and their reasons. |
 | [Roadmap](docs/roadmap.md) | What comes next. |
 | [npm distribution](docs/npm-distribution.md) | The release path and the steps before publication. |
