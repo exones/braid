@@ -13,7 +13,7 @@ Measured on this repository (the timing line, 2026-11-18):
 | Opening an item (`/api/item`) | 3.7 s, about 10 s when the T3 cache had expired | 0.1 s |
 | A later background read | about 15 s, blocking the server | about 3 s (T3 2.4 s), not blocking |
 
-All Completion boxes hold. The first open is now bound by `gh pr list` and the `t3` CLI (about 2 s per call), which this braid leaves as they are; the goal's "within a few seconds" holds at about 6 s on this repository.
+All Completion boxes hold. The "After" column is one cold run of the merged branch; 0028/B measured the first open at 4.3 to 4.8 s (braids 1.1 to 1.7 s), so the cold read varies with `gh` and disk cache by a few seconds. The first open is now bound by `gh pr list` and the `t3` CLI (about 2 s per call), which this braid leaves as they are; the goal's "within a few seconds" holds at about 6 s on this repository.
 
 Validation: each strand's tests and the gate on its PR; CI green on every strand PR; reviews of 0028/A and 0028/B by an independent reviewer (one blocking finding each, fixed), 0028/C read by the coordinator.
 

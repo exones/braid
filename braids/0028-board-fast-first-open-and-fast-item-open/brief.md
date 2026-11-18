@@ -26,7 +26,7 @@ On top of that:
 Strands, in run order:
 
 - 0028/A: the server reads in the background and answers from the latest snapshot; opening an item and Open thread read nothing slow.
-- 0028/B: the reads themselves get cheaper: braids from branches through one `git` process, and T3 `thread show` only for threads that changed.
+- 0028/B: the reads themselves get cheaper: Done dates and braids from branches through batched `git` reads, without blocking the server (T3 stays read in full: a `thread show` cache was dropped after review).
 
 Starts after braid 0012 (board on the phone) has merged into `main`; merge `main` into the braid branch first.
 
