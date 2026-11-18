@@ -259,8 +259,9 @@ export { t3codeUrl };
  * Open thread: opens the item's thread in the T3 desktop app. The body is `{ id }`, a braid or strand, or
  * `{ id, thread: "coordinator" }`, a braid whose coordinator thread to open (running, else the newest idle one).
  * Without `thread` the server picks by the same rule as the board's button (a strand's thread; a braid's agent
- * thread, else its coordinator). It reads fresh, so a client can't pass a URL (any `url` or `link` in the body is
- * ignored). Refuses (400) when there is no such thread, for a strand with `thread`, or for another `thread` value.
+ * thread, else its coordinator). The link comes from the snapshot (T3 is read fresh only when the snapshot has
+ * none), so a client can't pass a URL (any `url` or `link` in the body is ignored). Refuses (400) when there is
+ * no such thread, for a strand with `thread`, or for another `thread` value.
  */
 export function openAction(src: Sources, open: Opener = openWithOs): Action {
   return async (body, snapshot) => {
