@@ -2,7 +2,7 @@
 id: '0012'
 title: "Board on the phone"
 status: In Progress
-labels: ["kind:story", "tier:L", "ui", "ask:security", "ask:architecture"]
+labels: ["kind:story", "tier:L", "ui", "ask:security", "ask:architecture", "auto"]
 dependencies: ['0009']
 order: 120
 delivery: epic
