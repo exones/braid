@@ -1,7 +1,7 @@
 ---
 id: '0031'
 title: "Sweep: board snapshot follow-ups"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:M", "sweep"]
 dependencies: []
 delivery: epic
