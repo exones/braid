@@ -3,7 +3,7 @@
 // `braid/0006-<slug>` for a braid and `braid/0006/A-<slug>` for a strand, local or on a remote.
 import { spawnSync } from "node:child_process";
 import { FormatError } from "./frontmatter.js";
-import { catBatch, gitAsync } from "./gitio.js";
+import { catBatch, gitAsync, noteSyncGit } from "./gitio.js";
 import {
   BRAID_FOLDER,
   byRunOrder,
@@ -11,6 +11,7 @@ import {
   loadBraid,
   loadItem,
   loadTree,
+  LOG_FILE,
   STRAND_FOLDER,
   type Braid,
   type Item,
@@ -23,6 +24,7 @@ export const BRAID_BRANCH = /^braid\/(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const STRAND_BRANCH = /^braid\/(\d{4})\/([A-Z])-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function git(root: string, args: readonly string[]) {
+  noteSyncGit(args);
   return spawnSync("git", ["-c", "core.quotePath=false", ...args], {
     cwd: root,
     encoding: "utf8",
@@ -305,7 +307,7 @@ async function inHeadAsync(root: string, head: string, commit: string): Promise<
 
 /**
  * Reads, without blocking and with one `git cat-file --batch` process, what `loadLiveBraids` will need: the
- * merge checks, the trees of the branches it reads and the briefs in them. It fills the caches the
+ * merge checks, the trees of the branches it reads and the briefs, reports and logs in them. It fills the caches the
  * synchronous loader reads, so that one then runs no `git` process per file.
  */
 async function prefetchLive(root: string, only?: string): Promise<void> {
@@ -330,12 +332,12 @@ async function prefetchLive(root: string, only?: string): Promise<void> {
     const r = await gitAsync(root, treeArgs(commit));
     trees.set(commit, r.status === 0 ? parseTree(r.stdout) : new Map());
   });
-  // Only briefs are ever read; the same text in many commits has one id.
+  // The briefs, reports and logs are what the board reads; the same text in many commits has one id.
   const wanted = new Set<string>();
   for (const commit of new Set(open.map((r) => r.commit))) {
     for (const list of trees.get(commit)?.values() ?? []) {
       for (const e of list) {
-        if (!e.isDir && e.name === "brief.md" && !blobs.has(e.oid)) {
+        if (!e.isDir && (e.name === "brief.md" || e.name === "report.md" || LOG_FILE.test(e.name)) && !blobs.has(e.oid)) {
           wanted.add(e.oid);
         }
       }

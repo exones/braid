@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -30,8 +30,12 @@ const done = (await load("../dist/board/done.js")) as {
 const branches = (await load("../dist/braids/branches.js")) as {
   loadLiveBraidsAsync: (root: string) => Promise<{ number: string; brief: { title: string; status: string }; strands: { letter: string; brief: { title: string; status: string } }[] }[]>;
   loadLiveBraids: (root: string) => unknown[];
+  treeOf: (root: string, item: { source: Source | null }) => { read(file: string): string | null };
 };
-const gitio = (await load("../dist/braids/gitio.js")) as { spyOnGit: (observer: ((args: readonly string[]) => void) | undefined) => void };
+const gitio = (await load("../dist/braids/gitio.js")) as {
+  spyOnGit: (observer: ((args: readonly string[], sync?: boolean) => void) | undefined) => void;
+  catBatch: (root: string, specs: readonly string[], timeoutMs?: number, command?: readonly string[]) => Promise<(string | null)[]>;
+};
 const t3mod = (await load("../dist/board/t3.js")) as {
   readT3: (root: string, options: unknown) => Promise<{ status: { state: string } }>;
   resetT3Memory: () => void;
@@ -165,4 +169,44 @@ test("a static file is served while a slow read of the board's git sources runs"
   assert.equal(page.status, 200);
   assert.match(await page.text(), /board/);
   assert.ok(Date.now() - began < 500, `served in ${Date.now() - began} ms during the read`);
+});
+
+test("a hung git cat-file --batch ends the read with an error after the timeout and the process is killed", async () => {
+  const pidFile = join(scratch, "hung.pid");
+  const hang = [process.execPath, "-e", `require("node:fs").writeFileSync(${JSON.stringify(pidFile)}, String(process.pid)); setInterval(() => {}, 1000)`];
+  const began = Date.now();
+  await assert.rejects(gitio.catBatch(scratch, ["HEAD:x"], 400, hang), /timed out after 400 ms/);
+  assert.ok(Date.now() - began < 10_000, "ended by the timeout");
+  const pid = Number(readFileSync(pidFile, "utf8"));
+  let alive = true;
+  for (let i = 0; i < 50 && alive; i++) {
+    try {
+      process.kill(pid, 0);
+      await new Promise((r) => setTimeout(r, 100));
+    } catch {
+      alive = false;
+    }
+  }
+  assert.equal(alive, false, "the hung process was killed");
+});
+
+test("opening a branch-sourced item's detail runs no synchronous git: its report and logs come from the batch", async () => {
+  const { root, commit, git } = repo("detail");
+  commit(1, { "braids/0001-one/brief.md": brief("0001", "To Do", "One") }, "base");
+  git("checkout", "-q", "-b", "braid/0001-one", "main");
+  commit(2, { "braids/0001-one/brief.md": brief("0001", "In Progress", "Live"), "braids/0001-one/report.md": "REPORT TEXT\n", "braids/0001-one/log-2026-11-18-abcd1234.md": "LOG TEXT\n" }, "work");
+  git("checkout", "-q", "main");
+  const live = await branches.loadLiveBraidsAsync(root);
+  const item = live[0] as unknown as { source: Source | null };
+  assert.ok(item.source !== null, "read from the branch");
+  const sync: (readonly string[])[] = [];
+  gitio.spyOnGit((args, isSync) => {
+    if (isSync === true) {
+      sync.push(args);
+    }
+  });
+  const tree = branches.treeOf(root, item as never);
+  const detailFiles = [tree.read("braids/0001-one/report.md"), tree.read("braids/0001-one/log-2026-11-18-abcd1234.md")];
+  assert.deepEqual(detailFiles, ["REPORT TEXT\n", "LOG TEXT\n"]);
+  assert.deepEqual(sync, [], `synchronous git ran: ${JSON.stringify(sync)}`);
 });

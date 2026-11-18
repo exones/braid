@@ -277,8 +277,10 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
     }
     const id = normaliseId(raw);
     const [number, letter] = id.split("/");
-    const braid = (await src.braids()).find((b) => b.number === number);
-    if (braid === undefined) {
+    // The snapshot has the card (and so the braid) already: the braids are loaded again only when it doesn't.
+    const known = (await snapshot?.())?.braids.find((c) => c.id === number);
+    const loaded = known === undefined ? (await src.braids()).find((b) => b.number === number) : undefined;
+    if (known === undefined && loaded === undefined) {
       throw new UsageError(`Open thread: no braid ${number}`);
     }
     if (want === "coordinator" && letter !== undefined) {
@@ -288,9 +290,12 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
     const linkOf = (card: OpenCard): string | null =>
       want === "coordinator" ? (card.coordinator?.link ?? null) : letter === undefined ? (card.thread ?? card.coordinator?.link ?? null) : (card.strands.find((s) => s.id === id)?.thread ?? null);
     // A thread's link doesn't change: the snapshot has it. Only when it has none is T3 read again.
-    const known = (await snapshot?.())?.braids.find((c) => c.id === number);
     let link = known === undefined ? null : linkOf(known);
     if (link === null) {
+      const braid = loaded ?? (await src.braids()).find((b) => b.number === number);
+      if (braid === undefined) {
+        throw new UsageError(`Open thread: no braid ${number}`);
+      }
       const github = await src.github(true);
       link = linkOf(toCard(braid, github, await src.t3(true), src.signals(github), src.start()));
     }
