@@ -276,4 +276,21 @@ test("the card opens an idle worker thread and an idle coordinator, and Start st
   const idle = await card("0010");
   assert.equal(idle.coordinator?.link, "https://t3.example/thread/demo-9");
   assert.equal((await card("0011")).start.reason, "a coordinator for this braid is running");
+  // A Done item gets no button from an idle thread.
+  const base = board.demoSources();
+  const doneRow = (await cards()).flatMap((c) => (c as unknown as { strands: { id: string; lane: string }[] }).strands).find((s) => s.lane === "Done");
+  assert.ok(doneRow);
+  const t3 = await base.t3(false) as { idle: Map<string, unknown[]>; idleCoordinators: Map<string, unknown> };
+  const withDone = { ...base, t3: () => Promise.resolve({ ...t3, idle: new Map([...t3.idle, [doneRow.id, [{ id: "d1", role: "worker", pending: 0, link: "https://t3.example/thread/d1" }]]]), idleCoordinators: new Map([...t3.idleCoordinators, ["0001", { id: "d2", link: "https://t3.example/thread/d2", provider: null, model: null }]]) }) } as Sources;
+  const all = await cards(withDone);
+  const done = all.filter((c) => c.lane === "Done");
+  assert.ok(done.length > 0);
+  for (const c of done) {
+    assert.equal((c as unknown as { thread: string | null }).thread, null, c.id);
+    assert.equal(c.coordinator, null, c.id);
+  }
+  const rows = all.flatMap((c) => (c as unknown as { strands: { id: string; lane: string; thread: string | null }[] }).strands).filter((s) => s.lane === "Done");
+  assert.ok(rows.length > 0);
+  assert.ok(rows.some((s) => s.id === doneRow.id));
+  assert.ok(rows.every((s) => s.thread === null), "a Done row has no idle thread");
 });

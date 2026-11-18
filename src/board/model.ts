@@ -284,9 +284,9 @@ export function threadLink(agents: readonly T3Thread[]): string | null {
   return (agents.find((t) => t.role === "worker") ?? agents[0])?.link ?? null;
 }
 
-/** The thread to open for an item: a running agent's, else the newest idle (not running, not archived) thread of the item. */
-export function openThread(key: string, agents: readonly T3Thread[], t3: T3): string | null {
-  return threadLink(agents) ?? threadLink(t3.idle?.get(key) ?? []);
+/** The thread to open for an item: a running agent's, else the newest idle (not running, not archived) thread of the item; an idle one never for a Done item (its old threads outlive `braid clean`). */
+export function openThread(key: string, agents: readonly T3Thread[], t3: T3, lane: Lane): string | null {
+  return threadLink(agents) ?? (lane === "Done" ? null : threadLink(t3.idle?.get(key) ?? []));
 }
 
 /**
@@ -360,8 +360,8 @@ export function startOf(braid: Braid, lane: Lane, t3: T3, ctx: StartContext): St
   };
 }
 
-function coordinatorOf(number: string, t3: T3, ctx: StartContext): CoordinatorInfo | null {
-  const c = t3.coordinators?.get(number) ?? t3.idleCoordinators?.get(number);
+function coordinatorOf(number: string, t3: T3, ctx: StartContext, lane: Lane): CoordinatorInfo | null {
+  const c = t3.coordinators?.get(number) ?? (lane === "Done" ? undefined : t3.idleCoordinators?.get(number));
   return c === undefined ? null : { link: c.link, warning: coordinatorWarning(c, ctx) };
 }
 
@@ -380,13 +380,13 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
       ask: d.ask,
       running: d.agents.length > 0,
       activity: d.activity,
-      thread: openThread(`${braid.number}/${s.letter}`, d.agents, t3),
+      thread: openThread(`${braid.number}/${s.letter}`, d.agents, t3, d.lane),
       merge: mergeOf(`${braid.number}/${s.letter}`, gh, sig),
     };
   });
   if (strands.length === 0) {
     const own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx) };
+    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane) };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -424,10 +424,10 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     done: strands.filter((s) => s.lane === "Done").length,
     total: strands.length,
     strands,
-    thread: openThread(braid.number, own?.agents ?? [], t3),
+    thread: openThread(braid.number, own?.agents ?? [], t3, lane),
     merge: own === null || pr?.state === "merged" ? null : mergeOf(braid.number, gh, sig),
     start: startOf(braid, lane, t3, ctx),
-    coordinator: coordinatorOf(braid.number, t3, ctx),
+    coordinator: coordinatorOf(braid.number, t3, ctx, lane),
   };
 }
 
