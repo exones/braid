@@ -1,7 +1,7 @@
 ---
 id: '0028/B'
 title: "Cheaper reads: braids in one git process, T3 shows only when needed"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: ['0028/A']
 order: 20
