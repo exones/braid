@@ -1,7 +1,7 @@
 ---
 id: '0023'
 title: "Thread titles: one format, with role emoji"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S", "ask:process"]
 dependencies: []
 order: 207
