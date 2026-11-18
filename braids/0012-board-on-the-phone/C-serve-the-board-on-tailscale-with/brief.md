@@ -28,7 +28,7 @@ Expected size: about 450 lines in 6 to 9 files, half of it tests.
   - `Host` must be this listener's address or MagicDNS name with its port (stops DNS rebinding). Actions also need a matching `Origin` when one is sent, and a header that a cross-site page can't send without a CORS preflight the server never grants, so another page open on the phone can't act through the board. The token stays the local listener's.
   - The `open` action (which opens T3 on the PC) is refused on the Tailscale listener; there the page's Open thread is the thread's `t3code://` app link, opened by the phone's own T3 app. Check how T3's app on a phone handles that link (docs, or the T3 source) and say in the report whether it works; if it can't, the page offers no Open thread there.
   - It prints the phone URL (`http://<MagicDNS name>:<port>/`) and who may use it.
-- `docs/board.md`, `docs/cli.md`, and a D59 entry in `docs/decisions.md` (D58 is the lane order of 0012/B).
+- `docs/board.md`, `docs/cli.md`, and a D60 entry in `docs/decisions.md` (D59 is the lane order of 0012/B).
 - Tests with a fake tailscale runner (no real tailscaled in CI).
 
 ## Already decided
@@ -63,6 +63,6 @@ Expected size: about 450 lines in 6 to 9 files, half of it tests.
 - [ ] Every request over it is checked with tailscaled whois and allowed for the owner's login only, failing closed, with the regression tests above
 - [ ] Actions over it are safe from cross-site pages; the `open` action is refused there and Open thread is the app link
 - [ ] The local board is unchanged
-- [ ] docs/board.md, docs/cli.md and D59 in docs/decisions.md describe it
+- [ ] docs/board.md, docs/cli.md and D60 in docs/decisions.md describe it
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
