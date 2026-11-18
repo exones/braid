@@ -262,9 +262,15 @@ export { t3codeUrl };
  */
 export function openAction(src: Sources, open: Opener = openWithOs): Action {
   return async (body) => {
-    const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>)["id"] : undefined;
+    const fields = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const raw = fields["id"];
     if (typeof raw !== "string") {
       throw new UsageError("open needs { id }: the braid or strand whose thread to open");
+    }
+    // `thread: "coordinator"` asks for the braid's coordinator thread instead of its agent's; the link is still the server's pick.
+    const want = fields["thread"];
+    if (want !== undefined && want !== "coordinator") {
+      throw new UsageError('open: thread can only be "coordinator"');
     }
     const id = normaliseId(raw);
     const [number, letter] = id.split("/");
@@ -274,9 +280,12 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
     }
     const github = src.github(true);
     const card = toCard(braid, github, await src.t3(true), src.signals(github), src.start());
-    const link = letter === undefined ? (card.thread ?? card.coordinator?.link ?? null) : (card.strands.find((s) => s.id === id)?.thread ?? null);
+    if (want === "coordinator" && letter !== undefined) {
+      throw new UsageError(`Open thread: ${id} is a strand; only a braid has a coordinator thread`);
+    }
+    const link = want === "coordinator" ? (card.coordinator?.link ?? null) : letter === undefined ? (card.thread ?? card.coordinator?.link ?? null) : (card.strands.find((s) => s.id === id)?.thread ?? null);
     if (link === null) {
-      throw new UsageError(`Open thread: ${id} has no thread`);
+      throw new UsageError(`Open thread: ${id} has no ${want === "coordinator" ? "coordinator " : ""}thread`);
     }
     const url = t3codeUrl(link);
     if (url === null) {

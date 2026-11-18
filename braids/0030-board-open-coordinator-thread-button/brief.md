@@ -39,12 +39,18 @@ Expected size: about 150 lines in 5 files, tests included.
 - Strand row buttons, Start, Merge, and the coordinator model warning.
 - Opening reviewer threads separately.
 
+## Plan
+
+- Mockup converged with the user (A card, B Needs You row; `docs/design/board-mockups/coordinator-button.html`).
+- Server: `open` takes `thread: "coordinator"`. Web: `OpenThread` gets a coordinator variant; a braid with strands shows only it, a story shows Open thread plus it; same on the braid's page and Needs You row.
+- Demo: a running coordinator for 0009 (running strands). Tests, `docs/board.md`, D61.
+
 ## Completion
 
-- [ ] Mockup on the demo data at phone and desktop widths, approved by the user (log entry)
-- [ ] A braid with a coordinator thread shows a coordinator button that opens that thread, on the card and the Needs You row, via the app link (phone, Tailscale) and via `open` (desktop); none when it has no coordinator thread
-- [ ] While a strand runs, the braid's coordinator button opens the coordinator and the strand's button opens the strand (test)
-- [ ] `open` with the coordinator choice opens the coordinator's link and refuses (400) when there is none (test)
-- [ ] The cause of the braid button opening the running strand is named in report.md
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockup on the demo data at phone and desktop widths, approved by the user (log entry)
+- [x] A braid with a coordinator thread shows a coordinator button that opens that thread, on the card and the Needs You row, via the app link (phone, Tailscale) and via `open` (desktop); none when it has no coordinator thread
+- [x] While a strand runs, the braid's coordinator button opens the coordinator and the strand's button opens the strand (test)
+- [x] `open` with the coordinator choice opens the coordinator's link and refuses (400) when there is none (test)
+- [x] The cause of the braid button opening the running strand is named in report.md
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

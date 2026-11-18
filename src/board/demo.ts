@@ -133,8 +133,9 @@ const thread = (id: string, role: T3Thread["role"], pending = 0): T3Thread => ({
 /** What the demo's BRAID.md says. */
 export const DEMO_START: StartContext = { main: "main", expected: { provider: "Claude_Everix", model: "claude-opus-5-5" } };
 
-/** Coordinators: 0011's runs on the model BRAID.md names, 0013's on another one (the card warns). */
+/** Coordinators: 0009's runs next to its running strands (the board's Coordinator button opens it, a strand's Open thread opens the strand); 0011's runs on the model BRAID.md names, 0013's on another one (the card warns). */
 const demoCoordinators = new Map<string, T3Coordinator>([
+  ["0009", { id: "demo-10", link: "https://t3.example/thread/demo-10", provider: "Claude_Everix", model: "claude-opus-5-5" }],
   ["0011", { id: "demo-6", link: "https://t3.example/thread/demo-6", provider: "Claude_Everix", model: "claude-opus-5-5" }],
   ["0013", { id: "demo-7", link: "https://t3.example/thread/demo-7", provider: "Claude_Everix", model: "claude-sonnet-5-5" }],
 ]);
