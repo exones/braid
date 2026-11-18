@@ -1,7 +1,7 @@
 ---
 id: '0020/G'
 title: "Final review fixes: sweep check in auto mode, offline warning, checked-out inbox"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S", "ask:process"]
 dependencies: []
 order: 50
@@ -36,8 +36,8 @@ Expected size: about 40 to 80 lines in 4 to 6 files, with tests.
 
 ## Completion
 
-- [ ] Auto mode names the inbox check after each strand merge and proposes a sweep at 3 or more open leftovers; the skill's "Sweep" agrees with it
-- [ ] The offline warning quotes the first line of Git's error; covered by a test
-- [ ] A write refuses while `braid-inbox` is checked out in a worktree and changes nothing; covered by a test; `docs/braids-format.md` says so
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Auto mode names the inbox check after each strand merge and proposes a sweep at 3 or more open leftovers; the skill's "Sweep" agrees with it
+- [x] The offline warning quotes the first line of Git's error; covered by a test
+- [x] A write refuses while `braid-inbox` is checked out in a worktree and changes nothing; covered by a test; `docs/braids-format.md` says so
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

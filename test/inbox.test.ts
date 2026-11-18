@@ -158,6 +158,9 @@ test("offline, a note stays on the local branch with a warning, and the next not
   const offline = idOf(r.stdout);
   assert.match(r.stdout, /kept on the local braid-inbox/);
   assert.match(r.stderr, /^warning: can't reach origin .*next write pushes it/);
+  // The reason is the first line of Git's error (the `fatal:` that says why), not its last.
+  assert.match(r.stderr, /can't reach origin \(fatal: .*missing\.git.*\); the entry/);
+  assert.doesNotMatch(r.stderr, /Could not read from remote|Please make sure/);
   assert.equal(git(a, "ls-tree", "-r", "--name-only", "braid-inbox"), `leftovers/${offline}.md`);
   // The local copy is listed, with a warning that the fetch failed.
   const list = braid(a, "inbox");
@@ -167,6 +170,25 @@ test("offline, a note stays on the local branch with a warning, and the next not
   git(a, "remote", "set-url", "origin", w.remote);
   const next = idOf(ok(a, "note", "back online", "--from", "user").stdout);
   assert.deepEqual(remoteFiles(w.remote).sort(), [`leftovers/${next}.md`, `leftovers/${offline}.md`].sort());
+});
+
+test("a write refuses while a worktree has braid-inbox checked out, and changes nothing", () => {
+  const w = world();
+  const a = w.clone("a");
+  ok(a, "note", "first", "--from", "user");
+  const tip = git(a, "rev-parse", "braid-inbox");
+  const remoteTip = git(w.remote, "rev-parse", "braid-inbox");
+  const wt = join(w.base, "inbox-wt");
+  git(a, "worktree", "add", "-q", wt, "braid-inbox");
+  const r = braid(a, "note", "second", "--from", "user");
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /braid-inbox is checked out in the worktree .*inbox-wt/);
+  assert.match(r.stderr, /git switch --detach/);
+  assert.equal(git(a, "rev-parse", "braid-inbox"), tip);
+  assert.equal(git(w.remote, "rev-parse", "braid-inbox"), remoteTip);
+  // After leaving the branch the write goes through.
+  git(wt, "switch", "-q", "--detach");
+  ok(a, "note", "second", "--from", "user");
 });
 
 test("an offline note made while someone else pushed is replayed on top of the remote branch", () => {
