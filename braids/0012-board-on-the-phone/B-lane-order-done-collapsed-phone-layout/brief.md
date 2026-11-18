@@ -23,7 +23,7 @@ Expected size: about 350 lines in 5 to 8 files.
 ## Change
 
 - `src/board/model.ts` and `web/src`: lane order Needs You, To Review, Working, To Do, Done; Done collapsed by default, opened showing the 10 newest first and Show more; add the date Done is sorted by if the model lacks it.
-- `web/src`: the phone layout of the approved variant (CSS breakpoints, tap targets at least 44 px); Open thread hidden on small screens.
+- `web/src`: the phone layout of the approved variant (CSS breakpoints, tap targets at least 44 px); on small screens each button shows its icon with a short label (Start, Merge, Open thread), and Open thread is a link to the thread's `t3code://threads/<env>/<thread>` app link, opened by the phone itself instead of the `open` action.
 - `src/board/demo.ts`: enough Done items to show Show more.
 - `docs/board.md` and the screenshots in `docs/design/board-screenshots/`.
 - Tests for the order and the Done list (10 newest, newest first, the rest behind Show more).

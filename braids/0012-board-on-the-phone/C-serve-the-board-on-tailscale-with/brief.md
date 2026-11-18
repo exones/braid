@@ -26,7 +26,7 @@ Expected size: about 450 lines in 6 to 9 files, half of it tests.
   - `--host <address>` is accepted only when the address is one of this machine's Tailscale IPs or its MagicDNS name; anything else (`0.0.0.0`, `::`, a LAN or public address, a name that resolves elsewhere) is refused before listening, with a message saying why. `--host tailscale` picks the IPv4 Tailscale address. It adds a second listener on that address; the `127.0.0.1` one stays as it is.
   - On the Tailscale listener every request first asks tailscaled who the peer is (`whois` of the remote address and port). It is allowed only when the peer's login equals the login of this machine's owner (from `status`) and the peer node has no tags. Any failure (tailscaled down, unreadable output, a timeout, an unknown peer) refuses with 403: fail closed. An answer may be cached per remote address for a few seconds.
   - `Host` must be this listener's address or MagicDNS name with its port (stops DNS rebinding). Actions also need a matching `Origin` when one is sent, and a header that a cross-site page can't send without a CORS preflight the server never grants, so another page open on the phone can't act through the board. The token stays the local listener's.
-  - Open thread is refused on the Tailscale listener, and the page doesn't offer it there.
+  - The `open` action (which opens T3 on the PC) is refused on the Tailscale listener; there the page's Open thread is the thread's `t3code://` app link, opened by the phone's own T3 app. Check how T3's app on a phone handles that link (docs, or the T3 source) and say in the report whether it works; if it can't, the page offers no Open thread there.
   - It prints the phone URL (`http://<MagicDNS name>:<port>/`) and who may use it.
 - `docs/board.md`, `docs/cli.md`, and a D58 entry in `docs/decisions.md`.
 - Tests with a fake tailscale runner (no real tailscaled in CI).
@@ -35,7 +35,7 @@ Expected size: about 450 lines in 6 to 9 files, half of it tests.
 
 - Identity, not a code: the user chose the Tailscale identity (2026-11-18). Plain HTTP inside the tailnet (WireGuard encrypts it); no `tailscale serve`.
 - Same user only: the login that owns this node. Tagged nodes and other users of a shared tailnet are refused.
-- The phone can Start and Merge; Open thread is desktop-only.
+- The phone can Start and Merge, and opens threads in its own T3 app through the app link (user, 2026-11-18).
 
 ## Failure modes
 
@@ -49,7 +49,7 @@ Expected size: about 450 lines in 6 to 9 files, half of it tests.
 
 - `--host` with `0.0.0.0`, `::`, a LAN address, a non-Tailscale name: refused before listening.
 - Whois of another user, of a tagged node, a whois error, unreadable output, a timeout: 403 for the page, for the board data and for an action.
-- The owner's peer: the page, the data, Start and Merge allowed; Open thread refused.
+- The owner's peer: the page, the data, Start and Merge allowed; the `open` action refused.
 - Wrong `Host`, wrong `Origin`, an action without the required header: refused.
 - The local `127.0.0.1` board behaves as before (its existing tests pass unchanged).
 
@@ -61,7 +61,7 @@ Expected size: about 450 lines in 6 to 9 files, half of it tests.
 
 - [ ] `--host` serves on this machine's Tailscale address only and refuses every other address, with tests
 - [ ] Every request over it is checked with tailscaled whois and allowed for the owner's login only, failing closed, with the regression tests above
-- [ ] Actions over it are safe from cross-site pages; Open thread is refused there
+- [ ] Actions over it are safe from cross-site pages; the `open` action is refused there and Open thread is the app link
 - [ ] The local board is unchanged
 - [ ] docs/board.md, docs/cli.md and D58 in docs/decisions.md describe it
 - [ ] The gate command from BRAID.md passes

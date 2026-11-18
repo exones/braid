@@ -28,13 +28,14 @@ Open the board on the phone over Tailscale, see Needs You first, and Start or Me
 - Done is collapsed by default; opened, it shows the 10 newest items, newest first, and a "Show more" button (user, 2026-11-18).
 - How the phone switches lanes is chosen from mockups (user, 2026-11-18).
 - Authentication is the Tailscale identity: braid asks tailscaled who each connection is, and only the Tailscale login that owns this machine may read or act. No pairing code, no password (user, 2026-11-18).
-- The phone can read and act (Start, Merge on request). Open thread stays desktop-only: T3 deep links don't open on a phone (user, 2026-11-18).
+- The phone can read and act (Start, Merge on request). Answering stays in the coordinator's thread: on the phone, Open thread opens the thread in the T3 app on the phone itself through T3's app link (`t3code://threads/<env>/<thread>`), not on the PC (user, 2026-11-18).
+- On the phone, buttons show their icon with a short label (no hover there); the desktop keeps icon buttons with tooltips (user, 2026-11-18).
 - Never on all networks: no `0.0.0.0`, no LAN address; the local `127.0.0.1` board and its token stay as they are (D50).
 
 ## Out of scope
 
 - HTTPS in any form (a `tailscale cert` certificate or `tailscale serve`): plain HTTP inside the tailnet for now; the browser shows "Not secure" (user, 2026-11-18). Other sign-in methods, several users.
-- Opening T3 threads from the phone.
+- Answering a request on the board itself (an answer form or approve button); answers are given in the thread.
 
 ## Completion
 
