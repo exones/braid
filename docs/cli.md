@@ -39,7 +39,7 @@ These are the commands `braid help` lists, in its order.
 | `braid inbox drop <entry>... --why "<reason>"` | Mark open entries `dropped`, with `why` set. |
 | `braid inbox reopen <entry>` | Bring a dropped or taken entry back to `open`: `why` and `into` removed, `passed` back to 0. |
 | `braid clean [<number>\|<id>] [--yes]` | Remove worktrees and local branches of merged items and of merged `plan/<slug>` branches (a dry run without `--yes`; never forces; a dirty or busy worktree is kept). |
-| `braid board` | Open the board in the browser (`--no-open` only prints the address; `--demo` uses sample data; `--host <address>` also serves it on this machine's Tailscale address, to its Tailscale owner only: `tailscale`, one of its Tailscale IPs or its MagicDNS name; anything else is refused, see [the board](board.md#on-tailscale); `--port <n>` serves both listeners on that port, so a phone bookmark survives restarts, and refuses a port in use before anything runs). |
+| `braid board` | Open the board in the browser (`--no-open` only prints the address; `--demo` uses sample data; `--host <address>` also serves it on this machine's Tailscale address, to its Tailscale owner only: `tailscale`, one of its Tailscale IPs or its MagicDNS name; anything else is refused, see [the board](board.md#on-tailscale); `--port <n>` serves both listeners on that port, so a phone bookmark survives restarts, and a port in use is refused with a message: the local listener is closed again if the Tailscale bind fails, so nothing stays listening). |
 | `braid help` | Show the help. |
 
 Options: `braid --version` prints the version; `braid --help` shows the help.

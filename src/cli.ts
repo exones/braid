@@ -70,7 +70,7 @@ export function helpText(version: string): string {
     "  inbox drop <entry>... --why <reason>  Drop entries with a reason",
     "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
-    "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data; --host tailscale: also on this machine's Tailscale address, for its owner only)",
+    "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port)",
     "  help                        Show this help",
     "",
     "Options:",

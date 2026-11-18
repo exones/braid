@@ -923,7 +923,7 @@ export function App() {
         ].filter((n) => n !== null)
       : [];
   return (
-    <RemoteContext value={board.state === "ready" && board.data.remote}>
+    <RemoteContext value={board.state !== "ready" || board.data.remote}>
     <Tooltip.Provider>
       <div className="min-h-screen bg-slate-100 text-sm text-slate-900">
         <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-white px-5 py-2.5">

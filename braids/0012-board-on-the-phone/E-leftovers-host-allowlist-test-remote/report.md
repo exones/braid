@@ -14,3 +14,5 @@
 
 For later items: none.
 Needs the user: none
+
+**Review fixes:** the page treats the board as remote until /api/board has loaded (fails closed); `--port` is in `braid help`; docs/cli.md says what a refused port does.
