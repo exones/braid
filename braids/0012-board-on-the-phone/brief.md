@@ -1,7 +1,7 @@
 ---
 id: '0012'
 title: "Board on the phone"
-status: Done
+status: In Progress
 labels: ["kind:story", "tier:L", "ui", "ask:security", "ask:architecture", "auto"]
 dependencies: ['0009']
 order: 120
@@ -39,7 +39,7 @@ Open the board on the phone over Tailscale, see Needs You first, and Start or Me
 
 ## Completion
 
-- [x] Every strand Done on the braid branch
+- [ ] Every strand Done on the braid branch
 - [x] The lanes show in the new order, with Done collapsed to the 10 newest and Show more
 - [x] The board fits a phone screen in the layout the user approved
 - [x] `braid board --host` serves it on this machine's Tailscale address only, to this machine's Tailscale user only, reads and actions alike
