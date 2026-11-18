@@ -1,7 +1,7 @@
 ---
 id: '0012/D'
 title: "Final review fixes: board actions count and D32 lane order"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 40
