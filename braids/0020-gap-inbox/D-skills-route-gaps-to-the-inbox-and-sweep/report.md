@@ -9,9 +9,11 @@
   - Accept and hand over: review step routes non-blocking findings by the table; new step 4 **Capture** before the handover (non-blocking findings with `--from 'review <id>'`, the report's unfinished bits and `For later items:` gaps with `--from <id>`); notes for later strands stay in the log line, which names the entry ids.
   - New section "Capture": `braid inbox --no-fetch` before the first capture, the setup reference if it fails; the user's side observations captured at once (an idea as `braid-idea` writes one, or a leftover).
   - New section "Sweep": when (a recap with `Sweep due`, or before planning with at least one leftover), propose with `braid ask --kind decision` (one `kind:task` story labelled `sweep`, what goes in, what is dropped and why, a big one becomes its own braid or an idea, optional fold into the braid being planned), record with `take`/`drop`/`pass`, run after the current braid, one pending at a time; auto mode never decides one.
+  - The sweep's `braid ask` never goes on an item whose handover request is open, since a new request replaces it: a strand's sweep is asked on its braid, a lone story's after its merge, and before planning in the plan request of the braid being planned.
+  - Finish: the final PR's "Accept and hand over" list names the capture step too.
   - The recap keeps the draft's `Sweep due` line and never lists entries or ideas.
 - `.agents/skills/braid/assets/brief.md`: the braid log line's `For later items:` names notes for later strands and the captured entry ids; the report's line splits notes for later strands from self-contained gaps.
-- `docs/decisions.md`: D56 and its log line.
+- `docs/decisions.md`: D56 and its log line; D33 now says the skills route gaps to the inbox (D56 replaced "give side ideas a home").
 
 ## Why
 
@@ -25,8 +27,8 @@ The braid 0020's plan: gaps stop costing the user a decision each; they are capt
 
 ## Open
 
-- Size: about 65 changed lines in 4 files plus D56, within the brief's range.
-- A sweep asked before planning, when no braid is at hand, has no braid id for `braid ask`; the skill says "the braid at hand", so the coordinator uses the last braid or the braid being planned.
+- Size: about 70 changed lines in 4 files plus D56, within the brief's range.
+- Review at 27c8b79 (not blocking): its three suggestions are taken (the sweep's request target, D33, capture in Finish).
 
 Decisions: the user's, from the plan: recaps never list inbox entries or ideas, only the `Sweep due` line. Mine: the routing table and the leftover rule live in the workflow (true for every role, per D47), the coordinator's steps in the skill; in auto mode the strands go on while a sweep answer is pending.
 For later items: none.

@@ -132,7 +132,7 @@ When the worker reports green:
 A sweep empties the leftovers in one decision of the user. It never covers ideas.
 
 1. **When.** At a recap whose draft says `Sweep due` (3 or more open leftovers), or before planning the next braid with at least one open leftover. Auto mode never decides a sweep: it asks the user too, and the strands go on while the answer is pending.
-2. **Propose** with `braid inbox` and `braid ask <the braid at hand> "<what is needed>" --kind decision`: one sweep story (`kind:task`, label `sweep`, the lowest tier that fits), naming which leftovers go in and which are dropped, and why. A leftover too big for it becomes its own braid, or is dropped and noted again as an idea. Before planning, the proposal may also fold a related leftover into the braid being planned.
+2. **Propose** with `braid inbox` and `braid ask <id> "<what is needed>" --kind decision`, never on an item whose handover request is open (an item has one open request, and a new one replaces it): for a strand on its braid's number; for a lone story after its merge; before planning, in the plan request of the braid being planned. Propose one sweep story (`kind:task`, label `sweep`, the lowest tier that fits), naming which leftovers go in and which are dropped, and why. A leftover too big for it becomes its own braid, or is dropped and noted again as an idea. Before planning, the proposal may also fold a related leftover into the braid being planned.
 3. **Record** the answer: create the story (Plan, step 5, Story) with a brief that copies each taken leftover's text, source and links, and push its branch; then `braid inbox take <ids> --into <number>`, `braid inbox drop <ids> --why "<reason>"`, and `braid inbox pass <ids>` for the rest (a second pass drops one).
 4. **Run** the sweep story after the current braid. At most one sweep is pending: a later proposal adds to that story's brief on its branch.
 
@@ -159,7 +159,7 @@ A goal, when every strand is Done on the braid branch:
 
 1. Merge `main` into the braid branch, open one PR from it into `main` and watch it.
 2. In one commit, tick the braid's boxes that now hold, write its `report.md` naming any box left open and why, and add a closing log entry.
-3. Take the PR through "Accept and hand over" as a story of the braid's tier: review, facts, checks, `braid accept <number>`, then unwatch it and hand over the new head once its CI is green.
+3. Take the PR through "Accept and hand over" as a story of the braid's tier: review, facts, checks, capture, `braid accept <number>`, then unwatch it and hand over the new head once its CI is green.
 4. Wait for the user. Their merge finishes the goal: don't commit or open a PR after it.
 
 ## Talking to the user
