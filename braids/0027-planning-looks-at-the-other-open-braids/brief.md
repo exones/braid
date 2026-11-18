@@ -16,7 +16,7 @@ Expected size: about 500 lines in 12 files over three strands.
 ## Strands
 
 - 0027/A `braid list --open`: every unfinished braid (Outline, To Do, In Progress) from the working tree, braid branches and `plan/` branches, local and on `origin`, with where it lives and the first lines of its Goal.
-- 0027/B A `related` front-matter field: `braid new` and `braid edit --related`, shown both ways by `braid view` and `braid list --open`, unknown ids a warning in `braid check`.
+- 0027/B A `related` front-matter field: `braid new` and `braid edit --related`, shown by `braid view` (its own ids) and `braid list --open`, back-links by `braid view --links`, unknown ids a warning in `braid check`.
 - 0027/C The braid skill: a "Look around" step in Plan; the brief template and the plan request carry the links and any warning.
 
 ## Already decided
