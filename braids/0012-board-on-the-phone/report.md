@@ -5,5 +5,5 @@ Validation: 0012/D fixed two factual doc errors the final review found. Each str
 Open: the swipe and the `t3code://` app link have not been tried on a real phone. All Completion boxes hold.
 
 Decisions: the user chose the Tailscale identity (no pairing code), plain HTTP for now (no HTTPS in any form), read and act from the phone, Open thread through the phone's T3 app, phone variant A (tab bar with counts) plus swipe, icon-and-label buttons on the phone, the new lane order on desktop and phone, Done collapsed to the 10 newest with Show more, ordered by the commit that set Done (not the PR merge date), no sweep before planning; and merged 0012/C after reading the access rules. Mine: decision numbers D59 (lane order) and D60 (Tailscale), since main took D58.
-For later items: leftovers 2026-11-18-ty0o (unit test of the Tailscale Host allowlist), 2026-11-18-phl4 (a local board opened as localhost hides Open thread), 2026-11-18-z0ug (a stable `--port` for the phone URL).
+For later items: the three 0012/C leftovers (2026-11-18-ty0o, 2026-11-18-phl4, 2026-11-18-z0ug) were fixed in 0012/E: a Host allowlist unit test, the page told remote by the server, and `braid board --port`. The --host plus --port test uses 127.0.0.2, which macOS lacks by default.
 Needs the user: none
