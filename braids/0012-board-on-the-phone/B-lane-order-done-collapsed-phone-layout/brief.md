@@ -26,6 +26,7 @@ Expected size: about 350 lines in 5 to 8 files.
 - `web/src`: the phone layout of the approved variant (CSS breakpoints, tap targets at least 44 px); on small screens each button shows its icon with a short label (Start, Merge, Open thread), and Open thread is a link to the thread's `t3code://threads/<env>/<thread>` app link, opened by the phone itself instead of the `open` action.
 - `src/board/demo.ts`: enough Done items to show Show more.
 - `docs/board.md` and the screenshots in `docs/design/board-screenshots/`.
+- `docs/design/board-mockups/phone-lanes.html`: remove the stale copy the review of 0012/A found ("No Open thread on the phone" near line 92, "Please confirm" the Done date near line 107); the logged verdicts win over the A screens, which do not draw the swipe.
 - Tests for the order and the Done list (10 newest, newest first, the rest behind Show more).
 
 ## Already decided
