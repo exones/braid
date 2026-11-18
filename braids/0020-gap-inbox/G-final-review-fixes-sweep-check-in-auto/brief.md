@@ -1,7 +1,7 @@
 ---
 id: '0020/G'
 title: "Final review fixes: sweep check in auto mode, offline warning, checked-out inbox"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S", "ask:process"]
 dependencies: []
 order: 50
