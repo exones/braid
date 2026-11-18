@@ -307,7 +307,7 @@ async function inHeadAsync(root: string, head: string, commit: string): Promise<
 
 /**
  * Reads, without blocking and with one `git cat-file --batch` process, what `loadLiveBraids` will need: the
- * merge checks, the trees of the branches it reads and the briefs in them. It fills the caches the
+ * merge checks, the trees of the branches it reads and the briefs, reports and logs in them. It fills the caches the
  * synchronous loader reads, so that one then runs no `git` process per file.
  */
 async function prefetchLive(root: string, only?: string): Promise<void> {

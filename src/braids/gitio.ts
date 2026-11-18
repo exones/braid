@@ -42,7 +42,8 @@ export function gitAsync(root: string, args: readonly string[], env?: NodeJS.Pro
 
 /**
  * The texts of these objects (`<commit>:<path>` or a blob id), read through one `git cat-file --batch`
- * process; null for one that is missing or when Git fails.
+ * process; null for one that is missing or when git can't start. After `timeoutMs` a hung git is killed and the
+ * promise rejects, so the board read that waited for it ends with an error.
  */
 export function catBatch(root: string, specs: readonly string[], timeoutMs: number = BATCH_TIMEOUT_MS, command: readonly string[] = ["git", "cat-file", "--batch"]): Promise<(string | null)[]> {
   if (specs.length === 0) {
