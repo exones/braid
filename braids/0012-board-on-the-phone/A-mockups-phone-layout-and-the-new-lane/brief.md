@@ -1,7 +1,7 @@
 ---
 id: '0012/A'
 title: "Mockups: phone layout and the new lane order"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S", "ui"]
 dependencies: []
 order: 10
