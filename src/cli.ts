@@ -7,7 +7,7 @@ import { checkBraids } from "./braids/check.js";
 import { runBoard } from "./commands/board.js";
 import { GitError } from "./braids/numbers.js";
 import { LockError } from "./braids/requests.js";
-import { listBraids, titleCommand, UsageError, viewItem } from "./commands/braids.js";
+import { listBraids, listOpen, titleCommand, UsageError, viewItem } from "./commands/braids.js";
 import { ImportRefusal, importBacklog } from "./backlog/import.js";
 import { logEntry, reportItem } from "./commands/logs.js";
 import { nextCommand, statusCommand } from "./commands/coordinate.js";
@@ -40,12 +40,12 @@ export function helpText(version: string): string {
     "Usage: braid <command>",
     "",
     "Commands:",
-    "  list                        List braids and their strands in run order",
-    "  view <id>                   Show a braid (0002) or a strand (0002/A)",
+    "  list [--open]               List braids and their strands in run order; --open: every unfinished braid on any branch, with its goal (--no-fetch)",
+    "  view <id> [--links]         Show a braid (0002) or a strand (0002/A); --links adds the open braids that link to a braid",
     "  new <title>                 Create a braid with the next free number",
     "  strand new <braid> <title>  Create a strand with the next free letter",
     "  title <id> --role <role>    Print the thread title for an item: <emoji> <repo> <id> <role>: <title> (role coordinator, worker, review or research)",
-    "  edit <id>                   Change --status, --title, --labels, --dep, --order, --delivery (none clears a list or the order)",
+    "  edit <id>                   Change --status, --title, --labels, --dep, --related, --order, --delivery (none clears a list or the order)",
     "  brief <id> <section>        Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
@@ -70,14 +70,14 @@ export function helpText(version: string): string {
     "  inbox drop <entry>... --why <reason>  Drop entries with a reason",
     "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
-    "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data)",
+    "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port)",
     "  help                        Show this help",
     "",
     "Options:",
     "  --version                   Print the version",
     "  --help                      Show this help",
     "",
-    "new and strand new also take --status, --labels, --dep, --order, --delivery (braids),",
+    "new and strand new also take --status, --labels, --dep, --order, --related and --delivery (braids),",
     "--slug, and --no-fetch (skip git fetch before choosing the number or letter).",
     "",
   ].join("\n");
@@ -113,10 +113,11 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
         throw new UsageError(`braid check takes no arguments; got: ${args.join(" ")}`);
       }
       const result = checkBraids(root);
+      const warnings = result.warnings.map((w) => `warning: ${w}\n`).join("");
       if (result.errors.length > 0) {
-        throw new CheckError(result.errors);
+        throw new CheckError(result.errors, warnings);
       }
-      return `braids OK: ${result.braids} braids, ${result.strands} strands\n`;
+      return { stdout: `braids OK: ${result.braids} braids, ${result.strands} strands\n`, stderr: warnings };
     }
     case "import-backlog": {
       const extra = args.filter((a) => a !== "--dry-run");
@@ -126,15 +127,24 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
       return importBacklog(root, args.includes("--dry-run"));
     }
     case "list":
+      if (args.includes("--open")) {
+        const extra = args.filter((a) => a !== "--open" && a !== "--no-fetch");
+        if (extra.length > 0) {
+          throw new UsageError(`braid list --open takes only --no-fetch; got: ${extra.join(" ")}`);
+        }
+        return listOpen(root, !args.includes("--no-fetch"));
+      }
       if (args.length > 0) {
         throw new UsageError(`braid list takes no arguments; got: ${args.join(" ")}`);
       }
       return listBraids(root);
-    case "view":
-      if (args.length > 1) {
+    case "view": {
+      const ids = args.filter((a) => a !== "--links");
+      if (ids.length > 1) {
         throw new UsageError(`braid view takes one id; got: ${args.join(" ")}`);
       }
-      return viewItem(root, args[0]);
+      return viewItem(root, ids[0], args.includes("--links"));
+    }
     case "new":
       return newBraid(root, args);
     case "strand": {
@@ -158,7 +168,10 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
 }
 
 class CheckError extends Error {
-  constructor(readonly errors: readonly string[]) {
+  constructor(
+    readonly errors: readonly string[],
+    readonly warnings = "",
+  ) {
     super(errors.join("\n"));
   }
 }
@@ -177,7 +190,7 @@ function braidsCommand(command: string, args: readonly string[], cwd: string): O
 `).join("") };
     }
     if (error instanceof CheckError) {
-      return { code: 2, stdout: "", stderr: `${error.errors.join("\n")}
+      return { code: 2, stdout: "", stderr: `${error.warnings}${error.errors.join("\n")}
 ${error.errors.length} error${error.errors.length === 1 ? "" : "s"}
 ` };
     }

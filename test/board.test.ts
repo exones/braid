@@ -123,7 +123,7 @@ test("the board API puts each braid in its most urgent strand's lane", async () 
       braids: { id: string; lane: string; done: number; total: number }[];
     };
     assert.match(data.repo, /^repo-\d+$/);
-    assert.deepEqual(data.lanes, ["To Do", "In Progress", "In Review", "Waiting", "Done"]);
+    assert.deepEqual(data.lanes, ["Waiting", "In Review", "In Progress", "To Do", "Done"]);
     const lane = Object.fromEntries(data.braids.map((b) => [b.id, b.lane]));
     assert.deepEqual(lane, {
       "0001": "Done",
