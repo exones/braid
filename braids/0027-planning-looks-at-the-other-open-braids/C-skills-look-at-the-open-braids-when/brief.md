@@ -18,7 +18,7 @@ Expected size: about 40 lines in 3 files.
 - `.agents/skills/braid/SKILL.md`, "Plan", steps 1 to 5. Braid 0024 edits "Accept and hand over" in the same file: merge `main` into the braid branch first if 0024 is merged by then.
 - `.agents/skills/braid/assets/brief.md`: the template and "Create".
 - `.agents/skills/braid/references/stop-cases.md`: `scope` is the key for a goal that changes or duplicates agreed work.
-- `docs/braids-format.md` after 0027/A and 0027/B: `braid list --open`, `related`, `linked from:`.
+- `docs/braids-format.md` after 0027/A and 0027/B: `braid list --open`, `related`, and `braid view <braid> --links` for `Linked from:` (plain `braid view` shows only the braid's own `Related:` ids, by the user's decision).
 
 ## Change
 
@@ -31,7 +31,7 @@ Expected size: about 40 lines in 3 files.
 
 ## Already decided
 
-- The coordinator never edits another braid's brief for a link; the other side sees it as `linked from:`.
+- The coordinator never edits another braid's brief for a link; the other side sees it with `braid view --links` (`Linked from:`) or in `braid list --open`.
 - A warning never stops planning: the plan is drafted and shown with it, and the approval is the user's answer.
 - Keep to the skills' style: each rule in one place, no repetition across files.
 
