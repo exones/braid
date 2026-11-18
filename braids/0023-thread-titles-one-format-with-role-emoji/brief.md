@@ -1,10 +1,11 @@
 ---
 id: '0023'
 title: "Thread titles: one format, with role emoji"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S", "ask:process"]
 dependencies: []
 order: 207
+delivery: epic
 ---
 
 ## Goal
@@ -34,10 +35,14 @@ Expected size: about 150 lines in 6 files, with tests.
 
 ## Completion
 
-- [ ] Start titles a coordinator `🧠 <repo> <n> coordinator: <title>` with the GitHub repo name (tested)
-- [ ] The board finds an idle worker, reviewer and coordinator thread by title, with no `t3 thread show` for idle threads, and still reads titles without emoji (tested with a fake `t3` that counts calls)
-- [ ] `braid clean` makes no `t3 thread show` call for idle threads, and finishes in seconds on this repo
-- [ ] `braid title <id> --role <role>` prints `<emoji> <repo> <id> <role>: <brief title>`, the title exactly as the card shows it (tested)
-- [ ] The braid skill names the format and launches every thread with `braid title`
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Start titles a coordinator `🧠 <repo> <n> coordinator: <title>` with the GitHub repo name (tested)
+- [x] The board finds an idle worker, reviewer and coordinator thread by title, with no `t3 thread show` for idle threads, and still reads titles without emoji (tested with a fake `t3` that counts calls)
+- [x] `braid clean` makes no `t3 thread show` call for idle threads, and finishes in seconds on this repo
+- [x] `braid title <id> --role <role>` prints `<emoji> <repo> <id> <role>: <brief title>`, the title exactly as the card shows it (tested)
+- [x] The braid skill names the format and launches every thread with `braid title`
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- One module (title builder and parser, GitHub repo name); the board places idle threads by title; `braid clean` reads GitHub and T3 once for all braids; `braid title`; skill and docs.

@@ -6,7 +6,7 @@ import { existsSync, realpathSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadLiveBraids } from "../braids/branches.js";
 import { UsageError } from "./braids.js";
-import { readGithub, runGh } from "../board/github.js";
+import { readGithub, runGh, type Github } from "../board/github.js";
 import { read, type Sources } from "./coordinate.js";
 import { reviewFolder } from "../braids/worktrees.js";
 import { repoName, worktreesDir } from "./start.js";
@@ -60,8 +60,8 @@ function free(folder: string): boolean {
 }
 
 /** Merged `plan/<slug>` branches (the PR that planned a goal) and their worktrees, kept when the worktree is dirty or in use. */
-function plans(root: string, yes: boolean, src: Sources, listed: readonly Worktree[], here: string, lines: string[]): void {
-  const merged = readGithub(root, src.gh ?? runGh, 0).plans ?? new Map<string, number>();
+function plans(root: string, yes: boolean, src: Sources, github: Github | undefined, listed: readonly Worktree[], here: string, lines: string[]): void {
+  const merged = (github ?? readGithub(root, src.gh ?? runGh, 0)).plans ?? new Map<string, number>();
   for (const branch of git(root, ["branch", "--list", "--format=%(refname:short)", "plan/*"]).stdout.split("\n").map((l) => l.trim()).filter((l) => l !== "")) {
     const pr = merged.get(branch);
     if (pr === undefined) {
@@ -114,8 +114,10 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
   const here = norm(root);
   const lines: string[] = [];
   let notes = "";
+  let first: Awaited<ReturnType<typeof read>> | undefined;
   for (const number of numbers) {
-    const w = await read(root, number, "clean", src);
+    const w = await read(root, number, "clean", src, first);
+    first ??= w;
     if (w.github.status.state !== "ok") {
       throw new UsageError(`GitHub could not be read (${w.github.status.reason}); merged PRs can't be told, nothing was cleaned`);
     }
@@ -187,7 +189,7 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
     }
   }
   if (only === null) {
-    plans(root, yes, src, listed, here, lines);
+    plans(root, yes, src, first?.github, listed, here, lines);
   }
   const head = lines.length === 0 ? "nothing to clean\n" : `${lines.join("\n")}\n`;
   return `${head}${yes || lines.length === 0 ? "" : "dry run: run again with --yes to do it\n"}${notes}`;

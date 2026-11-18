@@ -46,14 +46,15 @@ export interface World {
   readonly t3: T3;
 }
 
-export async function read(root: string, number: string, command: string, src: Sources): Promise<World> {
+export async function read(root: string, number: string, command: string, src: Sources, reuse?: World): Promise<World> {
   const braids = loadLiveBraids(root);
   const braid = braids.find((b) => b.number === number);
   if (braid === undefined) {
     throw new UsageError(`no braid ${number} (braid ${command} takes a braid number)`);
   }
-  const github = readGithub(root, src.gh ?? runGh, 0);
-  const t3 = await readT3(root, { ttlMs: 0, run: src.t3 ?? runT3 });
+  // A command over several braids (`braid clean`) reads GitHub and T3 once and passes that read on.
+  const github = reuse?.github ?? readGithub(root, src.gh ?? runGh, 0);
+  const t3 = reuse?.t3 ?? (await readT3(root, { ttlMs: 0, run: src.t3 ?? runT3 }));
   const sig = readSignals(root, github);
   const cards = new Map<string, { lane: Lane; strand: StrandCard | null }>();
   let card: BraidCard | undefined;
