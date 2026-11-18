@@ -42,16 +42,14 @@ export interface BranchRef {
   readonly letter: string | null;
 }
 
-/** Every local and remote-tracking branch whose name is a braid or strand branch. */
-export function braidBranches(root: string): BranchRef[] {
-  const r = git(root, [
-    "for-each-ref",
-    "--format=%(refname)%00%(objectname)%00%(committerdate:unix)",
-    "refs/heads/braid/",
-    // `*` doesn't match `/`: these are exactly the braid and strand branch shapes on any remote.
-    "refs/remotes/*/braid/*",
-    "refs/remotes/*/braid/*/*",
-  ]);
+/** Every local and remote-tracking branch whose name is a braid or strand branch; with `only`, that braid number's. */
+export function braidBranches(root: string, only?: string): BranchRef[] {
+  const patterns =
+    only === undefined
+      ? // `*` doesn't match `/`: these are exactly the braid and strand branch shapes on any remote.
+        ["refs/heads/braid/", "refs/remotes/*/braid/*", "refs/remotes/*/braid/*/*"]
+      : [`refs/heads/braid/${only}-*`, `refs/heads/braid/${only}/*`, `refs/remotes/*/braid/${only}-*`, `refs/remotes/*/braid/${only}/*`];
+  const r = git(root, ["for-each-ref", "--format=%(refname)%00%(objectname)%00%(committerdate:unix)", ...patterns]);
   if (r.status !== 0) {
     return [];
   }
@@ -67,7 +65,7 @@ export function braidBranches(root: string): BranchRef[] {
     const strand = STRAND_BRANCH.exec(name);
     const braid = BRAID_BRANCH.exec(name);
     const number = strand?.[1] ?? braid?.[1];
-    if (number === undefined) {
+    if (number === undefined || (only !== undefined && number !== only)) {
       continue;
     }
     refs.push({
@@ -208,9 +206,9 @@ interface Slot {
  * brief comes from its strand branch, else from its braid's branch, else from the working tree;
  * a braid's own brief from its braid branch, else the working tree. Branches already in HEAD
  * are skipped, and so is a branch whose copy is missing or malformed. Braids and strands that
- * exist only on a branch are added.
+ * exist only on a branch are added. With `only`, just that braid number's branches are read.
  */
-export function loadLiveBraids(root: string): Braid[] {
+export function loadLiveBraids(root: string, only?: string): Braid[] {
   const slots = new Map<string, Slot>();
   for (const braid of loadTree(fsTree(root))) {
     slots.set(braid.number, { item: braid, strands: new Map(braid.strands.map((s) => [s.letter, s])) });
@@ -218,7 +216,7 @@ export function loadLiveBraids(root: string): Braid[] {
   const headResult = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
   const head = headResult.status === 0 ? headResult.stdout.trim() : null;
   // Only each item's newest copy is checked against HEAD: if it is merged, the older ones are too old.
-  const newest = winners(braidBranches(root));
+  const newest = winners(braidBranches(root, only));
   const braidTips = new Map(newest.filter((r) => r.letter === null).map((r) => [r.number, r.commit]));
   const refs = newest
     .filter((ref) => head === null || !inHead(root, head, ref.commit))
@@ -268,4 +266,68 @@ export function loadLiveBraids(root: string): Braid[] {
   return [...slots.entries()]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([number, slot]) => ({ ...slot.item, number, strands: [...slot.strands.values()].sort(byRunOrder) }));
+}
+
+/** Local and remote-tracking `plan/<slug>` branches (a planning branch's name holds no braid number). */
+function planBranches(root: string): { branch: string; commit: string; time: number; local: boolean }[] {
+  const r = git(root, [
+    "for-each-ref",
+    "--format=%(refname)%00%(objectname)%00%(committerdate:unix)",
+    "refs/heads/plan/",
+    "refs/remotes/*/plan/*",
+  ]);
+  if (r.status !== 0) {
+    return [];
+  }
+  const refs: { branch: string; commit: string; time: number; local: boolean }[] = [];
+  for (const line of r.stdout.split("\n")) {
+    const [ref = "", commit = "", time = "0"] = line.split("\0");
+    const local = ref.startsWith("refs/heads/");
+    const remote = /^refs\/remotes\/([^/]+)\/(plan\/.+)$/.exec(ref);
+    const name = local ? ref.slice("refs/heads/".length) : remote === null ? undefined : `${remote[1] ?? ""}/${remote[2] ?? ""}`;
+    if (name !== undefined) {
+      refs.push({ branch: name, commit, time: Number(time), local });
+    }
+  }
+  // Newest first, a local branch on a tie: the first copy of a braid wins.
+  return refs.sort((a, b) => b.time - a.time || Number(b.local) - Number(a.local));
+}
+
+/**
+ * Every braid braid can see, in number order, Done ones too: what `loadLiveBraids` reads, plus
+ * braids found only on a `plan/` branch not merged into HEAD. A `plan/` copy never overrides a
+ * copy from the working tree or a braid branch. With `only`, just that braid number's branches
+ * are read, and the `plan/` branches only when no other source has it.
+ */
+export function loadKnownBraids(root: string, only?: string): Braid[] {
+  const braids = loadLiveBraids(root, only);
+  const known = new Set(braids.map((b) => b.number));
+  if (only !== undefined && known.has(only)) {
+    return braids;
+  }
+  const headResult = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
+  const head = headResult.status === 0 ? headResult.stdout.trim() : null;
+  for (const ref of planBranches(root)) {
+    if (head !== null && inHead(root, head, ref.commit)) {
+      continue;
+    }
+    const t = gitTree(root, { branch: ref.branch, commit: ref.commit });
+    for (const entry of t.list("braids")) {
+      const number = entry.isDir ? BRAID_FOLDER.exec(entry.name)?.[1] : undefined;
+      if (number === undefined || known.has(number) || (only !== undefined && number !== only)) {
+        continue;
+      }
+      const braid = attempt(() => loadBraid(t, `braids/${entry.name}`, number));
+      if (braid !== null) {
+        known.add(number);
+        braids.push(braid);
+      }
+    }
+  }
+  return braids.sort((a, b) => (a.number < b.number ? -1 : a.number > b.number ? 1 : 0));
+}
+
+/** Every braid whose status is not Done, wherever it lives (`loadKnownBraids`). */
+export function loadOpenBraids(root: string): Braid[] {
+  return loadKnownBraids(root).filter((b) => b.brief.status !== "Done");
 }

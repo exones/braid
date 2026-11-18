@@ -9,6 +9,8 @@ export interface BriefFields {
   readonly status: Status;
   readonly labels: readonly string[];
   readonly dependencies: readonly string[];
+  /** Braids only; written only when non-empty, so briefs without links keep their exact text. */
+  readonly related: readonly string[];
   readonly order: number | null;
   /** Braids only; null for a strand. */
   readonly delivery: Delivery | null;
@@ -26,6 +28,9 @@ export function formatBrief(fields: BriefFields, body: string): string {
     `labels: [${fields.labels.map(quoteText).join(", ")}]`,
     `dependencies: [${fields.dependencies.map(quoteId).join(", ")}]`,
   ];
+  if (fields.related.length > 0) {
+    lines.push(`related: [${fields.related.map(quoteId).join(", ")}]`);
+  }
   if (fields.order !== null) {
     lines.push(`order: ${fields.order}`);
   }

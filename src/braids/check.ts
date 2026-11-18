@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { loadKnownBraids } from "./branches.js";
 import { parseBrief } from "./brief.js";
 import { FormatError } from "./frontmatter.js";
 import { BRAID_FOLDER, STRAND_FOLDER } from "./store.js";
@@ -7,6 +8,8 @@ import { BRAID_FOLDER, STRAND_FOLDER } from "./store.js";
 export interface CheckResult {
   /** One line per problem: `<file>: <message>`. */
   readonly errors: readonly string[];
+  /** One line per warning: `<file>: <message>`. Warnings don't fail the check. */
+  readonly warnings: readonly string[];
   readonly braids: number;
   readonly strands: number;
 }
@@ -15,22 +18,49 @@ function display(root: string, path: string): string {
   return relative(root, path).split(sep).join("/");
 }
 
-function checkBrief(root: string, dir: string, id: string, errors: string[]): void {
+/** Validates one brief; returns its `related` ids with its file name, or null when it has none or fails. */
+function checkBrief(root: string, dir: string, id: string, errors: string[]): { name: string; related: readonly string[] } | null {
   const path = join(dir, "brief.md");
   const name = display(root, path);
   if (!existsSync(path)) {
     errors.push(`${name}: file is missing`);
-    return;
+    return null;
   }
   try {
-    parseBrief(readFileSync(path, "utf8"), name, id);
+    const brief = parseBrief(readFileSync(path, "utf8"), name, id);
+    return brief.related.length === 0 ? null : { name, related: brief.related };
   } catch (error) {
     if (error instanceof FormatError) {
       errors.push(`${error.file}: ${error.message}`);
-      return;
+      return null;
     }
     throw error;
   }
+}
+
+/**
+ * A `related` id found in no source (working tree, braid and strand branches, `plan/` branches) is a
+ * warning, not an error: the braid it names may live on a branch this checkout hasn't fetched.
+ */
+function relatedWarnings(root: string, links: readonly { name: string; related: readonly string[] }[]): string[] {
+  if (links.length === 0) {
+    return [];
+  }
+  let known: Set<string>;
+  try {
+    known = new Set(loadKnownBraids(root).map((b) => b.number));
+  } catch (error) {
+    // A malformed brief in the working tree is already an error of its own.
+    if (error instanceof FormatError) {
+      return [];
+    }
+    throw error;
+  }
+  return links.flatMap(({ name, related }) =>
+    related
+      .filter((id) => !known.has(id))
+      .map((id) => `${name}: related braid ${id} is not in the working tree or on any braid or plan/ branch here (fetch, or check the id)`),
+  );
 }
 
 /**
@@ -40,10 +70,11 @@ function checkBrief(root: string, dir: string, id: string, errors: string[]): vo
 export function checkBraids(root: string): CheckResult {
   const base = join(root, "braids");
   const errors: string[] = [];
+  const links: { name: string; related: readonly string[] }[] = [];
   let braids = 0;
   let strands = 0;
   if (!existsSync(base)) {
-    return { errors, braids, strands };
+    return { errors, warnings: [], braids, strands };
   }
   const numbers = new Map<string, string>();
   for (const entry of readdirSync(base).sort()) {
@@ -64,7 +95,10 @@ export function checkBraids(root: string): CheckResult {
     }
     numbers.set(number, entry);
     braids += 1;
-    checkBrief(root, dir, number, errors);
+    const link = checkBrief(root, dir, number, errors);
+    if (link !== null) {
+      links.push(link);
+    }
     const letters = new Map<string, string>();
     for (const sub of readdirSync(dir).sort()) {
       const strandDir = join(dir, sub);
@@ -83,5 +117,5 @@ export function checkBraids(root: string): CheckResult {
       checkBrief(root, strandDir, `${number}/${letter}`, errors);
     }
   }
-  return { errors, braids, strands };
+  return { errors, warnings: relatedWarnings(root, links), braids, strands };
 }
