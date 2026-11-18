@@ -68,23 +68,6 @@ export function fetchInbox(root: string): FetchResult {
   return f.status === 0 ? { state: "present" } : { state: "offline", why: firstLine(f.stderr) };
 }
 
-/** The commit to read: the newer of the local branch and the remote-tracking one (a descendant wins, then the later commit, then local). */
-export function inboxTip(root: string): string | null {
-  const local = refCommit(root, LOCAL);
-  const remote = refCommit(root, TRACKING);
-  if (local === null || remote === null || local === remote) {
-    return local ?? remote;
-  }
-  if (isAncestor(root, remote, local)) {
-    return local;
-  }
-  if (isAncestor(root, local, remote)) {
-    return remote;
-  }
-  const time = (c: string) => Number(must(root, ["log", "-1", "--format=%ct", c]));
-  return time(remote) > time(local) ? remote : local;
-}
-
 /** The entry files at a commit: path to blob. */
 function files(root: string, commit: string): Map<string, string> {
   const out = must(root, ["ls-tree", "-r", "-z", commit, "--", ...FOLDERS]);
@@ -116,7 +99,7 @@ function created(root: string, commit: string): Map<string, number> {
 }
 
 export interface Inbox {
-  /** The commit read; null when the branch exists nowhere yet. */
+  /** The commit read (the remote one when the local branch has diverged from it); null when the branch exists nowhere yet. */
   readonly commit: string | null;
   readonly entries: readonly Entry[];
   readonly problems: readonly Problem[];
@@ -142,13 +125,35 @@ export function readInboxAt(root: string, commit: string | null): Inbox {
   return { commit, entries, problems };
 }
 
+/** The commits on `local` that `remote` lacks, oldest first. */
+function pendingCommits(root: string, local: string, remote: string): string[] {
+  return must(root, ["rev-list", "--reverse", local, `^${remote}`]).split(/s+/).filter((c) => c !== "");
+}
+
 /**
- * The inbox from the refs (the newer of the local branch and the remote-tracking one). With
- * `fetch`, origin is fetched first; `fetched` says what that found.
+ * The inbox from the refs, local `braid-inbox` and `origin/braid-inbox`: the descendant when one
+ * contains the other. When they have diverged (a local commit not pushed yet, and newer remote
+ * commits), the remote's entries with the files the local-only commits add or change on top, as the
+ * next write replays them, so a listing never hides an entry. With `fetch`, origin is fetched
+ * first; `fetched` says what that found.
  */
 export function readInbox(root: string, options: { fetch?: boolean } = {}): Inbox & { readonly fetched: FetchResult | null } {
   const fetched = options.fetch === true ? fetchInbox(root) : null;
-  return { ...readInboxAt(root, inboxTip(root)), fetched };
+  const local = refCommit(root, LOCAL);
+  const remote = refCommit(root, TRACKING);
+  if (local === null || remote === null || local === remote || isAncestor(root, local, remote)) {
+    return { ...readInboxAt(root, remote ?? local), fetched };
+  }
+  if (isAncestor(root, remote, local)) {
+    return { ...readInboxAt(root, local), fetched };
+  }
+  const pending = new Set(pendingCommits(root, local, remote).flatMap((c) => [...changesOf(root, c).keys()]));
+  const ours = readInboxAt(root, local);
+  const theirs = readInboxAt(root, remote);
+  const entries = [...theirs.entries.filter((e) => !pending.has(e.file)), ...ours.entries.filter((e) => pending.has(e.file))];
+  entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const problems = [...theirs.problems.filter((p) => !pending.has(p.file)), ...ours.problems.filter((p) => pending.has(p.file))];
+  return { commit: remote, entries, problems, fetched };
 }
 
 /** What a write sees of the branch before it changes it. */
@@ -222,9 +227,8 @@ function rebase(root: string, local: string | null, remote: string | null): stri
   if (isAncestor(root, remote, local)) {
     return local;
   }
-  const pending = must(root, ["rev-list", "--reverse", local, `^${remote}`]).split(/\s+/).filter((c) => c !== "");
   let base = remote;
-  for (const commit of pending) {
+  for (const commit of pendingCommits(root, local, remote)) {
     const [name = "", email = "", date = "", ...message] = must(root, ["log", "-1", "--format=%an%x00%ae%x00%aI%x00%B", commit]).split("\0");
     base = commitOn(root, base, changesOf(root, commit), message.join("\0").trim(), {
       GIT_AUTHOR_NAME: name,

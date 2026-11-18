@@ -144,6 +144,9 @@ test("two clones capturing at once: the refused push is redone on top, both land
   // b's commit is in the remote history: a built on top of it instead of replacing it.
   const subjects = git(w.remote, "log", "--format=%s", "braid-inbox").split("\n");
   assert.deepEqual(subjects, [`docs(inbox): ${fromA} note`, `docs(inbox): ${fromB} note`, `docs(inbox): ${first} note`]);
+  // Nothing was forced: b's own braid-inbox commit is an ancestor of the remote tip.
+  const tip = git(w.remote, "rev-parse", "braid-inbox");
+  assert.equal(spawnSync("git", ["merge-base", "--is-ancestor", git(b, "rev-parse", "braid-inbox"), tip], { cwd: w.remote, env }).status, 0);
   assert.equal(git(w.remote, "reflog", "show", "--format=%gs", "braid-inbox").includes("forced"), false);
 });
 
@@ -173,8 +176,14 @@ test("an offline note made while someone else pushed is replayed on top of the r
   ok(b, "note", "--idea", "first");
   git(a, "remote", "set-url", "origin", join(w.base, "missing.git"));
   const offline = idOf(ok(a, "note", "offline in a", "--from", "user").stdout);
-  ok(b, "note", "--idea", "second");
+  const second = idOf(ok(b, "note", "--idea", "second").stdout);
   git(a, "remote", "set-url", "origin", w.remote);
+  // Before a writes again, its listing (fetch OK, branches diverged) shows its unpushed leftover and b's newer idea.
+  const listed = ok(a, "inbox");
+  assert.equal(listed.stderr, "");
+  assert.match(listed.stdout, new RegExp(`^leftover\\s+${offline}\\s.*offline in a$`, "m"));
+  assert.match(listed.stdout, new RegExp(`^idea\\s+${second}\\s.*second$`, "m"));
+  assert.match(listed.stdout, /^idea\s+\S+\s.*first$/m);
   const last = idOf(ok(a, "note", "--idea", "third").stdout);
   const files = remoteFiles(w.remote);
   assert.equal(files.length, 4);
