@@ -1,7 +1,7 @@
 ---
 id: '0012/D'
 title: "Final review fixes: board actions count and D32 lane order"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 40
@@ -24,7 +24,7 @@ Expected size: about 4 lines in 2 files.
 
 ## Completion
 
-- [ ] docs/board.md names the three actions
-- [ ] D32 says D59 replaced its lane order
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written
+- [x] docs/board.md names the three actions
+- [x] D32 says D59 replaced its lane order
+- [x] The gate command from BRAID.md passes
+- [x] report.md written
