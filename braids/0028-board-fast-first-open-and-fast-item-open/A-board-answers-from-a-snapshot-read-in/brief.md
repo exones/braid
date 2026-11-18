@@ -1,7 +1,7 @@
 ---
 id: '0028/A'
 title: "Board answers from a snapshot read in the background"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 10
