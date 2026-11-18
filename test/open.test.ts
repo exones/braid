@@ -117,3 +117,57 @@ test("a failed fetch warns and goes on with what is local", () => {
   assert.match(r.stderr, /^warning: git fetch failed/);
   assert.match(r.stdout, /0004/);
 });
+
+/** Commits `files` on a new branch off main with the given commit time, then returns its commit and goes back to main. */
+function commitAt(root: string, branch: string, date: string, files: Record<string, string>): string {
+  const dated = { ...env, GIT_COMMITTER_DATE: date, GIT_AUTHOR_DATE: date };
+  const run = (...args: string[]) => {
+    const r = spawnSync("git", ["-c", "commit.gpgsign=false", ...args], { cwd: root, encoding: "utf8", env: dated });
+    assert.equal(r.status, 0, `git ${args.join(" ")}: ${r.stderr}`);
+    return r.stdout.trim();
+  };
+  run("checkout", "-q", "-b", branch, "main");
+  for (const [path, text] of Object.entries(files)) {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), text);
+  }
+  run("add", "-A");
+  run("commit", "-q", "-m", "change");
+  const sha = run("rev-parse", "HEAD");
+  run("checkout", "-q", "main");
+  return sha;
+}
+
+test("a braid found only on origin/plan/* is listed with that source", () => {
+  const root = fixture();
+  const sha = commitAt(root, "tmp", "2026-01-01T00:00:00Z", { "braids/0005-r/brief.md": brief("0005", "To Do") });
+  git(root, "update-ref", "refs/remotes/origin/plan/r", sha);
+  git(root, "branch", "-q", "-D", "tmp");
+  assert.match(braid(root, "list", "--open", "--no-fetch").stdout, /0005 {2}To Do {2}Title 0005\n {2}read from: origin\/plan\/r\n/);
+});
+
+test("two plan copies of one braid: the newest wins, a local branch on a tie", () => {
+  const root = fixture();
+  const at = (title: string) => ({ "braids/0006-d/brief.md": brief("0006", "To Do", title) });
+  commitAt(root, "plan/d", "2026-01-01T00:00:00Z", at("Local copy."));
+  const remote = commitAt(root, "tmp", "2026-02-01T00:00:00Z", at("Remote newer copy."));
+  git(root, "update-ref", "refs/remotes/origin/plan/d", remote);
+  git(root, "branch", "-q", "-D", "tmp");
+  let out = braid(root, "list", "--open", "--no-fetch").stdout;
+  assert.match(out, /read from: origin\/plan\/d\n\n {2}Remote newer copy\./);
+  // Same commit time: the local branch wins.
+  const tie = commitAt(root, "tmp", "2026-01-01T00:00:00Z", at("Remote tied copy."));
+  git(root, "update-ref", "refs/remotes/origin/plan/d", tie);
+  git(root, "branch", "-q", "-D", "tmp");
+  out = braid(root, "list", "--open", "--no-fetch").stdout;
+  assert.match(out, /read from: plan\/d\n\n {2}Local copy\./);
+});
+
+test("a plan branch merged into HEAD adds nothing even when its braid files are gone from HEAD", () => {
+  const root = fixture();
+  commitAt(root, "plan/m", "2026-01-01T00:00:00Z", { "braids/0007-m/brief.md": brief("0007", "To Do") });
+  git(root, "merge", "-q", "--no-ff", "-m", "merge", "plan/m");
+  git(root, "rm", "-q", "-r", "braids/0007-m");
+  git(root, "commit", "-q", "-m", "remove");
+  assert.doesNotMatch(braid(root, "list", "--open", "--no-fetch").stdout, /0007/);
+});
