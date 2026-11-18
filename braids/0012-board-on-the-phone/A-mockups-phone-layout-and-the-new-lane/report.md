@@ -11,16 +11,21 @@
 - A, tab bar with counts: all lanes and counts always visible, one tap. Labels are small (To Review shortened to Review).
 - B, swipe: most room for cards. Other lanes' counts hidden, swipe can collide with the back gesture, not discoverable.
 - C, lane picker sheet: biggest targets, scales. Two taps, counts hidden until opened.
-- Recommendation: A, with swiping as an extra.
+- Approved by the user (2026-11-18): A plus swiping left/right between lanes.
 
 ## Validation
 
 Screens viewed after rendering. Gate (`npm run verify`) run on this branch; only docs and braid files changed.
 
+## Decisions
+
+- Phone: variant A (tab bar with counts) plus swiping left/right to switch lanes (user, 2026-11-18). The approved variant is marked in the mockup notes (screen 40).
+- "Newest" in Done is the date the item became Done (its status commit).
+- On the phone the Done tab works as on desktop: 10 newest, newest first, Show more.
+
 ## Open
 
-- "Newest" in Done: proposed the date the item became Done (status commit), no GitHub call needed; the PR merge date is the alternative. Needs your pick.
-- Done on the phone assumed collapsed with the same 10 and Show more.
+Nothing. 0012/B builds this and updates `docs/board.md` and `docs/decisions.md`.
 
 For later items: none.
-Needs the user: scope: pick a phone variant (A tabs, B swipe, C picker) and the date for "newest" in Done, so 0012/B can build it.
+Needs the user: none.

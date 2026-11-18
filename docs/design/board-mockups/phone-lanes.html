@@ -99,8 +99,8 @@ const NOTES=`<div class="notes"><h1>Phone variants and lane order (0012/A)</h1>
 <h2>A · Tab bar with counts (screens 31, 32, 33)</h2><p>Five tabs under the header, each with its count; the active tab is underlined.</p><ul><li>Good: every lane and its count is visible at once, so you see that Needs You has 3. One tap to any lane. Familiar, nothing to discover.</li><li>Bad: five tabs in 390 px leave small labels ("To Review" is shortened to "Review"); a fixed strip of height; no swipe unless we add it.</li></ul>
 <h2>B · Swipe between lanes (screens 34, 35, 36)</h2><p>One lane fills the screen; a strip shows the lane name, its count and position dots; swipe left or right to move (35 shows mid-swipe, with ‹ › as a mouse fallback).</p><ul><li>Good: most room for cards; natural on a phone.</li><li>Bad: other lanes' counts are hidden, so a new request in To Review is invisible while you read Needs You; swiping can collide with the browser's back gesture and with scrolling; not discoverable.</li></ul>
 <h2>C · Lane picker (screens 37, 38, 39)</h2><p>One bar shows the current lane and count; a tap opens a bottom sheet with all five lanes and counts.</p><ul><li>Good: biggest tap targets (52 px rows), full lane names, scales if a lane is added, all counts one tap away.</li><li>Bad: two taps to change a lane instead of one; counts hidden until the sheet opens.</li></ul>
-<p><b>Recommendation:</b> A, with swiping as an extra: the shortest path to a lane and counts always shown. C is the fallback if five tabs feel cramped.</p>
-<h2>Open</h2><ul><li>Done on the phone: assumed collapsed with the same 10 and Show more.</li></ul></div>`;
+<p><b>Approved (user, 2026-11-18): variant A plus swiping left/right between lanes.</b> "Newest" in Done is the date the item became Done (status commit). On the phone the Done tab works as on desktop: 10 newest, newest first, Show more.</p>
+<h2>Open</h2><ul><li>None: Done on the phone works as on desktop (decided).</li></ul></div>`;
 const h=location.hash.slice(1)||'desktop';
 if(h==='notes'){document.body.innerHTML=NOTES}
 else{if(h!=='desktop'&&h!=='done-open')document.body.classList.add('ph');
