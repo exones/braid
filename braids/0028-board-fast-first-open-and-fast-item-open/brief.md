@@ -1,7 +1,7 @@
 ---
 id: '0028'
 title: "Board: fast first open and fast item open"
-status: In Progress
+status: Done
 labels: ["kind:goal", "tier:M"]
 dependencies: ['0012']
 delivery: epic
