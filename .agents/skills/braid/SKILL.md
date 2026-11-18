@@ -29,7 +29,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 - One writer per branch, and acceptance (Done) is yours through `braid accept`.
 - Your commits are `docs(braids): …`, for example `docs(braids): 0012 phases: add 0012/A, 0012/B`.
 - Commit brief changes only at these points: the plan and its review rounds; the braid In Progress, after the planning merge; a growth or plan-change decision; a log entry; an item accepted (`braid accept`); an Outline detailed; the braid Done at the end.
-- Name threads `<repo> <id> <role>: <title>`, for example `chinese-trainer 0012/A review: data model`.
+- Name every thread `<emoji> <repo> <id> <role>: <title>`: 🧠 `coordinator`, 💻 `worker`, 👀 `review`, 🧪 `research`; the repo is the GitHub repository's name and the title is the item's name exactly as its brief has it. Never write one by hand: launch each thread with the output of `braid title <id> --role <role>`, for example `💻 braid 0021 worker: Board Start: no branch clash`. When a coordinator takes a braid (plan or resume), it sets its own thread's title to `braid title <number> --role coordinator` (`t3_thread_update` in T3, else the host's rename).
 - **Side ideas get a home.** When the user proposes something while an item runs, don't fold it in silently: `braid ask` whether to track it and where, with a recommendation: absorb it into the running item, a strand of an existing braid, an extended outline, or a new braid.
 - Never edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless the user asks. Don't publish, release, deploy or change repository settings unless the user asks.
 
@@ -52,7 +52,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 One implementation worker at a time. The next item is under "Starting the next item" in the workflow; a story has only itself.
 
-1. Run `braid start <id>`, then launch a top-level T3 thread with `t3_thread_launch` on the folder it prints as an existing worktree (`existing_worktree`), with the worker model for the item's tier and kind. Launch it with no message, so it starts idle.
+1. Run `braid start <id>`, then launch a top-level T3 thread with `t3_thread_launch` on the folder it prints as an existing worktree (`existing_worktree`), with the worker model for the item's tier and kind and `title` the output of `braid title <id> --role worker`. Launch it with no message, so it starts idle.
 2. Send the first message with `t3_thread_send`, filling in the thread id the launch returned, so the worker logs under its own id and not yours. If the worker might not find the skill by name, add the absolute path of its `SKILL.md`.
 
    ```text
@@ -93,7 +93,7 @@ When the worker reports green:
 
 1. **Review** by tier (workflow, "Tiers").
    - S: read the diff yourself.
-   - M and L: run `braid start <id> --review` and launch an independent reviewer as a top-level thread on the folder it prints, with its model and the first message below (add the `SKILL.md` path if needed). Wait as in "Run an item" step 3.
+   - M and L: run `braid start <id> --review` and launch an independent reviewer as a top-level thread on the folder it prints, with `title` the output of `braid title <id> --role review`, its model and the first message below (add the `SKILL.md` path if needed). Wait as in "Run an item" step 3.
    - L, when blocking fixes substantially changed failure or recovery behavior: have the reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its first message.
    - Use a fresh review task when the host requires it; never resume a delegated reviewer with `t3_thread_send`.
    - Send blocking findings, and small factual errors in docs, to the same worker to fix on the same PR; decide non-blocking ones yourself.

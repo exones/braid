@@ -75,6 +75,7 @@ The user confirmed using npm directly. Public packages can use npm's free tier; 
 
 ## Decision log
 
+- 2026-11-18, user (0023): one thread title format, `<emoji> <repo> <id> <role>: <title>` (🧠 coordinator, 💻 worker, 👀 review, 🧪 research), built by `braid title`; the title is the card's title and the repo is the GitHub repository's name. The board and `braid clean` place idle threads by title and no longer run `t3 thread show` for them (about 3 s each). Documented in [docs/board.md](board.md).
 - 2026-11-17, user (0009): adopted D52, Start launches a new coordinator thread per braid with the T3 project's default model; `BRAID.md`'s coordinator effort became medium (High showed no visible advantage).
 - 2026-11-17, user (0019): adopted D49, braids-only commits need no new CI and `braid start` takes a planned story's existing branch.
 - 2026-11-16, user (0003/D): adopted D48, completion by the worker and acceptance by the coordinator (`braid accept`, replacing `braid done`; section `## Completion`).

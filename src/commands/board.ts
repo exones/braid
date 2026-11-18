@@ -3,7 +3,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { basename, extname, join, resolve, sep } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadLiveBraids, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
@@ -11,6 +11,7 @@ import type { Braid, Item, Tree } from "../braids/store.js";
 import { DEMO_START, demoBraids, demoGithub, demoSignals, demoT3, demoTree } from "../board/demo.js";
 import { readGithub, runGh, type Github, type GhRunner } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toBoard, toCard, toDetail, type StartContext } from "../board/model.js";
+import { threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
 import { mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { normaliseId, UsageError } from "./braids.js";
@@ -210,7 +211,7 @@ export function startAction(src: Sources, root: string, t3: T3Runner, git: GitRu
       throw new UsageError(`Start: the branch names ${base} and ${branch} are not plain`);
     }
     // The title goes through cmd.exe on Windows: no quote or shell character may reach it.
-    const title = `${src.repo} ${id} coordinator: ${card.title}`.replace(/["%^&|<>!\s]+/g, " ").trim();
+    const title = threadTitle(src.repo, id, "coordinator", card.title).replace(/["%^&|<>!\s]+/g, " ").trim();
     const args = ["thread", "start", src.project(), "-", "--title", title, "--worktree", base, "--branch", branch, "--json"];
     const started = await t3(root, args, coordinatorMessage(id, { ...card.start, base, branch }));
     if (started.error !== undefined || started.status !== 0) {
@@ -299,7 +300,7 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
 
 export function repoSources(root: string, gh: GhRunner = runGh, t3: T3Runner = runT3): Sources {
   const src: Sources = {
-    repo: basename(root),
+    repo: titleRepoName(root),
     braids: () => loadLiveBraids(root),
     github: (fresh) => readGithub(root, gh, fresh ? 0 : undefined),
     t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
