@@ -14,6 +14,8 @@ export interface PullRequest {
   readonly head?: string;
   /** The branch it merges into, when GitHub gave it. */
   readonly base?: string;
+  /** When a merged PR was merged (ISO), if GitHub gave it: the date its item became Done. */
+  readonly mergedAt?: string;
   /** The branch it comes from. */
   readonly branch?: string;
   /** Names of the failing checks, when GitHub gave them. */
@@ -199,7 +201,7 @@ function readFresh(root: string, run: GhRunner): Github {
   for (const [raw, state] of [...closed.map((p) => [p, "closed"] as const), ...merged.map((p) => [p, "merged"] as const), ...open.map((p) => [p, "open"] as const)]) {
     const key = keyOfBranch(raw.headRefName);
     if (key !== null) {
-      prs.set(key, { number: raw.number, url: raw.url, state, ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), ...(raw.baseRefName === undefined ? {} : { base: raw.baseRefName }), branch: raw.headRefName, checks: state === "open" ? checksOf(raw.statusCheckRollup) : state === "merged" ? "passing" : "none", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
+      prs.set(key, { number: raw.number, url: raw.url, state, ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), ...(raw.baseRefName === undefined ? {} : { base: raw.baseRefName }), branch: raw.headRefName, ...(state === "merged" && typeof raw.mergedAt === "string" ? { mergedAt: raw.mergedAt } : {}), checks: state === "open" ? checksOf(raw.statusCheckRollup) : state === "merged" ? "passing" : "none", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
     }
   }
   const plans = new Map<string, number>();

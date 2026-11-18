@@ -5,7 +5,8 @@ import type { Braid, Item, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
 import { age, type Request } from "../braids/requests.js";
 
-export const LANES = ["To Do", "In Progress", "In Review", "Waiting", "Done"] as const;
+/** Left to right, what needs the user most first. The board shows Waiting as Needs You, In Review as To Review, In Progress as Working. */
+export const LANES = ["Waiting", "In Review", "In Progress", "To Do", "Done"] as const;
 export type Lane = (typeof LANES)[number];
 
 /** What an item shows as the reason it is on the user's side: a request's kind, or a broke alarm. */
@@ -96,6 +97,8 @@ export interface StrandCard {
   readonly thread: string | null;
   /** The open review request, when there is one. */
   readonly merge: MergeInfo | null;
+  /** When it became Done (the merge of its PR, ISO); null when it isn't Done or the date isn't known. */
+  readonly doneAt: string | null;
 }
 
 export interface BraidCard {
@@ -124,6 +127,8 @@ export interface BraidCard {
   readonly start: StartInfo;
   /** The braid's coordinator thread, running or idle; null when it has none. */
   readonly coordinator: CoordinatorInfo | null;
+  /** When it became Done: its own PR's merge, or its newest strand's (ISO); null when it isn't Done or the date isn't known. */
+  readonly doneAt: string | null;
 }
 
 export interface BoardData {
@@ -397,13 +402,14 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
       activity: d.activity,
       thread: openThread(`${braid.number}/${s.letter}`, d.agents, t3, d.lane),
       merge: mergeOf(`${braid.number}/${s.letter}`, gh, sig),
+      doneAt: d.lane === "Done" ? (d.pr?.mergedAt ?? null) : null,
     };
   });
   if (strands.length === 0) {
     const derived = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
     const lift = planned(braid.number, derived.lane, gh, t3);
     const own = lift === null ? derived : { ...derived, ...lift };
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane) };
+    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), doneAt: own.lane === "Done" ? (own.pr?.mergedAt ?? null) : null };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -447,7 +453,16 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     merge: own === null || pr?.state === "merged" ? null : mergeOf(braid.number, gh, sig),
     start: startOf(braid, lane, t3, ctx),
     coordinator: coordinatorOf(braid.number, t3, ctx, lane),
+    doneAt: lane === "Done" ? ([pr?.mergedAt ?? null, ...strands.map((s) => s.doneAt)].filter((d) => d !== null).sort().pop() ?? null) : null,
   };
+}
+
+/** How many Done braids show at first, and how many more each press of Show more adds. */
+export const DONE_PAGE = 10;
+
+/** The Done braids newest first by the date they became Done; those without a date come last, highest number first. */
+export function doneNewestFirst<T extends { readonly id: string; readonly doneAt: string | null }>(cards: readonly T[]): T[] {
+  return [...cards].sort((a, b) => (a.doneAt === b.doneAt ? 0 : a.doneAt === null ? 1 : b.doneAt === null ? -1 : a.doneAt < b.doneAt ? 1 : -1) || (a.id < b.id ? 1 : -1));
 }
 
 export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX): BoardData {

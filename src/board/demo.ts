@@ -11,7 +11,7 @@ import type { T3, T3Coordinator, T3Thread } from "./t3.js";
 const brief = (id: string, title: string, status: string, extra = ""): string =>
   `---\nid: '${id}'\ntitle: ${title}\nstatus: ${status}\n${extra}---\n\n## Goal\n\n${title}. Sample text from \`braid board --demo\`.\n\n## Acceptance\n\n- It works.\n`;
 
-const FILES: Readonly<Record<string, string>> = {
+const BASE_FILES: Readonly<Record<string, string>> = {
   "braids/0001-sample-login/brief.md": brief("0001", "Sample login flow", "In Progress", "labels:\n  - tier:L\n"),
   "braids/0001-sample-login/A-form/brief.md": brief("0001/A", "Login form", "Done", "order: 1\n"),
   "braids/0001-sample-login/B-session/brief.md": brief("0001/B", "Session storage", "In Progress", "order: 2\n"),
@@ -49,6 +49,25 @@ const FILES: Readonly<Record<string, string>> = {
   "braids/0013-sample-audit-trail/brief.md": brief("0013", "Sample audit trail", "To Do", "labels:\n  - tier:M\n"),
 };
 
+/** Older Done braids, so the Done lane has more than a page: number, title, days since it was merged. */
+const OLDER_DONE: readonly (readonly [string, string, number])[] = [
+  ["0014", "Sample reports v2", 2],
+  ["0015", "Sample billing v2", 3],
+  ["0016", "Sample search v2", 4],
+  ["0017", "Sample login v2", 5],
+  ["0018", "Sample themes v2", 7],
+  ["0019", "Sample export v2", 8],
+  ["0020", "Sample import v2", 9],
+  ["0021", "Sample cache v2", 11],
+  ["0022", "Sample mail v2", 12],
+  ["0023", "Sample audit v2", 14],
+  ["0024", "Sample notices v2", 16],
+];
+const FILES: Readonly<Record<string, string>> = {
+  ...BASE_FILES,
+  ...Object.fromEntries(OLDER_DONE.map(([number, title]) => [`braids/${number}-sample-done/brief.md`, brief(number, title, "Done", "labels:\n  - tier:S\n")])),
+};
+
 /** The sample files as a read-only tree; no disk is touched. */
 export function demoTree(): Tree {
   const names = Object.keys(FILES);
@@ -78,7 +97,10 @@ export function demoBraids(): Braid[] {
 
 const demoHead = (number: number): string => `${number.toString(16).padStart(7, "0")}${"0".repeat(33)}`;
 
-const pr = (number: number, state: "open" | "merged", checks: "passing" | "failing" | "pending" | "none") => ({
+const DAY = 86_400_000;
+
+const pr = (number: number, state: "open" | "merged", checks: "passing" | "failing" | "pending" | "none", mergedDaysAgo?: number) => ({
+  ...(state === "merged" && mergedDaysAgo !== undefined ? { mergedAt: new Date(Date.now() - mergedDaysAgo * DAY).toISOString() } : {}),
   ...(checks === "failing" ? { failed: ["verify (windows-latest)"] } : {}),
   number,
   url: `https://github.com/example/sample/pull/${number}`,
@@ -99,8 +121,9 @@ export function demoGithub(): Github {
       ["0003/C", pr(17, "open", "passing")],
       ["0005/A", pr(18, "open", "pending")],
       ["0010/A", pr(19, "open", "passing")],
-      ["0008/A", pr(15, "merged", "passing")],
-      ["0008", pr(16, "merged", "passing")],
+      ["0008/A", pr(15, "merged", "passing", 1)],
+      ["0008", pr(16, "merged", "passing", 1)],
+      ...OLDER_DONE.map(([number, , days], i) => [number, pr(30 + i, "merged", "passing", days)] as const),
     ]),
   };
 }

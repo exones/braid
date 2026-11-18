@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
-import { LANE_LABEL, ageText, cardMarks, strandMarks, type Marks } from "../../src/board/marks.ts";
+import { LANE_LABEL, ageText, cardMarks, strandMarks, t3codeUrl, type Marks } from "../../src/board/marks.ts";
+import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
 import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
 
 /** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
@@ -187,7 +188,11 @@ const OpenIcon = () => (
   </svg>
 );
 
-const BUTTON = "flex size-6 items-center justify-center rounded-md border";
+/** A 24 px icon button; below `md` (a phone) it is at least 44 px and carries its one-word label. */
+const BUTTON = "flex size-6 items-center justify-center gap-1.5 rounded-md border max-md:size-auto max-md:min-h-11 max-md:min-w-11 max-md:px-4 max-md:text-sm max-md:font-semibold";
+
+/** The label shown on a phone only; desktop buttons are icon-only with a tooltip. */
+const Label = ({ children }: { children: ReactNode }) => <span className="md:hidden">{children}</span>;
 
 /** Open thread: a small button that opens the item's thread in the T3 desktop app (the server opens it); nothing is drawn when there is no thread. */
 function OpenThread({ id, link }: { id: string; link: string | null }) {
@@ -195,7 +200,14 @@ function OpenThread({ id, link }: { id: string; link: string | null }) {
   if (link === null) {
     return null;
   }
+  const app = t3codeUrl(link);
   return (
+    <>
+      {app !== null && (
+        <a href={app} onClick={(e) => e.stopPropagation()} className={`${BUTTON} border-slate-200 bg-white text-slate-700 no-underline md:hidden`}>
+          <OpenIcon /> <Label>Open thread</Label>
+        </a>
+      )}
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
         <button
@@ -206,15 +218,16 @@ function OpenThread({ id, link }: { id: string; link: string | null }) {
             setError(null);
             postAction("open", { id }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
           }}
-          className={`${BUTTON} ${error === null ? "border-slate-200 text-slate-600" : "border-red-600 text-red-700"} bg-white hover:border-blue-600`}
+          className={`${BUTTON} ${app === null ? "" : "max-md:hidden"} ${error === null ? "border-slate-200 text-slate-600" : "border-red-600 text-red-700"} bg-white hover:border-blue-600`}
         >
-          <OpenIcon />
+          <OpenIcon /> <Label>Open thread</Label>
         </button>
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">{error ?? "Open thread in T3"}</Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
+    </>
   );
 }
 
@@ -269,7 +282,7 @@ function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
           <Tooltip.Trigger asChild>
             <span className="inline-flex" tabIndex={0} aria-label={`Merge: ${reason ?? ""}`}>
               <button type="button" disabled aria-label="Merge" className={`${BUTTON} cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400`}>
-                <MergeIcon />
+                <MergeIcon /> <Label>Merge</Label>
               </button>
             </span>
           </Tooltip.Trigger>
@@ -286,7 +299,7 @@ function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
         <Tooltip.Trigger asChild>
           <Dialog.Trigger asChild>
             <button type="button" aria-label="Merge" onClick={(e) => e.stopPropagation()} className={`${BUTTON} cursor-pointer border-violet-600 bg-violet-600 text-white hover:bg-violet-700`}>
-              <MergeIcon />
+              <MergeIcon /> <Label>Merge</Label>
             </button>
           </Dialog.Trigger>
         </Tooltip.Trigger>
@@ -370,7 +383,7 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
           <Tooltip.Trigger asChild>
             <span className="inline-flex" tabIndex={0} aria-label={`Start: ${reason}`}>
               <button type="button" disabled aria-label="Start" className={`${BUTTON} cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400`}>
-                <StartIcon />
+                <StartIcon /> <Label>Start</Label>
               </button>
             </span>
           </Tooltip.Trigger>
@@ -387,7 +400,7 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
         <Tooltip.Trigger asChild>
           <Dialog.Trigger asChild>
             <button type="button" aria-label="Start" onClick={(e) => e.stopPropagation()} className={`${BUTTON} cursor-pointer border-blue-600 bg-blue-600 text-white hover:bg-blue-700`}>
-              <StartIcon />
+              <StartIcon /> <Label>Start</Label>
             </button>
           </Dialog.Trigger>
         </Tooltip.Trigger>
@@ -424,7 +437,7 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
 /** Open thread where the item has a thread; Start on a To Do braid; Merge on In Review items. */
 function Actions({ id, lane, thread, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex flex-wrap items-center gap-1.5 max-md:gap-2">
       <OpenThread id={id} link={thread} />
       {start !== null && <StartButton id={id} start={start} {...(onLaunched === undefined ? {} : { onLaunched })} />}
       {lane === "In Review" && <MergeButton id={id} merge={merge} />}
@@ -634,23 +647,102 @@ function InboxPage({ inbox }: { inbox: InboxData }) {
   );
 }
 
-function Board({ data, details }: { data: BoardData; details: boolean }) {
+const SHORT_LABEL: Record<Lane, string> = { Waiting: "Needs you", "In Review": "Review", "In Progress": "Working", "To Do": "To Do", Done: "Done" };
+
+/** The day a Done braid became Done, as "Nov 17"; empty when the date isn't known. */
+const dayOf = (iso: string | null): string => (iso === null ? "" : new Date(iso).toLocaleDateString("en", { month: "short", day: "numeric" }));
+
+/**
+ * The Done lane: collapsed by default; opened, the 10 newest braids as rows, newest first by the day they became
+ * Done, and Show more for the next 10.
+ */
+function DoneLane({ cards }: { cards: readonly BraidCard[] }) {
+  const [open, setOpen] = useState(false);
+  const [shown, setShown] = useState(DONE_PAGE);
+  const rows = doneNewestFirst(cards);
   return (
-    <div className="grid grid-cols-5 items-start gap-3 p-4">
-      {data.lanes.map((lane) => {
-        const cards = data.braids.filter((b) => b.lane === lane);
-        return (
-          <section key={lane} aria-label={LANE_LABEL[lane]} className="min-h-48 rounded-xl bg-slate-200/70 p-2.5">
-            <h3 className="mx-1 mb-2.5 mt-0.5 flex justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <span className="flex items-center gap-1.5"><LaneDot lane={lane} />{LANE_LABEL[lane]}</span>
-              <span>{cards.length}</span>
-            </h3>
-            {cards.map((b) => (
-              <Card key={b.id} braid={b} details={details} />
-            ))}
-          </section>
-        );
-      })}
+    <div>
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:min-h-11">
+        <span aria-hidden>{open ? "▾" : "▸"}</span> {open ? "Hide" : "Show"} done
+      </button>
+      {open && (
+        <div>
+          {rows.slice(0, shown).map((b) => (
+            <button key={b.id} type="button" onClick={() => go(b.id)} className="flex w-full cursor-pointer items-center gap-2 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
+              <LaneDot lane="Done" />
+              <span className="w-9 flex-none text-xs text-slate-500">{b.id}</span>
+              <span className="min-w-0 flex-1">{b.title}</span>
+              <span className="flex-none text-[11px] whitespace-nowrap text-slate-500">{dayOf(b.doneAt)}</span>
+            </button>
+          ))}
+          {rows.length > shown && (
+            <button type="button" onClick={() => setShown(shown + DONE_PAGE)} className="mt-2 w-full cursor-pointer rounded-md border border-slate-200 bg-white py-1.5 text-xs hover:border-blue-600 max-md:min-h-11 max-md:text-sm">
+              Show more ({rows.length - shown})
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The lanes. From `md` up all five stand side by side; on a phone a tab bar with counts shows one lane at a time
+ * (Needs You first), and swiping left or right moves to the next or previous lane.
+ */
+function Board({ data, details }: { data: BoardData; details: boolean }) {
+  const [active, setActive] = useState<Lane>(data.lanes[0] ?? "Waiting");
+  const [touch, setTouch] = useState<{ x: number; y: number } | null>(null);
+  const move = (by: number) => {
+    const next = data.lanes[data.lanes.indexOf(active) + by];
+    if (next !== undefined) {
+      setActive(next);
+    }
+  };
+  return (
+    <div>
+      <div role="tablist" aria-label="Lanes" className="sticky top-0 z-10 flex border-b border-slate-200 bg-white md:hidden">
+        {data.lanes.map((lane) => (
+          <button
+            key={lane}
+            type="button"
+            role="tab"
+            aria-selected={lane === active}
+            onClick={() => setActive(lane)}
+            className={`flex min-h-12 flex-1 cursor-pointer flex-col items-center justify-center border-b-[3px] text-[11px] ${lane === active ? "border-amber-500 font-semibold text-slate-900" : "border-transparent text-slate-500"}`}
+          >
+            <b className="text-base text-slate-900">{data.braids.filter((b) => b.lane === lane).length}</b>
+            {SHORT_LABEL[lane]}
+          </button>
+        ))}
+      </div>
+      <div
+        className="grid grid-cols-5 items-start gap-3 p-4 max-md:grid-cols-1 max-md:px-3.5"
+        onTouchStart={(e) => {
+          const t = e.touches[0];
+          setTouch(t === undefined ? null : { x: t.clientX, y: t.clientY });
+        }}
+        onTouchEnd={(e) => {
+          const t = e.changedTouches[0];
+          if (touch !== null && t !== undefined && Math.abs(t.clientX - touch.x) > 60 && Math.abs(t.clientX - touch.x) > 2 * Math.abs(t.clientY - touch.y)) {
+            move(t.clientX < touch.x ? 1 : -1);
+          }
+          setTouch(null);
+        }}
+      >
+        {data.lanes.map((lane) => {
+          const cards = data.braids.filter((b) => b.lane === lane);
+          return (
+            <section key={lane} aria-label={LANE_LABEL[lane]} className={`min-h-48 rounded-xl bg-slate-200/70 p-2.5 ${lane === active ? "" : "max-md:hidden"}`}>
+              <h3 className="mx-1 mb-2.5 mt-0.5 flex justify-between text-xs font-semibold uppercase tracking-wide text-slate-500 max-md:hidden">
+                <span className="flex items-center gap-1.5"><LaneDot lane={lane} />{LANE_LABEL[lane]}</span>
+                <span>{cards.length}</span>
+              </h3>
+              {lane === "Done" ? <DoneLane cards={cards} /> : cards.map((b) => <Card key={b.id} braid={b} details={details} />)}
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -669,7 +761,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
   const marks = strand === undefined ? cardMarks(item.braid) : strandMarks(strand);
   const trigger = "cursor-pointer border-b-2 border-transparent px-3.5 py-2 text-slate-500 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=active]:text-slate-900";
   return (
-    <main className="overflow-auto px-7 py-5">
+    <main className="overflow-auto px-7 py-5 max-md:px-4">
       <div className="text-xs text-slate-500">{item.id}</div>
       <h1 className="mb-1.5 text-xl font-semibold">{item.title}</h1>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -759,7 +851,7 @@ function Contents({ braid, current }: { braid: BraidCard; current: string }) {
     </button>
   );
   return (
-    <nav className="overflow-y-auto overflow-x-hidden border-r border-slate-200 bg-white p-3.5">
+    <nav className="overflow-y-auto overflow-x-hidden border-r border-slate-200 bg-white p-3.5 max-md:border-b max-md:border-r-0">
       <button type="button" onClick={() => go(null)} className="mb-2.5 cursor-pointer text-[13px] text-blue-700">
         ← Board
       </button>
@@ -782,7 +874,7 @@ function ItemPage({ id, tab, tick }: { id: string; tab: string; tick: Tick }) {
   return (
     <Status loaded={loaded}>
       {(item) => (
-        <div className="grid h-[calc(100vh-45px)] grid-cols-[290px_1fr]">
+        <div className="grid h-[calc(100vh-45px)] grid-cols-[290px_1fr] max-md:h-auto max-md:grid-cols-1">
           <Contents braid={item.braid} current={id} />
           <Detail key={item.id} item={item} tab={tab} />
         </div>
@@ -815,9 +907,9 @@ export function App() {
   return (
     <Tooltip.Provider>
       <div className="min-h-screen bg-slate-100 text-sm text-slate-900">
-        <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-5 py-2.5">
+        <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-white px-5 py-2.5">
           <b className="text-base" title="Each braid sits in the lane where it needs you most.">braid · attention board</b>
-          {board.state === "ready" && <span className="text-slate-500">Each braid sits in the lane where it needs you most. · {board.data.repo} · braids/</span>}
+          {board.state === "ready" && <span className="text-slate-500 max-md:hidden">Each braid sits in the lane where it needs you most. · {board.data.repo} · braids/</span>}
           <span className="flex-1" />
           {board.state === "ready" && <InboxChip inbox={board.data.inbox} on={route.id === "inbox"} />}
           <label className="flex cursor-pointer items-center gap-1.5 text-xs" title="Show the line on each card saying what is needed; off moves the text into the icon's tooltip">

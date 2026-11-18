@@ -40,16 +40,16 @@ Expected size: about 350 lines in 5 to 8 files.
 
 ## Completion
 
-- [ ] Lanes in the new order on desktop and phone
-- [ ] Done collapsed by default; opened, its 10 newest items newest first and Show more; tests cover both
-- [ ] The phone layout matches the approved mockup at about 390 px wide; screenshots of `braid board --demo` in docs
-- [ ] docs/board.md updated
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Lanes in the new order on desktop and phone
+- [x] Done collapsed by default; opened, its 10 newest items newest first and Show more; tests cover both
+- [x] The phone layout matches the approved mockup at about 390 px wide; screenshots of `braid board --demo` in docs
+- [x] docs/board.md updated
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
-- Model: `LANES` order Needs You, To Review, Working, To Do, Done (internal names unchanged); `PullRequest.mergedAt` from the `gh` field already read; cards get `doneAt` (merged PR's date, newest strand's for a braid); `doneList(cards, shown)` sorts newest first (no date last, then id descending) and returns the first `shown`; `DONE_PAGE = 10`.
+- Model: `LANES` order Needs You, To Review, Working, To Do, Done (internal names unchanged); `PullRequest.mergedAt` from the `gh` field already read; cards get `doneAt` (merged PR's date, newest strand's for a braid); `doneNewestFirst` sorts newest first (no date last, then id descending); `DONE_PAGE = 10`.
 - Web: `t3codeUrl` moves to `src/board/marks.ts` (pure) so the page can build the app link. Board: five lanes on desktop with Done a collapsed fold (rows: id, title, date; 10 shown, Show more adds 10); below `md` a tab bar with counts, one lane shown, swipe left/right switches, Needs You first. Buttons get a visible label and 44 px tap size below `md`; Open thread is an `<a href="t3code://…">` there.
 - Demo: more Done braids. Docs: board.md, decisions.md, screenshots. Mockup: remove the two stale lines.
 - Tests: lane order, Done list (10 newest, order, rest behind Show more), t3codeUrl.
