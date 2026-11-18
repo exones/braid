@@ -359,3 +359,17 @@ test("Start is off with the coordinator's reason even when the running coordinat
   const c = all.find((x) => x.coordinator !== null && x.start.reason === "a coordinator for this braid is running");
   assert.ok(c, "a demo braid with a running coordinator");
 });
+
+test("a running coordinator titled in the new format (or with the checkout's old repo name) lifts its To Do braid to Working", async () => {
+  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<unknown> };
+  const m = (await load("../dist/board/model.js")) as { toCard(b: unknown, g: unknown, t: unknown, s: unknown): { lane: string } };
+  const base = demo.demoBraids().find((b: { number: string }) => b.number === "0007") as { brief: object; strands: { brief: object }[] };
+  const todo = { ...base, brief: { ...base.brief, status: "To Do" }, strands: base.strands.map((s) => ({ ...s, brief: { ...s.brief, status: "To Do" } })) };
+  const root = join(scratch, "demo");
+  const read = (title: string) =>
+    t3.readT3(root, { ttlMs: 0, agents: join(scratch, "agents"), project: root, run: (_r: string, args: readonly string[]): Promise<Result> => Promise.resolve({ status: 0, stdout: args[1] === "list" ? JSON.stringify([{ threadId: "c1", status: "running", title }]) : "{}", stderr: "" }) });
+  const lane = async (title: string) => m.toCard(todo, { status: { state: "ok" }, prs: new Map() }, await read(title), { now: new Date(), requests: new Map(), alarm: () => null }).lane;
+  assert.equal(await lane("🧠 demo 0007 coordinator: Sample"), "In Progress");
+  assert.equal(await lane("demo 0007 coordinator: Sample"), "In Progress", "no emoji");
+  assert.equal(await lane("🧠 other 0007 coordinator: Sample"), "To Do", "another repository's coordinator");
+});

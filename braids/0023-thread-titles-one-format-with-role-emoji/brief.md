@@ -40,6 +40,7 @@ Expected size: about 150 lines in 6 files, with tests.
 - [x] `braid clean` makes no `t3 thread show` call for idle threads, and finishes in seconds on this repo
 - [x] `braid title <id> --role <role>` prints `<emoji> <repo> <id> <role>: <brief title>`, the title exactly as the card shows it (tested)
 - [x] The braid skill names the format and launches every thread with `braid title`
+- [x] A running coordinator titled in the new format lifts its To Do braid to Working (0022's rule; tested)
 - [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
 
