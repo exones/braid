@@ -115,7 +115,12 @@ const demoCoordinators = new Map<string, T3Coordinator>([
   ["0013", { id: "demo-7", link: "https://t3.example/thread/demo-7", provider: "Claude_Everix", model: "claude-sonnet-5-5" }],
 ]);
 
-/** Agents: 0002/A, 0009/A and 0009/B run, 0003/A asks a question, 0010/A is being reviewed; 0002/B has failing checks and no agent. */
+/** Idle coordinators: 0010's thread is waiting (not running, not archived); it only gets an Open thread button. */
+const demoIdleCoordinators = new Map<string, T3Coordinator>([
+  ["0010", { id: "demo-9", link: "https://t3.example/thread/demo-9", provider: "Claude_Everix", model: "claude-opus-5-5" }],
+]);
+
+/** Agents: 0002/A, 0009/A and 0009/B run, 0003/A asks a question, 0010/A is being reviewed; 0002/B has failing checks and an idle worker thread (Open thread only). */
 export function demoT3(down = false): T3 {
   if (down) {
     return { status: { state: "unavailable", reason: "T3 is not running" }, threads: new Map(), coordinators: new Map() };
@@ -123,6 +128,8 @@ export function demoT3(down = false): T3 {
   return {
     status: { state: "ok" },
     coordinators: demoCoordinators,
+    idleCoordinators: demoIdleCoordinators,
+    idle: new Map<string, readonly T3Thread[]>([["0002/B", [thread("demo-8", "worker")]]]),
     threads: new Map<string, readonly T3Thread[]>([
       ["0002/A", [thread("demo-1", "worker")]],
       ["0003/A", [thread("demo-2", "worker", 1)]],
