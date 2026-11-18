@@ -44,10 +44,14 @@ Expected size: about 400 lines in 8 files, tests included.
 
 ## Completion
 
-- [ ] A test shows the Done dates of several items, one with a renamed folder, come from one batched `git` read and equal today's `doneDate` results
-- [ ] A test shows the braids from branches are read through one `git cat-file --batch` process and come out the same as before
-- [ ] A test shows a running thread with an unchanged `updatedAt` isn't shown again, and one with a changed `updatedAt` is
-- [ ] A test shows a static file is served while a slow git read of the board runs
-- [ ] report.md gives the timing line's numbers per source, and the first `/api/board` time, before and after on this repository
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A test shows the Done dates of several items, one with a renamed folder, come from one batched `git` read and equal today's `doneDate` results
+- [x] A test shows the braids from branches are read through one `git cat-file --batch` process and come out the same as before
+- [x] A test shows a running thread with an unchanged `updatedAt` isn't shown again, and one with a changed `updatedAt` is
+- [x] A test shows a static file is served while a slow git read of the board runs
+- [x] report.md gives the timing line's numbers per source, and the first `/api/board` time, before and after on this repository
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `src/braids/gitio.ts`: async `git` and `cat-file --batch` helpers. 2. Done dates in one log plus one batch (fallback `--follow` for items whose first version is Done). 3. Branches and inbox through the batch, async. 4. T3 `thread show` memory by `updatedAt`. 5. Timing line, docs, tests, report.

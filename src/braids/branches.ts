@@ -3,6 +3,7 @@
 // `braid/0006-<slug>` for a braid and `braid/0006/A-<slug>` for a strand, local or on a remote.
 import { spawnSync } from "node:child_process";
 import { FormatError } from "./frontmatter.js";
+import { catBatch, gitAsync } from "./gitio.js";
 import {
   BRAID_FOLDER,
   byRunOrder,
@@ -44,17 +45,22 @@ export interface BranchRef {
 
 /** Every local and remote-tracking branch whose name is a braid or strand branch; with `only`, that braid number's. */
 export function braidBranches(root: string, only?: string): BranchRef[] {
+  const r = git(root, refArgs(only));
+  return r.status !== 0 ? [] : parseBranchRefs(r.stdout, only);
+}
+
+function refArgs(only?: string): string[] {
   const patterns =
     only === undefined
       ? // `*` doesn't match `/`: these are exactly the braid and strand branch shapes on any remote.
         ["refs/heads/braid/", "refs/remotes/*/braid/*", "refs/remotes/*/braid/*/*"]
       : [`refs/heads/braid/${only}-*`, `refs/heads/braid/${only}/*`, `refs/remotes/*/braid/${only}-*`, `refs/remotes/*/braid/${only}/*`];
-  const r = git(root, ["for-each-ref", "--format=%(refname)%00%(objectname)%00%(committerdate:unix)", ...patterns]);
-  if (r.status !== 0) {
-    return [];
-  }
+  return ["for-each-ref", "--format=%(refname)%00%(objectname)%00%(committerdate:unix)", ...patterns];
+}
+
+function parseBranchRefs(stdout: string, only?: string): BranchRef[] {
   const refs: BranchRef[] = [];
-  for (const line of r.stdout.split("\n")) {
+  for (const line of stdout.split("\n")) {
     const [ref = "", commit = "", time = "0"] = line.split("\0");
     const local = ref.startsWith("refs/heads/");
     const remote = /^refs\/remotes\/([^/]+)\/(braid\/.+)$/.exec(ref);
@@ -83,6 +89,8 @@ export function braidBranches(root: string, only?: string): BranchRef[] {
 interface Entry {
   readonly name: string;
   readonly isDir: boolean;
+  /** The object's id: a file's text is cached by it, so the same text in many commits is read once. */
+  readonly oid: string;
 }
 
 // Trees and file texts per commit. Commits never change, so these live as long as the process.
@@ -90,30 +98,35 @@ const trees = new Map<string, Map<string, Entry[]>>();
 const blobs = new Map<string, string | null>();
 const merged = new Map<string, boolean>();
 
+function parseTree(stdout: string): Map<string, Entry[]> {
+  const map = new Map<string, Entry[]>();
+  for (const record of stdout.split("\0")) {
+    const m = /^\d+ (\w+) (\w+)	(.+)$/s.exec(record);
+    if (!m) {
+      continue;
+    }
+    const path = m[3] ?? "";
+    const cut = path.lastIndexOf("/");
+    const dir = cut < 0 ? "" : path.slice(0, cut);
+    const list = map.get(dir) ?? [];
+    list.push({ name: path.slice(cut + 1), isDir: m[1] === "tree", oid: m[2] ?? "" });
+    map.set(dir, list);
+  }
+  for (const list of map.values()) {
+    list.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  }
+  return map;
+}
+
+const treeArgs = (commit: string) => ["ls-tree", "-r", "-t", "-z", commit, "--", "braids"];
+
 function folders(root: string, commit: string): Map<string, Entry[]> {
   const cached = trees.get(commit);
   if (cached !== undefined) {
     return cached;
   }
-  const map = new Map<string, Entry[]>();
-  const r = git(root, ["ls-tree", "-r", "-t", "-z", commit, "--", "braids"]);
-  if (r.status === 0) {
-    for (const record of r.stdout.split("\0")) {
-      const m = /^\d+ (\w+) \w+\t(.+)$/s.exec(record);
-      if (!m) {
-        continue;
-      }
-      const path = m[2] ?? "";
-      const cut = path.lastIndexOf("/");
-      const dir = cut < 0 ? "" : path.slice(0, cut);
-      const list = map.get(dir) ?? [];
-      list.push({ name: path.slice(cut + 1), isDir: m[1] === "tree" });
-      map.set(dir, list);
-    }
-    for (const list of map.values()) {
-      list.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-    }
-  }
+  const r = git(root, treeArgs(commit));
+  const map = r.status === 0 ? parseTree(r.stdout) : new Map<string, Entry[]>();
   trees.set(commit, map);
   return map;
 }
@@ -127,15 +140,15 @@ export function gitTree(root: string, source: Source): Tree {
       const cut = file.lastIndexOf("/");
       const dir = cut < 0 ? "" : file.slice(0, cut);
       const name = file.slice(cut + 1);
-      if (!(folders(root, source.commit).get(dir) ?? []).some((e) => e.name === name && !e.isDir)) {
+      const entry = (folders(root, source.commit).get(dir) ?? []).find((e) => e.name === name && !e.isDir);
+      if (entry === undefined) {
         return null;
       }
-      const key = `${source.commit}:${file}`;
-      if (!blobs.has(key)) {
-        const r = git(root, ["cat-file", "blob", key]);
-        blobs.set(key, r.status === 0 ? r.stdout : null);
+      if (!blobs.has(entry.oid)) {
+        const r = git(root, ["cat-file", "blob", entry.oid]);
+        blobs.set(entry.oid, r.status === 0 ? r.stdout : null);
       }
-      return blobs.get(key) ?? null;
+      return blobs.get(entry.oid) ?? null;
     },
   };
 }
@@ -266,6 +279,82 @@ export function loadLiveBraids(root: string, only?: string): Braid[] {
   return [...slots.entries()]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([number, slot]) => ({ ...slot.item, number, strands: [...slot.strands.values()].sort(byRunOrder) }));
+}
+
+/** Runs `work` over `items`, a few at a time. */
+async function limited<T>(items: readonly T[], work: (item: T) => Promise<void>, size = 8): Promise<void> {
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(size, items.length) }, async () => {
+      while (next < items.length) {
+        await work(items[next++] as T);
+      }
+    }),
+  );
+}
+
+async function inHeadAsync(root: string, head: string, commit: string): Promise<boolean> {
+  const key = `${commit}:${head}`;
+  let value = merged.get(key);
+  if (value === undefined) {
+    value = (await gitAsync(root, ["merge-base", "--is-ancestor", commit, head])).status === 0;
+    merged.set(key, value);
+  }
+  return value;
+}
+
+/**
+ * Reads, without blocking and with one `git cat-file --batch` process, what `loadLiveBraids` will need: the
+ * merge checks, the trees of the branches it reads and the briefs in them. It fills the caches the
+ * synchronous loader reads, so that one then runs no `git` process per file.
+ */
+async function prefetchLive(root: string, only?: string): Promise<void> {
+  const listed = await gitAsync(root, refArgs(only));
+  if (listed.status !== 0) {
+    return;
+  }
+  const headResult = await gitAsync(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
+  const head = headResult.status === 0 ? headResult.stdout.trim() : null;
+  const newest = winners(parseBranchRefs(listed.stdout, only));
+  if (head !== null) {
+    await limited(newest, (ref) => inHeadAsync(root, head, ref.commit).then(() => undefined));
+  }
+  const braidTips = new Map(newest.filter((r) => r.letter === null).map((r) => [r.number, r.commit]));
+  const open = newest.filter((ref) => head === null || !merged.get(`${ref.commit}:${head}`));
+  await limited(
+    open.filter((ref) => ref.letter !== null && braidTips.has(ref.number)),
+    (ref) => inHeadAsync(root, braidTips.get(ref.number) ?? "", ref.commit).then(() => undefined),
+  );
+  const commits = [...new Set(open.map((r) => r.commit))].filter((c) => !trees.has(c));
+  await limited(commits, async (commit) => {
+    const r = await gitAsync(root, treeArgs(commit));
+    trees.set(commit, r.status === 0 ? parseTree(r.stdout) : new Map());
+  });
+  // Only briefs are ever read; the same text in many commits has one id.
+  const wanted = new Set<string>();
+  for (const commit of new Set(open.map((r) => r.commit))) {
+    for (const list of trees.get(commit)?.values() ?? []) {
+      for (const e of list) {
+        if (!e.isDir && e.name === "brief.md" && !blobs.has(e.oid)) {
+          wanted.add(e.oid);
+        }
+      }
+    }
+  }
+  const ids = [...wanted];
+  const texts = await catBatch(root, ids);
+  ids.forEach((id, i) => {
+    const text = texts[i];
+    if (text !== null && text !== undefined) {
+      blobs.set(id, text);
+    }
+  });
+}
+
+/** `loadLiveBraids` without blocking the process while Git runs: the same braids, read through one `git cat-file --batch`. */
+export async function loadLiveBraidsAsync(root: string, only?: string): Promise<Braid[]> {
+  await prefetchLive(root, only);
+  return loadLiveBraids(root, only);
 }
 
 /** Local and remote-tracking `plan/<slug>` branches (a planning branch's name holds no braid number). */

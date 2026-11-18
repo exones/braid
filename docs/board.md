@@ -117,7 +117,9 @@ A read starts when the server starts, every 30 s, 200 ms after a file under `bra
 
 Open thread takes the thread's link from the snapshot (a link doesn't change) and reads T3 again only when the snapshot has none. Start and Merge still read GitHub and T3 fresh before they act.
 
-To see what a read costs, start the board with `BRAID_BOARD_TIMINGS=1`: each read prints `board read: braids 160 ms, github 690 ms, t3 2800 ms, signals 50 ms, inbox 1800 ms, board 30 ms` to standard error. GitHub and T3 are read in parallel with the braids, so the times overlap.
+To see what a read costs, start the board with `BRAID_BOARD_TIMINGS=1`: each read prints `board read: braids 160 ms, github 690 ms, t3 2800 ms, signals 50 ms, done dates 60 ms, inbox 150 ms, board 2 ms` to standard error. GitHub and T3 are read in parallel with the braids, so the times overlap.
+
+The reads are cheap by design: the Done dates of all Done items come from one `git log` of the history and one `git cat-file --batch` (the rule is unchanged: the oldest commit of the unbroken run of `status: Done`, following renames; an item whose first version is already Done is checked with its own `git log --follow`, because the one log may not pair its rename); the braids from branches and the inbox entries are read through one `git cat-file --batch` each, and `git` runs without blocking the server; T3 shows a running thread (`thread show`) only when it is new or its `updatedAt` changed. The inbox costs about 1.3 s only on Refresh, which fetches `braid-inbox` from origin; a read without Refresh takes about 150 ms.
 
 ## Actions and the session token
 

@@ -101,6 +101,9 @@ interface Where {
   readonly pending: number;
 }
 
+// What `thread show` said of a running thread, with the `updatedAt` the list had then: it is asked again only when that changes.
+const shown = new Map<string, { readonly updatedAt: string; readonly where: Where }>();
+
 const recent = new Map<string, { at: number; t3: Promise<T3> }>();
 const SHARE_MS = 3000;
 
@@ -201,12 +204,30 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
     return p !== null && repos.has(p.repo) ? p : null;
   };
   // Running threads are shown (`t3 thread show`: worktree and pending questions). An idle thread is placed by its title alone.
+  const runningKeys = new Set(wanted.filter((w) => w.running).map((w) => `${root}|${w.id}`));
+  for (const key of shown.keys()) {
+    if (key.startsWith(`${root}|`) && !runningKeys.has(key)) {
+      shown.delete(key);
+    }
+  }
   const found = await pool(wanted, async ({ t, id, running }) => {
     let where: Where | null = null;
     let key: string | null = null;
     let role: "worker" | "reviewer" | null = null;
     if (running) {
-      where = await show(run, root, id);
+      const updatedAt = str(t["updatedAt"]);
+      const memo = `${root}|${id}`;
+      const known = shown.get(memo);
+      if (known !== undefined && updatedAt !== null && known.updatedAt === updatedAt) {
+        where = known.where;
+      } else {
+        where = await show(run, root, id);
+        if (where !== null && updatedAt !== null) {
+          shown.set(memo, { updatedAt, where });
+        } else {
+          shown.delete(memo);
+        }
+      }
       const owner = ownerOf(where?.worktreePath ?? null);
       key = owner?.key ?? null;
       role = owner?.role ?? null;
@@ -243,4 +264,5 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
 /** Forgets what was read, for tests. */
 export function resetT3Memory(): void {
   recent.clear();
+  shown.clear();
 }
