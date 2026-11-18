@@ -140,7 +140,7 @@ const demoCoordinators = new Map<string, T3Coordinator>([
   ["0013", { id: "demo-7", link: "https://t3.example/thread/demo-7", provider: "Claude_Everix", model: "claude-sonnet-5-5" }],
 ]);
 
-/** Idle coordinators: 0010's thread is waiting (not running, not archived); it only gets an Open thread button. */
+/** Idle coordinators: 0010's thread is waiting (not running, not archived); it only gets the Coordinator button. */
 const demoIdleCoordinators = new Map<string, T3Coordinator>([
   ["0010", { id: "demo-9", link: "https://t3.example/thread/demo-9", provider: "Claude_Everix", model: "claude-opus-5-5" }],
 ]);
