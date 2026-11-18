@@ -1,7 +1,7 @@
 ---
 id: '0026'
 title: "Fast CI for braids-only commits"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 delivery: epic
@@ -46,3 +46,9 @@ Expected size: about 60 lines in 3 files.
 - [ ] docs/decisions.md has the new decision, and D49 is no longer wrong.
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `ci.yml`: add `checks: read`; add a `Decide fast path` step (after checkout, with full history fetch via `fetch-depth: 0`) that sets output `skip`; guard all heavy steps with `if: steps.fast.outputs.skip != 'true'`. Decision in pwsh with git and `gh api` (token via env), any error leaves skip false.
+2. `docs/decisions.md`: D58 plus log line; correct D49.
+3. Validate on this PR: code commit runs full; later braids-only commit takes the fast path.
