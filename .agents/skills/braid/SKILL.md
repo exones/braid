@@ -94,7 +94,7 @@ When the worker reports green:
 
 1. **Review** by tier (workflow, "Tiers").
    - S: read the diff yourself.
-   - M and L: run `braid start <id> --review` and launch an independent reviewer as a top-level thread on the folder it prints, with `title` the output of `braid title <id> --role review`, its model and the first message below (add the `SKILL.md` path if needed). Wait as in "Run an item" step 3.
+   - M and L: run `braid start <id> --review` and launch an independent reviewer as a top-level thread on the folder it prints, with `title` the output of `braid title <id> --role review`, its model and the first message below (add the `SKILL.md` path if needed). Then call `link_pull_request` with the PR URL and `threadId` set to the reviewer's thread, so it settles with the PR; do the same for a re-check's reviewer. Wait as in "Run an item" step 3.
    - L, when blocking fixes substantially changed failure or recovery behavior: have the reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its first message.
    - Use a fresh review task when the host requires it; never resume a delegated reviewer with `t3_thread_send`.
    - Send blocking findings, and small factual errors in docs, to the same worker to fix on the same PR; route non-blocking ones by the table (workflow, "Gaps and the inbox").

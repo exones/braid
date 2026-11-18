@@ -29,6 +29,11 @@ Expected size: about 5 lines in 1 to 3 files.
 - The coordinator links, not the reviewer. The T3 host tells agents to skip linking PRs they only read or review, and the reviewer runs on another provider, so a reviewer-side step would be unreliable. `link_pull_request` with `threadId` links another thread: checked by the coordinator on 2026-11-18 by linking exones/openclaw#21 to that review thread (`alreadyLinked: false`, then linked).
 - Workers already link their own PRs; no change there.
 
+## Plan
+
+- One clause in `.agents/skills/braid/SKILL.md`, "Accept and hand over" step 1, M and L bullet: after launching, link the PR to the reviewer thread with `link_pull_request` and `threadId`; the re-check gets the same.
+- Search skills and docs for `link_pull_request` and `settle`; only the worker skill mentions linking (its own PR), so nothing else changes.
+
 ## Out of scope
 
 - The `braid` CLI: `braid start --review` doesn't talk to T3.
@@ -37,7 +42,7 @@ Expected size: about 5 lines in 1 to 3 files.
 
 ## Completion
 
-- [ ] `.agents/skills/braid/SKILL.md` tells the coordinator to link the PR to every reviewer thread it launches, first review and re-check, with `link_pull_request` and the reviewer's `threadId`
-- [ ] No other skill or doc still says or implies reviewer threads stay unlinked
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `.agents/skills/braid/SKILL.md` tells the coordinator to link the PR to every reviewer thread it launches, first review and re-check, with `link_pull_request` and the reviewer's `threadId`
+- [x] No other skill or doc still says or implies reviewer threads stay unlinked
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
