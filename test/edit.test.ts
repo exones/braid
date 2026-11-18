@@ -139,6 +139,8 @@ test("a braid with two strands is created and edited entirely from the CLI", () 
       "  0002/B  In Progress   1  Create and edit",
       "  0002/A  To Do         -  Read braids",
       "",
+      "Inbox: 0 leftovers, 0 ideas",
+      "",
     ].join("\n"),
   );
 });

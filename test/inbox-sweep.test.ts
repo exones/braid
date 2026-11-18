@@ -162,3 +162,12 @@ exit 0
   assert.match(r.stdout, /1 of them dropped/);
   assert.equal(git(w.remote, "log", "--format=%s", "-2", "braid-inbox"), "docs(inbox): sweep: pass 1, drop 1\ndocs(inbox): sweep: pass 1");
 });
+
+test("braid list ends with the open inbox counts, from the local refs", () => {
+  const w = setup();
+  ok(w.a, "new", "Alpha", "--no-fetch");
+  const list = () => ok(w.a, "list").stdout;
+  assert.match(list(), /\n\nInbox: 3 leftovers, 1 ideas\n$/);
+  ok(w.a, "inbox", "take", w.l1, w.idea, "--into", "0001");
+  assert.match(list(), /\n\nInbox: 2 leftovers, 0 ideas\n$/);
+});
