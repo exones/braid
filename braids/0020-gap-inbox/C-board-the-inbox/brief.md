@@ -41,9 +41,9 @@ This is a `ui` item, so it starts with mockups on realistic test data: several l
 
 ## Completion
 
-- [ ] Mockups on realistic test data shown to the user and approved before building, with the verdicts in the log
-- [ ] The board shows the open leftovers and ideas from `braid-inbox`, and Refresh fetches it; covered by tests of the API data
-- [ ] `braid board --demo` shows sample entries
-- [ ] `docs/board.md` describes it
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open, and final screenshots
+- [x] Mockups on realistic test data shown to the user and approved before building, with the verdicts in the log
+- [x] The board shows the open leftovers and ideas from `braid-inbox`, and Refresh fetches it; covered by tests of the API data
+- [x] `braid board --demo` shows sample entries
+- [x] `docs/board.md` describes it
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open, and final screenshots

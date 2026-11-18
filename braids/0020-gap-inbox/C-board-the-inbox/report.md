@@ -1,26 +1,32 @@
-# Report: 0020/C Board: the inbox (mockups, round 1)
+# Report: 0020/C Board: the inbox
 
-Proposal for the user's verdict. Nothing is built; `src/` and `web/` are untouched. The page is [mockups/inbox.html](mockups/inbox.html) (views `#board`, `#inbox`, `#open`, `#empty`, `#board&empty`), on test data: four leftovers from different sources (a review, an item, a PR; one passed over once) and three ideas, one with several paragraphs and a list.
+## What changed
 
-## The design
+- `src/board/inbox.ts`: `inboxOf(root, fetch)` reads `braid-inbox` (`readInbox` from 0020/A) and returns the open entries, newest first, as `{ leftovers, ideas, note }`; each entry has `kind`, `id`, `title`, `text` (after the title line), `from`, `ref`, `age` and `passed`. `note` says a fetch failed or a malformed entry was left out.
+- `/api/board` carries it as `inbox`. Every refresh reads the local refs; the Refresh button (`?fresh=1`) fetches `braid-inbox` first. `Sources` gained `inbox(fetch)`; the demo board has sample entries (`demoInbox`).
+- The page (`web/src/App.tsx`), as the user approved: a header chip `Inbox N leftovers · M ideas` opens `#/inbox`, a read-only page with a Leftovers and an Ideas list. Rows are collapsed (title, source, age, "passed over ×N"; ideas also their first line) and open to the full text, links and id. Empty lists say what fills them.
+- Docs: `docs/board.md` ("The inbox", three screenshots), D54 in `docs/decisions.md`.
 
-- **A chip in the header**, left of Details: `Inbox 4 leftovers · 3 ideas`. It is not a lane and puts nothing in Needs You (already decided). Grey when both counts are 0.
-- **The chip opens an Inbox page** (`#/inbox`, like a braid page, with "← Board"): two columns, Leftovers and Ideas, each headed by its open count. The leftovers header says "sweep due" at 3 or more.
-- **Each entry is a collapsed row**: title, then source (`review 0012/A`, `0020/A`, `PR #124`) and age, and for a leftover passed over, an amber "passed over ×1". An idea row also shows the first line of its text. A click opens the full text, with links and the entry id. Nothing on the page acts: read only.
-- **Empty inbox**: each column says what fills it (`braid note … --from <item>`, `$braid-idea <a sentence>`).
-- **Refresh** fetches `braid-inbox`; the page says so under the lead text. The 30 s reload and file changes read the local refs only.
+## Why
+
+The inbox shows the user what agents left behind and what they wrote down, without asking anything (not a lane, nothing in Needs You).
+
+## Validation
+
+- `test/board-inbox.test.ts` (5 tests, temporary repositories with a bare remote and an isolated HOME and Git config): the API data (kinds, text, source, links, age, passed, ideas), only open entries, no fetch on a plain refresh and a fetch on `?fresh=1` (an idea captured in another clone appears), no branch gives empty lists and a failed fetch is said, the demo has entries (one passed over, one multi-paragraph idea).
+- `npm run verify` passes.
+- The screenshots come from `braid board --demo` (script in the artifacts folder).
 
 ## Screenshots
 
-1. Board with the chip: ![board](mockups/board.png)
-2. Inbox page, all rows closed: ![inbox](mockups/inbox.png)
-3. A leftover and an idea open: ![open](mockups/inbox-open.png)
-4. Empty inbox page: ![empty](mockups/inbox-empty.png)
-5. Board with an empty inbox (grey chip): ![board empty](mockups/board-empty.png)
+1. Board with the chip: ![board](../../../docs/design/board-screenshots/51-board-inbox-chip.png)
+2. Inbox page, a leftover and an idea open: ![inbox](../../../docs/design/board-screenshots/52-inbox-open.png)
+3. Empty inbox: ![empty](../../../docs/design/board-screenshots/53-inbox-empty.png)
 
-## Open questions for the user
+## Open
 
-- Is a separate page right, or would a panel over the board be better?
-- Should an idea's preview (first line) stay, or show the title only?
+- The mockup HTML and screenshots of round 1 stay in `mockups/` of this item.
+- Titles render inline `code` spans; the rest of a title is plain text.
 
-Needs the user: ui: approve the inbox design above (chip, page with two lists, read only), or say what to change.
+For later items: none.
+Needs the user: none.
