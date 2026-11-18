@@ -1,7 +1,7 @@
 ---
 id: '0028/C'
 title: "Merge main: Coordinator button meets the snapshot"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 30
