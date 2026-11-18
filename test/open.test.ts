@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
@@ -170,4 +170,82 @@ test("a plan branch merged into HEAD adds nothing even when its braid files are 
   git(root, "rm", "-q", "-r", "braids/0007-m");
   git(root, "commit", "-q", "-m", "remove");
   assert.doesNotMatch(braid(root, "list", "--open", "--no-fetch").stdout, /0007/);
+});
+
+/** A brief with `related` links in its front matter. */
+const linked = (id: string, status: string, related: string) =>
+  brief(id, status).replace(`status: ${status}\n`, `status: ${status}\nrelated: [${related}]\n`);
+
+test("related links show both ways: back-links come from a braid branch and from a plan branch", () => {
+  const root = fixture();
+  git(root, "checkout", "-q", "braid/0003-b");
+  commit(root, { "braids/0003-b/brief.md": linked("0003", "In Progress", "'0002'") });
+  git(root, "checkout", "-q", "plan/c");
+  commit(root, { "braids/0004-c/brief.md": linked("0004", "To Do", "'0002', '0003'") });
+  // A malformed copy on another branch is skipped and breaks nothing for the others.
+  commitAt(root, "braid/0005-bad", "2026-01-01T00:00:00Z", { "braids/0005-bad/brief.md": linked("0005", "To Do", "'0005'") });
+  git(root, "checkout", "-q", "main");
+
+  const view = braid(root, "view", "0002");
+  assert.equal(view.status, 0, view.stderr);
+  assert.match(view.stdout, /\nRelated: none\nLinked from:\n {2}0003 {2}Title 0003\n {2}0004 {2}Title 0004\nStrands:\n/);
+  const v4 = braid(root, "view", "0003");
+  assert.equal(v4.status, 1, "0003 lives only on its branch; braid view reads the working tree");
+
+  git(root, "checkout", "-q", "plan/c");
+  const own = braid(root, "view", "0004");
+  assert.equal(own.status, 0, own.stderr);
+  assert.match(own.stdout, /\nRelated:\n {2}0002 {2}Title 0002\n {2}0003 {2}Title 0003\nLinked from: none\n/);
+  git(root, "checkout", "-q", "main");
+
+  const list = braid(root, "list", "--open", "--no-fetch");
+  assert.equal(list.status, 0, list.stderr);
+  assert.match(list.stdout, /0003 {2}In Progress {2}Title 0003\n {2}read from: braid\/0003-b\n {2}related: 0002\n/);
+  assert.match(list.stdout, /0004 {2}To Do {2}Title 0004\n {2}read from: plan\/c\n {2}related: 0002, 0003\n/);
+  assert.match(list.stdout, /0002 {2}Outline {2}Title 0002\n {2}read from: main\n\n/);
+  assert.doesNotMatch(list.stdout, /0005/);
+});
+
+test("braid check: a related id found in no source warns with exit 0; one on a branch is fine", () => {
+  const root = fixture();
+  writeFileSync(join(root, "braids/0002-outline/brief.md"), linked("0002", "Outline", "'0004', '0099'"));
+  const r = braid(root, "check");
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "braids OK: 2 braids, 1 strands\n");
+  assert.equal(
+    r.stderr,
+    "warning: braids/0002-outline/brief.md: related braid 0099 is not in the working tree or on any braid or plan/ branch here (fetch, or check the id)\n",
+  );
+  writeFileSync(join(root, "braids/0002-outline/brief.md"), linked("0002", "Outline", "'0004'"));
+  assert.equal(braid(root, "check").stderr, "");
+});
+
+test("braid new and braid edit set related like --dep; none clears it; strands and self are refused", () => {
+  const root = fixture();
+  const file = join(root, "braids/0002-outline/brief.md");
+  // A brief without related is written byte for byte as before.
+  const before = "---\nid: '0002'\ntitle: \"Title 0002\"\nstatus: Outline\nlabels: []\ndependencies: []\ndelivery: epic\n---\n\n## Goal\n\nG.\n";
+  writeFileSync(file, before);
+  assert.equal(braid(root, "edit", "2", "--order", "3").status, 0);
+  assert.equal(braid(root, "edit", "2", "--order", "none").status, 0);
+  assert.equal(readFileSync(file, "utf8"), before);
+
+  let r = braid(root, "edit", "2", "--related", "4,3", "--related", "4");
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stderr, "");
+  assert.match(readFileSync(file, "utf8"), /\ndependencies: \[\]\nrelated: \['0004', '0003'\]\ndelivery: epic\n/);
+  r = braid(root, "edit", "2", "--related", "99");
+  assert.equal(r.status, 0);
+  assert.match(r.stderr, /^warning: related braid 0099 is not in the working tree or on any braid or plan\/ branch here; kept\n$/);
+  assert.equal(braid(root, "edit", "2", "--related", "none").status, 0);
+  assert.equal(readFileSync(file, "utf8"), before);
+
+  assert.match(braid(root, "edit", "2", "--related", "2").stderr, /0002 can't be related to itself/);
+  assert.match(braid(root, "edit", "2/A", "--related", "4").stderr, /related is set per braid, not per strand/);
+  assert.match(braid(root, "edit", "2", "--related", "0004/A").stderr, /related takes braid ids like 0002, not 0004\/A/);
+  assert.match(braid(root, "strand", "new", "2", "S", "--related", "4", "--no-fetch").stderr, /related is set per braid/);
+
+  r = braid(root, "new", "Linked", "--related", "2", "--no-fetch");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(readFileSync(join(root, "braids/0005-linked/brief.md"), "utf8"), /\nrelated: \['0002'\]\n/);
 });
