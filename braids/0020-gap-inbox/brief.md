@@ -75,14 +75,14 @@ Strands, in run order:
 
 ## Completion
 
-- [ ] `braid note` (leftovers and ideas) commits and pushes to `braid-inbox` from any worktree, and `braid inbox` lists it (0020/A)
-- [ ] The sweep commands take, pass over, drop and reopen entries (0020/F)
-- [ ] Recaps say when a sweep is due and are otherwise quiet about the inbox; `braid list` shows the counts (0020/B)
-- [ ] The board shows both lists (0020/C)
-- [ ] `$braid-idea` writes a clean, readable idea from a sentence (0020/E)
-- [ ] The skills route gaps by the fixed rule and propose sweeps of leftovers at the batch points; "Side ideas get a home" is replaced (0020/D)
-- [ ] The gate command from BRAID.md passes on the final PR
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid note` (leftovers and ideas) commits and pushes to `braid-inbox` from any worktree, and `braid inbox` lists it (0020/A)
+- [x] The sweep commands take, pass over, drop and reopen entries (0020/F)
+- [x] Recaps say when a sweep is due and are otherwise quiet about the inbox; `braid list` shows the counts (0020/B)
+- [x] The board shows both lists (0020/C)
+- [x] `$braid-idea` writes a clean, readable idea from a sentence (0020/E)
+- [x] The skills route gaps by the fixed rule and propose sweeps of leftovers at the batch points; "Side ideas get a home" is replaced (0020/D)
+- [x] The gate command from BRAID.md passes on the final PR
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Background
 
