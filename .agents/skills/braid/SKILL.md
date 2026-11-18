@@ -37,14 +37,14 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 1. Before planning a new braid, propose a sweep if any leftover is open ("Sweep"). When the user asks for an idea to become braids, plan from it as from any goal, and once the plan is approved, `braid inbox take <idea> --into <braid ids>`. Never propose ideas yourself.
 2. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
-3. Look around: `braid list --open` shows every unfinished braid, wherever it lives. Read the brief (`braid view`) of each whose goal touches the same commands, files or decisions, and judge it:
+3. Look around: `braid list --open` shows every unfinished braid, wherever it lives. Read the brief (`braid view`, which reads it where it lives) of each whose goal touches the same commands, files or decisions, and judge it:
    - **Overlap without conflict:** `related`, and one line under "Already decided" saying what is shared and how the two stay apart (order, which merges first).
    - **One needs the other's result:** a dependency if the id resolves here; otherwise that line says to start after the other braid merges.
    - **Duplicate or contradiction:** the other already covers this goal or part of it, or this goal undoes or conflicts with its goal or an "Already decided" line. `related`, and a `scope` warning in the plan request (step 6): the other braid's id, title and branch, the conflicting text, and the options (narrow this plan, fold it into the other braid, change the other through its coordinator, go on as planned). Draft the plan anyway; the user's answer decides, and goes into the braid's log.
 
    Never edit another braid's brief for a link: its side shows it with `braid view --links`.
 4. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
-5. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
+5. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order`, `related` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers").
 6. Create them and commit locally; push nothing yet.
    - **Goal:** in your worktree on `plan/<slug>` from `main`, `braid new`, then `braid strand new` per strand.
    - **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `braid new`, then `git branch -m braid/<number>-<slug>` (its folder name).
