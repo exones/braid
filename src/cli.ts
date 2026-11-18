@@ -6,6 +6,7 @@ import { findRoot } from "./braids/store.js";
 import { checkBraids } from "./braids/check.js";
 import { runBoard } from "./commands/board.js";
 import { GitError } from "./braids/numbers.js";
+import { LockError } from "./braids/requests.js";
 import { listBraids, UsageError, viewItem } from "./commands/braids.js";
 import { ImportRefusal, importBacklog } from "./backlog/import.js";
 import { logEntry, reportItem } from "./commands/logs.js";
@@ -15,6 +16,7 @@ import { startCommand } from "./commands/start.js";
 import { acceptCommand } from "./commands/done.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
 import { answerCommand, askCommand, handoverCommand, requestsCommand } from "./commands/requests.js";
+import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
 export function readVersion(): string {
@@ -58,6 +60,10 @@ export function helpText(version: string): string {
     "  ask <id> <text>             Open a request for what the coordinator needs from you (--kind question|decision|plan, --key <stop case>, --thread, --file -)",
     "  answer <id>                 Close the item's request (--log <file>|- adds your decision to the braid log; --thread)",
     "  requests                    List the open requests: item, kind, age, text",
+    "  note <text> --from <source>  Capture a leftover on the braid-inbox branch and push it (source: 0012/A, review 0012/A, PR #12 or user; --ref <url> repeats; --file -)",
+    "  note --idea <text>          Capture an idea on the braid-inbox branch and push it (from: user unless --from; --file -)",
+    "  inbox                       List the open inbox entries: kind, id, age, source, passed, title (--leftovers, --ideas, --all adds taken and dropped, --no-fetch)",
+    "  inbox show <id>             Print one inbox entry in full, with the item folder its source names",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
     "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data)",
     "  help                        Show this help",
@@ -83,10 +89,14 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report"]);
+const BRAID_COMMANDS = new Set(["note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report"]);
 
-function dispatch(command: string, args: readonly string[], cwd: string, root: string): string {
+function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
+    case "note":
+      return noteCommand(root, cwd, args);
+    case "inbox":
+      return inboxCommand(root, args);
     case "ask":
       return askCommand(root, args);
     case "answer":
@@ -149,9 +159,10 @@ class CheckError extends Error {
 function braidsCommand(command: string, args: readonly string[], cwd: string): Output {
   const root = findRoot(cwd);
   try {
-    return { code: 0, stdout: dispatch(command, args, cwd, root), stderr: "" };
+    const out = dispatch(command, args, cwd, root);
+    return typeof out === "string" ? { code: 0, stdout: out, stderr: "" } : { code: 0, ...out };
   } catch (error) {
-    if (error instanceof UsageError || error instanceof GitError) {
+    if (error instanceof UsageError || error instanceof GitError || error instanceof LockError) {
       return fail(1, error.message);
     }
     if (error instanceof ImportRefusal) {

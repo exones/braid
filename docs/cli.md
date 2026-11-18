@@ -30,6 +30,10 @@ These are the commands `braid help` lists, in its order.
 | `braid ask <id> <text>` | Open a request for what the coordinator needs from you (`--kind question\|decision\|plan`, `--key <stop case>`, `--thread`, `--file -`). |
 | `braid answer <id>` | Close the item's request (`--log <file>\|-` adds your decision to the braid log; `--thread`). |
 | `braid requests` | List the open requests: item, kind, age, text. |
+| `braid note <text> --from <source>` | Capture a leftover on the `braid-inbox` branch and push it (source: `0012/A`, `review 0012/A`, `PR #12` or `user`; `--ref <url>` repeats; `--file -`). |
+| `braid note --idea <text>` | Capture an idea on the `braid-inbox` branch and push it (`from: user` unless `--from`; `--file -`). |
+| `braid inbox` | List the open inbox entries: kind, id, age, source, passed, title (`--leftovers`, `--ideas`, `--all` adds taken and dropped, `--no-fetch`). |
+| `braid inbox show <id>` | Print one inbox entry in full, with the item folder its source names. |
 | `braid clean [<number>\|<id>] [--yes]` | Remove worktrees and local branches of merged items (a dry run without `--yes`; never forces). |
 | `braid board` | Open the board in the browser (`--no-open` only prints the address; `--demo` uses sample data). |
 | `braid help` | Show the help. |
@@ -56,6 +60,9 @@ braid check         # validate every brief under braids/; lists each error with 
 braid status 0008   # one braid's strands: status, lane, branch, PR, ci checks, T3 thread
 braid next 0008     # the next strand to run, or why none is ready
 braid start 0008/B  # its branch from the braid tip, pushed, plus a worktree in $BRAID_WORKTREES_DIR (default ~/braid-worktrees)
+braid note 'Retry the fetch in braid start' --from 'review 0008/B' --ref <comment url>   # a leftover on braid-inbox, pushed at once
+braid note --idea 'A phone view of the board'   # an idea
+braid inbox         # the open leftovers and ideas; braid inbox show <id> prints one
 braid clean 0008    # dry run: worktrees and local branches of merged items; --yes removes them
 braid board         # open the board in the browser (127.0.0.1, free port)
 braid board --demo  # the same board on built-in sample data: no repository, gh or t3 is read

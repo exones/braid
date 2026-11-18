@@ -1,7 +1,7 @@
 ---
 id: '0020/A'
 title: "The inbox branch: braid note and braid inbox"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:architecture"]
 dependencies: []
 order: 10
@@ -59,11 +59,20 @@ Expected size: about 400 to 550 lines in 6 to 8 files, with tests.
 
 ## Completion
 
-- [ ] `braid note` and `braid note --idea` commit an entry to `braid-inbox` and push it, creating the branch the first time, without touching the checkout or index; covered by tests
-- [ ] Concurrent captures from two clones both land, without a force-push; covered by a test
-- [ ] An offline capture stays local with a warning and is pushed by the next write; covered by a test
-- [ ] `braid inbox` lists open entries of both kinds, `--all` adds taken and dropped ones, and a malformed entry is named while the rest are listed; covered by tests
-- [ ] `braid note` refuses a leftover without `--from` and stores `--ref` links; `braid inbox show` prints an entry in full; covered by tests
-- [ ] `braid help`, `docs/braids-format.md`, `docs/cli.md` and `docs/decisions.md` describe the inbox
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid note` and `braid note --idea` commit an entry to `braid-inbox` and push it, creating the branch the first time, without touching the checkout or index; covered by tests
+- [x] Concurrent captures from two clones both land, without a force-push; covered by a test
+- [x] An offline capture stays local with a warning and is pushed by the next write; covered by a test
+- [x] `braid inbox` lists open entries of both kinds, `--all` adds taken and dropped ones, and a malformed entry is named while the rest are listed; covered by tests
+- [x] `braid note` refuses a leftover without `--from` and stores `--ref` links; `braid inbox show` prints an entry in full; covered by tests
+- [x] `braid help`, `docs/braids-format.md`, `docs/cli.md` and `docs/decisions.md` describe the inbox
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `src/inbox/store.ts`: entry model, parse/serialize of front matter (the existing `parseFrontMatter`), entry ids, and the reader: `readInbox(root, {fetch})` picks the newer of `braid-inbox` and `origin/braid-inbox`, lists `leftovers/` and `ideas/` with `git ls-tree`, reads blobs, finds each file's creation time with one `git log --diff-filter=A`, and returns entries plus problems (file and field) for malformed ones.
+2. `src/inbox/write.ts`: `writeInbox(root, files, message)`: under a lock in the main checkout's `.braid/inbox.lock`, fetch `braid-inbox`, take the newest of local and remote tips as parent (orphan when none), build the tree with a temporary index (`GIT_INDEX_FILE`, `read-tree`, `update-index --add --cacheinfo` from `hash-object -w`), `commit-tree`, move the local ref with `update-ref` (compare-and-swap), push as a fast-forward; on a refused push fetch and rebuild up to 5 times; offline keeps the local commit and warns. Never touches HEAD, the index or the work tree.
+3. `src/commands/inbox.ts`: `braid note` (leftover needs `--from`; `--idea`; `--ref` repeatable; `--file -`) and `braid inbox [--leftovers|--ideas] [--all] [--no-fetch]`, `braid inbox show <id>`.
+4. `src/cli.ts`: register both commands and help lines.
+5. `test/inbox.test.ts`: bare remote with two clones: first capture creates the branch; concurrent captures (a refused push retried); offline capture pushed by the next write; worktree with uncommitted changes untouched; malformed entry named while the rest list; `--from` required, `--ref` stored; `show`.
+6. Docs: `docs/cli.md`, `docs/braids-format.md` (an "Inbox" section, including recovery after a force-push or deletion), `docs/decisions.md` (a new decision).
