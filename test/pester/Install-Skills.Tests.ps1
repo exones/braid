@@ -146,12 +146,12 @@ Describe 'Install-Skills.ps1' {
     @(Get-ChildItem -LiteralPath $script:TargetB -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-demo')
   }
 
-  It 'installs this repository''s braid, braid-reviewer and braid-worker and removes them once they leave the ref' {
+  It 'installs this repository''s braid, braid-idea, braid-reviewer and braid-worker and removes them once they leave the ref' {
     $real = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
     $result = Invoke-Install -Root $real -Extra @('-Ref', 'HEAD')
     $result.Code | Should -Be 0 -Because $result.Text
     foreach ($root in @($script:TargetA, $script:TargetB)) {
-      @(Get-ChildItem -LiteralPath $root -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-reviewer', 'braid-worker')
+      @(Get-ChildItem -LiteralPath $root -Force | ForEach-Object Name | Sort-Object) | Should -Be @('braid', 'braid-idea', 'braid-reviewer', 'braid-worker')
       Get-Installed $root 'braid-reviewer/SKILL.md' | Should -Match '(?m)^name: braid-reviewer$'
       Test-Path -LiteralPath (Join-Path $root 'braid-reviewer/.braid-install.json') -PathType Leaf | Should -BeTrue
       # One stop-cases.md, in braid; the other two skills link to it and the link resolves where they are installed.
@@ -161,6 +161,10 @@ Describe 'Install-Skills.ps1' {
         Get-Installed $root "$skill/SKILL.md" | Should -Match ([regex]::Escape("]($link)"))
         Test-Path -LiteralPath (Join-Path $root "$skill/$link") -PathType Leaf | Should -BeTrue
       }
+      # braid-idea links to braid's setup reference, which resolves where it is installed.
+      Get-Installed $root 'braid-idea/SKILL.md' | Should -Match '(?m)^name: braid-idea$'
+      Get-Installed $root 'braid-idea/SKILL.md' | Should -Match ([regex]::Escape('](../braid/references/setup.md)'))
+      Test-Path -LiteralPath (Join-Path $root 'braid-idea/../braid/references/setup.md') -PathType Leaf | Should -BeTrue
     }
 
     $result = Invoke-Install

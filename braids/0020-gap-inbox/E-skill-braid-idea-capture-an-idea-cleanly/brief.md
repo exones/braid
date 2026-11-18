@@ -1,7 +1,7 @@
 ---
 id: '0020/E'
 title: "Skill braid-idea: capture an idea cleanly"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: ['0020/A']
 order: 35
@@ -36,6 +36,11 @@ This item's wording and the idea's shape are the user's to choose. Start with a 
 - `braid note` commits and pushes the idea to `braid-inbox` itself, so the skill never commits in its checkout.
 - `README.md` lists the skill; `docs/decisions.md` gets a line on why it is a separate skill.
 
+## Plan
+
+1. Proposal (this commit): the draft `.agents/skills/braid-idea/SKILL.md` and three sample ideas in `report.md`; stop for the user's verdict.
+2. After approval: apply the verdict to SKILL.md; add a Pester or installer test case that `braid-*` folders, including `braid-idea`, are installed; `README.md` skills list; a line in `docs/decisions.md`; `npm run verify`; PR into `braid/0020-gap-inbox`.
+
 ## Already decided
 
 - A separate small skill, so the main skills stay lean (user, 2026-11-18).
@@ -54,9 +59,9 @@ This item's wording and the idea's shape are the user's to choose. Start with a 
 
 ## Completion
 
-- [ ] The proposal (draft SKILL.md and three sample ideas) shown to the user and approved before building, with the verdicts in the log
-- [ ] `.agents/skills/braid-idea/SKILL.md` written as approved: it checks for `braid inbox` first and writes ideas through `braid note --idea`
-- [ ] The installer installs `braid-idea`; covered by a test
-- [ ] `README.md` and `docs/decisions.md` describe it
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The proposal (draft SKILL.md and three sample ideas) shown to the user and approved before building, with the verdicts in the log
+- [x] `.agents/skills/braid-idea/SKILL.md` written as approved: it checks for `braid inbox` first and writes ideas through `braid note --idea`
+- [x] The installer installs `braid-idea`; covered by a test
+- [x] `README.md` and `docs/decisions.md` describe it
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
