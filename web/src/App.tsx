@@ -889,24 +889,30 @@ function Logs({ logs }: { logs: ItemDetail["logs"] }) {
   );
 }
 
-/** Moving between a braid's brief and its strands, inside the details. */
+/** The braid's contents, a rail beside the details: the braid, its brief and one row per strand. */
 function Contents({ braid, current }: { braid: BraidCard; current: string }) {
-  const chip = (id: string, label: ReactNode, strand: StrandCard | null) => (
+  const row = (id: string, label: ReactNode, title: string, strand: StrandCard | null) => (
     <button
       key={id}
       type="button"
       onClick={() => go(id)}
-      className={`flex flex-none cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs hover:border-blue-600 ${current === id ? "border-indigo-300 bg-indigo-100 font-semibold" : "border-slate-200 bg-white"}`}
+      className={`mt-0.5 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-left hover:bg-slate-100 ${strand !== null ? "ml-3.5 w-[calc(100%-0.875rem)]" : "w-full"} ${current === id ? "bg-indigo-100 font-semibold" : ""}`}
     >
       {strand !== null && <LaneDot lane={strand.lane} />}
-      {label}
+      <span className="min-w-0 flex-1 truncate" title={title}>{label}</span>
       {strand !== null && <Marks marks={strandMarks(strand)} />}
     </button>
   );
   return (
-    <nav aria-label={`${braid.id} ${braid.title}`} className="flex flex-none gap-1.5 overflow-x-auto border-b border-slate-200 px-7 pb-2.5 pt-2.5 max-md:px-4">
-      {chip(braid.id, "Braid brief", null)}
-      {braid.strands.map((s) => chip(s.id, <span><Id id={s.id} /> · {s.title}</span>, s))}
+    <nav aria-label={`${braid.id} ${braid.title}`} className="overflow-y-auto overflow-x-hidden border-r border-slate-200 bg-slate-50 p-3.5 max-md:max-h-[34vh] max-md:border-b max-md:border-r-0 max-md:p-3">
+      <h2 className="text-[15px] font-semibold"><Id id={braid.id} /> {braid.title}</h2>
+      <div className="mb-2 flex items-center gap-1.5 text-xs text-slate-500">
+        <LaneDot lane={braid.lane} />
+        {LANE_LABEL[braid.lane]}
+        <Marks marks={cardMarks(braid)} />
+      </div>
+      {row(braid.id, "Braid brief", "Braid brief", null)}
+      {braid.strands.map((x) => row(x.id, <span><Id id={x.id} /> · {x.title}</span>, `${x.id} · ${x.title}`, x))}
     </nav>
   );
 }
@@ -939,10 +945,10 @@ function DetailsPanel({ id, tab, tick }: { id: string; tab: string; tick: Tick }
           </div>
           <Status loaded={loaded}>
             {(item) => (
-              <>
+              <div className={`grid min-h-0 flex-1 ${item.braid.strands.length > 0 ? "grid-cols-[280px_minmax(0,1fr)] max-md:grid-cols-1 max-md:grid-rows-[auto_minmax(0,1fr)]" : ""}`}>
                 {item.braid.strands.length > 0 && <Contents braid={item.braid} current={id} />}
                 <Detail key={item.id} item={item} tab={tab} />
-              </>
+              </div>
             )}
           </Status>
         </Dialog.Content>

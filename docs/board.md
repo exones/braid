@@ -91,7 +91,7 @@ The setting is kept in the cookie `details` (`on` or `off`), so it survives a re
 
 ### The item details
 
-Clicking a card, a strand row or a Done row opens the item's details in a **side panel over the right of the board**; the board stays mounted underneath, so its scroll, open lanes and Done list are as they were. The panel is `min(70vw, 1200px)` wide, never under 720 px where the screen allows, so the brief reads comfortably and the left lanes stay visible. It shows a chip row to move between the braid brief and its strands, the header with the actions, the request banner, the fields and the Brief, Report and Logs tabs. It refreshes with the board.
+Clicking a card, a strand row or a Done row opens the item's details in a **side panel over the right of the board**; the board stays mounted underneath, so its scroll, open lanes and Done list are as they were. The panel is `min(70vw, 1200px)` wide, never under 720 px where the screen allows, so the brief reads comfortably and the left lanes stay visible. A braid with strands, or one of its strands, is two columns inside the panel: a **rail** on the left (280 px, scrolls on its own) with the braid's id and title, its lane and marks, "Braid brief" and one row per strand (lane dot, `A · Title`, marks) with the current one highlighted, and the details on the right; a click on a rail row moves inside the panel. A braid without strands has no rail. The details show the header with the actions, the request banner, the fields and the Brief, Report and Logs tabs. It refreshes with the board.
 
 ![A strand's details over the board: the request banner above the brief](design/board-screenshots/71-details-panel.png)
 
@@ -170,7 +170,7 @@ One page serves desktop and phone; below Tailwind's `md` breakpoint (768 px) CSS
 - A **tab bar with counts** (Needs you, Review, Working, To Do, Done) replaces the five columns; one lane shows at a time, Needs You first. **Swiping** left or right changes lane (a horizontal move of over 60 px that is at least twice the vertical one; a touch starting within 30 px of the screen's left or right edge is the browser's back or forward gesture and is ignored). The Done tab works as on desktop: collapsed, then the 10 newest and Show more.
 - Buttons are at least 44 px high and wide. Start and Merge show their icon with a short label; Open thread and Coordinator show only their emoji (🧠, 💻, 👀), with "Open thread" and "Coordinator" as `aria-label` and tooltip (the desktop keeps 24 px buttons with tooltips).
 - **Open thread and Coordinator are links** to the thread's `t3code://threads/<env>/<thread>` app link (`t3codeUrl` in `src/board/marks.ts`), opened by the phone's own T3 app, not the `open` action, which opens the app on the machine running the board. A thread link that isn't of that shape shows no link there and falls back to the button; over Tailscale the button isn't there (below).
-- The details take the whole screen with a clear close (← Board and ✕); Back closes them, and the header wraps. Answering a request still happens in the coordinator's thread: the board has no Answer or Approve button.
+- The details take the whole screen with a clear close (← Board and ✕); Back closes them, and the header wraps. The rail sits above the details, at most a third of the screen high, and scrolls on its own. Answering a request still happens in the coordinator's thread: the board has no Answer or Approve button.
 
 ![The details on a phone](design/board-screenshots/72-details-phone.png)
 
