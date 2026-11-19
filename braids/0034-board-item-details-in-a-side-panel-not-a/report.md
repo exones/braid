@@ -1,7 +1,16 @@
-Interim report (mockups stage; nothing is built yet).
+The board's item details now open as a side panel over the board instead of replacing it, in the shape the user chose from mockups (side panel; about two-thirds of the viewport; full screen on phone).
 
-The user chose to see the shape before it is built: the board item details as a side panel or as a pop-up. Both are mocked up on demo-like data in `mockups/details.html` (open it with `#shape=panel|modal&item=0003|0005&s=A`), with PNGs for desktop (1440 px) and phone (390 px): a braid with strands, and a strand with a request banner, actions in place.
+**What changed**
+- `web/src/App.tsx`: the board is always rendered; the details are a non-modal Radix Dialog (`DetailsPanel`), `min(70vw, 1200px)` wide and at least 720 px where the screen allows, the whole screen below `md`. A chip row moves between the braid brief and its strands; the header, actions, request banner, fields and tabs are unchanged. The details refresh with the board `tick`.
+- `src/board/route.ts` (new): `parseHash` / `hashFor`; an item id never replaces the board, only `#/inbox` is a page. `test/board-route.test.ts` covers it.
+- History: opening from the bare board adds one entry; another card, a strand or a tab inside the open details replaces it. Close = Back when the entry was pushed, otherwise replace to `#/`. Esc, the close button, a click on the board (not on a card, which opens that card) and Back close it.
+- `docs/board.md` ("The item details", phone section), decision D65, screenshots 71 and 72 in `docs/design/board-screenshots/`.
 
-Recommendation: the side panel (a). Why: the board stays visible and scrollable beside it, which is the point of this story. Opening a neighbouring card swaps the panel's content. It maps well onto the existing hash routes, and on phone it becomes the same full-screen view as the pop-up. Its cost: it covers the right-hand lanes (Waiting, Done) at desktop width, and it is narrow for a braid's strand list, so strands become a chip row inside the details instead of a rail. The pop-up (b) has room for a left rail of strands like today's item page, but it dims the whole board and covers the lane you clicked from.
+**Validation** (demo board, 1440 px, in a browser): clicking a card opens `#/0002` with the panel 896 px wide (70% of 1280); Esc closes it and returns to `#/`; Back after opening closes it; the page scroll (150 px) is the same before opening, while open and after Back. Moving to `#/0003/A` stays in the panel. Phone width (390 px): the panel fills the screen with ← Board and ✕.
 
-Needs the user: shape: side panel (recommended) or centred pop-up for the item details.
+Screens: ![details open](screens/details-braid-desktop.png) ![closed again](screens/board-closed-again.png) ![phone](screens/details-strand-phone.png)
+
+**Open:** a link opened fresh (reload) at `#/<id>` has no pushed entry, so its close replaces the hash with `#/` instead of going Back; I checked this by reading, not in a fresh page load.
+
+For later items: none.
+Needs the user: none

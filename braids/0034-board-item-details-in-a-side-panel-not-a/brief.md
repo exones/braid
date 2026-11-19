@@ -46,10 +46,18 @@ Expected size: about 200 lines in 4 files, mockups and tests included.
 
 ## Completion
 
-- [ ] Mockups of both shapes (desktop and phone) in the item folder, and the user's verdict in the item's log
-- [ ] Clicking a card, strand row or Done row opens the details over the board; the board's scroll and open lanes are unchanged after closing (demo screenshots in the report: board, details open, closed again)
-- [ ] The hash still names the item and tab; a direct `#/<id>?tab=…` opens the board with the details open; Back and Esc close them
-- [ ] Phone width: the details fill the screen and close cleanly (screenshot)
-- [ ] `docs/board.md` describes the new shape, with a screenshot
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockups of both shapes (desktop and phone) in the item folder, and the user's verdict in the item's log
+- [x] Clicking a card, strand row or Done row opens the details over the board; the board's scroll and open lanes are unchanged after closing (demo screenshots in the report: board, details open, closed again)
+- [x] The hash still names the item and tab; a direct `#/<id>?tab=…` opens the board with the details open; Back and Esc close them
+- [x] Phone width: the details fill the screen and close cleanly (screenshot)
+- [x] `docs/board.md` describes the new shape, with a screenshot
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Decided (user, 2026-11-19): side panel on desktop, `min(70vw, 1200px)` and at least 720 px where the screen allows; full screen on phone.
+
+- `src/board/route.ts`: `parseHash` and `hashFor`, pure and tested (`test/board-route.test.ts`); the item id never replaces the board, `#/inbox` is the only page.
+- `web/src/App.tsx`: the board is always rendered; `DetailsPanel` (a non-modal Radix Dialog) opens over it for an item id. Strand chips replace the left contents; opening from the bare board pushes a history entry, moves inside the details replace it; close = Back when we pushed, else replace. Esc, close button, click outside (not on a card or a layer above) close it. Layers above get `z-50`/`z-[60]`.
+- `docs/board.md` ("The item details", phone section), D65 in `docs/decisions.md`, screenshots 71 and 72.
