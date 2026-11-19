@@ -1,7 +1,7 @@
 ---
 id: '0033'
 title: "Board: say why an action is forbidden"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S"]
 dependencies: []
 delivery: epic
@@ -37,10 +37,14 @@ Expected size: about 80 lines in 4 files, tests included.
 - Recovering the token automatically, a new action, or button states on the board.
 - 0011 (Reports and several agents), which also touches Start: no overlap in these lines.
 
+## Plan
+
+Split the two 403s in `postAction` into four reasons (Host/Origin, missing `x-braid-request` on Tailscale, no token, wrong token), each with a fix in the text; tests per reason, including that the token isn't echoed; list them in `docs/board.md`. `web/src/api.ts` stays unchanged: the page already shows the server's `error`, and it sends an empty token header when it has none, which the server treats as missing.
+
 ## Completion
 
-- [ ] Each 403 of `POST /api/action/<name>` names the failed check and the fix (missing token, wrong token, Host/Origin, missing `x-braid-request`), and none contains the token (tests)
-- [ ] The Start dialog shows that text instead of `forbidden` when the token is missing (test of the reply the page shows, or a demo screenshot in the report)
-- [ ] `docs/board.md` lists the reasons
-- [ ] The gate command from BRAID.md passes
+- [x] Each 403 of `POST /api/action/<name>` names the failed check and the fix (missing token, wrong token, Host/Origin, missing `x-braid-request`), and none contains the token (tests)
+- [x] The Start dialog shows that text instead of `forbidden` when the token is missing (test of the reply the page shows, or a demo screenshot in the report)
+- [x] `docs/board.md` lists the reasons
+- [x] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
