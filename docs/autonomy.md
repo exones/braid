@@ -116,3 +116,9 @@ The agents decide everything themselves and log it.
 `free` delegates `security`, `data` and `outward`, so `braid check` warns when the project or a braid uses it.
 
 Print any of them in full with `braid autonomy <number>` on a braid that runs on it.
+
+## What the CLI enforces
+
+- `braid accept <id> --head <sha> --merge --preset` is a merge the coordinator makes under the braid's preset. `merge: strands` lets it merge a strand's PR, `all` also a story's and a final PR into `main`, `none` nothing; it also refuses when `ci` in `BRAID.md` is `none`. The refusal names the preset and its `merge` value. Without `--preset`, `--merge` is a merge you asked for.
+- Whether a stop case needs you stays the coordinator's judgement against the preset's table; the CLI checks only the `merge` value.
+- A decision made under a preset is logged as an ordinary log entry whose text starts with `Decided:` (`braid log <id> "Decided: ..."`). `braid decisions <number> [--since <date or sha>]` lists them, and the recap draft carries them under Decisions, so you read them in one place.

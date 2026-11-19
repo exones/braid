@@ -1,7 +1,7 @@
 ---
 id: '0040/D'
 title: "Merges follow the preset; Decided lines in recaps"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0040/C']
 order: 40
@@ -28,6 +28,12 @@ Expected size: about 260 lines in 8 files.
 - The `braid recap` and `braid handover` draft: under **Decisions**, the `Decided:` entries of that item; for a braid's final PR, those of the braid and all its strands.
 - Tests for the three; `docs/cli.md`, `docs/braids-format.md`, `docs/autonomy.md`.
 
+## Plan
+
+- `presetAllows` in `src/commands/done.ts`: resolve the preset with `resolvePreset`, refuse by `merge` value and PR kind (strand, story, final), refuse on `ci` none; runs before any GitHub read or merge.
+- `src/braids/decided.ts` parses `Decided:` entries; `braid decisions` (new) reads the checkout; the recap reads the logs at the PR head with `git`.
+- Tests, docs (cli, braids-format, autonomy) and decision D69.
+
 ## Already decided
 
 - A `Decided:` line is an ordinary log entry (`braid log`) that starts with that word; no new file and no new command to write one.
@@ -42,9 +48,9 @@ Expected size: about 260 lines in 8 files.
 
 ## Completion
 
-- [ ] `braid accept --merge --preset` merges a strand under `strands` and `all`, a story or final PR only under `all`, nothing under `none`, and nothing when `ci` is `none`; each refusal names the preset (tests)
-- [ ] `braid accept --merge` without `--preset` behaves as before (existing tests pass unchanged)
-- [ ] `braid decisions <number>` lists the `Decided:` entries of a braid and its strands in order, and `--since` cuts the list (tests)
-- [ ] A recap draft carries the item's `Decided:` entries under Decisions, and a final PR's draft those of the whole braid (tests)
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid accept --merge --preset` merges a strand under `strands` and `all`, a story or final PR only under `all`, nothing under `none`, and nothing when `ci` is `none`; each refusal names the preset (tests)
+- [x] `braid accept --merge` without `--preset` behaves as before (existing tests pass unchanged)
+- [x] `braid decisions <number>` lists the `Decided:` entries of a braid and its strands in order, and `--since` cuts the list (tests)
+- [x] A recap draft carries the item's `Decided:` entries under Decisions, and a final PR's draft those of the whole braid (tests)
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

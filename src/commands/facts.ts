@@ -2,6 +2,8 @@
 // They read and print only: the coordinator still judges each fact against the stop cases.
 import { keyOfBranch, readGithub, runGh, runsOf, type GhRunner } from "../board/github.js";
 import { openCounts, SWEEP_DUE } from "../inbox/branch.js";
+import { decidedEntries } from "../braids/decided.js";
+import { LOG_FILE } from "../braids/store.js";
 import { UsageError } from "./braids.js";
 import { ciChecks } from "./coordinate.js";
 import { checksProblem, git, must, view, type PrView } from "./done.js";
@@ -97,6 +99,33 @@ export async function factsCommand(root: string, args: readonly string[], opts: 
   return `${[head, ...factLines(facts)].join("\n")}\n`;
 }
 
+/** The `Decided:` entries of the logs at `head`: the item's own, and for a braid's final PR (`whole`) those of its strands too, oldest first. */
+function decidedAt(root: string, head: string, item: Item, whole: boolean): string[] {
+  const names = lines(git(root, ["ls-tree", "-r", "--name-only", head, "--", item.folder]).stdout);
+  const ids = new Map<string, string>([[item.folder, item.id]]);
+  const idOf = (dir: string): string => {
+    const known = ids.get(dir);
+    if (known !== undefined) {
+      return known;
+    }
+    const id = /^id:\s*["']?([^"'\s]+)/m.exec(git(root, ["show", `${head}:${dir}/brief.md`]).stdout)?.[1] ?? dir;
+    ids.set(dir, id);
+    return id;
+  };
+  const rows: { at: string; id: string; text: string }[] = [];
+  for (const path of names) {
+    const dir = path.slice(0, path.lastIndexOf("/"));
+    if (!LOG_FILE.test(path.slice(dir.length + 1)) || (!whole && dir !== item.folder)) {
+      continue;
+    }
+    for (const d of decidedEntries(git(root, ["show", `${head}:${path}`]).stdout)) {
+      rows.push({ at: d.at, id: idOf(dir), text: d.text });
+    }
+  }
+  rows.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+  return rows.map((r) => `- ${r.at.slice(0, 10)} ${r.id}: ${r.text}`);
+}
+
 /** The text under the first `## ` heading of a report whose title matches, or null. */
 function section(report: string, name: RegExp): string | null {
   const found = report.split(/^## +/m).slice(1).find((p) => name.test(p.split(/\r?\n/, 1)[0] ?? ""));
@@ -140,6 +169,7 @@ export async function recapCommand(root: string, args: readonly string[], opts: 
     "",
     `**Done:** ${section(report, /what changed|done/i) ?? "<edit: 1-5 bullets from report.md>"}`,
     `**Decisions:** ${field(report, "Decisions") ?? "<edit: choices the brief didn't settle, or None>"}`,
+    ...(item === null ? [] : decidedAt(root, pr.headRefOid, item, m[2] === undefined)),
     "**Deviations:** <edit: only if the work departed from the brief>",
     `**Needs the user:** ${needsLine === "" ? "none" : needsLine}${report === "" ? " (no report.md at the head)" : ""}`,
     `**Screenshots:** ${ui ? "<edit: the final screens, embedded from the artifacts folder>" : "none"}`,
