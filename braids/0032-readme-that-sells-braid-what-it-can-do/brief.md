@@ -54,13 +54,13 @@ Expected size: about 200 lines in 2 to 3 text files, plus 4 to 7 images.
 
 ## Completion
 
-- [ ] The README has a pitch with a hero image, "What it can do", "Why braid" and a walk-through, plus the quick start, docs table, contributing and licence; about 200 lines or fewer.
-- [ ] Every capability and claim in the README is true of `main` (the report lists each with the doc or code that backs it).
-- [ ] Fresh screenshots from `braid board --demo` and the agreed mock-ups are in `docs/images/`, each referenced from the README with a caption; mock-ups are marked illustrative.
-- [ ] The mock-up sources and how each image was made are in `docs/design/readme/`.
-- [ ] The README renders correctly on GitHub in light and dark mode (checked on the PR branch; screenshots of both in the report).
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The README has a pitch with a hero image, "What it can do", "Why braid" and a walk-through, plus the quick start, docs table, contributing and licence; about 200 lines or fewer.
+- [x] Every capability and claim in the README is true of `main` (the report lists each with the doc or code that backs it).
+- [x] Fresh screenshots from `braid board --demo` and the agreed mock-ups are in `docs/images/`, each referenced from the README with a caption; mock-ups are marked illustrative.
+- [x] The mock-up sources and how each image was made are in `docs/design/readme/`.
+- [x] The README renders correctly on GitHub in light and dark mode (checked on the PR branch; screenshots of both in the report).
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
