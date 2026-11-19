@@ -1,7 +1,7 @@
 ---
 id: '0032'
 title: "README that sells braid: what it can do, why, fresh screens"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 delivery: epic
@@ -61,3 +61,8 @@ Expected size: about 200 lines in 2 to 3 text files, plus 4 to 7 images.
 - [ ] The README renders correctly on GitHub in light and dark mode (checked on the PR branch; screenshots of both in the report).
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Converge loop: propose the outline, draft text and images (in `report.md` and `docs/images/`), stop for the user's verdict.
+2. After approval: write the final `README.md`, `docs/design/readme/README.md` (how each image was made), check every claim against docs/code, render on the PR branch in light and dark, run the gate, open the PR.

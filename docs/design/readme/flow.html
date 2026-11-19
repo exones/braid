@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>braid flow (illustrative)</title>
+<style>
+:root{--navy:#082a48;--violet:#7835ef;--vl:#a27bff;--mist:#f4f2fb;--slate:#5a6b80}
+*{box-sizing:border-box}body{margin:0;width:1100px;height:380px;background:#fff;font:15px/1.35 "Segoe UI",system-ui,sans-serif;color:var(--navy);position:relative}
+.row{position:absolute;left:30px;right:30px;top:58px;display:flex;align-items:stretch;gap:0}
+.box{flex:1;background:var(--mist);border:2px solid var(--navy);border-radius:12px;padding:14px 14px 16px;min-height:170px}
+.box h3{margin:0 0 6px;font-size:17px}.box p{margin:0;color:var(--slate);font-size:13.5px}
+.box .who{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--violet);margin-bottom:6px}
+.box.you{background:var(--navy);color:#fff;border-color:var(--navy)}.box.you p{color:#cfd8e6}.box.you .who{color:var(--vl)}
+.arrow{width:34px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--violet);font-size:26px;font-weight:700}
+.strands{display:flex;gap:6px;margin-top:10px}.strands span{background:#fff;border:1.5px solid var(--violet);color:var(--violet);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700}
+.ledger{position:absolute;left:30px;right:30px;bottom:34px;border:2px dashed var(--violet);border-radius:12px;padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+.ledger b{color:var(--violet)}.ledger span{color:var(--slate);font-size:13.5px}
+.tag{position:absolute;right:14px;top:12px;font-size:11px;color:var(--slate)}
+.title{position:absolute;left:30px;top:16px;font-weight:700;font-size:18px}
+</style></head><body>
+<div class="title">One goal, start to merge</div><div class="tag">Illustration, not a screen</div>
+<div class="row">
+ <div class="box"><span class="who">You</span><h3>A goal</h3><p>“braid: add dark mode to the settings page”</p></div><div class="arrow">→</div>
+ <div class="box"><span class="who">Coordinator</span><h3>A braid, split into strands</h3><p>Briefs written into <code>braids/</code>; you approve the plan.</p><div class="strands"><span>A</span><span>B</span><span>C</span></div></div><div class="arrow">→</div>
+ <div class="box"><span class="who">Workers</span><h3>One strand each</h3><p>Own branch and worktree, the gate, a PR with CI green.</p></div><div class="arrow">→</div>
+ <div class="box"><span class="who">Reviewers</span><h3>Independent check</h3><p>A different model reads the PR against its brief.</p></div><div class="arrow">→</div>
+ <div class="box you"><span class="who">You</span><h3>You merge</h3><p>A short recap, then your merge into <code>main</code>.</p></div>
+</div>
+<div class="ledger"><div><b>The ledger</b> <span>&nbsp;every step is a plain file in Git</span></div><span>briefs · logs · reports · requests — any agent can pick the work up from the files</span></div>
+</body></html>
