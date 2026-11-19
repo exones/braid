@@ -174,3 +174,17 @@ test("braid recap: Sweep due appears only at 3 or more open leftovers, with no e
   assert.equal(out.trimEnd().split("\n").at(-1), "Sweep due: 3 open leftovers");
   assert.doesNotMatch(out, /Secret|idea/i);
 });
+
+test("braid recap: carries the item's Decided: entries under Decisions, a final PR's those of its strands too", async () => {
+  const log = (at: string, text: string) => `## ${at}Z\n\n${text}\n`;
+  const w = world("about 10 lines", (put) => {
+    put("braids/0001-alpha/log-2026-11-19-abcdef01.md", `${log("2026-11-19 10:00", "Decided: kept the old flag.\nSecond line.")}\n${log("2026-11-20 09:00", "Merged strand A.")}\n${log("2026-11-21 08:00", "Decided: braid-level choice")}`);
+    put("braids/0001-alpha/A-first/brief.md", "---\nid: '0001/A'\ntitle: \"A\"\nstatus: Done\nlabels: []\ndependencies: []\n---\n\n## Goal\n\nx\n");
+    put("braids/0001-alpha/A-first/log-2026-11-20-12345678.md", log("2026-11-20 11:30", "Decided: strand choice"));
+  });
+  const out = await recapCommand(w.root, ["0001"], { gh: w.gh });
+  const decided = out.split("\n").filter((l) => /^- \d{4}-\d{2}-\d{2} /.test(l) && l.includes("Decided:"));
+  assert.deepEqual(decided, ["- 2026-11-19 0001: Decided: kept the old flag. Second line.", "- 2026-11-20 0001/A: Decided: strand choice", "- 2026-11-21 0001: Decided: braid-level choice"]);
+  assert.ok(out.indexOf("**Decisions:**") < out.indexOf("- 2026-11-19 0001"));
+  assert.doesNotMatch(out, /Merged strand A/);
+});
