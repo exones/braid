@@ -43,12 +43,12 @@ Expected size: about 60 lines in 3 files, tests included.
 
 ## Completion
 
-- [ ] Every braid number on the board (cards, strand rows, Done rows, item details, inbox `from`) reads in full with the significant digits bold; demo screenshot in the report
-- [ ] Coordinator shows 🧠 and Open thread shows its thread's role emoji (💻 when unknown), desktop and phone; demo screenshot in the report
-- [ ] Tests for the id split, and for the role from a title if the snapshot gained it
-- [ ] `docs/board.md` describes both, with updated screenshots
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Every braid number on the board (cards, strand rows, Done rows, item details, inbox `from`) reads in full with the significant digits bold; demo screenshot in the report
+- [x] Coordinator shows 🧠 and Open thread shows its thread's role emoji (💻 when unknown), desktop and phone; demo screenshot in the report
+- [x] Tests for the id split, and for the role from a title if the snapshot gained it
+- [x] `docs/board.md` describes both, with updated screenshots
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 

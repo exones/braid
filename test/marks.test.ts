@@ -49,6 +49,8 @@ const demo = (await load("../dist/board/demo.js")) as {
   demoSignals: () => unknown;
 };
 const marks = (await load("../dist/board/marks.js")) as {
+  splitId(id: string): { zeros: string; digits: string; rest: string };
+  threadEmoji(role: "worker" | "reviewer" | null): string;
   LANE_LABEL: Record<string, string>;
   strandMarks: (s: Strand, details?: boolean) => Marks;
   cardMarks: (c: Card, details?: boolean) => Marks;
@@ -198,4 +200,19 @@ test("without T3 no agent shows and no alarm can be told", () => {
 test("the tick marks Done cards too", () => {
   assert.equal(marks.cardMarks(card("0008")).done, true);
   assert.equal(marks.cardMarks(card("0001")).done, false);
+});
+
+test("an id is split into leading zeros and significant digits", () => {
+  const split = (id: string) => Object.values(marks.splitId(id));
+  assert.deepEqual(split("0034"), ["00", "34", ""]);
+  assert.deepEqual(split("0100"), ["0", "100", ""]);
+  assert.deepEqual(split("1000"), ["", "1000", ""]);
+  assert.deepEqual(split("0034/A"), ["00", "34", "/A"]);
+  assert.deepEqual(split("0000"), ["000", "0", ""]);
+});
+
+test("the Open thread emoji is the thread's role, 💻 when the role is unknown", () => {
+  assert.equal(marks.threadEmoji("worker"), "💻");
+  assert.equal(marks.threadEmoji("reviewer"), "👀");
+  assert.equal(marks.threadEmoji(null), "💻");
 });
