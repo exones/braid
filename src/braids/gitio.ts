@@ -1,6 +1,6 @@
 // Asynchronous Git for the board's reads: the server keeps answering requests while `git` runs. The
 // synchronous readers stay for the CLI commands.
-import { execFile, spawn } from "node:child_process";
+import { execFile, spawn, spawnSync } from "node:child_process";
 
 export interface GitOut {
   readonly status: number | null;
@@ -68,31 +68,54 @@ export function catBatch(root: string, specs: readonly string[], timeoutMs: numb
     });
     child.on("close", () => {
       clearTimeout(timer);
-      if (failed) {
-        return;
+      if (!failed) {
+        done(parseBatch(Buffer.concat(chunks), specs.length));
       }
-      const all = Buffer.concat(chunks);
-      const out: (string | null)[] = [];
-      let at = 0;
-      for (let i = 0; i < specs.length; i++) {
-        const eol = all.indexOf(0x0a, at);
-        if (eol < 0) {
-          out.push(null);
-          continue;
-        }
-        const header = all.toString("utf8", at, eol);
-        const m = /^\w+ (\w+) (\d+)$/.exec(header);
-        if (m === null) {
-          out.push(null);
-          at = eol + 1;
-          continue;
-        }
-        const size = Number(m[2]);
-        out.push(m[1] === "blob" ? all.toString("utf8", eol + 1, eol + 1 + size) : null);
-        at = eol + 1 + size + 1;
-      }
-      done(out);
     });
     child.stdin.end(`${specs.join("\n")}\n`);
   });
+}
+
+/** The `git cat-file --batch` output for `count` requests: each object's text when it is a blob, else null. */
+function parseBatch(all: Buffer, count: number): (string | null)[] {
+  const out: (string | null)[] = [];
+  let at = 0;
+  for (let i = 0; i < count; i++) {
+    const eol = all.indexOf(0x0a, at);
+    if (eol < 0) {
+      out.push(null);
+      continue;
+    }
+    const header = all.toString("utf8", at, eol);
+    const m = /^\w+ (\w+) (\d+)$/.exec(header);
+    if (m === null) {
+      out.push(null);
+      at = eol + 1;
+      continue;
+    }
+    const size = Number(m[2]);
+    out.push(m[1] === "blob" ? all.toString("utf8", eol + 1, eol + 1 + size) : null);
+    at = eol + 1 + size + 1;
+  }
+  return out;
+}
+
+/**
+ * `catBatch` for the synchronous readers of the CLI commands: the same texts through one `git cat-file --batch`
+ * process, null for each when git fails or times out.
+ */
+export function catBatchSync(root: string, specs: readonly string[], timeoutMs: number = BATCH_TIMEOUT_MS): (string | null)[] {
+  if (specs.length === 0) {
+    return [];
+  }
+  noteSyncGit(["cat-file", "--batch"]);
+  const r = spawnSync("git", ["cat-file", "--batch"], {
+    cwd: root,
+    input: `${specs.join("\n")}\n`,
+    maxBuffer: 256 * 1024 * 1024,
+    timeout: timeoutMs,
+    windowsHide: true,
+    stdio: ["pipe", "pipe", "ignore"],
+  });
+  return r.status !== 0 || r.stdout === null ? specs.map(() => null) : parseBatch(r.stdout, specs.length);
 }
