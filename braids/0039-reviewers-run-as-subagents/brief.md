@@ -1,7 +1,7 @@
 ---
 id: '0039'
 title: "Reviewers run as subagents"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:process", "ask:architecture"]
 dependencies: []
 related: ['0034', '0037']
