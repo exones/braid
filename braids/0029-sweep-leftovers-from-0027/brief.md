@@ -53,9 +53,17 @@ Expected size: about 150 lines in 5 files.
 
 ## Completion
 
-- [ ] Git process counts and timings of `braid list --open`, `braid view --links` and `braid check`, before and after, in report.md, with the 0027 tests passing unchanged
-- [ ] `docs/cli.md` lists `--links`, `--related` and `--open`
-- [ ] The template's `related` line points at Plan step 3 without restating it
-- [ ] `braid --version` on this branch prints a version above 0.1.1
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Git process counts and timings of `braid list --open`, `braid view --links` and `braid check`, before and after, in report.md, with the 0027 tests passing unchanged
+- [x] `docs/cli.md` lists `--links`, `--related` and `--open`
+- [x] The template's `related` line points at Plan step 3 without restating it
+- [x] `braid --version` on this branch prints a version above 0.1.1
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Profile `braid list --open`, `braid view --links` and `braid check` (with one `related`) on this repository: Git processes by kind and time.
+2. Reuse 0028's batch reader: share its `cat-file --batch` output parser in `src/braids/gitio.ts` with a synchronous `catBatchSync`, and read every `brief.md` of the branches read through it.
+3. Replace the `merge-base` per ref with one `git for-each-ref --merged=<HEAD>` over the braid/strand refs, one over the `plan/` refs, and one per braid branch tip for its strands; the async board path (`prefetchLive`) uses the same.
+4. Keep `ls-tree -r` of `braids/` per branch if profiling shows it is cheap (it is: about 50 ms, three calls).
+5. Docs: `docs/cli.md` (`--open`, `--links`, `--related`), `docs/braids-format.md` timing line; template `related` line; version 0.2.0.
