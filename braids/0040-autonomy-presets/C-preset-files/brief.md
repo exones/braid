@@ -1,7 +1,7 @@
 ---
 id: '0040/C'
 title: "Preset files: the format, three presets and braid autonomy"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:architecture"]
 dependencies: []
 order: 30
@@ -85,3 +85,12 @@ When unsure which column applies: ask.
 - [ ] `docs/autonomy.md` describes the format and the three presets; the format and CLI docs name the field and the command
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `src/braids/autonomy.ts`: the stop-case keys, `parsePreset` (front matter `name`/`merge`/`continue`, a `# ` heading, one table with the three columns, every key in exactly one row, `name` equal to the file name), `presetWarnings` (security, data, outward delegated), the project's presets (`autonomy/*.md`), the `BRAID.md` default and `resolveAutonomy`. `src/braids/presets.ts`: the three shipped presets as text compiled into `dist/`, so the package needs no extra files.
+2. Brief field `autonomy` (braids only, a slug, written only when set, after `delivery`); `--autonomy <name>|none` on `braid new` and `braid edit` (the preset must exist here); `braid view` shows `Autonomy: <name>` when set.
+3. `src/commands/autonomy.ts` and `braid autonomy <number>` / `--list` in `src/cli.ts`.
+4. `braid check`: preset file errors, briefs and `BRAID.md` naming a missing preset; the delegation warning for project presets and for shipped presets a brief or `BRAID.md` names (an unused `free` stays quiet).
+5. `autonomy/` in `PROCESS` of `braid facts`.
+6. Tests in `test/autonomy.test.ts` (+ facts); docs: `docs/autonomy.md`, `docs/braids-format.md`, `docs/cli.md`, decision D68 (D66 and D67 are taken).
