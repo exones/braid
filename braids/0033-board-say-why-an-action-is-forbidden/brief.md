@@ -47,4 +47,4 @@ Split the two 403s in `postAction` into four reasons (Host/Origin, missing `x-br
 - [x] The Start dialog shows that text instead of `forbidden` when the token is missing (test of the reply the page shows, or a demo screenshot in the report)
 - [x] `docs/board.md` lists the reasons
 - [x] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
