@@ -27,6 +27,8 @@ export interface InboxData {
   readonly note: string | null;
   /** The coordinator's provider / model BRAID.md names (the Promote to Braid dialog shows it); null when it names none. */
   readonly expected?: string | null;
+  /** The base branch Promote to Braid starts from (`origin/<main>`); the dialog shows it. */
+  readonly base?: string;
 }
 
 export const NO_INBOX: InboxData = { leftovers: [], ideas: [], note: null };

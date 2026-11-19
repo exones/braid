@@ -37,7 +37,7 @@ const board = (await load("../dist/commands/board.js")) as {
 };
 const t3mod = (await load("../dist/board/t3.js")) as { ideaPlanning(t3: unknown, id: string): { link: string | null } | null };
 const reader = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: (root: string, args: readonly string[]) => Promise<Result>; ttlMs: number; agents: string; project: string }): Promise<{ ideaThreads?: Map<string, { link: string | null }> }> };
-const model = (await load("../dist/board/model.js")) as { toBoard(repo: string, braids: unknown, gh: unknown, t3: unknown, sig: unknown, ctx: unknown, inbox: unknown): { inbox: { ideas: { id: string; planning: { link: string | null } | null }[] } } };
+const model = (await load("../dist/board/model.js")) as { toBoard(repo: string, braids: unknown, gh: unknown, t3: unknown, sig: unknown, ctx: unknown, inbox: unknown): { inbox: { base?: string; ideas: { id: string; planning: { link: string | null } | null }[] } } };
 
 const IDEA = "2026-11-18-q1wd"; // an open idea of the demo, not being planned
 const PLANNED = "2026-11-15-w8nn"; // an open idea of the demo with a running coordinator
@@ -152,6 +152,7 @@ test("the board marks the planned idea with its thread link; the others have non
   const src = board.demoSources();
   const inbox = await src.inbox(false);
   const data = model.toBoard("demo", [], { status: { state: "ok" } }, await src.t3(false), {}, src.start(), inbox);
+  assert.equal(data.inbox.base, "origin/main");
   const planned = data.inbox.ideas.filter((i) => i.planning !== null);
   assert.deepEqual(planned.map((i) => [i.id, i.planning?.link]), [[PLANNED, "https://t3.example/thread/demo-11"]]);
 });

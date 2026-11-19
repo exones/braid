@@ -631,7 +631,7 @@ function Title({ text }: { text: string }) {
 }
 
 /** Promote to Braid: opens the confirmation; on confirm the server launches a coordinator thread that plans a braid from the idea. */
-function PromoteButton({ entry, expected, onLaunched }: { entry: InboxEntry; expected: string | null; onLaunched: () => void }) {
+function PromoteButton({ entry, expected, base, onLaunched }: { entry: InboxEntry; expected: string | null; base: string; onLaunched: () => void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -679,7 +679,7 @@ function PromoteButton({ entry, expected, onLaunched }: { entry: InboxEntry; exp
               <dt className="text-slate-500">Model</dt>
               <dd>T3 project default{expected !== null && <>; BRAID.md names <code className="text-xs">{expected}</code></>}</dd>
               <dt className="text-slate-500">Base branch</dt>
-              <dd><code className="break-all text-xs">origin/main</code>, branch <code className="break-all text-xs">coordinator/idea-{entry.id}</code></dd>
+              <dd><code className="break-all text-xs">{base}</code>, branch <code className="break-all text-xs">coordinator/idea-{entry.id}</code></dd>
             </dl>
           )}
           {launched?.warning != null && <Warn>{launched.warning}</Warn>}
@@ -707,7 +707,7 @@ const PromoteIcon = () => (
 );
 
 /** An idea's actions: Promote to Braid, or "Being planned" with Open thread once a coordinator for it runs. */
-function IdeaActions({ entry, expected }: { entry: InboxEntry; expected: string | null }) {
+function IdeaActions({ entry, expected, base }: { entry: InboxEntry; expected: string | null; base: string }) {
   const [started, setStarted] = useState(false);
   if (entry.planning !== null || started) {
     return (
@@ -717,10 +717,10 @@ function IdeaActions({ entry, expected }: { entry: InboxEntry; expected: string 
       </span>
     );
   }
-  return <PromoteButton entry={entry} expected={expected} onLaunched={() => setStarted(true)} />;
+  return <PromoteButton entry={entry} expected={expected} base={base} onLaunched={() => setStarted(true)} />;
 }
 
-function InboxRow({ entry, expected }: { entry: InboxEntry; expected: string | null }) {
+function InboxRow({ entry, expected, base }: { entry: InboxEntry; expected: string | null; base: string }) {
   const [open, setOpen] = useState(false);
   const preview = entry.kind === "idea" ? entry.text.split("\n").find((l) => l.trim() !== "") ?? "" : "";
   return (
@@ -740,7 +740,7 @@ function InboxRow({ entry, expected }: { entry: InboxEntry; expected: string | n
         </button>
         {entry.kind === "idea" && (
           <span className="flex flex-none px-2.5 py-2 max-md:w-full max-md:py-0 max-md:pl-9">
-            <IdeaActions entry={entry} expected={expected} />
+            <IdeaActions entry={entry} expected={expected} base={base} />
           </span>
         )}
       </div>
@@ -755,7 +755,7 @@ function InboxRow({ entry, expected }: { entry: InboxEntry; expected: string | n
   );
 }
 
-function InboxColumn({ title, entries, note, empty, expected }: { title: string; entries: readonly InboxEntry[]; note?: string; empty: ReactNode; expected: string | null }) {
+function InboxColumn({ title, entries, note, empty, expected, base }: { title: string; entries: readonly InboxEntry[]; note?: string; empty: ReactNode; expected: string | null; base: string }) {
   return (
     <section aria-label={title} className="rounded-xl bg-slate-200/70 p-3">
       <h2 className="mb-2.5 flex items-baseline gap-2 px-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
@@ -763,13 +763,13 @@ function InboxColumn({ title, entries, note, empty, expected }: { title: string;
         {title}
         {note !== undefined && <small className="font-normal tracking-normal normal-case">{note}</small>}
       </h2>
-      {entries.length === 0 ? <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-[13px] text-slate-500">{empty}</div> : entries.map((e) => <InboxRow key={e.id} entry={e} expected={expected} />)}
+      {entries.length === 0 ? <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-[13px] text-slate-500">{empty}</div> : entries.map((e) => <InboxRow key={e.id} entry={e} expected={expected} base={base} />)}
     </section>
   );
 }
 
 /** The inbox: the open leftovers and ideas. An idea can be promoted to a braid; nothing else is written here. */
-function InboxPage({ inbox, expected }: { inbox: InboxData; expected: string | null }) {
+function InboxPage({ inbox, expected, base }: { inbox: InboxData; expected: string | null; base: string }) {
   return (
     <main className="max-w-[1200px] px-7 py-5">
       <a href="#/" className="text-[13px] text-blue-600 no-underline">← Board</a>
@@ -781,12 +781,13 @@ function InboxPage({ inbox, expected }: { inbox: InboxData; expected: string | n
       <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
         <InboxColumn
           expected={expected}
+          base={base}
           title="Leftovers"
           entries={inbox.leftovers}
           {...(inbox.leftovers.length >= SWEEP_DUE ? { note: "· sweep due" } : {})}
           empty={<><b className="block text-slate-900">No open leftovers.</b>Agents add them with <code>braid note "…" --from &lt;item&gt;</code>. A sweep is proposed at {SWEEP_DUE}.</>}
         />
-        <InboxColumn expected={expected} title="Ideas" entries={inbox.ideas} empty={<><b className="block text-slate-900">No ideas yet.</b>Write one down with <code>$braid-idea &lt;a sentence&gt;</code>.</>} />
+        <InboxColumn expected={expected} base={base} title="Ideas" entries={inbox.ideas} empty={<><b className="block text-slate-900">No ideas yet.</b>Write one down with <code>$braid-idea &lt;a sentence&gt;</code>.</>} />
       </div>
     </main>
   );
@@ -1094,7 +1095,7 @@ export function App() {
           </button>
         </header>
         {route.inbox ? (
-          <Status loaded={board}>{(data) => <InboxPage inbox={data.inbox} expected={data.inbox.expected ?? null} />}</Status>
+          <Status loaded={board}>{(data) => <InboxPage inbox={data.inbox} expected={data.inbox.expected ?? null} base={data.inbox.base ?? "origin/main"} />}</Status>
         ) : (
           <Status loaded={board}>{(data) => <Board data={data} details={details} />}</Status>
         )}
