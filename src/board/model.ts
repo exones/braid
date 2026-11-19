@@ -1,5 +1,5 @@
 import { type Github, type PullRequest } from "./github.js";
-import { NO_T3, type T3, type T3Coordinator, type T3Thread } from "./t3.js";
+import { ideaPlanning, NO_T3, type T3, type T3Coordinator, type T3Thread } from "./t3.js";
 import type { Status } from "../braids/brief.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
@@ -487,7 +487,11 @@ export function doneNewestFirst<T extends { readonly id: string; readonly doneAt
 }
 
 export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX): BoardData {
-  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox, remote: false };
+  const ideas = inbox.ideas.map((i) => {
+    const c = ideaPlanning(t3, i.id);
+    return c === null ? i : { ...i, planning: { link: c.link } };
+  });
+  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false };
 }
 
 export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): ItemDetail {

@@ -154,6 +154,8 @@ export function demoT3(down = false): T3 {
     status: { state: "ok" },
     coordinators: demoCoordinators,
     idleCoordinators: demoIdleCoordinators,
+    // The idea "Run two workers at once" is being planned (Promote to Braid): its row shows that and Open thread.
+    ideaThreads: new Map<string, T3Coordinator>([["coordinator/idea-2026-11-15-w8nn", { id: "demo-11", link: "https://t3.example/thread/demo-11", provider: "Claude_Everix", model: "claude-opus-5-5" }]]),
     idle: new Map<string, readonly T3Thread[]>([["0002/B", [thread("demo-8", "worker")]]]),
     threads: new Map<string, readonly T3Thread[]>([
       ["0002/A", [thread("demo-1", "worker")]],
@@ -197,15 +199,15 @@ export function demoInbox(): InboxData {
   return {
     note: null,
     leftovers: [
-      { kind: "leftover", id: "2026-11-18-k3fa", title: "`braid note --from` rejects \"review 0012/A\" with a trailing space", text: "Found in the review of PR #118. `parseFrom` trims nothing, so a pasted `review 0012/A ` fails with \"unknown source\". Where: `src/commands/inbox.ts`. Why it matters: the coordinator pastes sources from chat.", from: "review 0012/A", ref: ["PR #118 comment on inbox.ts:41"], age: "2h", passed: 0 },
-      { kind: "leftover", id: "2026-11-17-p9zx", title: "Windows: `braid inbox show` prints the item folder with backslashes", text: "The report of 0020/A names it under Open. Output is correct but docs/cli.md shows forward slashes; pick one and say so.", from: "0020/A", ref: [], age: "1d", passed: 0 },
-      { kind: "leftover", id: "2026-11-16-r7ab", title: "README install section still says Node 24", text: "Seen while writing the PR body of #124. The engines field says `>=26.13.0 <27`.", from: "PR #124", ref: [], age: "2d", passed: 0 },
-      { kind: "leftover", id: "2026-11-12-m2qe", title: "Board: the Merge confirmation lists checks in a random order", text: "From `For later items:` of 0009/C. Sort by name so the same PR always reads the same.", from: "0009/C", ref: ["PR #96"], age: "6d", passed: 1 },
+      { kind: "leftover", id: "2026-11-18-k3fa", title: "`braid note --from` rejects \"review 0012/A\" with a trailing space", text: "Found in the review of PR #118. `parseFrom` trims nothing, so a pasted `review 0012/A ` fails with \"unknown source\". Where: `src/commands/inbox.ts`. Why it matters: the coordinator pastes sources from chat.", from: "review 0012/A", ref: ["PR #118 comment on inbox.ts:41"], age: "2h", passed: 0, planning: null },
+      { kind: "leftover", id: "2026-11-17-p9zx", title: "Windows: `braid inbox show` prints the item folder with backslashes", text: "The report of 0020/A names it under Open. Output is correct but docs/cli.md shows forward slashes; pick one and say so.", from: "0020/A", ref: [], age: "1d", passed: 0, planning: null },
+      { kind: "leftover", id: "2026-11-16-r7ab", title: "README install section still says Node 24", text: "Seen while writing the PR body of #124. The engines field says `>=26.13.0 <27`.", from: "PR #124", ref: [], age: "2d", passed: 0, planning: null },
+      { kind: "leftover", id: "2026-11-12-m2qe", title: "Board: the Merge confirmation lists checks in a random order", text: "From `For later items:` of 0009/C. Sort by name so the same PR always reads the same.", from: "0009/C", ref: ["PR #96"], age: "6d", passed: 1, planning: null },
     ],
     ideas: [
-      { kind: "idea", id: "2026-11-18-q1wd", title: "A \"what changed since I looked\" view", text: "When I come back after a day, I want one place that says which braids moved lane since my last visit, newest first.\n\n- Not a notification feed: it is read when I open the board.\n- Could be a mark on the cards instead of a page.\n\nUnsure whether the board should remember my last visit (a cookie) or `braid recap` should.", from: null, ref: [], age: "40m", passed: 0 },
-      { kind: "idea", id: "2026-11-15-w8nn", title: "Run two workers at once on independent strands", text: "Strands without a dependency between them could run in parallel. The board would show two wrenches on the braid.", from: null, ref: [], age: "3d", passed: 0 },
-      { kind: "idea", id: "2026-11-10-t5cc", title: "Phone board: swipe between lanes", text: "The phone layout stacks the lanes; swiping would be faster.", from: null, ref: [], age: "8d", passed: 0 },
+      { kind: "idea", id: "2026-11-18-q1wd", title: "A \"what changed since I looked\" view", text: "When I come back after a day, I want one place that says which braids moved lane since my last visit, newest first.\n\n- Not a notification feed: it is read when I open the board.\n- Could be a mark on the cards instead of a page.\n\nUnsure whether the board should remember my last visit (a cookie) or `braid recap` should.", from: null, ref: [], age: "40m", passed: 0, planning: null },
+      { kind: "idea", id: "2026-11-15-w8nn", title: "Run two workers at once on independent strands", text: "Strands without a dependency between them could run in parallel. The board would show two wrenches on the braid.", from: null, ref: [], age: "3d", passed: 0, planning: null },
+      { kind: "idea", id: "2026-11-10-t5cc", title: "Phone board: swipe between lanes", text: "The phone layout stacks the lanes; swiping would be faster.", from: null, ref: [], age: "8d", passed: 0, planning: null },
     ],
   };
 }

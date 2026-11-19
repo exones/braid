@@ -228,7 +228,7 @@ const RemoteContext = createContext(false);
  * Nothing is drawn when there is no thread. `coordinator` is the braid's Coordinator button: the same, for the coordinator
  * thread (the server is asked with `thread: "coordinator"`), a 🧠 and an accent colour.
  */
-function OpenThread({ id, link, role = null, coordinator = false }: { id: string; link: string | null; role?: ThreadRole | null; coordinator?: boolean }) {
+function OpenThread({ id, link, role = null, coordinator = false, idea = false }: { id: string; link: string | null; role?: ThreadRole | null; coordinator?: boolean; idea?: boolean }) {
   const remoteBoard = useContext(RemoteContext);
   const [error, setError] = useState<string | null>(null);
   if (link === null) {
@@ -236,7 +236,7 @@ function OpenThread({ id, link, role = null, coordinator = false }: { id: string
   }
   const app = t3codeUrl(link);
   const what = coordinator ? "Open the coordinator thread" : "Open thread";
-  const emoji = coordinator ? ROLES.coordinator : threadEmoji(role);
+  const emoji = coordinator || idea ? ROLES.coordinator : threadEmoji(role);
   const tone = coordinator ? "border-blue-600 text-blue-700" : "border-slate-200 text-slate-700";
   if (remoteBoard && app === null) {
     return null;
@@ -257,7 +257,7 @@ function OpenThread({ id, link, role = null, coordinator = false }: { id: string
           onClick={(e) => {
             e.stopPropagation();
             setError(null);
-            postAction("open", coordinator ? { id, thread: "coordinator" } : { id }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
+            postAction("open", idea ? { idea: id } : coordinator ? { id, thread: "coordinator" } : { id }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
           }}
           className={`${BUTTON} ${app === null ? "" : "max-md:hidden"} ${error === null ? tone : "border-red-600 text-red-700"} bg-white hover:border-blue-600`}
         >
@@ -628,23 +628,120 @@ function Title({ text }: { text: string }) {
   return <>{text.split(/(`[^`]+`)/).map((p, i) => (p.startsWith("`") && p.length > 1 ? <code key={i} className="rounded bg-slate-100 px-1 font-mono text-[12px]">{p.slice(1, -1)}</code> : p))}</>;
 }
 
-function InboxRow({ entry }: { entry: InboxEntry }) {
+/** Promote to Braid: opens the confirmation; on confirm the server launches a coordinator thread that plans a braid from the idea. */
+function PromoteButton({ entry, expected, base, onLaunched }: { entry: InboxEntry; expected: string | null; base: string; onLaunched: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [launched, setLaunched] = useState<(Launched & { base: string; branch: string }) | null>(null);
+  const confirm = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setLaunched(await postAction<Launched & { base: string; branch: string }>("promote", { id: entry.id }));
+      onLaunched();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const done = launched !== null;
+  return (
+    <Dialog.Root open={open} onOpenChange={(o) => { setOpen(o); setError(null); }}>
+      <Dialog.Trigger asChild>
+        <button type="button" aria-label={`Promote to Braid: ${entry.title}`} onClick={(e) => e.stopPropagation()} className={`${PROMOTE} cursor-pointer border-blue-600 bg-blue-600 text-white hover:bg-blue-700`}>
+          <PromoteIcon /> Promote to Braid
+        </button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/40" />
+        <Dialog.Content onClick={(e) => e.stopPropagation()} className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[480px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-xl">
+          <Dialog.Title className="text-base font-semibold">{done ? "Coordinator started" : "Promote this idea to a braid?"}</Dialog.Title>
+          <Dialog.Description className="mb-3 text-slate-500">{done ? "It is planning the braid in its own T3 thread." : "A new coordinator plans it; nothing starts until you approve the plan."}</Dialog.Description>
+          {done ? (
+            <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px] max-md:grid-cols-1">
+              <dt className="text-slate-500">Branch</dt>
+              <dd><code className="break-all text-xs">{launched.branch}</code> from <code className="text-xs">{launched.base}</code></dd>
+              <dt className="text-slate-500">Next</dt>
+              <dd>Open its thread and approve the plan there. The idea stays in the inbox until then.</dd>
+            </dl>
+          ) : (
+            <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px] max-md:grid-cols-1">
+              <dt className="text-slate-500">Idea</dt>
+              <dd><b><Title text={entry.title} /></b></dd>
+              <dt className="text-slate-500">Launches</dt>
+              <dd>a new <b>coordinator thread</b> in T3 that plans a braid from this idea with the braid skill</dd>
+              <dt className="text-slate-500">Then</dt>
+              <dd>it asks you to approve the plan; after that it takes the idea out of the inbox. The idea stays here until then.</dd>
+              <dt className="text-slate-500">Model</dt>
+              <dd>T3 project default{expected !== null && <>; BRAID.md names <code className="text-xs">{expected}</code></>}</dd>
+              <dt className="text-slate-500">Base branch</dt>
+              <dd><code className="break-all text-xs">{base}</code>, branch <code className="break-all text-xs">coordinator/idea-{entry.id}</code></dd>
+            </dl>
+          )}
+          {launched?.warning != null && <Warn>{launched.warning}</Warn>}
+          {error !== null && <p role="alert" className="mt-3 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2.5 py-1.5 text-[13px] text-red-900">{error}</p>}
+          <div className="mt-4 flex justify-end gap-2">
+            <Dialog.Close className="min-h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 hover:border-blue-600 max-md:min-h-11 max-md:flex-1">{done ? "Close" : "Cancel"}</Dialog.Close>
+            {!done && (
+              <button type="button" disabled={busy} onClick={() => void confirm()} className={`${PROMOTE} cursor-pointer border-blue-600 bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60`}>
+                <PromoteIcon /> {busy ? "Starting…" : "Promote to Braid"}
+              </button>
+            )}
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+const PROMOTE = "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-0.5 text-[13px] font-semibold max-md:min-h-11 max-md:flex-1 max-md:px-4 max-md:text-sm";
+
+const PromoteIcon = () => (
+  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+  </svg>
+);
+
+/** An idea's actions: Promote to Braid, or "Being planned" with Open thread once a coordinator for it runs. */
+function IdeaActions({ entry, expected, base }: { entry: InboxEntry; expected: string | null; base: string }) {
+  const [started, setStarted] = useState(false);
+  if (entry.planning !== null || started) {
+    return (
+      <span className="flex items-center gap-1.5 max-md:w-full max-md:gap-2">
+        <span className="rounded-full bg-violet-50 px-2 text-xs text-violet-700">{entry.planning === null ? "Coordinator started" : "Being planned"}</span>
+        {entry.planning !== null && <OpenThread id={entry.id} link={entry.planning.link} idea />}
+      </span>
+    );
+  }
+  return <PromoteButton entry={entry} expected={expected} base={base} onLaunched={() => setStarted(true)} />;
+}
+
+function InboxRow({ entry, expected, base }: { entry: InboxEntry; expected: string | null; base: string }) {
   const [open, setOpen] = useState(false);
   const preview = entry.kind === "idea" ? entry.text.split("\n").find((l) => l.trim() !== "") ?? "" : "";
   return (
     <div className="mb-2 rounded-lg border border-slate-200 bg-white shadow-sm" data-entry={entry.id}>
-      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex w-full cursor-pointer items-start gap-2 rounded-lg bg-transparent px-2.5 py-2 text-left hover:bg-slate-50">
-        <Chevron open={open} />
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold"><Title text={entry.title} /></span>
-          <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-            {entry.kind === "leftover" && entry.from !== null && <span className="rounded-full bg-indigo-50 px-1.5 font-mono text-[11px] text-indigo-800"><Id id={entry.from} /></span>}
-            {entry.passed > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[11px] text-amber-800" title="A sweep proposed it and you passed it over; at 2 it is dropped">passed over ×{entry.passed}</span>}
-            {entry.age !== null && <span className="whitespace-nowrap">{entry.age} ago</span>}
+      <div className="flex items-start max-md:flex-wrap max-md:pb-2">
+        <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 rounded-lg bg-transparent px-2.5 py-2 text-left hover:bg-slate-50 max-md:basis-full">
+          <Chevron open={open} />
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold"><Title text={entry.title} /></span>
+            <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+              {entry.kind === "leftover" && entry.from !== null && <span className="rounded-full bg-indigo-50 px-1.5 font-mono text-[11px] text-indigo-800"><Id id={entry.from} /></span>}
+              {entry.passed > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[11px] text-amber-800" title="A sweep proposed it and you passed it over; at 2 it is dropped">passed over ×{entry.passed}</span>}
+              {entry.age !== null && <span className="whitespace-nowrap">{entry.age} ago</span>}
+            </span>
+            {!open && preview !== "" && <span className="mt-0.5 line-clamp-2 block text-[13px] text-slate-600">{preview}</span>}
           </span>
-          {!open && preview !== "" && <span className="mt-0.5 line-clamp-2 block text-[13px] text-slate-600">{preview}</span>}
-        </span>
-      </button>
+        </button>
+        {entry.kind === "idea" && (
+          <span className="flex flex-none px-2.5 py-2 max-md:w-full max-md:py-0 max-md:pl-9">
+            <IdeaActions entry={entry} expected={expected} base={base} />
+          </span>
+        )}
+      </div>
       {open && (
         <div className="border-t border-dashed border-slate-200 py-2 pr-3 pl-8">
           <Md text={entry.text} empty="" />
@@ -656,7 +753,7 @@ function InboxRow({ entry }: { entry: InboxEntry }) {
   );
 }
 
-function InboxColumn({ title, entries, note, empty }: { title: string; entries: readonly InboxEntry[]; note?: string; empty: ReactNode }) {
+function InboxColumn({ title, entries, note, empty, expected, base }: { title: string; entries: readonly InboxEntry[]; note?: string; empty: ReactNode; expected: string | null; base: string }) {
   return (
     <section aria-label={title} className="rounded-xl bg-slate-200/70 p-3">
       <h2 className="mb-2.5 flex items-baseline gap-2 px-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
@@ -664,29 +761,31 @@ function InboxColumn({ title, entries, note, empty }: { title: string; entries: 
         {title}
         {note !== undefined && <small className="font-normal tracking-normal normal-case">{note}</small>}
       </h2>
-      {entries.length === 0 ? <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-[13px] text-slate-500">{empty}</div> : entries.map((e) => <InboxRow key={e.id} entry={e} />)}
+      {entries.length === 0 ? <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-[13px] text-slate-500">{empty}</div> : entries.map((e) => <InboxRow key={e.id} entry={e} expected={expected} base={base} />)}
     </section>
   );
 }
 
-/** The inbox: the open leftovers and ideas, read only. */
-function InboxPage({ inbox }: { inbox: InboxData }) {
+/** The inbox: the open leftovers and ideas. An idea can be promoted to a braid; nothing else is written here. */
+function InboxPage({ inbox, expected, base }: { inbox: InboxData; expected: string | null; base: string }) {
   return (
     <main className="max-w-[1200px] px-7 py-5">
       <a href="#/" className="text-[13px] text-blue-600 no-underline">← Board</a>
       <h1 className="text-xl font-bold">Inbox</h1>
-      <p className="mb-2 max-w-[80ch] text-slate-500">Small findings agents left behind, and ideas you wrote down. Nothing here needs an answer now: leftovers are swept in one batch, ideas wait until you pick one. Read only.</p>
+      <p className="mb-2 max-w-[80ch] text-slate-500">Small findings agents left behind, and ideas you wrote down. Nothing here needs an answer now: leftovers are swept in one batch; an idea waits until you promote it to a braid, which launches a coordinator that plans it.</p>
       <p className="mb-3 text-xs text-slate-500">
         Read from the local copy of <code>braid-inbox</code>; Refresh fetches the remote first.{inbox.note !== null && <b className="ml-1 text-amber-700">{inbox.note}.</b>}
       </p>
       <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
         <InboxColumn
+          expected={expected}
+          base={base}
           title="Leftovers"
           entries={inbox.leftovers}
           {...(inbox.leftovers.length >= SWEEP_DUE ? { note: "· sweep due" } : {})}
           empty={<><b className="block text-slate-900">No open leftovers.</b>Agents add them with <code>braid note "…" --from &lt;item&gt;</code>. A sweep is proposed at {SWEEP_DUE}.</>}
         />
-        <InboxColumn title="Ideas" entries={inbox.ideas} empty={<><b className="block text-slate-900">No ideas yet.</b>Write one down with <code>$braid-idea &lt;a sentence&gt;</code>.</>} />
+        <InboxColumn expected={expected} base={base} title="Ideas" entries={inbox.ideas} empty={<><b className="block text-slate-900">No ideas yet.</b>Write one down with <code>$braid-idea &lt;a sentence&gt;</code>.</>} />
       </div>
     </main>
   );
@@ -1000,7 +1099,7 @@ export function App() {
           </button>
         </header>
         {route.inbox ? (
-          <Status loaded={board}>{(data) => <InboxPage inbox={data.inbox} />}</Status>
+          <Status loaded={board}>{(data) => <InboxPage inbox={data.inbox} expected={data.inbox.expected ?? null} base={data.inbox.base ?? "origin/main"} />}</Status>
         ) : (
           <Status loaded={board}>{(data) => <Board data={data} details={details} />}</Status>
         )}
