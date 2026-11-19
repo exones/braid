@@ -65,13 +65,13 @@ Expected size: about 120 lines in 4 files.
 
 ## Completion
 
-- [ ] "Talking to the user" holds the question-tool rule and the option sets (handover, plan, decision, stop case), each option with its next step
-- [ ] Handover offers Merge now, I'll merge it myself, Let me see the report, wired to "Merge on request", the wait for the user's merge, and showing the report then asking again
-- [ ] Auto mode's questions asked while strands go on stay in chat, with the reason
-- [ ] The places that stop for the user name their option set, with no rule stated twice
-- [ ] A new decision in `docs/decisions.md`
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] "Talking to the user" holds the question-tool rule and the option sets (handover, plan, decision, stop case), each option with its next step
+- [x] Handover offers Merge now, I'll merge it myself, Let me see the report, wired to "Merge on request", the wait for the user's merge, and showing the report then asking again
+- [x] Auto mode's questions asked while strands go on stay in chat, with the reason
+- [x] The places that stop for the user name their option set, with no rule stated twice
+- [x] A new decision in `docs/decisions.md`
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
