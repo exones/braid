@@ -9,7 +9,7 @@ delivery: epic
 
 ## Goal
 
-Sweep of the three leftovers from the 0027 reviews (Planning looks at the other open braids): fewer Git processes behind `braid list --open` and `braid check`, the `docs/cli.md` options, and one line of the brief template. Runs after 0027 is merged into `main`: merge `main` into this branch first, since every file it fixes comes with 0027. Approved by the user on 2026-11-18 as one sweep story.
+Sweep of four leftovers from 0027 (Planning looks at the other open braids): fewer Git processes behind `braid list --open` and `braid check`, the `docs/cli.md` options, one line of the brief template, and a CLI version bump for the format change. Runs after 0027 is merged into `main`: merge `main` into this branch first, since every file it fixes comes with 0027. Approved by the user on 2026-11-18 as one sweep story.
 
 Expected size: about 150 lines in 5 files.
 
@@ -36,6 +36,12 @@ Expected size: about 150 lines in 5 files.
 
    > .agents/skills/braid/assets/brief.md, "Fields": the related line repeats "overlaps, takes a decision from, or splits work with", which docs/braids-format.md and the skill Plan step 3 already say. The skills keep each rule in one place; the line should only point at Plan step 3 and say each link also gets a line under "Already decided".
 
+4. Leftover 2026-11-18-5an0, from 0027 (https://github.com/exones/braid/pull/148), "braid --version does not change when the brief format does" (added to this sweep by the user on 2026-11-19):
+
+   > package.json still says 0.1.1 after 0027 added the related front-matter key (PR #148), which a CLI built before it rejects (unknown key: related). Both print braid 0.1.1, so neither the user nor scripts/Install-Skills.ps1 (it records cliVersion in its stamp) can tell an old CLI from a new one. Bumping the version with a format change, or a format version the CLI prints, would make the update visible.
+
+   Bump the version in `package.json` (and its lock file) so this branch's CLI is distinguishable from 0.1.1. Nothing is published (`docs/npm-distribution.md`). Propose in the report how future format changes keep the version honest; a skill or `AGENTS.md` change is not part of this sweep.
+
 ## Already decided
 
 - Related to 0028 (Board: fast first open and fast item open, on `braid/0028-board-fast-first-open-and-fast-item-open`, being planned, no brief pushed yet): it may speed up the same branch reads (`loadLiveBraids`) that leftover hr41 is about. Before starting, read its brief (`braid view 0028`); if it already changes the reader, do item 1 on top of it or drop item 1 and say so, and don't duplicate it.
@@ -43,12 +49,13 @@ Expected size: about 150 lines in 5 files.
 
 ## Out of scope
 
-- Anything not in the three leftovers.
+- Anything not in the four leftovers.
 
 ## Completion
 
 - [ ] Git process counts and timings of `braid list --open`, `braid view --links` and `braid check`, before and after, in report.md, with the 0027 tests passing unchanged
 - [ ] `docs/cli.md` lists `--links`, `--related` and `--open`
 - [ ] The template's `related` line points at Plan step 3 without restating it
+- [ ] `braid --version` on this branch prints a version above 0.1.1
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
