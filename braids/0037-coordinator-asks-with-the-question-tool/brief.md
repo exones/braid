@@ -1,7 +1,7 @@
 ---
 id: '0037'
 title: "Coordinator asks with the question tool and set options"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 related: ['0036']
