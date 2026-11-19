@@ -87,15 +87,15 @@ Chosen:
 
 ## Completion
 
-- [ ] The coordinator skill launches M and L reviewers as delegated tasks with the `BRAID.md` reviewer model, records each with `braid review`, links the PR to the child thread, and waits without polling
-- [ ] The reviewer skill detaches its own checkout at the head commit and ends with its report as the last message
-- [ ] `braid review <id> --thread <thread id>` records a review thread; the board and `braid status` show review activity while it runs and raise no `stalled` or `checks failed` for it (tests)
-- [ ] `braid clean` removes a finished subagent reviewer's checkout and branch for a merged item and keeps anything else (tests)
-- [ ] `braid start --review` and the board's top-level reviewer handling are gone from the code, help and docs; `braid clean` still removes a leftover `-review` checkout (tests)
-- [ ] The probe ran on the reviewer model and its output is in `report.md`
-- [ ] `docs/board.md`, `docs/cli.md`, `docs/braids-format.md`, `docs/getting-started.md` and a new decision in `docs/decisions.md` describe it
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The coordinator skill launches M and L reviewers as delegated tasks with the `BRAID.md` reviewer model, records each with `braid review`, links the PR to the child thread, and waits without polling
+- [x] The reviewer skill detaches its own checkout at the head commit and ends with its report as the last message
+- [x] `braid review <id> --thread <thread id>` records a review thread; the board and `braid status` show review activity while it runs and raise no `stalled` or `checks failed` for it (tests)
+- [x] `braid clean` removes a finished subagent reviewer's checkout and branch for a merged item and keeps anything else (tests)
+- [x] `braid start --review` and the board's top-level reviewer handling are gone from the code, help and docs; `braid clean` still removes a leftover `-review` checkout (tests)
+- [x] The probe ran on the reviewer model and its output is in `report.md`
+- [x] `docs/board.md`, `docs/cli.md`, `docs/braids-format.md`, `docs/getting-started.md` and a new decision in `docs/decisions.md` describe it
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
