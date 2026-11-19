@@ -1,5 +1,5 @@
 ---
-id: '0034/C'
+id: '0040/C'
 title: "Preset files: the format, three presets and braid autonomy"
 status: To Do
 labels: ["kind:story", "tier:L", "ask:architecture"]
@@ -67,12 +67,12 @@ When unsure which column applies: ask.
 - The brief's `## Autonomy` section holds a braid's exceptions in free text, a line or two ("architecture: ask for everything in 0031/B"); the CLI prints it and doesn't parse it.
 - No ceiling and no `auto: allowed`: what a project permits is what its presets and `BRAID.md` say, and those are the user's files.
 - Agents read a preset through `braid autonomy`, never by opening the file, so the shipped ones need no copy in the skills.
-- The `auto` label and `auto: allowed` keep working until 0034/E and 0034/F replace them; don't touch them here.
+- The `auto` label and `auto: allowed` keep working until 0040/E and 0040/F replace them; don't touch them here.
 
 ## Out of scope
 
-- Any change to `braid accept`, recaps or the skills (0034/D, 0034/E).
-- Editing this repository's `BRAID.md` (0034/F).
+- Any change to `braid accept`, recaps or the skills (0040/D, 0040/E).
+- Editing this repository's `BRAID.md` (0040/F).
 - A `plan` key, a preset per strand, and showing the preset on the board.
 
 ## Completion

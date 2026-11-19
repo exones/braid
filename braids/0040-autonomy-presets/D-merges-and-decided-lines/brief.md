@@ -1,9 +1,9 @@
 ---
-id: '0034/D'
+id: '0040/D'
 title: "Merges follow the preset; Decided lines in recaps"
 status: To Do
 labels: ["kind:story", "tier:M"]
-dependencies: ['0034/C']
+dependencies: ['0040/C']
 order: 40
 ---
 
@@ -18,8 +18,8 @@ Expected size: about 260 lines in 8 files.
 - `src/commands/done.ts`, `acceptCommand`: what `braid accept --merge` checks before it merges, and how it tells a strand's PR from a story's or a final PR.
 - `src/commands/requests.ts` and `src/commands/facts.ts`: where the `braid recap` and `braid handover` draft is built.
 - `src/braids/logs.ts` and `src/commands/logs.ts`: log files, one per thread, and how entries are written.
-- `src/commands/autonomy.ts` from 0034/C: reading a braid's preset.
-- `docs/autonomy.md` from 0034/C.
+- `src/commands/autonomy.ts` from 0040/C: reading a braid's preset.
+- `docs/autonomy.md` from 0040/C.
 
 ## Change
 
@@ -32,11 +32,11 @@ Expected size: about 260 lines in 8 files.
 
 - A `Decided:` line is an ordinary log entry (`braid log`) that starts with that word; no new file and no new command to write one.
 - `--preset` only checks the `merge` value. Whether a stop case needs the user stays the coordinator's judgement against the preset's table.
-- `braid accept --merge --preset` is what auto mode uses once 0034/E switches the skills; until then the skills keep calling `--merge` alone, and that must keep working.
+- `braid accept --merge --preset` is what auto mode uses once 0040/E switches the skills; until then the skills keep calling `--merge` alone, and that must keep working.
 
 ## Out of scope
 
-- The skills (0034/E).
+- The skills (0040/E).
 - A digest sent on a schedule; the skill decides when to send `braid decisions --since`.
 - Enforcing `continue`: starting the next item is the coordinator's step, not a command's.
 

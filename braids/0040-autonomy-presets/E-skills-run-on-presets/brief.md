@@ -1,9 +1,9 @@
 ---
-id: '0034/E'
+id: '0040/E'
 title: "Skills run on presets"
 status: To Do
 labels: ["kind:task", "tier:L", "ask:process"]
-dependencies: ['0034/A', '0034/B', '0034/D']
+dependencies: ['0040/A', '0040/B', '0040/D']
 order: 50
 ---
 
@@ -15,19 +15,19 @@ Expected size: about 220 lines in 8 files. Keep to the skills' rule: each rule i
 
 ## Start here
 
-- `docs/autonomy.md` (0034/C, 0034/D): the format, the three presets, `braid autonomy`, `braid accept --merge --preset`, `braid decisions`.
+- `docs/autonomy.md` (0040/C, 0040/D): the format, the three presets, `braid autonomy`, `braid accept --merge --preset`, `braid decisions`.
 - `.agents/skills/braid/references/auto-mode.md`: everything in it moves or changes.
 - `.agents/skills/braid/references/stop-cases.md`: the cases and "Who records what".
 - `.agents/skills/braid/SKILL.md`: "Plan" step 6, "Grow and adjust" (the mandate), "Accept and hand over" steps 2 and 5, "Sweep", "Merge on request", "Auto mode", "Talking to the user".
 - `.agents/skills/braid/references/workflow.md`: "Tiers" and "Who merges".
 - `.agents/skills/braid-worker/SKILL.md` and `.agents/skills/braid-reviewer/SKILL.md`: where each reports `Needs the user`.
-- The braid log of 0027 and the thread review in 0034's brief: `architecture` on 0027/B was a stop that changed the design; `process` on 0024, 0026 and 0027/C got only "merge it".
+- The braid log of 0027 and the thread review in 0040's brief: `architecture` on 0027/B was a stop that changed the design; `process` on 0024, 0026 and 0027/C got only "merge it".
 
 ## Change
 
 - `references/auto-mode.md` becomes `references/autonomy.md`, read whenever the braid's preset is not `careful`:
   - Read the preset with `braid autonomy <number>` when you take the braid, and again after the user changes it.
-  - Merging: `merge` says which PRs you merge yourself. The conditions for a merge stay as auto mode has them, with two changes: "Needs the user: none" becomes "nothing the preset says to ask about is open", and the merge is `braid accept … --merge --preset`. Then `braid wait` (0034/A).
+  - Merging: `merge` says which PRs you merge yourself. The conditions for a merge stay as auto mode has them, with two changes: "Needs the user: none" becomes "nothing the preset says to ask about is open", and the merge is `braid accept … --merge --preset`. Then `braid wait` (0040/A).
   - Continuing: with `continue: yes`, start the next ready item, and a pending sweep story, without a go.
   - Deciding: for each stop case from the plan, the worker, the reviewer or `braid facts`, find its row. On the "decide yourself" side, decide, and log `Decided: <what>, because <why>, instead of <alternative>` on the item. On the "ask me" side, or when unsure, `braid ask` as today. "Ask at the final PR" means: go on, and put it under "Needs the user" in the final PR's recap.
   - Telling: after every third merge you made yourself, send the user `braid decisions <number> --since <the last one sent>` in a few lines, without stopping.
@@ -50,7 +50,7 @@ Expected size: about 220 lines in 8 files. Keep to the skills' rule: each rule i
 
 ## Out of scope
 
-- `AGENTS.md`, `BRAID.md`, the README and `docs/` outside `docs/autonomy.md` (0034/F).
+- `AGENTS.md`, `BRAID.md`, the README and `docs/` outside `docs/autonomy.md` (0040/F).
 - New stop cases, or a change to what each case means.
 - `delivery: main` (0035).
 

@@ -3,8 +3,8 @@ id: '0035'
 title: "Delivery into main: strands land on main"
 status: Outline
 labels: ["kind:story", "tier:L"]
-dependencies: ['0034']
-related: ['0034']
+dependencies: ['0040']
+related: ['0040']
 delivery: epic
 ---
 

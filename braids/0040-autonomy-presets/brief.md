@@ -1,5 +1,5 @@
 ---
-id: '0034'
+id: '0040'
 title: "Autonomy presets: you choose what braid decides"
 status: In Progress
 labels: ["kind:story", "tier:L", "auto"]
@@ -16,12 +16,12 @@ Expected size: about 1,100 lines in 35 files over six strands.
 
 ## Strands
 
-- 0034/A `braid wait`: a wait for the braid branch's CI that ends in a wake, used after a merge the coordinator made itself. The prerequisite for more autonomy: with fewer handovers nobody notices a stall.
-- 0034/B One answer approves the plan: the approval covers the planning PR's merge and the start, and the plan names the braid in its first line.
-- 0034/C Preset files: the format, the three presets `careful`, `steady` and `free`, the `autonomy` field of a brief and of `BRAID.md`, `braid autonomy`, and the `braid check` rules.
-- 0034/D `braid accept --merge --preset` merges only what the preset allows; `Decided:` log lines are listed by `braid decisions` and appear in recap drafts.
-- 0034/E The three skills run on presets: auto mode becomes the autonomy reference, the stop cases are judged against the preset's table, the worker logs its own decisions and the reviewer checks them.
-- 0034/F `BRAID.md`, `AGENTS.md`, the README and the docs name the presets instead of auto mode, with the decision that replaces D31's auto mode.
+- 0040/A `braid wait`: a wait for the braid branch's CI that ends in a wake, used after a merge the coordinator made itself. The prerequisite for more autonomy: with fewer handovers nobody notices a stall.
+- 0040/B One answer approves the plan: the approval covers the planning PR's merge and the start, and the plan names the braid in its first line.
+- 0040/C Preset files: the format, the three presets `careful`, `steady` and `free`, the `autonomy` field of a brief and of `BRAID.md`, `braid autonomy`, and the `braid check` rules.
+- 0040/D `braid accept --merge --preset` merges only what the preset allows; `Decided:` log lines are listed by `braid decisions` and appear in recap drafts.
+- 0040/E The three skills run on presets: auto mode becomes the autonomy reference, the stop cases are judged against the preset's table, the worker logs its own decisions and the reviewer checks them.
+- 0040/F `BRAID.md`, `AGENTS.md`, the README and the docs name the presets instead of auto mode, with the decision that replaces D31's auto mode.
 
 ## Already decided
 
@@ -35,7 +35,7 @@ All from the user, 2026-11-19, in the thread that planned this braid:
 - Plan approval and mockup rounds stay with the user in every preset. A key for skipping plan approval comes with an unattended mode, not here.
 - A braid's preset is set only at the user's request (in the plan they approve, or later in chat), and preset files count as `process`: an agent's change to one always reaches the user.
 - `delivery` (braid branch or straight into `main`) is a separate setting, planned as braid 0035; the default stays `epic`.
-- Related to 0029 (Sweep: leftovers from 0027, on `braid/0029-sweep-leftovers-from-0027`): it edits one line of `.agents/skills/braid/assets/brief.md` and raises the CLI version for a brief format change; 0034/C adds a brief field too, and 0034/E edits the same template. No contradiction. 0029 runs first; whichever lands second merges `main`.
+- Related to 0029 (Sweep: leftovers from 0027, on `braid/0029-sweep-leftovers-from-0027`): it edits one line of `.agents/skills/braid/assets/brief.md` and raises the CLI version for a brief format change; 0040/C adds a brief field too, and 0040/E edits the same template. No contradiction. 0029 runs first; whichever lands second merges `main`.
 
 ## Out of scope
 

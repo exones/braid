@@ -1,7 +1,7 @@
 ---
-id: '0034/A'
+id: '0040/A'
 title: "braid wait: a wait for the braid branch's CI that ends"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 order: 10
@@ -34,7 +34,7 @@ Expected size: about 180 lines in 6 files.
 - The wait is a CLI command, so it works on any host and can be tested; the skill only says how to wait on it.
 - `braid wait` only reads: no fetch of other branches than the braid's, no commit, no merge.
 - A push whose tip only changes `braids/` has no CI run of its own; the commit that counts is the newest one with other changes, as `braid accept` already judges it.
-- 0034/E moves the auto mode text into the autonomy reference; write the step so it can be moved as it is.
+- 0040/E moves the auto mode text into the autonomy reference; write the step so it can be moved as it is.
 
 ## Out of scope
 

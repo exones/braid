@@ -1,9 +1,9 @@
 ---
-id: '0034/F'
+id: '0040/F'
 title: "Project files and docs name the presets"
 status: To Do
 labels: ["kind:task", "tier:L", "ask:process"]
-dependencies: ['0034/E']
+dependencies: ['0040/E']
 order: 60
 ---
 
@@ -20,7 +20,7 @@ Expected size: about 90 lines in 7 files.
 - `README.md`: every mention of auto mode (the 0032 front page).
 - `docs/getting-started.md`: the `BRAID.md` keys and "Merging and auto mode".
 - `docs/decisions.md`, D28 and D31.
-- `docs/autonomy.md` and the skills after 0034/E.
+- `docs/autonomy.md` and the skills after 0040/E.
 
 ## Change
 
@@ -39,7 +39,7 @@ Expected size: about 90 lines in 7 files.
 
 ## Out of scope
 
-- The skills (0034/E) and the CLI.
+- The skills (0040/E) and the CLI.
 - New README screenshots.
 
 ## Completion

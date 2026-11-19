@@ -3,14 +3,14 @@ id: '0036'
 title: "Coordinator polish from the thread review"
 status: Outline
 labels: ["kind:story", "tier:L"]
-dependencies: ['0034']
-related: ['0034']
+dependencies: ['0040']
+related: ['0040']
 delivery: epic
 ---
 
 ## Goal
 
-The review of eight coordinator threads (17 to 19 November) and the braid logs found things that cost the user time and that autonomy presets (0034) don't cover. This braid fixes them: what the coordinator does after a merge, questions and answers after a lone story's merge, how mockups, leftovers and recaps are put to the user, decision numbers that collide between braids, and wake-ups for work that is already superseded.
+The review of eight coordinator threads (17 to 19 November) and the braid logs found things that cost the user time and that autonomy presets (0040) don't cover. This braid fixes them: what the coordinator does after a merge, questions and answers after a lone story's merge, how mockups, leftovers and recaps are put to the user, decision numbers that collide between braids, and wake-ups for work that is already superseded.
 
 ## Working at the end
 

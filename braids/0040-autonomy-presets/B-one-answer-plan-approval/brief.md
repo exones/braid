@@ -1,5 +1,5 @@
 ---
-id: '0034/B'
+id: '0040/B'
 title: "One answer approves the plan"
 status: To Do
 labels: ["kind:task", "tier:L", "ask:process"]
@@ -36,8 +36,8 @@ Expected size: about 40 lines in 5 files.
 
 ## Out of scope
 
-- Which preset the plan runs on (0034/E adds that to the plan).
-- Starting the next strand after a merge without a go (the preset's `continue`, 0034/E).
+- Which preset the plan runs on (0040/E adds that to the plan).
+- Starting the next strand after a merge without a go (the preset's `continue`, 0040/E).
 
 ## Completion
 
