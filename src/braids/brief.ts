@@ -17,6 +17,8 @@ export interface Brief {
   readonly status: Status;
   readonly labels: readonly string[];
   readonly dependencies: readonly string[];
+  /** Braids only: ids of open braids this one overlaps; the other braid's brief is never edited. Empty for a strand. */
+  readonly related: readonly string[];
   readonly order: number | null;
   /** Braids only; `epic` when the front matter leaves it out. Always null for a strand. */
   readonly delivery: Delivery | null;
@@ -28,7 +30,7 @@ export interface Brief {
 export const BRAID_ID = /^\d{4}$/;
 export const STRAND_ID = /^\d{4}\/[A-Z]$/;
 
-const KEYS = new Set(["id", "title", "status", "labels", "dependencies", "order", "delivery"]);
+const KEYS = new Set(["id", "title", "status", "labels", "dependencies", "related", "order", "delivery"]);
 
 export function parseSections(body: string): Section[] {
   const sections: Section[] = [];
@@ -116,6 +118,18 @@ export function parseBrief(text: string, file: string, expectedId: string): Brie
       throw new FormatError(file, `${where("dependencies")}${id} depends on itself`);
     }
   }
+  const related = list("related");
+  if (strand && front.fields.has("related")) {
+    throw new FormatError(file, `${where("related")}related is set per braid, not per strand`);
+  }
+  for (const other of related) {
+    if (!BRAID_ID.test(other)) {
+      throw new FormatError(file, `${where("related")}related must hold braid ids like 0002; got: ${other}`);
+    }
+    if (other === id) {
+      throw new FormatError(file, `${where("related")}${id} is related to itself`);
+    }
+  }
   const orderText = text1("order", false);
   let order: number | null = null;
   if (orderText !== null) {
@@ -145,6 +159,7 @@ export function parseBrief(text: string, file: string, expectedId: string): Brie
     status: status as Status,
     labels,
     dependencies,
+    related,
     order,
     delivery,
     body: front.body,

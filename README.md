@@ -12,30 +12,76 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-082A48" alt="MIT licence"></a>
 </p>
 
-braid runs a software project with coding agents: you state a goal, braid splits it into work items, gives each one to an agent, has another agent review it, and hands you the finished pull requests to merge. Every step is written down in your repository, so the work can be picked up from the files alone.
-
-## What is braid
-
-- **A coordinator** is the agent you talk to. It plans the work with you, launches the other agents and reports back.
-- **Workers** each do one item on their own branch and worktree, run the project's gate and open a PR.
-- **Reviewers** check each PR independently against its brief before it reaches you.
-- **Braids and strands** are the work items: a braid is a story or a goal, and a goal's braid is split into strands, its parts, which run in order.
-- **The ledger** is the `braids/` folder: one folder per braid and strand with its brief, logs and report, plain Markdown kept in Git and managed with the `braid` CLI.
-- **You merge.** braid never merges into `main` unless you tell it to, and it stops and asks when a decision is yours.
-
-braid ships as agent skills (`braid`, `braid-worker`, `braid-reviewer`, `braid-idea`) for Claude, Codex and Cursor, plus the `braid` CLI they use. Agents run as threads in [T3 Code](https://github.com/pingdotgg/t3code).
-
-## How it works
-
-1. **Plan.** Tell the coordinator a goal in a thread. It writes the braids and strands into `braids/` and waits for your go.
-2. **Work.** It starts each strand on its own branch and launches a worker, which implements it, runs the gate and opens a PR with CI green.
-3. **Review.** A reviewer agent checks the PR against the brief; findings go back to the worker.
-4. **Merge.** You get a short recap and merge. For a goal, auto mode can merge strands into the goal's branch for you; the final PR into `main` is always yours.
-5. **Watch.** `braid board` shows where the work needs you, and can Start a braid, ask the coordinator to Merge and open a thread ([the board](docs/board.md)).
+Tell braid a goal. It splits the goal into small work items, has a coding agent build each one on its own branch, has the work reviewed, and hands you pull requests that are ready to merge. Everything is written down as plain files in your repository, so nothing depends on one chat staying alive.
 
 <p align="center">
-  <img src="docs/images/board.png" alt="The braid attention board: lanes To Do, Working, To Review, Needs You and Done, with sample braids" width="900">
+  <img src="docs/images/board.png" alt="The braid attention board on sample data: lanes Needs You, To Review, Working, To Do and Done" width="900">
 </p>
+<p align="center"><em>The board on sample data: what needs you comes first, the rest stays out of your way.</em></p>
+
+## What it can do
+
+- **Plan a goal into reviewed pull requests.** Say "braid: add dark mode"; you get a plan to approve, then one PR per part.
+- **Review before it reaches you.** Medium and large changes get an independent reviewer (you can set it to a different model than the worker's); the coordinator checks small ones itself, and in auto mode every strand gets a reviewer.
+- **Resume from the files.** Briefs, logs and reports live in `braids/`; after a crash or in a new session any agent continues from them.
+- **See what needs you.** `braid board` shows what waits on you, and can Start a braid, ask the coordinator to merge, and open an agent's thread.
+- **Check in from your phone.** The board has a phone layout, and `braid board --host tailscale` serves it on your Tailscale network, to your own login only.
+- **Stops and asks when a decision is yours.** Security, a new dependency, stored data, an effect outside the repository, a change of scope: it waits for you.
+- **Auto mode for a goal.** Its strand PRs merge into the goal's branch once seven conditions hold; the final PR into `main` is always yours.
+- **Capture ideas without breaking flow.** `$braid-idea` and `braid note` park an idea or a leftover in an inbox the board shows.
+- **Works with Claude, Codex and Cursor.** braid is a set of agent skills plus a CLI that does the bookkeeping; agents run as threads in [T3 Code](https://github.com/pingdotgg/t3code).
+
+## Why braid
+
+| The problem | What braid does |
+| --- | --- |
+| Agents lose context between sessions. | Plan, decisions and progress are files in Git (brief, per-thread logs, report), so a fresh agent reads them instead of guessing. |
+| Agent code goes in unreviewed. | One writer per branch, an independent reviewer on medium and large changes (the coordinator checks small ones), and a merge that is yours. |
+| You can't tell what needs you. | The board puts what waits on you in its own lane, with the reason on each card; red only where something went wrong. |
+| The work is stuck in one chat. | Items, not conversations, are the unit: any thread can pick one up from its folder in `braids/`. |
+
+The reasons behind these choices are in [decisions](docs/decisions.md).
+
+## A walk-through
+
+You ask for dark mode. Here is what happens next.
+
+1. **You state the goal** in a coordinator thread. braid plans it as one braid with three strands that run in order, and asks about anything risky (here, a change to what is stored per user) before it starts. You say go.
+
+   <img src="docs/images/coordinator-thread.png" alt="Illustrative mock-up of a coordinator thread: a plan with strands A, B and C, then a recap of strand A" width="620">
+
+   *Illustrative mock-up, not a real thread: the plan, and later the recap.*
+
+2. **A worker builds strand A** on its own branch and worktree, runs the project's gate and opens a PR with CI green.
+3. **A reviewer checks the PR** against the brief (for a small strand, the coordinator reads the diff); findings go back to the worker.
+4. **You get a recap** and merge or ask for changes. Until then the board shows the item where you can act on it:
+
+   <img src="docs/images/item-page.png" alt="An item page on the board: a braid with its strands and the request to merge PR #12" width="760">
+
+   *A braid page on the board's sample data, with the request to merge a PR.*
+
+5. **Strands B and C follow.** In auto mode the strand PRs merge into the goal's branch for you; the final PR into `main` is yours either way.
+
+   <img src="docs/images/flow.png" alt="Illustrative diagram: you state a goal, the coordinator plans strands, workers build, reviewers check, you merge; the ledger in Git underneath" width="900">
+
+   *Illustration of the flow, not a screen.*
+
+Away from your desk, the same board fits a phone, and the inbox keeps ideas and leftovers from getting lost:
+
+<p align="center">
+  <img src="docs/images/board-phone.png" alt="The board on a phone: tabs for Needs you, Review, Working, To Do and Done" width="260">
+  &nbsp;&nbsp;
+  <img src="docs/images/inbox.png" alt="The inbox page on a phone: leftovers, each with its source and age" width="260">
+</p>
+<p align="center"><em>The phone layout (one lane at a time) and the inbox of leftovers, on sample data.</em></p>
+
+## The parts
+
+- **A coordinator** is the agent you talk to. It plans with you, launches the other agents and reports back.
+- **Workers** each do one item on their own branch and worktree, run the gate and open a PR.
+- **Reviewers** check medium and large PRs independently before they reach you.
+- **Braids and strands:** a braid is a story or a goal; a goal is split into strands, its parts, which run in order.
+- **The ledger** is the `braids/` folder: one folder per braid and strand with its brief, logs and report, plain Markdown in Git, managed with the `braid` CLI.
 
 ## Quick start
 

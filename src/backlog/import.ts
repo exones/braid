@@ -250,6 +250,7 @@ export function planImport(root: string): Plan {
       status: t.status,
       labels: t.labels,
       dependencies: mapDeps(t),
+      related: [],
       order: t.order,
       delivery,
     };

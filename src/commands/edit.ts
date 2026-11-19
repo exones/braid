@@ -4,10 +4,12 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs, type ParseArgsConfig } from "node:util";
 import { BRAID_ID, DELIVERY_MODES, STATUSES, type Delivery, type Status } from "../braids/brief.js";
+import { loadKnownBraids } from "../braids/branches.js";
 import { fetchRemotes, nextLetter, nextNumber, takenIds } from "../braids/numbers.js";
 import { loadBraids, type Braid, type Item } from "../braids/store.js";
 import { checkSectionText, setSection, slugify, writeBrief, type BriefFields } from "../braids/write.js";
-import { normaliseId, UsageError } from "./braids.js";
+import { normaliseId, openBraidsLine, UsageError } from "./braids.js";
+import type { Said } from "./inbox.js";
 
 type Options = NonNullable<ParseArgsConfig["options"]>;
 
@@ -15,6 +17,7 @@ const FIELD_OPTIONS: Options = {
   status: { type: "string" },
   labels: { type: "string", multiple: true },
   dep: { type: "string", multiple: true },
+  related: { type: "string", multiple: true },
   order: { type: "string" },
   delivery: { type: "string" },
 };
@@ -118,12 +121,46 @@ function dependencies(braids: readonly Braid[], raw: readonly string[], self: st
   return ids;
 }
 
+/**
+ * The `--related` ids, braids only. An id found in no source (working tree, braid and strand
+ * branches, `plan/` branches) is kept with a warning: its braid may be on a branch not fetched here.
+ */
+function related(root: string, raw: readonly string[], self: string, warnings: string[]): string[] {
+  const ids: string[] = [];
+  for (const item of raw) {
+    const id = normaliseId(item);
+    if (!BRAID_ID.test(id)) {
+      throw new UsageError(`related takes braid ids like 0002, not ${id}`);
+    }
+    if (id === self) {
+      throw new UsageError(`${self} can't be related to itself`);
+    }
+    if (!ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+  if (ids.length > 0) {
+    const known = new Set(loadKnownBraids(root).map((b) => b.number));
+    for (const id of ids.filter((i) => !known.has(i))) {
+      warnings.push(`warning: related braid ${id} is not in the working tree or on any braid or plan/ branch here; kept\n`);
+    }
+  }
+  return ids;
+}
+
 function labels(raw: readonly string[]): string[] {
   return [...new Set(raw.map((label) => oneLine("a label", label)))];
 }
 
-/** Applies the field options to `fields`; `strand` rejects --delivery. */
-function applyFields(fields: BriefFields, values: Parsed["values"], braids: readonly Braid[], strand: boolean): BriefFields {
+/** Applies the field options to `fields`; `strand` rejects --delivery and --related. Warnings go to `warnings`. */
+function applyFields(
+  root: string,
+  fields: BriefFields,
+  values: Parsed["values"],
+  braids: readonly Braid[],
+  strand: boolean,
+  warnings: string[] = [],
+): BriefFields {
   let next = { ...fields };
   const s = str(values, "status");
   if (s !== undefined) {
@@ -140,6 +177,13 @@ function applyFields(fields: BriefFields, values: Parsed["values"], braids: read
   const d = list(values, "dep");
   if (d !== undefined) {
     next = { ...next, dependencies: dependencies(braids, d, fields.id) };
+  }
+  const r = list(values, "related");
+  if (r !== undefined) {
+    if (strand) {
+      throw new UsageError("related is set per braid, not per strand");
+    }
+    next = { ...next, related: related(root, r, fields.id, warnings) };
   }
   const o = str(values, "order");
   if (o !== undefined) {
@@ -175,24 +219,26 @@ function prepareCreate(root: string, values: Parsed["values"]) {
 }
 
 /** `braid new <title>`: the next free number, a folder and its brief.md. */
-export function newBraid(root: string, args: readonly string[]): string {
+export function newBraid(root: string, args: readonly string[]): Said {
   const { positionals, values } = parse("braid new", args, CREATE_OPTIONS);
   if (positionals.length !== 1) {
     throw new UsageError("braid new takes one title (quote it); got: " + (positionals.join(" ") || "none"));
   }
   const title = oneLine("title", positionals[0] ?? "");
   const { braids, taken } = prepareCreate(root, values);
+  const open = openBraidsLine(root);
   const number = nextNumber(taken);
   if (number === null) {
     throw new UsageError("no braid numbers left (9999 used)");
   }
-  const base: BriefFields = { id: number, title, status: "To Do", labels: [], dependencies: [], order: null, delivery: "epic" };
-  const fields = applyFields(base, values, braids, false);
+  const base: BriefFields = { id: number, title, status: "To Do", labels: [], dependencies: [], related: [], order: null, delivery: "epic" };
+  const warnings: string[] = [];
+  const fields = applyFields(root, base, values, braids, false, warnings);
   const folder = `braids/${number}-${slug(values, title, "braid")}`;
   const dir = join(root, folder);
   mkdirSync(dir, { recursive: true });
   writeBrief(join(dir, "brief.md"), `${folder}/brief.md`, fields, "");
-  return `Created ${number} ${folder}\n`;
+  return { stdout: `Created ${number} ${folder}\n${open}`, stderr: warnings.join("") };
 }
 
 /** `braid strand new <braid> <title>`: the next free letter inside the braid. */
@@ -216,8 +262,8 @@ export function newStrand(root: string, args: readonly string[]): string {
     throw new UsageError(`no strand letters left in ${number} (Z used)`);
   }
   const id = `${number}/${letter}`;
-  const base: BriefFields = { id, title, status: "To Do", labels: [], dependencies: [], order: null, delivery: null };
-  const fields = applyFields(base, values, braids, true);
+  const base: BriefFields = { id, title, status: "To Do", labels: [], dependencies: [], related: [], order: null, delivery: null };
+  const fields = applyFields(root, base, values, braids, true);
   const folder = `${braid.folder}/${letter}-${slug(values, title, "strand")}`;
   const dir = join(root, folder);
   mkdirSync(dir, { recursive: true });
@@ -253,25 +299,27 @@ function fieldsOf(item: Item): BriefFields {
     status: b.status,
     labels: b.labels,
     dependencies: b.dependencies,
+    related: b.related,
     order: b.order,
     delivery: b.delivery,
   };
 }
 
-/** `braid edit <id>`: status, title, labels, dependencies, order and delivery mode. */
-export function editItem(root: string, args: readonly string[]): string {
+/** `braid edit <id>`: status, title, labels, dependencies, related braids, order and delivery mode. */
+export function editItem(root: string, args: readonly string[]): Said {
   const { positionals, values } = parse("braid edit", args, { ...FIELD_OPTIONS, title: { type: "string" } });
   if (positionals.length > 1) {
     throw new UsageError(`braid edit takes one id; got: ${positionals.join(" ")}`);
   }
   if (Object.keys(values).length === 0) {
-    throw new UsageError("braid edit needs at least one of --status, --title, --labels, --dep, --order, --delivery");
+    throw new UsageError("braid edit needs at least one of --status, --title, --labels, --dep, --related, --order, --delivery");
   }
   const braids = loadBraids(root);
   const { item, strand } = find(braids, positionals[0], "braid edit");
-  const fields = applyFields(fieldsOf(item), values, braids, strand);
+  const warnings: string[] = [];
+  const fields = applyFields(root, fieldsOf(item), values, braids, strand, warnings);
   writeBrief(join(root, item.folder, "brief.md"), `${item.folder}/brief.md`, fields, item.brief.body);
-  return `Updated ${item.brief.id}\n`;
+  return { stdout: `Updated ${item.brief.id}\n`, stderr: warnings.join("") };
 }
 
 export function readText(values: Parsed["values"]): string {
