@@ -1,7 +1,7 @@
 ---
 id: '0042'
 title: "Board: strand list as a left rail in the details panel"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S", "ui"]
 dependencies: []
 related: ['0034', '0038', '0041']
