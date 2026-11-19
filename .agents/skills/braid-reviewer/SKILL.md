@@ -9,9 +9,9 @@ Review someone else's PR with fresh eyes, report once, and stop.
 
 ## Start
 
-1. The first message gives the braid or strand id, the PR, the head commit, the focus, the coordinator's thread and, for a re-check after fixes, "commits since `<sha>`".
-2. Read `BRAID.md` (`gate`, `ci`), `AGENTS.md` or `CLAUDE.md`, the brief and, for a strand, its braid (`braid view <id>` in your worktree), and the diff (`gh pr diff <pr>`; for a re-check also `git diff <sha> <head commit>`).
-3. Your worktree, from `braid start <id> --review`, is detached at the head commit; confirm with `git rev-parse HEAD`. If `gh pr view <pr> --json headRefOid` shows the PR has moved on, review the given head commit and say so in the report.
+1. The first message gives the braid or strand id, the PR, the head commit, the focus and, for a re-check after fixes, "commits since `<sha>`". It names a thread to send your result to only when your host can't return it to the coordinator.
+2. Work in the checkout your host gave you: `git fetch`, then `git checkout --detach <head commit>`, and confirm with `git rev-parse HEAD`. If that fails or shows another commit, say so as your report and stop. If `gh pr view <pr> --json headRefOid` shows the PR has moved on, review the given head commit and say so in the report.
+3. Read `BRAID.md` (`gate`, `ci`), `AGENTS.md` or `CLAUDE.md`, the brief and, for a strand, its braid (`braid view <id>` in your checkout), and the diff (`gh pr diff <pr>`; for a re-check also `git diff <sha> <head commit>`).
 
 ## Check
 
@@ -41,6 +41,6 @@ Review someone else's PR with fresh eyes, report once, and stop.
    **Needs the user:** `none`, or per case `<key>: <what it is about, what is needed, the evidence>`.
    ```
 
-2. Send the coordinator's thread one message with `t3_thread_send`: blocking or not, the Needs the user line, the reviewed commit and the comment's link. You're done.
+2. End with your report as your last chat message: blocking or not, the Needs the user line, the reviewed commit and the comment's link. Your host returns it to the coordinator. Only when the first message names a thread to send your result to, also send it there with `t3_thread_send`. You're done.
 
 Never commit, push, edit, merge or approve.

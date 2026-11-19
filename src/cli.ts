@@ -15,7 +15,7 @@ import { cleanCommand } from "./commands/clean.js";
 import { startCommand } from "./commands/start.js";
 import { acceptCommand } from "./commands/done.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
-import { answerCommand, askCommand, handoverCommand, requestsCommand } from "./commands/requests.js";
+import { answerCommand, askCommand, handoverCommand, requestsCommand, reviewCommand } from "./commands/requests.js";
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
@@ -53,7 +53,8 @@ export function helpText(version: string): string {
     "  check                       Check every brief under braids/; list each error with its file (exit 2 on any)",
     "  status <number>             One line per strand: status, lane (as the board shows it), ask:<key>, branch, PR, ci checks, T3 thread, and the request text of an item on your side (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
-    "  start <id> [--force|--review]  Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check); --review: a detached checkout of the open PR head for the reviewer",
+    "  start <id> [--force]        Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
+    "  review <id> --thread <id>   Record a T3 thread (a subagent) that reviews the item's PR: the board and status show the review while it runs, clean removes its checkout after the merge",
     "  accept <id> [--head <sha>] [--merge]  Accept an item and mark it Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first), a story or final PR on its branch (--log adds a braid log entry, --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case",
     "  recap <id>                  A draft recap and braid log line from report.md, the PR (head, checks) and the facts, to edit",
@@ -94,10 +95,12 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
+const BRAID_COMMANDS = new Set(["review", "note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
+    case "review":
+      return reviewCommand(root, args);
     case "note":
       return noteCommand(root, cwd, args);
     case "inbox":

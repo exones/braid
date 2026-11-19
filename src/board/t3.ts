@@ -1,19 +1,23 @@
 // What T3 knows about the agents: one `t3 thread list --json` per refresh, plus `show --json` for
-// each running thread; an idle thread is placed by its title. An agent of an item is a running thread whose worktree braid created for it
-// (`braid start`); any other thread, a coordinator's included, is not an agent of any item.
+// each running thread and each recorded review thread; an idle thread is placed by its worker title. An agent of an item is a
+// running thread whose worktree braid created for it (`braid start`, the worker), or a running thread recorded with `braid review`
+// (the reviewer, a coordinator's subagent, which `thread list` doesn't show); any other thread, a coordinator's included, is not an
+// agent of any item.
 import { execFile, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
+import { loadReviews, type ReviewRecord } from "../braids/reviews.js";
 import { parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { agentsDir, itemOfFolder, repoNameOf } from "../braids/worktrees.js";
 
 export interface T3Thread {
   readonly id: string;
-  /** `worker` in the item's own worktree, `reviewer` in its `-review` checkout. */
+  /** `worker` in the item's own worktree, `reviewer` for a running thread recorded with `braid review`. */
   readonly role: "worker" | "reviewer";
   /** Questions and approvals the agent waits on. */
   readonly pending: number;
+  /** The T3 link to open; null for a subagent reviewer, which shows inside its coordinator's thread. */
   readonly link: string | null;
   /** The thread's title, when T3 lists one. */
   readonly title?: string | undefined;
@@ -39,7 +43,7 @@ export interface T3 {
   /** Running agents per item key (`0006` or `0006/A`). */
   readonly threads: ReadonlyMap<string, readonly T3Thread[]>;
   /**
-   * Threads of an item that are not running and not archived (a worker waiting for CI, a finished reviewer), newest
+   * Worker threads of an item that are not running and not archived (a worker waiting for CI), newest
    * first, per item key. They are no agents (no lane reads them); the board only opens them.
    */
   readonly idle?: ReadonlyMap<string, readonly T3Thread[]>;
@@ -96,15 +100,21 @@ export function mainCheckout(root: string): string {
   return first === undefined ? root : first.slice(9).trim();
 }
 
-interface Where {
+/** What `t3 thread show <id> --json` says of a thread. */
+export interface Where {
+  readonly status: string | null;
   readonly worktreePath: string | null;
+  readonly branch: string | null;
   readonly pending: number;
+  /** `subagent` for a delegated task's child thread; null for a top-level thread. */
+  readonly relationshipToParent: string | null;
 }
 
 const recent = new Map<string, { at: number; t3: Promise<T3> }>();
 const SHARE_MS = 3000;
 
-async function show(run: T3Runner, root: string, id: string): Promise<Where | null> {
+/** One thread as T3 shows it; null when T3 doesn't know it or can't be asked. The id reaches the runner as given. */
+export async function showThread(run: T3Runner, root: string, id: string): Promise<Where | null> {
   const r = await run(root, ["thread", "show", id, "--json"]);
   if (r.error !== undefined || r.status !== 0) {
     return null;
@@ -113,7 +123,13 @@ async function show(run: T3Runner, root: string, id: string): Promise<Where | nu
     const top = obj(JSON.parse(r.stdout));
     const t = obj(top?.["thread"]) ?? top ?? {};
     const pending = t["pendingRequestCount"];
-    return { worktreePath: str(t["worktreePath"]), pending: typeof pending === "number" ? pending : 0 };
+    return {
+      status: str(t["status"]),
+      worktreePath: str(t["worktreePath"]),
+      branch: str(t["branch"]),
+      pending: typeof pending === "number" ? pending : 0,
+      relationshipToParent: str(t["relationshipToParent"]),
+    };
   } catch {
     return null;
   }
@@ -141,6 +157,8 @@ export interface T3Options {
   /** The T3 project folder; the main checkout when not given. */
   readonly project?: string;
   readonly ttlMs?: number;
+  /** The recorded review threads; read from `.braid/reviews.json` of the main checkout when not given. */
+  readonly reviews?: readonly ReviewRecord[];
 }
 
 /**
@@ -153,7 +171,7 @@ export function readT3(root: string, options: T3Options = {}): Promise<T3> {
   if (shared !== undefined && Date.now() - shared.at < ttl) {
     return shared.t3;
   }
-  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDir(root), options.project ?? mainCheckout(root));
+  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDir(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root));
   recent.set(root, { at: Date.now(), t3 });
   return t3;
 }
@@ -163,7 +181,7 @@ function archived(t: Json): boolean {
   return t["archived"] === true || (t["archivedAt"] !== undefined && t["archivedAt"] !== null) || t["status"] === "archived";
 }
 
-async function readFresh(root: string, run: T3Runner, agents: string, project: string): Promise<T3> {
+async function readFresh(root: string, run: T3Runner, agents: string, project: string, reviews: readonly ReviewRecord[]): Promise<T3> {
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
   const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
@@ -189,7 +207,7 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
     .map((x) => ({ ...x, running: x.status === "running" }));
 
   const mine = norm(agents);
-  // Only a worktree directly inside the braid worktree folder, named for an item, is an agent's.
+  // Only a worker's worktree directly inside the braid worktree folder, named for an item, is an agent's; a leftover `-review` checkout is no one's.
   const ownerOf = (path: string | null) => {
     const folder = path === null ? null : norm(path);
     return path !== null && folder !== null && folder.startsWith(`${mine}/`) && !folder.slice(mine.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
@@ -200,24 +218,23 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
     const p = parseThreadTitle(str(t["title"]) ?? "");
     return p !== null && repos.has(p.repo) ? p : null;
   };
-  // Running threads are shown (`t3 thread show`: worktree and pending questions). An idle thread is placed by its title alone.
+  // Running threads are shown (`t3 thread show`: worktree and pending questions). An idle thread is placed by its worker title alone.
   const found = await pool(wanted, async ({ t, id, running }) => {
     let where: Where | null = null;
     let key: string | null = null;
-    let role: "worker" | "reviewer" | null = null;
     if (running) {
-      where = await show(run, root, id);
-      const owner = ownerOf(where?.worktreePath ?? null);
-      key = owner?.key ?? null;
-      role = owner?.role ?? null;
+      where = await showThread(run, root, id);
+      key = ownerOf(where?.worktreePath ?? null)?.key ?? null;
     } else {
       const p = titled(t);
-      if (p !== null && (p.role === "worker" || p.role === "review")) {
-        key = p.id;
-        role = p.role === "worker" ? "worker" : "reviewer";
-      }
+      key = p !== null && p.role === "worker" ? p.id : null;
     }
-    return key === null || role === null ? null : { key, running, thread: { id, role, pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
+    return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
+  });
+  // A recorded review thread is its item's reviewer while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
+  const reviewing = await pool(reviews, async (r) => {
+    const where = await showThread(run, root, r.thread);
+    return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: "reviewer", pending: where.pending, link: null } satisfies T3Thread } : null;
   });
   const coordinators = new Map<string, T3Coordinator>();
   const idleCoordinators = new Map<string, T3Coordinator>();
@@ -231,7 +248,7 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
   }
   const threads = new Map<string, T3Thread[]>();
   const idle = new Map<string, T3Thread[]>();
-  for (const f of found) {
+  for (const f of [...found, ...reviewing]) {
     if (f !== null) {
       const into = f.running ? threads : idle;
       into.set(f.key, [...(into.get(f.key) ?? []), f.thread]);

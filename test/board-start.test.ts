@@ -267,7 +267,7 @@ test("Open thread: an idle, non-archived thread of an item or a braid's coordina
   const read = await t3.readT3(root, { run, ttlMs: 0, agents, project: root });
   assert.deepEqual(read.threads.get("0020/A")?.map((t) => t.id), ["w1"]);
   assert.deepEqual(read.idle.get("0020/A")?.map((t) => t.id), ["w2"]);
-  assert.deepEqual(read.idle.get("0020/B")?.map((t) => [t.id, t.link]), [["w3", "http://t3/w3"]]);
+  assert.equal(read.idle.has("0020/B"), false, "an idle thread titled as a review is no thread of the item: reviewers are subagents now");
   assert.equal(read.threads.has("0020/B"), false, "an idle thread is no running agent");
   assert.deepEqual([...read.idleCoordinators.keys()], ["0020"]);
   assert.equal(read.coordinators.size, 0);
@@ -361,7 +361,7 @@ test("open with thread: \"coordinator\": while strands run, the braid opens its 
   assert.deepEqual(opened2, ["t3code://threads/thread/w11", "t3code://threads/thread/demo-6"]);
 });
 
-test("idle threads are found by title alone (with or without the emoji): worker, review and coordinator, and a fake t3 counts no show for them", async () => {
+test("idle threads are found by title alone (with or without the emoji): worker and coordinator, not review, and a fake t3 counts no show for them", async () => {
   const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<{ idle: Map<string, { id: string; role: string }[]>; idleCoordinators: Map<string, { id: string }> }> };
   const root = join(scratch, "demo");
   const listed = [
@@ -382,7 +382,7 @@ test("idle threads are found by title alone (with or without the emoji): worker,
     return Promise.resolve({ status: 0, stdout: JSON.stringify({ thread: {} }), stderr: "" });
   };
   const read = await t3.readT3(root, { run, ttlMs: 0, agents: join(scratch, "agents-cheap"), project: root });
-  assert.deepEqual(read.idle.get("0030/A")?.map((t) => [t.id, t.role]), [["i1", "worker"], ["i2", "reviewer"]]);
+  assert.deepEqual(read.idle.get("0030/A")?.map((t) => [t.id, t.role]), [["i1", "worker"]], "a thread titled as a review is no item's thread");
   assert.equal(read.idle.has("0030/B"), false, "another repository's title is no thread of this one");
   assert.deepEqual([...read.idleCoordinators.keys()], ["0030"]);
   assert.deepEqual(shown, ["r1"], "only the running thread is shown");

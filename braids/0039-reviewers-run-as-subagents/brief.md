@@ -96,3 +96,15 @@ Chosen:
 - [ ] `docs/board.md`, `docs/cli.md`, `docs/braids-format.md`, `docs/getting-started.md` and a new decision in `docs/decisions.md` describe it
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `src/braids/reviews.ts`: the record `.braid/reviews.json` in the main checkout (item id, thread id, time), locked like requests; load, add, drop. Reading never throws (no repository: no records).
+2. `braid review <id> --thread <thread id>` in `src/commands/reviews.ts`, wired in `src/cli.ts` (BRAID_COMMANDS, help); the item must exist.
+3. `src/board/t3.ts`: drop top-level reviewer handling (`-review` folders and review titles are no item's thread; `itemOfFolder` matches workers only); for each recorded thread, `t3 thread show --json`; running → that item's `reviewer` agent with its pending count and no link. `show` also returns status, branch and parent relation for clean.
+4. `src/commands/clean.ts`: for a merged item, each recorded thread: T3 down → keep and say so; T3 doesn't know it → drop the record; a child (`relationshipToParent`) not running whose `worktreePath` is a registered worktree of this repo → remove the worktree (in-use check), `git branch -d` its `t3/…` branch, drop the record; anything else kept and named. The leftover `-review` checkout removal stays.
+5. `src/commands/start.ts`: `--review` and `startReview` go; `--review` fails with a line naming `braid review`, creating nothing.
+6. Tests: t3 (record → review activity, no stalled/checks failed; not running/unknown → nothing; `-review` folder or review title → no agent; real-shape id reaches the runner), reviews store/command, clean (finished child removed with branch, running/foreign kept, leftover `-review` removed), start --review refusal; old tests rewritten.
+7. Skills: braid SKILL.md review launch as `delegate_task`, `braid review`, link, wait/failure text; braid-reviewer start/report; resuming.md; workflow.md failure rows.
+8. Docs: board.md, cli.md, braids-format.md, getting-started.md, decisions.md (new D + dated line).
+9. Probe with the reviewer model on a merged PR; output in report.md. Gate, PR.

@@ -9,6 +9,7 @@ import { ciChecks } from "./coordinate.js";
 import { checksProblem, view } from "./done.js";
 import { find, parse, readText, str } from "./edit.js";
 import { logEntry } from "./logs.js";
+import { recordReview } from "../braids/reviews.js";
 import { recapCommand } from "./facts.js";
 
 export interface RequestOptions {
@@ -29,6 +30,21 @@ function threadOf(values: Parameters<typeof str>[0]): string | null {
 function itemId(root: string, raw: string | undefined, command: string): string {
   const { item } = find(loadBraids(root), raw, command);
   return item.brief.id;
+}
+
+/** `braid review <id> --thread <thread id>`: records a T3 thread that reviews the item's PR (a coordinator's subagent), so the board and `braid status` count it as the item's reviewer while it runs, and `braid clean` removes its checkout after the merge. */
+export function reviewCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
+  const { positionals, values } = parse("braid review", args, { thread: { type: "string" } });
+  const thread = str(values, "thread");
+  if (positionals.length !== 1 || thread === undefined) {
+    throw new UsageError("usage: braid review <id> --thread <thread id>  (the review thread, a subagent's child thread id)");
+  }
+  threadOf(values);
+  const id = itemId(root, positionals[0], "braid review");
+  const at = (opts.now ?? (() => new Date()))();
+  const added = recordReview(root, id, thread, at.toISOString());
+  return `${id}: review thread ${thread} ${added ? "recorded" : "already recorded"}
+`;
 }
 
 export async function handoverCommand(root: string, args: readonly string[], opts: RequestOptions = {}): Promise<string> {

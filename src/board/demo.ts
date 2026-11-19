@@ -160,7 +160,8 @@ export function demoT3(down = false): T3 {
       ["0003/A", [thread("demo-2", "worker", 1)]],
       ["0009/A", [thread("demo-3", "worker")]],
       ["0009/B", [thread("demo-4", "worker")]],
-      ["0010/A", [thread("demo-5", "reviewer")]],
+      // A subagent reviewer (recorded with `braid review`): it has no Open thread; it shows inside its coordinator's thread.
+      ["0010/A", [{ ...thread("demo-5", "reviewer"), link: null }]],
     ]),
   };
 }
