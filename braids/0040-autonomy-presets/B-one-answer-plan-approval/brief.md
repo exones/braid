@@ -41,8 +41,16 @@ Expected size: about 40 lines in 5 files.
 
 ## Completion
 
-- [ ] "Plan" says the approval covers the planning PR's merge, pinned to the approved commit, and what to do when the PR holds more
-- [ ] The plan and the first message of a start or resume name the braid's number and title first
-- [ ] The workflow's "Who merges" and the two docs say the same
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] "Plan" says the approval covers the planning PR's merge, pinned to the approved commit, and what to do when the PR holds more
+- [x] The plan and the first message of a start or resume name the braid's number and title first
+- [x] The workflow's "Who merges" and the two docs say the same
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- SKILL.md "Plan" step 6: the plan message, and the first message after a request to start or resume an existing braid, opens with `<number> <title>`.
+- SKILL.md "Plan" step 7, Goal: on approval `braid answer` the plan request (with the approval in the log), squash, push, open the planning PR, watch it; once its `ci` checks are green merge it pinned to the squashed commit; a head other than that commit stops the merge (show what changed, `braid ask`). Then unwatch, pull the braid branch, set In Progress.
+- SKILL.md "Plan" step 8: wording kept, "start" now follows the merge; "Run an item" step 4: the planning PR is unwatched after the coordinator merged it, not handed to the user.
+- workflow.md: "Who merges" gets the planning PR as a third case; the "Planned goal" row says the coordinator merges the planning PR under the plan's approval.
+- docs/getting-started.md "Merging and auto mode" and docs/decisions.md: a new decision (D67; 0037 holds D66 on its branch), D31's "Its merge records the approval" reworded via a pointer, a decision-log line.

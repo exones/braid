@@ -56,7 +56,7 @@ Ideas are written as the `braid-idea` skill describes. They never expire and are
 | Case | Branches | PRs | Briefs |
 | --- | --- | --- | --- |
 | Story | `braid/<number>-<slug>` from `main` | one into `main` | created on the new branch before launch; Done on it before the handover |
-| Planned goal | `plan/<slug>` and the braid branch `braid/<number>-<slug>`, both from `main`; each strand `braid/<number>/<letter>-<slug>` from the braid tip | planning PR into the braid branch (its merge is the approval); each strand into it; one final PR into `main` | braid and strands created on `plan/`; `main` gets them with the final PR; each strand Done on the braid branch after its merge, the braid Done on it before the final handover |
+| Planned goal | `plan/<slug>` and the braid branch `braid/<number>-<slug>`, both from `main`; each strand `braid/<number>/<letter>-<slug>` from the braid tip | planning PR into the braid branch (the coordinator merges it under the plan's approval); each strand into it; one final PR into `main` | braid and strands created on `plan/`; `main` gets them with the final PR; each strand Done on the braid branch after its merge, the braid Done on it before the final handover |
 | Grown story | the story's branch becomes the braid branch | the story PR is closed; strand PRs into the braid branch; one final PR into `main` | strands added on the braid branch; the braid stays In Progress and from here follows the planned goal |
 
 Merge `main` into a braid branch before the next strand and before the final PR. Never rebase or force-push shared branches. Every commit uses Conventional Commits.
@@ -79,9 +79,10 @@ Every item has one `tier:` label; pick the lowest that fits. The tier decides th
 
 ## Who merges
 
-The user merges, whatever the tier. The coordinator merges in two cases only:
+The user merges, whatever the tier. The coordinator merges in three cases only:
 
 - the user explicitly asks it to merge a PR ("Merge on request" in the skill); this may be any PR, including a story or the final PR into `main`;
+- the planning PR of a goal whose plan the user approved: the approval covers its merge into the braid branch, once its checks are green and pinned to the approved commit; a PR holding anything else goes back to the user;
 - [auto mode](auto-mode.md) is on for a goal: then it merges that goal's strand PRs into the braid branch, and never anything into `main`.
 
 ## Checks and reports

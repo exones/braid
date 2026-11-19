@@ -1,6 +1,6 @@
 ---
 name: braid
-description: Plan a goal or a single story as braids in braids/, then deliver it - run one worker at a time, arrange review, hand each PR to the user to merge, and report. braid merges a PR itself only when the user asks, or in auto mode a strand into its braid branch (auto mode never merges into main). A story that grows becomes strands. Use for goal-level or single-story delivery in a repository that has a BRAID.md; not for doing an item yourself.
+description: Plan a goal or a single story as braids in braids/, then deliver it - run one worker at a time, arrange review, hand each PR to the user to merge, and report. braid merges a PR itself only when the user asks, a goal's planning PR once the user approved the plan, or in auto mode a strand into its braid branch (auto mode never merges into main). A story that grows becomes strands. Use for goal-level or single-story delivery in a repository that has a BRAID.md; not for doing an item yourself.
 ---
 
 # Braid coordinator
@@ -49,11 +49,11 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
    - **Goal:** in your worktree on `plan/<slug>` from `main`, `braid new`, then `braid strand new` per strand.
    - **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `braid new`, then `git branch -m braid/<number>-<slug>` (its folder name).
 
-   Show the user the plan (titles, kinds, tiers, order, dependencies, related braids, Completion boxes, `ask:` labels) with links to the brief files, leading with any warning from step 3, and `braid ask <number> "Approve the plan" --kind plan`. Each round of the user's comments is one local commit, `docs(braids): <id> amend: <what>`. Check with `git diff` that only the intended lines changed, then tell the user briefly what changed (no pasted diff).
-7. On approval, squash the commits into one `docs(braids): plan <id>` (`git reset --soft <commit the branch was cut from>`, then commit) and push once.
-   - **Goal:** create and push the braid branch `braid/<number>-<slug>` from `main`, open the planning PR from `plan/<slug>` into it and tell the user. Its merge records the approval: keep the plan request open until then, or `braid ask` for that merge. Then pull the braid branch and set the braid `In Progress` in its next commit.
+   Show the user the plan, opening with the braid's number and title (`0040 Autonomy presets: …`) so a wrong number is caught at once, then its strands (titles, kinds, tiers, order, dependencies, related braids, Completion boxes, `ask:` labels) with links to the brief files, leading with any warning from step 3, and `braid ask <number> "Approve the plan" --kind plan`. Each round of the user's comments is one local commit, `docs(braids): <id> amend: <what>`. Check with `git diff` that only the intended lines changed, then tell the user briefly what changed (no pasted diff). Your first message after the user asks to start or resume an existing braid opens the same way, with its number and title.
+7. On approval, close the plan request with `braid answer <number> --log -` (the approval, in the user's words), squash the commits into one `docs(braids): plan <id>` (`git reset --soft <commit the branch was cut from>`, then commit) and push once.
+   - **Goal:** the approval of the plan is also the approval to merge its planning PR; don't ask for that merge. Create and push the braid branch `braid/<number>-<slug>` from `main`, open the planning PR from `plan/<slug>` into it, tell the user, and watch it. When its `ci` checks are green, merge it yourself, pinned to the squashed commit: `gh pr merge <pr> --merge --match-head-commit <sha>`. If the PR's head is anything but that commit, don't merge: show the user what changed since the approval and `braid ask <number> "Merge the changed plan" --kind plan`. After the merge, unwatch the PR, pull the braid branch and set the braid `In Progress` in its next commit.
    - **Story:** remove the temporary worktree; the worker starts on that branch.
-8. If the user asked only for a plan, don't start: show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub. Otherwise start the first ready strand without waiting.
+8. If the user asked only for a plan, don't start: show the table and open questions, `braid ask` for the go, and resume from `braids/` and GitHub. Otherwise start the first ready strand once the planning PR is merged, without waiting for another go.
 
 ## Run an item
 
@@ -79,7 +79,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    - Failed checks, conflicts or comments while the worker is active or watching are the worker's: do nothing and end your turn.
    - A wake is never a merge decision; continue with "Accept and hand over".
 
-   Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox: an item PR when the recap asks for their merge; the planning and final PRs once their checks are green and any review is done. After that, the user's "merged" or `gh pr list --state all` decides.
+   Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox: an item PR when the recap asks for their merge; the final PR once its checks are green and any review is done. The planning PR you merge yourself ("Plan", step 7) and unwatch after the merge. After that, the user's "merged" or `gh pr list --state all` decides.
 5. Answer the worker's questions. If the brief must change, tell the worker; it applies the change on its branch.
 6. **Converge loop** (workflow, "Checks and reports"): when the worker stops with a proposal, show it to the user (`braid ask <id> "<what is needed>" --kind decision`) and send each verdict to the worker. When the user approves, tell the worker to build.
 
@@ -118,7 +118,7 @@ When the worker reports green:
 5. **Hand over** when the checks are green on the latest commit.
    - A strand: run `braid handover <id> --head <sha> --thread <your thread id>`, edit the recap it prints and wait for the user's merge.
    - A story: first run `braid accept <id> --head <reviewed sha> --review <link> --thread <your thread id>`; when the new head it prints is green, hand that head over the same way.
-   - You merge only under "Merge on request" or "Auto mode".
+   - You merge an item only under "Merge on request" or "Auto mode".
 6. **After the merge**, once `gh pr list --state all` shows the PR merged:
    1. Interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID).
    2. Run `braid clean --yes` to remove the item's worktree and branch.

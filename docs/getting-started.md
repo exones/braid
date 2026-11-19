@@ -54,11 +54,11 @@ Why braid keeps items in `braids/` is decision D33 in [decisions](decisions.md);
 
 ## Merging and auto mode
 
-You merge every PR yourself, unless you tell `braid` to merge one ("merge it" after its recap, and it merges exactly the commit it showed you) or auto mode merges a strand into its braid branch. Auto mode never merges a story or the final PR into `main`.
+You merge every PR yourself, unless you tell `braid` to merge one ("merge it" after its recap, and it merges exactly the commit it showed you) or auto mode merges a strand into its braid branch; a goal's planning PR `braid` merges under your approval of the plan (below). Auto mode never merges a story or the final PR into `main`.
 
 For a goal, you can ask for auto mode if `BRAID.md` has `auto: allowed` and real CI (`ci` not `none`). `braid` then merges each strand PR into the braid branch itself once the worker is green, an independent review found nothing blocking, CI is green and nobody flagged a stop case, and it leaves a comment on the PR saying why. It stops and asks you on any stop case, when a review is still blocking after 2 rounds of fixes, or when branch protection refuses; "stop auto" or "pause" switches it off.
 
-A goal's plan is merged into its braid branch, so `main` gets its briefs with the final PR.
+A goal's plan is merged into its braid branch, so `main` gets its briefs with the final PR. Approving the plan is the only answer it needs: `braid` then merges the planning PR itself once its checks are green, exactly the commit you approved, and starts the first strand (unless you asked only for a plan). If that PR changed after your approval, `braid` shows you what changed and asks again. The plan, and the first message after you ask to start or resume a braid, open with the braid's number and title, so you can catch a wrong number at once.
 
 ## See the board
 
