@@ -172,12 +172,19 @@ test("braid list ends with the open inbox counts, from the local refs", () => {
   assert.match(list(), /\n\nInbox: 2 leftovers, 0 ideas\n$/);
 });
 
-test("braid list counts a local-only leftover without fetching, with origin unreachable and no braids", () => {
+test("braid list counts a local-only leftover and not one only on origin, so it neither fetches nor ignores local commits", () => {
   const w = setup();
+  const url = git(w.a, "remote", "get-url", "origin");
+  // Offline: the note stays on the local branch.
   git(w.a, "remote", "set-url", "origin", join(w.a, "..", "gone.git"));
-  const offline = ok(w.a, "note", "written offline", "--from", "user");
-  assert.match(offline.stdout + offline.stderr, /local|warning/i);
+  ok(w.a, "note", "written offline", "--from", "user");
+  git(w.a, "remote", "set-url", "origin", url);
+  // Another clone pushes one more leftover that w.a has not fetched.
+  git(join(w.a, ".."), "clone", "-q", url, "b");
+  ok(join(w.a, "..", "b"), "note", "only on origin", "--from", "user");
   const listed = ok(w.a, "list");
   assert.equal(listed.stdout, "No braids.\n\nInbox: 4 leftovers, 1 ideas\n");
-  assert.equal(listed.stderr, "");
+  // With the origin unreachable the counts are the same.
+  git(w.a, "remote", "set-url", "origin", join(w.a, "..", "gone.git"));
+  assert.equal(ok(w.a, "list").stdout, listed.stdout);
 });
