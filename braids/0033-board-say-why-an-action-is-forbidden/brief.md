@@ -1,7 +1,7 @@
 ---
 id: '0033'
 title: "Board: say why an action is forbidden"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: []
 delivery: epic
