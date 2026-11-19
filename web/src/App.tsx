@@ -2,28 +2,43 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, strandMarks, t3codeUrl, type Marks } from "../../src/board/marks.ts";
+import { hashFor, parseHash, type Route } from "../../src/board/route.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
 import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
 
-/** `#/` is the board, `#/0003` a braid, `#/0003/A` a strand; `?tab=report` picks a tab. */
-interface Route {
-  readonly id: string | null;
-  readonly tab: string;
+/** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
+let pushedOpen = false;
+
+/** Opens an item's details. From the bare board it adds a history entry; inside open details it replaces, so one Back closes them. */
+export function go(id: string, tab = "brief"): void {
+  const target = hashFor(id, tab);
+  if (parseHash(location.hash).id === null) {
+    pushedOpen = true;
+    location.hash = target;
+  } else {
+    location.replace(target);
+  }
 }
 
-function parseHash(hash: string): Route {
-  const [path = "", query = ""] = hash.replace(/^#\/?/, "").split("?");
-  return { id: path === "" ? null : path, tab: new URLSearchParams(query).get("tab") ?? "brief" };
-}
-
-export function go(id: string | null, tab = "brief"): void {
-  location.hash = id === null ? "#/" : `#/${id}${tab === "brief" ? "" : `?tab=${tab}`}`;
+/** Closes the details and returns to the board as it was: Back when we pushed the entry, else replace. */
+function closeDetails(): void {
+  if (pushedOpen) {
+    history.back();
+  } else {
+    location.replace("#/");
+  }
 }
 
 function useRoute(): Route {
   const [route, setRoute] = useState(() => parseHash(location.hash));
   useEffect(() => {
-    const onChange = () => setRoute(parseHash(location.hash));
+    const onChange = () => {
+      const next = parseHash(location.hash);
+      if (next.id === null) {
+        pushedOpen = false;
+      }
+      setRoute(next);
+    };
     addEventListener("hashchange", onChange);
     return () => removeEventListener("hashchange", onChange);
   }, []);
@@ -63,7 +78,7 @@ function Icon({ tip, children, className = "" }: { tip: string; children: ReactN
         </span>
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">
+        <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">
           {tip}
         </Tooltip.Content>
       </Tooltip.Portal>
@@ -247,7 +262,7 @@ function OpenThread({ id, link, coordinator = false }: { id: string; link: strin
         </button>
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">{error ?? `${what} in T3`}</Tooltip.Content>
+        <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">{error ?? `${what} in T3`}</Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
     )}
@@ -311,7 +326,7 @@ function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
             </span>
           </Tooltip.Trigger>
           <Tooltip.Portal>
-            <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Merge: {reason}</Tooltip.Content>
+            <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">Merge: {reason}</Tooltip.Content>
           </Tooltip.Portal>
         </Tooltip.Root>
       </span>
@@ -328,12 +343,12 @@ function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
           </Dialog.Trigger>
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Merge: ask the coordinator</Tooltip.Content>
+          <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">Merge: ask the coordinator</Tooltip.Content>
         </Tooltip.Portal>
       </Tooltip.Root>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-slate-900/40" />
-        <Dialog.Content onClick={(e) => e.stopPropagation()} className="fixed left-1/2 top-1/2 w-[440px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-xl">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/40" />
+        <Dialog.Content onClick={(e) => e.stopPropagation()} className="fixed left-1/2 top-1/2 z-50 w-[440px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-xl">
           <Dialog.Title className="text-base font-semibold">Merge PR #{merge.pr}?</Dialog.Title>
           <Dialog.Description className="mb-3 text-slate-500">{id}</Dialog.Description>
           <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
@@ -412,7 +427,7 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
             </span>
           </Tooltip.Trigger>
           <Tooltip.Portal>
-            <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Start: {reason}</Tooltip.Content>
+            <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">Start: {reason}</Tooltip.Content>
           </Tooltip.Portal>
         </Tooltip.Root>
       </span>
@@ -429,12 +444,12 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
           </Dialog.Trigger>
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content sideOffset={4} className="rounded bg-slate-800 px-2 py-1 text-xs text-white">Start: launch a coordinator</Tooltip.Content>
+          <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">Start: launch a coordinator</Tooltip.Content>
         </Tooltip.Portal>
       </Tooltip.Root>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-slate-900/40" />
-        <Dialog.Content onClick={(e) => e.stopPropagation()} className="fixed left-1/2 top-1/2 w-[440px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-xl">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/40" />
+        <Dialog.Content onClick={(e) => e.stopPropagation()} className="fixed left-1/2 top-1/2 z-50 w-[440px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-xl">
           <Dialog.Title className="text-base font-semibold">Start braid {id}?</Dialog.Title>
           <Dialog.Description className="mb-3 text-slate-500">A new coordinator thread runs it.</Dialog.Description>
           <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
@@ -504,6 +519,7 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
   const tier = braid.labels.filter((l) => l.startsWith("tier:"));
   return (
     <div
+      data-opens-details
       className="mb-2 cursor-pointer rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm hover:border-blue-600"
       onClick={() => go(braid.id)}
     >
@@ -548,6 +564,7 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
           {braid.strands.map((s) => (
             <div
               key={s.id}
+              data-opens-details
               className="flex flex-wrap items-center gap-1.5 py-1 text-[13px] hover:underline"
               onClick={(e) => {
                 e.stopPropagation();
@@ -696,7 +713,7 @@ function DoneLane({ cards }: { cards: readonly BraidCard[] }) {
       {open && (
         <div>
           {rows.slice(0, shown).map((b) => (
-            <button key={b.id} type="button" onClick={() => go(b.id)} className="flex w-full cursor-pointer items-center gap-2 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
+            <button key={b.id} type="button" data-opens-details onClick={() => go(b.id)} className="flex w-full cursor-pointer items-center gap-2 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
               <LaneDot lane="Done" />
               <span className="w-9 flex-none text-xs text-slate-500">{b.id}</span>
               <span className="min-w-0 flex-1">{b.title}</span>
@@ -791,9 +808,9 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
   const marks = strand === undefined ? cardMarks(item.braid) : strandMarks(strand);
   const trigger = "cursor-pointer border-b-2 border-transparent px-3.5 py-2 text-slate-500 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=active]:text-slate-900";
   return (
-    <main className="overflow-auto px-7 py-5 max-md:px-4">
+    <div className="min-h-0 flex-1 overflow-auto px-7 py-5 max-md:px-4">
       <div className="text-xs text-slate-500">{item.id}</div>
-      <h1 className="mb-1.5 text-xl font-semibold">{item.title}</h1>
+      <Dialog.Title className="mb-1.5 text-xl font-semibold">{item.title}</Dialog.Title>
       <div className="flex flex-wrap items-center gap-1.5">
         <LaneDot lane={item.lane} />
         <Badge>{LANE_LABEL[item.lane]}</Badge>
@@ -838,7 +855,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
         <Tabs.Content value="report"><Md text={item.report} empty="No report yet." /></Tabs.Content>
         <Tabs.Content value="logs"><Logs logs={item.logs} /></Tabs.Content>
       </Tabs.Root>
-    </main>
+    </div>
   );
 }
 
@@ -867,49 +884,65 @@ function Logs({ logs }: { logs: ItemDetail["logs"] }) {
   );
 }
 
+/** Moving between a braid's brief and its strands, inside the details. */
 function Contents({ braid, current }: { braid: BraidCard; current: string }) {
-  const item = (id: string, label: string, strand: StrandCard | null) => (
+  const chip = (id: string, label: string, strand: StrandCard | null) => (
     <button
       key={id}
       type="button"
       onClick={() => go(id)}
-      className={`mt-0.5 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-left hover:bg-slate-100 ${strand !== null ? "ml-3.5 w-[calc(100%-0.875rem)]" : "w-full"} ${current === id ? "bg-indigo-100 font-semibold" : ""}`}
+      className={`flex flex-none cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs hover:border-blue-600 ${current === id ? "border-indigo-300 bg-indigo-100 font-semibold" : "border-slate-200 bg-white"}`}
     >
       {strand !== null && <LaneDot lane={strand.lane} />}
-      <span className="min-w-0 flex-1 truncate" title={label}>{label}</span>
+      {label}
       {strand !== null && <Marks marks={strandMarks(strand)} />}
     </button>
   );
   return (
-    <nav className="overflow-y-auto overflow-x-hidden border-r border-slate-200 bg-white p-3.5 max-md:border-b max-md:border-r-0">
-      <button type="button" onClick={() => go(null)} className="mb-2.5 cursor-pointer text-[13px] text-blue-700">
-        ← Board
-      </button>
-      <h2 className="text-[15px] font-semibold">
-        {braid.id} {braid.title}
-      </h2>
-      <div className="mb-2 flex items-center gap-1.5 text-xs text-slate-500">
-        <LaneDot lane={braid.lane} />
-        {LANE_LABEL[braid.lane]}
-        <Marks marks={cardMarks(braid)} />
-      </div>
-      {item(braid.id, "Braid brief", null)}
-      {braid.strands.map((s) => item(s.id, `${s.id.slice(5)} · ${s.title}`, s))}
+    <nav aria-label={`${braid.id} ${braid.title}`} className="flex flex-none gap-1.5 overflow-x-auto border-b border-slate-200 px-7 pb-2.5 pt-2.5 max-md:px-4">
+      {chip(braid.id, "Braid brief", null)}
+      {braid.strands.map((s) => chip(s.id, `${s.id.slice(5)} · ${s.title}`, s))}
     </nav>
   );
 }
 
-function ItemPage({ id, tab, tick }: { id: string; tab: string; tick: Tick }) {
+/**
+ * The item's details: a panel over the right of the board (the whole screen below md). The board
+ * stays mounted underneath; Esc, the close button, a click on the board and Back close it.
+ */
+function DetailsPanel({ id, tab, tick }: { id: string; tab: string; tick: Tick }) {
   const loaded = useItem(id, tick);
   return (
-    <Status loaded={loaded}>
-      {(item) => (
-        <div className="grid h-[calc(100vh-45px)] grid-cols-[290px_1fr] max-md:h-auto max-md:grid-cols-1">
-          <Contents braid={item.braid} current={id} />
-          <Detail key={item.id} item={item} tab={tab} />
-        </div>
-      )}
-    </Status>
+    <Dialog.Root open modal={false} onOpenChange={(open) => { if (!open) closeDetails(); }}>
+      <Dialog.Portal>
+        <Dialog.Content
+          aria-describedby={undefined}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          onInteractOutside={(e) => {
+            // A click on another card opens it; a click on a layer above (a confirm dialog) is not outside.
+            if (e.target instanceof Element && e.target.closest("[data-opens-details], [role=dialog], [role=tooltip]") !== null) {
+              e.preventDefault();
+            }
+          }}
+          className="fixed bottom-0 right-0 top-[45px] z-40 flex w-[min(100vw,max(720px,min(70vw,1200px)))] flex-col border-l border-slate-200 bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.12)] max-md:inset-0 max-md:w-auto max-md:border-0"
+        >
+          <div className="flex flex-none items-center gap-2 border-b border-slate-200 px-7 py-2 max-md:px-4">
+            <button type="button" onClick={closeDetails} className="cursor-pointer text-[13px] text-blue-700 md:hidden">← Board</button>
+            <span className="flex-1" />
+            <Dialog.Close aria-label="Close details" title="Close (Esc)" className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-base hover:border-blue-600 max-md:size-11">✕</Dialog.Close>
+          </div>
+          <Status loaded={loaded}>
+            {(item) => (
+              <>
+                {item.braid.strands.length > 0 && <Contents braid={item.braid} current={id} />}
+                <Detail key={item.id} item={item} tab={tab} />
+              </>
+            )}
+          </Status>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -942,7 +975,7 @@ export function App() {
           <b className="text-base" title="Each braid sits in the lane where it needs you most.">braid · attention board</b>
           {board.state === "ready" && <span className="text-slate-500 max-md:hidden">Each braid sits in the lane where it needs you most. · {board.data.repo} · braids/</span>}
           <span className="flex-1" />
-          {board.state === "ready" && <InboxChip inbox={board.data.inbox} on={route.id === "inbox"} />}
+          {board.state === "ready" && <InboxChip inbox={board.data.inbox} on={route.inbox} />}
           <label className="flex cursor-pointer items-center gap-1.5 text-xs" title="Show the line on each card saying what is needed; off moves the text into the icon's tooltip">
             <input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details
           </label>
@@ -957,13 +990,12 @@ export function App() {
             Refresh
           </button>
         </header>
-        {route.id === "inbox" ? (
+        {route.inbox ? (
           <Status loaded={board}>{(data) => <InboxPage inbox={data.inbox} />}</Status>
-        ) : route.id === null ? (
-          <Status loaded={board}>{(data) => <Board data={data} details={details} />}</Status>
         ) : (
-          <ItemPage id={route.id} tab={route.tab} tick={tick} />
+          <Status loaded={board}>{(data) => <Board data={data} details={details} />}</Status>
         )}
+        {route.id !== null && <DetailsPanel id={route.id} tab={route.tab} tick={tick} />}
       </div>
     </Tooltip.Provider>
     </RemoteContext>
