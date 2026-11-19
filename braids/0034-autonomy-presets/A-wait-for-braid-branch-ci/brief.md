@@ -1,7 +1,7 @@
 ---
 id: '0034/A'
 title: "braid wait: a wait for the braid branch's CI that ends"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 order: 10
