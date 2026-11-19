@@ -1,7 +1,7 @@
 ---
 id: '0037'
 title: "Coordinator asks with the question tool and set options"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 related: ['0036']
@@ -72,3 +72,11 @@ Expected size: about 120 lines in 4 files.
 - [ ] A new decision in `docs/decisions.md`
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. SKILL.md "Talking to the user": replace the one-line question-tool rule with a short "Asking" block: when (the turn ends waiting for the user alone, after `braid ask`/`braid handover` and any unwatch; otherwise the question stays in chat with its open request), how (context first, 1–5 word labels, recommended first, "Other" via the tool; no tool: numbered question, lettered answers), and the four option sets (handover, plan, decision, stop case), each option with its next step. Dismissed dialog / chat answer / board merge message stay valid answers.
+2. Other SKILL.md stops name their set only: Plan step 6 and 7 (planning PR wait stays in chat), step 8, Run an item step 3 (failed twice → stop case) and 6, Grow and adjust mandate, Accept and hand over step 5, Merge on request (Merge now leads here), Sweep step 2.
+3. auto-mode.md: sweep while strands go on stays in chat (reason: a pending question holds wakes and worker reports), and the Stopping paragraph names the stop-case set.
+4. docs/decisions.md: D66 (D65 is taken on 0034's branch) plus a log line.
+5. npm run verify, report.md, PR.
