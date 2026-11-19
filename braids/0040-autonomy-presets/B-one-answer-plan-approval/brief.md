@@ -1,7 +1,7 @@
 ---
 id: '0040/B'
 title: "One answer approves the plan"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: []
 order: 20
