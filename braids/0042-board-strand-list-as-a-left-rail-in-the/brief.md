@@ -40,9 +40,9 @@ Expected size: about 60 lines in 3 files.
 
 ## Completion
 
-- [ ] Screenshots of the rail in the panel (desktop and phone) in the item folder, and the user's verdict in the item's log
-- [ ] A braid with strands, and each of its strands, opens with the rail on the left and the details on the right; a click on a rail row moves inside the panel (demo screenshot in the report)
-- [ ] A braid without strands shows no rail
-- [ ] `docs/board.md` "The item details" and its screenshot match
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Screenshots of the rail in the panel (desktop and phone) in the item folder, and the user's verdict in the item's log
+- [x] A braid with strands, and each of its strands, opens with the rail on the left and the details on the right; a click on a rail row moves inside the panel (demo screenshot in the report)
+- [x] A braid without strands shows no rail
+- [x] `docs/board.md` "The item details" and its screenshot match
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
