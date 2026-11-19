@@ -1,7 +1,7 @@
 ---
 id: '0032'
 title: "README that sells braid: what it can do, why, fresh screens"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 delivery: epic
