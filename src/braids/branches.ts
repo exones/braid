@@ -3,7 +3,7 @@
 // `braid/0006-<slug>` for a braid and `braid/0006/A-<slug>` for a strand, local or on a remote.
 import { spawnSync } from "node:child_process";
 import { FormatError } from "./frontmatter.js";
-import { catBatch, gitAsync, noteSyncGit } from "./gitio.js";
+import { catBatch, catBatchSync, gitAsync, noteSyncGit, type GitOut } from "./gitio.js";
 import {
   BRAID_FOLDER,
   byRunOrder,
@@ -51,14 +51,19 @@ export function braidBranches(root: string, only?: string): BranchRef[] {
   return r.status !== 0 ? [] : parseBranchRefs(r.stdout, only);
 }
 
-function refArgs(only?: string): string[] {
-  const patterns =
-    only === undefined
+function refPatterns(only?: string): string[] {
+  return only === undefined
       ? // `*` doesn't match `/`: these are exactly the braid and strand branch shapes on any remote.
         ["refs/heads/braid/", "refs/remotes/*/braid/*", "refs/remotes/*/braid/*/*"]
       : [`refs/heads/braid/${only}-*`, `refs/heads/braid/${only}/*`, `refs/remotes/*/braid/${only}-*`, `refs/remotes/*/braid/${only}/*`];
-  return ["for-each-ref", "--format=%(refname)%00%(objectname)%00%(committerdate:unix)", ...patterns];
 }
+
+function refArgs(only?: string): string[] {
+  return ["for-each-ref", "--format=%(refname)%00%(objectname)%00%(committerdate:unix)", ...refPatterns(only)];
+}
+
+/** The strand branches of braid `number`, local and remote-tracking. */
+const strandPatterns = (number: string) => [`refs/heads/braid/${number}/*`, `refs/remotes/*/braid/${number}/*`];
 
 function parseBranchRefs(stdout: string, only?: string): BranchRef[] {
   const refs: BranchRef[] = [];
@@ -176,6 +181,77 @@ function inBraid(root: string, tip: string | undefined, commit: string): boolean
   return tip !== undefined && inHead(root, tip, commit);
 }
 
+/**
+ * The `git for-each-ref --merged` call that answers at once, for every ref matching `patterns`, whether its tip is
+ * in `target`; null when the answer for every one of `commits` is already cached.
+ */
+function mergedArgs(target: string, commits: readonly string[], patterns: readonly string[]): string[] | null {
+  return commits.every((c) => merged.has(`${c}:${target}`))
+    ? null
+    : ["for-each-ref", `--merged=${target}`, "--format=%(objectname)", ...patterns];
+}
+
+/** Caches the answer of `mergedArgs`: a commit it lists is in `target`, any other of `commits` is not. */
+function noteMerged(target: string, commits: readonly string[], r: GitOut): void {
+  if (r.status !== 0) {
+    return; // inHead then asks one commit at a time
+  }
+  const listed = new Set(r.stdout.split("\n").filter((line) => line !== ""));
+  for (const c of commits) {
+    merged.set(`${c}:${target}`, listed.has(c));
+  }
+}
+
+/**
+ * Whether each of `commits` is in `target`, with one `git for-each-ref --merged` instead of a `merge-base` per
+ * commit; the answers go to the `inHead` cache. Each commit must be the tip of a ref matching `patterns`.
+ */
+function markMerged(root: string, target: string, commits: readonly string[], patterns: readonly string[]): void {
+  const args = mergedArgs(target, commits, patterns);
+  if (args !== null) {
+    noteMerged(target, commits, git(root, args));
+  }
+}
+
+async function markMergedAsync(root: string, target: string, commits: readonly string[], patterns: readonly string[]): Promise<void> {
+  const args = mergedArgs(target, commits, patterns);
+  if (args !== null) {
+    noteMerged(target, commits, await gitAsync(root, args));
+  }
+}
+
+/** Per braid with a braid branch: its number, that branch's tip and the tips of its strand branches among `refs`. */
+function strandTips(refs: readonly BranchRef[], braidTips: ReadonlyMap<string, string>): [string, string, string[]][] {
+  const out: [string, string, string[]][] = [];
+  for (const [number, tip] of braidTips) {
+    const commits = refs.filter((r) => r.letter !== null && r.number === number).map((r) => r.commit);
+    if (commits.length > 0) {
+      out.push([number, tip, commits]);
+    }
+  }
+  return out;
+}
+
+/** Reads every `brief.md` in these commits' trees that isn't cached yet, through one `git cat-file --batch`. */
+function prefetchBriefs(root: string, commits: readonly string[]): void {
+  const wanted = new Set<string>();
+  for (const commit of new Set(commits)) {
+    for (const list of folders(root, commit).values()) {
+      for (const e of list) {
+        if (!e.isDir && e.name === "brief.md" && !blobs.has(e.oid)) {
+          wanted.add(e.oid);
+        }
+      }
+    }
+  }
+  const ids = [...wanted];
+  catBatchSync(root, ids).forEach((text, i) => {
+    if (text !== null) {
+      blobs.set(ids[i] ?? "", text);
+    }
+  });
+}
+
 /** Per braid number or strand id, the branch to read: the newest commit, a local branch on a tie. */
 function winners(refs: readonly BranchRef[]): BranchRef[] {
   const best = new Map<string, BranchRef>();
@@ -233,8 +309,15 @@ export function loadLiveBraids(root: string, only?: string): Braid[] {
   // Only each item's newest copy is checked against HEAD: if it is merged, the older ones are too old.
   const newest = winners(braidBranches(root, only));
   const braidTips = new Map(newest.filter((r) => r.letter === null).map((r) => [r.number, r.commit]));
-  const refs = newest
-    .filter((ref) => head === null || !inHead(root, head, ref.commit))
+  if (head !== null) {
+    markMerged(root, head, newest.map((r) => r.commit), refPatterns(only));
+  }
+  const open = newest.filter((ref) => head === null || !inHead(root, head, ref.commit));
+  for (const [number, tip, commits] of strandTips(open, braidTips)) {
+    markMerged(root, tip, commits, strandPatterns(number));
+  }
+  prefetchBriefs(root, open.map((r) => r.commit));
+  const refs = open
     // A merged strand branch stays on the remote and can be older than its braid branch's copy: that copy wins.
     .filter((ref) => ref.letter === null || !inBraid(root, braidTips.get(ref.number), ref.commit));
   const tree = (ref: BranchRef) => gitTree(root, { branch: ref.branch, commit: ref.commit });
@@ -319,10 +402,12 @@ async function prefetchLive(root: string, only?: string): Promise<void> {
   const head = headResult.status === 0 ? headResult.stdout.trim() : null;
   const newest = winners(parseBranchRefs(listed.stdout, only));
   if (head !== null) {
+    await markMergedAsync(root, head, newest.map((r) => r.commit), refPatterns(only));
     await limited(newest, (ref) => inHeadAsync(root, head, ref.commit).then(() => undefined));
   }
   const braidTips = new Map(newest.filter((r) => r.letter === null).map((r) => [r.number, r.commit]));
   const open = newest.filter((ref) => head === null || !merged.get(`${ref.commit}:${head}`));
+  await limited(strandTips(open, braidTips), ([number, tip, commits]) => markMergedAsync(root, tip, commits, strandPatterns(number)));
   await limited(
     open.filter((ref) => ref.letter !== null && braidTips.has(ref.number)),
     (ref) => inHeadAsync(root, braidTips.get(ref.number) ?? "", ref.commit).then(() => undefined),
@@ -359,13 +444,14 @@ export async function loadLiveBraidsAsync(root: string, only?: string): Promise<
   return loadLiveBraids(root, only);
 }
 
+const PLAN_PATTERNS = ["refs/heads/plan/", "refs/remotes/*/plan/*"];
+
 /** Local and remote-tracking `plan/<slug>` branches (a planning branch's name holds no braid number). */
 function planBranches(root: string): { branch: string; commit: string; time: number; local: boolean }[] {
   const r = git(root, [
     "for-each-ref",
     "--format=%(refname)%00%(objectname)%00%(committerdate:unix)",
-    "refs/heads/plan/",
-    "refs/remotes/*/plan/*",
+    ...PLAN_PATTERNS,
   ]);
   if (r.status !== 0) {
     return [];
@@ -398,10 +484,13 @@ export function loadKnownBraids(root: string, only?: string): Braid[] {
   }
   const headResult = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
   const head = headResult.status === 0 ? headResult.stdout.trim() : null;
-  for (const ref of planBranches(root)) {
-    if (head !== null && inHead(root, head, ref.commit)) {
-      continue;
-    }
+  const plans = planBranches(root);
+  if (head !== null) {
+    markMerged(root, head, plans.map((r) => r.commit), PLAN_PATTERNS);
+  }
+  const unmerged = plans.filter((ref) => head === null || !inHead(root, head, ref.commit));
+  prefetchBriefs(root, unmerged.map((r) => r.commit));
+  for (const ref of unmerged) {
     const t = gitTree(root, { branch: ref.branch, commit: ref.commit });
     for (const entry of t.list("braids")) {
       const number = entry.isDir ? BRAID_FOLDER.exec(entry.name)?.[1] : undefined;

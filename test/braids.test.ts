@@ -150,7 +150,7 @@ test("usage errors exit 1", () => {
 test("a repository without braids/ has no braids", () => {
   const r = braid(repo({}), "list");
   assert.equal(r.status, 0);
-  assert.equal(r.stdout, "No braids.\n");
+  assert.equal(r.stdout, "No braids.\n\nInbox: 0 leftovers, 0 ideas\n");
 });
 
 test("CRLF briefs are read", () => {

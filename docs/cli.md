@@ -10,11 +10,11 @@ These are the commands `braid help` lists, in its order.
 
 | Command | What it does |
 | --- | --- |
-| `braid list` | List braids and their strands in run order: id, status, order and title, then `Inbox: <open> leftovers, <ideas> ideas` (counts only, from the local refs). |
-| `braid view <id>` | Show a braid (`0002`) or a strand (`0002/A`): fields, report, logs, strands and its brief. |
-| `braid new <title>` | Create a braid with the next free number. |
+| `braid list [--open]` | List braids and their strands in run order: id, status, order and title, then `Inbox: <open> leftovers, <ideas> ideas` (counts only, from the local refs). `--open`: every braid that is not Done, on any branch, with the start of its goal (`--no-fetch` skips the fetch). |
+| `braid view <id> [--links]` | Show a braid (`0002`) or a strand (`0002/A`): fields, report, logs, strands and its brief. `--links` adds `Linked from:`, the open braids whose `related` names this braid. |
+| `braid new <title>` | Create a braid with the next free number (`--related` sets its related braids). |
 | `braid strand new <braid> <title>` | Create a strand with the next free letter. |
-| `braid edit <id>` | Change `--status`, `--title`, `--labels`, `--dep`, `--order`, `--delivery` (`none` clears a list or the order). |
+| `braid edit <id>` | Change `--status`, `--title`, `--labels`, `--dep`, `--related`, `--order`, `--delivery` (`none` clears a list or the order). |
 | `braid brief <id> <section>` | Set a section of `brief.md` from `--file <path>`, `--file -` or `--text`. |
 | `braid log <id> <text>` | Append an entry to this thread's log and `git add` it (`--thread`, `--checkpoint`, `--file`). |
 | `braid report <id>` | Write `report.md` from `--file <path>`, `--file -` or `--text` (`--append` adds). |
@@ -44,7 +44,7 @@ These are the commands `braid help` lists, in its order.
 
 Options: `braid --version` prints the version; `braid --help` shows the help.
 
-`braid new` and `braid strand new` also take `--status`, `--labels`, `--dep`, `--order`, `--delivery` (braids), `--slug`, and `--no-fetch` (skip `git fetch` before choosing the number or letter).
+`braid new` and `braid strand new` also take `--status`, `--labels`, `--dep`, `--related` (braids), `--order`, `--delivery` (braids), `--slug`, and `--no-fetch` (skip `git fetch` before choosing the number or letter).
 
 ## Examples
 
@@ -52,6 +52,8 @@ Options: `braid --version` prints the version; `braid --help` shows the help.
 braid list          # braids and their strands, with status and run order
 braid view 0002     # one braid: fields, report, logs, strands and its brief
 braid view 0002/A   # one strand
+braid view 0002 --links   # also the open braids whose related names 0002
+braid list --open   # every unfinished braid on any branch, with its goal
 braid new 'Braids folder' --labels 'kind:story,tier:L'   # the next free number
 braid strand new 0002 'Read braids' --order 1           # the next free letter
 braid edit 0002/A --status 'In Progress'                # status, title, labels, dependencies, order, delivery
