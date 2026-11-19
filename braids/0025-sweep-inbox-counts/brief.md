@@ -1,7 +1,7 @@
 ---
 id: '0025'
 title: "Sweep: inbox counts"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S", "sweep"]
 dependencies: []
 delivery: epic
