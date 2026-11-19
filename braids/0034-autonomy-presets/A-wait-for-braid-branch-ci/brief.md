@@ -1,7 +1,7 @@
 ---
 id: '0034/A'
 title: "braid wait: a wait for the braid branch's CI that ends"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 order: 10
@@ -43,9 +43,17 @@ Expected size: about 180 lines in 6 files.
 
 ## Completion
 
-- [ ] `braid wait <number>` ends with exit 0, 1 or 2 as described, shown by tests with green, failing, still-running and never-started runs
-- [ ] A braid branch whose tip is a `braids/`-only commit waits on the commit before it (test)
-- [ ] The auto mode reference tells the coordinator to run it in the background and wait on it, and what each exit code means
-- [ ] The skill says when the coordinator may tell the user it is waiting
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid wait <number>` ends with exit 0, 1 or 2 as described, shown by tests with green, failing, still-running and never-started runs
+- [x] A braid branch whose tip is a `braids/`-only commit waits on the commit before it (test)
+- [x] The auto mode reference tells the coordinator to run it in the background and wait on it, and what each exit code means
+- [x] The skill says when the coordinator may tell the user it is waiting
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `src/commands/wait.ts`: parse `<number> [--timeout <minutes>]`; find the braid's branch `braid/<number>-<slug>` from its folder; fetch only that branch from `origin`; walk its first-parent history (up to 50 commits) to the newest commit whose diff against its first parent touches anything outside `braids/` and `epics/`; poll `gh api .../commits/<sha>/check-runs` (shared with `braid accept`, exported from `done.ts`) every 15 s for the `ci` names of BRAID.md. All finished and passing: exit 0, `green at <sha>`. All finished, some failing: exit 1 with their names. No run for any name after 5 minutes (or the timeout, if shorter): exit 2, "no CI run appeared". Timeout: exit 2 naming what is still running or not started. A usage or git error is exit 2 too, so exit 1 always means "CI failed". BRAID.md with no `ci` names: exit 0, nothing to wait for.
+2. `src/cli.ts`: dispatch `wait` with its own exit code; help line.
+3. `test/wait.test.ts`: a real repo with a bare remote, a fake `gh` and a fake clock: green, failing, still running (timeout), never started, braids-only tip, usage errors.
+4. Docs: `docs/cli.md`, `docs/braids-format.md`, `docs/decisions.md` (D65).
+5. Skill: `auto-mode.md` "Merging" step 4; `SKILL.md` "Talking to the user" one line.

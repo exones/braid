@@ -103,7 +103,7 @@ export interface CheckHistory {
 const LOOKBACK = 30;
 
 /** The `ci` checks of one commit as a rollup, or null when GitHub can't say. */
-function commitChecks(h: CheckHistory, sha: string): PrView["statusCheckRollup"] | null {
+export function commitChecks(h: CheckHistory, sha: string): PrView["statusCheckRollup"] | null {
   const r = h.run(h.root, ["api", `repos/{owner}/{repo}/commits/${sha}/check-runs`]);
   if (r.error !== undefined || r.status !== 0) {
     return null;
