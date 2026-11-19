@@ -295,7 +295,7 @@ export function laneOfLanes(lanes: readonly Lane[]): Lane {
   return URGENCY.find((lane) => lanes.includes(lane)) ?? "To Do";
 }
 
-/** The thread to open for an item: a worker's, else a reviewer's. */
+/** The thread to open for an item: a running worker's; a subagent reviewer has no link of its own (it shows inside its coordinator's thread). */
 export function threadLink(agents: readonly T3Thread[]): string | null {
   return pickThread(agents)?.link ?? null;
 }
@@ -439,7 +439,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
   let own: { lane: Lane; reason: Reason | null; need: Need | null; agents?: readonly T3Thread[]; activity?: Activity | null } | null = null;
   if (finalPr) {
-    // The braid's reviewers (`<n>-review`) are its agents in wrap-up; the coordinator never counts.
+    // The braid's recorded reviewers (`braid review <n>`) are its agents in wrap-up; the coordinator never counts.
     const reviewers = (t3.threads.get(braid.number) ?? []).filter((t) => t.role === "reviewer");
     own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, { status: t3.status, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []) }, sig);
   } else if (req !== undefined && pr?.state !== "merged") {

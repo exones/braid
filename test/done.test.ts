@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-done-test-"));
 after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
-// braid worktrees live in `<worktrees>/<repo>/<NNNN>[-<L>][-review]`; a thread shown elsewhere is no agent of an item.
+// braid worktrees live in `<worktrees>/<repo>/<NNNN>[-<L>]`; a thread shown elsewhere is no worker of an item.
 process.env.BRAID_WORKTREES_DIR = join(scratch, "worktrees");
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);

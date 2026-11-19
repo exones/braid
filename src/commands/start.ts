@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import type { BranchRef } from "../braids/branches.js";
 import { closeRequest } from "../braids/requests.js";
-import { repoNameOf, reviewFolder, workFolder, worktreesDir } from "../braids/worktrees.js";
+import { repoNameOf, workFolder, worktreesDir } from "../braids/worktrees.js";
 import { UsageError } from "./braids.js";
 import { notReady, read, type Sources, type World } from "./coordinate.js";
 
@@ -46,13 +46,17 @@ function tip(refs: readonly BranchRef[]): BranchRef | undefined {
   return [...refs].sort((a, b) => b.time - a.time || Number(b.local) - Number(a.local))[0];
 }
 
-function parse(args: readonly string[]): { number: string; letter: string | null; force: boolean; review: boolean } {
-  const ids = args.filter((a) => a !== "--force" && a !== "--review");
+function parse(args: readonly string[]): { number: string; letter: string | null; force: boolean } {
+  if (args.includes("--review")) {
+    // Removed in 0039: a reviewer is a T3 subagent in a checkout T3 makes.
+    throw new UsageError("braid start has no --review option: a reviewer runs as a T3 subagent in its own checkout; record its thread with braid review <id> --thread <thread id>. Nothing was created");
+  }
+  const ids = args.filter((a) => a !== "--force");
   const m = ids.length === 1 ? /^(\d{1,4})(?:\/([A-Z]))?$/.exec(ids[0] ?? "") : null;
   if (m === null) {
-    throw new UsageError("usage: braid start <id> [--force | --review]  (a strand like 0008/B, or a braid without strands like 0008; --review checks out the open PR's head for the reviewer)");
+    throw new UsageError("usage: braid start <id> [--force]  (a strand like 0008/B, or a braid without strands like 0008)");
   }
-  return { number: (m[1] ?? "").padStart(4, "0"), letter: m[2] ?? null, force: args.includes("--force"), review: args.includes("--review") };
+  return { number: (m[1] ?? "").padStart(4, "0"), letter: m[2] ?? null, force: args.includes("--force") };
 }
 
 function target(w: World, letter: string | null): { branch: string; slug: string; folder: string; why: string | null } {
@@ -76,11 +80,8 @@ function target(w: World, letter: string | null): { branch: string; slug: string
 }
 
 export async function startCommand(root: string, args: readonly string[], src: Sources = {}, env: NodeJS.ProcessEnv = process.env): Promise<string> {
-  const { number, letter, force, review } = parse(args);
+  const { number, letter, force } = parse(args);
   const w = await read(root, number, "start", src);
-  if (review) {
-    return startReview(root, w, number, letter, env);
-  }
   const t = target(w, letter);
   const id = letter === null ? number : `${number}/${letter}`;
   if (t.why !== null && !force) {
@@ -139,33 +140,4 @@ function startOnExisting(root: string, id: string, ref: BranchRef, folder: strin
   closeRequest(root, id);
   const commit = must(folder, ["rev-parse", "HEAD"], "can't read the new worktree");
   return `branch ${name} (existing)\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n`;
-}
-
-/** `braid start <id> --review`: the reviewer's detached checkout of the open PR's head, in `<number>-<letter>-review`. Starts no agent; the item's worker and branch are left alone. */
-function startReview(root: string, w: World, number: string, letter: string | null, env: NodeJS.ProcessEnv): string {
-  const id = letter === null ? number : `${number}/${letter}`;
-  // A braid with strands has its own PR only at the end: the final PR, which reads open once every strand is merged.
-  if (letter === null && w.braid.strands.length > 0 && w.card.pr?.state !== "open") {
-    throw new UsageError(`${number} has strands and no open final PR: review a strand (braid start ${number}/<letter> --review)`);
-  }
-  const card = letter === null ? w.card : w.card.strands.find((s) => s.id === id);
-  if (card === undefined) {
-    throw new UsageError(`no strand ${id}`);
-  }
-  if (card.pr?.state !== "open") {
-    throw new UsageError(`${id} has no open PR to review; nothing was created`);
-  }
-  const ref = tip(w.refs.filter((r) => r.number === number && r.letter === letter));
-  if (ref === undefined) {
-    throw new UsageError(`${id} has no branch, local or pushed; nothing was created`);
-  }
-  const folder = join(worktreesDir(env), repoName(root), reviewFolder(number, letter));
-  if (existsSync(folder)) {
-    throw new UsageError(`${folder} already exists; nothing was created`);
-  }
-  const remote = `refs/remotes/${REMOTE}/${ref.branch}`;
-  must(root, ["fetch", REMOTE, `+refs/heads/${ref.branch}:${remote}`], `can't fetch ${ref.branch} from ${REMOTE}; nothing was created`);
-  const commit = must(root, ["rev-parse", "--verify", `${remote}^{commit}`], `can't read ${ref.branch}`);
-  must(root, ["worktree", "add", "--detach", folder, commit], "the review checkout failed");
-  return [`review checkout of PR #${card.pr.number} (${ref.branch})`, `commit ${commit}`, `folder ${isAbsolute(folder) ? folder : resolve(folder)}`, ""].join("\n");
 }

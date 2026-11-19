@@ -9,6 +9,8 @@ import { UsageError } from "./braids.js";
 import { readGithub, runGh, type Github } from "../board/github.js";
 import { read, type Sources } from "./coordinate.js";
 import { reviewFolder } from "../braids/worktrees.js";
+import { dropReviews, loadReviews } from "../braids/reviews.js";
+import { runT3, showThread, type T3Runner } from "../board/t3.js";
 import { repoName, worktreesDir } from "./start.js";
 
 interface Worktree {
@@ -99,6 +101,89 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
   }
 }
 
+/**
+ * The recorded review threads of a merged item (`braid review`). A record holds the folder and branch T3 gave for the reviewer's checkout
+ * when it was recorded; they are removed when the folder is a registered worktree of this repository (not the main checkout, not this one)
+ * and T3 doesn't say the thread runs (a thread T3 doesn't know counts as not running); then the record goes. A branch is deleted
+ * only when it is a `t3/…` branch, with `git branch -d`. A record without a folder (T3 gave none when it was recorded, or an older record) falls
+ * back to T3: its `worktreePath` and `branch`, only for a subagent's thread; one T3 doesn't know loses its record. When T3 can't be
+ * read, everything is kept.
+ */
+async function reviewThreads(root: string, yes: boolean, id: string, pr: number, t3Ok: boolean, run: T3Runner, listed: readonly Worktree[], here: string, lines: string[]): Promise<void> {
+  const records = loadReviews(root).filter((r) => r.id === id);
+  const main = listed[0] === undefined ? null : norm(listed[0].path);
+  const drop: string[] = [];
+  for (const r of records) {
+    const label = `${id}: review thread ${r.thread}`;
+    if (!t3Ok) {
+      lines.push(`skip ${label}: T3 could not be read, so its checkout is kept`);
+      continue;
+    }
+    const where = await showThread(run, root, r.thread);
+    let folder: string | null;
+    let rawBranch: string | null;
+    let skip: string | null = null;
+    if (r.folder !== undefined) {
+      folder = r.folder;
+      rawBranch = r.branch ?? null;
+    } else {
+      if (where === null) {
+        lines.push(`${yes ? "dropped" : "would drop"} the record of ${label}: T3 doesn't know the thread`);
+        drop.push(r.thread);
+        continue;
+      }
+      folder = where.worktreePath;
+      rawBranch = where.branch;
+      if (where.relationshipToParent === null) {
+        skip = "T3 says it is not a subagent's thread";
+      }
+    }
+    const tree = folder === null ? undefined : listed.find((t) => norm(t.path) === norm(folder as string));
+    const branch = rawBranch !== null && rawBranch.startsWith("t3/") ? rawBranch : null;
+    const what = `${label}: ${folder === null ? "no checkout" : `checkout ${folder}`}${branch === null ? "" : ` and branch ${branch}`} (PR #${pr} merged)`;
+    if (skip !== null) {
+      // set above
+    } else if (where?.status === "running") {
+      skip = "still running";
+    } else if (folder !== null && tree === undefined && existsSync(folder)) {
+      skip = "the folder is not a worktree of this repository";
+    } else if (tree !== undefined && norm(tree.path) === main) {
+      skip = "it is the main checkout";
+    } else if (tree !== undefined && norm(tree.path) === here) {
+      skip = "checked out in this checkout";
+    } else if (tree !== undefined && yes && existsSync(tree.path) && !free(tree.path)) {
+      skip = "still in use, retry later";
+    }
+    if (skip !== null) {
+      lines.push(`skip ${what}: ${skip}`);
+      continue;
+    }
+    if (!yes) {
+      lines.push(`would remove ${what}`);
+      continue;
+    }
+    if (tree !== undefined && existsSync(tree.path)) {
+      const rm = git(root, ["worktree", "remove", tree.path]);
+      if (rm.status !== 0) {
+        lines.push(`skip ${what}: not removed (${(rm.stderr || rm.stdout).trim().split("\n")[0] ?? ""})`);
+        continue;
+      }
+    } else if (tree !== undefined) {
+      git(root, ["worktree", "prune"]);
+    }
+    let note = "";
+    if (branch !== null && git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).status === 0) {
+      const b = git(root, ["branch", "-d", branch]);
+      note = b.status === 0 ? "" : `; kept branch ${branch}: not fully merged here (${(b.stderr || b.stdout).trim().split("\n")[0] ?? ""})`;
+    }
+    lines.push(`removed ${what}${note}`);
+    drop.push(r.thread);
+  }
+  if (yes) {
+    dropReviews(root, id, drop);
+  }
+}
+
 export async function cleanCommand(root: string, args: readonly string[], src: Sources = {}, env: NodeJS.ProcessEnv = process.env): Promise<string> {
   const yes = args.includes("--yes");
   const ids = args.filter((a) => a !== "--yes");
@@ -129,7 +214,8 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
       if (item.card.pr?.state !== "merged") {
         continue;
       }
-      // The reviewer's detached checkout of the PR head (`braid start <id> --review`) goes with the merged item.
+      await reviewThreads(root, yes, item.id, item.card.pr.number, w.t3.status.state === "ok", src.t3 ?? runT3, listed, here, lines);
+      // A leftover reviewer checkout from before 0039 (`braid start <id> --review`, detached at the PR head) goes with the merged item.
       const revPath = norm(join(mine, reviewFolder(number, item.letter)));
       const rev = listed.find((t) => norm(t.path) === revPath);
       if (rev !== undefined) {

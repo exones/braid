@@ -7,7 +7,7 @@ import { after, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-coordinate-"));
-// braid's worktrees are `<worktrees>/<repo>/<NNNN>[-<L>][-review]`: that is where an agent of an item lives.
+// braid's worktrees are `<worktrees>/<repo>/<NNNN>[-<L>]`: that is where a worker of an item lives.
 process.env.BRAID_WORKTREES_DIR = join(scratch, "worktrees");
 const at = (root: string, folder: string) => join(process.env.BRAID_WORKTREES_DIR as string, basename(root), folder);
 after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));

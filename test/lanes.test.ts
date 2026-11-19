@@ -86,7 +86,7 @@ test("an agent's pending question is Needs You", () => {
   assert.deepEqual([d.lane, d.reason, d.need?.kind], ["Waiting", "question", "question"]);
 });
 
-test("review running on a reviewer checkout is Working, with a review mark", () => {
+test("a running reviewer (a recorded subagent) is Working, with a review mark", () => {
   const d = lane("In Progress", gh(pr("open", "failing", ["verify"])), t3([thread("reviewer")]), sig([], { [`${KEY} checks failed`]: 30 }));
   assert.deepEqual([d.lane, d.activity], ["In Progress", "review"]); // an agent of the item runs: no alarm, however long
   assert.equal(lane("To Do", gh(null), t3([thread("reviewer")]), sig()).lane, "In Progress");

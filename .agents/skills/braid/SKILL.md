@@ -67,7 +67,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    Brief: `braid view <id>`. Branch: <branch> at <short sha>. Open the PR into <base branch>.
    Send your result to thread <your thread id>. Your thread id: <worker thread id>.
    ```
-3. **Wait.** After launching a worker or reviewer, or sending it fixes, call `t3_thread_wait` on its thread; it returns when the run ends, and at once on an idle thread. If no report arrived, read the thread's last message and `gh pr checks`:
+3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. If no report arrived, read the thread's last message and `gh pr checks`:
    - CI pending: make sure your watch is on, then end your turn; the watch wakes you.
    - Green: take the result from the thread and continue.
    - The PR is already merged: the item is done.
@@ -100,17 +100,18 @@ When the worker reports green:
 
 1. **Review** by tier (workflow, "Tiers").
    - S: read the diff yourself.
-   - M and L: run `braid start <id> --review` and launch an independent reviewer as a top-level thread on the folder it prints, with `title` the output of `braid title <id> --role review`, its model and the first message below (add the `SKILL.md` path if needed). Wait as in "Run an item" step 3.
-   - L, when blocking fixes substantially changed failure or recovery behavior: have the reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its first message.
-   - Use a fresh review task when the host requires it; never resume a delegated reviewer with `t3_thread_send`.
-   - Every reviewer you launch (first review, re-check or fresh review task): call `link_pull_request` with the PR URL and `threadId` set to that reviewer's thread (for a delegated task, its child thread).
+   - M and L: launch an independent reviewer as a subagent: `delegate_task` with `role: review`, `isolation: worktree`, `mode: async`, the reviewer model from `BRAID.md` as `target` (`providerInstanceId`, `model`, `options`), `title` the output of `braid title <id> --role review` and the first message below as `task` (add the `SKILL.md` path if needed). T3 makes its checkout. A model or provider T3 can't run as a child: tell the user; never substitute another.
+   - Right after it, run `braid review <id> --thread <child thread id>`: it records the thread with the checkout T3 gives for it, so the board shows the review and `braid clean` removes that checkout after the merge. Then call `link_pull_request` with the PR URL and `threadId` set to the child thread.
+   - **Wait** as the task's `next` says: end your turn, and take the reviewer's report when T3 delivers the result. Never poll it.
+   - No result, an empty one, or a failed run: read the PR's newest review comment at that head (`gh pr view <pr> --comments`). Without one, start one fresh task with the same model and settings; if that fails too, `braid ask <id> "<what is needed>" --key quality`, naming the error (stop-case options).
+   - L, when blocking fixes substantially changed failure or recovery behavior: have a reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its first message.
+   - A re-check or a second round is a fresh task, launched and recorded the same way; never resume a delegated reviewer with `t3_thread_send`.
    - Send blocking findings, and small factual errors in docs, to the same worker to fix on the same PR; route non-blocking ones by the table (workflow, "Gaps and the inbox").
    - Still blocking after two fix rounds: add the `ask:quality` label to the item (`braid edit <id> --labels`, repeating the others).
 
    ```text
    You are the braid reviewer for <id>. Use the braid-reviewer skill (sibling folder of the braid skill).
    PR: <url>, head commit <sha>. Focus: <what matters most here>.
-   Send your result to thread <your thread id>.
    ```
 2. **Facts.** When nothing blocking remains, run `braid facts <pr>` and judge its facts against the [stop cases](references/stop-cases.md).
 3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. You don't re-run the gate or download artifacts.
@@ -120,8 +121,8 @@ When the worker reports green:
    - A story: first run `braid accept <id> --head <reviewed sha> --review <link> --thread <your thread id>`; when the new head it prints is green, hand that head over the same way.
    - You merge only under "Merge on request" or "Auto mode".
 6. **After the merge**, once `gh pr list --state all` shows the PR merged:
-   1. Interrupt the worker's thread if still running (`t3_thread_interrupt`; for a delegated run `task_cancel`, never its child thread ID).
-   2. Run `braid clean --yes` to remove the item's worktree and branch.
+   1. Interrupt the worker's thread if still running (`t3_thread_interrupt`), and `task_cancel` a reviewer task that still runs (never `t3_thread_interrupt` on its child thread).
+   2. Run `braid clean --yes` to remove the item's worktree and branch and its reviewers' checkouts. A reviewer's folder still in use is kept and named; run it again later.
    3. For a strand, on the braid branch, run `braid accept <id> --review <link> --thread <your thread id> --log -` with the braid's log entry on standard input; it commits as `docs(braids): <id> done`. Skip this when the merge ran through `braid accept --merge`, which did it.
    4. Fix any item that hasn't started and that the entry makes wrong, as in "Adjusting the plan".
    5. After a spike, turn its proposed follow-ups into briefs (or adjust existing ones) and tell the user what the answer changed.

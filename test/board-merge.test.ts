@@ -108,7 +108,7 @@ function variant(change: (r: Request) => void, pr?: (p: Pr) => void): Sources {
 
 test("open thread: cards and strand rows with a thread carry its link, the others none", () => {
   assert.equal(find("0002/A").thread, "https://t3.example/thread/demo-1");
-  assert.equal(find("0010/A").thread, "https://t3.example/thread/demo-5");
+  assert.equal(find("0010/A").thread, null, "a subagent reviewer has no thread of its own to open");
   assert.equal(find("0001/C").thread, null);
   assert.equal(find("0001/B").thread, null);
   const role = (id: string) => (find(id) as unknown as { threadRole: string | null }).threadRole;
