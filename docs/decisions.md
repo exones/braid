@@ -89,6 +89,7 @@ The user confirmed using npm directly. Public packages can use npm's free tier; 
 
 ## Decision log
 
+- 2026-11-19, user (0041): the board shows a braid number in full with the significant digits bold (`00`**`34`**`/A`), and the Open thread and Coordinator buttons show the thread-title role emojis (🧠, 💻, 👀) instead of icons, emoji only on a phone too (no words, 44 px), so the board reads like the thread titles. Documented in [docs/board.md](board.md).
 - 2026-11-19, user (0037): adopted D66, the coordinator asks with the question tool and an option set per kind of stop (handover, plan, planning PR, decision, stop case), only when the turn waits for the user alone. D65 is left to braid 0034, whose branch already uses it.
 - 2026-11-18, user (0028 plan, built in 0028/A and 0028/B): adopted D64, the board answers from a snapshot read in the background, and its reads are batched and asynchronous.
 - 2026-11-18, user (0030): adopted D63, the compact Coordinator button on braids and the removal of the braid-level Open thread on a braid with strands (losing the final-PR reviewer link was accepted).
