@@ -76,7 +76,8 @@ test("a checkout named agento whose origin is braid.git: titles with either name
   const run = (_r: string, args: readonly string[]) => Promise.resolve({ status: 0, stdout: args[1] === "list" ? JSON.stringify(listed) : "{}", stderr: "" });
   const read = await t3.readT3(root, { run, ttlMs: 0, agents: join(parent, "agents"), project: root });
   assert.deepEqual([...read.coordinators.keys()], ["0009", "0010"]);
-  assert.deepEqual([...read.idle].map(([k, v]) => [k, v.map((t) => t.id)]), [["0009", ["w1"]], ["0009/D", ["w2"]], ["0009/F", ["r1"]]]);
+  // A thread titled as a review is no item's thread: reviewers are subagents recorded with braid review (0039).
+  assert.deepEqual([...read.idle].map(([k, v]) => [k, v.map((t) => t.id)]), [["0009", ["w1"]], ["0009/D", ["w2"]]]);
   // The role comes from the title with or without the emoji, and the Open thread button draws its emoji from it.
-  assert.deepEqual([...read.idle].map(([k, v]) => [k, v.map((t) => t.role)]), [["0009", ["worker"]], ["0009/D", ["worker"]], ["0009/F", ["reviewer"]]]);
+  assert.deepEqual([...read.idle].map(([k, v]) => [k, v.map((t) => t.role)]), [["0009", ["worker"]], ["0009/D", ["worker"]]]);
 });
