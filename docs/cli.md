@@ -14,12 +14,13 @@ These are the commands `braid help` lists, in its order.
 | `braid view <id>` | Show a braid (`0002`) or a strand (`0002/A`): fields, report, logs, strands and its brief. |
 | `braid new <title>` | Create a braid with the next free number. |
 | `braid strand new <braid> <title>` | Create a strand with the next free letter. |
-| `braid edit <id>` | Change `--status`, `--title`, `--labels`, `--dep`, `--order`, `--delivery` (`none` clears a list or the order). |
+| `braid edit <id>` | Change `--status`, `--title`, `--labels`, `--dep`, `--related`, `--order`, `--delivery`, `--autonomy` (`none` clears a list, the order or the preset). |
+| `braid autonomy <number>` | Print the [autonomy preset](autonomy.md) a braid runs on: its name, where the name comes from (the brief, `BRAID.md` or the built-in default), where the text comes from (`autonomy/<name>.md` or shipped with braid), the preset's text and then the brief's `## Autonomy` section under `This braid:`. `--list` names the presets available here and marks the project default. |
 | `braid brief <id> <section>` | Set a section of `brief.md` from `--file <path>`, `--file -` or `--text`. |
 | `braid log <id> <text>` | Append an entry to this thread's log and `git add` it (`--thread`, `--checkpoint`, `--file`). |
 | `braid report <id>` | Write `report.md` from `--file <path>`, `--file -` or `--text` (`--append` adds). |
 | `braid import-backlog` | Turn Backlog.md `backlog/` tasks into `braids/` (`--dry-run` prints only; `backlog/` is never touched). |
-| `braid check` | Check every brief under `braids/`; list each error with its file (exit 2 on any). |
+| `braid check` | Check every brief under `braids/` and the autonomy presets; list each error with its file (exit 2 on any). |
 | `braid status <number>` | One line per strand: status, lane (as the board shows it), `ask:<key>`, branch, PR, `ci` checks, T3 thread, and the request text of an item on your side. Reads GitHub and T3, no fetch. |
 | `braid next <number>` | The next strand to run, or why none is ready. |
 | `braid start <id> [--force\|--review]` | Create the strand branch from its braid branch, push it and add a worktree; a planned story whose branch already exists gets its worktree on it (`--force` skips the ready check); `--review` makes a detached checkout of the open PR head for the reviewer. |
@@ -45,7 +46,7 @@ These are the commands `braid help` lists, in its order.
 
 Options: `braid --version` prints the version; `braid --help` shows the help.
 
-`braid new` and `braid strand new` also take `--status`, `--labels`, `--dep`, `--order`, `--delivery` (braids), `--slug`, and `--no-fetch` (skip `git fetch` before choosing the number or letter).
+`braid new` and `braid strand new` also take `--status`, `--labels`, `--dep`, `--order`, `--related`, `--delivery` and `--autonomy` (braids), `--slug`, and `--no-fetch` (skip `git fetch` before choosing the number or letter).
 
 ## Examples
 
@@ -56,6 +57,8 @@ braid view 0002/A   # one strand
 braid new 'Braids folder' --labels 'kind:story,tier:L'   # the next free number
 braid strand new 0002 'Read braids' --order 1           # the next free letter
 braid edit 0002/A --status 'In Progress'                # status, title, labels, dependencies, order, delivery
+braid edit 0002 --autonomy steady                       # the braid runs on the steady preset; none goes back to the project default
+braid autonomy 0002                                     # the preset 0002 runs on, where it comes from, and its text
 braid brief 0002 Goal --file goal.md                    # set a section; --file - reads standard input
 braid log 0002/A --thread mcp:launch:5d80964a 'Parser done'   # a dated entry in that thread's log file, staged with git add
 braid log 0002/A --checkpoint 'Paused after the parser'       # a checkpoint entry; no thread: the log-<date>-user.md file

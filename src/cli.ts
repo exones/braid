@@ -18,6 +18,7 @@ import { waitCommand } from "./commands/wait.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
 import { answerCommand, askCommand, handoverCommand, requestsCommand } from "./commands/requests.js";
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
+import { autonomyCommand } from "./commands/autonomy.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
 export function readVersion(): string {
@@ -46,7 +47,8 @@ export function helpText(version: string): string {
     "  new <title>                 Create a braid with the next free number",
     "  strand new <braid> <title>  Create a strand with the next free letter",
     "  title <id> --role <role>    Print the thread title for an item: <emoji> <repo> <id> <role>: <title> (role coordinator, worker, review or research)",
-    "  edit <id>                   Change --status, --title, --labels, --dep, --related, --order, --delivery (none clears a list or the order)",
+    "  edit <id>                   Change --status, --title, --labels, --dep, --related, --order, --delivery, --autonomy (none clears a list, the order or the preset)",
+    "  autonomy <number>           Print the autonomy preset a braid runs on, where its name and text come from, and the brief's ## Autonomy section (--list: the presets available here)",
     "  brief <id> <section>        Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
@@ -79,7 +81,7 @@ export function helpText(version: string): string {
     "  --version                   Print the version",
     "  --help                      Show this help",
     "",
-    "new and strand new also take --status, --labels, --dep, --order, --related and --delivery (braids),",
+    "new and strand new also take --status, --labels, --dep, --order, --related, --delivery and --autonomy (braids),",
     "--slug, and --no-fetch (skip git fetch before choosing the number or letter).",
     "",
   ].join("\n");
@@ -96,10 +98,12 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
+const BRAID_COMMANDS = new Set(["autonomy", "note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
+    case "autonomy":
+      return autonomyCommand(root, args);
     case "note":
       return noteCommand(root, cwd, args);
     case "inbox":
