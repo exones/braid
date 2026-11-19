@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, beforeEach, test } from "node:test";
@@ -113,7 +113,8 @@ test("braid review records a thread in .braid/ of the main checkout, adds a seco
   git(root, "worktree", "add", "-q", "--detach", inner);
   reviewCommand(inner, ["0001/B", "--thread", child(2)]);
   reviewCommand(root, ["1", "--thread", child(3)]);
-  assert.equal(reviewsFile(inner), join(root, ".braid", "reviews.json"));
+  // Compared as real paths: on Windows CI the temp folder is a short (8.3) name and Git gives the long one.
+  assert.equal(realpathSync.native(dirname(reviewsFile(inner))), realpathSync.native(join(root, ".braid")));
   assert.deepEqual(loadReviews(root).map((r) => [r.id, r.thread]), [["0001/B", child(1)], ["0001/B", child(2)], ["0001", child(3)]]);
   assert.equal(loadReviews(root)[0]?.at, "2026-11-19T10:00:00.000Z");
   assert.equal(JSON.parse(readFileSync(join(root, ".braid", "reviews.json"), "utf8")).length, 3);
