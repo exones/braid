@@ -1,0 +1,151 @@
+// `braid wait <number> [--timeout <minutes>]`: waits for the braid branch's CI after a merge the coordinator
+// made itself, where no PR is left to watch (decision D65). It reads only: one fetch of the braid branch, then
+// GitHub's check runs on the newest commit that changes anything outside `braids/` and `epics/` (the CI
+// workflow's push `paths-ignore`; a commit with only those changes starts no run). The exit code is the answer:
+// 0 green, 1 a `ci` check failed, 2 no answer (timeout, no run, or an error).
+import { braidBranches } from "../braids/branches.js";
+import { loadBraids } from "../braids/store.js";
+import { runGh, type GhRunner } from "../board/github.js";
+import { UsageError } from "./braids.js";
+import { ciChecks } from "./coordinate.js";
+import { commitChecks, git } from "./done.js";
+import { parse, str } from "./edit.js";
+
+const REMOTE = "origin";
+/** How far back the walk looks for a commit CI runs on. */
+const LOOKBACK = 50;
+const POLL_MS = 15_000;
+/** How long a commit may show no run at all before the wait gives up on it. */
+const START_MS = 5 * 60_000;
+
+export interface WaitOptions {
+  readonly gh?: GhRunner;
+  readonly sleep?: (ms: number) => Promise<void>;
+  readonly now?: () => number;
+}
+
+export interface WaitResult {
+  /** 0 green, 1 failed, 2 no answer. */
+  readonly code: 0 | 1 | 2;
+  readonly stdout: string;
+}
+
+const usage = "usage: braid wait <number> [--timeout <minutes>]  (a braid number like 0008)";
+
+/** The newest commit on the first-parent line of `ref` whose diff against its first parent touches a file outside `braids/` and `epics/`, with the braids-only commits skipped on the way. */
+function ciCommit(root: string, ref: string): { sha: string; skipped: string[] } | null {
+  const list = git(root, ["rev-list", "--first-parent", `--max-count=${LOOKBACK}`, "--parents", ref]);
+  if (list.status !== 0) {
+    throw new UsageError(`can't read ${ref}: ${list.stderr.trim()}`);
+  }
+  const skipped: string[] = [];
+  for (const line of list.stdout.split(/\r?\n/).filter((l) => l !== "")) {
+    const [sha = "", parent] = line.split(" ");
+    if (parent === undefined) {
+      return { sha, skipped };
+    }
+    const files = git(root, ["diff", "--name-only", parent, sha]);
+    if (files.status !== 0) {
+      throw new UsageError(`can't read the changes of ${sha.slice(0, 7)}: ${files.stderr.trim()}`);
+    }
+    if (files.stdout.split(/\r?\n/).some((f) => f !== "" && !f.startsWith("braids/") && !f.startsWith("epics/"))) {
+      return { sha, skipped };
+    }
+    skipped.push(sha);
+  }
+  return null;
+}
+
+/** Passing only on success, neutral or skipped; any other finished run (cancelled, timed out, action required, stale) fails. */
+const PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);
+
+type Result = "passing" | "failing" | "pending" | "missing";
+
+function resultOf(rollup: ReturnType<typeof commitChecks>, name: string): Result {
+  const c = (rollup ?? []).find((r) => r.name === name);
+  if (c === undefined) {
+    return "missing";
+  }
+  if ((c.status ?? "COMPLETED") !== "COMPLETED") {
+    return "pending";
+  }
+  return PASSED.has(c.conclusion ?? "") ? "passing" : "failing";
+}
+
+/** The braid's branch: the one of the braid in this checkout, else the only braid branch with that number. */
+function braidBranch(root: string, number: string): string {
+  const here = loadBraids(root).find((b) => b.number === number);
+  if (here !== undefined) {
+    return `braid/${number}-${/^braids\/\d{4}-(.+)$/.exec(here.folder)?.[1] ?? ""}`;
+  }
+  const names = [...new Set(braidBranches(root, number).filter((r) => r.letter === null).map((r) => (r.local ? r.branch : r.branch.slice(r.branch.indexOf("/") + 1))))].sort();
+  if (names.length > 1) {
+    throw new UsageError(`braid ${number} has several branches (${names.join(", ")}); run braid wait in a checkout of the one you mean`);
+  }
+  if (names[0] === undefined) {
+    throw new UsageError(`no braid ${number}`);
+  }
+  return names[0];
+}
+
+const realSleep =(ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+export async function waitCommand(root: string, args: readonly string[], opts: WaitOptions = {}): Promise<WaitResult> {
+  const { positionals, values } = parse("braid wait", args, { timeout: { type: "string" } });
+  const m = positionals.length === 1 ? /^(\d{1,4})$/.exec(positionals[0] ?? "") : null;
+  if (m === null) {
+    throw new UsageError(usage);
+  }
+  const number = (m[1] ?? "").padStart(4, "0");
+  const rawTimeout = str(values, "timeout") ?? "30";
+  const minutes = Number(rawTimeout);
+  if (!/^\d+(\.\d+)?$/.test(rawTimeout) || !(minutes > 0)) {
+    throw new UsageError(`--timeout needs a number of minutes above 0; got: ${rawTimeout}`);
+  }
+  const branch = braidBranch(root, number);
+  const names = ciChecks(root);
+  if (names.length === 0) {
+    return { code: 0, stdout: `BRAID.md names no ci checks; nothing to wait for on ${branch}\n` };
+  }
+  const fetched = git(root, ["fetch", "-q", REMOTE, `+refs/heads/${branch}:refs/remotes/${REMOTE}/${branch}`]);
+  if (fetched.status !== 0) {
+    throw new UsageError(`can't fetch ${branch} from ${REMOTE}: ${fetched.stderr.trim().split("\n")[0] ?? ""}`);
+  }
+  const found = ciCommit(root, `${REMOTE}/${branch}`);
+  if (found === null) {
+    throw new UsageError(`no commit with changes outside braids/ and epics/ in the last ${LOOKBACK} commits of ${branch}`);
+  }
+  const sha = found.sha;
+  const short = sha.slice(0, 7);
+  const head = found.skipped.length === 0 ? "" : `tip ${found.skipped[0]?.slice(0, 7) ?? ""} of ${branch} only changes braids/ or epics/; CI runs on ${short}\n`;
+
+  const run = opts.gh ?? runGh;
+  const sleep = opts.sleep ?? realSleep;
+  const now = opts.now ?? Date.now;
+  const start = now();
+  const until = start + minutes * 60_000;
+  const noRunUntil = start + Math.min(START_MS, minutes * 60_000);
+  for (;;) {
+    const rollup = commitChecks({ root, run }, sha);
+    const state = names.map((n) => ({ name: n, result: resultOf(rollup, n) }));
+    if (state.every((s) => s.result === "passing")) {
+      return { code: 0, stdout: `${head}green at ${short} on ${branch}: ${names.join(", ")}\n` };
+    }
+    if (state.every((s) => s.result === "passing" || s.result === "failing")) {
+      const failed = state.filter((s) => s.result === "failing").map((s) => s.name);
+      return { code: 1, stdout: `${head}failed at ${short} on ${branch}: ${failed.join(", ")}\n` };
+    }
+    const t = now();
+    if (state.every((s) => s.result === "missing") && t >= noRunUntil) {
+      const why = rollup === null ? "GitHub could not be read" : "no run appeared";
+      return { code: 2, stdout: `${head}${why} for ${names.join(", ")} at ${short} on ${branch} after ${Math.round((t - start) / 60_000)} minutes\n` };
+    }
+    if (t >= until) {
+      const pending = state.filter((s) => s.result === "pending").map((s) => s.name);
+      const missing = state.filter((s) => s.result === "missing").map((s) => s.name);
+      const parts = [pending.length > 0 ? `still running: ${pending.join(", ")}` : "", missing.length > 0 ? `not started: ${missing.join(", ")}` : ""].filter((p) => p !== "");
+      return { code: 2, stdout: `${head}timed out after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}\n` };
+    }
+    await sleep(POLL_MS);
+  }
+}

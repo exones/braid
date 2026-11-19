@@ -14,6 +14,7 @@ import { nextCommand, statusCommand } from "./commands/coordinate.js";
 import { cleanCommand } from "./commands/clean.js";
 import { startCommand } from "./commands/start.js";
 import { acceptCommand } from "./commands/done.js";
+import { waitCommand } from "./commands/wait.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
 import { answerCommand, askCommand, handoverCommand, requestsCommand } from "./commands/requests.js";
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
@@ -55,6 +56,7 @@ export function helpText(version: string): string {
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id> [--force|--review]  Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check); --review: a detached checkout of the open PR head for the reviewer",
     "  accept <id> [--head <sha>] [--merge]  Accept an item and mark it Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first), a story or final PR on its branch (--log adds a braid log entry, --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
+    "  wait <number> [--timeout <minutes>]  Wait for the braid branch's CI on its newest commit outside braids/ and epics/ (reads only): exit 0 green, 1 a ci check failed, 2 timeout (default 30), no run or an error",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case",
     "  recap <id>                  A draft recap and braid log line from report.md, the PR (head, checks) and the facts, to edit",
     "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints the recap draft (--thread)",
@@ -228,6 +230,23 @@ async function main(argv: readonly string[]): Promise<void> {
       }
       if (error instanceof FormatError) {
         process.stderr.write(`error: ${error.file}: ${error.message}\n`);
+        process.exitCode = 2;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "wait") {
+    // The exit code is the answer, so an error is 2 (no answer), never 1 (CI failed).
+    try {
+      const out = await waitCommand(findRoot(process.cwd()), argv.slice(1));
+      process.stdout.write(out.stdout);
+      process.exitCode = out.code;
+    } catch (error) {
+      if (error instanceof UsageError || error instanceof GitError || error instanceof FormatError) {
+        process.stderr.write(`error: ${error instanceof FormatError ? `${error.file}: ` : ""}${error.message}
+`);
         process.exitCode = 2;
         return;
       }
