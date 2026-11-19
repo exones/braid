@@ -1,7 +1,7 @@
 ---
 id: '0041'
 title: "Board: numbers in full with bold digits, thread buttons with role icons"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S", "ui"]
 dependencies: []
 related: ['0034']
@@ -49,3 +49,10 @@ Expected size: about 60 lines in 3 files, tests included.
 - [ ] `docs/board.md` describes both, with updated screenshots
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Mockup on demo-like data (card, strand rows, details header, 🧠/💻 buttons); stop for the user's verdict.
+2. `Id` component in `web/src/App.tsx` (zeros + bold significant digits, optional `/X`), used on the card, strand rows, Done rows, details header, `Contents` and the inbox `from` chip; wider strand id column.
+3. Role: add `role` to the snapshot's thread (from `T3Thread.role`/title via `parseThreadTitle`), `Actions` shows 🧠 / role emoji / 💻 default.
+4. Tests (id split, role from title), `docs/board.md`, new screenshots, gate, report, PR.
