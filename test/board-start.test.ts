@@ -326,6 +326,41 @@ test("open: the server opens t3code://threads/<env>/<thread> for the item's own 
   assert.equal(t3codeUrl("not a url"), null);
 });
 
+test("open with thread: \"coordinator\": while strands run, the braid opens its coordinator and a strand its own worker; refused without a coordinator", async () => {
+  const { openAction } = board as unknown as { openAction(src: Sources, open: (url: string) => Promise<void>): (body: unknown) => Promise<{ ok: boolean; url: string }> };
+  const opened: string[] = [];
+  const act = openAction(board.demoSources(), (url) => {
+    opened.push(url);
+    return Promise.resolve();
+  });
+  const c9 = (await card("0009")) as unknown as { thread: string | null; running: boolean; coordinator: { link: string } | null; strands: { id: string; thread: string | null }[] };
+  assert.equal(c9.running, true);
+  assert.equal(c9.thread, null, "a braid with strands has no agent thread of its own");
+  assert.equal(c9.coordinator?.link, "https://t3.example/thread/demo-10");
+  assert.equal(c9.strands.find((x) => x.id === "0009/A")?.thread, "https://t3.example/thread/demo-3");
+  assert.equal((await act({ id: "0009", thread: "coordinator" })).url, "t3code://threads/thread/demo-10", "the coordinator, not a running strand");
+  assert.equal((await act({ id: "0009/A" })).url, "t3code://threads/thread/demo-3", "the strand's own worker");
+  assert.equal((await act({ id: "0010", thread: "coordinator" })).url, "t3code://threads/thread/demo-9", "an idle coordinator opens too");
+  await assert.rejects(act({ id: "0002", thread: "coordinator" }), /Open thread: 0002 has no coordinator thread/);
+  await assert.rejects(act({ id: "0009/A", thread: "coordinator" }), /is a strand/);
+  await assert.rejects(act({ id: "0009", thread: "reviewer" }), /thread can only be "coordinator"/);
+  assert.equal(opened.length, 3);
+
+  // A story with a running worker and a coordinator: card.thread is set, yet `thread: "coordinator"` must open the coordinator, and a url/link in the body is ignored.
+  const base = board.demoSources();
+  const t3 = (await base.t3(false)) as { threads: Map<string, unknown[]> };
+  const withWorker = { ...base, t3: () => Promise.resolve({ ...t3, threads: new Map([...t3.threads, ["0011", [{ id: "w11", role: "worker", pending: 0, link: "https://t3.example/thread/w11" }]]]) }) } as Sources;
+  assert.equal(((await card("0011", withWorker)) as unknown as { thread: string | null }).thread, "https://t3.example/thread/w11");
+  const opened2: string[] = [];
+  const act2 = openAction(withWorker, (url) => {
+    opened2.push(url);
+    return Promise.resolve();
+  });
+  assert.equal((await act2({ id: "0011" })).url, "t3code://threads/thread/w11", "without thread: the story's worker");
+  assert.equal((await act2({ id: "0011", thread: "coordinator", url: "t3code://evil", link: "x" })).url, "t3code://threads/thread/demo-6", "the coordinator, not the worker, and no client url");
+  assert.deepEqual(opened2, ["t3code://threads/thread/w11", "t3code://threads/thread/demo-6"]);
+});
+
 test("idle threads are found by title alone (with or without the emoji): worker, review and coordinator, and a fake t3 counts no show for them", async () => {
   const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<{ idle: Map<string, { id: string; role: string }[]>; idleCoordinators: Map<string, { id: string }> }> };
   const root = join(scratch, "demo");

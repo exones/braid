@@ -1,6 +1,6 @@
 // What GitHub knows about braid and strand branches: one `gh pr list` call per refresh.
 // A PR belongs to a braid or strand by its head branch (`braid/0006-<slug>`, `braid/0006/A-<slug>`).
-import { spawnSync } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import { BRAID_BRANCH, STRAND_BRANCH } from "../braids/branches.js";
 
 export type Checks = "passing" | "failing" | "pending" | "none";
@@ -50,6 +50,17 @@ export const runGh: GhRunner = (root, args) => {
   const r = spawnSync("gh", args, { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 30_000 });
   return { status: r.status, stdout: r.stdout, stderr: r.stderr, error: r.error };
 };
+
+/** Like `GhRunner`, and the board's runner may answer later: the server keeps serving while `gh` runs. */
+export type GhRunnerAsync = (root: string, args: readonly string[]) => GhResult | Promise<GhResult>;
+
+export const runGhAsync: GhRunnerAsync = (root, args) =>
+  new Promise((done) => {
+    execFile("gh", [...args], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 30_000, windowsHide: true }, (error, stdout, stderr) => {
+      const code = error !== null && typeof (error as { code?: unknown }).code === "number" ? (error as { code: number }).code : error === null ? 0 : null;
+      done({ status: code, stdout, stderr, error: error !== null && code === null ? error : undefined });
+    });
+  });
 
 interface RawPr {
   readonly number: number;
@@ -132,8 +143,13 @@ export function setGithubClock(now: () => number = Date.now): void {
 const recent = new Map<string, { at: number; github: Github }>();
 const memory = new Map<string, Memory>();
 
+const listArgs = (state: "open" | "all"): string[] => ["pr", "list", "--state", state, "--limit", "500", "--json", FIELDS];
+
 function list(run: GhRunner, root: string, state: "open" | "all"): RawPr[] | string {
-  const r = run(root, ["pr", "list", "--state", state, "--limit", "500", "--json", FIELDS]);
+  return parsed(run(root, listArgs(state)));
+}
+
+function parsed(r: GhResult): RawPr[] | string {
   if (r.error !== undefined) {
     return "gh is not installed or not on PATH";
   }
@@ -166,15 +182,40 @@ export function readGithub(root: string, run: GhRunner = runGh, ttlMs: number = 
   return github;
 }
 
-function readFresh(root: string, run: GhRunner): Github {
-  const mem = memory.get(root) ?? { merged: new Map<number, RawPr>(), closed: new Map<number, RawPr>(), open: new Set<number>() };
-  let fetched = list(run, root, mem.merged.size === 0 && mem.closed.size === 0 && mem.open.size === 0 ? "all" : "open");
-  if (typeof fetched !== "string") {
-    const still = new Set(fetched.filter((p) => p.state === "OPEN").map((p) => p.number));
-    if ([...mem.open].some((n) => !still.has(n))) {
-      fetched = list(run, root, "all");
-    }
+/** Same as `readGithub`, with `gh` run without blocking the process. */
+export async function readGithubAsync(root: string, run: GhRunnerAsync = runGhAsync, ttlMs: number = SHARE_MS): Promise<Github> {
+  const shared = recent.get(root);
+  if (shared !== undefined && clock() - shared.at < ttlMs) {
+    return shared.github;
   }
+  const mem = memoryOf(root);
+  let fetched = parsed(await run(root, listArgs(firstRead(mem) ? "all" : "open")));
+  if (typeof fetched !== "string" && vanished(mem, fetched)) {
+    fetched = parsed(await run(root, listArgs("all")));
+  }
+  const github = assemble(root, mem, fetched);
+  recent.set(root, { at: clock(), github });
+  return github;
+}
+
+const memoryOf = (root: string): Memory => memory.get(root) ?? { merged: new Map<number, RawPr>(), closed: new Map<number, RawPr>(), open: new Set<number>() };
+const firstRead = (mem: Memory): boolean => mem.merged.size === 0 && mem.closed.size === 0 && mem.open.size === 0;
+/** An open PR seen before is gone from the open list: it merged or closed, so every PR is listed again. */
+const vanished = (mem: Memory, fetched: readonly RawPr[]): boolean => {
+  const still = new Set(fetched.filter((p) => p.state === "OPEN").map((p) => p.number));
+  return [...mem.open].some((n) => !still.has(n));
+};
+
+function readFresh(root: string, run: GhRunner): Github {
+  const mem = memoryOf(root);
+  let fetched = list(run, root, firstRead(mem) ? "all" : "open");
+  if (typeof fetched !== "string" && vanished(mem, fetched)) {
+    fetched = list(run, root, "all");
+  }
+  return assemble(root, mem, fetched);
+}
+
+function assemble(root: string, mem: Memory, fetched: RawPr[] | string): Github {
   if (typeof fetched === "string") {
     return { status: { state: "unavailable", reason: fetched }, prs: new Map() };
   }

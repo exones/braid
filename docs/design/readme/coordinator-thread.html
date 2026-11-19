@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>braid coordinator thread (illustrative)</title>
+<style>
+:root{--navy:#082a48;--violet:#7835ef;--mist:#f4f2fb;--slate:#5a6b80}
+*{box-sizing:border-box}html{overflow:hidden}body{margin:0;width:900px;background:#f7f7fb;font:15px/1.5 "Segoe UI",system-ui,sans-serif;color:var(--navy);padding:0 0 24px}
+header{background:#fff;border-bottom:1px solid #dfe3ec;padding:12px 24px;display:flex;justify-content:space-between;font-weight:600}
+header small{color:var(--slate);font-weight:400}
+.msg{margin:18px 24px 0;max-width:700px}.you{margin-left:auto;background:var(--navy);color:#fff;padding:10px 16px;border-radius:14px 14px 2px 14px;width:fit-content}
+.bot{background:#fff;border:1px solid #dfe3ec;border-radius:14px 14px 14px 2px;padding:14px 18px}
+.bot p{margin:0 0 8px}.bot ul{margin:4px 0 8px;padding-left:20px}.bot li{margin:2px 0}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--violet);margin-bottom:6px}
+code{background:var(--mist);padding:1px 5px;border-radius:4px;font-size:13px}
+.ok{color:#0a7d3b;font-weight:600}.note{color:var(--slate);font-size:13px}
+.ill{margin:18px 24px 0;font-size:12px;color:var(--slate)}
+</style></head><body>
+<header><span>0042 Dark mode for settings · coordinator</span><small>Illustrative sample, not a real thread</small></header>
+<div class="msg"><div class="you">braid: add dark mode to the settings page</div></div>
+<div class="msg bot"><div class="lbl">Plan · waiting for your go</div>
+<p>This is a goal, so I split it into one braid with three strands that run in order. Nothing has started.</p>
+<ul><li><b>A · Theme tokens</b> (tier M): colours as variables, light and dark sets.</li>
+<li><b>B · Settings toggle</b> (tier M): a Light / Dark / System switch on the settings page.</li>
+<li><b>C · Remember the choice</b> (tier S): store it per user, add tests.</li></ul>
+<p class="note">Ask first: C changes what is stored per user (<code>data</code>). I'll stop for you before it merges. Overlap check: no other open braid touches these files.</p>
+<p>Say <b>go</b> and I start strand A.</p></div>
+<div class="msg"><div class="you">go</div></div>
+<div class="msg bot"><div class="lbl">Recap · strand A</div>
+<p><b>Theme tokens</b> is ready: PR #87 into <code>braid/0042-dark-mode</code>.</p>
+<ul><li>Worker: gate passed, CI <span class="ok">green</span> on the head commit.</li>
+<li>Independent reviewer: nothing blocking, one nit fixed.</li>
+<li>Needs you: <b>none</b>.</li></ul>
+<p>Merge it when you are ready, or tell me what to change.</p></div>
+</body></html>

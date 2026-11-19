@@ -23,6 +23,7 @@ interface Strand {
   running: boolean;
   activity: string | null;
   pr: Pr | null;
+  doneAt: string | null;
 }
 interface Card extends Strand {
   strands: Strand[];
@@ -36,7 +37,11 @@ interface Marks {
 
 // Computed specifiers keep the compiled modules out of the typecheck, which runs before the build.
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
-const model = (await load("../dist/board/model.js")) as { toBoard: (repo: string, braids: unknown[], gh: unknown, t3: unknown, sig: unknown) => { braids: Card[] } };
+const model = (await load("../dist/board/model.js")) as {
+  toBoard: (repo: string, braids: unknown[], gh: unknown, t3: unknown, sig: unknown) => { braids: Card[] };
+  doneNewestFirst: <T extends { id: string; doneAt: string | null }>(cards: T[]) => T[];
+  DONE_PAGE: number;
+};
 const demo = (await load("../dist/board/demo.js")) as {
   demoBraids: () => unknown[];
   demoGithub: () => unknown;
@@ -49,14 +54,15 @@ const marks = (await load("../dist/board/marks.js")) as {
   cardMarks: (c: Card, details?: boolean) => Marks;
   ageText: (n: Need) => string;
   needLine: (n: Need) => string;
+  t3codeUrl: (link: string) => string | null;
 };
 
 const cards = model.toBoard("demo", demo.demoBraids(), demo.demoGithub(), demo.demoT3(), demo.demoSignals()).braids;
 const card = (id: string): Card => cards.find((c) => c.id === id) as Card;
 const strand = (id: string): Strand => cards.flatMap((c) => c.strands).find((s) => s.id === id) as Strand;
 
-test("lanes show as To Do, Working, To Review, Needs You, Done", () => {
-  assert.deepEqual(Object.values(marks.LANE_LABEL), ["To Do", "Working", "To Review", "Needs You", "Done"]);
+test("lanes show as Needs You, To Review, Working, To Do, Done", () => {
+  assert.deepEqual(Object.values(marks.LANE_LABEL), ["Needs You", "To Review", "Working", "To Do", "Done"]);
 });
 
 test("strand rows carry the live lane, not the stored status", () => {
@@ -146,7 +152,36 @@ test("a braid shows the most urgent of its strands and its own request", () => {
     ["0011", "Working"], // To Do, but its coordinator runs
     ["0012", "To Do"],
     ["0013", "Working"], // To Do, but its coordinator runs
+    ...Array.from({ length: 11 }, (_, i) => [`00${14 + i}`, "Done"]), // older Done braids
   ]);
+});
+
+test("the Done lane lists the newest first by the day it became Done: 10 shown, the rest behind Show more", () => {
+  const done = cards.filter((c) => c.lane === "Done");
+  assert.equal(done.length, 12);
+  const sorted = model.doneNewestFirst(done);
+  assert.deepEqual(sorted.slice(0, 3).map((c) => c.id), ["0008", "0014", "0015"]); // merged 1, 2, 3 days ago
+  assert.deepEqual(sorted.map((c) => c.doneAt), [...sorted.map((c) => c.doneAt)].sort().reverse());
+  assert.equal(sorted.slice(0, model.DONE_PAGE).length, 10);
+  assert.deepEqual(sorted.slice(model.DONE_PAGE).map((c) => c.id), ["0023", "0024"]); // the 2 oldest
+});
+
+test("Done without a date comes last, highest number first; only Done braids carry a date", () => {
+  const rows = model.doneNewestFirst([
+    { id: "0001", doneAt: null },
+    { id: "0002", doneAt: "2026-11-01T00:00:00Z" },
+    { id: "0003", doneAt: null },
+    { id: "0004", doneAt: "2026-11-02T00:00:00Z" },
+  ]);
+  assert.deepEqual(rows.map((r) => r.id), ["0004", "0002", "0003", "0001"]);
+  assert.equal(card("0001").doneAt, null);
+  assert.equal(typeof card("0008").doneAt, "string");
+});
+
+test("t3codeUrl builds the app link from T3's thread link", () => {
+  assert.equal(marks.t3codeUrl("http://127.0.0.1:3773/env-1/th%3A1/"), "t3code://threads/env-1/th%3A1");
+  assert.equal(marks.t3codeUrl("http://127.0.0.1:3773/a/b/c"), null);
+  assert.equal(marks.t3codeUrl("not a url"), null);
 });
 
 test("the tick marks Done strands only", () => {

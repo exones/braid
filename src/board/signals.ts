@@ -4,12 +4,17 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Github } from "./github.js";
+import { doneDate, headOf, prefetchDoneDates } from "./done.js";
+import { gitAsync } from "../braids/gitio.js";
+import type { Braid } from "../braids/store.js";
 import { BROKE_MS, type BrokeReason, type Signals } from "./model.js";
 import { ensureStateDir, filterLive, loadRequests, mainCheckout, type PrNow, type Request } from "../braids/requests.js";
 
 export interface ReadSignals extends Signals {
   /** Writes the first-seen times if they changed. */
   commit(): void;
+  /** Reads the Done dates of the Done items of these braids in one batch, without blocking; `doneAt` then answers from them. */
+  prepare?(braids: readonly Braid[]): Promise<void>;
 }
 
 /** What GitHub says of the PR with this number, in the shape the requests store compares; null when it isn't known. */
@@ -75,11 +80,24 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
   } catch {
     // not a repository: no requests, and no place to keep the alarms' clock
   }
+  let head: string | undefined;
   const clock = brokeClock(file === null ? {} : readBroke(file), now);
   return {
     now,
     requests: new Map(requests.map((r) => [r.id, r])),
     alarm: clock.alarm,
+    doneAt: (folder, source) => {
+      head ??= headOf(root) ?? "";
+      return doneDate(root, folder, source, undefined, head === "" ? null : head);
+    },
+    async prepare(braids) {
+      if (head === undefined) {
+        const r = await gitAsync(root, ["rev-parse", "--verify", "-q", "HEAD"]);
+        head = r.status === 0 && /^[0-9a-f]{7,64}$/.test(r.stdout.trim()) ? r.stdout.trim() : "";
+      }
+      const done = braids.flatMap((b) => [b, ...b.strands]).filter((i) => i.brief.status === "Done");
+      await prefetchDoneDates(root, done, head === "" ? null : head);
+    },
     commit() {
       if (file === null || !clock.changed()) {
         return;

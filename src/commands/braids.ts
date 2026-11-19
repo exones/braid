@@ -1,6 +1,9 @@
 import type { Brief } from "../braids/brief.js";
+import type { Said } from "./inbox.js";
 import { openCounts } from "../inbox/branch.js";
 import { ROLES, threadTitle, titleRepoName, type TitleRole } from "../braids/title.js";
+import { loadKnownBraids, loadOpenBraids } from "../braids/branches.js";
+import { fetchRemotes } from "../braids/numbers.js";
 import { loadBraids, type Braid, type Item, type Strand } from "../braids/store.js";
 
 export class UsageError extends Error {
@@ -30,6 +33,55 @@ export function listBraids(root: string): string {
   const inbox = openCounts(root);
   lines.push("", `Inbox: ${inbox.leftovers} leftovers, ${inbox.ideas} ideas`);
   return `${lines.join("\n")}\n`;
+}
+
+const GOAL_LIMIT = 300;
+
+/** The first paragraph of the `## Goal` section, cut at about `GOAL_LIMIT` characters at a word. */
+function goalParagraph(braid: Braid): string {
+  const goal = braid.brief.sections.find((s) => s.title === "Goal")?.text ?? "";
+  const text = (goal.split(/\n\s*\n/)[0] ?? "").replace(/\s+/g, " ").trim();
+  if (text.length <= GOAL_LIMIT) {
+    return text;
+  }
+  const cut = text.slice(0, GOAL_LIMIT);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), GOAL_LIMIT / 2))}...`;
+}
+
+/** `braid list --open`: every braid that is not Done, wherever it lives, with the start of its goal. */
+export function listOpen(root: string, fetch: boolean): Said {
+  let stderr = "";
+  if (fetch) {
+    try {
+      fetchRemotes(root);
+    } catch (error) {
+      stderr = `warning: ${error instanceof Error ? error.message : String(error)}; going on with what is local\n`;
+    }
+  }
+  const braids = loadOpenBraids(root);
+  if (braids.length === 0) {
+    return { stdout: "No open braids.\n", stderr };
+  }
+  const blocks = braids.map((braid) => {
+    const lines = [`${braid.brief.id}  ${braid.brief.status}  ${braid.brief.title}`, `  read from: ${braid.source?.branch ?? "main"}`];
+    if (braid.brief.related.length > 0) {
+      lines.push(`  related: ${braid.brief.related.join(", ")}`);
+    }
+    const goal = goalParagraph(braid);
+    if (goal !== "") {
+      lines.push("", `  ${goal}`);
+    }
+    if (braid.strands.length > 0) {
+      lines.push("", ...braid.strands.map((s) => strandLine(s)));
+    }
+    return lines.join("\n");
+  });
+  return { stdout: `${blocks.join("\n\n")}\n`, stderr };
+}
+
+/** `Open braids: <n> (braid list --open)`, the last line of `braid new`. */
+export function openBraidsLine(root: string): string {
+  return `Open braids: ${loadOpenBraids(root).length} (braid list --open)\n`;
 }
 
 /** Accepts `2`, `0002`, `0002/A` and `2/a`; returns `0002` or `0002/A`. */
@@ -68,7 +120,8 @@ function files(item: Item): string[] {
 function render(item: Item, extra: string[]): string {
   const brief = item.brief;
   const body = brief.body.trim();
-  const lines = [`${brief.id}  ${brief.title}`, "", ...fields(brief), ...files(item), ...extra];
+  const from = item.source === null ? [] : [`Read from: ${item.source.branch}`];
+  const lines = [`${brief.id}  ${brief.title}`, "", ...fields(brief), ...from, ...files(item), ...extra];
   if (body !== "") {
     lines.push("", body);
   }
@@ -94,20 +147,37 @@ export function titleCommand(root: string, args: readonly string[]): string {
 `;
 }
 
-export function viewItem(root: string, raw: string | undefined): string {
+/**
+ * `Linked from:` for `braid view --links`: the open braids whose `related` names this braid, with
+ * titles, read from every source `braid list --open` reads, since a link is stored one way only.
+ */
+function linkedFrom(root: string, braid: Braid): string[] {
+  const from = loadKnownBraids(root).filter(
+    (b) => b.brief.status !== "Done" && b.number !== braid.number && b.brief.related.includes(braid.number),
+  );
+  return from.length === 0 ? ["Linked from: none"] : ["Linked from:", ...from.map((b) => `  ${b.number}  ${b.brief.title}`)];
+}
+
+/** `braid view <id>`: the item's live copy, read from that braid number's branches and the working tree. */
+export function viewItem(root: string, raw: string | undefined, links = false): string {
   if (raw === undefined) {
     throw new UsageError("braid view needs an id, like 0002 or 0002/A");
   }
   const id = normaliseId(raw);
   const [number, letter] = id.split("/");
-  const braid: Braid | undefined = loadBraids(root).find((b) => b.number === number);
+  // The live copy, as `braid list --open` shows it: a newer one on a branch wins over the working tree's.
+  const braid: Braid | undefined = loadKnownBraids(root, number).find((b) => b.number === number);
   if (braid === undefined) {
     throw new UsageError(`no braid ${number}`);
   }
   if (letter === undefined) {
     const strands =
       braid.strands.length === 0 ? ["Strands: none"] : ["Strands:", ...braid.strands.map((s) => strandLine(s, true))];
-    return render(braid, strands);
+    const related = `Related: ${braid.brief.related.length === 0 ? "none" : braid.brief.related.join(", ")}`;
+    return render(braid, [related, ...(links ? linkedFrom(root, braid) : []), ...strands]);
+  }
+  if (links) {
+    throw new UsageError("--links shows the braids that link to a braid; give a braid id like 0002, not a strand");
   }
   const strand = braid.strands.find((s) => s.letter === letter);
   if (strand === undefined) {

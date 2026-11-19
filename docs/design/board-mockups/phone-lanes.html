@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>braid board – phone and lane order mockup (0012/A)</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#3b5bdb;--todo:#cbd5e1;--prog:#2563eb;--rev:#7c3aed;--wait:#f59e0b;--done:#16a34a;--bad:#dc2626}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line)}header b{font-size:16px}.sp{flex:1}
+.cnt{font-size:12px;color:var(--mut)}.note{padding:6px 20px;color:var(--mut);font-size:12px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.l-todo{background:var(--todo)}.l-prog{background:var(--prog)}.l-rev{background:var(--rev)}.l-wait{background:var(--wait)}.l-done{background:var(--done)}
+.lanes{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 20px;align-items:start}
+.lane{background:#eceef3;border-radius:10px;padding:10px}
+.lane h3{margin:2px 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
+.lane h3 span:first-child{display:flex;gap:6px;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;box-shadow:0 1px 2px #0001}
+.card .id{color:var(--mut);font-size:12px}.card .t{font-weight:600;margin:2px 0 6px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:#e8ebf3;color:#49506a}
+.bar{height:5px;background:#e6e9f0;border-radius:3px;flex:1;min-width:50px;overflow:hidden}.bar i{display:block;height:100%;background:var(--done)}
+.need{margin-top:6px;font-size:12.5px;border-radius:6px;padding:4px 7px;line-height:1.35}.need small{display:block;color:var(--mut);font-size:11px}
+.n-wait{background:#fff6e0;color:#7a4d00;border-left:3px solid var(--wait)}.n-bad{background:#fff1f1;color:#8f1f1f;border-left:3px solid var(--bad)}.n-rev{background:#f1ecff;color:#4a2a9a;border-left:3px solid var(--rev)}
+button{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.done-row{display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid #dfe2ea;font-size:13px}
+.done-row .id{color:var(--mut);font-size:12px;width:34px;flex:none}.done-row .d{color:var(--mut);font-size:11px;margin-left:auto;white-space:nowrap}
+.fold{width:100%;text-align:left;background:none;border:0;padding:4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between}
+.more{width:100%;margin-top:8px;padding:6px}
+/* phone */
+body.ph{width:390px;margin:0;background:#fff;min-height:844px;position:relative;overflow-x:hidden}
+.ph header{padding:10px 14px;gap:8px}.ph header b{font-size:15px}
+.pcards{padding:12px 14px 90px;background:#eceef3;min-height:700px}
+.ph .card{padding:12px;margin-bottom:10px}.ph .card .t{font-size:15px}
+.ph .row.btns{margin-top:10px;gap:8px}
+.tap{min-height:44px;min-width:44px;font-size:14px;padding:0 16px;border-radius:8px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line)}
+.tabs a{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--mut);border-bottom:3px solid transparent}
+.tabs a b{font-size:16px;color:var(--ink)}.tabs a.on{border-color:var(--wait);color:var(--ink);font-weight:600}
+.strip{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--line);min-height:48px}
+.strip .nm{font-weight:700;display:flex;gap:6px;align-items:center}.strip .arr{width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:20px}
+.dots{display:flex;gap:6px;margin:0 auto}.dots i{width:8px;height:8px;border-radius:50%;background:#cfd4df}.dots i.on{background:var(--ink)}
+.track{display:flex;width:780px;transform:translateX(-170px)}.track>div{width:390px;flex:none}
+.pick{display:flex;align-items:center;gap:8px;width:calc(100% - 28px);margin:10px 14px 0;min-height:48px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:15px;font-weight:700}
+.pick .c{margin-left:auto;font-weight:400;color:var(--mut)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -8px 30px #0004;padding:8px 0 16px;z-index:5}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:#cfd4df;margin:0 auto 6px}
+.sheet a{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 20px;font-size:16px}.sheet a.on{background:#f3f5fb;font-weight:700}.sheet a .c{margin-left:auto;color:var(--mut)}
+.scrim{position:absolute;inset:0;background:#0006;z-index:4}
+.pg{padding:14px}.pg h1{font-size:19px;margin:2px 0 8px}.pg .back{display:flex;align-items:center;min-height:44px;color:var(--acc);font-size:15px}
+.banner{margin:10px 0;padding:10px 12px;border-radius:8px}.banner b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.strand{display:flex;gap:8px;align-items:center;min-height:44px;border-bottom:1px solid var(--line)}
+.actbar{position:fixed;bottom:0;width:390px;background:#fff;border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:10px}.actbar .ib{flex:1}
+.ib{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:#fff;color:#475569;border-radius:6px;padding:0;font:inherit}
+.ib.sm{width:24px;height:24px}.ib.st{background:#2563eb;border-color:#2563eb;color:#fff}.ib.mg{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.ib.tap{padding:0 16px;font-size:14px;font-weight:600;border-radius:8px;min-width:44px;min-height:44px}.ib.tap.st,.ib.tap.mg{flex:0 0 auto}
+.notes{max-width:980px;margin:20px auto;padding:0 20px}.notes h2{margin:22px 0 4px;font-size:16px}.notes li{margin:3px 0}
+</style></head><body>
+<script>
+const dot=c=>'<span class="dot l-'+c+'"></span>';
+const LN=[['Needs You','wait'],['To Review','rev'],['Working','prog'],['To Do','todo'],['Done','done']];
+// demo data (same sample braids as `braid board --demo`): [id,title,tier,done,of,need,kind,age]
+const NY=[['0003','Sample export','tier:M',0,3,'Which date format should the CSV use, ISO or local?','wait','strand 0003/A · asked 35 min ago'],
+ ['0002','Sample search','tier:M',0,2,'Checks failed: verify (windows-latest); fix or retry','bad','strand 0002/B · for 14 min'],
+ ['0007','Sample import','tier:M',0,3,'Approve the plan: 3 strands, A to C','wait','braid, no strand involved · asked 20 min ago']];
+const TR=[['0001','Sample login flow','tier:L',1,3,'Merge PR #12','rev','strand 0001/B · asked 2 h ago']];
+const WK=[['0009','Sample reports','tier:M',0,3],['0005','Sample themes','tier:S',0,2],['0010','Sample cache','tier:S',0,1]];
+const TD=[['0011','Sample notifications','tier:S',0,0],['0012','Sample CSV import','tier:M',0,0],['0013','Sample audit trail','tier:M',0,0]];
+const DN=[['0008','Sample mail','Nov 17'],['0006','Sample audit log','Nov 16'],['0014','Sample reports v2','Nov 16'],['0015','Sample billing','Nov 14'],['0016','Sample search v2','Nov 13'],['0017','Sample login v2','Nov 12'],['0018','Sample themes v2','Nov 10'],['0019','Sample export v2','Nov 9'],['0020','Sample cache v2','Nov 7'],['0021','Sample import v2','Nov 6'],['0022','Sample mail v2','Nov 4'],['0023','Sample audit v2','Nov 2']];
+const ALL={'Needs You':NY,'To Review':TR,'Working':WK,'To Do':TD};
+const cntOf=l=>l==='Done'?DN.length:ALL[l].length;
+// card: mode 'start' -> Start button; 'x' -> Merge when a review is asked, else Open item; desktop adds Open thread
+const SV=(p,f)=>'<svg width="'+(f?16:12)+'" height="'+(f?16:12)+'" viewBox="0 0 24 24" fill="'+(f?'currentColor':'none')+'" stroke="'+(f?'none':'currentColor')+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+const IC={start:SV('<path d="M7 4.5v15l13-7.5z"/>',1),merge:SV('<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 7v10M8 5c6 0 10 2 10 5"/>'),thread:SV('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>')};
+// icon button: desktop = 24 px icon with tooltip; phone = icon + one-word label, 44 px or more
+const BT={start:['Start','st','Start'],merge:['Merge','mg','Merge'],thread:['Open thread','','Open thread']};
+const ib=(k,ph)=>{const [tip,cl,lab]=BT[k];return ph?'<button class="ib tap '+cl+'">'+IC[k]+lab+'</button>':'<button class="ib sm '+cl+'" title="'+tip+'" aria-label="'+tip+'">'+IC[k]+'</button>'};
+// card: mode 'start' -> Start; 'x' -> Merge when a review is asked, else Open thread; phone Needs You also has Open item (opens the item page)
+function card(b,ph,mode){const [id,t,tier,d,n,need,k,age]=b;
+ const line=need?'<div class="need n-'+k+'">'+need+'<small>'+age+'</small></div>':'';
+ let btns='';
+ if(mode){const merge=k==='rev';
+  btns='<div class="row btns">'+(mode==='start'?ib('start',ph):(merge?ib('merge',ph):'')+ib('thread',ph))+(ph&&mode!=='start'?'<button class="ib tap">Open item</button>':'')+'</div>'}
+ return '<div class="card"><div class="row"><span class="id">'+id+'</span><span class="badge">'+tier+'</span></div><div class="t">'+t+'</div><div class="row"><div class="bar"><i style="width:'+(n?d/n*100:0)+'%"></i></div><span class="cnt">'+d+'/'+n+'</span></div>'+line+btns+'</div>'}
+const doneRows=rows=>rows.map(r=>'<div class="done-row">'+dot('done')+'<span class="id">'+r[0]+'</span><span>'+r[1]+'</span><span class="d">'+r[2]+'</span></div>').join('');
+const hdr=sub=>'<header><b>braid · attention board</b><span class="sp"></span><span class="cnt">'+(sub||'read-only')+'</span></header>';
+function desktop(open){
+ const lanes=LN.map(([l,c])=>{
+  if(l==='Done')return '<div class="lane"><h3><span>'+dot(c)+l+'</span><span>'+DN.length+'</span></h3><button class="fold"><span>'+(open?'▾ Hide':'▸ Show')+' done</span><span></span></button>'+(open?doneRows(DN.slice(0,10))+'<button class="more">Show more (2 older)</button>':'')+'</div>';
+  return '<div class="lane"><h3><span>'+dot(c)+l+'</span><span>'+cntOf(l)+'</span></h3>'+ALL[l].map(b=>card(b,false,l==='To Do'?'start':'x')).join('')+'</div>'}).join('');
+ return hdr()+'<div class="lanes">'+lanes+'</div>'}
+const tabsEl=on=>'<div class="tabs">'+LN.map(([l])=>'<a class="'+(l===on?'on':'')+'"><b>'+cntOf(l)+'</b>'+l.replace('Needs You','Needs you').replace('To Review','Review')+'</a>').join('')+'</div>';
+const needsCards=()=>card(NY[0],true,'x')+card(NY[1],true,'x')+card(NY[2],true,'x');
+const page=(b,lane,btn)=>'<div class="pg"><a class="back">← Board</a><div class="cnt">'+b[0]+' · '+b[2]+'</div><h1>'+b[1]+'</h1><div class="row">'+dot(lane[1])+lane[0]+'</div>'+(b[5]?'<div class="banner n-'+b[6]+'"><b>'+(b[6]==='rev'?'To review':'Needs you')+'</b>'+b[5]+'<div class="cnt">'+b[7]+'</div></div>':'')+
+ '<div class="strand">'+dot('done')+'A · First strand</div><div class="strand">'+dot('rev')+'B · Second strand</div><div class="strand">'+dot('todo')+'C · Third strand</div><p class="cnt">(Brief, plan and tabs as on desktop, one column. Open thread opens the thread in the phone's own T3 app through its t3code:// link.)</p></div><div class="actbar">'+btn+'</div>';
+const pickBar='<div class="pick">'+dot('wait')+'Needs You<span class="c">3 ▾</span></div><div class="pcards" style="margin-top:10px">'+'__C__'+'</div>';
+const S={
+ 'desktop':()=>desktop(false),'done-open':()=>desktop(true),
+ 'a-needs':()=>hdr()+tabsEl('Needs You')+'<div class="pcards">'+needsCards()+'</div>',
+ 'a-todo':()=>hdr()+tabsEl('To Do')+'<div class="pcards">'+TD.map(b=>card(b,true,'start')).join('')+'</div>',
+ 'a-page':()=>hdr('item')+page(TR[0],['To Review','rev'],ib('merge',1)+ib('thread',1)),
+ 'b-needs':()=>hdr()+'<div class="strip"><span class="nm">'+dot('wait')+'Needs You <span class="cnt">3</span></span><span class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="cnt">swipe ›</span></div><div class="pcards">'+needsCards()+'</div>',
+ 'b-mid':()=>hdr()+'<div class="strip"><span class="arr">‹</span><span class="nm">Needs You → To Review</span><span class="dots"><i></i><i class="on"></i><i></i><i></i><i></i></span></div><div style="overflow:hidden"><div class="track"><div class="pcards">'+needsCards()+'</div><div class="pcards">'+TR.map(b=>card(b,true,'x')).join('')+'</div></div></div>',
+ 'b-page':()=>hdr('item')+page(TD[0],['To Do','todo'],ib('start',1)),
+ 'c-needs':()=>hdr()+pickBar.replace('__C__',needsCards()),
+ 'c-picker':()=>hdr()+pickBar.replace('__C__',needsCards())+'<div class="scrim"></div><div class="sheet"><div class="grab"></div>'+LN.map(([l,c])=>'<a class="'+(l==='Needs You'?'on':'')+'">'+dot(c)+l+'<span class="c">'+cntOf(l)+'</span></a>').join('')+'</div>',
+ 'c-page':()=>hdr('item')+page(TR[0],['To Review','rev'],ib('merge',1)+ib('thread',1))
+};
+const NOTES=`<div class="notes"><h1>Phone variants and lane order (0012/A)</h1>
+<h2>Decided (all screens)</h2><ul><li>Lanes: Needs You, To Review, Working, To Do, Done. Needs You opens first on the phone.</li><li>Done is collapsed by default; opened it lists the 10 newest, newest first, then a "Show more" button (2 older items here).</li><li><b>Which date is "newest"?</b> The date the item became Done (decided by the user, 2026-11-18); the list shows that date.</li><li>Phone buttons are 44 px high or more. Desktop buttons are icon-only with tooltips, as on the board today (Start, Merge, Open thread). On the phone the same icons carry a one-word label: Start, Merge, Open thread. There are no Answer or Approve plan buttons: answering happens in the coordinator's thread, so on the phone Open thread opens that thread in the phone's own T3 app through its <code>t3code://threads/&lt;env&gt;/&lt;thread&gt;</code> app link. "Open item" opens the item page.</li></ul>
+<h2>A · Tab bar with counts (screens 31, 32, 33)</h2><p>Five tabs under the header, each with its count; the active tab is underlined.</p><ul><li>Good: every lane and its count is visible at once, so you see that Needs You has 3. One tap to any lane. Familiar, nothing to discover.</li><li>Bad: five tabs in 390 px leave small labels ("To Review" is shortened to "Review"); a fixed strip of height; no swipe unless we add it.</li></ul>
+<h2>B · Swipe between lanes (screens 34, 35, 36)</h2><p>One lane fills the screen; a strip shows the lane name, its count and position dots; swipe left or right to move (35 shows mid-swipe, with ‹ › as a mouse fallback).</p><ul><li>Good: most room for cards; natural on a phone.</li><li>Bad: other lanes' counts are hidden, so a new request in To Review is invisible while you read Needs You; swiping can collide with the browser's back gesture and with scrolling; not discoverable.</li></ul>
+<h2>C · Lane picker (screens 37, 38, 39)</h2><p>One bar shows the current lane and count; a tap opens a bottom sheet with all five lanes and counts.</p><ul><li>Good: biggest tap targets (52 px rows), full lane names, scales if a lane is added, all counts one tap away.</li><li>Bad: two taps to change a lane instead of one; counts hidden until the sheet opens.</li></ul>
+<p><b>Approved (user, 2026-11-18): variant A plus swiping left/right between lanes.</b> "Newest" in Done is the date the item became Done (status commit). On the phone the Done tab works as on desktop: 10 newest, newest first, Show more.</p>
+<h2>Open</h2><ul><li>None: Done on the phone works as on desktop (decided).</li></ul><h2>Verdict 2 (user, 2026-11-18)</h2><ul><li>Phone buttons: the board's icons plus a one-word label, 44 px or more; desktop stays icon-only.</li><li>No Answer or Approve plan button; Open thread (app link <code>t3code://threads/&lt;env&gt;/&lt;thread&gt;</code>) on the phone.</li></ul></div>`;
+const h=location.hash.slice(1)||'desktop';
+if(h==='notes'){document.body.innerHTML=NOTES}
+else{if(h!=='desktop'&&h!=='done-open')document.body.classList.add('ph');
+ const n={'desktop':'29 · Desktop, new lane order: Needs You, To Review, Working, To Do, Done. Done is collapsed (closed).','done-open':'30 · Desktop, Done opened: the 10 newest, newest first (date it became Done), then Show more.'}[h];
+ document.body.innerHTML=(n?'<div class="note">'+n+'</div>':'')+S[h]()}
+</script></body></html>
