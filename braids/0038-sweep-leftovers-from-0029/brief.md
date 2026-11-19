@@ -46,14 +46,18 @@ Expected size: about 240 lines in 11 files, tests included.
 
 - Changing the fallback itself (for example a timeout on `git cat-file blob`); if a test shows it is needed, propose it under "For later items".
 
+## Plan
+
+One commit per leftover: cli.md title entry; catBatchSync command override and tests; shared check reader passes only success, neutral and skipped; ask/answer look up through loadKnownBraids; pure openMode/closeMode/pushedAfter helpers in src/board/route.ts used by App.tsx; README panel screenshot; maxRetries on test temp cleanups and a 3 s hung-process timeout.
+
 ## Completion
 
-- [ ] `docs/cli.md` has a `braid title` entry matching `braid help`
-- [ ] Tests for `catBatchSync`: a Git failure, a missing object, and a hung process (through an injected command)
-- [ ] A cancelled, action-required or stale `ci` check is not green for `braid accept`, `braid handover` or the board (a test per conclusion)
-- [ ] `braid ask` and `braid answer` work from the main checkout for a braid that lives only on its branch (test)
-- [ ] The panel's push/replace and close rules are a pure helper with tests, including a link opened on a fresh load
-- [ ] README shows the item panel screenshot with a matching caption
-- [ ] Temp-folder cleanups in test/ retry on Windows (maxRetries, retryDelay), and the hung cat-file test no longer races the child's start-up
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `docs/cli.md` has a `braid title` entry matching `braid help`
+- [x] Tests for `catBatchSync`: a Git failure, a missing object, and a hung process (through an injected command)
+- [x] A cancelled, action-required or stale `ci` check is not green for `braid accept`, `braid handover` or the board (a test per conclusion)
+- [x] `braid ask` and `braid answer` work from the main checkout for a braid that lives only on its branch (test)
+- [x] The panel's push/replace and close rules are a pure helper with tests, including a link opened on a fresh load
+- [x] README shows the item panel screenshot with a matching caption
+- [x] Temp-folder cleanups in test/ retry on Windows (maxRetries, retryDelay), and the hung cat-file test no longer races the child's start-up
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

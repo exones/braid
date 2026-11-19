@@ -36,6 +36,7 @@ const branches = (await load("../dist/braids/branches.js")) as {
 const gitio = (await load("../dist/braids/gitio.js")) as {
   spyOnGit: (observer: ((args: readonly string[], sync?: boolean) => void) | undefined) => void;
   catBatch: (root: string, specs: readonly string[], timeoutMs?: number, command?: readonly string[]) => Promise<(string | null)[]>;
+  catBatchSync: (root: string, specs: readonly string[], timeoutMs?: number, command?: readonly string[]) => (string | null)[];
 };
 const t3mod = (await load("../dist/board/t3.js")) as {
   readT3: (root: string, options: unknown) => Promise<{ status: { state: string } }>;
@@ -209,7 +210,7 @@ test("a hung git cat-file --batch ends the read with an error after the timeout 
   const pidFile = join(scratch, "hung.pid");
   const hang = [process.execPath, "-e", `require("node:fs").writeFileSync(${JSON.stringify(pidFile)}, String(process.pid)); setInterval(() => {}, 1000)`];
   const began = Date.now();
-  await assert.rejects(gitio.catBatch(scratch, ["HEAD:x"], 400, hang), /timed out after 400 ms/);
+  await assert.rejects(gitio.catBatch(scratch, ["HEAD:x"], 3000, hang), /timed out after 3000 ms/);
   assert.ok(Date.now() - began < 10_000, "ended by the timeout");
   const pid = Number(readFileSync(pidFile, "utf8"));
   let alive = true;
@@ -243,4 +244,23 @@ test("opening a branch-sourced item's detail runs no synchronous git: its report
   const detailFiles = [tree.read("braids/0001-one/report.md"), tree.read("braids/0001-one/log-2026-11-18-abcd1234.md")];
   assert.deepEqual(detailFiles, ["REPORT TEXT\n", "LOG TEXT\n"]);
   assert.deepEqual(sync, [], `synchronous git ran: ${JSON.stringify(sync)}`);
+});
+
+test("catBatchSync: a missing object is null, the others still read", () => {
+  const { root, commit } = repo("sync-missing");
+  commit(1, { "a.txt": "A\n" }, "base");
+  assert.deepEqual(gitio.catBatchSync(root, ["HEAD:a.txt", "HEAD:nope.txt"]), ["A\n", null]);
+});
+
+test("catBatchSync: a git that fails (not a repository) gives nulls for every spec", () => {
+  const plain = join(scratch, "sync-plain");
+  mkdirSync(plain);
+  assert.deepEqual(gitio.catBatchSync(plain, ["HEAD:a", "HEAD:b"]), [null, null]);
+});
+
+test("catBatchSync: a hung process is killed at the timeout and gives nulls", () => {
+  const hang = [process.execPath, "-e", "setInterval(() => {}, 1000)"];
+  const began = Date.now();
+  assert.deepEqual(gitio.catBatchSync(scratch, ["HEAD:x", "HEAD:y"], 3000, hang), [null, null]);
+  assert.ok(Date.now() - began < 15_000, "ended by the timeout");
 });

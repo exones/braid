@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const web = fileURLToPath(new URL("../web", import.meta.url));
 const out = mkdtempSync(join(tmpdir(), "braid-md-"));
-after(() => rmSync(out, { recursive: true, force: true }));
+after(() => rmSync(out, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 /** Bundles the page's Markdown component for Node and renders it to a string. */
 async function renderMd(text: string): Promise<string> {

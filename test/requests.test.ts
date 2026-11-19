@@ -7,7 +7,7 @@ import { after, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-requests-test-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 type Cmd = (root: string, args: string[], opts?: object) => string | Promise<string>;
@@ -357,4 +357,35 @@ test("handover passes a head with no checks that only adds braids/ changes on a 
   w.pr.head = on("braids/0001-alpha/A-first/report.md");
   w.pr.checks = "FAILURE";
   await assert.rejects(handoverCommand(w.root, ["0001/A", "--head", w.pr.head], { gh: w.gh, now: w.clock }) as Promise<string>, /verify failing/);
+});
+
+test("handover: a cancelled, action-required or stale ci check is not green; success, neutral and skipped are", async () => {
+  const w = world();
+  const go = () => handoverCommand(w.root, ["0001/A", "--head", w.first], { gh: w.gh, now: w.clock }) as Promise<string>;
+  for (const conclusion of ["CANCELLED", "ACTION_REQUIRED", "STALE"]) {
+    w.pr.checks = conclusion;
+    await assert.rejects(go(), /not green.*verify failing/, conclusion);
+  }
+  assert.deepEqual(loadRequests(w.root), []);
+  for (const conclusion of ["NEUTRAL", "SKIPPED"]) {
+    w.pr.checks = conclusion;
+    await go();
+  }
+});
+
+test("ask and answer find a braid that lives only on its branch, from the main checkout", () => {
+  const w = world();
+  git(w.root, "checkout", "-q", "-b", "braid/0002-beta", "main");
+  mkdirSync(join(w.root, "braids", "0002-beta"), { recursive: true });
+  writeFileSync(join(w.root, "braids", "0002-beta", "brief.md"), brief("0002", "To Do"));
+  git(w.root, "add", "-A");
+  git(w.root, "commit", "-q", "-m", "docs: plan 0002");
+  git(w.root, "push", "-q", "origin", "braid/0002-beta");
+  git(w.root, "checkout", "-q", "main");
+  git(w.root, "branch", "-D", "braid/0002-beta");
+  assert.equal(existsSync(join(w.root, "braids", "0002-beta")), false, "not in the working tree");
+  assert.match(askCommand(w.root, ["0002", "Go?", "--kind", "decision"], { now: w.clock }) as string, /0002: decision request opened/);
+  assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0002"]);
+  assert.match(answerCommand(w.root, w.root, ["0002"]), /request closed/);
+  assert.throws(() => askCommand(w.root, ["0009", "x"]), /no braid 0009/);
 });

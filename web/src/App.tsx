@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, strandMarks, t3codeUrl, type Marks } from "../../src/board/marks.ts";
-import { hashFor, parseHash, type Route } from "../../src/board/route.ts";
+import { closeMode, hashFor, openMode, parseHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
 import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
 
@@ -12,7 +12,7 @@ let pushedOpen = false;
 /** Opens an item's details. From the bare board it adds a history entry; inside open details it replaces, so one Back closes them. */
 export function go(id: string, tab = "brief"): void {
   const target = hashFor(id, tab);
-  if (parseHash(location.hash).id === null) {
+  if (openMode(location.hash) === "push") {
     pushedOpen = true;
     location.hash = target;
   } else {
@@ -22,7 +22,7 @@ export function go(id: string, tab = "brief"): void {
 
 /** Closes the details and returns to the board as it was: Back when we pushed the entry, else replace. */
 function closeDetails(): void {
-  if (pushedOpen) {
+  if (closeMode(pushedOpen) === "back") {
     history.back();
   } else {
     location.replace("#/");
@@ -34,9 +34,7 @@ function useRoute(): Route {
   useEffect(() => {
     const onChange = () => {
       const next = parseHash(location.hash);
-      if (next.id === null) {
-        pushedOpen = false;
-      }
+      pushedOpen = pushedAfter(pushedOpen, next);
       setRoute(next);
     };
     addEventListener("hashchange", onChange);
