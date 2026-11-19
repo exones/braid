@@ -1,7 +1,7 @@
 ---
 id: '0040/D'
 title: "Merges follow the preset; Decided lines in recaps"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0040/C']
 order: 40
