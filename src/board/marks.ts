@@ -1,7 +1,8 @@
 // What a card or strand row shows besides its title: the lane label, the reason icon, the eye for
 // a PR to review, the activity icon (an agent, a review or CI running), the tick for Done, and the
 // line saying what is needed. Pure, so tests can check them on the demo data; the page only draws them.
-import type { Activity, BraidCard, Lane, Need, StrandCard } from "./model.js";
+import { ROLES } from "../braids/roles.js";
+import type { Activity, BraidCard, Lane, Need, StrandCard, ThreadRole } from "./model.js";
 
 /** The words the board shows for each lane; the stored statuses and internal lanes keep their names. */
 export const LANE_LABEL: Readonly<Record<Lane, string>> = {
@@ -156,4 +157,15 @@ export function t3codeUrl(link: string): string | null {
   }
   const m = /^\/([^/]+)\/([^/]+)\/?$/.exec(path);
   return m !== null && T3_SEGMENT.test(m[1] ?? "") && T3_SEGMENT.test(m[2] ?? "") ? `t3code://threads/${m[1]}/${m[2]}` : null;
+}
+
+/** A braid number or strand id split for display: `0034/A` is `00` + `34` + `/A`; an all-zero number keeps its last zero as the significant digit. */
+export function splitId(id: string): { readonly zeros: string; readonly digits: string; readonly rest: string } {
+  const [, zeros = "", digits = "", rest = ""] = /^(0*)(\d*)(.*)$/.exec(id) ?? [];
+  return digits === "" && zeros !== "" ? { zeros: zeros.slice(0, -1), digits: "0", rest } : { zeros, digits, rest };
+}
+
+/** The emoji on the Open thread button: the role of the thread (worker 💻, review 👀), 💻 when the role is not known. */
+export function threadEmoji(role: ThreadRole | null): string {
+  return role === "reviewer" ? ROLES.review : ROLES.worker;
 }
