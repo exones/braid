@@ -1,7 +1,7 @@
 ---
 id: '0043'
 title: "Board: Promote to Braid on an idea starts a planning coordinator"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: []
 related: ['0038', '0041', '0042']
