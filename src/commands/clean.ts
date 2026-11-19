@@ -102,10 +102,10 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
 }
 
 /**
- * The recorded review threads of a merged item (`braid review`). A record holds the folder and branch of the checkout the reviewer
- * registered from; they are removed when the folder is a registered worktree of this repository (not the main checkout, not this one)
+ * The recorded review threads of a merged item (`braid review`). A record holds the folder and branch T3 gave for the reviewer's checkout
+ * when it was recorded; they are removed when the folder is a registered worktree of this repository (not the main checkout, not this one)
  * and T3 doesn't say the thread runs (a thread T3 doesn't know counts as not running); then the record goes. A branch is deleted
- * only when it is a `t3/…` branch, with `git branch -d`. A record without a folder (made before the reviewer registered itself) falls
+ * only when it is a `t3/…` branch, with `git branch -d`. A record without a folder (T3 gave none when it was recorded, or an older record) falls
  * back to T3: its `worktreePath` and `branch`, only for a subagent's thread; one T3 doesn't know loses its record. When T3 can't be
  * read, everything is kept.
  */

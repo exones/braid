@@ -12,9 +12,9 @@ export interface ReviewRecord {
   readonly thread: string;
   /** When it was recorded, ISO. */
   readonly at: string;
-  /** The checkout the reviewer registered from (`git rev-parse --show-toplevel`); missing in records made before it registered itself. */
+  /** The reviewer's checkout, as T3 gave it (`worktreePath`) when the thread was recorded; missing when T3 gave none, and in older records. */
   readonly folder?: string;
-  /** That checkout's branch when it was recorded (a T3 child's `t3/<hex>`); null when detached. */
+  /** That checkout's branch as T3 gave it (a child's `t3/<hex>`); null when T3 gave none. */
   readonly branch?: string | null;
 }
 

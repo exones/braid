@@ -100,12 +100,12 @@ When the worker reports green:
 
 1. **Review** by tier (workflow, "Tiers").
    - S: read the diff yourself.
-   - M and L: launch an independent reviewer as a subagent: `delegate_task` with `role: review`, `isolation: worktree`, `mode: async`, the reviewer model from `BRAID.md` as `target` (`providerInstanceId`, `model`, `options`), `title` the output of `braid title <id> --role review` and the first message below as `task` (add the `SKILL.md` path if needed). T3 makes its checkout, and the reviewer registers itself there with `braid review`, so the board shows the review. A model or provider T3 can't run as a child: tell the user; never substitute another.
-   - Then call `link_pull_request` with the PR URL and `threadId` set to the child thread.
+   - M and L: launch an independent reviewer as a subagent: `delegate_task` with `role: review`, `isolation: worktree`, `mode: async`, the reviewer model from `BRAID.md` as `target` (`providerInstanceId`, `model`, `options`), `title` the output of `braid title <id> --role review` and the first message below as `task` (add the `SKILL.md` path if needed). T3 makes its checkout. A model or provider T3 can't run as a child: tell the user; never substitute another.
+   - Right after it, run `braid review <id> --thread <child thread id>`: it records the thread with the checkout T3 gives for it, so the board shows the review and `braid clean` removes that checkout after the merge. Then call `link_pull_request` with the PR URL and `threadId` set to the child thread.
    - **Wait** as the task's `next` says: end your turn, and take the reviewer's report when T3 delivers the result. Never poll it.
-   - No result, an empty one, or a failed run (a reviewer that failed before registering reviewed nothing): read the PR's newest review comment at that head (`gh pr view <pr> --comments`). Without one, start one fresh task with the same model and settings; if that fails too, `braid ask <id> "<what is needed>" --key quality`, naming the error.
+   - No result, an empty one, or a failed run: read the PR's newest review comment at that head (`gh pr view <pr> --comments`). Without one, start one fresh task with the same model and settings; if that fails too, `braid ask <id> "<what is needed>" --key quality`, naming the error.
    - L, when blocking fixes substantially changed failure or recovery behavior: have a reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its first message.
-   - A re-check or a second round is a fresh task, launched the same way; never resume a delegated reviewer with `t3_thread_send`.
+   - A re-check or a second round is a fresh task, launched and recorded the same way; never resume a delegated reviewer with `t3_thread_send`.
    - Send blocking findings, and small factual errors in docs, to the same worker to fix on the same PR; route non-blocking ones by the table (workflow, "Gaps and the inbox").
    - Still blocking after two fix rounds: add the `ask:quality` label to the item (`braid edit <id> --labels`, repeating the others).
 
