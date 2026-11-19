@@ -14,6 +14,7 @@ These are the commands `braid help` lists, in its order.
 | `braid view <id> [--links]` | Show a braid (`0002`) or a strand (`0002/A`): fields, report, logs, strands and its brief. `--links` adds `Linked from:`, the open braids whose `related` names this braid. |
 | `braid new <title>` | Create a braid with the next free number (`--related` sets its related braids). |
 | `braid strand new <braid> <title>` | Create a strand with the next free letter. |
+| `braid title <id> --role <role>` | Print the thread title for an item: `<emoji> <repo> <id> <role>: <title>` (role `coordinator`, `worker`, `review` or `research`). |
 | `braid edit <id>` | Change `--status`, `--title`, `--labels`, `--dep`, `--related`, `--order`, `--delivery` (`none` clears a list or the order). |
 | `braid brief <id> <section>` | Set a section of `brief.md` from `--file <path>`, `--file -` or `--text`. |
 | `braid log <id> <text>` | Append an entry to this thread's log and `git add` it (`--thread`, `--checkpoint`, `--file`). |

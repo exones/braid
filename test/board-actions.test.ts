@@ -8,7 +8,7 @@ import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-actions-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 interface Sources {
   action(name: string): ((body: unknown) => unknown) | undefined;

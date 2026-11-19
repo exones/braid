@@ -7,7 +7,7 @@ import { after, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-facts-test-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 const { factsCommand, recapCommand, expectedSize } = (await load("../dist/commands/facts.js")) as {

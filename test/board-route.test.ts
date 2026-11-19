@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hashFor, parseHash } from "../src/board/route.ts";
+import { closeMode, hashFor, openMode, parseHash, pushedAfter } from "../src/board/route.ts";
 
 test("the bare hash is the board with no details", () => {
   for (const hash of ["", "#", "#/"]) {
@@ -27,4 +27,34 @@ test("hashFor round-trips through parseHash", () => {
   assert.equal(hashFor("0003"), "#/0003");
   assert.equal(hashFor("0003/A", "report"), "#/0003/A?tab=report");
   assert.equal(hashFor(null), "#/");
+});
+
+test("opening from the bare board pushes an entry; inside open details it replaces", () => {
+  for (const hash of ["", "#", "#/", "#/inbox"]) {
+    assert.equal(openMode(hash), "push", hash);
+  }
+  for (const hash of ["#/0003", "#/0003/A?tab=report"]) {
+    assert.equal(openMode(hash), "replace", hash);
+  }
+});
+
+test("closing goes Back when the entry was pushed; a link opened on a fresh load closes by replace", () => {
+  assert.equal(closeMode(true), "back");
+  assert.equal(closeMode(false), "replace");
+  // A fresh load on #/0003: nothing was pushed, so the panel closes to #/ without leaving the site.
+  assert.equal(closeMode(pushedAfter(false, parseHash("#/0003"))), "replace");
+  // Board, then open (push), then move to another item (replace): still one pushed entry, one Back closes.
+  let pushed = false;
+  if (openMode("#/") === "push") {
+    pushed = true;
+  }
+  pushed = pushedAfter(pushed, parseHash("#/0003"));
+  assert.equal(openMode("#/0003"), "replace");
+  pushed = pushedAfter(pushed, parseHash("#/0004"));
+  assert.equal(closeMode(pushed), "back");
+});
+
+test("reaching the bare board forgets the pushed entry", () => {
+  assert.equal(pushedAfter(true, parseHash("#/")), false);
+  assert.equal(pushedAfter(true, parseHash("#/0003")), true);
 });

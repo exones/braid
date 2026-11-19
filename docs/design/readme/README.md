@@ -11,7 +11,7 @@ Taken from `braid board --demo` (sample data, nothing is read or written; see [t
 | File | Address | Window (CSS px) |
 | --- | --- | --- |
 | `board.png` (hero) | `http://127.0.0.1:47321/#/` | 1440 × 900 |
-| `item-page.png` | `http://127.0.0.1:47321/#/0001` | 1200 × 560 |
+| `item-panel.png` | `http://127.0.0.1:47321/#/0003/A` | 1280 × 764 (the details side panel over the board; the same capture as `board-screenshots/71-details-panel.png`) |
 | `inbox.png` | `http://127.0.0.1:47321/#/inbox` | 390 × 510, mobile emulation, cut after the second leftover (the demo inbox lists a not-yet-built idea and an outdated leftover, which the README should not show) |
 | `board-phone.png` | `http://127.0.0.1:47321/#/` | 390 × 844, mobile emulation |
 

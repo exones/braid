@@ -56,9 +56,9 @@ You ask for dark mode. Here is what happens next.
 3. **A reviewer checks the PR** against the brief (for a small strand, the coordinator reads the diff); findings go back to the worker.
 4. **You get a recap** and merge or ask for changes. Until then the board shows the item where you can act on it:
 
-   <img src="docs/images/item-page.png" alt="An item page on the board: a braid with its strands and the request to merge PR #12" width="760">
+   <img src="docs/images/item-panel.png" alt="An item's details as a side panel over the board: a strand with its question for you, its fields and its brief" width="760">
 
-   *A braid page on the board's sample data, with the request to merge a PR.*
+   *An item's details open as a side panel over the board (sample data), here a strand with a question waiting for you.*
 
 5. **Strands B and C follow.** In auto mode the strand PRs merge into the goal's branch for you; the final PR into `main` is yours either way.
 
