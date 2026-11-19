@@ -20,10 +20,10 @@ function strandLine(strand: Strand, withDeps = false): string {
 
 export function listBraids(root: string): string {
   const braids = loadBraids(root);
-  if (braids.length === 0) {
-    return "No braids.\n";
-  }
   const lines: string[] = [];
+  if (braids.length === 0) {
+    lines.push("No braids.");
+  }
   for (const braid of braids) {
     lines.push(`${braid.brief.id}  ${braid.brief.status.padEnd(STATUS_WIDTH)}  ${braid.brief.title}`);
     for (const strand of braid.strands) {

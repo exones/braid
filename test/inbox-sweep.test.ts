@@ -171,3 +171,13 @@ test("braid list ends with the open inbox counts, from the local refs", () => {
   ok(w.a, "inbox", "take", w.l1, w.idea, "--into", "0001");
   assert.match(list(), /\n\nInbox: 2 leftovers, 0 ideas\n$/);
 });
+
+test("braid list counts a local-only leftover without fetching, with origin unreachable and no braids", () => {
+  const w = setup();
+  git(w.a, "remote", "set-url", "origin", join(w.a, "..", "gone.git"));
+  const offline = ok(w.a, "note", "written offline", "--from", "user");
+  assert.match(offline.stdout + offline.stderr, /local|warning/i);
+  const listed = ok(w.a, "list");
+  assert.equal(listed.stdout, "No braids.\n\nInbox: 4 leftovers, 1 ideas\n");
+  assert.equal(listed.stderr, "");
+});

@@ -1,7 +1,7 @@
 ---
 id: '0025'
 title: "Sweep: inbox counts"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S", "sweep"]
 dependencies: []
 delivery: epic
@@ -37,7 +37,11 @@ Expected size: about 60 lines in 3 files.
 
 ## Completion
 
-- [ ] A test of the inbox counts with a local-only leftover and an unreachable origin, which fails if openCounts fetches or ignores local-only commits
-- [ ] `braid list` with no braids prints "No braids." then the inbox line, with a test
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A test of the inbox counts with a local-only leftover and an unreachable origin, which fails if openCounts fetches or ignores local-only commits
+- [x] `braid list` with no braids prints "No braids." then the inbox line, with a test
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Print the inbox line after "No braids." in `listBraids`; add a `braid list` test with a local-only leftover, an unreachable origin and no braids (no fetch: stderr stays empty); update the old no-braids expectation in `test/braids.test.ts`.
