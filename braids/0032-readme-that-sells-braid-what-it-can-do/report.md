@@ -15,7 +15,7 @@
 | README claim | Backed by |
 | --- | --- |
 | Plan a goal into strands, PR per part, you approve the plan | `.agents/skills/braid/SKILL.md`, [workflow](../../.agents/skills/braid/references/workflow.md) |
-| Independent review, reviewer settable to another model | `braid-reviewer` skill, `models` in `BRAID.md` (D11, D28) |
+| Independent review for tier M and L (and in auto mode every strand); the coordinator checks tier S; reviewer settable to another model | workflow tiers table, `references/auto-mode.md`, `models` in `BRAID.md` (D11, D28) |
 | Resume from the files | D08, D34, D35 (`braids/` folders, per-thread logs) |
 | Board: what needs you, Start, Merge, Open thread | `docs/board.md`, D46, D51, D52 |
 | Phone layout; `--host` on Tailscale, own login only | D59, D60, `docs/board.md` |
