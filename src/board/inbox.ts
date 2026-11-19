@@ -16,6 +16,8 @@ export interface InboxEntry {
   readonly age: string | null;
   /** How many sweeps passed a leftover over; 0 for an idea. */
   readonly passed: number;
+  /** A running coordinator thread planning this idea (Promote to Braid), with its link; null for no such thread and for a leftover. */
+  readonly planning: { readonly link: string | null } | null;
 }
 
 export interface InboxData {
@@ -23,6 +25,8 @@ export interface InboxData {
   readonly ideas: readonly InboxEntry[];
   /** Something the page should say: a fetch that failed, malformed entries left out. */
   readonly note: string | null;
+  /** The coordinator's provider / model BRAID.md names (the Promote to Braid dialog shows it); null when it names none. */
+  readonly expected?: string | null;
 }
 
 export const NO_INBOX: InboxData = { leftovers: [], ideas: [], note: null };
@@ -44,6 +48,7 @@ export function toInboxEntry(e: Entry, now: Date): InboxEntry {
     ref: e.ref,
     age: e.created === null ? null : age(new Date(e.created * 1000).toISOString(), now),
     passed: e.passed ?? 0,
+    planning: null,
   };
 }
 

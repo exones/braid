@@ -105,13 +105,23 @@ The header chip `Inbox N leftovers · M ideas` (grey when both are 0) opens the 
 
 ![The board with the inbox chip](design/board-screenshots/51-board-inbox-chip.png)
 
-The page is read only and has two lists, **Leftovers** (with "sweep due" at 3 or more open) and **Ideas**, each headed by its open count. Each entry is a collapsed row: its title, for a leftover its source (`review 0012/A`, `0020/A`, `PR #124`), the age, and an amber "passed over ×N" when a sweep passed it over; an idea also shows the first line of its text. A click opens the full text, its links and its id. An empty list says what fills it (`braid note`, `$braid-idea`).
+The page has two lists, **Leftovers** (with "sweep due" at 3 or more open) and **Ideas**, each headed by its open count. Each entry is a collapsed row: its title, for a leftover its source (`review 0012/A`, `0020/A`, `PR #124`), the age, and an amber "passed over ×N" when a sweep passed it over; an idea also shows the first line of its text. A click opens the full text, its links and its id. An empty list says what fills it (`braid note`, `$braid-idea`).
 
 ![The inbox page, one leftover and one idea open](design/board-screenshots/52-inbox-open.png)
 
 ![An empty inbox](design/board-screenshots/53-inbox-empty.png)
 
-`/api/board` carries it as `inbox: { leftovers, ideas, note }` (`src/board/inbox.ts`): the open entries, newest first, each with `kind`, `id`, `title`, `text` (after the title line), `from`, `ref`, `age` and `passed`. Every refresh (the 30 s reload and file changes) reads the local `braid-inbox` and `origin/braid-inbox` refs; the **Refresh** button (`?fresh=1`) fetches `braid-inbox` first, so an entry captured in another clone shows up. `note` says when that fetch failed (the local copy is shown) or an entry is malformed and left out. The demo board has sample entries.
+**Promote to Braid.** Each idea row carries a **Promote to Braid** button on the right of the collapsed row (full width under the preview on a phone, 44 px high). It opens a confirmation (the idea, what launches, what happens after, the model, the base branch and the branch name); on confirm the board posts `promote` with `{ id }`, an idea id, and a new **coordinator thread** starts in T3 whose first message asks it to plan a braid from that idea with the braid skill. The message quotes the idea in full and says that it comes from Promote to Braid, which is the user's request to *plan* the idea, not to start it; the plan still needs your approval in that thread, and after the approval the coordinator takes the idea out of the inbox with `braid inbox take <idea> --into <braid ids>`. The board writes nothing to `braid-inbox` itself, so the idea stays in the list until then. Leftovers have no button: they go through sweeps.
+
+The server reads the inbox again (fetching `braid-inbox`) and refuses with `Promote: <reason>` when the entry isn't an open idea, T3 isn't reachable or a coordinator for the idea runs. Otherwise it does what Start does: `git fetch origin`, a free branch `coordinator/idea-<idea id>` (`-2`, `-3` when taken) from `origin/<main>`, `t3 thread start` with no model flags (T3's project default) and the first message on standard input, and the same model warning when the thread's model differs from BRAID.md. The thread is titled `🧠 <repo> idea coordinator: <idea title>`; the coordinator renames it with `braid title` once the braid has a number. A running thread on `coordinator/idea-<idea id>` (or its `-2`, `-3`) marks the idea **Being planned**: the row shows that and an **Open thread** button (`open` with `{ idea }`) instead of Promote. Over Tailscale it works like Start (the session token rules above apply).
+
+![Ideas with Promote to Braid, and one being planned](design/board-screenshots/54-inbox-promote.png)
+
+![The confirmation](design/board-screenshots/55-promote-confirm.png)
+
+![On a phone](design/board-screenshots/56-promote-phone.png)
+
+`/api/board` carries it as `inbox: { leftovers, ideas, note, expected }` (`src/board/inbox.ts`): the open entries, newest first, each with `kind`, `id`, `title`, `text` (after the title line), `from`, `ref`, `age`, `passed` and, for an idea with a running coordinator, `planning: { link }`. Every refresh (the 30 s reload and file changes) reads the local `braid-inbox` and `origin/braid-inbox` refs; the **Refresh** button (`?fresh=1`) fetches `braid-inbox` first, so an entry captured in another clone shows up. `note` says when that fetch failed (the local copy is shown) or an entry is malformed and left out. The demo board has sample entries.
 
 ## Refresh
 

@@ -51,12 +51,22 @@ Expected size: about 250 lines in 5 files, tests included.
 - Promoting several ideas into one braid from the board; the coordinator can still fold related ideas in during planning if the user asks.
 - Choosing the coordinator's model from the board (T3's project default, as Start).
 
+## Plan
+
+Verdict (mockups 5121127): the button on the collapsed row, dialog wording as mocked. Built as the brief says:
+
+- `src/board/t3.ts`: `thread show`'s `branch` of running threads gives `ideaThreads`; `ideaPlanning` matches `coordinator/idea-<id>` and its `-2`, `-3`.
+- `src/commands/board.ts`: `promoteAction`, `promoteMessage`, `open` with `{ idea }`.
+- `src/board/{inbox,model,demo}.ts`: `planning` on ideas, `expected` on the inbox, a demo idea being planned.
+- `web/src/App.tsx`: the button, dialog, planning state.
+- `test/board-promote.test.ts`; `docs/board.md`, D67.
+
 ## Completion
 
-- [ ] Screenshots of the Inbox page with Promote to Braid, the dialog and the planning state (desktop and phone) in the item folder, and the user's verdict in the item's log
-- [ ] Promote on an open idea launches a coordinator thread with the title, branch and first message above (test with fake runners)
-- [ ] Promote is refused with `Promote: <reason>` for an unknown or taken entry, a leftover, T3 down, and an idea already being planned (tests)
-- [ ] An idea being planned shows that state and an Open thread button instead of Promote (demo screenshot in the report)
-- [ ] `docs/board.md` describes Promote to Braid, with a screenshot
-- [ ] The gate command from BRAID.md passes
+- [x] Screenshots of the Inbox page with Promote to Braid, the dialog and the planning state (desktop and phone) in the item folder, and the user's verdict in the item's log
+- [x] Promote on an open idea launches a coordinator thread with the title, branch and first message above (test with fake runners)
+- [x] Promote is refused with `Promote: <reason>` for an unknown or taken entry, a leftover, T3 down, and an idea already being planned (tests)
+- [x] An idea being planned shows that state and an Open thread button instead of Promote (demo screenshot in the report)
+- [x] `docs/board.md` describes Promote to Braid, with a screenshot
+- [x] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
