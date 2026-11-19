@@ -1,7 +1,7 @@
 ---
 id: '0029'
 title: "Sweep: leftovers from 0027"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L", "sweep", "ask:process"]
 dependencies: []
 delivery: epic
