@@ -1,7 +1,7 @@
 ---
 id: '0040/C'
 title: "Preset files: the format, three presets and braid autonomy"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:architecture"]
 dependencies: []
 order: 30
