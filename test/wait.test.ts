@@ -122,6 +122,34 @@ test("a run that starts late is still waited for, and GitHub errors are retried"
   assert.equal(r.code, 0);
 });
 
+test("once a run was seen, a GitHub error or an empty answer after five minutes is retried until the timeout", async () => {
+  const w = world();
+  const pending = NAMES.map((n) => running(n));
+  // 21 polls of 15 s keep it running past five minutes, then GitHub fails, answers empty, and the runs finish.
+  w.answers.set(w.code, [...Array.from({ length: 21 }, () => pending), null, [], NAMES.map((n) => done(n, "success"))]);
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 0, r.stdout);
+  assert.ok(w.minutes() > 5);
+});
+
+test("the timeout names a failed check next to one still running", async () => {
+  const w = world();
+  w.answers.set(w.code, [[done(NAMES[0]!, "failure"), running(NAMES[1]!)], null]);
+  const r = await waitCommand(w.root, ["1", "--timeout", "2"], w.opts);
+  assert.equal(r.code, 2);
+  assert.match(r.stdout, /timed out after 2 minutes at [0-9a-f]{7} on braid\/0001-alpha; failed: verify \(ubuntu-latest\); still running: verify \(windows-latest\); GitHub could not be read at the last poll\n$/);
+});
+
+test("a BRAID.md without ci names ends at once with exit 0", async () => {
+  const w = world();
+  writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\n---\n");
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /^BRAID.md names no ci checks; nothing to wait for on braid\/0001-alpha\n$/);
+  assert.equal(w.asked.length, 0);
+  assert.equal(w.minutes(), 0);
+});
+
 test("a braids-only tip waits on the commit before it", async () => {
   const w = world(true);
   assert.notEqual(w.tip, w.code);

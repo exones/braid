@@ -125,9 +125,17 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
   const start = now();
   const until = start + minutes * 60_000;
   const noRunUntil = start + Math.min(START_MS, minutes * 60_000);
+  /** The last state GitHub gave; a failed or empty read never replaces a seen run. */
+  let last: { name: string; result: Result }[] | null = null;
+  let unread = false;
   for (;;) {
     const rollup = commitChecks({ root, run }, sha);
-    const state = names.map((n) => ({ name: n, result: resultOf(rollup, n) }));
+    const read = names.map((n) => ({ name: n, result: resultOf(rollup, n) }));
+    unread = rollup === null;
+    if (read.some((s) => s.result !== "missing")) {
+      last = read;
+    }
+    const state = last ?? read;
     if (state.every((s) => s.result === "passing")) {
       return { code: 0, stdout: `${head}green at ${short} on ${branch}: ${names.join(", ")}\n` };
     }
@@ -136,14 +144,19 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
       return { code: 1, stdout: `${head}failed at ${short} on ${branch}: ${failed.join(", ")}\n` };
     }
     const t = now();
-    if (state.every((s) => s.result === "missing") && t >= noRunUntil) {
-      const why = rollup === null ? "GitHub could not be read" : "no run appeared";
+    // Only a commit that never showed a run gives up early; once one was seen, only the timeout ends the wait.
+    if (last === null && t >= noRunUntil) {
+      const why = unread ? "GitHub could not be read" : "no run appeared";
       return { code: 2, stdout: `${head}${why} for ${names.join(", ")} at ${short} on ${branch} after ${Math.round((t - start) / 60_000)} minutes\n` };
     }
     if (t >= until) {
-      const pending = state.filter((s) => s.result === "pending").map((s) => s.name);
-      const missing = state.filter((s) => s.result === "missing").map((s) => s.name);
-      const parts = [pending.length > 0 ? `still running: ${pending.join(", ")}` : "", missing.length > 0 ? `not started: ${missing.join(", ")}` : ""].filter((p) => p !== "");
+      const of = (r: Result) => state.filter((s) => s.result === r).map((s) => s.name);
+      const parts = [
+        of("failing").length > 0 ? `failed: ${of("failing").join(", ")}` : "",
+        of("pending").length > 0 ? `still running: ${of("pending").join(", ")}` : "",
+        of("missing").length > 0 ? `not started: ${of("missing").join(", ")}` : "",
+        unread ? "GitHub could not be read at the last poll" : "",
+      ].filter((p) => p !== "");
       return { code: 2, stdout: `${head}timed out after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}\n` };
     }
     await sleep(POLL_MS);
