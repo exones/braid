@@ -4,10 +4,11 @@
 
 - `.agents/skills/braid/SKILL.md`, "Talking to the user": the one-line question-tool rule became three rules (when the tool is used, how options are offered, what counts as a reply) and four option sets, each answer tied to its next step:
   - Handover: *Merge now* ("Merge on request" with the recap's head), *I'll merge it myself* (end the turn, the user's "merged" or `gh pr list` starts "After the merge"), *Let me see the report* (show `report.md` and the PR link, ask again).
-  - Plan: *Approve* (Plan step 7, or step 8's start for a go), *Change something* (one `amend` commit per round, ask again), *Show me the briefs* (link the briefs, ask again).
+  - Plan: *Approve* (Plan step 7; for a go, start the first ready strand), *Change something* (one `amend` commit per round, ask again), *Show me the briefs* (link the briefs, ask again).
+  - Planning PR (a goal's planning PR into its braid branch, Plan step 7): *Merge now* (a plain merge pinned to its head once checks are green), *I'll merge it myself*, *Show me the PR*.
   - Decision: the concrete choices, recommended first.
   - Stop case: the ways forward the case allows (go on, change the plan, stop here).
-- The other stops in SKILL.md only name their set: Plan steps 6 and 8, a worker that fails twice (stop case `quality`), the converge loop, the mandate (`scope`, decision: absorb, prerequisite, phases), handover (step 5), "Merge on request" (now also reached from *Merge now*; a moved head becomes a decision *Hand over new head* / *Leave it*), and the sweep (*Sweep as proposed*, *Change the list*, *Not now*).
+- The other stops in SKILL.md only name their set: Plan steps 6 and 8, a worker that fails twice (stop case `quality`), the converge loop, the mandate (`scope`, decision: absorb, prerequisite, phases), handover (step 5), "Merge on request" (now also reached from *Merge now*; a moved head becomes a decision *Hand over new head* / *Leave it*, the latter ending the turn with the request open), and the sweep (*Sweep as proposed*, *Change the list*, *Not now*, which only passes the leftovers). The stop-case set excludes growth beyond the mandate, which is a decision under `--key scope`.
 - `.agents/skills/braid/references/auto-mode.md`: the sweep proposed while strands go on stays in chat with lettered answers, because a pending question would hold the next worker's report and PR wakes; an auto-mode stop asks with the stop-case options plus *Merge it*.
 - `docs/decisions.md`: D66 and its log line.
 
