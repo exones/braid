@@ -7,7 +7,7 @@ import { after, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-github-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 interface GhResult {
   status: number | null;
@@ -252,4 +252,29 @@ test("an open planning PR into a braid branch is kept apart from the braid's PRs
   const merged = await board(repo({ "braids/0006-solo/brief.md": brief("0006", "To Do") }), () => ok([plan(31, "MERGED")]));
   assert.equal(merged.data.braids[0].lane, "To Do", "a merged planning PR never makes the braid Done");
   assert.equal(merged.data.braids[0].pr, null);
+});
+
+const { runsOf, checksOf } = (await load("../dist/board/github.js")) as {
+  runsOf: (rollup: { name: string; conclusion?: string; status?: string }[]) => { name: string; result: string }[];
+  checksOf: (rollup: { name: string; conclusion?: string; status?: string }[]) => string;
+};
+
+test("a check is green only with success, neutral or skipped; every other finished result is failing", () => {
+  const results: [string, string][] = [
+    ["SUCCESS", "passing"],
+    ["NEUTRAL", "passing"],
+    ["SKIPPED", "passing"],
+    ["CANCELLED", "failing"],
+    ["ACTION_REQUIRED", "failing"],
+    ["STALE", "failing"],
+    ["FAILURE", "failing"],
+    ["TIMED_OUT", "failing"],
+    ["STARTUP_FAILURE", "failing"],
+  ];
+  for (const [conclusion, own] of results) {
+    const rollup = [{ name: "ci", conclusion, status: "COMPLETED" }];
+    assert.deepEqual(runsOf(rollup), [{ name: "ci", result: own }], conclusion);
+    assert.equal(checksOf(rollup), own, conclusion);
+  }
+  assert.deepEqual(runsOf([{ name: "ci", conclusion: "", status: "IN_PROGRESS" }]), [{ name: "ci", result: "pending" }]);
 });

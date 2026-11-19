@@ -73,7 +73,10 @@ interface RawPr {
   readonly statusCheckRollup?: readonly { readonly name?: string | null; readonly context?: string | null; readonly conclusion?: string | null; readonly state?: string | null; readonly status?: string | null }[] | null;
 }
 
-const FAILED = new Set(["FAILURE", "TIMED_OUT", "STARTUP_FAILURE", "ERROR"]);
+const PENDING = new Set(["", "PENDING", "EXPECTED"]);
+/** The only finished results that count as green, as `braid wait` reads them; CANCELLED, ACTION_REQUIRED, STALE and the rest do not. */
+const PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);
+const FAILED = { has: (result: string) => !PENDING.has(result) && !PASSED.has(result) };
 
 /** Names of the failing checks in a rollup. */
 export function failedChecks(rollup: RawPr["statusCheckRollup"]): string[] {

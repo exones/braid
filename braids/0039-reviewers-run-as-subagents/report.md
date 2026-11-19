@@ -21,7 +21,7 @@
     - "After the merge": `task_cancel` a reviewer task that still runs; `braid clean` also removes the reviewers' checkouts.
   - `braid-reviewer`: it detaches its host's checkout at the head (`git fetch`, `git checkout --detach`, `git rev-parse HEAD`) and stops if that fails. Its last message is the report. It uses `t3_thread_send` only when the first message names a thread.
   - `resuming.md` adds the rule for a lost review. `workflow.md` gets a failure row for a missing reviewer result and the locked-folder row.
-- **Docs:** `docs/board.md` ("Agents of an item", T3 source), `docs/cli.md`, `docs/braids-format.md` (`braid start`, `braid review`, `braid clean`), `docs/getting-started.md`, and `docs/decisions.md`: D67 and the dated line. D67 is numbered so because the open braids 0034, 0040 and 0037 hold D65 and D66 on their branches.
+- **Docs:** `docs/board.md` ("Agents of an item", T3 source), `docs/cli.md`, `docs/braids-format.md` (`braid start`, `braid review`, `braid clean`), `docs/getting-started.md`, and `docs/decisions.md`: D69 and the dated line. D69 is numbered so because `main` holds D65 to D69 and the open braid 0040 holds D68 on its branch.
 
 ## Why
 

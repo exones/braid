@@ -104,12 +104,12 @@ function parseBatch(all: Buffer, count: number): (string | null)[] {
  * `catBatch` for the synchronous readers of the CLI commands: the same texts through one `git cat-file --batch`
  * process, null for each when git fails or times out.
  */
-export function catBatchSync(root: string, specs: readonly string[], timeoutMs: number = BATCH_TIMEOUT_MS): (string | null)[] {
+export function catBatchSync(root: string, specs: readonly string[], timeoutMs: number = BATCH_TIMEOUT_MS, command: readonly string[] = ["git", "cat-file", "--batch"]): (string | null)[] {
   if (specs.length === 0) {
     return [];
   }
   noteSyncGit(["cat-file", "--batch"]);
-  const r = spawnSync("git", ["cat-file", "--batch"], {
+  const r = spawnSync(command[0] ?? "git", command.slice(1), {
     cwd: root,
     input: `${specs.join("\n")}\n`,
     maxBuffer: 256 * 1024 * 1024,

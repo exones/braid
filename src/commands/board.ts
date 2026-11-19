@@ -13,9 +13,9 @@ import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toBoard, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
 import { t3codeUrl } from "../board/marks.js";
-import { threadTitle, titleRepoName } from "../braids/title.js";
+import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
-import { mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
+import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
 import { normaliseId, UsageError } from "./braids.js";
 
@@ -157,11 +157,11 @@ export const runGit: GitRunner = (root, args) => {
 const firstLine = (r: GitResult): string => r.stderr.trim().split("\n")[0] || "git failed";
 
 /** Every branch name, local and on origin. A listing that fails is a `Start: <reason>` refusal: a name is never guessed free. */
-function takenBranches(git: GitRunner, root: string): Set<string> {
+function takenBranches(git: GitRunner, root: string, who = "Start"): Set<string> {
   const local = git(root, ["branch", "--list", "--format=%(refname:short)"]);
   const remote = git(root, ["ls-remote", "--heads", "origin"]);
   if (local.status !== 0 || remote.status !== 0) {
-    throw new UsageError(`Start: branches can't be listed (${firstLine(local.status !== 0 ? local : remote)})`);
+    throw new UsageError(`${who}: branches can't be listed (${firstLine(local.status !== 0 ? local : remote)})`);
   }
   const names = new Set(local.stdout.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== ""));
   for (const m of remote.stdout.matchAll(/\srefs\/heads\/(\S+)/g)) {
@@ -239,6 +239,87 @@ export function startAction(src: Sources, root: string, t3: T3Runner, git: GitRu
   };
 }
 
+/** The first message of a coordinator launched by Promote to Braid: plan a braid from this idea, nothing more. */
+export function promoteMessage(idea: { id: string; title: string; text: string }): string {
+  const full = [idea.title, idea.text].filter((t) => t !== "").join("\n\n");
+  const quoted = full.split("\n").map((l) => (l === "" ? ">" : `> ${l}`)).join("\n");
+  return `Use the braid skill and plan a braid from the idea ${idea.id}: ${idea.title}.
+
+The idea, in full:
+
+${quoted}
+
+This came from the board's Promote to Braid, which is the user's request to plan this idea (not to start it). Plan as usual: ask for the plan's approval; once it is approved, take the idea out of the inbox with \`braid inbox take ${idea.id} --into <braid ids>\`.
+`;
+}
+
+/**
+ * Promote to Braid: launches a coordinator thread that plans a braid from an open idea. The body is `{ id }`, an idea id.
+ * The server reads the inbox again (with a fetch of `braid-inbox`) and refuses (400, `Promote: <reason>`) when the
+ * entry isn't an open idea, T3 isn't reachable or a coordinator for the idea runs. Then, like Start: fetch, a free
+ * branch `coordinator/idea-<id>` from `origin/<main>`, `t3 thread start` with no model flags, the model warning.
+ * Nothing is written to `braid-inbox`: the coordinator takes the idea after the plan is approved.
+ */
+export function promoteAction(src: Sources, root: string, t3: T3Runner, git: GitRunner = runGit): Action {
+  return async (body) => {
+    const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>)["id"] : undefined;
+    if (typeof raw !== "string" || raw === "") {
+      throw new UsageError("promote needs { id }: the idea to promote");
+    }
+    const inbox = await src.inbox(true);
+    const idea = inbox.ideas.find((i) => i.id === raw);
+    if (idea === undefined) {
+      throw new UsageError(`Promote: no open idea ${raw}${inbox.leftovers.some((l) => l.id === raw) ? " (it is a leftover; leftovers go through sweeps)" : ""}`);
+    }
+    const state = await src.t3(true);
+    if (state.status.state !== "ok") {
+      throw new UsageError(`Promote: T3 isn't reachable (${state.status.reason})`);
+    }
+    if (ideaPlanning(state, idea.id) !== null) {
+      throw new UsageError(`Promote: a coordinator is already planning idea ${idea.id}`);
+    }
+    const ctx = src.start();
+    const base = `origin/${ctx.main}`;
+    const fetched = git(root, ["fetch", "origin"]);
+    if (fetched.status !== 0) {
+      throw new UsageError(`Promote: git fetch failed (${firstLine(fetched)})`);
+    }
+    if (git(root, ["rev-parse", "--verify", "--quiet", base]).status !== 0) {
+      throw new UsageError(`Promote: ${base} not found after the fetch`);
+    }
+    const taken = takenBranches(git, root, "Promote");
+    const wanted = `${IDEA_BRANCH}${idea.id}`;
+    let branch = wanted;
+    for (let n = 2; taken.has(branch); n++) {
+      branch = `${wanted}-${n}`;
+    }
+    if (!/^[\w./-]+$/.test(base) || !/^[\w./-]+$/.test(branch)) {
+      throw new UsageError(`Promote: the branch names ${base} and ${branch} are not plain`);
+    }
+    // The title goes through cmd.exe on Windows: no quote or shell character may reach it.
+    const title = `${ROLES.coordinator} ${src.repo} idea coordinator: ${idea.title}`.replace(/["%^&|<>!\s]+/g, " ").trim();
+    const args = ["thread", "start", src.project(), "-", "--title", title, "--worktree", base, "--branch", branch, "--json"];
+    const started = await t3(root, args, promoteMessage(idea));
+    if (started.error !== undefined || started.status !== 0) {
+      const first = (started.stderr.trim().split("\n")[0] ?? "") || started.error?.message || "t3 failed";
+      throw new UsageError(`Not started: ${first}`);
+    }
+    const out = jsonOf(started.stdout);
+    const thread = strOf(out?.["threadId"]) ?? strOf(out?.["id"]) ?? strOf(asObj(out?.["thread"])?.["threadId"]);
+    let warning: string | null = null;
+    let link: string | null = strOf(out?.["link"]);
+    if (thread !== null) {
+      const shown = jsonOf((await t3(root, ["thread", "show", thread, "--json"])).stdout);
+      const t = asObj(shown?.["thread"]) ?? shown;
+      if (t !== null) {
+        link = strOf(t["link"]) ?? link;
+        warning = coordinatorWarning({ provider: strOf(t["providerInstanceId"]), model: strOf(t["model"]) }, ctx);
+      }
+    }
+    return { ok: true, id: idea.id, thread, link, base, branch, warning };
+  };
+}
+
 export type Opener = (url: string) => Promise<void>;
 
 /** Opens a URL with the OS (the T3 desktop app registers `t3code:`): no shell string is built, the URL is one argument. */
@@ -263,9 +344,37 @@ export { t3codeUrl };
  * none), so a client can't pass a URL (any `url` or `link` in the body is ignored). Refuses (400) when there is
  * no such thread, for a strand with `thread`, or for another `thread` value.
  */
+async function openIdea(src: Sources, idea: unknown, snapshot: Parameters<Action>[1], open: Opener): Promise<unknown> {
+  if (typeof idea !== "string" || idea === "") {
+    throw new UsageError("open needs { idea }: the idea whose planning thread to open");
+  }
+  // The link comes from the snapshot, else from T3 read again; a client never passes one.
+  let link = (await snapshot?.())?.inbox.ideas.find((i) => i.id === idea)?.planning?.link ?? null;
+  if (link === null) {
+    link = ideaPlanning(await src.t3(true), idea)?.link ?? null;
+  }
+  if (link === null) {
+    throw new UsageError(`Open thread: no coordinator is planning idea ${idea}`);
+  }
+  const url = t3codeUrl(link);
+  if (url === null) {
+    throw new UsageError(`Open thread: T3's link isn't one the app can open (${link})`);
+  }
+  try {
+    await open(url);
+  } catch (e) {
+    throw new UsageError(`Open thread: the OS couldn't open ${url} (${e instanceof Error ? e.message : "failed"})`);
+  }
+  return { ok: true, idea, url };
+}
+
 export function openAction(src: Sources, open: Opener = openWithOs): Action {
   return async (body, snapshot) => {
     const fields = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const idea = fields["idea"];
+    if (idea !== undefined) {
+      return openIdea(src, idea, snapshot, open);
+    }
     const raw = fields["id"];
     if (typeof raw !== "string") {
       throw new UsageError("open needs { id }: the braid or strand whose thread to open");
@@ -329,7 +438,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     project: () => mainCheckout(root),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), open: openAction(src) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src) };
   return src;
 }
 

@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 const scratch = mkdtempSync(join(tmpdir(), "braid-inbox-test-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 // Git and braid run with a home of their own, so no user configuration or real state is read.
 const home = join(scratch, "home");

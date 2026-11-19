@@ -8,7 +8,7 @@ import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-tailnet-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 const web = join(scratch, "web");
 mkdirSync(web);
 writeFileSync(join(web, "index.html"), "<!doctype html><title>board</title>");

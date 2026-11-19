@@ -1,7 +1,7 @@
 // `braid handover`, `braid ask`, `braid answer` and `braid requests`: the coordinator records that it
 // needs the user (a request), and closes it again. The store is src/braids/requests.ts.
 import { threadShort } from "../braids/logs.js";
-import { loadBraids } from "../braids/store.js";
+import { loadKnownBraids } from "../braids/branches.js";
 import { age, closeRequest, KINDS, liveRequests, openRequest, type Kind, type PrNow, type Request } from "../braids/requests.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
@@ -27,9 +27,10 @@ function threadOf(values: Parameters<typeof str>[0]): string | null {
   return thread ?? null;
 }
 
-/** The item's id (`0015` or `0015/C`), checked against the braids of this checkout. */
+/** The item's id (`0015` or `0015/C`), checked against the braids `braid view` finds: this checkout's and those that live only on their branch. */
 function itemId(root: string, raw: string | undefined, command: string): string {
-  const { item } = find(loadBraids(root), raw, command);
+  const number = raw === undefined ? undefined : /^(\d{1,4})(?:\/|$)/.exec(raw)?.[1]?.padStart(4, "0");
+  const { item } = find(loadKnownBraids(root, number), raw, command);
   return item.brief.id;
 }
 

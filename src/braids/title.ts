@@ -3,8 +3,9 @@ import { spawnSync } from "node:child_process";
 import { basename } from "node:path";
 import { repoNameOf } from "./worktrees.js";
 
-export const ROLES = { coordinator: "🧠", worker: "💻", review: "👀", research: "🧪" } as const;
-export type TitleRole = keyof typeof ROLES;
+import { ROLES, type TitleRole } from "./roles.js";
+
+export { ROLES, type TitleRole };
 
 export function threadTitle(repo: string, id: string, role: TitleRole, title: string): string {
   return `${ROLES[role]} ${repo} ${id} ${role}: ${title}`;

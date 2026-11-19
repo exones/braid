@@ -49,6 +49,21 @@ export interface T3 {
   readonly idle?: ReadonlyMap<string, readonly T3Thread[]>;
   /** The newest coordinator thread per braid number that is not running and not archived. */
   readonly idleCoordinators?: ReadonlyMap<string, T3Coordinator>;
+  /** Running threads on a branch `coordinator/idea-<idea id>` (or its `-2`, `-3`), by branch: coordinators planning an idea. */
+  readonly ideaThreads?: ReadonlyMap<string, T3Coordinator>;
+}
+
+export const IDEA_BRANCH = "coordinator/idea-";
+
+/** The running coordinator planning this idea (a thread on `coordinator/idea-<id>` or its `-2`, `-3`), or null. */
+export function ideaPlanning(t3: T3, ideaId: string): T3Coordinator | null {
+  const base = `${IDEA_BRANCH}${ideaId}`;
+  for (const [branch, c] of t3.ideaThreads ?? []) {
+    if (branch === base || (branch.startsWith(`${base}-`) && /^\d+$/.test(branch.slice(base.length + 1)))) {
+      return c;
+    }
+  }
+  return null;
 }
 
 export const NO_T3: T3 = { status: { state: "unavailable", reason: "T3 was not read" }, threads: new Map() };
@@ -218,6 +233,7 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
     const p = parseThreadTitle(str(t["title"]) ?? "");
     return p !== null && repos.has(p.repo) ? p : null;
   };
+  const ideaThreads = new Map<string, T3Coordinator>();
   // Running threads are shown (`t3 thread show`: worktree and pending questions). An idle thread is placed by its worker title alone.
   const found = await pool(wanted, async ({ t, id, running }) => {
     let where: Where | null = null;
@@ -228,6 +244,12 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
     } else {
       const p = titled(t);
       key = p !== null && p.role === "worker" ? p.id : null;
+    }
+    if (running) {
+      const branch = where?.branch ?? null;
+      if (branch !== null && branch.startsWith(IDEA_BRANCH) && !ideaThreads.has(branch)) {
+        ideaThreads.set(branch, { id, link: str(t["link"]), provider: str(t["providerInstanceId"]), model: str(t["model"]) });
+      }
     }
     return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
   });
@@ -254,7 +276,7 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
       into.set(f.key, [...(into.get(f.key) ?? []), f.thread]);
     }
   }
-  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators };
+  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads };
 }
 
 /** Forgets what was read, for tests. */

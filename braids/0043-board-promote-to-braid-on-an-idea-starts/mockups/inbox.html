@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>0043 mockup: Promote to Braid</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px/1.4 system-ui,Segoe UI,sans-serif;color:#0f172a;background:#f1f5f9}
+a{color:#2563eb;text-decoration:none}code{background:#f1f5f9;border-radius:4px;padding:0 4px;font:12px ui-monospace,Consolas,monospace}
+main{max-width:1200px;padding:20px 28px}h1{font-size:20px;margin:4px 0}.sub{color:#64748b;max-width:80ch;margin:0 0 8px}.small{color:#64748b;font-size:12px;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+section{background:rgba(226,232,240,.7);border-radius:12px;padding:12px}
+h2{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#64748b;margin:0 4px 10px;display:flex;gap:8px;align-items:baseline}h2 b{font-size:16px;color:#0f172a}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.05);margin-bottom:8px}
+.row{display:flex;align-items:flex-start;gap:8px;padding:8px 10px}.row .t{flex:1;min-width:0}.row .t b{display:block}
+.meta{font-size:12px;color:#64748b;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap}.prev{font-size:13px;color:#475569;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.chev{color:#64748b;margin-top:4px;flex:none}.open{border-top:1px dashed #e2e8f0;padding:8px 12px 10px 32px}.open p{margin:0 0 6px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #2563eb;background:#2563eb;color:#fff;border-radius:6px;padding:3px 10px;font:600 13px system-ui;cursor:pointer;white-space:nowrap}
+.btn.sec{background:#fff;color:#0f172a;border-color:#e2e8f0;font-weight:500}
+.act{flex:none;display:flex;gap:6px;align-items:center}
+.plan{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:#6d28d9;background:#f5f3ff;border-radius:999px;padding:0 8px}
+.dim{opacity:.35}
+.ov{position:fixed;inset:0;background:rgba(15,23,42,.4)}.dlg{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:480px;max-width:92vw;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;box-shadow:0 20px 40px rgba(0,0,0,.25)}
+.dlg h3{margin:0;font-size:16px}.dlg .d{color:#64748b;margin:2px 0 12px}dl{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:13px;margin:0}dt{color:#64748b}dd{margin:0}
+.foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.note{margin-top:12px;font-size:12px;color:#334155;background:#f8fafc;border-left:3px solid #94a3b8;padding:4px 8px}
+.warn{margin-top:8px;border-left:3px solid #f59e0b;background:#fffbeb;color:#78350f;font-size:12.5px;padding:4px 8px;border-radius:6px}
+@media(max-width:700px){main{padding:12px}.grid{grid-template-columns:1fr}
+ .row{flex-wrap:wrap}.act{width:100%;padding-left:20px}.btn{min-height:44px;padding:0 14px;font-size:14px;flex:1;justify-content:center}.row .act .btn{flex:1}
+ .dlg{width:94vw;padding:16px}dl{grid-template-columns:1fr}dt{margin-top:6px}.foot .btn{min-height:44px;flex:1}}
+</style></head><body><main id="m"></main>
+<script>
+const q=new URLSearchParams(location.search),V=q.get('v')||'a',DLG=q.get('dlg')==='1';
+const ico='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>';
+const ch='<svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg>';
+const promote='<button class="btn">'+ico+' Promote to Braid</button>';
+const planning='<span class="plan">Being planned</span><button class="btn sec">Open thread</button>';
+function idea(title,prev,age,act,open,full){
+ const a=`<span class="act">${act}</span>`;
+ return `<div class="card"><div class="row">${ch}<span class="t"><b>${title}</b><span class="meta"><span>${age} ago</span></span>${open?'':`<span class="prev">${prev}</span>`}</span>${V==='a'?a:''}</div>${V==='a'&&0?'':''}${open?`<div class="open"><p>${full}</p><div class="meta">2026-11-18-q1wd</div>${V==='b'?`<div style="margin-top:8px" class="act">${act}</div>`:''}</div>`:''}</div>`;}
+const P1='When I come back after a day, I want one place that says which braids moved lane since my last visit, newest first.';
+const ideas=
+ idea('A "what changed since I looked" view',P1,'40m',promote,V==='b',P1+'<br>- Not a notification feed.<br>- Could be a mark on the cards instead.')+
+ idea('Run two workers at once on independent strands','Strands without a dependency between them could run in parallel.','3d',planning,false,'')+
+ idea('Phone board: swipe between lanes','The phone layout stacks the lanes; swiping would be faster.','8d',promote,false,'');
+const left=`<div class="card"><div class="row">${ch}<span class="t"><b>Retry flaky <code>t3</code> list in the board</b><span class="meta"><span>0036</span><span>2h ago</span></span></span></div></div><div class="card"><div class="row">${ch}<span class="t"><b>Name the sweep branch after its date</b><span class="meta"><span>0038</span><span>1d ago</span></span></span></div></div>`;
+const dlg=DLG?`<div class="ov"></div><div class="dlg"><h3>Promote this idea to a braid?</h3><div class="d">A new coordinator plans it; nothing starts until you approve the plan.</div>
+<dl><dt>Idea</dt><dd><b>A "what changed since I looked" view</b></dd>
+<dt>Launches</dt><dd>a new <b>coordinator thread</b> in T3 that plans a braid from this idea with the braid skill</dd>
+<dt>Then</dt><dd>it asks you to approve the plan; after that it takes the idea out of the inbox. The idea stays here until then.</dd>
+<dt>Model</dt><dd>T3 project default; BRAID.md names <code>claude-opus-5-5</code></dd>
+<dt>Base branch</dt><dd><code>origin/main</code>, branch <code>coordinator/idea-2026-11-18-q1wd</code></dd></dl>
+<div class="foot"><button class="btn sec">Cancel</button><button class="btn">${ico} Promote to Braid</button></div></div>`:'';
+document.getElementById('m').innerHTML=`<a href="#">← Board</a><h1>Inbox</h1><p class="sub">Small findings agents left behind, and ideas you wrote down. Leftovers are swept in one batch; an idea can be promoted to a braid.</p><p class="small">Read from the local copy of <code>braid-inbox</code>; Refresh fetches the remote first.</p>
+<div class="grid"><section><h2><b>2</b>Leftovers</h2>${left}</section><section><h2><b>3</b>Ideas</h2>${ideas}</section></div>${dlg}`;
+</script></body></html>
