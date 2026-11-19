@@ -30,6 +30,7 @@ const done = (await load("../dist/board/done.js")) as {
 const branches = (await load("../dist/braids/branches.js")) as {
   loadLiveBraidsAsync: (root: string) => Promise<{ number: string; brief: { title: string; status: string }; strands: { letter: string; brief: { title: string; status: string } }[] }[]>;
   loadLiveBraids: (root: string) => unknown[];
+  loadKnownBraids: (root: string) => { number: string; brief: { title: string }; strands: { letter: string; brief: { title: string } }[] }[];
   treeOf: (root: string, item: { source: Source | null }) => { read(file: string): string | null };
 };
 const gitio = (await load("../dist/braids/gitio.js")) as {
@@ -125,6 +126,39 @@ test("the braids from branches are read through one git cat-file --batch process
     [["A", "Live a", "In Progress"], ["B", "Live b", "In Progress"], ["C", "Live c", "In Progress"]],
   );
   assert.deepEqual(live, branches.loadLiveBraids(root));
+});
+
+test("the synchronous reader behind list --open, view --links and check runs no merge-base and one cat-file --batch per kind of branch", () => {
+  const { root, commit, git } = repo("known");
+  commit(1, { "braids/0001-one/brief.md": brief("0001", "To Do", "One") }, "base");
+  git("checkout", "-q", "-b", "braid/0001-one", "main");
+  commit(2, { "braids/0001-one/brief.md": brief("0001", "In Progress", "Live one") }, "braid branch");
+  git("checkout", "-q", "-b", "braid/0001/A-a");
+  commit(3, { "braids/0001-one/A-a/brief.md": brief("0001/A", "In Progress", "Merged A") }, "strand a");
+  git("checkout", "-q", "braid/0001-one");
+  git("merge", "-q", "--no-ff", "-m", "merge a", "braid/0001/A-a");
+  git("checkout", "-q", "-b", "braid/0001/B-b");
+  commit(4, { "braids/0001-one/B-b/brief.md": brief("0001/B", "In Progress", "Live B") }, "strand b");
+  git("checkout", "-q", "-b", "braid/0002-done", "main");
+  commit(5, { "braids/0002-done/brief.md": brief("0002", "To Do", "Merged two") }, "two");
+  git("checkout", "-q", "main");
+  git("merge", "-q", "--no-ff", "-m", "merge two", "braid/0002-done");
+  git("checkout", "-q", "-b", "plan/three", "main");
+  commit(6, { "braids/0003-three/brief.md": brief("0003", "To Do", "Planned three") }, "plan three");
+  git("checkout", "-q", "main");
+  const sync: (readonly string[])[] = [];
+  gitio.spyOnGit((args) => sync.push(args));
+  const known = branches.loadKnownBraids(root);
+  assert.deepEqual(sync.filter((a) => a[0] === "merge-base"), [], `no merge-base: ${JSON.stringify(sync)}`);
+  assert.equal(sync.filter((a) => a[0] === "cat-file").length, 2, `one batch for braid branches, one for plan branches: ${JSON.stringify(sync)}`);
+  assert.deepEqual(
+    known.map((b) => [b.number, b.brief.title, b.strands.map((s) => [s.letter, s.brief.title])]),
+    [
+      ["0001", "Live one", [["A", "Merged A"], ["B", "Live B"]]],
+      ["0002", "Merged two", []],
+      ["0003", "Planned three", []],
+    ],
+  );
 });
 
 const ok = (data: unknown) => ({ status: 0, stdout: JSON.stringify(data), stderr: "" });
