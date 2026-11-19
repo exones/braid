@@ -1,7 +1,7 @@
 ---
 id: '0041'
 title: "Board: numbers in full with bold digits, thread buttons with role icons"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S", "ui"]
 dependencies: []
 related: ['0034']
