@@ -25,10 +25,11 @@ interface Thread {
   link: string | null;
 }
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
-const { reviewCommand } = (await load("../dist/commands/requests.js")) as { reviewCommand: (root: string, args: string[], opts?: object) => string };
-const { loadReviews, reviewsFile } = (await load("../dist/braids/reviews.js")) as {
-  loadReviews: (root: string) => { id: string; thread: string; at: string }[];
+const { reviewCommand } = (await load("../dist/commands/requests.js")) as { reviewCommand: (root: string, cwd: string, args: string[], opts?: object) => string };
+const { loadReviews, reviewsFile, recordReview } = (await load("../dist/braids/reviews.js")) as {
+  loadReviews: (root: string) => { id: string; thread: string; at: string; folder?: string; branch?: string | null }[];
   reviewsFile: (root: string) => string;
+  recordReview: (root: string, id: string, thread: string, at?: string, where?: { folder: string; branch: string | null } | null) => boolean;
 };
 const t3mod = (await load("../dist/board/t3.js")) as {
   readT3: (root: string, o: object) => Promise<{ status: { state: string }; threads: Map<string, Thread[]>; idle?: Map<string, Thread[]> }>;
@@ -105,30 +106,36 @@ function t3(shown: Record<string, object>, calls: string[][] = []): T3Run {
 
 test("braid review records a thread in .braid/ of the main checkout, adds a second, keeps a repeat once, and checks its input", () => {
   const { root, wt } = repo();
-  const out = reviewCommand(root, ["0001/B", "--thread", child(1)], { now: () => new Date("2026-11-19T10:00:00Z") });
-  assert.equal(out, `0001/B: review thread ${child(1)} recorded\n`);
-  assert.equal(reviewCommand(root, ["0001/B", "--thread", child(1)]), `0001/B: review thread ${child(1)} already recorded\n`);
+  const out = reviewCommand(root, root, ["0001/B", "--thread", child(1)], { now: () => new Date("2026-11-19T10:00:00Z") });
+  assert.match(out, new RegExp(`^0001/B: review thread ${child(1)} recorded \\(checkout .*proj, branch main\\)\n$`));
+  assert.match(reviewCommand(root, root, ["0001/B", "--thread", child(1)]), new RegExp(`^0001/B: review thread ${child(1)} already recorded `));
   // A re-check is a second thread of the same item, recorded from another worktree: it lands in the same file.
   const inner = join(wt, "inner");
   git(root, "worktree", "add", "-q", "--detach", inner);
-  reviewCommand(inner, ["0001/B", "--thread", child(2)]);
-  reviewCommand(root, ["1", "--thread", child(3)]);
+  reviewCommand(inner, inner, ["0001/B", "--thread", child(2)]);
+  reviewCommand(root, root, ["1", "--thread", child(3)]);
   // Compared as real paths: on Windows CI the temp folder is a short (8.3) name and Git gives the long one.
   assert.equal(realpathSync.native(dirname(reviewsFile(inner))), realpathSync.native(join(root, ".braid")));
   assert.deepEqual(loadReviews(root).map((r) => [r.id, r.thread]), [["0001/B", child(1)], ["0001/B", child(2)], ["0001", child(3)]]);
   assert.equal(loadReviews(root)[0]?.at, "2026-11-19T10:00:00.000Z");
+  // Each record holds the folder and branch of the checkout it was made from: the main checkout on main, the inner one detached.
+  const [first, second] = loadReviews(root);
+  assert.equal(realpathSync.native(first?.folder ?? ""), realpathSync.native(root));
+  assert.equal(first?.branch, "main");
+  assert.equal(realpathSync.native(second?.folder ?? ""), realpathSync.native(inner));
+  assert.equal(second?.branch, null);
   assert.equal(JSON.parse(readFileSync(join(root, ".braid", "reviews.json"), "utf8")).length, 3);
   assert.equal(git(root, "status", "--porcelain"), "", "the record is never untracked");
-  assert.throws(() => reviewCommand(root, ["0001/B"]), /usage: braid review <id> --thread <thread id>/);
-  assert.throws(() => reviewCommand(root, ["0001/Z", "--thread", child(1)]), /0001\/Z/);
-  assert.throws(() => reviewCommand(root, ["0001/B", "--thread", "short"]), /--thread needs an id/);
+  assert.throws(() => reviewCommand(root, root, ["0001/B"]), /usage: braid review <id> --thread <thread id>/);
+  assert.throws(() => reviewCommand(root, root, ["0001/Z", "--thread", child(1)]), /0001\/Z/);
+  assert.throws(() => reviewCommand(root, root, ["0001/B", "--thread", "short"]), /--thread needs an id/);
 });
 
 test("a recorded running review thread is the item's reviewer: review activity, its question, no checks failed or stalled however long", async () => {
   const { root } = repo();
-  reviewCommand(root, ["0001/B", "--thread", child(1)]);
-  reviewCommand(root, ["0001/C", "--thread", child(2)]);
-  reviewCommand(root, ["0001", "--thread", child(3)]);
+  reviewCommand(root, root, ["0001/B", "--thread", child(1)]);
+  reviewCommand(root, root, ["0001/C", "--thread", child(2)]);
+  reviewCommand(root, root, ["0001", "--thread", child(3)]);
   const calls: string[][] = [];
   const run = t3(
     {
@@ -163,8 +170,8 @@ test("a recorded running review thread is the item's reviewer: review activity, 
 
 test("a recorded thread that has ended, or that T3 doesn't know, changes nothing; neither does a top-level thread in a -review folder", async () => {
   const { root, wt } = repo();
-  reviewCommand(root, ["0001/B", "--thread", child(1)]);
-  reviewCommand(root, ["0001/C", "--thread", child(2)]);
+  reviewCommand(root, root, ["0001/B", "--thread", child(1)]);
+  reviewCommand(root, root, ["0001/C", "--thread", child(2)]);
   const agents = join(wt, "proj");
   const run: T3Run = (_root, args) => {
     if (args[1] === "list") {
@@ -187,7 +194,7 @@ test("a recorded thread that has ended, or that T3 doesn't know, changes nothing
 
 test("braid status shows a recorded running review thread as review running", async () => {
   const { root } = repo();
-  reviewCommand(root, ["0001/B", "--thread", child(1)]);
+  reviewCommand(root, root, ["0001/B", "--thread", child(1)]);
   const run = t3({ [child(1)]: { status: "running", relationshipToParent: "subagent", pendingRequestCount: 0 } });
   const out = await statusCommand(root, ["1"], { gh: () => ok([]), t3: run });
   assert.match(out, /0001\/B {2}In Progress {2}Working .* thread review running /);
@@ -197,7 +204,7 @@ test("braid status shows a recorded running review thread as review running", as
 const merged = (num: number, branch: string) => ({ number: num, url: `https://github.com/o/r/pull/${num}`, state: "MERGED", headRefName: branch, mergedAt: "2026-11-19T00:00:00Z", statusCheckRollup: [] });
 
 /** 0001/B started, its work merged into main; a T3-style checkout per name (`t3-<hex>` on a new `t3/<hex>` branch at main, then detached as the reviewer does). */
-async function mergedWithChildren(names: string[]) {
+async function mergedWithChildren(names: string[], register: Record<string, string> = {}) {
   const r = repo();
   await startCommand(r.root, ["0001/B", "--force"], { gh: () => ok([]), t3: t3({}) }, r.env);
   git(r.root, "merge", "-q", "--no-ff", "-m", "merge B", "braid/0001/B-second");
@@ -206,18 +213,23 @@ async function mergedWithChildren(names: string[]) {
   for (const name of names) {
     const folder = join(t3dir, `t3-${name}`);
     git(r.root, "worktree", "add", "-q", "-b", `t3/${name}`, folder, "main");
+    // The reviewer registers first, from its checkout on T3's branch, then detaches at the head.
+    const thread = register[name];
+    if (thread !== undefined) {
+      reviewCommand(folder, folder, ["0001/B", "--thread", thread]);
+    }
     git(folder, "checkout", "-q", "--detach", "HEAD");
     folders[name] = folder;
   }
   return { ...r, folders, pr: merged(6, "braid/0001/B-second") };
 }
 
-test("clean removes a finished subagent reviewer's checkout and t3/ branch for a merged item, and keeps a running, foreign or top-level one", async () => {
+test("a record without a folder (old format) falls back to T3: a finished subagent's checkout and t3/ branch go; a running, foreign or top-level one stays", async () => {
   const { root, env, folders, pr, wt } = await mergedWithChildren(["aaa", "bbb"]);
   const foreign = join(wt, "not-a-worktree");
   mkdirSync(foreign, { recursive: true });
   for (const i of [1, 2, 3, 4, 5]) {
-    reviewCommand(root, ["0001/B", "--thread", child(i)]);
+    recordReview(root, "0001/B", child(i));
   }
   const shown = {
     [child(1)]: { status: "completed", relationshipToParent: "subagent", worktreePath: folders["aaa"], branch: "t3/aaa", pendingRequestCount: 0 },
@@ -246,9 +258,39 @@ test("clean removes a finished subagent reviewer's checkout and t3/ branch for a
   assert.deepEqual(loadReviews(root).map((r) => r.thread), [child(2), child(3), child(4)]);
 });
 
+test("clean removes a reviewer's checkout and t3/ branch by its stored folder, even when T3 doesn't know the thread; it keeps a running one and a folder of another repository", async () => {
+  const { root, env, folders, pr, wt } = await mergedWithChildren(["aaa", "bbb"], { aaa: child(1), bbb: child(2) });
+  // A checkout of another repository, registered as a review of this item.
+  const other = join(wt, "other");
+  git(wt, "init", "-q", "-b", "main", other);
+  reviewCommand(root, other, ["0001/B", "--thread", child(3)]);
+  const records = loadReviews(root);
+  assert.deepEqual(records.map((r) => r.branch), ["t3/aaa", "t3/bbb", "main"]);
+  // T3 knows only child(2), and says it runs.
+  const src = { gh: () => ok([pr]), t3: t3({ [child(2)]: { status: "running", relationshipToParent: "subagent" } }) };
+  const dry = await cleanCommand(root, [], src, env);
+  assert.match(dry, /would remove 0001\/B: review thread .*: checkout .*t3-aaa and branch t3\/aaa \(PR #6 merged\)/);
+  assert.match(dry, /skip 0001\/B: review thread .*t3-bbb.*: still running/);
+  assert.match(dry, /skip 0001\/B: review thread .*other.*: the folder is not a worktree of this repository/);
+  const out = await cleanCommand(root, ["--yes"], src, env);
+  assert.match(out, /removed 0001\/B: review thread .*t3-aaa and branch t3\/aaa/);
+  assert.equal(existsSync(folders["aaa"] as string), false);
+  assert.equal(git(root, "branch", "--list", "t3/aaa"), "");
+  assert.ok(existsSync(folders["bbb"] as string));
+  assert.ok(existsSync(other));
+  assert.deepEqual(loadReviews(root).map((r) => r.thread), [child(2), child(3)]);
+});
+
+test("clean never removes the main checkout, even when a reviewer registered from it", async () => {
+  const { root, env, pr } = await mergedWithChildren([]);
+  reviewCommand(root, root, ["0001/B", "--thread", child(1)]);
+  const out = await cleanCommand(root, ["--yes"], { gh: () => ok([pr]), t3: t3({}) }, env);
+  assert.match(out, /skip 0001\/B: review thread .*: it is the main checkout/);
+  assert.ok(existsSync(join(root, "BRAID.md")));
+});
+
 test("clean keeps the recorded reviewers' checkouts when T3 can't be read, and says so", async () => {
-  const { root, env, folders, pr } = await mergedWithChildren(["aaa"]);
-  reviewCommand(root, ["0001/B", "--thread", child(1)]);
+  const { root, env, folders, pr } = await mergedWithChildren(["aaa"], { aaa: child(1) });
   const down: T3Run = () => Promise.resolve({ status: 1, stdout: "", stderr: "connect ECONNREFUSED" });
   const out = await cleanCommand(root, ["--yes"], { gh: () => ok([pr]), t3: down }, env);
   assert.match(out, /skip 0001\/B: review thread .*: T3 could not be read, so its checkout is kept/);
@@ -257,8 +299,7 @@ test("clean keeps the recorded reviewers' checkouts when T3 can't be read, and s
 });
 
 test("clean leaves the recorded reviewers of an unmerged item alone", async () => {
-  const { root, env, folders } = await mergedWithChildren(["aaa"]);
-  reviewCommand(root, ["0001/B", "--thread", child(1)]);
+  const { root, env, folders } = await mergedWithChildren(["aaa"], { aaa: child(1) });
   const open = { number: 6, url: "https://github.com/o/r/pull/6", state: "OPEN", headRefName: "braid/0001/B-second", statusCheckRollup: [] };
   const shown = { [child(1)]: { status: "completed", relationshipToParent: "subagent", worktreePath: folders["aaa"], branch: "t3/aaa" } };
   const out = await cleanCommand(root, ["--yes"], { gh: () => ok([open]), t3: t3(shown) }, env);

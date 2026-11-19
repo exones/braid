@@ -12,6 +12,10 @@ export interface ReviewRecord {
   readonly thread: string;
   /** When it was recorded, ISO. */
   readonly at: string;
+  /** The checkout the reviewer registered from (`git rev-parse --show-toplevel`); missing in records made before it registered itself. */
+  readonly folder?: string;
+  /** That checkout's branch when it was recorded (a T3 child's `t3/<hex>`); null when detached. */
+  readonly branch?: string | null;
 }
 
 export function reviewsFile(root: string): string {
@@ -54,11 +58,11 @@ export function loadReviews(root: string): ReviewRecord[] {
 }
 
 /** Records a thread that reviews the item; the same thread twice is kept once (its first time stays). */
-export function recordReview(root: string, id: string, thread: string, at: string = new Date().toISOString()): boolean {
+export function recordReview(root: string, id: string, thread: string, at: string = new Date().toISOString(), where: { folder: string; branch: string | null } | null = null): boolean {
   let added = false;
   update(reviewsFile(root), (list) => {
     added = !list.some((r) => r.thread === thread && r.id === id);
-    return added ? [...list, { id, thread, at }] : null;
+    return added ? [...list, { id, thread, at, ...(where === null ? {} : { folder: where.folder, branch: where.branch }) }] : null;
   });
   return added;
 }

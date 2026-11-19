@@ -10,8 +10,9 @@ Review someone else's PR with fresh eyes, report once, and stop.
 ## Start
 
 1. The first message gives the braid or strand id, the PR, the head commit, the focus and, for a re-check after fixes, "commits since `<sha>`". It names a thread to send your result to only when your host can't return it to the coordinator.
-2. Work in the checkout your host gave you: `git fetch`, then `git checkout --detach <head commit>`, and confirm with `git rev-parse HEAD`. If that fails or shows another commit, say so as your report and stop. If `gh pr view <pr> --json headRefOid` shows the PR has moved on, review the given head commit and say so in the report.
-3. Read `BRAID.md` (`gate`, `ci`), `AGENTS.md` or `CLAUDE.md`, the brief and, for a strand, its braid (`braid view <id>` in your checkout), and the diff (`gh pr diff <pr>`; for a re-check also `git diff <sha> <head commit>`).
+2. **Register** before anything else, from the checkout your host gave you: `braid review <id> --thread $T3CODE_THREAD_ID` (in PowerShell `$env:T3CODE_THREAD_ID`; the variable holds your own thread id in T3). It records your thread, folder and branch, so the board shows the review and `braid clean` removes this checkout after the merge. If it fails, or the variable is empty, say so as your report and stop.
+3. Stay in that checkout: `git fetch`, then `git checkout --detach <head commit>`, and confirm with `git rev-parse HEAD`. If that fails or shows another commit, say so as your report and stop. If `gh pr view <pr> --json headRefOid` shows the PR has moved on, review the given head commit and say so in the report.
+4. Read `BRAID.md` (`gate`, `ci`), `AGENTS.md` or `CLAUDE.md`, the brief and, for a strand, its braid (`braid view <id>` in your checkout), and the diff (`gh pr diff <pr>`; for a re-check also `git diff <sha> <head commit>`).
 
 ## Check
 

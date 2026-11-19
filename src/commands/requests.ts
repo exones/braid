@@ -1,5 +1,7 @@
 // `braid handover`, `braid ask`, `braid answer` and `braid requests`: the coordinator records that it
 // needs the user (a request), and closes it again. The store is src/braids/requests.ts.
+import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
 import { threadShort } from "../braids/logs.js";
 import { loadBraids } from "../braids/store.js";
 import { age, closeRequest, KINDS, liveRequests, openRequest, type Kind, type PrNow, type Request } from "../braids/requests.js";
@@ -32,8 +34,12 @@ function itemId(root: string, raw: string | undefined, command: string): string 
   return item.brief.id;
 }
 
-/** `braid review <id> --thread <thread id>`: records a T3 thread that reviews the item's PR (a coordinator's subagent), so the board and `braid status` count it as the item's reviewer while it runs, and `braid clean` removes its checkout after the merge. */
-export function reviewCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
+/**
+ * `braid review <id> --thread <thread id>`, run by the reviewer from its own checkout: records the thread with that checkout's folder
+ * and branch, so the board and `braid status` count it as the item's reviewer while it runs, and `braid clean` removes the checkout
+ * after the merge.
+ */
+export function reviewCommand(root: string, cwd: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid review", args, { thread: { type: "string" } });
   const thread = str(values, "thread");
   if (positionals.length !== 1 || thread === undefined) {
@@ -42,9 +48,15 @@ export function reviewCommand(root: string, args: readonly string[], opts: Reque
   threadOf(values);
   const id = itemId(root, positionals[0], "braid review");
   const at = (opts.now ?? (() => new Date()))();
-  const added = recordReview(root, id, thread, at.toISOString());
-  return `${id}: review thread ${thread} ${added ? "recorded" : "already recorded"}
-`;
+  const top = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd, encoding: "utf8" });
+  if (top.status !== 0) {
+    throw new UsageError(`braid review: can't read the checkout here: ${(top.stderr || "").trim()}`);
+  }
+  const folder = resolve(top.stdout.trim());
+  const current = spawnSync("git", ["branch", "--show-current"], { cwd, encoding: "utf8" });
+  const branch = current.status === 0 && current.stdout.trim() !== "" ? current.stdout.trim() : null;
+  const added = recordReview(root, id, thread, at.toISOString(), { folder, branch });
+  return `${id}: review thread ${thread} ${added ? "recorded" : "already recorded"} (checkout ${folder}, ${branch === null ? "detached" : `branch ${branch}`})\n`;
 }
 
 export async function handoverCommand(root: string, args: readonly string[], opts: RequestOptions = {}): Promise<string> {

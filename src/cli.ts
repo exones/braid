@@ -54,7 +54,7 @@ export function helpText(version: string): string {
     "  status <number>             One line per strand: status, lane (as the board shows it), ask:<key>, branch, PR, ci checks, T3 thread, and the request text of an item on your side (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id> [--force]        Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
-    "  review <id> --thread <id>   Record a T3 thread (a subagent) that reviews the item's PR: the board and status show the review while it runs, clean removes its checkout after the merge",
+    "  review <id> --thread <id>   Run by a reviewer from its checkout: record its thread, folder and branch; the board and status show the review while it runs, clean removes the checkout after the merge",
     "  accept <id> [--head <sha>] [--merge]  Accept an item and mark it Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first), a story or final PR on its branch (--log adds a braid log entry, --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case",
     "  recap <id>                  A draft recap and braid log line from report.md, the PR (head, checks) and the facts, to edit",
@@ -100,7 +100,7 @@ const BRAID_COMMANDS = new Set(["review", "note", "inbox", "ask", "answer", "req
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
     case "review":
-      return reviewCommand(root, args);
+      return reviewCommand(root, cwd, args);
     case "note":
       return noteCommand(root, cwd, args);
     case "inbox":

@@ -102,12 +102,16 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
 }
 
 /**
- * The recorded review threads of a merged item (`braid review`): a T3 subagent's checkout (`worktreePath`) and its `t3/…` branch
- * are removed only when T3 says the thread is a child (`relationshipToParent`) that isn't running and the folder is a registered
- * worktree of this repository; then the record goes. A thread T3 doesn't know loses its record; anything else is kept and named.
+ * The recorded review threads of a merged item (`braid review`). A record holds the folder and branch of the checkout the reviewer
+ * registered from; they are removed when the folder is a registered worktree of this repository (not the main checkout, not this one)
+ * and T3 doesn't say the thread runs (a thread T3 doesn't know counts as not running); then the record goes. A branch is deleted
+ * only when it is a `t3/…` branch, with `git branch -d`. A record without a folder (made before the reviewer registered itself) falls
+ * back to T3: its `worktreePath` and `branch`, only for a subagent's thread; one T3 doesn't know loses its record. When T3 can't be
+ * read, everything is kept.
  */
 async function reviewThreads(root: string, yes: boolean, id: string, pr: number, t3Ok: boolean, run: T3Runner, listed: readonly Worktree[], here: string, lines: string[]): Promise<void> {
   const records = loadReviews(root).filter((r) => r.id === id);
+  const main = listed[0] === undefined ? null : norm(listed[0].path);
   const drop: string[] = [];
   for (const r of records) {
     const label = `${id}: review thread ${r.thread}`;
@@ -116,21 +120,35 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
       continue;
     }
     const where = await showThread(run, root, r.thread);
-    if (where === null) {
-      lines.push(`${yes ? "dropped" : "would drop"} the record of ${label}: T3 doesn't know the thread`);
-      drop.push(r.thread);
-      continue;
-    }
-    const tree = where.worktreePath === null ? undefined : listed.find((t) => norm(t.path) === norm(where.worktreePath as string));
-    const branch = where.branch !== null && where.branch.startsWith("t3/") ? where.branch : null;
-    const what = `${label}: ${where.worktreePath === null ? "no checkout" : `checkout ${where.worktreePath}`}${branch === null ? "" : ` and branch ${branch}`} (PR #${pr} merged)`;
+    let folder: string | null;
+    let rawBranch: string | null;
     let skip: string | null = null;
-    if (where.relationshipToParent === null) {
-      skip = "T3 says it is not a subagent's thread";
-    } else if (where.status === "running") {
+    if (r.folder !== undefined) {
+      folder = r.folder;
+      rawBranch = r.branch ?? null;
+    } else {
+      if (where === null) {
+        lines.push(`${yes ? "dropped" : "would drop"} the record of ${label}: T3 doesn't know the thread`);
+        drop.push(r.thread);
+        continue;
+      }
+      folder = where.worktreePath;
+      rawBranch = where.branch;
+      if (where.relationshipToParent === null) {
+        skip = "T3 says it is not a subagent's thread";
+      }
+    }
+    const tree = folder === null ? undefined : listed.find((t) => norm(t.path) === norm(folder as string));
+    const branch = rawBranch !== null && rawBranch.startsWith("t3/") ? rawBranch : null;
+    const what = `${label}: ${folder === null ? "no checkout" : `checkout ${folder}`}${branch === null ? "" : ` and branch ${branch}`} (PR #${pr} merged)`;
+    if (skip !== null) {
+      // set above
+    } else if (where?.status === "running") {
       skip = "still running";
-    } else if (where.worktreePath !== null && tree === undefined && existsSync(where.worktreePath)) {
+    } else if (folder !== null && tree === undefined && existsSync(folder)) {
       skip = "the folder is not a worktree of this repository";
+    } else if (tree !== undefined && norm(tree.path) === main) {
+      skip = "it is the main checkout";
     } else if (tree !== undefined && norm(tree.path) === here) {
       skip = "checked out in this checkout";
     } else if (tree !== undefined && yes && existsSync(tree.path) && !free(tree.path)) {
