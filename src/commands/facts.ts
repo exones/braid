@@ -9,7 +9,7 @@ import { checksProblem, git, must, view, type PrView } from "./done.js";
 const REMOTE = "origin";
 
 const DEPENDENCY = ["*package.json", "*package-lock.json", "*npm-shrinkwrap.json", "*pnpm-lock.yaml", "*yarn.lock", "*bun.lock*", "*requirements*.txt", "*pyproject.toml", "*poetry.lock", "*uv.lock", "*Pipfile*", "*go.mod", "*go.sum", "*Cargo.toml", "*Cargo.lock", "*Gemfile*", "*composer.json", "*composer.lock", "*.csproj", "*packages.lock.json", "*Directory.Packages.props", "*pom.xml", "*build.gradle*"];
-const PROCESS = [".github/workflows", "BRAID.md", "AGENTS.md", "CLAUDE.md", ".agents/skills"];
+const PROCESS = [".github/workflows", "BRAID.md", "AGENTS.md", "CLAUDE.md", ".agents/skills", "autonomy"];
 const IS_TEST = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[a-z]+$|\.Tests\.ps1$|_test\.go$|(^|\/)test_[^/]*\.py$/i;
 const SKIP = String.raw`\.(skip|only)\(|\b[xf]it\(|@pytest\.mark\.skip|@Disabled|@Ignore|t\.Skip\(|-Skip\b`;
 
@@ -38,7 +38,7 @@ export function diffFacts(root: string, base: string, head: string, size: number
   };
   const paths = (list: readonly string[]) => lines(must(root, ["diff", "--name-only", range, "--", ...list], "git diff failed"));
   add("dependency", "manifest or lockfile changed", paths(DEPENDENCY));
-  add("process", "workflow, BRAID.md, AGENTS.md, CLAUDE.md or skill changed", paths(PROCESS));
+  add("process", "workflow, BRAID.md, AGENTS.md, CLAUDE.md, skill or autonomy preset changed", paths(PROCESS));
   const deleted = lines(must(root, ["diff", "--name-only", "--diff-filter=D", range], "git diff failed"));
   add("process", "deleted test", deleted.filter((f) => IS_TEST.test(f)));
   add("process", "skip or only marker added or removed", lines(must(root, ["diff", "--name-only", `-G${SKIP}`, range], "git diff failed")));

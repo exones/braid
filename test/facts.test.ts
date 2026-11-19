@@ -86,6 +86,12 @@ test("braid facts: a plain change shows no stop-case fact", async () => {
   assert.match(out, /no stop-case facts/);
 });
 
+test("braid facts: a change under autonomy/ is a process fact", async () => {
+  const w = world("about 100 lines", (put) => put("autonomy/steady.md", "x\n"));
+  const out = await factsCommand(w.root, ["7"], { gh: w.gh });
+  assert.match(out, /^process: workflow, BRAID\.md, AGENTS\.md, CLAUDE\.md, skill or autonomy preset changed: autonomy\/steady\.md$/m);
+});
+
 test("braid facts: dependency, process, deleted test and skip markers each name their case", async () => {
   const w = world("about 100 lines", (put, rm) => {
     put("package.json", "{}\n");
@@ -96,7 +102,7 @@ test("braid facts: dependency, process, deleted test and skip markers each name 
   });
   const out = await factsCommand(w.root, ["#7"], { gh: w.gh });
   assert.match(out, /^dependency: manifest or lockfile changed: package\.json$/m);
-  assert.match(out, /^process: workflow, BRAID\.md, AGENTS\.md, CLAUDE\.md or skill changed: .*AGENTS\.md.*SKILL\.md|^process: workflow.*: .*SKILL\.md.*AGENTS\.md/m);
+  assert.match(out, /^process: workflow, BRAID\.md, AGENTS\.md, CLAUDE\.md, skill or autonomy preset changed: .*AGENTS\.md.*SKILL\.md|^process: workflow.*: .*SKILL\.md.*AGENTS\.md/m);
   assert.match(out, /^process: deleted test: test\/old\.test\.ts$/m);
   assert.match(out, /^process: skip or only marker added or removed: test\/new\.test\.ts$/m);
   assert.doesNotMatch(out, /quality or scope/);

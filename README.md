@@ -121,6 +121,7 @@ The full list is in [the CLI reference](docs/cli.md).
 | [CLI reference](docs/cli.md) | Every command, with examples and exit codes. |
 | [The attention board](docs/board.md) | What `braid board` shows, how it decides, and its actions (Start, Merge, Open thread). |
 | [The braids/ format](docs/braids-format.md) | The files in `braids/`, branches and each command's behaviour. |
+| [Autonomy presets](docs/autonomy.md) | The preset file a braid runs on, the three shipped presets and `braid autonomy`. |
 | [Workflow](.agents/skills/braid/references/workflow.md) | Items, tiers, branches, merges and checks. |
 | [Skills](.agents/skills/braid/SKILL.md) | How agents plan ([braid](.agents/skills/braid/SKILL.md)), do ([worker](.agents/skills/braid-worker/SKILL.md)) and review ([reviewer](.agents/skills/braid-reviewer/SKILL.md)) items, and note your ideas for later ([idea](.agents/skills/braid-idea/SKILL.md)). |
 | [Decisions](docs/decisions.md) | Current requirements and their reasons. |

@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { loadKnownBraids } from "./branches.js";
+import { availablePresets, delegatedGuarded, parsePreset, projectDefault, projectPresetFiles, PRESET_NAME, type Preset } from "./autonomy.js";
+import { SHIPPED_PRESETS } from "./presets.js";
 import { parseBrief } from "./brief.js";
 import { FormatError } from "./frontmatter.js";
 import { BRAID_FOLDER, STRAND_FOLDER } from "./store.js";
@@ -18,8 +20,14 @@ function display(root: string, path: string): string {
   return relative(root, path).split(sep).join("/");
 }
 
-/** Validates one brief; returns its `related` ids with its file name, or null when it has none or fails. */
-function checkBrief(root: string, dir: string, id: string, errors: string[]): { name: string; related: readonly string[] } | null {
+interface Checked {
+  readonly name: string;
+  readonly related: readonly string[];
+  readonly autonomy: string | null;
+}
+
+/** Validates one brief; returns its file name, `related` ids and preset, or null when it fails. */
+function checkBrief(root: string, dir: string, id: string, errors: string[]): Checked | null {
   const path = join(dir, "brief.md");
   const name = display(root, path);
   if (!existsSync(path)) {
@@ -28,7 +36,7 @@ function checkBrief(root: string, dir: string, id: string, errors: string[]): { 
   }
   try {
     const brief = parseBrief(readFileSync(path, "utf8"), name, id);
-    return brief.related.length === 0 ? null : { name, related: brief.related };
+    return { name, related: brief.related, autonomy: brief.autonomy };
   } catch (error) {
     if (error instanceof FormatError) {
       errors.push(`${error.file}: ${error.message}`);
@@ -42,7 +50,8 @@ function checkBrief(root: string, dir: string, id: string, errors: string[]): { 
  * A `related` id found in no source (working tree, braid and strand branches, `plan/` branches) is a
  * warning, not an error: the braid it names may live on a branch this checkout hasn't fetched.
  */
-function relatedWarnings(root: string, links: readonly { name: string; related: readonly string[] }[]): string[] {
+function relatedWarnings(root: string, all: readonly Checked[]): string[] {
+  const links = all.filter((link) => link.related.length > 0);
   if (links.length === 0) {
     return [];
   }
@@ -70,11 +79,12 @@ function relatedWarnings(root: string, links: readonly { name: string; related: 
 export function checkBraids(root: string): CheckResult {
   const base = join(root, "braids");
   const errors: string[] = [];
-  const links: { name: string; related: readonly string[] }[] = [];
+  const links: Checked[] = [];
   let braids = 0;
   let strands = 0;
   if (!existsSync(base)) {
-    return { errors, warnings: [], braids, strands };
+    const presets = presetProblems(root, links);
+    return { errors: presets.errors, warnings: presets.warnings, braids, strands };
   }
   const numbers = new Map<string, string>();
   for (const entry of readdirSync(base).sort()) {
@@ -117,5 +127,66 @@ export function checkBraids(root: string): CheckResult {
       checkBrief(root, strandDir, `${number}/${letter}`, errors);
     }
   }
-  return { errors, warnings: relatedWarnings(root, links), braids, strands };
+  const presets = presetProblems(root, links);
+  return { errors: [...errors, ...presets.errors], warnings: [...relatedWarnings(root, links), ...presets.warnings], braids, strands };
+}
+
+/**
+ * The preset rules: each project file under autonomy/ parses; BRAID.md and every brief name a
+ * preset that exists. A preset that lets the agents decide security, data or outward is a warning:
+ * every project file, and a shipped preset only when something here names it.
+ */
+function presetProblems(root: string, briefs: readonly Checked[]): { errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const warn = (where: string, preset: Preset) => {
+    const cases = delegatedGuarded(preset);
+    if (cases.length > 0) {
+      warnings.push(`${where}: preset ${preset.name} lets the agents decide ${cases.join(", ")} (allowed; make sure it is meant)`);
+    }
+  };
+  for (const [name, source] of projectPresetFiles(root)) {
+    if (!PRESET_NAME.test(name)) {
+      errors.push(`${source.from}: a preset file name must be lowercase letters and digits joined by single hyphens, like steady.md`);
+      continue;
+    }
+    try {
+      warn(source.from, parsePreset(source.text, source.from, name));
+    } catch (error) {
+      if (error instanceof FormatError) {
+        errors.push(`${error.file}: ${error.message}`);
+        continue;
+      }
+      throw error;
+    }
+  }
+  const available = availablePresets(root);
+  const named = new Set<string>();
+  const known = (where: string, name: string) => {
+    if (available.has(name)) {
+      named.add(name);
+    } else {
+      errors.push(`${where}: autonomy preset ${name} does not exist (no autonomy/${name}.md and no shipped preset ${name}; shipped: ${[...SHIPPED_PRESETS.keys()].join(", ")})`);
+    }
+  };
+  const fallback = projectDefault(root);
+  if (fallback !== null) {
+    if (PRESET_NAME.test(fallback)) {
+      known("BRAID.md", fallback);
+    } else {
+      errors.push(`BRAID.md: autonomy must be a preset name like steady; got: ${fallback}`);
+    }
+  }
+  for (const brief of briefs) {
+    if (brief.autonomy !== null) {
+      known(brief.name, brief.autonomy);
+    }
+  }
+  for (const name of named) {
+    const source = available.get(name);
+    if (source?.from === "shipped") {
+      warn(`shipped preset ${name}`, parsePreset(source.text, `shipped preset ${name}`, name));
+    }
+  }
+  return { errors, warnings };
 }

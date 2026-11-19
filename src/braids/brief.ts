@@ -22,6 +22,8 @@ export interface Brief {
   readonly order: number | null;
   /** Braids only; `epic` when the front matter leaves it out. Always null for a strand. */
   readonly delivery: Delivery | null;
+  /** Braids only: the autonomy preset this braid runs on; null when the brief leaves it out (the project default applies). */
+  readonly autonomy: string | null;
   readonly body: string;
   readonly sections: readonly Section[];
 }
@@ -30,7 +32,10 @@ export interface Brief {
 export const BRAID_ID = /^\d{4}$/;
 export const STRAND_ID = /^\d{4}\/[A-Z]$/;
 
-const KEYS = new Set(["id", "title", "status", "labels", "dependencies", "related", "order", "delivery"]);
+const KEYS = new Set(["id", "title", "status", "labels", "dependencies", "related", "order", "delivery", "autonomy"]);
+
+/** A preset name: lowercase letters and digits joined by single hyphens, like a folder slug. */
+export const PRESET_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function parseSections(body: string): Section[] {
   const sections: Section[] = [];
@@ -153,6 +158,15 @@ export function parseBrief(text: string, file: string, expectedId: string): Brie
       delivery = deliveryText as Delivery;
     }
   }
+  const autonomy = text1("autonomy", false);
+  if (autonomy !== null) {
+    if (strand) {
+      throw new FormatError(file, `${where("autonomy")}autonomy is set per braid, not per strand`);
+    }
+    if (!PRESET_NAME.test(autonomy)) {
+      throw new FormatError(file, `${where("autonomy")}autonomy must be a preset name like steady; got: ${autonomy}`);
+    }
+  }
   return {
     id,
     title,
@@ -162,6 +176,7 @@ export function parseBrief(text: string, file: string, expectedId: string): Brie
     related,
     order,
     delivery,
+    autonomy,
     body: front.body,
     sections: parseSections(front.body),
   };
