@@ -1,7 +1,7 @@
 ---
 id: '0034'
 title: "Board: item details in a side panel, not a page"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: []
 related: ['0033']
