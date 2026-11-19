@@ -111,6 +111,8 @@ test("open thread: cards and strand rows with a thread carry its link, the other
   assert.equal(find("0010/A").thread, "https://t3.example/thread/demo-5");
   assert.equal(find("0001/C").thread, null);
   assert.equal(find("0001/B").thread, null);
+  const role = (id: string) => (find(id) as unknown as { threadRole: string | null }).threadRole;
+  assert.deepEqual([role("0002/A"), role("0010/A"), role("0002/B"), role("0001/C")], ["worker", "reviewer", "worker", null]);
   const single = cards().find((c) => c.id === "0010");
   assert.equal(single?.strands.length, 1);
   assert.equal(cards().find((c) => c.id === "0001")?.thread, null);

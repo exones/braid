@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, Tabs, Tooltip } from "radix-ui";
+import { ROLES } from "../../src/braids/roles.ts";
 import { Md } from "./Md.tsx";
-import { LANE_LABEL, ageText, cardMarks, strandMarks, t3codeUrl, type Marks } from "../../src/board/marks.ts";
+import { closeMode, hashFor, openMode, parseHash, pushedAfter, type Route } from "../../src/board/route.ts";
+import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
-import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type StrandCard } from "./api.ts";
+import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
 let pushedOpen = false;
@@ -195,20 +197,25 @@ const MergeIcon = () => (
   </svg>
 );
 
-const OpenIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
-  </svg>
-);
+/** A braid number or strand id in full: the leading zeros in normal weight, the significant digits bold (`00`**`34`**`/A`). */
+function Id({ id }: { id: string }) {
+  // `id` is an id (`0034/A`) or text that holds ids (an inbox source such as `review 0012/A`).
+  return (
+    <>
+      {id.split(/(\b\d{4}(?:\/[A-Z])?\b)/).map((part, i) => {
+        if (i % 2 === 0) {
+          return part;
+        }
+        const { zeros, digits, rest } = splitId(part);
+        return <span key={i}>{zeros}<b className="font-bold text-slate-900">{digits}</b>{rest}</span>;
+      })}
+    </>
+  );
+}
 
-/** A 24 px icon button; below `md` (a phone) it is at least 44 px and carries its one-word label. */
-const CoordinatorIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="7" r="3" />
-    <path d="M5 20a7 7 0 0 1 14 0M12 12v3" />
-  </svg>
-);
+/** A 24 px button; below `md` (a phone) it is at least 44 px. Start and Merge carry their one-word label there; the thread buttons stay an emoji. */
 const BUTTON = "flex size-6 items-center justify-center gap-1.5 rounded-md border max-md:size-auto max-md:min-h-11 max-md:min-w-11 max-md:px-4 max-md:text-sm max-md:font-semibold";
+const EMOJI_BUTTON = "text-[13px] leading-none max-md:text-xl";
 
 /** The label shown on a phone only; desktop buttons are icon-only with a tooltip. */
 const Label = ({ children }: { children: ReactNode }) => <span className="md:hidden">{children}</span>;
@@ -220,18 +227,17 @@ const RemoteContext = createContext(false);
  * Open thread: a small button that opens the item's thread in the T3 desktop app (the server opens it); on a phone, the
  * thread's `t3code://` app link. Over Tailscale (the server refuses `open` there) only the app link, at every width.
  * Nothing is drawn when there is no thread. `coordinator` is the braid's Coordinator button: the same, for the coordinator
- * thread (the server is asked with `thread: "coordinator"`), a person icon and an accent colour.
+ * thread (the server is asked with `thread: "coordinator"`), a 🧠 and an accent colour.
  */
-function OpenThread({ id, link, coordinator = false }: { id: string; link: string | null; coordinator?: boolean }) {
+function OpenThread({ id, link, role = null, coordinator = false }: { id: string; link: string | null; role?: ThreadRole | null; coordinator?: boolean }) {
   const remoteBoard = useContext(RemoteContext);
   const [error, setError] = useState<string | null>(null);
   if (link === null) {
     return null;
   }
   const app = t3codeUrl(link);
-  const name = coordinator ? "Coordinator" : "Open thread";
   const what = coordinator ? "Open the coordinator thread" : "Open thread";
-  const Icon = coordinator ? CoordinatorIcon : OpenIcon;
+  const emoji = coordinator ? ROLES.coordinator : threadEmoji(role);
   const tone = coordinator ? "border-blue-600 text-blue-700" : "border-slate-200 text-slate-700";
   if (remoteBoard && app === null) {
     return null;
@@ -240,7 +246,7 @@ function OpenThread({ id, link, coordinator = false }: { id: string; link: strin
     <>
       {app !== null && (
         <a href={app} onClick={(e) => e.stopPropagation()} aria-label={`${what} in the T3 app`} title={`${what} in the T3 app`} className={`${BUTTON} ${tone} bg-white no-underline ${remoteBoard ? "" : "md:hidden"}`}>
-          <Icon /> <Label>{name}</Label>
+          <span aria-hidden="true" className={EMOJI_BUTTON}>{emoji}</span>
         </a>
       )}
     {!remoteBoard && (
@@ -256,7 +262,7 @@ function OpenThread({ id, link, coordinator = false }: { id: string; link: strin
           }}
           className={`${BUTTON} ${app === null ? "" : "max-md:hidden"} ${error === null ? tone : "border-red-600 text-red-700"} bg-white hover:border-blue-600`}
         >
-          <Icon /> <Label>{name}</Label>
+          <span aria-hidden="true" className={EMOJI_BUTTON}>{emoji}</span>
         </button>
       </Tooltip.Trigger>
       <Tooltip.Portal>
@@ -472,10 +478,10 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
 }
 
 /** Open thread where the item has a thread, Coordinator on a braid with a coordinator thread; Start on a To Do braid; Merge on In Review items. */
-function Actions({ id, lane, thread, coordinator = null, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; coordinator?: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
+function Actions({ id, lane, thread, threadRole = null, coordinator = null, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; threadRole?: ThreadRole | null; coordinator?: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5 max-md:gap-2">
-      <OpenThread id={id} link={thread} />
+      <OpenThread id={id} link={thread} role={threadRole} />
       <OpenThread id={id} link={coordinator} coordinator />
       {start !== null && <StartButton id={id} start={start} {...(onLaunched === undefined ? {} : { onLaunched })} />}
       {lane === "In Review" && <MergeButton id={id} merge={merge} />}
@@ -522,7 +528,7 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
       onClick={() => go(braid.id)}
     >
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-slate-500">{braid.id}</span>
+        <span className="text-xs text-slate-500"><Id id={braid.id} /></span>
         {braid.status === "Outline" && <Badge tone="bg-amber-100 text-amber-800">Outline</Badge>}
         {tier.map((l) => (
           <Badge key={l}>{l}</Badge>
@@ -570,14 +576,14 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
               }}
             >
               <LaneDot lane={s.lane} />
-              <span className="w-10 flex-none text-xs text-slate-500">{s.id.slice(2)}</span>
+              <span className="w-14 flex-none text-xs text-slate-500"><Id id={s.id} /></span>
               <span className="flex-1">
                 {s.title}
                 {s.branch !== null && <FromBranch branch={s.branch} />}
               </span>
               <PrLink pr={s.pr} />
               <Marks marks={strandMarks(s, details)} />
-              <span onClick={(e) => e.stopPropagation()}><Actions id={s.id} lane={s.lane} thread={s.thread} merge={s.merge} /></span>
+              <span onClick={(e) => e.stopPropagation()}><Actions id={s.id} lane={s.lane} thread={s.thread} threadRole={s.threadRole} merge={s.merge} /></span>
               {details && s.need !== null && <NeedLine need={s.need} className="ml-[34px] basis-full" />}
             </div>
           ))}
@@ -585,7 +591,7 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
       )}
       {(braid.coordinator?.warning ?? launched?.warning ?? null) !== null && <Warn>{braid.coordinator?.warning ?? launched?.warning}</Warn>}
       <div className="mt-2 flex min-h-6 justify-end">
-        <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.total === 0 ? braid.thread : null} coordinator={braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
+        <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.total === 0 ? braid.thread : null} threadRole={braid.threadRole} coordinator={braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
       </div>
     </div>
   );
@@ -633,7 +639,7 @@ function InboxRow({ entry }: { entry: InboxEntry }) {
         <span className="min-w-0 flex-1">
           <span className="block font-semibold"><Title text={entry.title} /></span>
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-            {entry.kind === "leftover" && entry.from !== null && <span className="rounded-full bg-indigo-50 px-1.5 font-mono text-[11px] text-indigo-800">{entry.from}</span>}
+            {entry.kind === "leftover" && entry.from !== null && <span className="rounded-full bg-indigo-50 px-1.5 font-mono text-[11px] text-indigo-800"><Id id={entry.from} /></span>}
             {entry.passed > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[11px] text-amber-800" title="A sweep proposed it and you passed it over; at 2 it is dropped">passed over ×{entry.passed}</span>}
             {entry.age !== null && <span className="whitespace-nowrap">{entry.age} ago</span>}
           </span>
@@ -713,7 +719,7 @@ function DoneLane({ cards }: { cards: readonly BraidCard[] }) {
           {rows.slice(0, shown).map((b) => (
             <button key={b.id} type="button" data-opens-details onClick={() => go(b.id)} className="flex w-full cursor-pointer items-center gap-2 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
               <LaneDot lane="Done" />
-              <span className="w-9 flex-none text-xs text-slate-500">{b.id}</span>
+              <span className="w-10 flex-none text-xs text-slate-500"><Id id={b.id} /></span>
               <span className="min-w-0 flex-1">{b.title}</span>
               <span className="flex-none text-[11px] whitespace-nowrap text-slate-500">{dayOf(b.doneAt)}</span>
             </button>
@@ -807,7 +813,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
   const trigger = "cursor-pointer border-b-2 border-transparent px-3.5 py-2 text-slate-500 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=active]:text-slate-900";
   return (
     <div className="min-h-0 flex-1 overflow-auto px-7 py-5 max-md:px-4">
-      <div className="text-xs text-slate-500">{item.id}</div>
+      <div className="text-xs text-slate-500"><Id id={item.id} /></div>
       <Dialog.Title className="mb-1.5 text-xl font-semibold">{item.title}</Dialog.Title>
       <div className="flex flex-wrap items-center gap-1.5">
         <LaneDot lane={item.lane} />
@@ -817,7 +823,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <Badge key={l} tone="bg-indigo-100 text-indigo-800">{l}</Badge>
         ))}
         <span className="flex-1" />
-        <Actions id={item.id} lane={item.lane} thread={item.id.includes("/") || item.braid.total === 0 ? item.thread : null} coordinator={item.id.includes("/") ? null : item.braid.coordinator?.link ?? null} merge={item.merge} start={item.id.includes("/") ? null : item.braid.start} />
+        <Actions id={item.id} lane={item.lane} thread={item.id.includes("/") || item.braid.total === 0 ? item.thread : null} threadRole={item.threadRole} coordinator={item.id.includes("/") ? null : item.braid.coordinator?.link ?? null} merge={item.merge} start={item.id.includes("/") ? null : item.braid.start} />
       </div>
       {!item.id.includes("/") && item.braid.coordinator?.warning != null && <Warn>{item.braid.coordinator.warning}</Warn>}
       {item.need !== null && (
@@ -884,7 +890,7 @@ function Logs({ logs }: { logs: ItemDetail["logs"] }) {
 
 /** Moving between a braid's brief and its strands, inside the details. */
 function Contents({ braid, current }: { braid: BraidCard; current: string }) {
-  const chip = (id: string, label: string, strand: StrandCard | null) => (
+  const chip = (id: string, label: ReactNode, strand: StrandCard | null) => (
     <button
       key={id}
       type="button"
@@ -899,7 +905,7 @@ function Contents({ braid, current }: { braid: BraidCard; current: string }) {
   return (
     <nav aria-label={`${braid.id} ${braid.title}`} className="flex flex-none gap-1.5 overflow-x-auto border-b border-slate-200 px-7 pb-2.5 pt-2.5 max-md:px-4">
       {chip(braid.id, "Braid brief", null)}
-      {braid.strands.map((s) => chip(s.id, `${s.id.slice(5)} · ${s.title}`, s))}
+      {braid.strands.map((s) => chip(s.id, <span><Id id={s.id} /> · {s.title}</span>, s))}
     </nav>
   );
 }
