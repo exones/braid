@@ -9,9 +9,9 @@ delivery: epic
 
 ## Goal
 
-Clear six leftovers from the inbox: two that 0029 (Sweep: leftovers from 0027, PR #158) left (the CLI page gets its missing `braid title` entry, and `catBatchSync` gets failure tests), and four added at the 0034 sweep (a cancelled CI check no longer counts as green, `braid ask` and `braid answer` find a braid that lives only on its branch, the board panel's history rules get tests, and the README shows the new item panel). Tier M because the CI-check fix decides whether a PR may be accepted or merged. Runs after 0037 (Coordinator asks with the question tool and set options).
+Clear eight leftovers from the inbox: two that 0029 (Sweep: leftovers from 0027, PR #158) left (the CLI page gets its missing `braid title` entry, and `catBatchSync` gets failure tests), and four added at the 0034 sweep (a cancelled CI check no longer counts as green, `braid ask` and `braid answer` find a braid that lives only on its branch, the board panel's history rules get tests, and the README shows the new item panel), and two added at the 0037 sweep (two Windows test flakes). Tier M because the CI-check fix decides whether a PR may be accepted or merged. Runs after 0037 (Coordinator asks with the question tool and set options).
 
-Expected size: about 220 lines in 9 files, tests included.
+Expected size: about 240 lines in 11 files, tests included.
 
 ## Start here
 
@@ -32,6 +32,8 @@ Expected size: about 220 lines in 9 files, tests included.
 - **braid ask can't find a braid that lives only on its branch** (leftover 2026-11-19-5aug, from 0041): from the main checkout, `braid ask 0041 ...` failed with "no braid 0041" while `braid list --open` showed 0041 (read from its braid branch). A coordinator waiting for a go on a story that isn't started has to open a temporary worktree on the branch to ask. ask (and answer) should find a braid the way list and view do.
 - **Test the board panel history rules** (leftover 2026-11-19-qk9d, from review 0034, https://github.com/exones/braid/pull/161#issuecomment-7018360826): web/src/App.tsx: go, closeDetails and pushedOpen decide push vs replace when opening, moving inside and closing the item panel (0034). Only parseHash/hashFor are tested (test/board-route.test.ts). A pure helper for push-vs-replace and close-with-back-vs-replace, with tests, would lock that one Back closes the panel and that a link opened on a fresh load closes to #/ by replace instead of leaving the site.
 - **README still shows the old full-page item screenshot** (leftover 2026-11-19-urnm, from review 0034, same comment): README.md (around lines 59-61) shows docs/images/item-page.png as "an item page on the board". Since 0034 the item details open as a side panel over the board. Replace it with a screenshot of the panel (docs/design/board-screenshots/71-details-panel.png is one) and fix the caption.
+- **Flaky temp-folder cleanup in tests on Windows** (leftover 2026-11-19-duld, from 0040/B): the teardown hook of test/t3.test.ts (line 10) deletes its temp folder with rmSync(scratch, { recursive: true, force: true }), and on the Windows runner it failed once with EPERM (a process still held the folder). The whole verify (windows-latest) job went red on a docs-only PR (#164 at cdb7f02) and passed on a re-run. Adding maxRetries (and retryDelay) to that rmSync, and to the other temp cleanups in test/, would stop a red CI that blocks auto-mode merges for no reason.
+- **Flaky hung cat-file test in board-cheaper-reads** (leftover 2026-11-19-kr3i, from 0039): the test "a hung git cat-file --batch ..." in test/board-cheaper-reads.test.ts uses a 400 ms timeout that races the start-up of the child node process when the full suite runs on Windows, so the gate fails at random (seen locally in 0039; it passes 3 of 3 runs on its own). A longer timeout or a start-up handshake before the clock starts would make it stable.
 
 ## Already decided
 
@@ -52,5 +54,6 @@ Expected size: about 220 lines in 9 files, tests included.
 - [ ] `braid ask` and `braid answer` work from the main checkout for a braid that lives only on its branch (test)
 - [ ] The panel's push/replace and close rules are a pure helper with tests, including a link opened on a fresh load
 - [ ] README shows the item panel screenshot with a matching caption
+- [ ] Temp-folder cleanups in test/ retry on Windows (maxRetries, retryDelay), and the hung cat-file test no longer races the child's start-up
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
