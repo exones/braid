@@ -69,4 +69,4 @@ Verdict (mockups 5121127): the button on the collapsed row, dialog wording as mo
 - [x] An idea being planned shows that state and an Open thread button instead of Promote (demo screenshot in the report)
 - [x] `docs/board.md` describes Promote to Braid, with a screenshot
 - [x] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
