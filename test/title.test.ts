@@ -58,7 +58,7 @@ test("braid title prints the full title with the brief's title exactly, for a st
 });
 
 test("a checkout named agento whose origin is braid.git: titles with either name match, another repo's don't", async () => {
-  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<{ coordinators: Map<string, unknown>; idle: Map<string, { id: string }[]>; idleCoordinators: Map<string, unknown> }> };
+  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<{ coordinators: Map<string, unknown>; idle: Map<string, { id: string; role: string }[]>; idleCoordinators: Map<string, unknown> }> };
   const parent = mkdtempSync(join(tmpdir(), "braid-title-"));
   const root = join(parent, "agento");
   mkdirSync(root);
@@ -71,9 +71,13 @@ test("a checkout named agento whose origin is braid.git: titles with either name
     { threadId: "w1", status: "idle", title: "💻 braid 0009 worker: x" },
     { threadId: "w2", status: "idle", title: "agento 0009/D worker: x" },
     { threadId: "w3", status: "idle", title: "💻 other 0009/E worker: x" },
+    { threadId: "r1", status: "idle", title: "👀 braid 0009/F review: x" },
   ];
   const run = (_r: string, args: readonly string[]) => Promise.resolve({ status: 0, stdout: args[1] === "list" ? JSON.stringify(listed) : "{}", stderr: "" });
   const read = await t3.readT3(root, { run, ttlMs: 0, agents: join(parent, "agents"), project: root });
   assert.deepEqual([...read.coordinators.keys()], ["0009", "0010"]);
+  // A thread titled as a review is no item's thread: reviewers are subagents recorded with braid review (0039).
   assert.deepEqual([...read.idle].map(([k, v]) => [k, v.map((t) => t.id)]), [["0009", ["w1"]], ["0009/D", ["w2"]]]);
+  // The role comes from the title with or without the emoji, and the Open thread button draws its emoji from it.
+  assert.deepEqual([...read.idle].map(([k, v]) => [k, v.map((t) => t.role)]), [["0009", ["worker"]], ["0009/D", ["worker"]]]);
 });

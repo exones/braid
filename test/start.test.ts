@@ -7,7 +7,7 @@ import { after, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-start-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 const { startCommand, worktreesDir } = (await load("../dist/commands/start.js")) as {
@@ -251,36 +251,31 @@ test("clean says a worktree is still in use and keeps it (Windows holds a workin
   }
 });
 
-test("start --review checks out the open PR's head detached, apart from the worker; clean removes it with the merged item", async () => {
+test("start --review is gone: it fails naming braid review and creates nothing", async () => {
+  const { root, env, wt } = repo();
+  await startCommand(root, ["0001/B"], src(), env);
+  const open = { number: 9, url: "https://github.com/o/r/pull/9", state: "OPEN", headRefName: "braid/0001/B-second-one", statusCheckRollup: [] };
+  const before = git(root, "worktree", "list", "--porcelain");
+  await assert.rejects(startCommand(root, ["0001/B", "--review"], src([open]), env), /no --review option: .*braid review <id> --thread <thread id>\. Nothing was created/);
+  await assert.rejects(startCommand(root, ["0001/C", "--review", "--force"], src([open]), env), /braid review/);
+  assert.equal(git(root, "worktree", "list", "--porcelain"), before, "no worktree was added");
+  assert.equal(existsSync(join(wt, "proj", "0001-B-review")), false);
+  assert.equal(gone(root, "braid/0001/C-third"), true, "no branch was made");
+});
+
+test("clean still removes a leftover -review checkout of a merged item (made before reviewers were subagents)", async () => {
   const { root, env, wt } = repo();
   await startCommand(root, ["0001/B"], src(), env);
   const worker = join(wt, "proj", "0001-B");
   git(worker, "commit", "-q", "--allow-empty", "-m", "work");
   git(worker, "push", "-q");
   const head = git(worker, "rev-parse", "HEAD");
-  const branch = "braid/0001/B-second-one";
-  const open = { number: 9, url: "https://github.com/o/r/pull/9", state: "OPEN", headRefName: branch, statusCheckRollup: [] };
+  // What `braid start 0001/B --review` used to make: a detached checkout of the PR head, and one of the braid's final PR.
   const folder = join(wt, "proj", "0001-B-review");
-  const out = await startCommand(root, ["0001/B", "--review"], src([open]), env);
-  assert.equal(out, `review checkout of PR #9 (${branch})\ncommit ${head}\nfolder ${folder}\n`);
-  assert.equal(git(folder, "rev-parse", "HEAD"), head);
-  assert.equal(git(folder, "rev-parse", "--abbrev-ref", "HEAD"), "HEAD", "detached");
-  assert.equal(git(worker, "rev-parse", "--abbrev-ref", "HEAD"), branch, "the worker's worktree is untouched");
-  await assert.rejects(startCommand(root, ["0001/B", "--review"], src([open]), env), /already exists/);
-  await assert.rejects(startCommand(root, ["0001/C", "--review"], src([open]), env), /0001\/C has no open PR to review/);
-  await assert.rejects(startCommand(root, ["0001", "--review"], src([open]), env), /has strands and no open final PR/);
-  const finalPr = { number: 12, url: "https://github.com/o/r/pull/12", state: "OPEN", headRefName: "braid/0001-alpha", statusCheckRollup: [] };
-  const tipSha = git(root, "rev-parse", "braid/0001-alpha");
+  git(root, "worktree", "add", "-q", "--detach", folder, head);
   const braidFolder = join(wt, "proj", "0001-review");
-  const braidOut = await startCommand(root, ["0001", "--review"], src([open, finalPr]), env);
-  assert.equal(braidOut, `review checkout of PR #12 (braid/0001-alpha)
-commit ${tipSha}
-folder ${braidFolder}
-`);
-  assert.ok(existsSync(braidFolder));
-
-  resetGithubMemory();
-  const done = { ...open, state: "MERGED", mergedAt: "2026-11-14T00:00:00Z" };
+  git(root, "worktree", "add", "-q", "--detach", braidFolder, "braid/0001-alpha");
+  const done = merged(9, "braid/0001/B-second-one");
   const dry = await cleanCommand(root, [], src([done]), env);
   assert.match(dry, /would remove 0001\/B: review checkout .*0001-B-review \(PR #9 merged\)/);
   assert.ok(existsSync(folder));
@@ -288,9 +283,8 @@ folder ${braidFolder}
   assert.match(cleaned, /removed 0001\/B: review checkout/);
   assert.equal(existsSync(folder), false);
   assert.ok(existsSync(worker), "the worker's worktree has unmerged commits, so it stays");
-  // The braid's own review checkout goes when its final PR is merged.
   resetGithubMemory();
-  const finalDone = { ...finalPr, state: "MERGED", mergedAt: "2026-11-15T00:00:00Z" };
+  const finalDone = merged(12, "braid/0001-alpha");
   const cleanedBraid = await cleanCommand(root, ["0001", "--yes"], src([done, finalDone]), env);
   assert.match(cleanedBraid, /removed 0001: review checkout .*0001-review/);
   assert.equal(existsSync(braidFolder), false);

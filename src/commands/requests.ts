@@ -1,14 +1,16 @@
 // `braid handover`, `braid ask`, `braid answer` and `braid requests`: the coordinator records that it
 // needs the user (a request), and closes it again. The store is src/braids/requests.ts.
 import { threadShort } from "../braids/logs.js";
-import { loadBraids } from "../braids/store.js";
+import { loadKnownBraids } from "../braids/branches.js";
 import { age, closeRequest, KINDS, liveRequests, openRequest, type Kind, type PrNow, type Request } from "../braids/requests.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
+import { runT3, showThread, type T3Runner } from "../board/t3.js";
 import { UsageError } from "./braids.js";
 import { ciChecks } from "./coordinate.js";
 import { checksProblem, view } from "./done.js";
 import { find, parse, readText, str } from "./edit.js";
 import { logEntry } from "./logs.js";
+import { recordReview } from "../braids/reviews.js";
 import { recapCommand } from "./facts.js";
 
 export interface RequestOptions {
@@ -25,10 +27,34 @@ function threadOf(values: Parameters<typeof str>[0]): string | null {
   return thread ?? null;
 }
 
-/** The item's id (`0015` or `0015/C`), checked against the braids of this checkout. */
+/** The item's id (`0015` or `0015/C`), checked against the braids `braid view` finds: this checkout's and those that live only on their branch. */
 function itemId(root: string, raw: string | undefined, command: string): string {
-  const { item } = find(loadBraids(root), raw, command);
+  const number = raw === undefined ? undefined : /^(\d{1,4})(?:\/|$)/.exec(raw)?.[1]?.padStart(4, "0");
+  const { item } = find(loadKnownBraids(root, number), raw, command);
   return item.brief.id;
+}
+
+/**
+ * `braid review <id> --thread <thread id>`, run by the coordinator right after it launched the reviewer as a T3 subagent: records the
+ * thread with the folder and branch T3 gives for it at that moment (`t3 thread show`: `worktreePath`, `branch`), so the board and
+ * `braid status` count it as the item's reviewer while it runs, and `braid clean` removes that checkout after the merge without asking
+ * T3 again. When T3 has no folder for it yet, or can't be read, the thread is recorded without one and `braid clean` asks T3 later.
+ */
+export async function reviewCommand(root: string, args: readonly string[], opts: RequestOptions & { readonly t3?: T3Runner } = {}): Promise<string> {
+  const { positionals, values } = parse("braid review", args, { thread: { type: "string" } });
+  const thread = str(values, "thread");
+  if (positionals.length !== 1 || thread === undefined) {
+    throw new UsageError("usage: braid review <id> --thread <thread id>  (the reviewer's child thread id, from delegate_task)");
+  }
+  threadOf(values);
+  const id = itemId(root, positionals[0], "braid review");
+  const at = (opts.now ?? (() => new Date()))();
+  const where = await showThread(opts.t3 ?? runT3, root, thread);
+  const folder = where?.worktreePath ?? null;
+  const added = recordReview(root, id, thread, at.toISOString(), folder === null ? null : { folder, branch: where?.branch ?? null });
+  const what = folder === null ? `no checkout yet (${where === null ? "T3 doesn't know the thread or can't be read" : "T3 gives no folder"}); braid clean will ask T3` : `checkout ${folder}${where?.branch == null ? "" : `, branch ${where.branch}`}`;
+  return `${id}: review thread ${thread} ${added ? "recorded" : "already recorded"} (${what})
+`;
 }
 
 export async function handoverCommand(root: string, args: readonly string[], opts: RequestOptions = {}): Promise<string> {

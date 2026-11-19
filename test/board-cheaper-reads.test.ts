@@ -30,11 +30,13 @@ const done = (await load("../dist/board/done.js")) as {
 const branches = (await load("../dist/braids/branches.js")) as {
   loadLiveBraidsAsync: (root: string) => Promise<{ number: string; brief: { title: string; status: string }; strands: { letter: string; brief: { title: string; status: string } }[] }[]>;
   loadLiveBraids: (root: string) => unknown[];
+  loadKnownBraids: (root: string) => { number: string; brief: { title: string }; strands: { letter: string; brief: { title: string } }[] }[];
   treeOf: (root: string, item: { source: Source | null }) => { read(file: string): string | null };
 };
 const gitio = (await load("../dist/braids/gitio.js")) as {
   spyOnGit: (observer: ((args: readonly string[], sync?: boolean) => void) | undefined) => void;
   catBatch: (root: string, specs: readonly string[], timeoutMs?: number, command?: readonly string[]) => Promise<(string | null)[]>;
+  catBatchSync: (root: string, specs: readonly string[], timeoutMs?: number, command?: readonly string[]) => (string | null)[];
 };
 const t3mod = (await load("../dist/board/t3.js")) as {
   readT3: (root: string, options: unknown) => Promise<{ status: { state: string } }>;
@@ -127,6 +129,39 @@ test("the braids from branches are read through one git cat-file --batch process
   assert.deepEqual(live, branches.loadLiveBraids(root));
 });
 
+test("the synchronous reader behind list --open, view --links and check runs no merge-base and one cat-file --batch per kind of branch", () => {
+  const { root, commit, git } = repo("known");
+  commit(1, { "braids/0001-one/brief.md": brief("0001", "To Do", "One") }, "base");
+  git("checkout", "-q", "-b", "braid/0001-one", "main");
+  commit(2, { "braids/0001-one/brief.md": brief("0001", "In Progress", "Live one") }, "braid branch");
+  git("checkout", "-q", "-b", "braid/0001/A-a");
+  commit(3, { "braids/0001-one/A-a/brief.md": brief("0001/A", "In Progress", "Merged A") }, "strand a");
+  git("checkout", "-q", "braid/0001-one");
+  git("merge", "-q", "--no-ff", "-m", "merge a", "braid/0001/A-a");
+  git("checkout", "-q", "-b", "braid/0001/B-b");
+  commit(4, { "braids/0001-one/B-b/brief.md": brief("0001/B", "In Progress", "Live B") }, "strand b");
+  git("checkout", "-q", "-b", "braid/0002-done", "main");
+  commit(5, { "braids/0002-done/brief.md": brief("0002", "To Do", "Merged two") }, "two");
+  git("checkout", "-q", "main");
+  git("merge", "-q", "--no-ff", "-m", "merge two", "braid/0002-done");
+  git("checkout", "-q", "-b", "plan/three", "main");
+  commit(6, { "braids/0003-three/brief.md": brief("0003", "To Do", "Planned three") }, "plan three");
+  git("checkout", "-q", "main");
+  const sync: (readonly string[])[] = [];
+  gitio.spyOnGit((args) => sync.push(args));
+  const known = branches.loadKnownBraids(root);
+  assert.deepEqual(sync.filter((a) => a[0] === "merge-base"), [], `no merge-base: ${JSON.stringify(sync)}`);
+  assert.equal(sync.filter((a) => a[0] === "cat-file").length, 2, `one batch for braid branches, one for plan branches: ${JSON.stringify(sync)}`);
+  assert.deepEqual(
+    known.map((b) => [b.number, b.brief.title, b.strands.map((s) => [s.letter, s.brief.title])]),
+    [
+      ["0001", "Live one", [["A", "Merged A"], ["B", "Live B"]]],
+      ["0002", "Merged two", []],
+      ["0003", "Planned three", []],
+    ],
+  );
+});
+
 const ok = (data: unknown) => ({ status: 0, stdout: JSON.stringify(data), stderr: "" });
 test("every running thread is shown on every read, also with an unchanged updatedAt", async () => {
   const shows: string[] = [];
@@ -175,7 +210,7 @@ test("a hung git cat-file --batch ends the read with an error after the timeout 
   const pidFile = join(scratch, "hung.pid");
   const hang = [process.execPath, "-e", `require("node:fs").writeFileSync(${JSON.stringify(pidFile)}, String(process.pid)); setInterval(() => {}, 1000)`];
   const began = Date.now();
-  await assert.rejects(gitio.catBatch(scratch, ["HEAD:x"], 400, hang), /timed out after 400 ms/);
+  await assert.rejects(gitio.catBatch(scratch, ["HEAD:x"], 3000, hang), /timed out after 3000 ms/);
   assert.ok(Date.now() - began < 10_000, "ended by the timeout");
   const pid = Number(readFileSync(pidFile, "utf8"));
   let alive = true;
@@ -209,4 +244,23 @@ test("opening a branch-sourced item's detail runs no synchronous git: its report
   const detailFiles = [tree.read("braids/0001-one/report.md"), tree.read("braids/0001-one/log-2026-11-18-abcd1234.md")];
   assert.deepEqual(detailFiles, ["REPORT TEXT\n", "LOG TEXT\n"]);
   assert.deepEqual(sync, [], `synchronous git ran: ${JSON.stringify(sync)}`);
+});
+
+test("catBatchSync: a missing object is null, the others still read", () => {
+  const { root, commit } = repo("sync-missing");
+  commit(1, { "a.txt": "A\n" }, "base");
+  assert.deepEqual(gitio.catBatchSync(root, ["HEAD:a.txt", "HEAD:nope.txt"]), ["A\n", null]);
+});
+
+test("catBatchSync: a git that fails (not a repository) gives nulls for every spec", () => {
+  const plain = join(scratch, "sync-plain");
+  mkdirSync(plain);
+  assert.deepEqual(gitio.catBatchSync(plain, ["HEAD:a", "HEAD:b"]), [null, null]);
+});
+
+test("catBatchSync: a hung process is killed at the timeout and gives nulls", () => {
+  const hang = [process.execPath, "-e", "setInterval(() => {}, 1000)"];
+  const began = Date.now();
+  assert.deepEqual(gitio.catBatchSync(scratch, ["HEAD:x", "HEAD:y"], 3000, hang), [null, null]);
+  assert.ok(Date.now() - began < 15_000, "ended by the timeout");
 });

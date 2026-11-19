@@ -8,7 +8,7 @@ import { after, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-t3-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 interface Result {
   status: number | null;
@@ -70,7 +70,7 @@ const prs = [
 ];
 const gh: Gh = () => ok(prs);
 
-// braid's worktrees are `<worktrees>/<repo>/<NNNN>[-<L>][-review]`; a thread anywhere else is no agent of an item.
+// braid's worktrees are `<worktrees>/<repo>/<NNNN>[-<L>]`; a thread anywhere else, a leftover `-review` checkout included, is no agent of an item.
 process.env.BRAID_WORKTREES_DIR = join(scratch, "worktrees");
 const at = (root: string, folder: string) => join(process.env.BRAID_WORKTREES_DIR as string, basename(root), folder);
 
@@ -116,7 +116,7 @@ async function start(root: string, t3: T3Run, refreshMs = 30_000) {
   return { url, get: async (path: string) => (await (await fetch(`${url}${path}`)).json()) as any };
 }
 
-test("only threads in braid's worktrees are agents: workers, reviewers and their questions", async () => {
+test("only threads in braid's worker worktrees are agents: workers and their questions; a top-level thread in a -review checkout is not", async () => {
   const root = files();
   const { get } = await start(root, t3Stub(root));
   const data = await get("api/board");
@@ -125,7 +125,7 @@ test("only threads in braid's worktrees are agents: workers, reviewers and their
   assert.deepEqual([s.A.lane, s.A.activity, s.A.running], ["In Progress", "agent", true]); // stored To Do, but an agent runs
   assert.deepEqual([s.B.lane, s.B.reason, s.B.need.kind], ["Waiting", "question", "question"]);
   assert.deepEqual([s.C.lane, s.C.running], ["In Progress", false]); // an interrupted thread is nothing; stalled shows only after 10 minutes
-  assert.deepEqual([s.D.lane, s.D.reason, s.D.activity], ["In Progress", null, "review"]); // failing checks, but a reviewer runs on its checkout
+  assert.deepEqual([s.D.lane, s.D.activity, s.D.running], ["In Progress", null, false]); // a running thread in `0001-D-review` is no reviewer any more
   assert.deepEqual([s.E.lane, s.E.running], ["In Progress", false]); // a thread started by hand elsewhere is no agent
   assert.deepEqual([s.F.lane, s.F.running], ["In Progress", false]);
   assert.equal(data.braids[0].lane, "Waiting");

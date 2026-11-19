@@ -8,7 +8,7 @@ import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-tailnet-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 const web = join(scratch, "web");
 mkdirSync(web);
 writeFileSync(join(web, "index.html"), "<!doctype html><title>board</title>");
@@ -227,6 +227,9 @@ test("over Tailscale, a wrong Host, a wrong Origin or an action without x-braid-
     assert.equal((await call(port, "POST", path, { "content-type": "text/plain", host, origin: `http://${host}` }, "{}")).status, 403);
     assert.equal((await call(port, "POST", path, { "content-type": "application/json", host, "x-braid-token": token }, "{}")).status, 403);
     assert.equal((await call(port, "POST", path, { ...ACT, "x-braid-request": "0", host }, "{}")).status, 403);
+    const missing = await call(port, "POST", path, { "content-type": "application/json", host }, "{}");
+    assert.match(missing.text, /missing the x-braid-request header/);
+    assert.match((await call(port, "POST", path, { ...ACT, host, origin: "http://evil.example" }, "{}")).text, /Host or Origin/);
     assert.equal((await call(port, "OPTIONS", path, { host, origin: "http://evil.example", "access-control-request-headers": "x-braid-request" })).status, 405);
   });
   assert.deepEqual(actions, []);

@@ -7,7 +7,7 @@ import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-branches-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 // Git in these tests, and in the braid processes they start, reads no real user settings.
 const home = join(scratch, "home");
 mkdirSync(home);
@@ -127,7 +127,7 @@ test("a strand set In Progress on its branch shows In Progress on a board run fr
     assert.equal(card?.lane, "In Progress");
     assert.equal(card?.branch, null);
     assert.deepEqual(card?.strands, [
-      { id: "0001/A", title: "T 0001/A", status: "In Progress", lane: "In Progress", branch: "braid/0001/A-x", pr: null, reason: null, need: null, ask: null, running: false, activity: null, thread: null, merge: null, doneAt: null },
+      { id: "0001/A", title: "T 0001/A", status: "In Progress", lane: "In Progress", branch: "braid/0001/A-x", pr: null, reason: null, need: null, ask: null, running: false, activity: null, thread: null, threadRole: null, merge: null, doneAt: null },
     ]);
     const item = (await (await fetch(`${url}api/item?id=0001/A`)).json()) as {
       status: string;

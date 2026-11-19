@@ -1,5 +1,5 @@
 import { type Github, type PullRequest } from "./github.js";
-import { NO_T3, type T3, type T3Coordinator, type T3Thread } from "./t3.js";
+import { ideaPlanning, NO_T3, type T3, type T3Coordinator, type T3Thread } from "./t3.js";
 import type { Status } from "../braids/brief.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
@@ -95,6 +95,8 @@ export interface StrandCard {
   readonly activity: Activity | null;
   /** The T3 link of the agent thread (a worker's, else a reviewer's); null when none runs. */
   readonly thread: string | null;
+  /** The role of that thread, from its title; null when there is no thread. */
+  readonly threadRole: ThreadRole | null;
   /** The open review request, when there is one. */
   readonly merge: MergeInfo | null;
   /** When it became Done (the commit that set its status Done, ISO); null when it isn't Done or the date isn't known. */
@@ -122,6 +124,7 @@ export interface BraidCard {
   readonly strands: readonly StrandCard[];
   /** The T3 link of the thread of a braid without strands; null for a braid with strands. */
   readonly thread: string | null;
+  readonly threadRole: ThreadRole | null;
   /** The open review request of the braid itself (a story, or a goal's final PR). */
   readonly merge: MergeInfo | null;
   readonly start: StartInfo;
@@ -165,6 +168,7 @@ export interface ItemDetail {
   readonly running: boolean;
   readonly activity: Activity | null;
   readonly thread: string | null;
+  readonly threadRole: ThreadRole | null;
   readonly merge: MergeInfo | null;
   readonly brief: string;
   readonly report: string | null;
@@ -291,9 +295,20 @@ export function laneOfLanes(lanes: readonly Lane[]): Lane {
   return URGENCY.find((lane) => lanes.includes(lane)) ?? "To Do";
 }
 
-/** The thread to open for an item: a worker's, else a reviewer's. */
+/** The thread to open for an item: a running worker's; a subagent reviewer has no link of its own (it shows inside its coordinator's thread). */
 export function threadLink(agents: readonly T3Thread[]): string | null {
-  return (agents.find((t) => t.role === "worker") ?? agents[0])?.link ?? null;
+  return pickThread(agents)?.link ?? null;
+}
+
+function pickThread(agents: readonly T3Thread[]): T3Thread | undefined {
+  return agents.find((t) => t.role === "worker") ?? agents[0];
+}
+
+export type ThreadRole = T3Thread["role"];
+
+/** The role (read from the thread's title) of the thread `openThread` picks; the Open thread button shows its emoji. */
+export function openThreadRole(key: string, agents: readonly T3Thread[], t3: T3, lane: Lane): ThreadRole | null {
+  return (pickThread(agents) ?? (lane === "Done" ? undefined : pickThread(t3.idle?.get(key) ?? [])))?.role ?? null;
 }
 
 /** The thread to open for an item: a running agent's, else the newest idle (not running, not archived) thread of the item; an idle one never for a Done item (its old threads outlive `braid clean`). */
@@ -405,6 +420,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
       running: d.agents.length > 0,
       activity: d.activity,
       thread: openThread(`${braid.number}/${s.letter}`, d.agents, t3, d.lane),
+      threadRole: openThreadRole(`${braid.number}/${s.letter}`, d.agents, t3, d.lane),
       merge: mergeOf(`${braid.number}/${s.letter}`, gh, sig),
       doneAt: d.lane === "Done" && s.brief.status === "Done" ? (sig.doneAt?.(s.folder, s.source) ?? null) : null,
     };
@@ -413,7 +429,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     const derived = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
     const lift = planned(braid.number, derived.lane, gh, t3);
     const own = lift === null ? derived : { ...derived, ...lift };
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null };
+    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -423,7 +439,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
   let own: { lane: Lane; reason: Reason | null; need: Need | null; agents?: readonly T3Thread[]; activity?: Activity | null } | null = null;
   if (finalPr) {
-    // The braid's reviewers (`<n>-review`) are its agents in wrap-up; the coordinator never counts.
+    // The braid's recorded reviewers (`braid review <n>`) are its agents in wrap-up; the coordinator never counts.
     const reviewers = (t3.threads.get(braid.number) ?? []).filter((t) => t.role === "reviewer");
     own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, { status: t3.status, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []) }, sig);
   } else if (req !== undefined && pr?.state !== "merged") {
@@ -454,6 +470,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     total: strands.length,
     strands,
     thread: openThread(braid.number, own?.agents ?? [], t3, lane),
+    threadRole: openThreadRole(braid.number, own?.agents ?? [], t3, lane),
     merge: own === null || pr?.state === "merged" ? null : mergeOf(braid.number, gh, sig),
     start: startOf(braid, lane, t3, ctx),
     coordinator: coordinatorOf(braid.number, t3, ctx, lane),
@@ -470,7 +487,11 @@ export function doneNewestFirst<T extends { readonly id: string; readonly doneAt
 }
 
 export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX): BoardData {
-  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox, remote: false };
+  const ideas = inbox.ideas.map((i) => {
+    const c = ideaPlanning(t3, i.id);
+    return c === null ? i : { ...i, planning: { link: c.link } };
+  });
+  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false };
 }
 
 export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): ItemDetail {
@@ -494,6 +515,7 @@ export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T
     running: own?.running ?? false,
     activity: own?.activity ?? null,
     thread: own?.thread ?? null,
+    threadRole: own?.threadRole ?? null,
     merge: own?.merge ?? null,
     brief: item.brief.body.trim(),
     report: item.hasReport ? tree.read(`${item.folder}/report.md`) : null,

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 const fixture = fileURLToPath(new URL("./fixtures/braids-repo", import.meta.url));
 const scratch = mkdtempSync(join(tmpdir(), "braid-braids-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 function braid(cwd: string, ...args: string[]) {
   return spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", cwd });
@@ -150,7 +150,7 @@ test("usage errors exit 1", () => {
 test("a repository without braids/ has no braids", () => {
   const r = braid(repo({}), "list");
   assert.equal(r.status, 0);
-  assert.equal(r.stdout, "No braids.\n");
+  assert.equal(r.stdout, "No braids.\n\nInbox: 0 leftovers, 0 ideas\n");
 });
 
 test("CRLF briefs are read", () => {

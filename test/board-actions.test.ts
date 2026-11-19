@@ -8,7 +8,7 @@ import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-actions-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 interface Sources {
   action(name: string): ((body: unknown) => unknown) | undefined;
@@ -146,5 +146,22 @@ test("a request without Origin passes with the token and a matching Host", async
     const r = await post(port, "/api/action/echo", { "x-braid-token": token }, '{"a":2}');
     assert.equal(r.status, 200);
     assert.deepEqual(calls, [{ a: 2 }]);
+  });
+});
+
+test("each refusal says which check failed and never echoes the token", async () => {
+  await withBoard(sources(), async (port, token) => {
+    const path = "/api/action/echo";
+    const reason = async (headers: Record<string, string>): Promise<string> => {
+      const r = await post(port, path, headers);
+      assert.equal(r.status, 403);
+      assert.ok(!r.text.includes(token));
+      return (JSON.parse(r.text) as { error: string }).error;
+    };
+    assert.match(await reason({}), /no token for this board run/);
+    assert.match(await reason({ "x-braid-token": "" }), /no token for this board run/);
+    assert.match(await reason({ "x-braid-token": "nope" }), /from another `braid board` run/);
+    assert.match(await reason({ "x-braid-token": token, origin: "http://evil.example" }), /Host or Origin/);
+    assert.match(await reason({ "x-braid-token": token, host: "evil.example" }), /Host or Origin/);
   });
 });

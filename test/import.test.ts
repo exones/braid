@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 const fixture = fileURLToPath(new URL("./fixtures/backlog-repo", import.meta.url));
 const scratch = mkdtempSync(join(tmpdir(), "braid-import-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 let count = 0;
 /** A copy of the fixture backlog/ in a fresh folder, with an empty braids/. */

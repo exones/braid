@@ -1,5 +1,5 @@
 // `braid wait <number> [--timeout <minutes>]`: waits for the braid branch's CI after a merge the coordinator
-// made itself, where no PR is left to watch (decision D65). It reads only: one fetch of the braid branch, then
+// made itself, where no PR is left to watch (decision D70). It reads only: one fetch of the braid branch, then
 // GitHub's check runs on the newest commit that changes anything outside `braids/` and `epics/` (the CI
 // workflow's push `paths-ignore`; a commit with only those changes starts no run). The exit code is the answer:
 // 0 green, 1 a `ci` check failed, 2 no answer (timeout, no run, or an error).

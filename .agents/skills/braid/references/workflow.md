@@ -98,8 +98,9 @@ The user merges, whatever the tier. The coordinator merges in three cases only:
 | A brief is edited on two branches | Only the owning branch edits a brief. Merge the other branch in, keep both sides' sections, the more advanced status and the union of dependencies; log files never conflict. Run `braid check`. |
 | Branch protection refuses a merge | Never `--admin` or another bypass. `braid ask` and wait for the user. |
 | `braid edit --dep` says an id doesn't exist | Lookups read only the current checkout. Create the prerequisite on the branch where the dependency must resolve, or merge the branch that has it. |
-| A worktree folder can't be deleted | On Windows the worker's agent process holds it for a while after the report. `braid clean --yes` keeps it ("still in use"); run it again once the worker's session has ended. |
+| A worktree folder can't be deleted | On Windows the worker's agent process, or T3 for a finished reviewer's checkout, holds it for a while after the report. `braid clean --yes` keeps it ("still in use"); run it again once the session has ended. |
 | A worker ends without a report, or its run fails | The skill, "Run an item" step 3. |
+| A reviewer task returns nothing, an empty result or a failure | The PR's review comment at that head is the record; without one, one fresh task, then `braid ask`. The skill, "Accept and hand over" step 1. |
 | A worker proposes growth beyond the mandate | The skill, "Grow and adjust". |
 | CI is red on a braid branch or a final PR | The skill, "Fixes". |
 | A PR's head moved after its recap or review | The skill, "Merge on request"; in auto mode, [auto mode](auto-mode.md). |
