@@ -435,10 +435,20 @@ async function postAction(src: Sources, req: IncomingMessage, url: URL, listener
   const host = req.headers.host;
   const origin = req.headers.origin;
   if (!hostOk(listener, host) || (origin !== undefined && origin.toLowerCase() !== `http://${(host ?? "").toLowerCase()}`)) {
-    return json(403, { error: "forbidden" });
+    return json(403, { error: "This request didn't come from this board's own page (its Host or Origin doesn't match), so the board refused it. Use the page that `braid board` opened." });
   }
-  if (listener.kind === "local" ? !tokenMatches(req.headers[TOKEN_HEADER], listener.token) : req.headers[REQUEST_HEADER] !== "1") {
-    return json(403, { error: "forbidden" });
+  if (listener.kind === "tailnet") {
+    if (req.headers[REQUEST_HEADER] !== "1") {
+      return json(403, { error: `The request is missing the ${REQUEST_HEADER} header that this board's page sends, so the board refused it. Reload the board page.` });
+    }
+  } else {
+    const given = req.headers[TOKEN_HEADER];
+    if (typeof given !== "string" || given === "") {
+      return json(403, { error: "This page has no token for this board run. Open the URL that `braid board` printed (it ends in #token=...)." });
+    }
+    if (!tokenMatches(given, listener.token)) {
+      return json(403, { error: "This page's token is from another `braid board` run (a second tab, or a tab kept across a board restart). Open the URL that `braid board` printed now." });
+    }
   }
   const name = decodeURIComponent(url.pathname.slice("/api/action/".length));
   if (listener.kind === "tailnet" && name === "open") {
