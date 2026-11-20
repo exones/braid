@@ -1,7 +1,7 @@
 ---
 id: '0049/H'
 title: "Board start with an unreadable project list exits 2"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: ['0049/G']
 order: 60
