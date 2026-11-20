@@ -1,7 +1,7 @@
 ---
 id: '0040'
 title: "Autonomy presets: you choose what braid decides"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: []
 related: ['0029']
