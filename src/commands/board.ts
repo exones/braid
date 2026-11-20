@@ -518,6 +518,19 @@ export const REQUEST_HEADER = "x-braid-request";
 /** Where a request came in: the local listener (Host, Origin and the run's token, D50) or the Tailscale one (whois, Host, Origin and the request header, D60). */
 type Listener = { readonly kind: "local"; readonly origin: () => string; readonly token: string } | { readonly kind: "tailnet"; readonly hosts: () => readonly string[]; readonly gate: Gate };
 
+const HOST_REFUSED = "This request didn't come from this board's own page (its Host or Origin doesn't match), so the board refused it. Use the page that `braid board` opened.";
+
+/**
+ * Whether any request on the local listener may be served: its Host must be `127.0.0.1:<port>` or `localhost:<port>`
+ * with the board's own port, so a page on another name that resolves to 127.0.0.1 (DNS rebinding) reads nothing.
+ * Actions are stricter still (`hostOk`: only the address the page was opened on).
+ */
+export const localHostOk = (origin: string, host: string | undefined): boolean => {
+  const port = origin.slice(origin.lastIndexOf(":") + 1);
+  const given = (host ?? "").toLowerCase();
+  return port !== "" && (given === `127.0.0.1:${port}` || given === `localhost:${port}`);
+};
+
 const hostOk = (listener: Listener, host: string | undefined): boolean =>
   host !== undefined && (listener.kind === "local" ? host === listener.origin().slice("http://".length) : listener.hosts().includes(host.toLowerCase()));
 
@@ -532,7 +545,7 @@ async function postAction(req: IncomingMessage, url: URL, listener: Listener, pi
   const host = req.headers.host;
   const origin = req.headers.origin;
   if (!hostOk(listener, host) || (origin !== undefined && origin.toLowerCase() !== `http://${(host ?? "").toLowerCase()}`)) {
-    return json(403, { error: "This request didn't come from this board's own page (its Host or Origin doesn't match), so the board refused it. Use the page that `braid board` opened." });
+    return json(403, { error: HOST_REFUSED });
   }
   if (listener.kind === "tailnet") {
     if (req.headers[REQUEST_HEADER] !== "1") {
@@ -836,6 +849,11 @@ export function startBoardWith(
           res.writeHead(403, { "content-type": "text/plain" }).end("forbidden");
           return;
         }
+      } else if (!localHostOk(listener.origin(), req.headers.host)) {
+        // The page, the board data, the events and the actions alike: only this board's own address (DNS rebinding).
+        const api = (req.url ?? "").startsWith("/api/");
+        res.writeHead(403, { "content-type": api ? (TYPES[".json"] ?? "") : "text/plain" }).end(api ? JSON.stringify({ error: HOST_REFUSED }) : "forbidden");
+        return;
       }
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       if (req.method === "POST" && url.pathname.startsWith("/api/action/")) {

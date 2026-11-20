@@ -2,7 +2,7 @@
 // project, actions by project name, pushes per project, and the failure modes the brief names.
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import type { Server } from "node:http";
+import { request, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
@@ -217,6 +217,65 @@ test("failure mode: one project's read hangs; the other still refreshes and push
   assert.ok(log.notified.filter((n) => n === "demo").length > pushesBefore, "the other project refreshed and pushed");
   assert.equal(log.notified.filter((n) => n === "api").length, apiPushesBefore, "the hung project sent nothing");
   assert.equal((await get<Board>("api/board?project=api")).body.failure !== null, true);
+});
+
+test("failure mode: a read that finishes after the timeout is dropped: it doesn't replace the snapshot shown or send pushes, and the next read stores again", async () => {
+  const { members, log } = pair();
+  const api = members[1]!;
+  let release: () => void = () => {};
+  let late = false;
+  const base = api.src.github.bind(api.src);
+  // The late read's GitHub answer differs from every good one, so a late result that got stored would show.
+  const LATE = { status: { state: "unavailable", reason: "the late read" }, prs: new Map() };
+  api.src = { ...api.src, github: (fresh) => (late ? new Promise((done) => (release = () => done(LATE))) : base(fresh)) };
+  const { get } = await serve(() => members, 300);
+  const before = await get<Board & { github: { state: string } }>("api/board?project=api");
+  assert.equal(before.body.github.state, "ok");
+  const pushes = log.notified.filter((n) => n === "api").length;
+  late = true;
+  const timedOut = await get<Board & { github: { state: string } }>("api/board?project=api&fresh=1");
+  assert.match(timedOut.body.failure ?? "", /took longer than/);
+  assert.equal(timedOut.body.readAt, before.body.readAt, "still the snapshot from before the hung read");
+  // Now the hung read finishes, after its timeout.
+  late = false;
+  release();
+  await sleep(200);
+  const after = await get<Board & { github: { state: string } }>("api/board?project=api");
+  assert.equal(after.body.github.state, "ok", "the late result was not stored");
+  assert.equal(after.body.readAt, before.body.readAt);
+  assert.match(after.body.failure ?? "", /took longer than/, "the project still shows the failed read");
+  assert.equal(log.notified.filter((n) => n === "api").length, pushes, "the late result sent no pushes");
+  // The next read runs as usual and replaces the old snapshot.
+  const next = await get<Board & { github: { state: string } }>("api/board?project=api&fresh=1");
+  assert.equal(next.body.failure, null);
+  assert.notEqual(next.body.readAt, before.body.readAt);
+  assert.equal(log.notified.filter((n) => n === "api").length, pushes + 1);
+});
+
+test("the local listener answers only Host 127.0.0.1:<port> or localhost:<port>: a DNS-rebinding name reads nothing", async () => {
+  const { members } = pair();
+  const { url } = await serve(() => members);
+  const port = Number(new URL(url).port);
+  const raw = (path: string, host: string) =>
+    new Promise<{ status: number; text: string }>((resolve, reject) => {
+      const req = request({ host: "127.0.0.1", port, path, method: "GET", headers: { host } }, (res) => {
+        let text = "";
+        res.on("data", (c: Buffer) => (text += c.toString()));
+        res.on("end", () => resolve({ status: res.statusCode ?? 0, text }));
+      });
+      req.on("error", reject);
+      req.end();
+    });
+  for (const host of [`127.0.0.1:${port}`, `localhost:${port}`, `LOCALHOST:${port}`]) {
+    assert.equal((await raw("/api/all", host)).status, 200, host);
+  }
+  for (const host of [`rebind.evil.example:${port}`, `127.0.0.1:${port + 1}`, "127.0.0.1", `localhost.evil.example:${port}`, `[::1]:${port}`]) {
+    for (const path of ["/api/all", "/api/projects", "/api/board", "/", "/api/events"]) {
+      const r = await raw(path, host);
+      assert.equal(r.status, 403, `${host} ${path}`);
+      assert.ok(!r.text.includes("0001"), "no board data in the refusal");
+    }
+  }
 });
 
 test("failure mode: one project's read fails; the other is served, and the broken one shows why", async () => {
