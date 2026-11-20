@@ -1,7 +1,7 @@
 ---
 id: '0050'
 title: "One braid per coordinator thread"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 related: ['0036', '0048']
