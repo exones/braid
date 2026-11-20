@@ -1,7 +1,7 @@
 ---
 id: '0048/B'
 title: "braid start is safe to run again"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 20
@@ -32,9 +32,15 @@ Expected size: about 100 lines in 3 files.
 
 - `braid clean`, and starting from the board.
 
+## Plan
+
+- `startCommand` first checks "already started": the item's branch (local or pushed) is checked out in the worktree `start` would make, and for a strand its HEAD contains the braid branch tip. A story only has to be on its branch in its folder (main moves on while it runs). It prints `branch <name> (already started)`, `commit`, `folder` and creates nothing. This runs before the ready check, because the pushed branch makes the item look started.
+- A branch checked out in another folder, or a strand branch that lacks its base, fails and names what was found. No worktree yet keeps the old behaviour.
+- Tests: strand and story run twice; branch elsewhere; branch off its base. Docs line in `docs/cli.md` and `docs/braids-format.md`.
+
 ## Completion
 
-- [ ] Running `braid start <id>` twice on a strand and on a planned story succeeds both times, the second printing "already started" with the branch, commit and folder; tests cover it.
-- [ ] A start that finds something else in the way still fails and names it; tests cover it.
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Running `braid start <id>` twice on a strand and on a planned story succeeds both times, the second printing "already started" with the branch, commit and folder; tests cover it.
+- [x] A start that finds something else in the way still fails and names it; tests cover it.
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
