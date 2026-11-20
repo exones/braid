@@ -1,7 +1,7 @@
 ---
 id: '0048/A'
 title: "braid wait answers within one call: a still-running exit code"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 10
