@@ -1,7 +1,7 @@
 ---
 id: '0044/A'
 title: "ntfy notifications from the board"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:security", "ask:outward", "ask:architecture"]
 dependencies: []
 order: 10
