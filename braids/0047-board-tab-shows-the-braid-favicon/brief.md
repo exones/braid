@@ -40,7 +40,7 @@ Expected size: about 30 lines in 4 files, plus three copied icon files.
 
 ## Completion
 
-- [ ] The built board page links the three favicon files, and the board serves each with its content type (`image/svg+xml`, `image/png`)
-- [ ] A test fails when a copy in `web/public/` differs from its file in `design/icons/`
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The built board page links the three favicon files, and the board serves each with its content type (`image/svg+xml`, `image/png`)
+- [x] A test fails when a copy in `web/public/` differs from its file in `design/icons/`
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
