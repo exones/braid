@@ -52,8 +52,8 @@ Expected size: about 400 lines in 2 files (`report.md`, `sources.md`), plus opti
 
 ## Completion
 
-- [ ] `report.md` in the item folder has the five parts above: today, the questions, at least three options with cost and risks, how others do it, and a recommendation with proposed follow-up items (title, kind, tier, scope, order)
-- [ ] "Today" says what was actually tried with two checkouts and what was seen, or why it couldn't be tried
-- [ ] `sources.md` in the item folder (per source: link, how it was read (whole, part, search result only), what it says, adopted or not and why)
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `report.md` in the item folder has the five parts above: today, the questions, at least three options with cost and risks, how others do it, and a recommendation with proposed follow-up items (title, kind, tier, scope, order)
+- [x] "Today" says what was actually tried with two checkouts and what was seen, or why it couldn't be tried
+- [x] `sources.md` in the item folder (per source: link, how it was read (whole, part, search result only), what it says, adopted or not and why)
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
