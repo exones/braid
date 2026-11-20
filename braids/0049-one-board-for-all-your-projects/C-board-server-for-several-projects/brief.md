@@ -61,12 +61,22 @@ Expected size: about 900 lines in 10 files, with tests.
 - Pushes don't follow the page's filter: every listed project is always notified.
 - Changes to how one project's lanes are derived.
 
+## Plan
+
+- `src/board/feed.ts` (new): one project's snapshot cycle, moved out of `startBoardWith` unchanged (reads one at a time, one queued read), plus the whole-read timeout (60 s): a read that takes longer counts as failed, its late result is dropped (no snapshot, no pushes), and the project's next read waits until it settles, so `gh`/`t3` of one project never overlap. Each feed keeps its last good snapshot, when it was read, and the failure of the latest read.
+- `src/board/combined.ts` (new): the `/api/all` and `/api/projects` shapes; `combine()` tags each card with its project, keeps each project's order and adds per-project counts, readiness, age and failure.
+- `src/commands/board.ts`: `startBoardWith` takes one `Sources` (as today, served under its repo name) or a roster (`() => Member[]`, re-read at each refresh: removed projects' feeds close and send nothing more). Routes `?project=` on `/api/board` and `/api/item` (no project: the first), `/api/all?projects=`, `/api/projects`. Actions resolve `project` from the body against the served names (omitted: allowed only with one project); anything else, a path included, is a 400. One watcher and one notifier per project.
+- `runBoard`: the list from `readProjects()` (a corrupt list stops the start, exit 2), `--project <name>`, the list re-read at each refresh; no list: this folder alone. Startup prints the served projects and each one's problems.
+- `src/board/demo.ts`: three demo projects (the current sample, a small second one, one not ready); `--demo` serves all three, the current page shows the first.
+- `web/src/api.ts`: the page takes `?project=` from its address, else the board's `project`, and sends it with every action.
+- Tests in `test/board-projects.test.ts` for the Completion boxes and the five failure modes; docs: `docs/board.md`, `docs/cli.md`, decision D78 (main already has D76, D77) superseding D40's "one project for now".
+
 ## Completion
 
-- [ ] With two listed projects, `/api/all` returns one combined board with both projects' cards in their lanes, tagged; `?projects=` narrows it to the named ones; `/api/board?project=` returns each project's board
-- [ ] Actions work by project name; an unknown name or a path is refused
-- [ ] Pushes for both projects come from one board, with keys per project
-- [ ] The five failure modes above each have a passing test
-- [ ] The decision superseding D40 is in `docs/decisions.md`, and `docs/board.md` describes the multi-project board
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] With two listed projects, `/api/all` returns one combined board with both projects' cards in their lanes, tagged; `?projects=` narrows it to the named ones; `/api/board?project=` returns each project's board
+- [x] Actions work by project name; an unknown name or a path is refused
+- [x] Pushes for both projects come from one board, with keys per project
+- [x] The five failure modes above each have a passing test
+- [x] The decision superseding D40 is in `docs/decisions.md`, and `docs/board.md` describes the multi-project board
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
