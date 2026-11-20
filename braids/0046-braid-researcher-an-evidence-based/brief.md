@@ -60,6 +60,12 @@ Look at about 6 sources on research method for agents and people (for example ev
 - Running spikes as subagents, or changing D69 for workers.
 - Rewriting past spike reports, or the running spike 0045.
 
+## Plan
+
+1. Converge: read about 8 sources into `sources.md`, draft `.agents/skills/braid-researcher/SKILL.md`, push, stop for the user's review of its text.
+2. After approval: `agents/openai.yaml`; wire the coordinator (`braid` SKILL "Plan" step 2: launch like the reviewer, `models.researcher`, `braid title --role research`) and the worker (spike paragraph → method; side-question researcher); brief template research line and `sources.md` box; `assets/braid-md.md` and `BRAID.md` `researcher` role; getting-started, README skills row, Pester install list, next decision in `docs/decisions.md`.
+3. Gate, `report.md`, PR into `main`.
+
 ## Completion
 
 - [ ] `.agents/skills/braid-researcher/SKILL.md` has the ten practices above and the result format, and says it never commits, pushes, edits the repository or launches agents
