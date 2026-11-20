@@ -1,7 +1,7 @@
 ---
 id: '0047'
 title: "Board tab shows the braid favicon"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S"]
 dependencies: []
 delivery: epic
