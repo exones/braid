@@ -27,7 +27,6 @@ Expected size: about 400 lines in 6 files, with tests.
 - `braid projects add [<path>] [--name <n>] [--port <n>]` resolves the main checkout of the path (default: the current folder) and prints its readiness. It refuses a duplicate name or path, and a folder that isn't a Git repository.
 - `braid projects remove <name>`.
 - `braid projects list`: name, path and readiness of each project.
-- `braid projects suggest`: T3 projects that have a `BRAID.md` but aren't on the list yet.
 - `add` warns when two listed projects share a folder name, because both would use `~/braid-worktrees/<repo>/` (leftover 2026-11-20-ob03).
 - `docs/cli.md`, and in `docs/board.md` a short note that strand C will read the list.
 
@@ -37,6 +36,7 @@ Expected size: about 400 lines in 6 files, with tests.
 - Writes re-read the file first, then write a temporary file and rename it, as `notified.json` does. An unreadable file is reported and never silently overwritten.
 - Tests that redirect the home folder run `node dist/cli.js`, not the installed `braid.cmd`: the Volta shim fails when `LOCALAPPDATA` points elsewhere (leftover 2026-11-20-ob03).
 - Tier L: it is a new persistent format.
+- No `braid projects suggest`: the `t3` CLI has no project list to suggest from, so projects are added only by path (user, 2026-11-20; see 0049/A).
 
 ## Failure modes and required regression tests
 
@@ -52,7 +52,7 @@ Expected size: about 400 lines in 6 files, with tests.
 
 ## Completion
 
-- [ ] `braid projects add`, `remove`, `list` and `suggest` work as described, with readiness in `add` and `list`
+- [ ] `braid projects add`, `remove` and `list` work as described, with readiness in `add` and `list`
 - [ ] The four failure modes above each have a passing test
 - [ ] The format of `projects.json` is documented
 - [ ] The gate command from BRAID.md passes
