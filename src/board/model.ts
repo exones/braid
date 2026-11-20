@@ -440,6 +440,13 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const pr = gh.prs.get(braid.number) ?? null;
   const req = sig.requests.get(braid.number);
   const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
+  // The braid-level stall clock is settled first, so wrap-up's derive keeps its own clock on the braid's number, so this one has its own key and is cleared in wrap-up:
+  // a final PR open or merged, an open request or any other condition failing clears it.
+  const quiet = strands.every((s) => s.lane === "To Do" || s.lane === "Done");
+  const known = gh.status.state === "ok" && t3.status.state === "ok";
+  const asked = req !== undefined && pr?.state !== "merged";
+  const holds = finalPr || asked || pr?.state === "merged" || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
+  const stalled = sig.alarm(`${braid.number} coordinator`, "stalled", holds);
   let own: { lane: Lane; reason: Reason | null; need: Need | null; agents?: readonly T3Thread[]; activity?: Activity | null } | null = null;
   if (finalPr) {
     // The braid's recorded reviewers (`braid review <n>`) are its agents in wrap-up; the coordinator never counts.
@@ -448,10 +455,6 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   } else if (req !== undefined && pr?.state !== "merged") {
     own = requestLane(req, sig.now);
   }
-  const quiet = strands.every((s) => s.lane === "To Do" || s.lane === "Done");
-  const known = gh.status.state === "ok" && t3.status.state === "ok";
-  const holds = finalPr || own !== null || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
-  const stalled = finalPr ? null : sig.alarm(braid.number, "stalled", holds);
   if (stalled !== null) {
     own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: "Stalled: the coordinator stopped and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled } };
   }

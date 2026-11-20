@@ -222,7 +222,7 @@ test("a braid whose coordinator stopped is Needs You stalled after ten minutes, 
   const braid = (status = "In Progress", strands: string[] = ["Done", "To Do", "To Do"]) => ({ ...base, brief: { ...base.brief, status }, strands: base.strands.map((s, i) => ({ ...s, brief: { ...s.brief, status: strands[i] ?? "To Do" } })) });
   const T3 = (running = false, ok = true, threads: [string, Thread[]][] = []) => ({ status: { state: ok ? "ok" : "unavailable", reason: "x" }, threads: new Map(threads), coordinators: new Map(running ? [["0007", { id: "c", link: null, provider: null, model: null }]] : []) });
   const GH = (prs: [string, Pr][] = [], ok = true) => ({ status: { state: ok ? "ok" : "unavailable", reason: "x" }, prs: new Map(prs) });
-  const held = (m: number) => sig([], { "0007 stalled": m });
+  const held = (m: number) => sig([], { "0007 coordinator stalled": m });
   const card = (b: unknown, g: unknown, t: unknown, s: Signals) => model.toCard(b, g, t, s);
 
   const stalled = card(braid(), GH(), T3(), held(14));
@@ -231,12 +231,12 @@ test("a braid whose coordinator stopped is Needs You stalled after ten minutes, 
   assert.equal(card(braid(), GH(), T3(), held(9)).lane, "In Progress", "not before ten minutes");
   const first = sig();
   assert.equal(card(braid(), GH(), T3(), first).lane, "In Progress");
-  assert.ok(Object.hasOwn((first as unknown as { clock: { seen: () => object } }).clock.seen(), "0007 stalled"), "the clock starts");
+  assert.ok(Object.hasOwn((first as unknown as { clock: { seen: () => object } }).clock.seen(), "0007 coordinator stalled"), "the clock starts");
   // Each of these clears the clock and keeps it Working.
   const cleared = (label: string, b: unknown, g: unknown, t: unknown, extra: object[] = [], expect = "In Progress") => {
-    const s = sig(extra, { "0007 stalled": 14 });
+    const s = sig(extra, { "0007 coordinator stalled": 14 });
     assert.equal(card(b, g, t, s).lane, expect, label);
-    assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0007 stalled"), `${label}: clock cleared`);
+    assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0007 coordinator stalled"), `${label}: clock cleared`);
   };
   cleared("a running coordinator", braid(), GH(), T3(true));
   cleared("a running strand", braid("In Progress", ["Done", "To Do"]), GH(), T3(false, true, [["0007/B", [thread()]]]));
@@ -247,12 +247,30 @@ test("a braid whose coordinator stopped is Needs You stalled after ten minutes, 
   for (const [g, t] of [[GH([], false), T3()], [GH(), T3(false, false)]]) {
     const s = held(14);
     assert.equal(card(braid(), g, t, s).lane, "In Progress", "unknown shows nothing");
-    assert.ok(Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0007 stalled"), "and keeps the time");
+    assert.ok(Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0007 coordinator stalled"), "and keeps the time");
   }
   const fresh = sig();
   card(braid(), GH([], false), T3(), fresh);
-  assert.ok(!Object.hasOwn((fresh as unknown as { clock: { seen: () => object } }).clock.seen(), "0007 stalled"), "no start while unknown");
+  assert.ok(!Object.hasOwn((fresh as unknown as { clock: { seen: () => object } }).clock.seen(), "0007 coordinator stalled"), "no start while unknown");
   // A To Do braid never stalls; a final PR with checks pending stays Working.
   assert.equal(card(braid("To Do", ["To Do", "To Do", "To Do"]), GH(), T3(), held(14)).lane, "To Do");
   assert.equal(card(braid("In Progress", ["Done", "Done", "Done"]), GH([["0007", pr("open", "pending")]]), T3(), held(14)).activity, "checks");
+});
+
+test("the braid-level stall never leaks into wrap-up or a merged final PR", () => {
+  const base = demo.demoBraids().find((b) => b.number === "0008") as unknown as { brief: { status: string } }; // one strand
+  const braid = (strand: string) => ({ ...base, brief: { ...base.brief, status: "In Progress" }, strands: (base as unknown as { strands: { brief: object }[] }).strands.map((s) => ({ ...s, brief: { ...s.brief, status: strand } })) });
+  const running = { status: { state: "ok" }, threads: new Map(), coordinators: new Map([["0008", { id: "c", link: null, provider: null, model: null }]]) };
+  const G = (finalPr: Pr) => ({ status: { state: "ok" }, prs: new Map([["0008/A", { number: 15, url: "u", state: "merged", checks: "passing" }], ["0008", finalPr]]) });
+  const held = () => sig([], { "0008 coordinator stalled": 14 });
+  for (const checks of ["passing", "none"]) {
+    const s = held();
+    const c = model.toCard(braid("Done"), G(pr("open", checks)), running, s);
+    assert.notEqual(c.reason, "stalled", `final PR ${checks}, coordinator running`);
+    assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0008 coordinator stalled"), "the braid-level clock is cleared");
+  }
+  const s = held();
+  const merged = model.toCard(braid("Done"), G(pr("merged")), { status: { state: "ok" }, threads: new Map(), coordinators: new Map() }, s);
+  assert.equal(merged.lane, "Done");
+  assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0008 coordinator stalled"), "a merged final PR clears it");
 });

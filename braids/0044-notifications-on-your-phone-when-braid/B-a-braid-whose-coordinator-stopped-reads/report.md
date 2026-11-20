@@ -10,3 +10,5 @@
 
 For later items: none
 Needs the user: none
+
+**Review fix:** the braid-level clock has its own key (`<number> coordinator`), is settled before wrap-up's derive, and is cleared when a final PR is open or merged; tests added for both.
