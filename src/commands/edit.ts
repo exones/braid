@@ -4,7 +4,6 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs, type ParseArgsConfig } from "node:util";
 import { BRAID_ID, DELIVERY_MODES, STATUSES, type Delivery, type Status } from "../braids/brief.js";
-import { availablePresets, PRESET_NAME } from "../braids/autonomy.js";
 import { loadKnownBraids } from "../braids/branches.js";
 import { fetchRemotes, nextLetter, nextNumber, takenIds } from "../braids/numbers.js";
 import { loadBraids, type Braid, type Item } from "../braids/store.js";
@@ -21,7 +20,6 @@ const FIELD_OPTIONS: Options = {
   related: { type: "string", multiple: true },
   order: { type: "string" },
   delivery: { type: "string" },
-  autonomy: { type: "string" },
 };
 
 const CREATE_OPTIONS: Options = {
@@ -88,22 +86,6 @@ function delivery(text: string): Delivery {
     throw new UsageError(`delivery must be epic or main; got: ${text}`);
   }
   return found;
-}
-
-/** A preset name that exists here (a project file or a shipped preset), or null for `none`. */
-function autonomy(root: string, text: string): string | null {
-  const name = text.trim();
-  if (name === "none") {
-    return null;
-  }
-  if (!PRESET_NAME.test(name)) {
-    throw new UsageError(`autonomy must be a preset name like steady, or none; got: ${text}`);
-  }
-  const available = availablePresets(root);
-  if (!available.has(name)) {
-    throw new UsageError(`no autonomy preset ${name}; available here: ${[...available.keys()].join(", ")} (braid autonomy --list)`);
-  }
-  return name;
 }
 
 function order(text: string): number | null {
@@ -214,13 +196,6 @@ function applyFields(
     }
     next = { ...next, delivery: delivery(del) };
   }
-  const a = str(values, "autonomy");
-  if (a !== undefined) {
-    if (strand) {
-      throw new UsageError("autonomy is set per braid, not per strand");
-    }
-    next = { ...next, autonomy: autonomy(root, a) };
-  }
   return next;
 }
 
@@ -256,7 +231,7 @@ export function newBraid(root: string, args: readonly string[]): Said {
   if (number === null) {
     throw new UsageError("no braid numbers left (9999 used)");
   }
-  const base: BriefFields = { id: number, title, status: "To Do", labels: [], dependencies: [], related: [], order: null, delivery: "epic", autonomy: null };
+  const base: BriefFields = { id: number, title, status: "To Do", labels: [], dependencies: [], related: [], order: null, delivery: "epic" };
   const warnings: string[] = [];
   const fields = applyFields(root, base, values, braids, false, warnings);
   const folder = `braids/${number}-${slug(values, title, "braid")}`;
@@ -287,7 +262,7 @@ export function newStrand(root: string, args: readonly string[]): string {
     throw new UsageError(`no strand letters left in ${number} (Z used)`);
   }
   const id = `${number}/${letter}`;
-  const base: BriefFields = { id, title, status: "To Do", labels: [], dependencies: [], related: [], order: null, delivery: null, autonomy: null };
+  const base: BriefFields = { id, title, status: "To Do", labels: [], dependencies: [], related: [], order: null, delivery: null };
   const fields = applyFields(root, base, values, braids, true);
   const folder = `${braid.folder}/${letter}-${slug(values, title, "strand")}`;
   const dir = join(root, folder);
@@ -327,18 +302,17 @@ function fieldsOf(item: Item): BriefFields {
     related: b.related,
     order: b.order,
     delivery: b.delivery,
-    autonomy: b.autonomy,
   };
 }
 
-/** `braid edit <id>`: status, title, labels, dependencies, related braids, order, delivery mode and autonomy preset. */
+/** `braid edit <id>`: status, title, labels, dependencies, related braids, order and delivery mode. */
 export function editItem(root: string, args: readonly string[]): Said {
   const { positionals, values } = parse("braid edit", args, { ...FIELD_OPTIONS, title: { type: "string" } });
   if (positionals.length > 1) {
     throw new UsageError(`braid edit takes one id; got: ${positionals.join(" ")}`);
   }
   if (Object.keys(values).length === 0) {
-    throw new UsageError("braid edit needs at least one of --status, --title, --labels, --dep, --related, --order, --delivery, --autonomy");
+    throw new UsageError("braid edit needs at least one of --status, --title, --labels, --dep, --related, --order, --delivery");
   }
   const braids = loadBraids(root);
   const { item, strand } = find(braids, positionals[0], "braid edit");

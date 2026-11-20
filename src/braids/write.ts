@@ -14,8 +14,6 @@ export interface BriefFields {
   readonly order: number | null;
   /** Braids only; null for a strand. */
   readonly delivery: Delivery | null;
-  /** Braids only; written only when set, so briefs without a preset keep their exact text. */
-  readonly autonomy: string | null;
 }
 
 const quoteId = (id: string) => `'${id}'`;
@@ -38,9 +36,6 @@ export function formatBrief(fields: BriefFields, body: string): string {
   }
   if (fields.delivery !== null) {
     lines.push(`delivery: ${fields.delivery}`);
-  }
-  if (fields.autonomy !== null) {
-    lines.push(`autonomy: ${fields.autonomy}`);
   }
   lines.push("---");
   return `${lines.join("\n")}\n${body}`;

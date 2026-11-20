@@ -253,7 +253,6 @@ export function planImport(root: string): Plan {
       related: [],
       order: t.order,
       delivery,
-      autonomy: null,
     };
     const content = formatBrief(fields, body(t));
     try {

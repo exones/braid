@@ -9,7 +9,7 @@ Do one item from its brief, hand it back, and stop.
 
 ## Start
 
-1. Read `BRAID.md` at the repository root (`gate`, `setup`, `shell`, `test` and project facts), the project's own agent instructions if present (`AGENTS.md` or `CLAUDE.md`), your brief (`braid view <id>`; for a strand also its braid and the braid's log), the braid's preset (`braid autonomy <number>`), and the files the brief lists under "Start here".
+1. Read `BRAID.md` at the repository root (`gate`, `setup`, `shell`, `test` and project facts), the project's own agent instructions if present (`AGENTS.md` or `CLAUDE.md`), your brief (`braid view <id>`; for a strand also its braid and the braid's log), and the files the brief lists under "Start here".
 2. Check where you are with `git status -sb` and `git log -1 --oneline`. If the branch and commit match the first message, start working. If they don't, tell the coordinator what you see and don't write anything until it answers.
 3. Use `setup`, `shell` and `test` when provided; otherwise follow project conventions. In a new worktree, run setup before building or testing.
 
@@ -28,7 +28,6 @@ The PR goes into the base branch the first message names (`main` for a story, th
 - Screenshots and scratch files (helper scripts, PR body drafts) go in `~/.braid/artifacts/<repo>/<braid number>/`, never in the repository; the item's `temp/` folder is ignored by Git and works too.
 - Run focused tests (`test` if provided) while you work. Before opening the PR, run the `gate` command from `BRAID.md` and fix what fails. Don't weaken or delete a test to make it pass.
 - Make routine decisions yourself. Ask the coordinator only about scope, the Completion boxes, or a real blocker.
-- A [stop case](../braid/references/stop-cases.md) on the preset's "decide yourself" side: decide it and log it as `Decided:` (stop cases, "Who records what"). Your `Needs the user` holds only cases on its "ask me" side, or where unsure.
 - If your item is a spike: answer its question within the time box. Experiment as needed, but don't build the feature. Read each source you cite and record it in the brief's sources file (`sources.md`: link, how read, what it says, adopted or not and why); don't cite one you didn't read. Write the answer, the evidence and proposed follow-up items in `report.md`, and deliver that through a PR like any other item. If the time box runs out, report what is known and what isn't.
 - Growth: if you find more work, stop and send the coordinator one proposal in chat: what you found, the three options (absorb into this PR, a prerequisite, phases) with rough sizes, and your recommendation. Then wait for the decision and do your part of the path as the `braid` skill's "Grow and adjust" describes:
   - Absorb: log it and go on.

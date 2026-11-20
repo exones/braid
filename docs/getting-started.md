@@ -37,7 +37,7 @@ A target repository needs a `BRAID.md` at its root with the facts the skills rea
 - the `gate` command, run before every PR;
 - the `main` branch;
 - the required `ci` checks (`none` if it has no hosted CI);
-- optional `autonomy`: the [autonomy preset](autonomy.md) braids run on unless a braid names its own (`careful` if absent);
+- `auto: allowed` to permit auto mode;
 - optional `shell`, `setup` and `test` commands, and how to `run` the app;
 - `models`: the provider, model and options for each role, with optional overrides per tier (`worker.L`) or kind (`worker.spike`). The tier key wins over the kind key, then the plain role. A role may name a skill, such as `braid-reviewer` for the reviewer.
 
@@ -52,27 +52,13 @@ Start from the [`braid` template](../.agents/skills/braid/assets/braid-md.md). T
 
 Why braid keeps items in `braids/` is decision D33 in [decisions](decisions.md); the files are described in [the braids/ format](braids-format.md).
 
-## Merging and autonomy presets
+## Merging and auto mode
 
-You merge every PR yourself, unless you tell `braid` to merge one ("merge it" after its recap, and it merges exactly the commit it showed you) or the braid's autonomy preset lets the coordinator merge it; a goal's planning PR `braid` merges under your approval of the plan (below).
+You merge every PR yourself, unless you tell `braid` to merge one ("merge it" after its recap, and it merges exactly the commit it showed you) or auto mode merges a strand into its braid branch. Auto mode never merges a story or the final PR into `main`.
 
-A preset is a short Markdown file that says what the coordinator merges by itself (`merge`: `none`, `strands` or `all`), whether it starts the next item without your go (`continue`), and, for each [stop case](../.agents/skills/braid/references/stop-cases.md), when it decides by itself and when it asks you. braid ships three ([autonomy presets](autonomy.md) has them in full):
+For a goal, you can ask for auto mode if `BRAID.md` has `auto: allowed` and real CI (`ci` not `none`). `braid` then merges each strand PR into the braid branch itself once the worker is green, an independent review found nothing blocking, CI is green and nobody flagged a stop case, and it leaves a comment on the PR saying why. It stops and asks you on any stop case, when a review is still blocking after 2 rounds of fixes, or when branch protection refuses; "stop auto" or "pause" switches it off.
 
-- `careful`, the default: the coordinator merges nothing and asks you about every stop case.
-- `steady`: it merges strands into the braid branch, starts the next one and decides the small cases; the big decisions and the final PR into `main` are yours.
-- `free`: it merges everything, `main` included, and decides every case, logging each.
-
-Whatever the preset, a merge by the coordinator needs green CI (`ci` not `none`), an independent review with nothing blocking and the reviewed head commit. Each decision it makes is logged as `Decided: <what>, because <why>, instead of <alternative>`, and you read them together in the recap (`braid decisions <number>` lists them).
-
-**For a project,** set `autonomy: <name>` in `BRAID.md`. Every braid without its own preset runs on it.
-
-**For one braid,** ask for it in the plan or later in chat ("run 0031 on careful"); the coordinator sets it with `braid edit <number> --autonomy <name>`, and a line or two in the brief's `## Autonomy` section holds the braid's exceptions ("architecture: ask for everything in 0031/B"). `braid autonomy <number>` prints the preset a braid runs on and where it comes from. A braid's preset changes only at your request.
-
-**To write your own,** copy one of the shipped presets (print it with `braid autonomy <number>` on a braid that runs on it) to `autonomy/<name>.md` at the repository root, rename it in its front matter and heading, and write each row in your own words; a file with a shipped name replaces that preset in the project. `braid check` checks the file's shape and warns, without refusing, when a preset lets the agents decide `security`, `data` or `outward`. An agent's change to a preset is always a `process` stop case, so it reaches you.
-
-"Hold", "pause" or "stop" lets the running item finish and then merges and starts nothing until you say go.
-
-A goal's plan is merged into its braid branch, so `main` gets its briefs with the final PR. Approving the plan is the only answer it needs: `braid` then merges the planning PR itself once its checks are green, exactly the commit you approved, and starts the first strand (unless you asked only for a plan). If that PR changed after your approval, `braid` shows you what changed and asks again. The plan, and the first message after you ask to start or resume a braid, open with the braid's number and title, so you can catch a wrong number at once.
+A goal's plan is merged into its braid branch, so `main` gets its briefs with the final PR.
 
 ## See the board
 

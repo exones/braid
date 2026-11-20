@@ -6,7 +6,6 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parsePreset, resolvePreset } from "../braids/autonomy.js";
 import { appendLog, now, threadShort } from "../braids/logs.js";
 import { closeRequest } from "../braids/requests.js";
 import { loadBraids } from "../braids/store.js";
@@ -104,7 +103,7 @@ export interface CheckHistory {
 const LOOKBACK = 30;
 
 /** The `ci` checks of one commit as a rollup, or null when GitHub can't say. */
-export function commitChecks(h: CheckHistory, sha: string): PrView["statusCheckRollup"] | null {
+function commitChecks(h: CheckHistory, sha: string): PrView["statusCheckRollup"] | null {
   const r = h.run(h.root, ["api", `repos/{owner}/{repo}/commits/${sha}/check-runs`]);
   if (r.error !== undefined || r.status !== 0) {
     return null;
@@ -317,23 +316,6 @@ function stampBranch(root: string, t: Target, number: string, log: { text: strin
   }
 }
 
-/** `--merge --preset`: a merge the coordinator makes under the braid's preset; refuses unless that preset allows this PR. */
-function presetAllows(root: string, w: World, t: Target): void {
-  const resolved = resolvePreset(root, w.braid.brief.autonomy);
-  if (resolved.source === null) {
-    throw new UsageError(`${t.id} not merged: autonomy preset ${resolved.name} does not exist; nothing changed`);
-  }
-  const preset = parsePreset(resolved.source.text, resolved.source.from === "shipped" ? `shipped preset ${resolved.source.name}` : resolved.source.from, resolved.source.name);
-  const kind = t.letter !== null ? "strand" : w.braid.strands.length > 0 ? "final" : "story";
-  const allowed = preset.merge === "all" || (preset.merge === "strands" && kind === "strand");
-  if (!allowed) {
-    throw new UsageError(`${t.id} not merged: preset ${preset.name} has merge: ${preset.merge}, which does not let the coordinator merge ${kind === "final" ? "a braid's final PR" : `a ${kind}'s PR`}; the user merges it (or run without --preset on their word); nothing changed`);
-  }
-  if (ciChecks(root).length === 0) {
-    throw new UsageError(`${t.id} not merged: preset ${preset.name} allows this merge only with CI to wait for, and ci in BRAID.md is none; nothing changed`);
-  }
-}
-
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** Polls the PR until the `ci` checks pass on `head`; refuses when one fails, the head moves or time runs out. */
@@ -373,10 +355,10 @@ export async function acceptCommand(root: string, args: readonly string[], opts:
 }
 
 async function acceptItem(root: string, args: readonly string[], opts: DoneOptions): Promise<string> {
-  const { positionals, values } = parse("braid accept", args, { head: { type: "string" }, review: { type: "string" }, merge: { type: "boolean" }, preset: { type: "boolean" }, log: { type: "string" }, thread: { type: "string" } });
+  const { positionals, values } = parse("braid accept", args, { head: { type: "string" }, review: { type: "string" }, merge: { type: "boolean" }, log: { type: "string" }, thread: { type: "string" } });
   const m = positionals.length === 1 ? /^(\d{1,4})(?:\/([A-Z]))?$/.exec(positionals[0] ?? "") : null;
   if (m === null) {
-    throw new UsageError("usage: braid accept <id> [--head <sha>] [--merge [--preset]] [--review <url>] [--log <file>|-] [--thread <id>]");
+    throw new UsageError("usage: braid accept <id> [--head <sha>] [--merge] [--review <url>] [--log <file>|-] [--thread <id>]");
   }
   const number = (m[1] ?? "").padStart(4, "0");
   const head = str(values, "head");
@@ -384,9 +366,6 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
     throw new UsageError(`--head needs a commit sha (7 to 40 hex digits); got: ${head}`);
   }
   const merge = values["merge"] === true;
-  if (values["preset"] === true && !merge) {
-    throw new UsageError("--preset goes with --merge: braid accept <id> --head <sha> --merge --preset");
-  }
   const logFile = str(values, "log");
   const thread = threadShort(str(values, "thread"));
   if (thread === null) {
@@ -403,9 +382,6 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
   const run = opts.gh ?? runGh;
   const w = await read(root, number, "accept", opts);
   const t = target(w, m[2] ?? null);
-  if (values["preset"] === true) {
-    presetAllows(root, w, t);
-  }
   if (w.github.status.state !== "ok") {
     throw new UsageError(`${t.id} not accepted: GitHub could not be read (${w.github.status.reason}); nothing changed`);
   }

@@ -22,12 +22,12 @@ Tell braid a goal. It splits the goal into small work items, has a coding agent 
 ## What it can do
 
 - **Plan a goal into reviewed pull requests.** Say "braid: add dark mode"; you get a plan to approve, then one PR per part.
-- **Review before it reaches you.** Medium and large changes get an independent reviewer (you can set it to a different model than the worker's); the coordinator checks small ones itself, and every PR the coordinator merges by itself gets a reviewer.
+- **Review before it reaches you.** Medium and large changes get an independent reviewer (you can set it to a different model than the worker's); the coordinator checks small ones itself, and in auto mode every strand gets a reviewer.
 - **Resume from the files.** Briefs, logs and reports live in `braids/`; after a crash or in a new session any agent continues from them.
 - **See what needs you.** `braid board` shows what waits on you, and can Start a braid, ask the coordinator to merge, and open an agent's thread.
 - **Check in from your phone.** The board has a phone layout, and `braid board --host tailscale` serves it on your Tailscale network, to your own login only.
-- **Stops and asks when a decision is yours.** Security, a new dependency, stored data, an effect outside the repository, a change of scope: it waits for you, unless your preset lets it decide that case.
-- **Autonomy presets: you choose what braid decides.** A short file per project or per braid says what the coordinator merges and starts by itself and, per stop case, what it decides and what it asks you; what it decides it logs, and you read those decisions in the recap.
+- **Stops and asks when a decision is yours.** Security, a new dependency, stored data, an effect outside the repository, a change of scope: it waits for you.
+- **Auto mode for a goal.** Its strand PRs merge into the goal's branch once seven conditions hold; the final PR into `main` is always yours.
 - **Capture ideas without breaking flow.** `$braid-idea` and `braid note` park an idea or a leftover in an inbox the board shows.
 - **Works with Claude, Codex and Cursor.** braid is a set of agent skills plus a CLI that does the bookkeeping; agents run as threads in [T3 Code](https://github.com/pingdotgg/t3code).
 
@@ -60,7 +60,7 @@ You ask for dark mode. Here is what happens next.
 
    *An item's details open as a side panel over the board (sample data), here a strand with a question waiting for you.*
 
-5. **Strands B and C follow.** With a preset such as `steady`, the coordinator merges the strand PRs into the goal's branch itself and starts the next one; with `careful` each waits for you. The final PR into `main` is yours either way.
+5. **Strands B and C follow.** In auto mode the strand PRs merge into the goal's branch for you; the final PR into `main` is yours either way.
 
    <img src="docs/images/flow.png" alt="Illustrative diagram: you state a goal, the coordinator plans strands, workers build, reviewers check, you merge; the ledger in Git underneath" width="900">
 
@@ -99,7 +99,7 @@ Then, in the repository you want braid to work on:
 2. Add `braids/**/temp/` to `.gitignore`, commit and push.
 3. Open the repository as a T3 project and start a thread with `braid`: "braid: add dark mode to the settings page".
 
-The details, including Backlog.md import and choosing a preset, are in [getting started](docs/getting-started.md).
+The details, including Backlog.md import and auto mode, are in [getting started](docs/getting-started.md).
 
 ## The CLI
 
@@ -117,11 +117,10 @@ The full list is in [the CLI reference](docs/cli.md).
 
 | Page | What's in it |
 | --- | --- |
-| [Getting started](docs/getting-started.md) | Installing the skills and CLI, `BRAID.md`, setting up a repository, choosing an autonomy preset. |
+| [Getting started](docs/getting-started.md) | Installing the skills and CLI, `BRAID.md`, setting up a repository, auto mode. |
 | [CLI reference](docs/cli.md) | Every command, with examples and exit codes. |
 | [The attention board](docs/board.md) | What `braid board` shows, how it decides, and its actions (Start, Merge, Open thread). |
 | [The braids/ format](docs/braids-format.md) | The files in `braids/`, branches and each command's behaviour. |
-| [Autonomy presets](docs/autonomy.md) | The preset file a braid runs on, the three shipped presets and `braid autonomy`. |
 | [Workflow](.agents/skills/braid/references/workflow.md) | Items, tiers, branches, merges and checks. |
 | [Skills](.agents/skills/braid/SKILL.md) | How agents plan ([braid](.agents/skills/braid/SKILL.md)), do ([worker](.agents/skills/braid-worker/SKILL.md)) and review ([reviewer](.agents/skills/braid-reviewer/SKILL.md)) items, and note your ideas for later ([idea](.agents/skills/braid-idea/SKILL.md)). |
 | [Decisions](docs/decisions.md) | Current requirements and their reasons. |

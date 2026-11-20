@@ -51,7 +51,7 @@ interface FakePr {
  * braid/0001/A-first with its boxes ticked and a report; story 0002 is worked on braid/0002-story the same way.
  * The coordinator's checkout is on the braid branch. `gh` is a fake whose merge really merges in the remote.
  */
-function world(preset = "", ci = "[verify]") {
+function world() {
   const base = mkdtempSync(join(scratch, "w-"));
   const root = join(base, "proj");
   const remote = join(base, "remote.git");
@@ -64,7 +64,7 @@ function world(preset = "", ci = "[verify]") {
   git(root, "config", "user.email", "t@example.com");
   git(root, "config", "user.name", "t");
   git(root, "remote", "add", "origin", remote);
-  put(root, "BRAID.md", ["---", "main: main", `ci: ${ci}`, ...(preset === "" ? [] : [`autonomy: ${preset}`]), "---", ""].join("\n"));
+  put(root, "BRAID.md", "---\nmain: main\nci: [verify]\n---\n");
   put(root, "braids/0001-alpha/brief.md", brief("0001", "In Progress"));
   put(root, "braids/0001-alpha/A-first/brief.md", brief("0001/A", "To Do"));
   put(root, "braids/0002-story/brief.md", brief("0002", "To Do"));
@@ -458,42 +458,5 @@ test("a code change on top of the green commit, or a failed check on the head, s
   w.green.add(git(w.root, "--git-dir", w.remote, "rev-parse", "braid/0002-story~1"));
   w.prs[1]!.checks = "FAILURE";
   await assert.rejects(acceptCommand(w.root, ["0002", "--head", w.headOf("braid/0002-story")], w.opts), /verify failing/);
-  assert.equal(w.merges.length, 0);
-});
-
-test("--merge --preset: a strand merges under steady, and the merge is the same one --merge makes", async () => {
-  const w = world("steady");
-  const head = w.headOf("braid/0001/A-first");
-  const out = await acceptCommand(w.root, ["0001/A", "--head", head, "--merge", "--preset", "--thread", "mcp:launch:abcdef0123"], w.opts);
-  assert.match(out, new RegExp(`merged PR #5 at ${head}`));
-  assert.deepEqual(w.merges[0], ["pr", "merge", "5", "--merge", "--match-head-commit", head]);
-});
-
-test("--merge --preset: a story's PR is refused under steady, naming the preset and its merge value, and merges under free", async () => {
-  const w = world("steady");
-  const head = w.headOf("braid/0002-story");
-  await assert.rejects(acceptCommand(w.root, ["0002", "--head", head, "--merge", "--preset"], w.opts), /0002 not merged: preset steady has merge: strands, which does not let the coordinator merge a story's PR/);
-  assert.equal(w.merges.length, 0);
-  assert.doesNotMatch(w.show("braid/0002-story", "braids/0002-story/brief.md"), /^status: Done$/m);
-  const f = world("free");
-  const out = await acceptCommand(f.root, ["0002", "--head", f.headOf("braid/0002-story"), "--merge", "--preset"], f.opts);
-  assert.match(out, /merged PR #6 at /);
-  assert.equal(f.merges.length, 1);
-});
-
-test("--merge --preset: nothing merges under careful (the default) or none; a braid's final PR needs all", async () => {
-  const w = world();
-  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", w.headOf("braid/0001/A-first"), "--merge", "--preset"], w.opts), /preset careful has merge: none, which does not let the coordinator merge a strand's PR/);
-  const s = world("steady");
-  s.prs.push({ number: 7, branch: "braid/0001-alpha", base: "main", state: "OPEN", checks: "SUCCESS", mergeable: "MERGEABLE" });
-  await assert.rejects(acceptCommand(s.root, ["0001", "--head", s.headOf("braid/0001-alpha"), "--merge", "--preset"], s.opts), /preset steady has merge: strands, which does not let the coordinator merge a braid's final PR/);
-  assert.equal(w.merges.length + s.merges.length, 0);
-});
-
-test("--merge --preset: refused when ci is none, and --preset needs --merge", async () => {
-  const w = world("steady", "none");
-  const head = w.headOf("braid/0001/A-first");
-  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--merge", "--preset"], w.opts), /preset steady allows this merge only with CI to wait for, and ci in BRAID\.md is none/);
-  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--preset"], w.opts), /--preset goes with --merge/);
   assert.equal(w.merges.length, 0);
 });
