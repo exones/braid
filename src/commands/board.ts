@@ -900,7 +900,13 @@ export async function tailnetListen(host: string, tailscale: TailscaleRunner = r
   return { address, name: tailnet.name, owner: tailnet.owner, gate: whoisGate(tailnet.owner, tailscale) };
 }
 
-export async function runBoard(root: string, args: readonly string[], tailscale: TailscaleRunner = runTailscale): Promise<void> {
+/** `gh` and `t3` as `braid board` runs them; tests pass stubs. */
+export interface Runners {
+  readonly gh?: GhRunnerAsync;
+  readonly t3?: T3Runner;
+}
+
+export async function runBoard(root: string, args: readonly string[], tailscale: TailscaleRunner = runTailscale, run: Runners = {}): Promise<Started> {
   const flags = ["--no-open", "--demo", "--demo-t3-down", "--demo-not-ready"];
   const at = args.indexOf("--host");
   const host = at === -1 ? undefined : args[at + 1];
@@ -933,7 +939,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const first = new Promise<Problem[]>((done) => {
     firstProblems = done;
   });
-  const own = demo ? demoSources(t3Down, notReady) : { ...repoSources(root, runGhAsync, runT3), notify: boardNotifier(root) };
+  const own = demo ? demoSources(t3Down, notReady) : { ...repoSources(root, run.gh ?? runGhAsync, run.t3 ?? runT3), notify: boardNotifier(root) };
   const inner = own.readiness;
   const src: Sources = inner === undefined ? own : { ...own, readiness: (github) => { const problems = inner(github); firstProblems(problems); return problems; } };
   const started = await startBoardWith(src, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
@@ -954,4 +960,5 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
       process.stdout.write(`${problemLine(p)}\n`);
     }
   }
+  return started;
 }

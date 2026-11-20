@@ -22,7 +22,8 @@ const { readGithubAsync, resetGithubMemory } = (await load("../dist/board/github
 };
 const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
 const { statusCommand } = (await load("../dist/commands/coordinate.js")) as { statusCommand: (root: string, args: string[], src: object) => Promise<string> };
-const { startBoardWith, repoSources } = (await load("../dist/commands/board.js")) as {
+const { startBoardWith, repoSources, runBoard } = (await load("../dist/commands/board.js")) as {
+  runBoard: (root: string, args: string[], tailscale: undefined, run: { gh: (root: string, args: readonly string[]) => unknown; t3: unknown }) => Promise<{ server: import("node:http").Server }>;
   startBoardWith: (src: unknown, web: string, refreshMs?: number) => Promise<{ server: import("node:http").Server; url: string }>;
   repoSources: (root: string, gh: unknown, t3: unknown) => unknown;
 };
@@ -173,4 +174,40 @@ test("the board snapshot carries the problems", async () => {
     server.closeAllConnections();
     server.close();
   }
+});
+
+test("braid board reads GitHub once from startup until it prints the not ready lines", async () => {
+  resetGithubMemory();
+  resetT3Memory();
+  // The notifier and its settings live under the home folder: keep them in the scratch folder.
+  const saved = { HOME: process.env["HOME"], USERPROFILE: process.env["USERPROFILE"] };
+  process.env["HOME"] = scratch;
+  process.env["USERPROFILE"] = scratch;
+  const root = project({ "BRAID.md": GOOD, "backlog/tasks/t.md": "x" });
+  let ghCalls = 0;
+  const gh = () => {
+    ghCalls += 1;
+    return new Promise((done) => setTimeout(() => done({ status: 0, stdout: "[]", stderr: "" }), 150));
+  };
+  const written: string[] = [];
+  const write = process.stdout.write.bind(process.stdout);
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    written.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+  let started: { server: import("node:http").Server } | undefined;
+  try {
+    started = await runBoard(root, ["--no-open"], undefined, { gh, t3: () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }) });
+  } finally {
+    process.stdout.write = write;
+    process.env["HOME"] = saved.HOME;
+    process.env["USERPROFILE"] = saved.USERPROFILE;
+    if (saved.HOME === undefined) delete process.env["HOME"];
+    if (saved.USERPROFILE === undefined) delete process.env["USERPROFILE"];
+    started?.server.closeAllConnections();
+    started?.server.close();
+  }
+  // runBoard returns after the not ready lines are printed: one `gh pr list` so far.
+  assert.ok(written.some((l) => /^not ready: it has backlog\/ but no braids\/; run braid import-backlog/.test(l)), written.join(""));
+  assert.equal(ghCalls, 1);
 });
