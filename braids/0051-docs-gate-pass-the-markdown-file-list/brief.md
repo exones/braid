@@ -1,7 +1,7 @@
 ---
 id: '0051'
 title: "Docs gate: pass the Markdown file list without the command line"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 delivery: epic
@@ -37,7 +37,11 @@ Expected size: about 15 lines in 2 files, plus one regression test.
 
 ## Completion
 
-- [ ] The gate passes the file list on standard input, and path arguments still work.
-- [ ] A regression test covers a list longer than 32,767 characters.
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate passes the file list on standard input, and path arguments still work.
+- [x] A regression test covers a list longer than 32,767 characters.
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+checker reads stdin (one path per line) when no path args; gate writes the list to stdin; Pester test with 700 long names (>32,767 chars) plus an args test.
