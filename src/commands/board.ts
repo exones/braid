@@ -18,6 +18,9 @@ import { readSignals, type ReadSignals } from "../board/signals.js";
 import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
 import { normaliseId, UsageError } from "./braids.js";
+import { notifyLine } from "./notify.js";
+import { readConfig } from "../notify/config.js";
+import { notifier } from "../notify/notifier.js";
 
 const TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8",
@@ -60,6 +63,8 @@ export interface Sources {
   project(): string;
   /** The action registered under `name`, or undefined. `POST /api/action/<name>` runs it. */
   action(name: string): Action | undefined;
+  /** Hands each complete snapshot to the notifier (docs/board.md, "Notifications"); returns at once. Absent: no pushes (the demo). */
+  readonly notify?: (board: BoardData) => void;
 }
 
 /** What an action does with the JSON body of its request; its result is the JSON reply. */
@@ -442,6 +447,15 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
   return src;
 }
 
+/** The notifier of a repository's board, with the per-user settings; a no-op when the main checkout can't be found. Only `runBoard` adds it, so tests of the board never read `~/.braid`. */
+export function boardNotifier(root: string): (board: BoardData) => void {
+  try {
+    return notifier({ file: join(mainCheckout(root), ".braid", "notified.json") });
+  } catch {
+    return () => {};
+  }
+}
+
 /** The samples of `braid board --demo`: no repository, `gh` or `t3` is touched. */
 export function demoSources(t3Down = false): Sources {
   return {
@@ -701,6 +715,13 @@ export function startBoardWith(
   const begin = (fetch: boolean): Promise<void> => {
     const read = readAll(fetch).then((snap) => {
       current = snap;
+      if (snap.ok && !closed) {
+        try {
+          src.notify?.(snap.board);
+        } catch {
+          // Notifications never stop the board.
+        }
+      }
       running = undefined;
       if (!closed) {
         push();
@@ -896,13 +917,14 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   if (!existsSync(join(webDir, "index.html"))) {
     throw new UsageError("the board page is not built; run npm run build");
   }
-  const started = demo ? await startBoardWith(demoSources(t3Down), webDir, REFRESH_MS, undefined, tailnet, fixedPort) : await startBoard(root, webDir, runGhAsync, runT3, REFRESH_MS, tailnet, fixedPort);
+  const started = demo ? await startBoardWith(demoSources(t3Down), webDir, REFRESH_MS, undefined, tailnet, fixedPort) : await startBoardWith({ ...repoSources(root, runGhAsync, runT3), notify: boardNotifier(root) }, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
   process.stdout.write(`braid board${demo ? " (demo: sample data; nothing is read or written)" : ""}: ${url}\n`);
   if (started.tailnet !== undefined && tailnet !== undefined) {
     process.stdout.write(`On Tailscale: ${started.tailnet.url}\nOnly ${tailnet.owner}'s own devices (no tagged nodes) may open it; Open thread there uses the T3 app on the phone.\n`);
   }
+  process.stdout.write(demo ? "Notifications: none in the demo\n" : `${notifyLine(readConfig())}\n`);
   process.stdout.write("Press Ctrl+C to stop.\n");
   if (!args.includes("--no-open")) {
     openBrowser(url);

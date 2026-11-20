@@ -2,24 +2,24 @@
 
 ## What changed
 
-- **0040/A, `braid wait <number>` (D70).** Waits for the braid branch's CI on its newest commit outside `braids/` and `epics/`. It only reads, and the exit code is the answer: 0 green, 1 a `ci` check failed, 2 no answer.
-- **0040/B, one answer approves a plan (D71).** The plan's approval also approves merging its planning PR: the coordinator merges it, pinned to the squashed commit, and starts the first strand. The plan opens with the braid's number and title.
+- **0040/A, `braid wait <number>` (D71).** Waits for the braid branch's CI on its newest commit outside `braids/` and `epics/`. It only reads, and the exit code is the answer: 0 green, 1 a `ci` check failed, 2 no answer.
+- **0040/B, one answer approves a plan (D72).** The plan's approval also approves merging its planning PR: the coordinator merges it, pinned to the squashed commit, and starts the first strand. The plan opens with the braid's number and title.
 - **0040/C, presets as files (D68).**
   - The format: front matter (`name`, `merge`, `continue`), then one table with "Decide yourself when" and "Ask me when" per stop case.
   - braid ships `careful` (the default), `steady` and `free`. A project's `autonomy/<name>.md` adds or replaces one.
   - New `autonomy` field in a brief and key in `BRAID.md`, `braid autonomy <number>` and `--list`, and checks in `braid check`.
-- **0040/D, merges follow the preset (D72).**
+- **0040/D, merges follow the preset (D73).**
   - `braid accept --merge --preset` refuses unless the preset's `merge` allows that PR, and refuses when `ci` is `none`.
   - New `braid decisions <number> [--since]` lists the `Decided:` log entries.
   - The recap and handover show them under Decisions.
 - **0040/E, the skills run on presets.**
   - `references/auto-mode.md` became `references/autonomy.md`: reading the preset, merging, continuing, deciding, telling, hold, and changing the preset.
   - The stop cases, the worker and the reviewer read the preset. `Decided: <what>, because <why>, instead of <alternative>` is the logging rule.
-- **0040/F, project files and docs (D73).**
+- **0040/F, project files and docs (D74).**
   - `BRAID.md` says `autonomy: steady`.
   - The `AGENTS.md` merge limit follows the preset, and `main` stays the user's.
-  - README, getting-started and decisions: D73 replaces D31's auto mode, and D28 and D31 point to it.
-- **Main merged once, before 0040/E.** Main had taken D65, D66, D67 and D69, so this braid's D65, D67 and D69 became D70, D71 and D72; D68 stayed. Main's question-tool option sets (D66) and reviewer subagents (D69) are kept alongside this braid's changes.
+  - README, getting-started and decisions: D74 replaces D31's auto mode, and D28 and D31 point to it.
+- **Main merged once, before 0040/E.** Main had taken D65, D66, D67 and D69, so this braid's D65, D67 and D69 became D71, D72 and D73; D68 stayed. Main's question-tool option sets (D66) and reviewer subagents (D69) are kept alongside this braid's changes.
 
 ## Why
 
