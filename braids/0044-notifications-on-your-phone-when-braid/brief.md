@@ -1,7 +1,7 @@
 ---
 id: '0044'
 title: "Notifications on your phone when braid needs you"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "auto"]
 dependencies: []
 related: ['0040']
