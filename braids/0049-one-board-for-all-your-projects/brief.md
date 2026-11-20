@@ -1,7 +1,7 @@
 ---
 id: '0049'
 title: "One board for all your projects"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:architecture", "ask:security"]
 dependencies: []
 related: ['0045', '0047', '0011']
