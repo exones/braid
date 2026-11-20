@@ -2,7 +2,8 @@
 // made itself, where no PR is left to watch (decision D71). It reads only: one fetch of the braid branch, then
 // GitHub's check runs on the newest commit that changes anything outside `braids/` and `epics/` (the CI
 // workflow's push `paths-ignore`; a commit with only those changes starts no run). The exit code is the answer:
-// 0 green, 1 a `ci` check failed, 2 no answer (timeout, no run, or an error).
+// 0 green, 1 a `ci` check failed, 2 no answer (no run within 5 minutes, or an error), 3 still running when the
+// time is up (call again; the coordinator waits in foreground calls under 10 minutes and repeats).
 import { braidBranches } from "../braids/branches.js";
 import { loadBraids } from "../braids/store.js";
 import { runGh, type GhRunner } from "../board/github.js";
@@ -25,12 +26,12 @@ export interface WaitOptions {
 }
 
 export interface WaitResult {
-  /** 0 green, 1 failed, 2 no answer. */
-  readonly code: 0 | 1 | 2;
+  /** 0 green, 1 failed, 2 no answer, 3 still running at the limit. */
+  readonly code: 0 | 1 | 2 | 3;
   readonly stdout: string;
 }
 
-const usage = "usage: braid wait <number> [--timeout <minutes>]  (a braid number like 0008)";
+const usage = "usage: braid wait <number> [--timeout <minutes>]  (a braid number like 0008; minutes may be a fraction, e.g. 9)";
 
 /** The newest commit on the first-parent line of `ref` whose diff against its first parent touches a file outside `braids/` and `epics/`, with the braids-only commits skipped on the way. */
 function ciCommit(root: string, ref: string): { sha: string; skipped: string[] } | null {
@@ -124,7 +125,7 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
   const now = opts.now ?? Date.now;
   const start = now();
   const until = start + minutes * 60_000;
-  const noRunUntil = start + Math.min(START_MS, minutes * 60_000);
+  const noRunUntil = start + START_MS;
   /** The last state GitHub gave; a failed or empty read never replaces a seen run. */
   let last: { name: string; result: Result }[] | null = null;
   let unread = false;
@@ -145,6 +146,7 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
     }
     const t = now();
     // Only a commit that never showed a run gives up early; once one was seen, only the timeout ends the wait.
+    // A shorter call than the start limit ends as 3 below: the run may still appear, so a later call continues.
     if (last === null && t >= noRunUntil) {
       const why = unread ? "GitHub could not be read" : "no run appeared";
       return { code: 2, stdout: `${head}${why} for ${names.join(", ")} at ${short} on ${branch} after ${Math.round((t - start) / 60_000)} minutes\n` };
@@ -157,7 +159,7 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
         of("missing").length > 0 ? `not started: ${of("missing").join(", ")}` : "",
         unread ? "GitHub could not be read at the last poll" : "",
       ].filter((p) => p !== "");
-      return { code: 2, stdout: `${head}timed out after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}\n` };
+      return { code: 3, stdout: `${head}still running after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}; call braid wait ${number} again to continue on ${short}\n` };
     }
     await sleep(POLL_MS);
   }

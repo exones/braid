@@ -59,6 +59,7 @@ interface Started {
   server: Server;
   url: string;
   token: string;
+  close(): Promise<void>;
 }
 interface Push {
   title: string;
@@ -430,4 +431,27 @@ test("a roster that can't be read while the board runs keeps the projects as the
   broken = true;
   const all = await get<All>("api/all?fresh=1");
   assert.deepEqual(all.body.projects.map((p) => p.name), ["demo", "api"]);
+});
+
+test("close() waits until every project's read has ended, not only the first one's", async () => {
+  const ended: string[] = [];
+  const slow = (m: Member, ms: number): Member => ({
+    name: m.name,
+    src: {
+      ...m.src,
+      t3: async (fresh) => {
+        await sleep(ms);
+        try {
+          return await m.src.t3(fresh);
+        } finally {
+          ended.push(m.name);
+        }
+      },
+    },
+  });
+  const [a, b] = board.demoMembers();
+  const started = await board.startBoardWith(() => [slow(a!, 100), slow(b!, 600)], web, 600_000);
+  // Both first reads are running now; the second project's is the slower one.
+  await started.close();
+  assert.deepEqual([...ended].sort(), [a!.name, b!.name].sort(), "no project's read still runs when close() returns");
 });

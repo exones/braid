@@ -28,6 +28,7 @@ braid is a TypeScript/Node.js CLI; see [README](README.md). This file lists the 
 - Goals and stories, here and in other projects, including "run 0012": [braid](.agents/skills/braid/SKILL.md). It decides story or goal and keeps items in `braids/` through the `braid` CLI. `epics/` holds past records, read-only.
 - Doing one assigned item: [braid-worker](.agents/skills/braid-worker/SKILL.md), only in a worker thread a coordinator launched; never chosen for a user's request.
 - Reviewing one item's PR: [braid-reviewer](.agents/skills/braid-reviewer/SKILL.md), only in a reviewer thread a coordinator launched.
+- Answering one research question with checked evidence: [braid-researcher](.agents/skills/braid-researcher/SKILL.md), only as a researcher subagent a coordinator or worker launched, or as the method a spike worker follows.
 - Ordinary questions and small direct edits need no skill.
 - Items, tiers, branches and merges: [the workflow](.agents/skills/braid/references/workflow.md).
 - Using the skills in other projects: [docs/getting-started.md](docs/getting-started.md).
