@@ -54,11 +54,18 @@ Expected size: about 20 to 40 lines in 2 or 3 files.
 - Other flaky tests (`test/notify.test.ts` is 0049/F; `test/done.test.ts` at midnight UTC is an idea in the inbox).
 - Any other edit to `AGENTS.md`, `CLAUDE.md`, `BRAID.md` or the skills.
 
+## Plan
+
+1. Reproduce on Windows: start the board in process on a temp repo, close the server, delete the folder at once.
+2. Board: `Started.close()` closes the server and waits until the read in flight (and the one queued after it) has ended, so no `git`, `gh` or `t3` child it started still runs in the repository.
+3. `test/board.test.ts`: the in-process test stops the board with `close()`; `withBoard` waits at most 10 s for the board to exit; a new test deletes both boards' repositories without retries right after they stop.
+4. `AGENTS.md`: the braid-researcher line in "Where to look".
+
 ## Completion
 
-- [ ] The cause of the EPERM is named in report.md, with the evidence (log line, reproduction or reasoning from the code)
-- [ ] `test/board.test.ts` cleanup no longer depends on retries to pass: what held the folder is ended before the delete
+- [x] The cause of the EPERM is named in report.md, with the evidence (log line, reproduction or reasoning from the code)
+- [x] `test/board.test.ts` cleanup no longer depends on retries to pass: what held the folder is ended before the delete
 - [ ] The regression test above exists and passes on Linux and Windows
-- [ ] `AGENTS.md` "Where to look" lists braid-researcher, and nothing else in it changed
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `AGENTS.md` "Where to look" lists braid-researcher, and nothing else in it changed
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
