@@ -361,14 +361,12 @@ function Get-LinkFindings {
   $arguments = [System.Collections.Generic.List[string]]::new()
   $arguments.Add($checker)
   $arguments.Add($script:RepoRoot)
-  foreach ($relative in $markdown) {
-    $arguments.Add($relative)
-  }
 
   $start = [System.Diagnostics.ProcessStartInfo]::new()
   $start.FileName = $node
   $start.WorkingDirectory = $script:ToolRoot
   $start.UseShellExecute = $false
+  $start.RedirectStandardInput = $true
   $start.RedirectStandardOutput = $true
   $start.RedirectStandardError = $true
   $start.CreateNoWindow = $true
@@ -377,6 +375,13 @@ function Get-LinkFindings {
   }
   $process = [System.Diagnostics.Process]::Start($start)
   $errorTask = $process.StandardError.ReadToEndAsync()
+  # The Markdown list goes on standard input: it can exceed the Windows command-line limit.
+  try {
+    $process.StandardInput.Write(($markdown -join "`n") + "`n")
+    $process.StandardInput.Close()
+  } catch [System.IO.IOException] {
+    # The checker exited early; its exit code and stderr are reported below.
+  }
   $stdout = $process.StandardOutput.ReadToEnd()
   $process.WaitForExit()
   $errorText = $errorTask.GetAwaiter().GetResult()
