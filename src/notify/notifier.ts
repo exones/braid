@@ -72,7 +72,8 @@ export function notifier(opts: NotifierOptions): Notifier {
   /** Re-reads the file before writing, so a second board on the same repository loses nothing. */
   const update = (add: Readonly<Record<string, string>>): void => {
     try {
-      const keys = { ...Object.fromEntries(Object.entries(readSent(opts.file).keys).filter(([k]) => current.has(k))), ...add };
+      // Only keys the latest snapshot still calls for: a send that succeeds after its need left is not recorded, so the need's return is sent again.
+      const keys = Object.fromEntries(Object.entries({ ...readSent(opts.file).keys, ...add }).filter(([k]) => current.has(k)));
       writeSent(opts.file, keys);
     } catch (e) {
       warn(`braid notify: can't write ${opts.file} (${e instanceof Error ? e.message : "failed"})`);

@@ -383,6 +383,32 @@ test("a hanging send returns at once, isn't sent twice while in flight, and time
   assert.equal(f.sent.length, 1, "retried on the next refresh");
 });
 
+test("a send that succeeds after its need left is not recorded, so the need's return is sent again", async () => {
+  const file = join(dir(), ".braid", "notified.json");
+  const sent: string[] = [];
+  let release: () => void = () => {};
+  let first = true;
+  const send: Sender = (_c, push) => {
+    sent.push(push.title);
+    if (first) {
+      first = false;
+      return new Promise<void>((done) => (release = done));
+    }
+    return Promise.resolve();
+  };
+  const notify = notifierMod.notifier({ file, config: () => CFG, send, token: () => null, warn: () => {}, timeoutMs: 2_000 });
+  const waiting = boardOf([card("0013", "Waiting", Q)]);
+  notify(waiting);
+  await new Promise((done) => setImmediate(done));
+  notify(boardOf([card("0013", "In Progress", null)]));
+  release();
+  await notify.idle();
+  assert.ok(!readFileSync(file, "utf8").includes("0013|"), "the late success isn't stored");
+  notify(waiting);
+  await notify.idle();
+  assert.equal(sent.length, 2);
+});
+
 test("the real sender posts ntfy JSON with the bearer token, and names neither topic nor token on errors", async () => {
   const seen: { url: string; init: RequestInit }[] = [];
   let status = 200;

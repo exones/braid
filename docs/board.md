@@ -200,7 +200,7 @@ Start and Merge work over Tailscale as on the PC. The `open` action is refused (
 
 ## Notifications
 
-The running board sends a push to your phone over [ntfy](https://ntfy.sh) when an item comes onto your side of the board and when a braid is Done, so you don't have to keep watching it. Set it up once per machine with `braid notify setup` ([the CLI](cli.md)); one topic then covers every project on the machine. There is no daemon: a board that isn't running (also with `--no-open` or `--host`) sends nothing, and `braid board` prints `Notifications: on (<server>, topic <first 10 characters>…)` or how to turn them on. `--demo` never sends. Why: D70 in [decisions](decisions.md).
+The running board sends a push to your phone over [ntfy](https://ntfy.sh) when an item comes onto your side of the board and when a braid is Done, so you don't have to keep watching it. Set it up once per machine with `braid notify setup` ([the CLI](cli.md)); one topic then covers every project on the machine. There is no daemon: the running board sends (also with `--no-open` or `--host`), and when no board runs nothing is sent; and `braid board` prints `Notifications: on (<server>, topic <first 10 characters>…)` or how to turn them on. `--demo` never sends. Why: D70 in [decisions](decisions.md).
 
 **What triggers a push** (`src/notify/message.ts`, `src/notify/notifier.ts`), checked after each refresh that read both GitHub and T3 (a source that couldn't be read can make a lane only look changed, so such a refresh sends nothing and changes nothing):
 
