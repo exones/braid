@@ -1,8 +1,8 @@
 ---
 id: '0044'
 title: "Notifications on your phone when braid needs you"
-status: To Do
-labels: ["kind:story", "tier:L"]
+status: In Progress
+labels: ["kind:story", "tier:L", "auto"]
 dependencies: []
 related: ['0040']
 delivery: epic
