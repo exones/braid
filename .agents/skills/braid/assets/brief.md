@@ -8,6 +8,7 @@ An item is a braid (`0012`) or one of its strands (`0012/A`): a folder under `br
 - `labels`: `kind:story|task|spike` and `tier:S|M|L` (workflow, "Tiers"), plus `ui` for new or noticeably changed user-facing UI, and `ask:<key>` for each [stop case](../references/stop-cases.md) the plan already shows.
 - `dependencies`: real prerequisites only. `order`: run order among a braid's strands, 10, 20, 30, so one can slot in between.
 - `related`: braids only; set as the skill's "Plan" step 3 says. Each link also gets a line under "Already decided".
+- `autonomy`: braids only, and only at the user's request: the preset the braid runs on (`braid new|edit --autonomy <name>`); without it the project default applies. Its exceptions go in a `## Autonomy` section of free text.
 - `delivery`: leave the default `epic`; the strands of a braid merge into its branch, then one PR into `main`.
 
 ## Create
@@ -73,7 +74,7 @@ braid edit 0012/B --dep 0012/A --order 20     # --dep and --labels replace the l
 braid accept 0012/A --review <link> --thread <your thread id> --log -
                                               # strand merged: on the braid branch; pulls, sets Done with the log entry, commits, pushes
 braid accept 0012/A --head <reviewed sha> --review <link> --merge --log -
-                                              # strand on request or in auto mode: merges that head first
+                                              # strand on request: merges that head first; --preset: a merge under the braid's preset
 braid accept 0013 --head <reviewed sha> --review <link> --thread <your thread id>
                                               # story or final PR: checks, a status-only commit on its branch
 

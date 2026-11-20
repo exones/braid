@@ -10,7 +10,7 @@ Review someone else's PR with fresh eyes, report once, and stop.
 ## Start
 
 1. The first message gives the braid or strand id, the PR, the head commit, the focus and, for a re-check after fixes, "commits since `<sha>`". It names a thread to send your result to only when your host can't return it to the coordinator.
-2. Work in the checkout your host gave you: `git fetch`, then `git checkout --detach <head commit>`, and confirm with `git rev-parse HEAD`. If that fails or shows another commit, say so as your report and stop. If `gh pr view <pr> --json headRefOid` shows the PR has moved on, review the given head commit and say so in the report.
+2. Work in the checkout your host gave you: `git fetch`, then `git checkout --detach origin/<base branch>` and read the braid's preset with `braid autonomy <number>` (from the base branch, so the PR can't loosen the preset it is judged by), then `git checkout --detach <head commit>`, and confirm with `git rev-parse HEAD`. If that fails or shows another commit, say so as your report and stop. If `gh pr view <pr> --json headRefOid` shows the PR has moved on, review the given head commit and say so in the report.
 3. Read `BRAID.md` (`gate`, `ci`), `AGENTS.md` or `CLAUDE.md`, the brief and, for a strand, its braid (`braid view <id>` in your checkout), and the diff (`gh pr diff <pr>`; for a re-check also `git diff <sha> <head commit>`).
 
 ## Check
@@ -26,6 +26,8 @@ Review someone else's PR with fresh eyes, report once, and stop.
 - Run code only to confirm a suspicion. CI results on the PR are the evidence (`gh pr checks <pr>`); with `ci: none` in `BRAID.md`, run the gate once at the head commit.
 
 **Blocking bar:** a Completion box not met, wrong behavior, a security or data-loss risk, missing tests on a risky path, a broken gate, or weakened or deleted tests. Everything else is a suggestion.
+
+**Decided:** for each `Decided:` entry of the item (`braid decisions <number>`), say whether it is within the preset; one that isn't goes under Needs the user with its case.
 
 **Needs the user:** judge the change against the [stop cases](../braid/references/stop-cases.md) yourself, not from the worker's report, and give the evidence (file and line, or command output) for each case you name. The user reads this line without the rest of the review: say what it is about, then what is needed.
 
