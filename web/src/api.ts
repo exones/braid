@@ -54,9 +54,13 @@ export interface Tick {
   readonly fresh: boolean;
 }
 
-function useLoad<T>(url: string, tick: Tick): Loaded<T> {
+/** Loads `url` and again on each tick; a null `url` fetches nothing and stays loading. */
+function useLoad<T>(url: string | null, tick: Tick): Loaded<T> {
   const [result, setResult] = useState<{ url: string; value: Loaded<T> } | null>(null);
   useEffect(() => {
+    if (url === null) {
+      return;
+    }
     let live = true;
     get<T>(tick.fresh ? `${url}${url.includes("?") ? "&" : "?"}fresh=1` : url).then(
       (data) => live && setResult({ url, value: { state: "ready", data } }),
@@ -72,8 +76,9 @@ function useLoad<T>(url: string, tick: Tick): Loaded<T> {
 
 /** The combined board of every project served; the page filters it by the address's `?projects=`. */
 export const useAll = (tick: Tick): Loaded<AllBoard> => useLoad<AllBoard>("/api/all", tick);
-export const useItem = (id: string, project: string, tick: Tick): Loaded<ItemDetail> =>
-  useLoad<ItemDetail>(`/api/item?project=${encodeURIComponent(project)}&id=${encodeURIComponent(id)}`, tick);
+/** One item; with no `project` (an address naming a project that isn't served) nothing is fetched. */
+export const useItem = (id: string, project: string | null, tick: Tick): Loaded<ItemDetail> =>
+  useLoad<ItemDetail>(project === null ? null : `/api/item?project=${encodeURIComponent(project)}&id=${encodeURIComponent(id)}`, tick);
 
 /** The reload requests: the server pushes one every 30 s and when a braid file changes; `refresh` is the button. */
 export function useTick(): { tick: Tick; refresh: () => void } {

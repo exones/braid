@@ -27,3 +27,16 @@ export function toggleProject(selected: readonly string[], name: string, served:
   const next = selected.includes(name) ? selected.filter((n) => n !== name) : [...selected, name];
   return next.length === 0 ? [...selected] : served.filter((n) => next.includes(n));
 }
+
+/**
+ * The project an item's address is in: the name in `#/p/<name>/...` when it is served, else the first project shown.
+ * A name that isn't served is `unknown` (a project removed from the list, a mistyped link): the page says so and asks
+ * the server nothing. `null` when no project is served yet.
+ */
+export function resolveProject(asked: string | null, selected: readonly string[], served: readonly string[]): { readonly name: string } | { readonly unknown: string } | null {
+  if (asked !== null) {
+    return served.includes(asked) ? { name: asked } : { unknown: asked };
+  }
+  const first = selected[0] ?? served[0];
+  return first === undefined ? null : { name: first };
+}

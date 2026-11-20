@@ -8,6 +8,7 @@ The board page shows every project at once. One combined board holds the cards o
 - **Cards and panel.** With two or more projects shown, cards, Done rows and inbox entries carry the project tag; cards of a project whose last read failed get a dashed edge and ⚠. The panel header repeats the tag and shows a red note for a failed read.
 - **Addresses.** `#/p/<project>/0003` (with `?tab=`), and `#/0003`, `#/0003/A`, `#/inbox` still work and mean the first project shown. Every action (Start, Merge, Open thread, Promote) now sends the item's `project`.
 - **One project served** looks as before: no block, no tags; a failed read gets a red banner of its own.
+- An address naming a project that isn't served (`#/p/gone/0001`) is resolved against the served projects before any fetch (`resolveProject`, tested) and the panel says "No such project: gone. This board serves …".
 - `docs/board.md` (Several projects, Demo), `docs/decisions.md` (D79), screenshots `51`–`59` in `docs/design/board-screenshots/`.
 
 ## Why
@@ -16,9 +17,14 @@ The user works on several projects and wants one place to see what needs them (0
 
 ## Validation
 
-- `test/board-route.test.ts` and the new `test/board-filter.test.ts` cover the routes and the filter.
+- `test/board-route.test.ts` and the new `test/board-filter.test.ts` cover the routes, the filter and the unknown-project case.
 - Ran `braid board --demo` (three projects, `notes` not ready) and took the screenshots from it with Chrome: all, one, two of three, opened and collapsed block, card with tag and panel, inbox, phone picker and phone panel.
 - The gate (`npm run verify`) passes; CI status is in the PR.
+
+## Review fixes (PR #199)
+
+- Screenshot 59 retaken with the sheet closed (a hash-only navigation had kept the previous shot's open sheet); it now shows the phone panel itself.
+- Unknown project in the address: see above.
 
 ## Open
 

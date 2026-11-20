@@ -4,7 +4,7 @@ import { ROLES } from "../../src/braids/roles.ts";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, pushedAfter, type Route } from "../../src/board/route.ts";
-import { filterSearch, parseFilter, toggleProject } from "../../src/board/filter.ts";
+import { filterSearch, parseFilter, resolveProject, toggleProject } from "../../src/board/filter.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard } from "./api.ts";
 
@@ -1111,9 +1111,11 @@ function Contents({ braid, current }: { braid: BraidCard; current: string }) {
  * The item's details: a panel over the right of the board (the whole screen below md). The board
  * stays mounted underneath; Esc, the close button, a click on the board and Back close it.
  */
-function DetailsPanel({ id, tab, project, tick }: { id: string; tab: string; project: string; tick: Tick }) {
+function DetailsPanel({ id, tab, project, unknown = null, tick }: { id: string; tab: string; project: string; unknown?: string | null; tick: Tick }) {
   const scope = useContext(ScopeContext);
-  const loaded = useItem(id, project, tick);
+  const fetched = useItem(id, unknown === null ? project : null, tick);
+  const served = [...scope.projects.keys()];
+  const loaded: Loaded<ItemDetail> = unknown === null ? fetched : { state: "error", message: `No such project: ${unknown}. This board serves ${served.join(", ")}.` };
   const failure = scope.projects.get(project)?.info;
   return (
     <ProjectContext value={project}>
@@ -1133,7 +1135,7 @@ function DetailsPanel({ id, tab, project, tick }: { id: string; tab: string; pro
         >
           <div className="flex flex-none items-center gap-2 border-b border-slate-200 px-7 py-2 max-md:px-4">
             <button type="button" onClick={closeDetails} className="cursor-pointer text-[13px] text-blue-700 md:hidden">← Board</button>
-            {scope.several && <ProjectTag name={project} />}
+            {scope.several && unknown === null && <ProjectTag name={project} />}
             <span className="flex-1" />
             <Dialog.Close aria-label="Close details" title="Close (Esc)" className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-base hover:border-blue-600 max-md:size-11">✕</Dialog.Close>
           </div>
@@ -1403,7 +1405,7 @@ export function App() {
   // One project served keeps the page as it was: its notes in the header, its problems in a banner.
   const single = infos.length === 1 ? infos[0] : undefined;
   const notes = shown.flatMap((i) => (i.t3?.state === "unavailable" ? [`T3 unavailable (${i.t3.reason})${several ? ` for ${i.name}` : ""}: no agent states`] : []));
-  const project = route.project ?? selected[0] ?? served[0] ?? null;
+  const resolved = resolveProject(route.project, selected, served);
   return (
     <RemoteContext value={all.state !== "ready" || all.data.remote}>
     <ScopeContext value={scope}>
@@ -1452,7 +1454,7 @@ export function App() {
         ) : (
           <Status loaded={all}>{() => (board === null ? null : <Board data={board} details={details} />)}</Status>
         )}
-        {route.id !== null && project !== null && <DetailsPanel id={route.id} tab={route.tab} project={project} tick={tick} />}
+        {route.id !== null && resolved !== null && all.state === "ready" && <DetailsPanel id={route.id} tab={route.tab} project={"name" in resolved ? resolved.name : ""} unknown={"unknown" in resolved ? resolved.unknown : null} tick={tick} />}
       </div>
     </Tooltip.Provider>
     </ScopeContext>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { filterSearch, parseFilter, toggleProject } from "../src/board/filter.ts";
+import { filterSearch, parseFilter, resolveProject, toggleProject } from "../src/board/filter.ts";
 
 const served = ["demo", "api", "notes"];
 
@@ -39,4 +39,14 @@ test("toggling ticks and unticks in served order, and never empties the board", 
   assert.deepEqual(toggleProject(["demo", "api"], "demo", served), ["api"]);
   assert.deepEqual(toggleProject(["notes"], "demo", served), ["demo", "notes"]);
   assert.deepEqual(toggleProject(["api"], "api", served), ["api"]);
+});
+
+test("an address names a served project, else it is unknown and nothing is fetched for it", () => {
+  assert.deepEqual(resolveProject("api", ["demo"], served), { name: "api" });
+  assert.deepEqual(resolveProject(null, ["api", "notes"], served), { name: "api" });
+  assert.deepEqual(resolveProject(null, [], served), { name: "demo" });
+  assert.deepEqual(resolveProject("gone", ["demo"], served), { unknown: "gone" });
+  assert.deepEqual(resolveProject("API", ["demo"], served), { unknown: "API" });
+  assert.equal(resolveProject(null, [], []), null);
+  assert.deepEqual(resolveProject("api", [], []), { unknown: "api" });
 });
