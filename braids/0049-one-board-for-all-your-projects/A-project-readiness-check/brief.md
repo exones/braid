@@ -1,7 +1,7 @@
 ---
 id: '0049/A'
 title: "Project readiness check"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 10
