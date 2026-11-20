@@ -30,11 +30,20 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 - Your commits are `docs(braids): …`, for example `docs(braids): 0012 phases: add 0012/A, 0012/B`.
 - Commit brief changes only at these points: the plan and its review rounds; the braid In Progress, after the planning merge; a growth or plan-change decision; a log entry; an item accepted (`braid accept`); an Outline detailed; the braid Done at the end.
 - Name every thread `<emoji> <repo> <id> <role>: <title>`: 🧠 `coordinator`, 💻 `worker`, 👀 `review`, 🧪 `research`; the repo is the GitHub repository's name and the title is the item's name exactly as its brief has it. Never write one by hand: launch each thread with the output of `braid title <id> --role <role>`, for example `💻 braid 0021 worker: Board Start: no branch clash`. When a coordinator takes a braid (plan or resume), it sets its own thread's title to `braid title <number> --role coordinator` (`t3_thread_update` in T3, else the host's rename).
+- **One braid per coordinator thread.** A thread that already holds a braid (planned, resumed or taken over) never plans another. A request for another braid, whether a follow-up the user picked from a recap or a new goal sent to this thread, goes to a new coordinator thread ("Plan", step 0). The rule is absolute: the board finds a braid's coordinator by the number in the thread's title, so a thread that switches braids can't be followed. Asking doesn't override it; if the user asks to plan it here, say why in one line and launch. This thread keeps running its own braid, with its watches and waits.
 - The first line of your plan, and of your first message after the user asks to start or resume an existing braid or after you take one over through [resuming](references/resuming.md), names the braid's number and title (`0040 Autonomy presets: …`), so a wrong number is caught at once.
 - **Gaps go by the table.** Route each gap as the workflow's "Gaps and the inbox" says, without asking the user, and capture what goes to the inbox with `braid note` ("Capture"). Never fold anything in silently.
 - Never edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless the user asks. Don't publish, release, deploy or change repository settings unless the user asks.
 
 ## Plan
+
+0. **A thread that already holds a braid** doesn't plan a new one. Instead:
+   1. In T3, `t3_thread_launch` a top-level thread on the project's main checkout with the coordinator model from `BRAID.md` and the provisional title `🧠 <repo> coordinator: <short goal>`; the braid has no number yet, and the new coordinator renames itself after `braid new` as the rename rule says. If the launch fails (T3 down, model unavailable), tell the user and stop; don't plan here instead.
+   2. Send its first message with `t3_thread_send`: use the braid skill and plan this goal; the user's words and every answer they gave, quoted; the source (braid id, report path, PR); any leftovers or inbox entries this braid routed to it.
+   3. Tell the user in one or two lines, with the new thread's link, and end the turn. Plan and commit nothing of the new braid here, and keep this braid's own watches and waits.
+   4. Without T3, say in one line that the user starts a new coordinator chat, and write out the handover text (step 2's content) for them to paste.
+
+   Otherwise, a thread with no braid yet starts here:
 
 1. Before planning a new braid, propose a sweep if any leftover is open ("Sweep"). When the user asks for an idea to become braids, plan from it as from any goal, and once the plan is approved, `braid inbox take <idea> --into <braid ids>`. Never propose ideas yourself.
 2. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
@@ -126,7 +135,7 @@ When the worker reports green:
    2. Run `braid clean --yes` to remove the item's worktree and branch and its reviewers' checkouts. A reviewer's folder still in use is kept and named; run it again later.
    3. For a strand, on the braid branch, run `braid accept <id> --review <link> --thread <your thread id> --log -` with the braid's log entry on standard input; it commits as `docs(braids): <id> done`. Skip this when the merge ran through `braid accept --merge`, which did it.
    4. Fix any item that hasn't started and that the entry makes wrong, as in "Adjusting the plan".
-   5. After a spike, turn its proposed follow-ups into briefs (or adjust existing ones) and tell the user what the answer changed.
+   5. After a spike, follow-ups that adjust briefs of this braid become or change briefs here; tell the user what the answer changed. Follow-ups that become a new braid are not planned here: hand each over to a new coordinator thread ("Plan", step 0). You may still ask in the recap which one to plan.
    6. If the next item is `Outline`, reread it, detail it into a full brief (`braid ask` for what it leaves open), set it `To Do` and commit.
    7. Start the next item (with `continue: yes` without a go, "Autonomy"); after the last strand, finish.
 

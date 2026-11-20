@@ -1,7 +1,7 @@
 ---
 id: '0050'
 title: "One braid per coordinator thread"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 related: ['0036', '0048']
@@ -67,9 +67,9 @@ There are no tests of skill text. Instead:
 
 ## Completion
 
-- [ ] `SKILL.md` "Ground rules" says a coordinator thread holds one braid, and "Plan" says how a request for another braid goes to a new thread (launch, provisional title, first message, link, stop).
-- [ ] "Accept and hand over" step 6.5 separates follow-ups for the same braid from follow-ups that become a new braid.
-- [ ] The failure modes above are each answered in the skill text or, where the answer is "nothing changes", in `report.md`.
-- [ ] A new decision in `docs/decisions.md` and a dated line in its decision log.
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, the 0045 → 0049 walkthrough, validation, anything open
+- [x] `SKILL.md` "Ground rules" says a coordinator thread holds one braid, and "Plan" says how a request for another braid goes to a new thread (launch, provisional title, first message, link, stop).
+- [x] "Accept and hand over" step 6.5 separates follow-ups for the same braid from follow-ups that become a new braid.
+- [x] The failure modes above are each answered in the skill text or, where the answer is "nothing changes", in `report.md`.
+- [x] A new decision in `docs/decisions.md` and a dated line in its decision log.
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, the 0045 → 0049 walkthrough, validation, anything open
