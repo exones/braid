@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>braid board – all projects mockups (0049/D)</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#3b5bdb;--todo:#cbd5e1;--prog:#2563eb;--rev:#7c3aed;--wait:#f59e0b;--done:#16a34a;--bad:#dc2626;
+--p-demo:#3b5bdb;--p-api:#0d9488;--p-notes:#be185d}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+.cap{padding:6px 20px;color:var(--mut);font-size:12px;background:#fff;border-bottom:1px solid var(--line)}
+.url{padding:5px 20px;font:12px ui-monospace,Consolas,monospace;background:#e9ecf3;color:#444}.url b{color:#000}
+header{display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line)}header b{font-size:16px}.sp{flex:1}
+.mut{color:var(--mut);font-size:12px}
+button{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+/* project lines */
+.projects{background:#fff;border-bottom:1px solid var(--line);padding:6px 20px 8px}
+.projects .ph{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mut);padding:2px 0 4px}.projects .ph a{color:var(--acc)}
+.pl{display:grid;grid-template-columns:22px 150px 1fr auto;gap:10px;align-items:center;padding:5px 6px;border-radius:6px;min-height:32px}
+.pl+.pl{border-top:1px solid #f0f1f5}.pl.off{opacity:.5}.pl.off .cnts i{background:#eef0f5}
+.pl .cb{width:16px;height:16px;border:1.5px solid #9aa3b8;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;background:#fff}
+.pl.on .cb{background:var(--acc);border-color:var(--acc)}
+.pl .nm{font-weight:700;display:flex;gap:7px;align-items:center}.pl .nm small{font-weight:400;color:var(--mut)}
+.cnts{display:flex;gap:6px;flex-wrap:wrap}.cnts i{font-style:normal;font-size:11.5px;padding:1px 8px;border-radius:99px;background:#eef0f7;color:#38405a;display:inline-flex;gap:5px;align-items:center}
+.cnts i b{font-weight:700}.cnts i.z{color:#9aa3b8}
+.rd{font-size:12px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.rd.ok{color:#15703a}.rd.nr{color:#8a5300}.rd.fail{color:#a11a1a;font-weight:600}.rd.none{color:var(--mut)}
+.rd u{text-decoration:none;color:var(--mut);font-weight:400}
+.only{font-size:11px;color:var(--acc);margin-left:4px}
+.sub{margin:2px 0 6px 38px;font-size:12px;border-radius:6px;padding:6px 10px}
+.sub.nr{background:#fffbeb;border:1px solid #fcd34d;color:#78450a}.sub.fail{background:#fff1f1;border:1px solid #fca5a5;color:#8f1f1f}
+.sub ul{margin:3px 0 0;padding-left:18px}
+.pd{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}.p-demo{background:var(--p-demo)}.p-api{background:var(--p-api)}.p-notes{background:var(--p-notes)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.l-todo{background:var(--todo)}.l-prog{background:var(--prog)}.l-rev{background:var(--rev)}.l-wait{background:var(--wait)}.l-done{background:var(--done)}
+.lanes{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 20px;align-items:start}
+.lane{background:#eceef3;border-radius:10px;padding:10px}
+.lane h3{margin:2px 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
+.lane h3 span:first-child{display:flex;gap:6px;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;box-shadow:0 1px 2px #0001}
+.card.sel{border-color:var(--acc);box-shadow:0 0 0 2px #3b5bdb33}.card.stale{border-style:dashed}
+.card .id{color:var(--mut);font-size:12px}.card .t{font-weight:600;margin:2px 0 6px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:#e8ebf3;color:#49506a}
+.tag{font-size:11px;padding:1px 8px 1px 6px;border-radius:99px;border:1px solid;display:inline-flex;gap:5px;align-items:center;font-weight:600;background:#fff}
+.tag.demo{color:var(--p-demo);border-color:#c5d0f7}.tag.api{color:var(--p-api);border-color:#a7e0da}.tag.notes{color:var(--p-notes);border-color:#f3b7d3}
+.tag .w{font-weight:700;color:#a11a1a}
+.bar{height:5px;background:#e6e9f0;border-radius:3px;flex:1;min-width:50px;overflow:hidden}.bar i{display:block;height:100%;background:var(--done)}
+.need{margin-top:6px;font-size:12.5px;border-radius:6px;padding:4px 7px;line-height:1.35}.need small{display:block;color:var(--mut);font-size:11px}
+.n-wait{background:#fff6e0;color:#7a4d00;border-left:3px solid var(--wait)}.n-bad{background:#fff1f1;color:#8f1f1f;border-left:3px solid var(--bad)}.n-rev{background:#f1ecff;color:#4a2a9a;border-left:3px solid var(--rev)}
+.ic{display:inline-flex;width:26px;height:26px;border:1px solid var(--line);border-radius:6px;align-items:center;justify-content:center;font-size:12px;margin-top:6px}
+.go{background:var(--prog);color:#fff;border-color:var(--prog)}
+.done-row{display:flex;gap:8px;align-items:center;padding:5px 4px;border-bottom:1px solid #dfe2ea;font-size:13px}
+.done-row .d{color:var(--mut);font-size:11px;margin-left:auto;white-space:nowrap}
+.empty{color:var(--mut);font-size:12px;padding:10px 4px}
+/* panel */
+.panel{position:absolute;right:0;top:0;bottom:0;width:640px;background:#fff;border-left:1px solid var(--line);box-shadow:-8px 0 24px #0002;display:flex;flex-direction:column}
+.panel .ph2{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line)}
+.panel h2{margin:0;font-size:16px}.tabs2{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--line)}
+.tabs2 a{padding:8px 12px;color:var(--mut);border-bottom:2px solid transparent}.tabs2 a.on{color:var(--ink);font-weight:600;border-color:var(--acc)}
+.panel .body{padding:14px 16px;overflow:hidden}.panel h4{margin:12px 0 4px;font-size:13px}.panel p,.panel li{font-size:13px;margin:3px 0}
+.panel .strandrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+/* inbox */
+.inbox{padding:16px 20px;max-width:900px}.ent{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.ent .t{font-weight:600}.ent p{margin:4px 0 0;color:#444;font-size:13px}
+/* phone */
+body.ph{width:390px;min-height:844px;position:relative;overflow-x:hidden;background:#fff}
+.ph header{padding:10px 14px;gap:8px}.ph header b{font-size:15px}
+.ph .url{padding:4px 14px;font-size:11px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line)}
+.tabs a{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--mut);border-bottom:3px solid transparent}
+.tabs a b{font-size:16px;color:var(--ink)}.tabs a.on{border-color:var(--wait);color:var(--ink);font-weight:600}
+.pick{display:flex;align-items:center;gap:8px;margin:10px 14px 0;min-height:48px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:15px;font-weight:700}
+.pick .c{margin-left:auto;font-weight:400;color:var(--mut);font-size:13px}.pick .pds{display:flex;gap:3px}
+.pnote{margin:8px 14px 0;font-size:12.5px;border-radius:8px;padding:6px 10px;line-height:1.35}
+.pnote.fail{background:#fff1f1;color:#8f1f1f;border-left:3px solid var(--bad)}.pnote.nr{background:#fffbeb;color:#78450a;border-left:3px solid var(--wait)}
+.pcards{padding:12px 14px 90px;background:#eceef3;min-height:640px;margin-top:10px}
+.ph .card{padding:12px;margin-bottom:10px}.ph .card .t{font-size:15px}
+.tap{min-height:44px;min-width:44px;font-size:14px;padding:0 16px;border-radius:8px;font-weight:600;color:#49506a}
+.shade{position:absolute;inset:0;background:#0007;z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -8px 30px #0004;padding:8px 0 16px;z-index:5}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:#cfd4df;margin:0 auto 6px}
+.sheet h5{margin:6px 20px 6px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between}
+.sp1{display:grid;grid-template-columns:28px 1fr;gap:6px 10px;align-items:start;padding:10px 20px;min-height:56px}
+.sp1+.sp1{border-top:1px solid #f0f1f5}.sp1.off{opacity:.55}
+.sp1 .cb{width:22px;height:22px;border:2px solid #9aa3b8;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;margin-top:1px}.sp1.on .cb{background:var(--acc);border-color:var(--acc)}
+.sp1 .nm{font-weight:700;font-size:16px;display:flex;gap:7px;align-items:center}.sp1 .nm .only{margin-left:auto;font-size:13px;font-weight:600;padding:4px 8px}
+.sp1 .cnts{grid-column:2}.sp1 .rd{grid-column:2;white-space:normal}
+.sheet .done{margin:10px 20px 0;display:block;width:calc(100% - 40px);min-height:48px;background:var(--acc);color:#fff;border-color:var(--acc);font-size:15px;font-weight:600;border-radius:10px}
+.fullpanel{position:absolute;inset:0;background:#fff;z-index:6;display:flex;flex-direction:column}
+.fullpanel .top{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);min-height:52px}
+.fullpanel .top .back{width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-left:-10px}
+.hide{display:none}
+.scr{display:none}.scr.on{display:block}
+</style></head>
+<body>
+<script>
+// ---- demo data: the three projects of `braid board --demo` ---------------------------------------------------
+const P = {
+  demo:  {name:'demo',  repo:'demo',  c:[3,1,3,3,12], ready:'ok', age:'12 s'},
+  api:   {name:'api',   repo:'api',   c:[0,1,2,1,2],  ready:'fail', age:'14 min', reason:'the read took longer than 20 s'},
+  notes: {name:'notes', repo:'notes', c:[0,0,0,0,0],  ready:'nr', age:'12 s', problems:['BRAID.md has no gate, ci in its front matter — add gate, ci to BRAID.md','GitHub can’t be read (gh is not logged in) — run gh auth login']},
+};
+const LN = ['Needs you','To review','Working','To do','Done'];
+const LC = ['l-wait','l-rev','l-prog','l-todo','l-done'];
+const cards = [
+  // [project,id,tier,title,lane,done,total,need,needkind,btn]
+  ['demo','0003','tier:M','Sample export',0,0,3,'Which date format should the CSV use, ISO or local?<small>strand 0003/A · asked 35 min ago</small>','wait'],
+  ['demo','0002','tier:M','Sample search',0,0,2,'Checks failed: verify (windows-latest); fix or retry<small>strand 0002/B · for 14 min</small>','bad'],
+  ['demo','0007','tier:M','Sample import',0,0,3,'Approve the plan: 3 strands, A to C<small>braid, no strand involved · asked 20 min ago</small>','wait'],
+  ['api','0002','tier:S','Token rotation',1,0,1,'Merge PR #43<small>braid · asked 1 h ago</small>','rev'],
+  ['demo','0001','tier:L','Sample login flow',1,1,3,'Merge PR #12<small>strand 0001/B · asked 2 h ago</small>','rev'],
+  ['demo','0009','tier:M','Sample reports',2,0,3],['api','0001','tier:M','Rate limits per key',2,1,2],['demo','0005','tier:S','Sample themes',2,0,2],['api','0001/B','tier:M','Limit headers',2,0,1,null,null,'strand'],
+  ['demo','0011','tier:S','Sample notifications',3,0,0,null,null,'go'],['api','0003','tier:S','OpenAPI docs',3,0,0,null,null,'go'],['demo','0012','tier:M','Sample CSV import',3,0,0,null,null,'go'],
+];
+const dones = [['demo','0008','Sample mail','Nov 17'],['demo','0006','Sample audit log','Nov 16'],['api','0004','Health check endpoint','Nov 15'],['demo','0014','Sample reports v2','Nov 16'],['api','0001/A','Request counter','Nov 12']];
+
+const $ = (h)=>h;
+const tag = (p,full)=>`<span class="tag ${p}" title="${P[p].ready==='fail'?'Board read failed '+P[p].age+' ago: showing the older read':''}"><span class="pd p-${p}"></span>${p}${P[p].ready==='fail'?' <span class="w">⚠</span>':''}</span>`;
+const counts = (p, sel)=>`<span class="cnts">${LN.map((n,i)=>`<i class="${P[p].c[i]?'':'z'}"><span class="dot ${LC[i]}"></span><b>${P[p].c[i]}</b> ${n.toLowerCase()}</i>`).join('')}</span>`;
+function rd(p){const x=P[p];
+  if(x.ready==='ok')return `<span class="rd ok">✓ Ready <u>· read ${x.age} ago</u></span>`;
+  if(x.ready==='nr')return `<span class="rd nr">▲ Not ready · ${x.problems.length} problems <u>· read ${x.age} ago</u></span>`;
+  if(x.ready==='fail')return `<span class="rd fail">✕ Read failed · board is ${x.age} old</span>`;
+  return `<span class="rd none">… Not read yet</span>`;}
+function lines(sel,expand){return `<div class="projects"><div class="ph"><b style="color:var(--ink)">Projects</b><span>${sel.length} of 3 shown</span><span class="sp"></span>${sel.length<3?'<a>Show all</a>':'<span>Click a line to show or hide it · “only” shows just that one</span>'}</div>`+
+ Object.keys(P).map(p=>{const on=sel.includes(p);const x=P[p];return `<div class="pl ${on?'on':'off'}"><span class="cb">${on?'✓':''}</span><span class="nm"><span class="pd p-${p}"></span>${p}</span>${counts(p)}<span style="display:flex;gap:6px;align-items:center">${rd(p)}<a class="only">only</a></span></div>`+
+ (expand&&expand.includes(p)?sub(p):'')}).join('')+`</div>`;}
+function sub(p){const x=P[p];
+  if(x.ready==='nr')return `<div class="sub nr"><b>This project is not ready for braid.</b> The board shows what it can read.<ul>${x.problems.map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
+  if(x.ready==='fail')return `<div class="sub fail"><b>The latest read of ${p} failed:</b> ${x.reason}. Showing the board read ${x.age} ago; its cards are outlined with a dashed edge. Retries every 30 s.</div>`;return '';}
+function card(c,opt={}){const [p,id,tier,title,lane,d,t,need,kind,btn]=c;
+  const stale=P[p].ready==='fail';
+  return `<div class="card ${opt.sel?'sel':''} ${stale?'stale':''}"><div class="row"><span class="id">${id}</span><span class="badge">${tier}</span>${opt.tag===false?'':tag(p)}</div><div class="t">${title}</div><div class="row"><div class="bar"><i style="width:${t?100*d/t:0}%"></i></div><span class="mut">${d}/${t}</span></div>${need?`<div class="need n-${kind}">${need}</div>`:''}<div class="row"><span class="ic">↗</span>${btn==='go'?'<span class="ic go">▶</span>':''}${kind==='rev'?'<span class="ic" style="background:var(--rev);color:#fff;border-color:var(--rev)">⑂</span>':''}</div></div>`;}
+function lanes(sel,opt={}){const vis=cards.filter(c=>sel.includes(c[0]));const tg=sel.length>1;
+  return `<div class="lanes">${LN.map((n,i)=>{const cs=vis.filter(c=>c[4]===i);const total=sel.reduce((a,p)=>a+P[p].c[i],0);
+   let inner;
+   if(i===4){const ds=dones.filter(d=>sel.includes(d[0]));inner=ds.map(d=>`<div class="done-row"><span class="dot l-done"></span><span class="mut" style="width:44px;font-size:12px">${d[1]}</span>${tg?tag(d[0]):''}<span>${d[2]}</span><span class="d">${d[3]}</span></div>`).join('')||'<div class="empty">Nothing done yet.</div>';}
+   else inner=cs.map(c=>card(c,{tag:tg,sel:opt.sel&&c[0]===opt.sel[0]&&c[1]===opt.sel[1]})).join('')||'<div class="empty">Nothing here.</div>';
+   return `<div class="lane"><h3><span><span class="dot ${LC[i]}"></span>${n}</span><span>${total}</span></h3>${inner}</div>`}).join('')}</div>`;}
+function head(){return `<header><b>braid · attention board</b><span class="mut">Each braid sits in the lane where it needs you most.</span><span class="sp"></span><span class="badge" style="padding:3px 10px">Inbox · 6</span><label class="mut"><input type="checkbox" checked> Details</label><span class="mut">refreshes every 30 s</span><button>Refresh</button></header>`;}
+const url=(q,h)=>`<div class="url">localhost:7700/<b>${q}</b>${h}</div>`;
+
+// phone
+function ptabs(sel,on=0){const tot=i=>sel.reduce((a,p)=>a+P[p].c[i],0);return `<div class="tabs">${['Needs you','Review','Working','To do','Done'].map((n,i)=>`<a class="${i===on?'on':''}"><b>${tot(i)}</b>${n}</a>`).join('')}</div>`;}
+function ppick(sel){const names=sel.length===3?'All projects':sel.join(' + ');return `<div class="pick"><span class="pds">${sel.map(p=>`<span class="pd p-${p}"></span>`).join('')}</span>${names}<span class="c">${sel.length} of 3 ▾</span></div>`;}
+function pnotes(sel){return sel.filter(p=>P[p].ready!=='ok').map(p=>P[p].ready==='fail'?`<div class="pnote fail"><b>${p}:</b> read failed, its board is ${P[p].age} old</div>`:`<div class="pnote nr"><b>${p}:</b> not ready for braid · ${P[p].problems.length} problems ▸</div>`).join('');}
+function phone(sel,laneIdx,extra=''){const vis=cards.filter(c=>sel.includes(c[0])&&c[4]===laneIdx);const tg=sel.length>1;
+ return `<body class="ph">`;}
+
+// ---- screens ------------------------------------------------------------------------------------------------
+const S = {};
+S['41-all-desktop'] = `<div class="cap">41 · Desktop, filter = all three projects. One line per project (counts, readiness, board age); cards carry their project tag. api's last read failed, notes isn't ready.</div>${url('','#/')}${head()}${lines(['demo','api','notes'])}${lanes(['demo','api','notes'])}`;
+S['42-filter-one-desktop'] = `<div class="cap">42 · Desktop, filter = one project (api, from “only” on its line). The other lines stay, dimmed; cards lose their tag (one project, nothing to tell apart). api's failed read is in its line and the box under it.</div>${url('?projects=api','#/')}${head()}${lines(['api'],['api'])}${lanes(['api'])}`;
+S['43-filter-two-desktop'] = `<div class="cap">43 · Desktop, two of three (demo + notes; api unticked). Counts above each lane add up the shown projects. notes isn't ready: its amber box sits under its line, as it does on today's single-project page.</div>${url('?projects=demo,notes','#/')}${head()}${lines(['demo','notes'],['notes'])}${lanes(['demo','notes'])}`;
+S['44-project-lines'] = `<div class="cap">44 · The project line in each state, closer: ready · not ready (problems listed under the line) · read failed (older board kept, its age shown, reason under the line) · not read yet. Counts are the five lanes, zeros dimmed.</div>${url('','#/')}<div style="padding:16px 0">${(()=>{
+  const save=P.demo; const x={...P};
+  const mk=(n,o)=>{P[n]={...P[n],...o}};
+  let out='';
+  out+=`<div class="mut" style="padding:4px 20px">Ready</div>${lines(['demo'])}`;
+  out+=`<div class="mut" style="padding:12px 20px 4px">Not ready</div>${lines(['notes'],['notes'])}`;
+  out+=`<div class="mut" style="padding:12px 20px 4px">Read failed (the older board is still shown)</div>${lines(['api'],['api'])}`;
+  P.api={...P.api,ready:'none',c:[0,0,0,0,0]};
+  out+=`<div class="mut" style="padding:12px 20px 4px">First read still running (or failed before any board was read)</div>${lines(['api'])}`;
+  P.api={...x.api};return out;})()}</div>`;
+S['45-card-and-panel-desktop'] = `<div class="cap">45 · Desktop: a card with its project tag, and its side panel. The panel header names the project; the address is <code>#/p/api/0001</code> (today's <code>#/0003</code> still opens the first project). Actions in the panel run in that project.</div>${url('','#/p/api/0001')}<div style="position:relative;height:880px;overflow:hidden">${head()}${lines(['demo','api','notes'])}${lanes(['demo','api','notes'],{sel:['api','0001']})}
+ <div class="panel" style="top:0"><div class="ph2"><h2>0001 · Rate limits per key</h2><span class="tag api"><span class="pd p-api"></span>api <span class="w">⚠</span></span><span class="badge">tier:M</span><span class="sp"></span><button>Open thread</button><button>✕</button></div>
+ <div class="tabs2"><a class="on">Overview</a><a>Brief</a><a>Report</a><a>Logs</a></div>
+ <div class="body"><div class="sub fail" style="margin:0 0 10px"><b>api's latest read failed</b> (the read took longer than 20 s). This is the board as of 14 min ago; actions here may be refused until the next read succeeds.</div>
+ <div class="row"><span class="badge">In Progress</span><span class="mut">PR #41 merged for 0001/A · strand B working</span></div>
+ <h4>Strands</h4><div class="strandrow"><span class="dot l-done"></span><span class="mut">0001/A</span>Request counter<span class="sp"></span><span class="mut">Done · PR #41</span></div><div class="strandrow"><span class="dot l-prog"></span><span class="mut">0001/B</span>Limit headers<span class="sp"></span><span class="mut">Working</span></div>
+ <h4>Goal</h4><p>Rate limits per key. Sample text from <code>braid board --demo</code>.</p><h4>Acceptance</h4><ul><li>It works.</li></ul></div></div></div>`;
+S['46-inbox-desktop'] = `<div class="cap">46 · Desktop, the inbox follows the same filter: each entry is tagged with its project (tag hidden when one project is shown).</div>${url('?projects=demo,api','#/inbox')}${head()}${lines(['demo','api'],['api'])}<div class="inbox">${[['demo','`braid note --from` rejects "review 0012/A" with a trailing space','leftover · from review 0012/A · 2 h'],['api','Rate limit headers differ between 429 and 200 replies','leftover · from 0001/A · 1 d'],['demo','A “what changed since I looked” view','idea · 40 min'],['api','Per-key burst allowance','idea · 3 d']].map(e=>`<div class="ent"><div class="row">${tag(e[0])}<span class="t">${e[1]}</span></div><p class="mut">${e[2]}</p></div>`).join('')}</div>`;
+
+const PH = (inner)=>`<div class="ph">${inner}</div>`;
+const pcards = (sel,lane)=>`<div class="pcards">${cards.filter(c=>sel.includes(c[0])&&c[4]===lane).map(c=>card(c,{tag:sel.length>1})).join('')}</div>`;
+S['47-phone-all'] = `<div class="ph"><div class="cap" style="font-size:11px;padding:4px 14px">47 · Phone, all projects. A project picker above the lane tabs; notes under it for failed or not-ready projects.</div>${url('','#/')}<header><b>braid · attention board</b><span class="sp"></span><span class="mut">read-only</span></header>${ppick(['demo','api','notes'])}${pnotes(['demo','api','notes'])}<div style="height:10px"></div>${ptabs(['demo','api','notes'])}${pcards(['demo','api','notes'],0)}</div>`;
+S['48-phone-filter'] = `<div class="ph" style="height:844px;overflow:hidden"><div class="cap" style="font-size:11px;padding:4px 14px">48 · Phone, the picker opened: one line per project in a sheet, tick any, “only” for one.</div>${url('?projects=demo,api','#/')}<header><b>braid · attention board</b><span class="sp"></span><span class="mut">read-only</span></header>${ppick(['demo','api'])}${pnotes(['demo','api'])}<div style="height:10px"></div>${ptabs(['demo','api'])}${pcards(['demo','api'],0)}
+ <div class="shade"></div><div class="sheet"><div class="grab"></div><h5><span>Projects</span><a style="color:var(--acc);text-transform:none;font-size:13px">Show all</a></h5>
+ ${['demo','api','notes'].map(p=>{const on=p!=='notes';return `<div class="sp1 ${on?'on':'off'}"><span class="cb">${on?'✓':''}</span><span class="nm"><span class="pd p-${p}"></span>${p}<a class="only">only</a></span>${counts(p)}${rd(p)}</div>`}).join('')}
+ <button class="done">Show 2 projects</button></div></div>`;
+S['49-phone-card-panel'] = `<div class="ph" style="height:844px;overflow:hidden"><div class="cap" style="font-size:11px;padding:4px 14px">49 · Phone, a card (tag next to its id) opened to its panel, full screen as today; the header repeats the project.</div>${url('?projects=demo,api','#/p/api/0002')}<div class="fullpanel"><div class="top"><span class="back">‹</span><b>0002 · Token rotation</b><span class="sp"></span><span class="tag api"><span class="pd p-api"></span>api <span class="w">⚠</span></span></div><div class="tabs2" style="overflow:hidden"><a class="on">Overview</a><a>Brief</a><a>Report</a><a>Logs</a></div><div style="padding:14px"><div class="pnote fail" style="margin:0 0 10px"><b>api:</b> read failed, this board is 14 min old</div><div class="row"><span class="badge">In Progress</span><span class="badge">tier:S</span></div><div class="need n-rev" style="margin-top:12px">Merge PR #43<small>braid · asked 1 h ago</small></div><div class="row" style="margin-top:12px"><span class="tap" style="border:1px solid var(--line);display:flex;align-items:center">↗ Open thread</span><span class="tap" style="background:var(--rev);color:#fff;display:flex;align-items:center">⑂ Merge</span></div><h4>Goal</h4><p>Token rotation. Sample text from <code>braid board --demo</code>.</p></div></div></div>`;
+
+const key = new URLSearchParams(location.search).get('s')||'41-all-desktop';
+document.body.className = key.includes('phone')?'ph':'';
+document.body.innerHTML += S[key].replace(/^<div class="ph">/,'<div class="ph" style="width:390px">');
+if(key.includes('phone')) document.body.style.width='390px';
+</script>
+</body></html>

@@ -1,7 +1,7 @@
 ---
 id: '0049/D'
 title: "Combined board page with a project filter: mockups, then build"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: ['0049/C']
 order: 40
