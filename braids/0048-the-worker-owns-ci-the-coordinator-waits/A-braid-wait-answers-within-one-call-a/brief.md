@@ -1,7 +1,7 @@
 ---
 id: '0048/A'
 title: "braid wait answers within one call: a still-running exit code"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 10
@@ -35,9 +35,15 @@ Expected size: about 120 lines in 5 files.
 
 - The skill text that uses the new code (0048/C).
 
+## Plan
+
+- wait.ts: exit 3 at the limit when CI is still pending or not started yet; the 5-minute no-run limit no longer shrinks with --timeout, so short calls end as 3. Exit 2 stays for no run after 5 minutes and errors.
+- Keep minutes as the unit (fractions allowed); name it in help, docs and output.
+- Tests, help, docs/cli.md, docs/braids-format.md.
+
 ## Completion
 
-- [ ] `braid wait <number> --timeout <minutes>` returns the new "still running" code when CI is still pending at the limit, and 2 only for no run, no commit or an error; tests cover each code.
-- [ ] `braid help`, `docs/cli.md` and `docs/braids-format.md` name every exit code and the unit of `--timeout`.
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid wait <number> --timeout <minutes>` returns the new "still running" code when CI is still pending at the limit, and 2 only for no run, no commit or an error; tests cover each code.
+- [x] `braid help`, `docs/cli.md` and `docs/braids-format.md` name every exit code and the unit of `--timeout`.
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
