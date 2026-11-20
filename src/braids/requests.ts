@@ -110,9 +110,12 @@ export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): bo
   return false;
 }
 
-/** Runs `fn` holding the lock of `file`: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up after 10 s. Never call GitHub inside `fn`. */
-export function locked<T>(file: string, fn: () => T, what = "the requests store"): T {
-  ensureStateDir(dirname(file));
+/**
+ * Runs `fn` holding the lock of `file`: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up after 10 s. Never call GitHub inside `fn`.
+ * `makeDir` prepares the file's folder (default: a repository's `.braid/`, ignored by Git).
+ */
+export function locked<T>(file: string, fn: () => T, what = "the requests store", makeDir: (dir: string) => void = ensureStateDir): T {
+  makeDir(dirname(file));
   const lock = `${file}.lock`;
   const give = Date.now() + LOCK_WAIT_MS;
   for (;;) {

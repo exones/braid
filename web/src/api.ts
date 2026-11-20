@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import type { BoardData, ItemDetail } from "../../src/board/model.ts";
+import type { ItemDetail } from "../../src/board/model.ts";
+import type { AllBoard } from "../../src/board/combined.ts";
 
 export type { InboxData, InboxEntry } from "../../src/board/inbox.ts";
 export type { BoardData, BraidCard, ItemDetail, Lane, CoordinatorInfo, MergeInfo, Need, StartInfo, StrandCard, ThreadRole } from "../../src/board/model.ts";
 export type { PullRequest } from "../../src/board/github.ts";
+export type { AllBoard, ProjectInfo, TaggedCard } from "../../src/board/combined.ts";
 
 export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
 
@@ -31,8 +33,8 @@ function sessionToken(): string | null {
 }
 sessionToken();
 
-/** Runs the board action `name` on the server with the session token; the reply is the action's result. */
-export async function postAction<T = unknown>(name: string, body: unknown = {}): Promise<T> {
+/** Runs the board action `name` on the server with the session token; the reply is the action's result. The body carries the `project` the action is for (docs/board.md, "Several projects"). */
+export async function postAction<T = unknown>(name: string, body: object = {}): Promise<T> {
   const response = await fetch(`/api/action/${encodeURIComponent(name)}`, {
     method: "POST",
     // x-braid-request: a header a cross-site page can't send without a CORS preflight; the Tailscale listener requires it (D60).
@@ -52,9 +54,13 @@ export interface Tick {
   readonly fresh: boolean;
 }
 
-function useLoad<T>(url: string, tick: Tick): Loaded<T> {
+/** Loads `url` and again on each tick; a null `url` fetches nothing and stays loading. */
+function useLoad<T>(url: string | null, tick: Tick): Loaded<T> {
   const [result, setResult] = useState<{ url: string; value: Loaded<T> } | null>(null);
   useEffect(() => {
+    if (url === null) {
+      return;
+    }
     let live = true;
     get<T>(tick.fresh ? `${url}${url.includes("?") ? "&" : "?"}fresh=1` : url).then(
       (data) => live && setResult({ url, value: { state: "ready", data } }),
@@ -68,8 +74,11 @@ function useLoad<T>(url: string, tick: Tick): Loaded<T> {
   return result !== null && result.url === url ? result.value : { state: "loading" };
 }
 
-export const useBoard = (tick: Tick): Loaded<BoardData> => useLoad<BoardData>("/api/board", tick);
-export const useItem = (id: string, tick: Tick): Loaded<ItemDetail> => useLoad<ItemDetail>(`/api/item?id=${encodeURIComponent(id)}`, tick);
+/** The combined board of every project served; the page filters it by the address's `?projects=`. */
+export const useAll = (tick: Tick): Loaded<AllBoard> => useLoad<AllBoard>("/api/all", tick);
+/** One item; with no `project` (an address naming a project that isn't served) nothing is fetched. */
+export const useItem = (id: string, project: string | null, tick: Tick): Loaded<ItemDetail> =>
+  useLoad<ItemDetail>(project === null ? null : `/api/item?project=${encodeURIComponent(project)}&id=${encodeURIComponent(id)}`, tick);
 
 /** The reload requests: the server pushes one every 30 s and when a braid file changes; `refresh` is the button. */
 export function useTick(): { tick: Tick; refresh: () => void } {

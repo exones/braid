@@ -189,6 +189,8 @@ for (const kind of ["other", "tagged", "error", "garbage", "hang"] as const) {
       assert.equal((await call(port, "GET", "/", { host })).status, 403);
       assert.equal((await call(port, "GET", "/api/board", { host })).status, 403);
       assert.equal((await call(port, "GET", "/api/events", { host })).status, 403);
+      assert.equal((await call(port, "GET", "/api/all", { host })).status, 403);
+      assert.equal((await call(port, "GET", "/api/projects", { host })).status, 403);
       assert.equal((await call(port, "POST", "/api/action/start", { ...ACT, host, origin: `http://${host}` }, '{"id":"0001"}')).status, 403);
     });
     assert.deepEqual(actions, []);
@@ -202,6 +204,8 @@ test("over Tailscale, the owner gets the page, the data, Start and Merge; open i
     assert.equal(page.status, 200);
     assert.match(page.text, /<title>board<\/title>/);
     assert.equal((await call(port, "GET", "/api/board", { host })).status, 200);
+    assert.equal((await call(port, "GET", "/api/all", { host })).status, 200);
+    assert.equal((await call(port, "GET", "/api/projects", { host })).status, 200);
     assert.equal((await call(port, "GET", `/api/board`, { host: `127.0.0.1:${port}` })).status, 200);
     const start = await call(port, "POST", "/api/action/start", { ...ACT, host, origin: `http://${host}` }, '{"id":"0001"}');
     assert.equal(start.status, 200);

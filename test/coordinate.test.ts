@@ -53,7 +53,7 @@ function repo(strands: Strand[], ci = "[verify (ubuntu-latest), verify (windows-
   };
   const brief = (id: string, status: string, deps = "", order = "", labels = "") =>
     `---\nid: '${id}'\ntitle: "T ${id}"\nstatus: ${status}\nlabels: [${labels}]\ndependencies: [${deps}]\n${order}---\n\n## Goal\n\nx\n`;
-  put("BRAID.md", `---\nci: ${ci}\n---\n`);
+  put("BRAID.md", `---\ngate: x\nmain: main\nci: ${ci}\nmodels: {}\n---\n`);
   put("braids/0001-a/brief.md", brief("0001", "In Progress"));
   for (const s of strands) {
     const deps = (s.deps ?? []).map((d) => `'${d}'`).join(", ");
@@ -112,7 +112,9 @@ test("status reports failing checks and says when GitHub or T3 cannot be read", 
     gh: () => ({ status: 1, stdout: "", stderr: "gh auth login needed" }),
     t3: () => Promise.resolve({ status: 1, stdout: "", stderr: "not running" }),
   });
-  assert.match(down, /note: GitHub could not be read \(gh is not logged in; run gh auth login\)/);
+  assert.equal(down.split(String.fromCharCode(10)).filter((l) => /GitHub/.test(l)).length, 1, "GitHub unreadable shows once");
+  assert.match(down, /not ready: GitHub can't be read \(gh is not logged in; run gh auth login\);.*PRs and checks are missing and lanes come from stored statuses/);
+  assert.doesNotMatch(down, /note: GitHub/);
   assert.match(down, /note: T3 could not be read \(T3 is not running \(not running\)\)/);
   assert.match(down, /thread \?/);
 });

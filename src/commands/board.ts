@@ -8,11 +8,14 @@ import { fileURLToPath } from "node:url";
 import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
-import { DEMO_START, demoBraids, demoGithub, demoInbox, demoSignals, demoT3, demoTree } from "../board/demo.js";
+import { apiBraids, apiGithub, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
+import { combine, projectInfo, projectsParam, type Held } from "../board/combined.js";
+import { feed, READ_TIMEOUT_MS, type Feed } from "../board/feed.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
-import { coordinatorWarning, mergeOf, toBoard, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
+import { coordinatorWarning, mergeOf, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
 import { t3codeUrl } from "../board/marks.js";
+import { problemLine, readiness, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
 import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
@@ -20,6 +23,7 @@ import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, typ
 import { normaliseId, UsageError } from "./braids.js";
 import { notifyLine } from "./notify.js";
 import { readConfig } from "../notify/config.js";
+import { readProjects, type Project } from "../projects/list.js";
 import { notifier } from "../notify/notifier.js";
 
 const TYPES: Readonly<Record<string, string>> = {
@@ -62,6 +66,8 @@ export interface Sources {
   inbox(fetch: boolean): InboxData | Promise<InboxData>;
   /** The T3 project folder (the main checkout). */
   project(): string;
+  /** What stops the folder from working as a braid project, given the GitHub read (null: GitHub unchecked); absent: nothing does (the demo shows its own). */
+  readiness?(github: Github | null): Problem[];
   /** The action registered under `name`, or undefined. `POST /api/action/<name>` runs it. */
   action(name: string): Action | undefined;
   /** Hands each complete snapshot to the notifier (docs/board.md, "Notifications"); returns at once. Absent: no pushes (the demo). */
@@ -442,6 +448,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     start: () => readStartContext(root),
     inbox: (fetch) => inboxOfAsync(root, fetch),
     project: () => mainCheckout(root),
+    readiness: (github) => readiness(root, github),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
   const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src) };
@@ -458,8 +465,9 @@ export function boardNotifier(root: string): (board: BoardData) => void {
 }
 
 /** The samples of `braid board --demo`: no repository, `gh` or `t3` is touched. */
-export function demoSources(t3Down = false): Sources {
+export function demoSources(t3Down = false, notReady = false): Sources {
   return {
+    ...(notReady ? { readiness: () => demoProblems() } : {}),
     repo: "demo",
     braids: demoBraids,
     github: () => demoGithub(),
@@ -473,47 +481,6 @@ export function demoSources(t3Down = false): Sources {
     // A demo board accepts every action and fakes the result; nothing is written.
     action: () => () => ({ ok: true, demo: true }),
   };
-}
-
-/** Everything one complete read produced; the pages are answered from the latest one. */
-type Snapshot =
-  | { readonly ok: true; readonly braids: Braid[]; readonly github: Github; readonly t3: T3; readonly sig: ReadSignals; readonly start: StartContext; readonly board: BoardData }
-  | { readonly ok: false; readonly error: unknown };
-
-/** Answers `/api/board` and `/api/item` from a snapshot: nothing is read from GitHub or T3 here. */
-function api(src: Sources, url: URL, remote: boolean, snap: Snapshot): Reply {
-  try {
-    if (!snap.ok) {
-      throw snap.error;
-    }
-    if (url.pathname === "/api/board") {
-      return json(200, { ...snap.board, remote });
-    }
-    if (url.pathname !== "/api/item") {
-      return json(404, { error: "no such endpoint" });
-    }
-    const raw = url.searchParams.get("id");
-    if (raw === null) {
-      return json(400, { error: "id is required" });
-    }
-    const id = normaliseId(raw);
-    const [number, letter] = id.split("/");
-    const braid = snap.braids.find((b) => b.number === number);
-    const item = letter === undefined ? braid : braid?.strands.find((s) => s.letter === letter);
-    if (braid === undefined || item === undefined) {
-      return json(404, { error: `no item ${id}` });
-    }
-    const detail = toDetail(src.tree(item), braid, item, snap.github, snap.t3, snap.sig, snap.start);
-    return json(200, detail);
-  } catch (error) {
-    if (error instanceof UsageError) {
-      return json(400, { error: error.message });
-    }
-    if (error instanceof FormatError) {
-      return json(500, { error: `${error.file}: ${error.message}. Run braid check.` });
-    }
-    throw error;
-  }
 }
 
 function tokenMatches(given: string | string[] | undefined, token: string): boolean {
@@ -551,15 +518,34 @@ export const REQUEST_HEADER = "x-braid-request";
 /** Where a request came in: the local listener (Host, Origin and the run's token, D50) or the Tailscale one (whois, Host, Origin and the request header, D60). */
 type Listener = { readonly kind: "local"; readonly origin: () => string; readonly token: string } | { readonly kind: "tailnet"; readonly hosts: () => readonly string[]; readonly gate: Gate };
 
+const HOST_REFUSED = "This request didn't come from this board's own page (its Host or Origin doesn't match), so the board refused it. Use the page that `braid board` opened.";
+
+/**
+ * Whether any request on the local listener may be served: its Host must be `127.0.0.1:<port>` or `localhost:<port>`
+ * with the board's own port, so a page on another name that resolves to 127.0.0.1 (DNS rebinding) reads nothing.
+ * Actions are stricter still (`hostOk`: only the address the page was opened on).
+ */
+export const localHostOk = (origin: string, host: string | undefined): boolean => {
+  const port = origin.slice(origin.lastIndexOf(":") + 1);
+  const given = (host ?? "").toLowerCase();
+  return port !== "" && (given === `127.0.0.1:${port}` || given === `localhost:${port}`);
+};
+
 const hostOk = (listener: Listener, host: string | undefined): boolean =>
   host !== undefined && (listener.kind === "local" ? host === listener.origin().slice("http://".length) : listener.hosts().includes(host.toLowerCase()));
 
-/** Runs `POST /api/action/<name>`: on the local listener only the page this run opened may call it; on the Tailscale listener, a board page on it. */
-async function postAction(src: Sources, req: IncomingMessage, url: URL, listener: Listener, board: () => Promise<BoardData | null>): Promise<Reply> {
+/** The project an action names: its `Sources` and its snapshot; a string is the refusal. */
+type Pick = (body: unknown) => { readonly src: Sources; readonly board: () => Promise<BoardData | null> } | string;
+
+/**
+ * Runs `POST /api/action/<name>`: on the local listener only the page this run opened may call it; on the Tailscale listener,
+ * a board page on it. The body's `project` names the project the action is for (`pick` resolves it among the served ones).
+ */
+async function postAction(req: IncomingMessage, url: URL, listener: Listener, pick: Pick): Promise<Reply> {
   const host = req.headers.host;
   const origin = req.headers.origin;
   if (!hostOk(listener, host) || (origin !== undefined && origin.toLowerCase() !== `http://${(host ?? "").toLowerCase()}`)) {
-    return json(403, { error: "This request didn't come from this board's own page (its Host or Origin doesn't match), so the board refused it. Use the page that `braid board` opened." });
+    return json(403, { error: HOST_REFUSED });
   }
   if (listener.kind === "tailnet") {
     if (req.headers[REQUEST_HEADER] !== "1") {
@@ -578,10 +564,6 @@ async function postAction(src: Sources, req: IncomingMessage, url: URL, listener
   if (listener.kind === "tailnet" && name === "open") {
     return json(403, { error: "Open thread opens T3 on the machine running the board; on the phone the thread's app link opens your own T3 app" });
   }
-  const action = src.action(name);
-  if (action === undefined) {
-    return json(404, { error: `no action ${name}` });
-  }
   const text = await readBody(req);
   if (text === null) {
     return json(413, { error: "body too large" });
@@ -592,8 +574,16 @@ async function postAction(src: Sources, req: IncomingMessage, url: URL, listener
   } catch {
     return json(400, { error: "body is not JSON" });
   }
+  const target = pick(body);
+  if (typeof target === "string") {
+    return json(400, { error: target });
+  }
+  const action = target.src.action(name);
+  if (action === undefined) {
+    return json(404, { error: `no action ${name}` });
+  }
   try {
-    return json(200, await action(body, board));
+    return json(200, await action(body, target.board));
   } catch (error) {
     if (error instanceof UsageError) {
       return json(400, { error: error.message });
@@ -649,119 +639,210 @@ const isFolder = (path: string): boolean => {
   }
 };
 
+/** One project the board serves: its name (from the project list, else the repository's) and where its data comes from. */
+export interface Member {
+  readonly name: string;
+  readonly src: Sources;
+}
+
+/** The projects to serve, asked again at each refresh: a project gone from it is dropped and sends nothing more. */
+export type Roster = () => readonly Member[];
+
+/** What `pick` says when an action names no project, or one that isn't served. */
+export function unknownProject(asked: unknown, names: readonly string[]): string {
+  const served = names.length === 0 ? "none" : names.join(", ");
+  if (asked === undefined) {
+    return `Name the project this action is for: { project: <name> } (served: ${served})`;
+  }
+  return typeof asked === "string" && /[\\/:]/.test(asked)
+    ? `An action names a listed project, never a folder path (served: ${served})`
+    : `No project ${typeof asked === "string" ? asked : JSON.stringify(asked)} on this board (served: ${served})`;
+}
+
 /**
- * Starts the board server on 127.0.0.1 with a free port. Resolves once it is listening. Pages
- * listen to `/api/events` and refetch on each message: every `refreshMs` while the server runs,
- * and at once when a file under `braids/` changes. Actions are `POST /api/action/<name>` and need
- * the run's session `token` (a random one unless given) in the `x-braid-token` header. With `tailnet`,
- * a second listener serves the same board on a Tailscale address (D60): every request passes the whois
- * gate and a Host check first, actions need the `x-braid-request` header instead of the token, and `open` is refused.
- * `fixedPort` (`--port`) is the port of both listeners; one that is in use is refused (UsageError) and nothing stays listening.
+ * Starts the board server on 127.0.0.1 with a free port. Resolves once it is listening. `served` is one project's
+ * `Sources` (served under its repository name) or a roster of projects, each with its own snapshot cycle
+ * (src/board/feed.ts), watcher and notifier. Pages listen to `/api/events` and refetch on each message: every
+ * `refreshMs` while the server runs, at once when a file under a project's `braids/` changes, and when a project's
+ * read stored something. Actions are `POST /api/action/<name>` with `{ project, ... }` and need the run's session
+ * `token` (a random one unless given) in the `x-braid-token` header. With `tailnet`, a second listener serves the
+ * same board on a Tailscale address (D60): every request passes the whois gate and a Host check first, actions need
+ * the `x-braid-request` header instead of the token, and `open` is refused. `fixedPort` (`--port`) is the port of
+ * both listeners; one that is in use is refused (UsageError) and nothing stays listening.
  */
 export function startBoardWith(
-  src: Sources,
+  served: Sources | Roster,
   webDir: string = defaultWebDir(),
   refreshMs: number = REFRESH_MS,
   token: string = randomBytes(24).toString("hex"),
   tailnet?: TailnetListen,
   fixedPort = 0,
+  timeoutMs: number = READ_TIMEOUT_MS,
 ): Promise<Started> {
   const base = resolve(webDir);
+  const single: readonly Member[] = typeof served === "function" ? [] : [{ name: served.repo, src: served }];
+  const roster: Roster = typeof served === "function" ? served : () => single;
   const clients = new Set<ServerResponse>();
+  let closed = false;
   const push = () => {
+    if (closed) {
+      return;
+    }
     for (const c of clients) {
       c.write("data: refresh\n\n");
     }
   };
-  // The reads happen here, one at a time, off the request path (docs/board.md, "Refresh").
-  let current: Snapshot | undefined;
-  let running: Promise<void> | undefined;
-  let queued: { fetch: boolean; done: Promise<void> } | undefined;
-  let closed = false;
-  const readAll = async (fetch: boolean): Promise<Snapshot> => {
-    const marks: string[] = [];
-    const timed = async <T>(name: string, read: () => T | Promise<T>): Promise<T> => {
-      const began = performance.now();
-      try {
-        return await read();
-      } finally {
-        marks.push(`${name} ${Math.round(performance.now() - began)} ms`);
-      }
-    };
-    // Every source call this read starts settles before it ends, so the next read never overlaps a `gh` or `t3` still running.
-    const github = timed("github", () => src.github(true));
-    const t3 = timed("t3", () => src.t3(true));
-    github.catch(() => {}); // their failure is reported when they are awaited below
-    t3.catch(() => {});
+  type Entry = { readonly feed: Feed; watcher?: FSWatcher; debounce?: NodeJS.Timeout };
+  let feeds = new Map<string, Entry>();
+  const watchFolder = (entry: Entry): void => {
+    const folder = entry.feed.src.watch;
+    if (folder === null || !existsSync(folder)) {
+      return;
+    }
     try {
-      const braids = await timed("braids", () => src.braids());
-      const [gh, threads] = [await github, await t3];
-      const sig = await timed("signals", () => src.signals(gh));
-      await timed("done dates", () => sig.prepare?.(braids));
-      const inbox = await timed("inbox", () => src.inbox(fetch));
-      const start = src.start();
-      const board = await timed("board", () => {
-        const b = toBoard(src.repo, braids, gh, threads, sig, start, inbox);
-        sig.commit();
-        return b;
-      });
-      return { ok: true, braids, github: gh, t3: threads, sig, start, board };
-    } catch (error) {
-      return { ok: false, error };
-    } finally {
-      await Promise.allSettled([github, t3]);
-      if (process.env["BRAID_BOARD_TIMINGS"] === "1") {
-        process.stderr.write(`board read: ${marks.join(", ")}\n`);
-      }
-    }
-  };
-  const begin = (fetch: boolean): Promise<void> => {
-    const read = readAll(fetch).then((snap) => {
-      current = snap;
-      if (snap.ok && !closed) {
-        try {
-          src.notify?.(snap.board);
-        } catch {
-          // Notifications never stop the board.
+      const watcher = watch(folder, { recursive: true }, (event, name) => {
+        // Reading the braids can report a change of a folder itself (Windows); that is no edit: an edit also reports its file.
+        if (event === "change" && name !== null && isFolder(join(folder, name))) {
+          return;
         }
-      }
-      running = undefined;
-      if (!closed) {
-        push();
-      }
-    });
-    running = read;
-    return read;
-  };
-  /** Reads everything again: at once when idle, else once after the read that runs (any number of asks while one runs share one more read). */
-  const refresh = (fetch = false): Promise<void> => {
-    if (running === undefined) {
-      return begin(fetch);
-    }
-    if (queued === undefined) {
-      const next = { fetch, done: Promise.resolve() };
-      next.done = running.then(() => {
-        queued = undefined;
-        return begin(next.fetch);
+        clearTimeout(entry.debounce);
+        entry.debounce = setTimeout(() => void entry.feed.refresh(), 200);
+        entry.debounce.unref();
       });
-      queued = next;
-    } else if (fetch) {
-      queued.fetch = true;
+      watcher.on("error", () => {});
+      watcher.unref();
+      entry.watcher = watcher;
+    } catch {
+      // The timed refresh still runs.
     }
-    return queued.done;
   };
-  const first = refresh();
-  const snapshot = async (fresh: boolean): Promise<Snapshot> => {
-    if (fresh) {
-      await refresh(true);
-    } else if (current === undefined) {
-      await first;
+  /** Projects dropped from the roster: close() still waits for a read of theirs that runs. */
+  const dropped: Entry[] = [];
+  const drop = (entry: Entry): void => {
+    dropped.push(entry);
+    entry.feed.close();
+    clearTimeout(entry.debounce);
+    entry.watcher?.close();
+  };
+  /** Takes the roster as it is now: new projects start reading, removed ones stop (a read still running stores and sends nothing). */
+  const sync = (): void => {
+    if (closed) {
+      return;
     }
-    return current as Snapshot;
+    let members: readonly Member[];
+    try {
+      members = roster();
+    } catch {
+      return; // the roster can't be read now: keep serving the projects as they were
+    }
+    const next = new Map<string, Entry>();
+    for (const m of members) {
+      const had = feeds.get(m.name);
+      if (had !== undefined && had.feed.src === m.src) {
+        next.set(m.name, had);
+        continue;
+      }
+      if (had !== undefined) {
+        drop(had);
+      }
+      const entry: Entry = { feed: feed(m.src, { timeoutMs, changed: push }) };
+      watchFolder(entry);
+      next.set(m.name, entry);
+    }
+    for (const [name, entry] of feeds) {
+      if (next.get(name) !== entry) {
+        drop(entry);
+      }
+    }
+    feeds = next;
+  };
+  const refreshAll = (): void => {
+    sync();
+    for (const entry of feeds.values()) {
+      void entry.feed.refresh();
+    }
+  };
+  sync();
+  const held = (name: string, f: Feed): Held => ({ name, repo: f.src.repo, board: f.good()?.board, readAt: f.readAt(), failure: f.failure(), problems: f.good() === undefined ? (f.src.readiness?.(null) ?? []) : [] });
+  /** Answers `/api/board`, `/api/item`, `/api/all` and `/api/projects` from the snapshots: nothing is read from GitHub or T3 here. */
+  const answer = async (url: URL, remote: boolean): Promise<Reply> => {
+    const fresh = url.searchParams.get("fresh") === "1";
+    if (fresh) {
+      sync();
+    }
+    if (url.pathname === "/api/all" || url.pathname === "/api/projects") {
+      const asked = url.pathname === "/api/all" ? projectsParam(url.searchParams.get("projects")) : null;
+      const chosen = (asked ?? [...feeds.keys()]).flatMap((n) => {
+        const entry = feeds.get(n);
+        return entry === undefined ? [] : [[n, entry.feed] as const];
+      });
+      await Promise.all(chosen.map(([, f]) => f.ready(fresh)));
+      const now = Date.now();
+      const all = chosen.map(([n, f]) => held(n, f));
+      return url.pathname === "/api/all"
+        ? json(200, combine(all, remote, (asked ?? []).filter((n) => !feeds.has(n)), now))
+        : json(200, { remote, projects: all.map((h) => projectInfo(h, now)) });
+    }
+    if (url.pathname !== "/api/board" && url.pathname !== "/api/item") {
+      return json(404, { error: "no such endpoint" });
+    }
+    // No project: the first one (the page itself always names the project).
+    const asked = url.searchParams.get("project");
+    const name = asked ?? feeds.keys().next().value;
+    const entry = name === undefined ? undefined : feeds.get(name);
+    if (name === undefined || entry === undefined) {
+      return json(404, { error: asked === null ? "no project is served" : unknownProject(asked, [...feeds.keys()]) });
+    }
+    await entry.feed.ready(fresh);
+    const good = entry.feed.good();
+    try {
+      if (good === undefined) {
+        throw entry.feed.error();
+      }
+      if (url.pathname === "/api/board") {
+        const readAt = entry.feed.readAt();
+        return json(200, { ...good.board, remote, project: name, readAt: readAt === null ? null : new Date(readAt).toISOString(), failure: entry.feed.failure() });
+      }
+      const raw = url.searchParams.get("id");
+      if (raw === null) {
+        return json(400, { error: "id is required" });
+      }
+      const id = normaliseId(raw);
+      const [number, letter] = id.split("/");
+      const braid = good.braids.find((b) => b.number === number);
+      const item = letter === undefined ? braid : braid?.strands.find((s) => s.letter === letter);
+      if (braid === undefined || item === undefined) {
+        return json(404, { error: `no item ${id}` });
+      }
+      return json(200, toDetail(entry.feed.src.tree(item), braid, item, good.github, good.t3, good.sig, good.start));
+    } catch (error) {
+      if (error instanceof UsageError) {
+        return json(400, { error: error.message });
+      }
+      if (error instanceof FormatError) {
+        return json(500, { error: `${error.file}: ${error.message}. Run braid check.` });
+      }
+      throw error;
+    }
+  };
+  /** The project an action is for: the body's `project`, a served name; with one project served it may be left out. Never a folder. */
+  const pick: Pick = (body) => {
+    const asked = typeof body === "object" && body !== null ? (body as Record<string, unknown>)["project"] : undefined;
+    const names = [...feeds.keys()];
+    const name = asked === undefined && names.length === 1 ? names[0] : asked;
+    const entry = typeof name === "string" ? feeds.get(name) : undefined;
+    if (entry === undefined) {
+      return unknownProject(asked, names);
+    }
+    return {
+      src: entry.feed.src,
+      board: async () => {
+        await entry.feed.ready(false);
+        return entry.feed.good()?.board ?? null;
+      },
+    };
   };
   let timer: NodeJS.Timeout | undefined;
-  let watcher: FSWatcher | undefined;
-  let debounce: NodeJS.Timeout | undefined;
   let origin = "";
   let hosts: string[] = [];
   const handle = async (req: IncomingMessage, res: ServerResponse, listener: Listener): Promise<void> => {
@@ -773,13 +854,15 @@ export function startBoardWith(
           res.writeHead(403, { "content-type": "text/plain" }).end("forbidden");
           return;
         }
+      } else if (!localHostOk(listener.origin(), req.headers.host)) {
+        // The page, the board data, the events and the actions alike: only this board's own address (DNS rebinding).
+        const api = (req.url ?? "").startsWith("/api/");
+        res.writeHead(403, { "content-type": api ? (TYPES[".json"] ?? "") : "text/plain" }).end(api ? JSON.stringify({ error: HOST_REFUSED }) : "forbidden");
+        return;
       }
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       if (req.method === "POST" && url.pathname.startsWith("/api/action/")) {
-        const out = await postAction(src, req, url, listener, async () => {
-          const snap = await snapshot(false);
-          return snap.ok ? snap.board : null;
-        });
+        const out = await postAction(req, url, listener, pick);
         res.writeHead(out.status, { "content-type": TYPES[".json"] ?? "", "cache-control": "no-store" }).end(out.body);
         return;
       }
@@ -795,7 +878,7 @@ export function startBoardWith(
         return;
       }
       if (url.pathname.startsWith("/api/")) {
-        const out = api(src, url, listener.kind === "tailnet", await snapshot(url.searchParams.get("fresh") === "1"));
+        const out = await answer(url, listener.kind === "tailnet");
         res.writeHead(out.status, { "content-type": TYPES[".json"] ?? "", "cache-control": "no-store" }).end(out.body);
         return;
       }
@@ -815,11 +898,15 @@ export function startBoardWith(
   const local: Listener = { kind: "local", origin: () => origin, token };
   const server = createServer((req, res) => void handle(req, res, local));
   const remote = tailnet === undefined ? undefined : createServer((req, res) => void handle(req, res, { kind: "tailnet", hosts: () => hosts, gate: tailnet.gate }));
-  server.on("close", () => {
+  const stop = (): void => {
     closed = true;
     clearInterval(timer);
-    clearTimeout(debounce);
-    watcher?.close();
+    for (const entry of feeds.values()) {
+      drop(entry);
+    }
+  };
+  server.on("close", () => {
+    stop();
     if (remote?.listening === true) {
       remote.close();
       remote.closeAllConnections();
@@ -827,6 +914,7 @@ export function startBoardWith(
   });
   return (async () => {
     const port = await listen(server, "127.0.0.1", fixedPort, fixedPort !== 0).catch((e: unknown) => {
+      stop();
       throw fixedPort !== 0 ? inUse(fixedPort, "127.0.0.1", e) : e;
     });
     origin = `http://127.0.0.1:${port}`;
@@ -844,41 +932,21 @@ export function startBoardWith(
         throw new UsageError(`--host: can't listen on ${tailnet.address} (${e instanceof Error ? e.message : "failed"})`);
       }
     }
-    timer = setInterval(() => void refresh(), refreshMs);
+    timer = setInterval(refreshAll, refreshMs);
     timer.unref();
-    const watched = src.watch ?? "";
-    if (src.watch !== null && existsSync(src.watch)) {
-      try {
-        watcher = watch(src.watch, { recursive: true }, (event, name) => {
-          // Reading the braids can report a change of a folder itself (Windows); that is no edit: an edit also reports its file.
-          if (event === "change" && name !== null && isFolder(join(watched, name))) {
-            return;
-          }
-          clearTimeout(debounce);
-          debounce = setTimeout(() => void refresh(), 200);
-          debounce.unref();
-        });
-        watcher.on("error", () => {});
-        watcher.unref();
-      } catch {
-        // The timed refresh still runs.
-      }
-    }
     const close = async (): Promise<void> => {
       if (server.listening) {
         server.close();
         server.closeAllConnections();
       }
-      // A read that runs (and the one queued after it) still has children in the repository; wait for them.
-      while (running !== undefined || queued !== undefined) {
-        await (queued?.done ?? running);
-      }
+      // A read that runs (and the one queued after it) still has children in its repository; wait for every project's, dropped ones included.
+      await Promise.all([...feeds.values(), ...dropped].map((entry) => entry.feed.idle()));
     };
     return { server, url: `${origin}/`, token, close, ...(shared === undefined ? {} : { tailnet: shared }) };
   })();
 }
 
-/** Starts the board for the repository at `root`. */
+/** Starts the board for the repository at `root` alone. */
 export function startBoard(root: string, webDir: string = defaultWebDir(), gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3, refreshMs: number = REFRESH_MS, tailnet?: TailnetListen, fixedPort = 0): Promise<Started> {
   return startBoardWith(repoSources(root, gh, t3), webDir, refreshMs, undefined, tailnet, fixedPort);
 }
@@ -898,37 +966,149 @@ export async function tailnetListen(host: string, tailscale: TailscaleRunner = r
   return { address, name: tailnet.name, owner: tailnet.owner, gate: whoisGate(tailnet.owner, tailscale) };
 }
 
-export async function runBoard(root: string, args: readonly string[], tailscale: TailscaleRunner = runTailscale): Promise<void> {
-  const flags = ["--no-open", "--demo", "--demo-t3-down"];
-  const at = args.indexOf("--host");
-  const host = at === -1 ? undefined : args[at + 1];
-  if (at !== -1 && (host === undefined || host.startsWith("--"))) {
-    throw new UsageError("--host needs an address: tailscale, this machine's Tailscale IP or its MagicDNS name");
+/** `gh`, `t3`, the project list and the notifiers as `braid board` runs them; tests pass stubs. */
+export interface Runners {
+  readonly gh?: GhRunnerAsync;
+  readonly t3?: T3Runner;
+  /** The project list, read at the start and again at each refresh; `readProjects()` unless given. */
+  readonly projects?: () => readonly Project[];
+  /** A project's notifier, given its main checkout; `boardNotifier` unless given. */
+  readonly notifier?: (root: string) => (board: BoardData) => void;
+}
+
+/** The three sample projects of `braid board --demo`: the full sample (`demo`), a small one (`api`) and one that isn't ready (`notes`). */
+export function demoMembers(t3Down = false, notReady = false): Member[] {
+  const accept: Sources["action"] = () => () => ({ ok: true, demo: true });
+  const small = (repo: string, braids: () => Braid[], github: () => Github, signals: () => ReadSignals, tree: () => Tree, problems: () => Problem[] | null): Sources => {
+    const listed = problems();
+    return {
+      ...(listed === null ? {} : { readiness: () => listed }),
+      repo,
+      braids,
+      github,
+      t3: () => Promise.resolve(apiT3()),
+      signals,
+      tree,
+      watch: null,
+      start: () => DEMO_START,
+      inbox: () => EMPTY_INBOX,
+      project: () => ".",
+      action: accept,
+    };
+  };
+  return [
+    { name: "demo", src: demoSources(t3Down, notReady) },
+    { name: "api", src: small("api", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null) },
+    { name: "notes", src: small("notes", () => [], () => ({ status: { state: "ok" }, prs: new Map() }), () => ({ ...apiSignals(), requests: new Map() }), apiTree, notesProblems) },
+  ];
+}
+
+/** Takes `--flag <value>` out of `args`: the value (undefined when the flag is absent) and the rest. */
+function valueFlag(args: readonly string[], flag: string, need: string): { value: string | undefined; rest: readonly string[] } {
+  const at = args.indexOf(flag);
+  if (at === -1) {
+    return { value: undefined, rest: args };
   }
-  let rest = at === -1 ? args : [...args.slice(0, at), ...args.slice(at + 2)];
-  const pat = rest.indexOf("--port");
-  const portArg = pat === -1 ? undefined : rest[pat + 1];
+  const value = args[at + 1];
+  if (value === undefined || value.startsWith("--")) {
+    throw new UsageError(`${flag} needs ${need}`);
+  }
+  return { value, rest: [...args.slice(0, at), ...args.slice(at + 2)] };
+}
+
+export async function runBoard(root: string, args: readonly string[], tailscale: TailscaleRunner = runTailscale, run: Runners = {}): Promise<Started> {
+  const flags = ["--no-open", "--demo", "--demo-t3-down", "--demo-not-ready"];
+  const { value: host, rest: afterHost } = valueFlag(args, "--host", "an address: tailscale, this machine's Tailscale IP or its MagicDNS name");
+  const pat = afterHost.indexOf("--port");
+  const portArg = pat === -1 ? undefined : afterHost[pat + 1];
   if (pat !== -1 && (portArg === undefined || !/^\d+$/.test(portArg) || Number(portArg) < 1 || Number(portArg) > 65535)) {
     throw new UsageError("--port needs a port number from 1 to 65535");
   }
   const fixedPort = portArg === undefined ? 0 : Number(portArg);
-  rest = pat === -1 ? rest : [...rest.slice(0, pat), ...rest.slice(pat + 2)];
+  const afterPort = pat === -1 ? afterHost : [...afterHost.slice(0, pat), ...afterHost.slice(pat + 2)];
+  const { value: only, rest } = valueFlag(afterPort, "--project", "a project name from the project list (braid projects list)");
   const unknown = rest.filter((a) => !flags.includes(a));
   if (unknown.length > 0) {
-    throw new UsageError(`braid board takes only ${flags.join(", ")}, --host <address>, --port <n>; got: ${unknown.join(" ")}`);
+    throw new UsageError(`braid board takes only ${flags.join(", ")}, --host <address>, --port <n>, --project <name>; got: ${unknown.join(" ")}`);
   }
   const t3Down = args.includes("--demo-t3-down");
-  const demo = args.includes("--demo") || t3Down;
+  const notReady = args.includes("--demo-not-ready");
+  const demo = args.includes("--demo") || t3Down || notReady;
+  // The list is read before anything listens: one braid can't read stops the start (ProjectsFileError, exit 2).
+  const listed = run.projects ?? (() => readProjects());
+  const list = demo ? [] : listed();
+  const several = demo || list.length > 0;
+  if (only !== undefined && !several) {
+    throw new UsageError("--project picks a project from the project list, and the list is empty; add projects with braid projects add");
+  }
+  const names = demo ? demoMembers().map((m) => m.name) : list.map((p) => p.name);
+  if (only !== undefined && !names.includes(only)) {
+    throw new UsageError(`--project: no project ${only} in the list (${names.join(", ")})`);
+  }
   // Checked before anything listens: a wrong address starts nothing.
   const tailnet = host === undefined ? undefined : await tailnetListen(host, tailscale);
   const webDir = defaultWebDir();
   if (!existsSync(join(webDir, "index.html"))) {
     throw new UsageError("the board page is not built; run npm run build");
   }
-  const started = demo ? await startBoardWith(demoSources(t3Down), webDir, REFRESH_MS, undefined, tailnet, fixedPort) : await startBoardWith({ ...repoSources(root, runGhAsync, runT3), notify: boardNotifier(root) }, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  const gh = run.gh ?? runGhAsync;
+  const t3 = run.t3 ?? runT3;
+  const notifierOf = run.notifier ?? boardNotifier;
+  // The problems printed at startup are each first snapshot's own: no second read of GitHub.
+  const firsts: { name: string; problems: Promise<Problem[]> }[] = [];
+  const printing = (name: string, own: Sources): Sources => {
+    const inner = own.readiness;
+    if (inner === undefined) {
+      return own;
+    }
+    let found: (problems: Problem[]) => void = () => {};
+    firsts.push({ name, problems: new Promise<Problem[]>((done) => (found = done)) });
+    return { ...own, readiness: (github) => { const problems = inner(github); found(problems); return problems; } };
+  };
+  let served: Sources | Roster;
+  if (!several) {
+    served = printing("", { ...repoSources(root, gh, t3), notify: notifierOf(root) });
+  } else if (demo) {
+    const members = demoMembers(t3Down, notReady).filter((m) => only === undefined || m.name === only).map((m) => ({ ...m, src: printing(m.name, m.src) }));
+    served = () => members;
+  } else {
+    // One Sources and one notifier per listed project, kept while its name and path stay; the list is read again at each refresh.
+    let cache = new Map<string, Member>();
+    const membersOf = (projects: readonly Project[], first = false): Member[] => {
+      const next = new Map<string, Member>();
+      const members = projects
+        .filter((p) => only === undefined || p.name === only)
+        .map((p) => {
+          const key = `${p.name}\0${p.path}`;
+          const member = cache.get(key) ?? { name: p.name, src: ((s: Sources) => (first ? printing(p.name, s) : s))({ ...repoSources(p.path, gh, t3), notify: notifierOf(p.path) }) };
+          next.set(key, member);
+          return member;
+        });
+      cache = next;
+      return members;
+    };
+    let current = membersOf(list, true);
+    let warned = false;
+    served = () => {
+      try {
+        current = membersOf(listed());
+        warned = false;
+      } catch (error) {
+        if (!warned) {
+          process.stderr.write(`braid board: the project list can't be read (${error instanceof Error ? error.message : String(error)}); serving the projects as they were\n`);
+          warned = true;
+        }
+      }
+      return current;
+    };
+  }
+  const started = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
   process.stdout.write(`braid board${demo ? " (demo: sample data; nothing is read or written)" : ""}: ${url}\n`);
+  if (several) {
+    process.stdout.write(`Projects: ${only ?? names.join(", ")}\n`);
+  }
   if (started.tailnet !== undefined && tailnet !== undefined) {
     process.stdout.write(`On Tailscale: ${started.tailnet.url}\nOnly ${tailnet.owner}'s own devices (no tagged nodes) may open it; Open thread there uses the T3 app on the phone.\n`);
   }
@@ -937,4 +1117,13 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   if (!args.includes("--no-open")) {
     openBrowser(url);
   }
+  // One line per problem, once each project's first snapshot has read them (a project whose read hangs is skipped at the timeout).
+  const late = new Promise<null>((done) => setTimeout(() => done(null), READ_TIMEOUT_MS).unref());
+  const found = await Promise.all(firsts.map(async (f) => ({ name: f.name, problems: (await Promise.race([f.problems, late])) ?? [] })));
+  for (const f of found) {
+    for (const p of f.problems) {
+      process.stdout.write(`${several ? `${f.name}: ` : ""}${problemLine(p)}\n`);
+    }
+  }
+  return started;
 }
