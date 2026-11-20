@@ -1,7 +1,7 @@
 ---
 id: '0048/C'
 title: "Skills: the worker owns CI, the coordinator waits in the foreground"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: ['0048/A']
 order: 30
@@ -47,9 +47,9 @@ Expected size: about 130 lines in 5 files, mostly skill text.
 
 ## Completion
 
-- [ ] No skill text sets a coordinator watch on an item PR or tells any agent to wait on a background command; `rg -n "background" .agents/skills` shows no such instruction.
-- [ ] `autonomy.md` waits for braid-branch CI with the bounded foreground `braid wait` and its exit codes from 0048/A.
-- [ ] The "Say waiting" line lists only reliable wakes, and the coordinator habits are in the skill.
-- [ ] The new decision and the dated note on D71 are in `docs/decisions.md`.
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] No skill text sets a coordinator watch on an item PR or tells any agent to wait on a background command; `rg -n "background" .agents/skills` shows no such instruction.
+- [x] `autonomy.md` waits for braid-branch CI with the bounded foreground `braid wait` and its exit codes from 0048/A.
+- [x] The "Say waiting" line lists only reliable wakes, and the coordinator habits are in the skill.
+- [x] The new decision and the dated note on D71 are in `docs/decisions.md`.
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

@@ -68,19 +68,18 @@ One implementation worker at a time. The next item is under "Starting the next i
    Brief: `braid view <id>`. Branch: <branch> at <short sha>. Open the PR into <base branch>.
    Send your result to thread <your thread id>. Your thread id: <worker thread id>.
    ```
-3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. If no report arrived, read the thread's last message and `gh pr checks`:
-   - CI pending: make sure your watch is on, then end your turn; the watch wakes you.
+3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. Run nothing else in parallel with it. If no report arrived, read the thread's last message and `gh pr checks`:
+   - The worker waits on its own PR watch (CI pending): end your turn; its report wakes you. You never watch an item PR: the worker alone waits on its CI.
    - Green: take the result from the thread and continue.
    - The PR is already merged: the item is done.
-   - Stopped without a watch, or stuck: send it a nudge.
+   - Stopped with no watch and no report, or stuck: send it a nudge.
    - The run failed: read its error, and the item's `report.md`, log and PR. Retry once with the same model and settings; if it fails again, `braid ask --key quality`, naming the error (stop-case options).
    - The user says it finished: believe them and look at the PR.
-4. **Watch.** Once the worker's PR exists, call `watch_pull_request` on it (one item PR at a time) and end your turn. On a wake:
-   - First call `t3_thread_wait` on the worker's thread. If the worker reported since you last sent it work, use its report and ignore the wake; without a report, step 3 applies.
-   - Failed checks, conflicts or comments while the worker is active or watching are the worker's: do nothing and end your turn.
-   - A wake is never a merge decision; continue with "Accept and hand over". A wake on the planning PR continues at "Plan", step 7: merge it when its checks are green.
-
-   Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox: an item PR when the recap asks for their merge; the final PR once its checks are green and any review is done. The planning PR you merge yourself ("Plan", step 7) and unwatch after the merge. After that, the user's "merged" or `gh pr list --state all` decides.
+4. **Coordinator habits.**
+   - After a wake or a resume, check the state first (branches, worktrees, worker threads, `braid next`), then act.
+   - A "STOP" result during a wait is an incoming message, not the user: read it, never say "as you asked".
+   - After "session ended", re-check before retrying; `braid start` is safe to run again and prints "(already started)".
+   - The planning PR and the final PR are the only PRs you watch (`watch_pull_request`). On a wake the planning PR continues at "Plan", step 7 (merge it when its checks are green); the final PR is never a merge decision, continue at "Finish". Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox: the final PR once its checks are green and any review is done; the planning PR after you merge it. After that, the user's "merged" or `gh pr list --state all` decides.
 5. Answer the worker's questions. If the brief must change, tell the worker; it applies the change on its branch.
 6. **Converge loop** (workflow, "Checks and reports"): when the worker stops with a proposal, show it to the user (`braid ask <id> "<what is needed>" --kind decision`, decision options) and send each verdict to the worker. When the user approves, tell the worker to build.
 
@@ -115,7 +114,7 @@ When the worker reports green:
    PR: <url>, head commit <sha>. Focus: <what matters most here>.
    ```
 2. **Facts.** When nothing blocking remains, run `braid facts <pr>` and judge its facts against the [stop cases](references/stop-cases.md) and the braid's preset.
-3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. You don't re-run the gate or download artifacts.
+3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, tell the worker CI isn't finished and end your turn (its report wakes you). You don't re-run the gate or download artifacts.
 4. **Capture** before the handover, as leftovers ("Capture"): the non-blocking findings not fixed in the PR (`--from 'review <id>'`, `--ref` the review comment), and the report's unfinished bits and `For later items:` gaps (`--from <id>`, `--ref` the PR). Notes for the braid's later strands (names, interfaces) stay in the log line, which names the entry ids instead of repeating the text.
 5. **Hand over** when the checks are green on the latest commit.
    - A strand: run `braid handover <id> --head <sha> --thread <your thread id>`, edit the recap it prints, give it and ask with the handover options ("Talking to the user").
@@ -178,7 +177,7 @@ A goal, when every strand is Done on the braid branch:
 - **The question tool** (AskUserQuestion in Claude Code, a pending request in T3) asks only when the turn ends waiting for the user alone. It never replaces the message: first the open request, then the full message in chat as the step asks (the recap, the plan, the proposal, the stop with its case and source), and only then the question, as the turn's last call. The question carries just its context line and what is asked. Write nothing for after it: text after the call reaches the user only once they have answered. While agents or CI still run for you (a sweep proposal while strands go on under the preset, a planning PR whose checks are pending), ask in chat with the open request instead: a pending question holds every watch wake and worker report until the user answers.
 - **Options.** Offer the option set of the stop's kind below, recommended first, each label 1 to 5 words; the tool adds "Other" for free text. A host without the tool, or a question in chat, gets the same options as a numbered question with lettered answers and your recommendation. If an answer is a value such as a path, say where it will be stored.
 - **A reply to an open request** (an option, "Other", a chat reply after a dismissed dialog, the board's merge message): first `braid answer <id> --log -`, then act; a new question means a new `braid ask`.
-- **Say "waiting" only when something will wake you:** a PR watch, a background command you wait on (`braid wait`), or a thread you wait on. Otherwise say what you will do when the user next writes.
+- **Say "waiting" only when something will wake you:** only the worker's message, a PR watch on the planning or final PR, a `delegate_task` result, or a foreground `braid wait` running now. Otherwise say what you will do when the user next writes.
 
 The option sets, and what you do next on each answer:
 
