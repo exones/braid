@@ -1,7 +1,7 @@
 ---
 id: '0044/A'
 title: "ntfy notifications from the board"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:security", "ask:outward", "ask:architecture"]
 dependencies: []
 order: 10
@@ -66,3 +66,14 @@ Expected size: about 500 lines in 8 files, half of them tests.
 - [ ] `docs/cli.md`, `docs/board.md` and `docs/decisions.md` updated
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `src/board/model.ts`: `Need` gains `since` (ISO start of the request or alarm; null for an agent's pending question or a stored Done waiting for its merge), so a push key can name when the need began.
+- `src/notify/config.ts`: `~/.braid/notify.json` (`server`, `topic`, `enabled`), read tolerant (missing or corrupt: not set up), written temp-then-rename; `newTopic()` = `braid-` + 24 chars from `crypto.randomInt`; `partialTopic`; the token only from `BRAID_NTFY_TOKEN`; the server must be `https://`.
+- `src/notify/message.ts`: from a `BoardData`, the pushes it calls for: one per item in Needs You or To Review (strands of a braid card per strand; a braid's own need when it is the card's top need), and one per Done braid card. Key `<id>|<lane>|<kind>|<since or #pr>`; title `<repo> <id>: <lane label>`; body title + need text; tag per reason; priority high for Needs You; click the thread's `t3code://` app link (T3's own link is a 127.0.0.1 page the phone can't open).
+- `src/notify/sender.ts`: ntfy JSON publish (`POST <server>` with `{topic,title,message,tags,priority,click}`, UTF-8 safe), `Authorization: Bearer` from the env, 10 s `AbortSignal.timeout`; errors name the server and status only.
+- `src/notify/notifier.ts`: `.braid/notified.json` of the main checkout (`{ keys: { key: itemId } }`); each successful refresh (GitHub and T3 ok) prunes keys no longer current, records Done braids without a push on the first run (no file or corrupt), and sends the new keys without awaiting; a key is written only after its send succeeds; in-flight keys are not sent twice; the error prints once per outage. Re-reads the file before each write so two boards don't lose each other's keys.
+- `src/commands/notify.ts` + `src/cli.ts`: `braid notify [setup [--topic t] [--server url] [--new-topic] | test | off]`. Setup keeps an existing topic unless `--topic`/`--new-topic` (so re-enabling after `off` doesn't break the phone's subscription).
+- `src/commands/board.ts`: `Sources.notify?(board)` called after each ok snapshot (try/catch, never awaited); `repoSources` builds it from the config read at each refresh, so `braid notify off` takes effect without a restart; `runBoard` prints the notifications line; the demo has none.
+- Tests (`test/notify.test.ts`) against `dist/`, a temp home and a fake sender; docs: cli.md, board.md Notifications, decisions D70.
