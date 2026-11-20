@@ -435,7 +435,8 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
-  // strand Done; before that the strands decide, and a braid with strands is never "stalled".
+  // strand Done; before that the strands decide. The one alarm it has is the braid-level `stalled`: In Progress, nothing asked,
+  // no strand Working, Needs You or To Review, no pending checks, and no coordinator thread running.
   const pr = gh.prs.get(braid.number) ?? null;
   const req = sig.requests.get(braid.number);
   const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
@@ -446,6 +447,13 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, { status: t3.status, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []) }, sig);
   } else if (req !== undefined && pr?.state !== "merged") {
     own = requestLane(req, sig.now);
+  }
+  const quiet = strands.every((s) => s.lane === "To Do" || s.lane === "Done");
+  const known = gh.status.state === "ok" && t3.status.state === "ok";
+  const holds = finalPr || own !== null || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
+  const stalled = finalPr ? null : sig.alarm(braid.number, "stalled", holds);
+  if (stalled !== null) {
+    own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: "Stalled: the coordinator stopped and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled } };
   }
   const candidates = [
     ...(own?.need == null ? [] : [{ lane: own.lane, reason: own.reason, need: own.need, who: null as string | null }]),
