@@ -1,7 +1,7 @@
 ---
 id: '0044/B'
 title: "A braid whose coordinator stopped reads stalled"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 20
