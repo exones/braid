@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { get, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
@@ -188,6 +188,32 @@ test("braid board serves the built page and nothing outside it", async () => {
     assert.equal((await fetch(url, { method: "POST" })).status, 405);
     assert.equal((await (await fetch(`${url}api/board`)).json() as { braids: unknown[] }).braids.length, 0);
   });
+});
+
+const favicons: [string, string, string][] = [
+  ["favicon.svg", "icons/favicon.svg", "image/svg+xml"],
+  ["favicon-32.png", "icons/png/favicon-32.png", "image/png"],
+  ["apple-touch-icon.png", "icons/png/apple-touch-icon.png", "image/png"],
+];
+
+test("the board serves the braid favicon files with their content types", async () => {
+  await withBoard(repo({}), async (url) => {
+    const page = await (await fetch(url)).text();
+    for (const [name, , type] of favicons) {
+      assert.ok(page.includes(`"/${name}"`), `page links ${name}`);
+      const res = await fetch(`${url}${name}`);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get("content-type"), type);
+    }
+  });
+});
+
+test("the favicon copies in web/public equal the design pack files", () => {
+  for (const [name, source] of favicons) {
+    const copy = readFileSync(fileURLToPath(new URL(`../web/public/${name}`, import.meta.url)));
+    const original = readFileSync(fileURLToPath(new URL(`../design/${source}`, import.meta.url)));
+    assert.ok(copy.equals(original), `web/public/${name} differs from design/${source}; copy it again`);
+  }
 });
 
 test("the server binds to 127.0.0.1 only", async () => {

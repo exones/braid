@@ -4,10 +4,11 @@ How to install the braid skills and CLI, set up a repository for braid, and foll
 
 ## The skills
 
-The agent skills `braid`, `braid-worker`, `braid-reviewer` and `braid-idea` are developed in this repository's `.agents/skills/` and can drive work in any repository. They are installed together and may link to each other (the stop cases exist once, in `braid`); the docs gate fails if a skill links anywhere else outside its own folder.
+The agent skills `braid`, `braid-worker`, `braid-reviewer`, `braid-researcher` and `braid-idea` are developed in this repository's `.agents/skills/` and can drive work in any repository. They are installed together and may link to each other (the stop cases exist once, in `braid`); the docs gate fails if a skill links anywhere else outside its own folder.
 
 - `braid` is the one skill you talk to, for work of any size: a goal, a single story, or "run 0012". It decides whether the work is a story or a goal, keeps the items as braids in the target repository's `braids/` through the `braid` CLI, and launches the workers.
 - `braid-worker` and `braid-reviewer` are the skills of the worker and reviewer threads a coordinator launches. You don't start them yourself. In T3 a worker is a top-level thread in the sidebar; a reviewer is a subagent of the coordinator and shows inside the coordinator's thread.
+- `braid-researcher` answers one research question with checked evidence: what it read, ran or inferred, the evidence against, what stays unknown, and its sources. A coordinator while planning, or a worker for a side question, launches it as a subagent that reports once and changes nothing; a spike worker follows its method. Its sources go into the item's `sources.md`.
 - `braid-idea` writes down an idea for later: start a thread with `$braid-idea <a sentence>`, and it restates the idea cleanly in the project's inbox (`braid note --idea`), asking only if it can't state it without guessing.
 - Ordinary questions and small direct edits need no skill.
 
@@ -39,7 +40,7 @@ A target repository needs a `BRAID.md` at its root with the facts the skills rea
 - the required `ci` checks (`none` if it has no hosted CI);
 - optional `autonomy`: the [autonomy preset](autonomy.md) braids run on unless a braid names its own (`careful` if absent);
 - optional `shell`, `setup` and `test` commands, and how to `run` the app;
-- `models`: the provider, model and options for each role, with optional overrides per tier (`worker.L`) or kind (`worker.spike`). The tier key wins over the kind key, then the plain role. A role may name a skill, such as `braid-reviewer` for the reviewer.
+- `models`: the provider, model and options for each role, with optional overrides per tier (`worker.L`) or kind (`worker.spike`). The tier key wins over the kind key, then the plain role. A role may name a skill, such as `braid-reviewer` for the reviewer and `braid-researcher` for the researcher.
 
 Start from the [`braid` template](../.agents/skills/braid/assets/braid-md.md). This repository's own [BRAID.md](../BRAID.md) is an example. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
 
