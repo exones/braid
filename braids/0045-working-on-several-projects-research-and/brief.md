@@ -1,7 +1,7 @@
 ---
 id: '0045'
 title: "Working on several projects: research and design options"
-status: To Do
+status: In Progress
 labels: ["kind:spike", "tier:M"]
 dependencies: []
 related: ['0011']
