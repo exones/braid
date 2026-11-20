@@ -8,7 +8,8 @@ import { join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-const scratch = realpathSync(mkdtempSync(join(tmpdir(), "braid-projects-")));
+// realpathSync.native expands Windows 8.3 short names (RUNNER~1 on CI), as Git does.
+const scratch = realpathSync.native(mkdtempSync(join(tmpdir(), "braid-projects-")));
 after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 let n = 0;
