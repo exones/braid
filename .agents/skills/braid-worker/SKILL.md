@@ -41,7 +41,7 @@ The PR goes into the base branch the first message names (`main` for a story, th
 0. Tick the Completion boxes you proved, and write `report.md` as [the brief template](../braid/assets/brief.md#work-on-it) shows: what changed, why, validation, anything open, then the `For later items:` and `Needs the user:` lines.
 1. Commit your changes with Conventional Commit messages, staging only your files, and push: `git push -u origin <your branch>`.
 2. Open one PR into the base branch: `gh pr create --base <base branch> --title "<type>: <summary>" --body-file <file>`. Describe what changed, why, validation, and anything open. Then call `link_pull_request` with the PR URL.
-3. If `ci` is `none`, go to step 5. Follow host PR-wait instructions; otherwise call `watch_pull_request`, then run `gh pr checks <pr>` once. If every check has already finished, go to step 4. Otherwise end your turn; the watch wakes you.
+3. If `ci` is `none`, go to step 5. Follow host PR-wait instructions; otherwise call `watch_pull_request`, then run `gh pr checks <pr>` once. If every check has already finished, go to step 4. Otherwise end your turn; the watch wakes you. You are the only one who waits on this PR's CI: the coordinator doesn't watch it and learns the result from your report.
 4. When woken, run `gh pr checks <pr>`:
    - Pending: end the turn.
    - Failed: read the log (`gh run view <run-id> --log-failed`), fix, run the gate, push, and end the turn.
