@@ -56,10 +56,22 @@ Expected size: about 220 lines in 8 files. Keep to the skills' rule: each rule i
 
 ## Completion
 
-- [ ] The autonomy reference covers reading, merging, continuing, deciding, telling, hold and changing the preset, and no skill file mentions auto mode, the `auto` label or `auto: allowed`
-- [ ] A coordinator can tell from the skill alone what to do with a stop case on either side of a row, and when unsure
-- [ ] The plan shown to the user names the preset and the braid's exceptions
-- [ ] The worker's skill has the `Decided:` rule and the reviewer's the check against the base branch's preset
-- [ ] The line counts of each changed skill file, before and after, are in the report
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The autonomy reference covers reading, merging, continuing, deciding, telling, hold and changing the preset, and no skill file mentions auto mode, the `auto` label or `auto: allowed`
+- [x] A coordinator can tell from the skill alone what to do with a stop case on either side of a row, and when unsure
+- [x] The plan shown to the user names the preset and the braid's exceptions
+- [x] The worker's skill has the `Decided:` rule and the reviewer's the check against the base branch's preset
+- [x] The line counts of each changed skill file, before and after, are in the report
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `references/auto-mode.md` → `references/autonomy.md` (git mv, then rewrite): Reading, Merging (seven conditions, 5 and 6 reworded, `--merge --preset`, `braid wait` step kept), Continuing, Deciding, Telling, Hold, Changing the preset, Stopping.
+2. `references/stop-cases.md`: one line under the table (the preset decides who decides, per case); "Who records what" gains the `Decided:` line (the one place for its format and where it is logged).
+3. `SKILL.md`: description; Plan steps 5–6 (preset and `## Autonomy` exceptions in the plan, approval covers them); Grow and adjust mandate = the preset's `scope` row; Accept and hand over steps 2 and 5; After the merge step 7; Sweep; "Auto mode" → "Autonomy"; Finish step 4; Talking to the user.
+4. `references/workflow.md`: Tiers (review, not who merges), Who merges (the preset), failure-mode row.
+5. `references/resuming.md`: the `auto` label line → read the preset.
+6. `assets/brief.md`: `autonomy` field and `## Autonomy`; the accept comment names `--preset`.
+7. `assets/braid-md.md`: `auto: allowed` → `autonomy: <preset>`.
+8. `braid-worker/SKILL.md`: read `braid autonomy`, `Decided:` rule, `Needs the user` only what the preset says to ask.
+9. `braid-reviewer/SKILL.md`: preset read from the base branch; each `Decided:` entry checked against it.

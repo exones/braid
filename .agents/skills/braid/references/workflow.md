@@ -69,7 +69,7 @@ Goal: `braid next <number>` names the next ready strand or says why none is. One
 
 ## Tiers
 
-Every item has one `tier:` label; pick the lowest that fits. The tier decides the review before the recap.
+Every item has one `tier:` label; pick the lowest that fits. The tier decides the review, not who merges.
 
 | Tier | Typical work | Review |
 | --- | --- | --- |
@@ -83,7 +83,7 @@ The user merges, whatever the tier. The coordinator merges in three cases only:
 
 - the user explicitly asks it to merge a PR ("Merge on request" in the skill); this may be any PR, including a story or the final PR into `main`;
 - the planning PR of a goal whose plan the user approved: the approval covers its merge into the braid branch, once its checks are green and pinned to the approved commit; a PR holding anything else goes back to the user;
-- [auto mode](auto-mode.md) is on for a goal: then it merges that goal's strand PRs into the braid branch, and never anything into `main`.
+- the braid's [autonomy preset](autonomy.md) lets it: `merge: strands` its strand PRs into the braid branch, `merge: all` also a story's or the final PR into `main`.
 
 ## Checks and reports
 
@@ -103,4 +103,4 @@ The user merges, whatever the tier. The coordinator merges in three cases only:
 | A reviewer task returns nothing, an empty result or a failure | The PR's review comment at that head is the record; without one, one fresh task, then `braid ask`. The skill, "Accept and hand over" step 1. |
 | A worker proposes growth beyond the mandate | The skill, "Grow and adjust". |
 | CI is red on a braid branch or a final PR | The skill, "Fixes". |
-| A PR's head moved after its recap or review | The skill, "Merge on request"; in auto mode, [auto mode](auto-mode.md). |
+| A PR's head moved after its recap or review | The skill, "Merge on request"; under a preset, [autonomy](autonomy.md). |
