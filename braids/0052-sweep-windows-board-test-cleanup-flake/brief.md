@@ -65,7 +65,7 @@ Expected size: about 20 to 40 lines in 2 or 3 files.
 
 - [x] The cause of the EPERM is named in report.md, with the evidence (log line, reproduction or reasoning from the code)
 - [x] `test/board.test.ts` cleanup no longer depends on retries to pass: what held the folder is ended before the delete
-- [ ] The regression test above exists and passes on Linux and Windows
+- [x] The regression test above exists and passes on Linux and Windows
 - [x] `AGENTS.md` "Where to look" lists braid-researcher, and nothing else in it changed
 - [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
