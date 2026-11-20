@@ -6,10 +6,11 @@
 - `web/index.html` has the three `<link>` tags from `design/README.md`.
 - `src/commands/board.ts`: `.png` (`image/png`) added to `TYPES`.
 - `test/board.test.ts`: the board serves the three files with the right content types and the page links them; a test fails if a copy differs from its design file.
+- `web/src/index.css`: one `@layer base` rule gives enabled buttons and `[role="button"]` the pointer cursor (user addition, absorbed in this PR). Utilities such as `cursor-not-allowed` and `disabled:cursor-wait` sit in a later layer, so disabled buttons keep their cursor.
 
 ## Why
 
-The board tab showed no icon. Copies plus an equality test avoid shipping every icon size in the npm package.
+The board tab showed no icon; Tailwind v4 dropped the default pointer cursor on buttons. Copies plus an equality test avoid shipping every icon size in the npm package.
 
 ## Validation
 

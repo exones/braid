@@ -11,6 +11,8 @@ delivery: epic
 
 The `braid board` page shows no icon in the browser tab. Give it the approved braid favicon from the design pack, so the tab (and a phone's home-screen shortcut) shows the braid symbol on its navy tile.
 
+The user added: every enabled clickable button on the board (for example "Open coordinator thread", "Open worker thread") shows the hand (pointer) cursor on hover, not the arrow. Tailwind v4 dropped the default `cursor: pointer` on buttons.
+
 Expected size: about 30 lines in 4 files, plus three copied icon files.
 
 ## Start here
@@ -27,6 +29,7 @@ Expected size: about 30 lines in 4 files, plus three copied icon files.
 - `web/index.html`: the three `<link>` tags from `design/README.md`.
 - `src/commands/board.ts`: add `.png` (`image/png`) to `TYPES`.
 - `test/`: the board serves `/favicon.svg`, `/favicon-32.png` and `/apple-touch-icon.png` with the right content types, and the copies in `web/public/` equal the files in `design/icons/`, so a later design change can't leave a stale copy unnoticed.
+- `web/src/index.css`: one base rule giving enabled buttons and `[role="button"]` the pointer cursor; the existing `cursor-not-allowed` and `disabled:cursor-wait` classes keep working (utilities override base).
 
 ## Already decided
 
@@ -44,3 +47,4 @@ Expected size: about 30 lines in 4 files, plus three copied icon files.
 - [x] A test fails when a copy in `web/public/` differs from its file in `design/icons/`
 - [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
+- [x] Every enabled button on the board shows the pointer cursor on hover; disabled ones keep their cursor
