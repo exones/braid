@@ -1,7 +1,7 @@
 ---
 id: '0048'
 title: "The worker owns CI; the coordinator waits only where a wake is reliable"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: []
 related: ['0040']
