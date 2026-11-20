@@ -31,13 +31,21 @@ function sessionToken(): string | null {
 }
 sessionToken();
 
+/**
+ * The project this page shows: `?project=<name>` in its address, else the one the server answered with (the first
+ * served). Every action carries it, so the server runs it in that project (docs/board.md, "Several projects").
+ */
+const ADDRESSED = new URLSearchParams(location.search).get("project");
+let project: string | null = ADDRESSED;
+const withProject = (path: string): string => (ADDRESSED === null ? path : `${path}${path.includes("?") ? "&" : "?"}project=${encodeURIComponent(ADDRESSED)}`);
+
 /** Runs the board action `name` on the server with the session token; the reply is the action's result. */
-export async function postAction<T = unknown>(name: string, body: unknown = {}): Promise<T> {
+export async function postAction<T = unknown>(name: string, body: object = {}): Promise<T> {
   const response = await fetch(`/api/action/${encodeURIComponent(name)}`, {
     method: "POST",
     // x-braid-request: a header a cross-site page can't send without a CORS preflight; the Tailscale listener requires it (D60).
     headers: { "content-type": "application/json", "x-braid-token": sessionToken() ?? "", "x-braid-request": "1" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(project === null ? body : { ...body, project }),
   });
   const reply: unknown = await response.json();
   if (!response.ok) {
@@ -68,8 +76,14 @@ function useLoad<T>(url: string, tick: Tick): Loaded<T> {
   return result !== null && result.url === url ? result.value : { state: "loading" };
 }
 
-export const useBoard = (tick: Tick): Loaded<BoardData> => useLoad<BoardData>("/api/board", tick);
-export const useItem = (id: string, tick: Tick): Loaded<ItemDetail> => useLoad<ItemDetail>(`/api/item?id=${encodeURIComponent(id)}`, tick);
+export function useBoard(tick: Tick): Loaded<BoardData> {
+  const board = useLoad<BoardData & { project?: string }>(withProject("/api/board"), tick);
+  if (board.state === "ready" && typeof board.data.project === "string") {
+    project = board.data.project;
+  }
+  return board;
+}
+export const useItem = (id: string, tick: Tick): Loaded<ItemDetail> => useLoad<ItemDetail>(withProject(`/api/item?id=${encodeURIComponent(id)}`), tick);
 
 /** The reload requests: the server pushes one every 30 s and when a braid file changes; `refresh` is the button. */
 export function useTick(): { tick: Tick; refresh: () => void } {
