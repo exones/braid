@@ -24,6 +24,8 @@ export interface Need {
   readonly verb: "asked" | "for";
   /** How long ago it was asked or began (`35m`, `2h`, `3d`); null when the time isn't known. */
   readonly age: string | null;
+  /** When it was asked or began (ISO): the request's time or the alarm's first sighting; null when not known (an agent's pending question, a Done waiting for its merge). Notifications key on it. */
+  readonly since: string | null;
   /** The stop-case key of a decision. */
   readonly key: string | null;
   /** The PR of a review. */
@@ -219,7 +221,7 @@ const plain = { key: null, pr: null, who: null, more: 0 } as const;
 
 function needOfRequest(r: Request, now: Date): Need {
   const text = r.kind === "review" && r.pr !== undefined ? `Merge PR #${r.pr}` : r.text;
-  return { kind: r.kind, text, verb: "asked", age: age(r.at, now), key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0 };
+  return { kind: r.kind, text, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0 };
 }
 
 function activityOf(agents: readonly T3Thread[], pr: PullRequest | null): Activity | null {
@@ -271,17 +273,17 @@ export function derive(status: Status, labels: readonly string[], key: string, g
     return out(r.lane, r.reason, r.need);
   }
   if (question) {
-    return out("Waiting", "question", { ...plain, kind: "question", text: "An agent asked a question: answer it in its thread", verb: "asked", age: null });
+    return out("Waiting", "question", { ...plain, kind: "question", text: "An agent asked a question: answer it in its thread", verb: "asked", age: null, since: null });
   }
   if (stored === "Done" && pr !== null) {
-    return out("In Review", null, { ...plain, kind: "review", text: `Merge PR #${pr.number}`, verb: "asked", age: null, pr: pr.number });
+    return out("In Review", null, { ...plain, kind: "review", text: `Merge PR #${pr.number}`, verb: "asked", age: null, since: null, pr: pr.number });
   }
   if (failed !== null) {
     const names = pr?.failed ?? [];
-    return out("Waiting", "checks failed", { ...plain, kind: "checks failed", text: `Checks failed${names.length > 0 ? `: ${names.join(", ")}` : ""}; fix or retry`, verb: "for", age: age(failed, sig.now) });
+    return out("Waiting", "checks failed", { ...plain, kind: "checks failed", text: `Checks failed${names.length > 0 ? `: ${names.join(", ")}` : ""}; fix or retry`, verb: "for", age: age(failed, sig.now), since: failed });
   }
   if (stalled !== null) {
-    return out("Waiting", "stalled", { ...plain, kind: "stalled", text: "Stalled: nobody is working and nothing was asked", verb: "for", age: age(stalled, sig.now) });
+    return out("Waiting", "stalled", { ...plain, kind: "stalled", text: "Stalled: nobody is working and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled });
   }
   const started = stored === "In Progress" || agents.length > 0 || pr?.state === "open";
   return out(started ? "In Progress" : laneOfStatus(stored), null, null);

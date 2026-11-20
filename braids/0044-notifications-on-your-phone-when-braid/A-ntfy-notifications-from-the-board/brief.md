@@ -58,14 +58,14 @@ Expected size: about 500 lines in 8 files, half of them tests.
 
 ## Completion
 
-- [ ] `braid notify setup`, `test`, `off` and the bare state work as described, with the token only from `BRAID_NTFY_TOKEN`
-- [ ] The running board sends one push per new Needs You or To Review need (strand needs per strand), never twice across a restart, and again when a need returns; and one push when a braid becomes Done, none for braids already Done at the first run
-- [ ] A push carries only the repo, item id, lane, title, need line, tag, priority and thread link
-- [ ] A failing or hanging send never stops or delays the board, and is retried at the next refresh
-- [ ] Tests listed under Change, without network or the real `~/.braid`
-- [ ] `docs/cli.md`, `docs/board.md` and `docs/decisions.md` updated
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid notify setup`, `test`, `off` and the bare state work as described, with the token only from `BRAID_NTFY_TOKEN`
+- [x] The running board sends one push per new Needs You or To Review need (strand needs per strand), never twice across a restart, and again when a need returns; and one push when a braid becomes Done, none for braids already Done at the first run
+- [x] A push carries only the repo, item id, lane, title, need line, tag, priority and thread link
+- [x] A failing or hanging send never stops or delays the board, and is retried at the next refresh
+- [x] Tests listed under Change, without network or the real `~/.braid`
+- [x] `docs/cli.md`, `docs/board.md` and `docs/decisions.md` updated
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
