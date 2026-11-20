@@ -155,9 +155,7 @@ export async function statusCommand(root: string, args: readonly string[], src: 
   }
   const names = ciChecks(root);
   const out = [...readiness(root, w.github).map(problemLine), ...line(names, w, w.card, null), ...w.card.strands.flatMap((s) => line(names, w, s, s.id.slice(5)).map((l) => `  ${l}`))];
-  if (w.github.status.state !== "ok") {
-    out.push(`note: GitHub could not be read (${w.github.status.reason}); PRs and checks are missing and lanes come from stored statuses`);
-  }
+  // Unreadable GitHub is already the `not ready:` line above (readiness), so no second note.
   if (w.t3.status.state !== "ok") {
     out.push(`note: T3 could not be read (${w.t3.status.reason}); threads show as ?`);
   }

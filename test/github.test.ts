@@ -155,6 +155,10 @@ test("without gh the board keeps stored states and says why", async () => {
   const { data } = await board(files(), missing);
   assert.equal(data.github.state, "unavailable");
   assert.match(data.github.reason, /gh is not installed/);
+  // The page shows unreadable GitHub once: as the readiness problem (with what it hides), not also as a header note.
+  const gh = data.problems.filter((p: any) => p.key === "github");
+  assert.equal(gh.length, 1);
+  assert.match(gh[0].todo, /PRs and checks are missing and lanes come from stored statuses/);
   const lanes = data.braids[0].strands.map((s: any) => s.lane);
   assert.deepEqual(lanes, ["In Progress", "In Progress", "In Progress", "In Progress", "To Do", "Done"]);
 

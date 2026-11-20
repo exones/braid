@@ -1,7 +1,7 @@
 ---
 id: '0049/E'
 title: "Board: show an unreadable GitHub once"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S", "sweep"]
 dependencies: ['0049/A']
 order: 12
@@ -35,7 +35,7 @@ Expected size: about 40 lines in 4 files.
 
 ## Completion
 
-- [ ] With GitHub unreadable, the board shows one GitHub message and `braid status` prints one GitHub line, with a test for each
-- [ ] The docs describe the single message
+- [x] With GitHub unreadable, the board shows one GitHub message and `braid status` prints one GitHub line, with a test for each
+- [x] The docs describe the single message
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
