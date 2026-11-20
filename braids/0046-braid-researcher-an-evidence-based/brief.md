@@ -1,7 +1,7 @@
 ---
 id: '0046'
 title: "braid-researcher: an evidence-based research helper subagent"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: []
 delivery: epic
