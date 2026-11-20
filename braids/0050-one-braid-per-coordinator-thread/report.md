@@ -3,7 +3,7 @@
 - `SKILL.md` "Ground rules": new rule, a coordinator thread holds one braid; another braid goes to a new thread; absolute, asking doesn't override.
 - `SKILL.md` "Plan": new step 0 for a thread that already holds a braid: launch (provisional title `🧠 <repo> coordinator: <short goal>`), first message with quoted answers, source and leftovers, link and stop; no-T3 fallback writes out the handover text.
 - `SKILL.md` "Accept and hand over" 6.5: same-braid follow-ups stay, new-braid follow-ups go to a new thread; the recap may still ask which to plan.
-- `docs/decisions.md`: D75 and a dated log line. `workflow.md` doesn't talk about who coordinates, so it is unchanged. No CLI or board change.
+- `docs/decisions.md`: D76 and a dated log line. `workflow.md` doesn't talk about who coordinates, so it is unchanged. No CLI or board change.
 
 ## Why
 
