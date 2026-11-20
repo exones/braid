@@ -620,6 +620,8 @@ export interface Started {
   readonly token: string;
   /** The Tailscale listener's server and URL (`http://<MagicDNS name>:<port>/`); closing `server` closes it too. */
   readonly tailnet?: { readonly server: Server; readonly url: string };
+  /** Closes the server (and the Tailscale listener) and resolves once the read in flight has ended, so no `git`, `gh` or `t3` it started still runs. */
+  close(): Promise<void>;
 }
 
 /** Listens on `address`, on `port` when it is free there, else on a free port; `strict` (an explicit `--port`) refuses a port in use instead. */
@@ -862,7 +864,17 @@ export function startBoardWith(
         // The timed refresh still runs.
       }
     }
-    return { server, url: `${origin}/`, token, ...(shared === undefined ? {} : { tailnet: shared }) };
+    const close = async (): Promise<void> => {
+      if (server.listening) {
+        server.close();
+        server.closeAllConnections();
+      }
+      // A read that runs (and the one queued after it) still has children in the repository; wait for them.
+      while (running !== undefined || queued !== undefined) {
+        await (queued?.done ?? running);
+      }
+    };
+    return { server, url: `${origin}/`, token, close, ...(shared === undefined ? {} : { tailnet: shared }) };
   })();
 }
 
