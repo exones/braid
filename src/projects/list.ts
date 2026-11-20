@@ -5,6 +5,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, isAbsolute, join, resolve } from "node:path";
 import { locked } from "../braids/requests.js";
+import { normPath } from "../braids/worktrees.js";
 import { braidHome } from "../notify/config.js";
 
 export const PROJECTS_VERSION = 1;
@@ -35,10 +36,9 @@ export function validPort(port: number): boolean {
   return Number.isInteger(port) && port >= 1 && port <= 65535;
 }
 
-/** Two paths name the same folder (Windows paths ignore case). */
+/** Two paths name the same folder (real paths, so short and long Windows names match; Windows paths ignore case). */
 export function samePath(a: string, b: string): boolean {
-  const norm = (p: string): string => (process.platform === "win32" ? resolve(p).toLowerCase() : resolve(p));
-  return norm(a) === norm(b);
+  return normPath(a) === normPath(b);
 }
 
 /** The folder name a project's worktrees go under (`~/braid-worktrees/<folder>/`), compared like a path. */

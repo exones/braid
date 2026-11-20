@@ -94,10 +94,16 @@ async function withBoard<T>(root: string, run: (url: string) => Promise<T>): Pro
     });
     return await run(url);
   } finally {
-    // The board reads in the background and its `git` children hold the folder; wait until it is gone.
-    const gone = new Promise((done) => child.once("exit", done));
-    child.kill();
-    await gone;
+    // The board process holds the repository as its working folder; wait until it is gone, but not forever.
+    if (child.exitCode === null && child.signalCode === null) {
+      let timer: NodeJS.Timeout | undefined;
+      const gone = new Promise((done) => child.once("exit", done));
+      const stuck = new Promise((_, fail) => {
+        timer = setTimeout(() => fail(new Error(`braid board (pid ${child.pid}) did not exit within 10 s of kill()`)), 10_000);
+      });
+      child.kill();
+      await Promise.race([gone, stuck]).finally(() => clearTimeout(timer));
+    }
   }
 }
 
@@ -220,16 +226,29 @@ test("the server binds to 127.0.0.1 only", async () => {
   // A computed specifier keeps the compiled module out of the typecheck, which runs before the build.
   const compiled = fileURLToPath(new URL("../dist/commands/board.js", import.meta.url));
   const mod = (await import(pathToFileURL(compiled).href)) as {
-    startBoard: (root: string) => Promise<{ server: Server; url: string }>;
+    startBoard: (root: string) => Promise<{ server: Server; url: string; close: () => Promise<void> }>;
   };
-  const { server, url } = await mod.startBoard(repo({}));
+  const { server, url, close } = await mod.startBoard(repo({}));
   try {
     const address = server.address() as AddressInfo;
     assert.equal(address.address, "127.0.0.1");
     assert.equal(address.family, "IPv4");
     assert.equal(url, `http://127.0.0.1:${address.port}/`);
   } finally {
-    server.close();
-    server.closeAllConnections();
+    await close();
   }
+});
+
+// The EPERM flake of the scratch cleanup on Windows: a `git`, `gh` or `t3` the board's first read started
+// still had its working folder in the repository when the folder was deleted. No retries here, on purpose.
+test("a stopped board leaves nothing running in its repository folder", async () => {
+  const compiled = fileURLToPath(new URL("../dist/commands/board.js", import.meta.url));
+  const mod = (await import(pathToFileURL(compiled).href)) as { startBoard: (root: string) => Promise<{ close: () => Promise<void> }> };
+  const inProcess = repo({ "braids/0001-a/brief.md": brief("0001", "To Do") });
+  await (await mod.startBoard(inProcess)).close();
+  rmSync(inProcess, { recursive: true, force: true });
+
+  const cli = repo({ "braids/0001-a/brief.md": brief("0001", "To Do") });
+  await withBoard(cli, async () => {});
+  rmSync(cli, { recursive: true, force: true });
 });

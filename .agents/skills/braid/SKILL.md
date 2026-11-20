@@ -29,12 +29,21 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 - One writer per branch, and acceptance (Done) is yours through `braid accept`.
 - Your commits are `docs(braids): …`, for example `docs(braids): 0012 phases: add 0012/A, 0012/B`.
 - Commit brief changes only at these points: the plan and its review rounds; the braid In Progress, after the planning merge; a growth or plan-change decision; a log entry; an item accepted (`braid accept`); an Outline detailed; the braid Done at the end.
-- Name every thread `<emoji> <repo> <id> <role>: <title>`: 🧠 `coordinator`, 💻 `worker`, 👀 `review`, 🧪 `research`; the repo is the GitHub repository's name and the title is the item's name exactly as its brief has it. Never write one by hand: launch each thread with the output of `braid title <id> --role <role>`, for example `💻 braid 0021 worker: Board Start: no branch clash`. When a coordinator takes a braid (plan or resume), it sets its own thread's title to `braid title <number> --role coordinator` (`t3_thread_update` in T3, else the host's rename).
+- Name every thread `<emoji> <repo> <id> <role>: <title>`: 🧠 `coordinator`, 💻 `worker`, 👀 `review`, 🧪 `research`; the repo is the GitHub repository's name and the title is the item's name exactly as its brief has it. Never write one by hand (one exception: the provisional title of the thread "Plan" step 0 launches, which has no number yet): launch each thread with the output of `braid title <id> --role <role>`, for example `💻 braid 0021 worker: Board Start: no branch clash`. When a coordinator takes a braid (plan or resume), it sets its own thread's title to `braid title <number> --role coordinator` (`t3_thread_update` in T3, else the host's rename).
+- **One braid per coordinator thread.** A thread that already holds a braid (planned, resumed or taken over) never plans another. A request for another braid, whether a follow-up the user picked from a recap or a new goal sent to this thread, goes to a new coordinator thread ("Plan", step 0). The rule is absolute: the board finds a braid's coordinator by the number in the thread's title, so a thread that switches braids can't be followed. Asking doesn't override it; if the user asks to plan it here, say why in one line and launch. This thread keeps running its own braid, with its watches and waits.
 - The first line of your plan, and of your first message after the user asks to start or resume an existing braid or after you take one over through [resuming](references/resuming.md), names the braid's number and title (`0040 Autonomy presets: …`), so a wrong number is caught at once.
 - **Gaps go by the table.** Route each gap as the workflow's "Gaps and the inbox" says, without asking the user, and capture what goes to the inbox with `braid note` ("Capture"). Never fold anything in silently.
 - Never edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless the user asks. Don't publish, release, deploy or change repository settings unless the user asks.
 
 ## Plan
+
+0. **A thread that already holds a braid** doesn't plan a new one. Instead:
+   1. In T3, `t3_thread_launch` a top-level thread on the project's main checkout with the coordinator model from `BRAID.md` and the provisional title `🧠 <repo> coordinator: <short goal>`; the braid has no number yet, and the new coordinator renames itself after `braid new` as the rename rule says. If the launch fails (T3 down, model unavailable), tell the user and stop; don't plan here instead.
+   2. Send its first message with `t3_thread_send`: use the braid skill and plan this goal; the user's words and every answer they gave, quoted; the source (braid id, report path, PR); any leftovers or inbox entries this braid routed to it.
+   3. Tell the user in one or two lines, with the new thread's link, and end the turn. Plan and commit nothing of the new braid here, and keep this braid's own watches and waits.
+   4. Without T3, say in one line that the user starts a new coordinator chat, and write out the handover text (step 2's content) for them to paste.
+
+   Otherwise, a thread with no braid yet starts here:
 
 1. Before planning a new braid, propose a sweep if any leftover is open ("Sweep"). When the user asks for an idea to become braids, plan from it as from any goal, and once the plan is approved, `braid inbox take <idea> --into <braid ids>`. Never propose ideas yourself.
 2. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
@@ -75,19 +84,19 @@ One implementation worker at a time. The next item is under "Starting the next i
    Brief: `braid view <id>`. Branch: <branch> at <short sha>. Open the PR into <base branch>.
    Send your result to thread <your thread id>. Your thread id: <worker thread id>.
    ```
-3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. If no report arrived, read the thread's last message and `gh pr checks`:
-   - CI pending: make sure your watch is on, then end your turn; the watch wakes you.
+3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. Run nothing else in parallel with it. If no report arrived, read the thread's last message and `gh pr checks`:
+   - The worker waits on its own PR watch (CI pending): end your turn; its report wakes you. You never watch an item PR: the worker alone waits on its CI.
    - Green: take the result from the thread and continue.
    - The PR is already merged: the item is done.
-   - Stopped without a watch, or stuck: send it a nudge.
+   - Failed checks while the worker watches its PR: the worker's; do nothing and end your turn.
+   - Stopped with no watch and no report, or stuck: send it a nudge.
    - The run failed: read its error, and the item's `report.md`, log and PR. Retry once with the same model and settings; if it fails again, `braid ask --key quality`, naming the error (stop-case options).
    - The user says it finished: believe them and look at the PR.
-4. **Watch.** Once the worker's PR exists, call `watch_pull_request` on it (one item PR at a time) and end your turn. On a wake:
-   - First call `t3_thread_wait` on the worker's thread. If the worker reported since you last sent it work, use its report and ignore the wake; without a report, step 3 applies.
-   - Failed checks, conflicts or comments while the worker is active or watching are the worker's: do nothing and end your turn.
-   - A wake is never a merge decision; continue with "Accept and hand over". A wake on the planning PR continues at "Plan", step 7: merge it when its checks are green.
-
-   Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox: an item PR when the recap asks for their merge; the final PR once its checks are green and any review is done. The planning PR you merge yourself ("Plan", step 7) and unwatch after the merge. After that, the user's "merged" or `gh pr list --state all` decides.
+4. **Coordinator habits.**
+   - After a wake or a resume, check the state first (branches, worktrees, worker threads, `braid next`), then act.
+   - A "STOP" result during a wait is an incoming message, not the user: read it, never say "as you asked".
+   - After "session ended", re-check before retrying; `braid start` is safe to run again and prints "(already started)".
+   - **Watch rule:** you watch a PR (`watch_pull_request`) only while no worker is waiting on it: the planning PR, the final PR, and a story's PR from your own commit on it (`braid accept`), since the worker has reported, unwatched and stopped by then. Never an item PR a worker still owns. On a wake the planning PR continues at "Plan", step 7 (merge it when its checks are green); the final PR (watched from "Finish" step 1) continues at "Finish" where you are, and hands over only after `braid accept` and its new head is green; a story's PR, watched only after `braid accept`, continues with the handover once that head is green. A wake is never a merge decision. Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox, or after you merge it. After that, the user's "merged" or `gh pr list --state all` decides.
 5. Answer the worker's questions. If the brief must change, tell the worker; it applies the change on its branch.
 6. **Converge loop** (workflow, "Checks and reports"): when the worker stops with a proposal, show it to the user (`braid ask <id> "<what is needed>" --kind decision`, decision options) and send each verdict to the worker. When the user approves, tell the worker to build.
 
@@ -96,9 +105,10 @@ One implementation worker at a time. The next item is under "Starting the next i
 A worker that finds more work stops and sends you one proposal: **absorb** it (same PR, within about twice the expected size), split off a **prerequisite**, or turn the story into **phases**. Its own steps are in its skill; these are yours.
 
 - **Mandate.** The preset's `scope` row is your mandate (`careful`: up to two strands or one prerequisite of tier S or M). On its "decide yourself" side decide and log it as `Decided:` ([stop cases](references/stop-cases.md)); anything on its "ask me" side goes to the user first (`braid ask <id> "<what is needed>" --key scope`, the decision options absorb, prerequisite or phases); tell the worker to stop at a clean point and note where it is.
+- **New work is a strand by default.** Work found while a braid runs becomes a strand of that braid, planned in this thread. A separate braid, with its own coordinator thread, only when `main` needs it on its own.
 - **Absorb:** tell the worker.
 - **Prerequisite of a strand:** create it as another strand of that braid on the braid branch, push, and tell the worker (it merges the braid branch and adds the dependency). Run the prerequisite next, and tell the worker when it is merged.
-- **Prerequisite of a lone story:** create it as its own story into `main`, and tell the worker when it is merged.
+- **Prerequisite of a lone story:** it becomes phases: a strand of this braid, as under **Phases**. Only when `main` needs the fix on its own (for example `main` itself is red) create it as a separate story into `main`; that is a new braid, so it goes to its own coordinator thread ("Plan", step 0), and tell the worker when it is merged.
 - **Phases:** once the worker has pushed and stopped, its branch becomes the braid branch. On it add the strands (`braid strand new`, order, dependencies; the first says what is already done) and log why on the braid, which stays `In Progress`. Close the story's PR with a comment saying so. Run the strands one at a time with the braid branch as base.
 - **Adjusting the plan.** When really needed, change items that haven't started (wording, order, dependencies, split, merge, drop) on the branch you hold, as one commit, logging why on the braid and in the next recap. The mandate's limits apply. For a dropped strand, write the log entry, then `git rm -r` its folder and fix its dependents' dependencies in the same commit.
 
@@ -122,18 +132,18 @@ When the worker reports green:
    PR: <url>, head commit <sha>. Focus: <what matters most here>.
    ```
 2. **Facts.** When nothing blocking remains, run `braid facts <pr>` and judge its facts against the [stop cases](references/stop-cases.md) and the braid's preset.
-3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, wait. You don't re-run the gate or download artifacts.
+3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, tell the worker CI isn't finished and end your turn (its report wakes you). You don't re-run the gate or download artifacts.
 4. **Capture** before the handover, as leftovers ("Capture"): the non-blocking findings not fixed in the PR (`--from 'review <id>'`, `--ref` the review comment), and the report's unfinished bits and `For later items:` gaps (`--from <id>`, `--ref` the PR). Notes for the braid's later strands (names, interfaces) stay in the log line, which names the entry ids instead of repeating the text.
 5. **Hand over** when the checks are green on the latest commit.
    - A strand: run `braid handover <id> --head <sha> --thread <your thread id>`, edit the recap it prints, give it and ask with the handover options ("Talking to the user").
-   - A story: first run `braid accept <id> --head <reviewed sha> --review <link> --thread <your thread id>`; when the new head it prints is green, hand that head over the same way.
+   - A story: first run `braid accept <id> --head <reviewed sha> --review <link> --thread <your thread id>`; then call `watch_pull_request` on the PR and end your turn; the wake on the green new head continues with the handover (Watch rule), and you unwatch it there.
    - You merge an item only under "Merge on request", or instead of the handover where the braid's preset lets you ("Autonomy").
 6. **After the merge**, once `gh pr list --state all` shows the PR merged:
    1. Interrupt the worker's thread if still running (`t3_thread_interrupt`), and `task_cancel` a reviewer task that still runs (never `t3_thread_interrupt` on its child thread).
    2. Run `braid clean --yes` to remove the item's worktree and branch and its reviewers' checkouts. A reviewer's folder still in use is kept and named; run it again later.
    3. For a strand, on the braid branch, run `braid accept <id> --review <link> --thread <your thread id> --log -` with the braid's log entry on standard input; it commits as `docs(braids): <id> done`. Skip this when the merge ran through `braid accept --merge`, which did it.
    4. Fix any item that hasn't started and that the entry makes wrong, as in "Adjusting the plan".
-   5. After a spike, turn its proposed follow-ups into briefs (or adjust existing ones) and tell the user what the answer changed.
+   5. After a spike, follow-ups that adjust briefs of this braid, or that this braid needs (strands by default, "Grow and adjust"), become or change briefs here; tell the user what the answer changed. A follow-up that becomes a separate braid is not planned here: launch its new coordinator thread now, after the merge ("Plan", step 0). The recap, which comes before the merge, may ask the user which follow-up to plan.
    6. If the next item is `Outline`, reread it, detail it into a full brief (`braid ask` for what it leaves open), set it `To Do` and commit.
    7. Start the next item (with `continue: yes` without a go, "Autonomy"); after the last strand, finish.
 
@@ -149,12 +159,12 @@ A sweep empties the leftovers in one decision of the user. It never covers ideas
 
 1. **When.** At a recap whose draft says `Sweep due` (3 or more open leftovers), or before planning the next braid with at least one open leftover. A merge you make under the preset runs no recap, so you check after it ([autonomy](references/autonomy.md), "Merging", step 3). No preset decides a sweep: ask the user, and the strands go on while the answer is pending.
 2. **Propose** with `braid inbox` and `braid ask <id> "<what is needed>" --kind decision` (decision options: *Sweep as proposed*, *Change the list*, *Not now*), never on an item whose handover request is open (an item has one open request, and a new one replaces it): for a strand on its braid's number; for a lone story after its merge; before planning, in the plan request of the braid being planned. Propose one sweep story (`kind:task`, label `sweep`, the lowest tier that fits), naming which leftovers go in and which are dropped, and why. A leftover too big for it becomes its own braid, or is dropped and noted again as an idea. Before planning, the proposal may also fold a related leftover into the braid being planned.
-3. **Record** the answer. On *Not now*, only `braid inbox pass <ids>`. Otherwise create the story (Plan, step 6, Story) with a brief that copies each taken leftover's text, source and links, and push its branch; then `braid inbox take <ids> --into <number>`, `braid inbox drop <ids> --why "<reason>"`, and `braid inbox pass <ids>` for the rest (a second pass drops one).
-4. **Run** the sweep story after the current braid. At most one sweep is pending: a later proposal adds to that story's brief on its branch.
+3. **Record** the answer. On *Not now*, only `braid inbox pass <ids>`. Otherwise the sweep story is its own braid, so a thread that already holds a braid hands it to a new coordinator thread ("Plan", step 0), with the answer and the leftovers' text, source and links in the first message; the new coordinator creates the story (Plan, step 6, Story) with a brief that copies each taken leftover's text, source and links, and push its branch; then `braid inbox take <ids> --into <number>`, `braid inbox drop <ids> --why "<reason>"`, and `braid inbox pass <ids>` for the rest (a second pass drops one).
+4. **Run** the sweep story after the current braid, in its own coordinator thread, launched through "Plan", step 0 (not here). At most one sweep is pending: a later proposal adds to that story's brief on its branch.
 
 ## Merge on request
 
-When the user asks you to merge a named PR, picks *Merge now* on a handover, or says "merge it" right after a recap that handed one over, merge it with `braid accept <id> --head <head commit of your last recap of it> --review <link> --thread <your thread id> --merge` (for a strand add `--log -` with the braid's log entry). If you haven't recapped the PR, or its head has moved since, don't merge: show what changed and ask as a decision (*Hand over new head*, recommended, which takes it through "Accept and hand over"; *Leave it*, which ends the turn with the handover request still open); `braid accept` refuses a moved head. Once merged, continue with "After the merge": for a strand all of it; for a story or a final PR only its steps 1 and 2, since that merge finishes the item.
+When the user asks you to merge a named PR, picks *Merge now* on a handover, or says "merge it" right after a recap that handed one over, merge it with `braid accept <id> --head <head commit of your last recap of it> --review <link> --thread <your thread id> --merge` (for a strand add `--log -` with the braid's log entry). If you haven't recapped the PR, or its head has moved since, don't merge: show what changed and ask as a decision (*Hand over new head*, recommended, which takes it through "Accept and hand over"; *Leave it*, which ends the turn with the handover request still open); `braid accept` refuses a moved head. Once merged, continue with "After the merge": for a strand all of it; for a story or a final PR only its steps 1 and 2, since that merge finishes the item, plus step 5 when it was a spike.
 
 The board's message `Merge #<n> at <head>, from the board.` in your thread is the user's confirmed request to merge that PR; the board never merges itself. Treat it as "merge it" for that PR: merge with the head of your last recap as above. If you haven't recapped the PR, or your last recap's head isn't the message's, don't merge: show what changed and ask the same decision.
 
@@ -175,7 +185,7 @@ A goal, when every strand is Done on the braid branch:
 
 1. Merge `main` into the braid branch, open one PR from it into `main` and watch it.
 2. In one commit, tick the braid's boxes that now hold, write its `report.md` naming any box left open and why, and add a closing log entry.
-3. Take the PR through "Accept and hand over" as a story of the braid's tier: review, facts, checks, capture, `braid accept <number>`, then unwatch it and hand over the new head once its CI is green.
+3. Take the PR through "Accept and hand over" as a story of the braid's tier: review, facts, checks, capture, `braid accept <number>`; keep the watch until the new head is green, then unwatch it and hand that head over.
 4. Wait for the user, unless the preset let you merge it. The merge finishes the goal: don't commit or open a PR after it.
 
 ## Talking to the user
@@ -185,7 +195,7 @@ A goal, when every strand is Done on the braid branch:
 - **The question tool** (AskUserQuestion in Claude Code, a pending request in T3) asks only when the turn ends waiting for the user alone. It never replaces the message: first the open request, then the full message in chat as the step asks (the recap, the plan, the proposal, the stop with its case and source), and only then the question, as the turn's last call. The question carries just its context line and what is asked. Write nothing for after it: text after the call reaches the user only once they have answered. While agents or CI still run for you (a sweep proposal while strands go on under the preset, a planning PR whose checks are pending), ask in chat with the open request instead: a pending question holds every watch wake and worker report until the user answers.
 - **Options.** Offer the option set of the stop's kind below, recommended first, each label 1 to 5 words; the tool adds "Other" for free text. A host without the tool, or a question in chat, gets the same options as a numbered question with lettered answers and your recommendation. If an answer is a value such as a path, say where it will be stored.
 - **A reply to an open request** (an option, "Other", a chat reply after a dismissed dialog, the board's merge message): first `braid answer <id> --log -`, then act; a new question means a new `braid ask`.
-- **Say "waiting" only when something will wake you:** a PR watch, a background command you wait on (`braid wait`), or a thread you wait on. Otherwise say what you will do when the user next writes.
+- **Say "waiting" only when something will wake you:** only the worker's message, a PR watch on the planning, final or accepted story PR, a `delegate_task` result, or, within this turn, a `t3_thread_wait` on a worker thread or a foreground `braid wait` running now. Otherwise say what you will do when the user next writes.
 
 The option sets, and what you do next on each answer:
 

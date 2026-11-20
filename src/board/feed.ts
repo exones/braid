@@ -93,6 +93,8 @@ export interface Feed {
   refresh(fetch?: boolean): Promise<void>;
   /** Resolves once there is something to answer with: after a fresh read when `fresh`, else after the first read; never later than the timeout. */
   ready(fresh: boolean): Promise<void>;
+  /** Resolves once no read runs and none is queued (a read that timed out still runs until it ends, because its children do). */
+  idle(): Promise<void>;
   /** Stops: a read still running stores nothing and sends no pushes. */
   close(): void;
 }
@@ -174,6 +176,11 @@ export function feed(src: Sources, options: FeedOptions): Feed {
     error: () => (good === undefined ? (error ?? new Error(`${src.repo}: not read yet`)) : undefined),
     refresh,
     ready: (fresh) => Promise.race([fresh ? refresh(true) : good !== undefined || failure !== null ? Promise.resolve() : first, wait(timeoutMs)]),
+    idle: async () => {
+      while (running !== undefined || queued !== undefined) {
+        await (queued?.done ?? running);
+      }
+    },
     close: () => {
       closed = true;
     },

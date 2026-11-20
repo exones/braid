@@ -1,7 +1,7 @@
 ---
 id: '0049/G'
 title: "Merge main into the braid branch"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: ['0049/D']
 order: 50
@@ -37,7 +37,7 @@ Expected size: the merge, plus about 40 lines of resolution in 2-3 files.
 
 ## Completion
 
-- [ ] `origin/main` merged with every conflict resolved, and both main's and this braid's behaviour kept
-- [ ] A test that `close()` waits for every project's read
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `origin/main` merged with every conflict resolved, and both main's and this braid's behaviour kept
+- [x] A test that `close()` waits for every project's read
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

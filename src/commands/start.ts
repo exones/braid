@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import type { BranchRef } from "../braids/branches.js";
 import { closeRequest } from "../braids/requests.js";
-import { repoNameOf, workFolder, worktreesDir } from "../braids/worktrees.js";
+import { normPath, repoNameOf, workFolder, worktreesDir } from "../braids/worktrees.js";
 import { UsageError } from "./braids.js";
 import { notReady, read, type Sources, type World } from "./coordinate.js";
 
@@ -84,6 +84,12 @@ export async function startCommand(root: string, args: readonly string[], src: S
   const w = await read(root, number, "start", src);
   const t = target(w, letter);
   const id = letter === null ? number : `${number}/${letter}`;
+  const folder = join(worktreesDir(env), repoName(root), t.folder);
+  // A retry: the item is already started as asked, so say so before the ready check (its branch is pushed now).
+  const again = alreadyStarted(root, id, tip(w.refs.filter((r) => r.number === number && r.letter === letter)), folder, letter === null ? undefined : tip(w.refs.filter((r) => r.number === number && r.letter === null)));
+  if (again !== null) {
+    return again;
+  }
   if (t.why !== null && !force) {
     throw new UsageError(`${id} is not ready: ${t.why} (--force starts it anyway)`);
   }
@@ -94,7 +100,7 @@ export async function startCommand(root: string, args: readonly string[], src: S
     throw new UsageError(`${id} already has the branch ${own1.branch}; nothing was created`);
   }
   if (own1 !== undefined) {
-    return startOnExisting(root, id, own1, join(worktreesDir(env), repoName(root), t.folder));
+    return startOnExisting(root, id, own1, folder);
   }
 
   // The base: a strand starts from its braid's branch tip, a story from main.
@@ -111,7 +117,6 @@ export async function startCommand(root: string, args: readonly string[], src: S
   }
   const commit = must(root, ["rev-parse", "--verify", `${base}^{commit}`], `can't read ${base}`);
 
-  const folder = join(worktreesDir(env), repoName(root), t.folder);
   if (existsSync(folder)) {
     throw new UsageError(`${folder} already exists; nothing was created`);
   }
@@ -140,4 +145,45 @@ function startOnExisting(root: string, id: string, ref: BranchRef, folder: strin
   closeRequest(root, id);
   const commit = must(folder, ["rev-parse", "HEAD"], "can't read the new worktree");
   return `branch ${name} (existing)\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n`;
+}
+
+/** The worktrees git knows: folder, checked-out branch (without `refs/heads/`) and HEAD. */
+function worktrees(root: string): { path: string; branch: string | null; head: string }[] {
+  return git(root, ["worktree", "list", "--porcelain"])
+    .stdout.split(/\r?\n\r?\n/)
+    .map((block) => {
+      const line = (key: string) => new RegExp(`^${key} (.*)$`, "m").exec(block)?.[1]?.trim() ?? null;
+      return { path: line("worktree") ?? "", branch: line("branch")?.replace(/^refs\/heads\//, "") ?? null, head: line("HEAD") ?? "" };
+    })
+    .filter((x) => x.path !== "");
+}
+
+/**
+ * A second `braid start`: when the item's branch is checked out in the worktree folder `start` would make, and that
+ * branch is at or after its base, there is nothing to do and it says so. A branch checked out anywhere else, or on
+ * other commits, fails and says what was found. No branch, or a branch without a worktree, is left to the normal start.
+ * A strand's branch must contain the braid branch's tip. A story has no base check: `main` moves on while it runs.
+ */
+function alreadyStarted(root: string, id: string, own: BranchRef | undefined, folder: string, braidTip: BranchRef | undefined): string | null {
+  if (own === undefined) {
+    return null;
+  }
+  const name = own.local ? own.branch : own.branch.slice(own.branch.indexOf("/") + 1);
+  const at = worktrees(root).find((x) => x.branch === name);
+  if (at === undefined) {
+    return null;
+  }
+  if (normPath(at.path) !== normPath(folder)) {
+    throw new UsageError(`${id} already has the branch ${name}, checked out in a worktree at ${at.path}, not in ${folder}; nothing was created`);
+  }
+  if (braidTip !== undefined) {
+    const base = git(root, ["rev-parse", "--verify", "--quiet", `${braidTip.branch}^{commit}`]).stdout.trim();
+    if (base !== "" && git(root, ["merge-base", "--is-ancestor", base, at.head]).status !== 0) {
+      throw new UsageError(`${id} already has the branch ${name} in ${folder}, at ${at.head}, which does not contain its base ${braidTip.branch} (${base}); nothing was created`);
+    }
+  }
+  return `branch ${name} (already started)
+commit ${at.head}
+folder ${isAbsolute(folder) ? folder : resolve(folder)}
+`;
 }

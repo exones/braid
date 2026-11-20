@@ -2,13 +2,13 @@
 // PR is merged, and of merged planning branches (`plan/<slug>`). A dry run unless `--yes`. It never forces and keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
 // changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay.
 import { spawnSync } from "node:child_process";
-import { existsSync, realpathSync, renameSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, renameSync } from "node:fs";
+import { join } from "node:path";
 import { loadLiveBraids } from "../braids/branches.js";
 import { UsageError } from "./braids.js";
 import { readGithub, runGh, type Github } from "../board/github.js";
 import { read, type Sources } from "./coordinate.js";
-import { reviewFolder } from "../braids/worktrees.js";
+import { normPath as norm, reviewFolder } from "../braids/worktrees.js";
 import { dropReviews, loadReviews } from "../braids/reviews.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
 import { repoName, worktreesDir } from "./start.js";
@@ -34,16 +34,6 @@ function worktrees(root: string): Worktree[] {
   return out;
 }
 
-const norm = (p: string): string => {
-  let real = resolve(p);
-  try {
-    real = realpathSync.native(real);
-  } catch {
-    // a folder that is gone keeps its plain path
-  }
-  const slashed = real.replace(/\\/g, "/").replace(/\/$/, "");
-  return process.platform === "win32" ? slashed.toLowerCase() : slashed;
-};
 
 /** Whether the folder can be renamed and back: on Windows a process using it as working directory prevents that. */
 function free(folder: string): boolean {

@@ -99,9 +99,10 @@ test("start refuses a strand that is not ready and --force starts it", async () 
   assert.ok(existsSync(join(wt, "proj", "0001-C", "BRAID.md")));
 });
 
-test("start refuses a strand whose branch exists, and an existing folder, creating nothing", async () => {
+test("start refuses a strand whose branch exists without its worktree, and an existing folder, creating nothing", async () => {
   const { root, env, wt } = repo();
   await startCommand(root, ["1/B"], src(), env);
+  git(root, "worktree", "remove", join(wt, "proj", "0001-B"));
   await assert.rejects(startCommand(root, ["0001/B", "--force"], src(), env), /already has the branch/);
   mkdirSync(join(wt, "proj", "0001-C"), { recursive: true });
   await assert.rejects(startCommand(root, ["0001/C", "--force"], src(), env), /already exists/);
@@ -346,4 +347,43 @@ test("clean removes a merged plan/ branch and its clean worktree, and skips a di
   assert.ok(existsSync(join(wt, "plan-dirty")));
   assert.equal(gone(root, "plan/dirty"), false);
   assert.equal(gone(root, "plan/open"), false);
+});
+
+test("a second start of a strand says already started and creates nothing", async () => {
+  const { root, env, wt } = repo();
+  const first = await startCommand(root, ["0001/B"], src(), env);
+  const before = git(root, "worktree", "list", "--porcelain");
+  // Without --force: the pushed branch would make a fresh start look not ready.
+  const second = await startCommand(root, ["0001/B"], src(), env);
+  const folder = join(wt, "proj", "0001-B");
+  assert.equal(second, first.replace("braid/0001/B-second-one", "braid/0001/B-second-one (already started)"));
+  assert.equal(git(root, "worktree", "list", "--porcelain"), before);
+  // Work on the branch is still "at or after" the base.
+  git(folder, "commit", "-q", "--allow-empty", "-m", "work");
+  assert.equal(await startCommand(root, ["0001/B"], src(), env), `branch braid/0001/B-second-one (already started)\ncommit ${git(folder, "rev-parse", "HEAD")}\nfolder ${folder}\n`);
+});
+
+test("a second start of a planned story says already started", async () => {
+  const { root, env, wt } = repo(false);
+  git(root, "push", "-q", "origin", "main:refs/heads/braid/0002-story");
+  git(root, "fetch", "-q", "origin");
+  await startCommand(root, ["0002"], src(), env);
+  git(root, "commit", "-q", "--allow-empty", "-m", "main moves on");
+  const folder = join(wt, "proj", "0002");
+  assert.equal(await startCommand(root, ["0002"], src(), env), `branch braid/0002-story (already started)\ncommit ${git(folder, "rev-parse", "HEAD")}\nfolder ${folder}\n`);
+  // A story made by start itself, then started again.
+  const b = repo(false);
+  await startCommand(b.root, ["0002"], src(), b.env);
+  assert.match(await startCommand(b.root, ["0002"], src(), b.env), /^branch braid\/0002-story \(already started\)/);
+});
+
+test("a start whose branch is in another folder or off its base fails and says what it found", async () => {
+  const a = repo();
+  git(a.root, "branch", "braid/0001/B-second-one");
+  git(a.root, "worktree", "add", "-q", join(a.wt, "elsewhere"), "braid/0001/B-second-one");
+  await assert.rejects(startCommand(a.root, ["0001/B"], src(), a.env), /already has the branch braid\/0001\/B-second-one, checked out in a worktree at .*elsewhere, not in .*0001-B; nothing was created/);
+  const b = repo();
+  await startCommand(b.root, ["0001/B"], src(), b.env);
+  git(join(b.wt, "proj", "0001-B"), "reset", "-q", "--hard", "HEAD~1");
+  await assert.rejects(startCommand(b.root, ["0001/B"], src(), b.env), /does not contain its base braid\/0001-alpha/);
 });

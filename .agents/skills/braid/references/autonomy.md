@@ -24,13 +24,13 @@ The evidence is the same in every preset: no preset, exception or tier waives co
 1. Post a PR comment with the commit, the review link, the checks, the four sources' cases with how each was decided, and "merged by braid under the `<preset>` preset".
 2. Merge with `braid accept <id> --head <sha> --review <link> --thread <your thread id> --merge --preset` (for a strand add `--log -` with the braid's log entry). It checks the preset's `merge` and conditions 2, 4, 5 and 7 again, merges and stamps Done.
 3. Tell the user in one line, and do "After the merge" in the skill. A merge you make runs no handover or recap, so check the inbox here: read the `Inbox:` line of `braid list` (or the draft of `braid recap <id>`). At 3 or more open leftovers, propose the sweep as the skill's "Sweep" says, on the braid's number, while the strands go on, in chat with lettered answers and not with the question tool, since a pending question would hold the next worker's report and PR wakes until the user answers, unless a sweep proposal is already open (an open request on the braid) or a sweep story is pending, in which case a later proposal adds to it as the skill's "Sweep" step 4 says.
-4. After a strand's merge, before the next item, wait for the braid branch's CI on the merge: run `braid wait <number>` as a background command, and before ending the turn wait on it with the host's wait for background commands (in T3, `t3_background_wait` with `taskIds` set to a list holding the background command's task id), so its end wakes you. It waits on the newest commit with changes outside `braids/` and `epics/`, so the Done stamp after the merge doesn't count. Exit 0: CI is green, go on. Exit 1: a `ci` check failed (the output names it); follow "Fixes" in the skill. Exit 2: no answer (timeout, no run appeared, or an error; the output says which); `braid ask <number> "<the output>"` and stop.
+4. After a strand's merge, before the next item, wait for the braid branch's CI on the merge: run `braid wait <number> --timeout 9` in the foreground (under 10 minutes a call, at least 5 because the 5-minute no-run clock restarts per call), with nothing else running meanwhile. It waits on the newest commit with changes outside `braids/` and `epics/`, so the Done stamp after the merge doesn't count. Exit 0: CI is green, go on. Exit 1: a `ci` check failed (the output names it); follow "Fixes" in the skill. Exit 3: still running at the limit; call it again. Exit 2: no answer (no run appeared within 5 minutes, or an error; the output says which); `braid ask <number> "<the output>"` and stop.
 
 A PR outside `merge` goes to the user with the skill's handover.
 
 ## Continuing
 
-With `continue: yes`, start the next ready item, and a pending sweep story, without a go. With `continue: no`, ask for the go first.
+With `continue: yes`, start the next ready item without a go, and a pending sweep story by launching its own coordinator thread (the skill's "Plan", step 0) without a go. With `continue: no`, ask for the go first.
 
 ## Deciding
 
