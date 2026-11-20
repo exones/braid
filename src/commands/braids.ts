@@ -105,6 +105,9 @@ function fields(brief: Brief): string[] {
   if (brief.delivery !== null) {
     lines.push(`Delivery: ${brief.delivery}`);
   }
+  if (brief.autonomy !== null) {
+    lines.push(`Autonomy: ${brief.autonomy}`);
+  }
   return lines;
 }
 

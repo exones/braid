@@ -15,9 +15,12 @@ import { nextCommand, statusCommand } from "./commands/coordinate.js";
 import { cleanCommand } from "./commands/clean.js";
 import { startCommand } from "./commands/start.js";
 import { acceptCommand } from "./commands/done.js";
+import { waitCommand } from "./commands/wait.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
 import { answerCommand, askCommand, handoverCommand, requestsCommand, reviewCommand } from "./commands/requests.js";
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
+import { autonomyCommand } from "./commands/autonomy.js";
+import { decisionsCommand } from "./commands/decisions.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
 export function readVersion(): string {
@@ -46,7 +49,8 @@ export function helpText(version: string): string {
     "  new <title>                 Create a braid with the next free number",
     "  strand new <braid> <title>  Create a strand with the next free letter",
     "  title <id> --role <role>    Print the thread title for an item: <emoji> <repo> <id> <role>: <title> (role coordinator, worker, review or research)",
-    "  edit <id>                   Change --status, --title, --labels, --dep, --related, --order, --delivery (none clears a list or the order)",
+    "  edit <id>                   Change --status, --title, --labels, --dep, --related, --order, --delivery, --autonomy (none clears a list, the order or the preset)",
+    "  autonomy <number>           Print the autonomy preset a braid runs on, where its name and text come from, and the brief's ## Autonomy section (--list: the presets available here)",
     "  brief <id> <section>        Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
@@ -56,7 +60,9 @@ export function helpText(version: string): string {
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id> [--force]        Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
     "  review <id> --thread <id>   Record a reviewer subagent's thread with the folder and branch T3 gives for it: the board and status show the review while it runs, clean removes that checkout after the merge",
-    "  accept <id> [--head <sha>] [--merge]  Accept an item and mark it Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first), a story or final PR on its branch (--log adds a braid log entry, --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
+    "  decisions <number> [--since <date or sha>]  List the Decided: log entries of a braid and its strands, oldest first",
+    "  accept <id> [--head <sha>] [--merge [--preset]]  Accept an item and mark it Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first; --preset makes it a merge under the braid's autonomy preset, refused unless the preset's merge value allows this PR), a story or final PR on its branch (--log adds a braid log entry, --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
+    "  wait <number> [--timeout <minutes>]  Wait for the braid branch's CI on its newest commit outside braids/ and epics/ (reads only): exit 0 green, 1 a ci check failed, 2 timeout (default 30), no run or an error",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case",
     "  recap <id>                  A draft recap and braid log line from report.md, the PR (head, checks) and the facts, to edit",
     "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints the recap draft (--thread)",
@@ -80,7 +86,7 @@ export function helpText(version: string): string {
     "  --version                   Print the version",
     "  --help                      Show this help",
     "",
-    "new and strand new also take --status, --labels, --dep, --order, --related and --delivery (braids),",
+    "new and strand new also take --status, --labels, --dep, --order, --related, --delivery and --autonomy (braids),",
     "--slug, and --no-fetch (skip git fetch before choosing the number or letter).",
     "",
   ].join("\n");
@@ -97,10 +103,14 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
+const BRAID_COMMANDS = new Set(["autonomy", "decisions", "note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
+    case "autonomy":
+      return autonomyCommand(root, args);
+    case "decisions":
+      return decisionsCommand(root, args);
     case "note":
       return noteCommand(root, cwd, args);
     case "inbox":
@@ -231,6 +241,23 @@ async function main(argv: readonly string[]): Promise<void> {
       }
       if (error instanceof FormatError) {
         process.stderr.write(`error: ${error.file}: ${error.message}\n`);
+        process.exitCode = 2;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "wait") {
+    // The exit code is the answer, so an error is 2 (no answer), never 1 (CI failed).
+    try {
+      const out = await waitCommand(findRoot(process.cwd()), argv.slice(1));
+      process.stdout.write(out.stdout);
+      process.exitCode = out.code;
+    } catch (error) {
+      if (error instanceof UsageError || error instanceof GitError || error instanceof FormatError) {
+        process.stderr.write(`error: ${error instanceof FormatError ? `${error.file}: ` : ""}${error.message}
+`);
         process.exitCode = 2;
         return;
       }

@@ -2,7 +2,7 @@
 gate: <command that must pass before every PR, run from the repository root>
 main: main
 ci: []
-auto: "<optional: allowed>"
+autonomy: "<optional: the preset braids run on; careful if absent>"
 shell: "pwsh 7 or bash; <optional: other shell facts>"
 setup: "<optional: run first in a new worktree, for example npm ci>"
 test: "<optional: focused test command, for example npx vitest run <file>>"
@@ -23,7 +23,7 @@ Facts agents need and can't guess. Keep it short; general engineering practice d
 
 - Items are braids in `braids/`, kept with the `braid` CLI that the braid skills' installer installs. Edit briefs and reports directly, then run `braid check`. `.gitignore` holds `braids/**/temp/`.
 - `ci`: check names that must be green on a PR. `[]` means every reported check; `none` means the project has no hosted CI, and the gate run before the PR is the evidence.
-- `auto: allowed`: the user may switch on auto mode for a goal, where the coordinator merges its strand PRs into the braid branch itself; absent means not allowed. Never with `ci: none`.
+- `autonomy`: the [autonomy preset](../references/autonomy.md) a braid runs on unless its brief names one: `careful` (the default: the coordinator merges and decides nothing by itself), `steady`, `free`, or the project's `autonomy/<name>.md`; `braid autonomy --list` names them. A preset that merges needs real CI (`ci` not `none`).
 - `run`: how agents start the app to try it or take screenshots. Leave it out if there is nothing to run.
 - `models`: `provider / model-id / key=value, ...`, with the exact IDs and option names the host lists (in T3: `orchestrator_capabilities`). Options left out mean host defaults. `<role>.<tier>` (tier: S, M, L) is the model for items of that tier, `<role>.<kind>` (kind: story, task, spike) for that kind of item, and a plain `<role>` for every item; the tier key wins over the kind key, so a tier L spike uses `L`. `skill <name>` after the options names a skill the agent must use.
 - Real user data: <where the app keeps it>. Agents never touch it; a brief may allow a read-only look.
