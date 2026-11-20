@@ -135,6 +135,8 @@ A folder that isn't a working braid project would show an empty board, so the bo
 
 T3 not running is not one of them: it keeps its own note in the header. T3 not knowing the main checkout is not checked yet: the `t3` CLI has no project list, and `t3 thread list --project <folder>` prints `[]` for a folder T3 doesn't know just as for a project with no threads (see the log of 0049/A).
 
+`braid projects add|list` print the same problems for each project in this machine's [project list](braids-format.md#the-project-list) (`~/.braid/projects.json`), with GitHub unchecked. The board still serves only the repository it runs in; one board for every listed project comes with 0049/C.
+
 ## Refresh
 
 The server reads GitHub, T3, the braids and the inbox in the background, never inside a request, and keeps the latest complete result as a **snapshot**. `/api/board` and `/api/item` answer from it, so opening an item costs no `gh` or `t3` call, and `gh` runs without blocking the server (a static file is served while it runs). A snapshot is stored only when every source has been read; before the first one exists a request waits for it, and a failed read of the braids is stored as the error the page shows. Reads run one at a time: a refresh asked for while one runs queues exactly one more read, however many asks come.
