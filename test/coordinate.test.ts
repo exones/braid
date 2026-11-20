@@ -53,7 +53,7 @@ function repo(strands: Strand[], ci = "[verify (ubuntu-latest), verify (windows-
   };
   const brief = (id: string, status: string, deps = "", order = "", labels = "") =>
     `---\nid: '${id}'\ntitle: "T ${id}"\nstatus: ${status}\nlabels: [${labels}]\ndependencies: [${deps}]\n${order}---\n\n## Goal\n\nx\n`;
-  put("BRAID.md", `---\nci: ${ci}\n---\n`);
+  put("BRAID.md", `---\ngate: x\nmain: main\nci: ${ci}\nmodels: {}\n---\n`);
   put("braids/0001-a/brief.md", brief("0001", "In Progress"));
   for (const s of strands) {
     const deps = (s.deps ?? []).map((d) => `'${d}'`).join(", ");

@@ -1,7 +1,7 @@
 ---
 id: '0049/A'
 title: "Project readiness check"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 10
@@ -27,7 +27,7 @@ Expected size: about 250 lines in 6 files, with tests.
   - no `braids/` (and `backlog/` found: run `braid import-backlog`);
   - `BRAID.md` missing, or its front matter unreadable or missing `gate`, `main`, `ci` or `models`;
   - `braid check` errors;
-  - T3 doesn't know the main checkout: compare it with T3's project list (each project's workspace root), not with an empty `t3 thread list`, which also means a known project with no threads;
+  - T3 doesn't know the main checkout: not checked. The `t3` CLI exposes no project list (`t3 project` has only add, remove and rename), and `t3 thread list --project <folder>` prints `[]` both for a known project with no threads and for an existing folder T3 doesn't know; its threads carry a `projectId` but no folder. The user agreed to drop the check: the `t3` CLI gives no project folder, so even a partial check can't fire. A full check needs `t3 project list --json`.
   - GitHub unreadable (`gh` missing, not authenticated, or the repository unknown).
   T3 not running stays the board's existing note, not a readiness problem.
 - `braid board`: the snapshot carries the readiness problems; the page shows them in a note above the lanes, in the T3-down note's style; startup prints one line per problem.
@@ -38,7 +38,7 @@ Expected size: about 250 lines in 6 files, with tests.
 ## Already decided
 
 - No new stored state: readiness is computed at each read.
-- T3 unknown is decided against T3's project list, never from an empty thread list (review of 0045, leftover 2026-11-20-flmj).
+- T3 unknown is never decided from an empty thread list (review of 0045, leftover 2026-11-20-flmj).
 - A project with problems is still served: the board shows what it can read plus the note.
 
 ## Out of scope
@@ -48,9 +48,15 @@ Expected size: about 250 lines in 6 files, with tests.
 
 ## Completion
 
-- [ ] A folder with `backlog/` and no `braids/` shows a note on the board and a line in `braid status` naming `braid import-backlog`
-- [ ] Missing or incomplete `BRAID.md`, `braid check` errors, a main checkout T3 doesn't know, and unreadable GitHub each show their own note and line; a T3 project with no threads shows none
-- [ ] A test per problem, with `t3` and `gh` stubbed
-- [ ] `docs/board.md` and `docs/cli.md` describe the note and the lines
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A folder with `backlog/` and no `braids/` shows a note on the board and a line in `braid status` naming `braid import-backlog`
+- [x] Missing or incomplete `BRAID.md`, `braid check` errors, and unreadable GitHub each show their own note and line; a T3 project with no threads shows none (the T3 check is not built, see Change)
+- [x] A test per problem, with `gh` stubbed
+- [x] `docs/board.md` and `docs/cli.md` describe the note and the lines
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `src/braids/readiness.ts`: `readiness(folder, github)` returns problems (no braids/, BRAID.md, braid check, GitHub from the read the caller already made).
+2. Board: `problems` in `BoardData`, note above the lanes, startup lines, `--demo-not-ready`. `braid status`: lines before the strands.
+3. Tests in `test/readiness.test.ts`; docs in `docs/board.md`, `docs/cli.md`.

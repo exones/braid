@@ -78,7 +78,7 @@ export function helpText(version: string): string {
     "  inbox drop <entry>... --why <reason>  Drop entries with a reason",
     "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
-    "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port)",
+    "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port)",
     "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends one, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
     "  help                        Show this help",
     "",
@@ -232,7 +232,7 @@ async function main(argv: readonly string[]): Promise<void> {
   if (argv[0] === "board") {
     try {
       // The demo reads no repository, so it does not look for one.
-      await runBoard(argv.includes("--demo") || argv.includes("--demo-t3-down") ? process.cwd() : findRoot(process.cwd()), argv.slice(1));
+      await runBoard(argv.includes("--demo") || argv.includes("--demo-t3-down") || argv.includes("--demo-not-ready") ? process.cwd() : findRoot(process.cwd()), argv.slice(1));
     } catch (error) {
       if (error instanceof UsageError) {
         process.stderr.write(`error: ${error.message}\n`);
