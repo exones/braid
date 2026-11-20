@@ -30,7 +30,7 @@ A PR outside `merge` goes to the user with the skill's handover.
 
 ## Continuing
 
-With `continue: yes`, start the next ready item, and a pending sweep story, without a go. With `continue: no`, ask for the go first.
+With `continue: yes`, start the next ready item without a go, and a pending sweep story by launching its own coordinator thread (the skill's "Plan", step 0) without a go. With `continue: no`, ask for the go first.
 
 ## Deciding
 
