@@ -4,15 +4,19 @@ import { ROLES } from "../../src/braids/roles.ts";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, pushedAfter, type Route } from "../../src/board/route.ts";
+import { filterSearch, parseFilter, toggleProject } from "../../src/board/filter.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
-import { postAction, useBoard, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type BoardData, type InboxData, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard } from "./api.ts";
+import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
 let pushedOpen = false;
 
+/** Whether several projects are served: only then an item's address carries its project (`#/p/<name>/0003`). Set by `App`. */
+let severalProjects = false;
+
 /** Opens an item's details. From the bare board it adds a history entry; inside open details it replaces, so one Back closes them. */
-export function go(id: string, tab = "brief"): void {
-  const target = hashFor(id, tab);
+export function go(id: string, tab = "brief", project: string | null = null): void {
+  const target = hashFor(id, tab, severalProjects ? project : null);
   if (openMode(location.hash) === "push") {
     pushedOpen = true;
     location.hash = target;
@@ -219,6 +223,57 @@ const EMOJI_BUTTON = "text-[13px] leading-none max-md:text-xl";
 /** The label shown on a phone only; desktop buttons are icon-only with a tooltip. */
 const Label = ({ children }: { children: ReactNode }) => <span className="md:hidden">{children}</span>;
 
+/** The project the item being drawn belongs to: every action sends it. */
+const ProjectContext = createContext("");
+
+/** The projects served (in served order) and whether the page tells them apart; one project served looks as it always did. */
+interface Scope {
+  readonly projects: ReadonlyMap<string, { readonly info: ProjectInfo; readonly index: number }>;
+  /** More than one project is served: items are addressed with their project and the project block shows. */
+  readonly several: boolean;
+  /** More than one project is shown: cards and inbox entries carry a project tag. */
+  readonly tagged: boolean;
+}
+const ScopeContext = createContext<Scope>({ projects: new Map(), several: false, tagged: false });
+
+/** Placeholder tag colours, by position in the project list (the design stays open to a colour per project later). */
+const TAG_COLOURS = [
+  { dot: "bg-indigo-600", text: "text-indigo-700", border: "border-indigo-200" },
+  { dot: "bg-teal-600", text: "text-teal-700", border: "border-teal-200" },
+  { dot: "bg-pink-700", text: "text-pink-800", border: "border-pink-200" },
+  { dot: "bg-orange-600", text: "text-orange-700", border: "border-orange-200" },
+  { dot: "bg-cyan-600", text: "text-cyan-700", border: "border-cyan-200" },
+  { dot: "bg-lime-600", text: "text-lime-800", border: "border-lime-300" },
+] as const;
+const colourOf = (index: number) => TAG_COLOURS[index % TAG_COLOURS.length] ?? TAG_COLOURS[0];
+
+/** How old a snapshot is, as "12 s", "14 min" or "3 h". */
+function ageOf(ms: number | null): string {
+  if (ms === null) {
+    return "";
+  }
+  const s = Math.round(ms / 1000);
+  return s < 60 ? `${s} s` : s < 3600 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`;
+}
+
+/** A project's name with its colour; a ⚠ when its latest read failed (the card shows the older board). */
+function ProjectTag({ name }: { name: string }) {
+  const entry = useContext(ScopeContext).projects.get(name);
+  const c = colourOf(entry?.index ?? 0);
+  const failed = entry?.info.failure != null;
+  return (
+    <span
+      data-project-tag={name}
+      title={failed ? `Reading ${name} failed ${ageOf(entry.info.ageMs)} ago: this is its older board` : undefined}
+      className={`inline-flex items-center gap-1 rounded-full border bg-white px-1.5 text-[11px] font-semibold ${c.text} ${c.border}`}
+    >
+      <span className={`size-2 flex-none rounded-full ${c.dot}`} />
+      {name}
+      {failed && <span aria-label="read failed" className="font-bold text-red-700">⚠</span>}
+    </span>
+  );
+}
+
 /** Whether the server says this page came over Tailscale (`remote` in the board data), not from the local board. */
 const RemoteContext = createContext(false);
 
@@ -230,6 +285,7 @@ const RemoteContext = createContext(false);
  */
 function OpenThread({ id, link, role = null, coordinator = false, idea = false }: { id: string; link: string | null; role?: ThreadRole | null; coordinator?: boolean; idea?: boolean }) {
   const remoteBoard = useContext(RemoteContext);
+  const project = useContext(ProjectContext);
   const [error, setError] = useState<string | null>(null);
   if (link === null) {
     return null;
@@ -257,7 +313,7 @@ function OpenThread({ id, link, role = null, coordinator = false, idea = false }
           onClick={(e) => {
             e.stopPropagation();
             setError(null);
-            postAction("open", idea ? { idea: id } : coordinator ? { id, thread: "coordinator" } : { id }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
+            postAction("open", idea ? { project, idea: id } : coordinator ? { project, id, thread: "coordinator" } : { project, id }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
           }}
           className={`${BUTTON} ${app === null ? "" : "max-md:hidden"} ${error === null ? tone : "border-red-600 text-red-700"} bg-white hover:border-blue-600`}
         >
@@ -292,11 +348,13 @@ const CHECK_MARK = { passing: "text-green-600", failing: "text-red-600", pending
  * the checks aren't green, or the coordinator was already asked for this head.
  */
 function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
+  const project = useContext(ProjectContext);
+  const key = `${project}/${id}`;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [asked, setAsked] = useState(readAsked);
-  const sent = merge?.head == null ? undefined : asked[id]?.head === merge.head ? asked[id] : undefined;
+  const sent = merge?.head == null ? undefined : asked[key]?.head === merge.head ? asked[key] : undefined;
   const reason = merge === null ? "no open review request" : sent !== undefined ? `asked the coordinator at ${sent.at}; waiting for it to merge` : merge.reason;
   const confirm = async () => {
     if (merge?.head == null) {
@@ -305,8 +363,8 @@ function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
     setBusy(true);
     setError(null);
     try {
-      await postAction("merge", { id, head: merge.head });
-      const next = { ...readAsked(), [id]: { head: merge.head, at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) } };
+      await postAction("merge", { project, id, head: merge.head });
+      const next = { ...readAsked(), [key]: { head: merge.head, at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) } };
       sessionStorage.setItem(ASKED_KEY, JSON.stringify(next));
       setAsked(next);
       setOpen(false);
@@ -398,6 +456,7 @@ interface Launched {
  * Off, with `Start: <reason>` in the tooltip, when T3 isn't reachable, the braid isn't To Do or a coordinator runs.
  */
 function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; onLaunched?: (l: Launched) => void }) {
+  const project = useContext(ProjectContext);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -406,7 +465,7 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
     setBusy(true);
     setError(null);
     try {
-      const l = await postAction<Launched>("start", { id });
+      const l = await postAction<Launched>("start", { project, id });
       setLaunched(l);
       onLaunched?.(l);
       setOpen(false);
@@ -516,15 +575,18 @@ function PrLink({ pr }: { pr: PullRequest | null }) {
   );
 }
 
-function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
+function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
+  const scope = useContext(ScopeContext);
   const [open, setOpen] = useState(false);
   const [launched, setLaunched] = useState<Launched | null>(null);
   const tier = braid.labels.filter((l) => l.startsWith("tier:"));
+  const stale = scope.projects.get(braid.project)?.info.failure != null;
   return (
+    <ProjectContext value={braid.project}>
     <div
       data-opens-details
-      className="mb-2 cursor-pointer rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm hover:border-blue-600"
-      onClick={() => go(braid.id)}
+      className={`mb-2 cursor-pointer rounded-lg border bg-white p-2.5 shadow-sm hover:border-blue-600 ${stale ? "border-dashed border-slate-300" : "border-slate-200"}`}
+      onClick={() => go(braid.id, "brief", braid.project)}
     >
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-xs text-slate-500"><Id id={braid.id} /></span>
@@ -532,6 +594,7 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
         {tier.map((l) => (
           <Badge key={l}>{l}</Badge>
         ))}
+        {scope.tagged && <ProjectTag name={braid.project} />}
         <PrLink pr={braid.pr} />
         <Marks marks={cardMarks(braid, details)} />
         <span className="flex-1" />
@@ -571,7 +634,7 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
               className="flex flex-wrap items-center gap-1.5 py-1 text-[13px] hover:underline"
               onClick={(e) => {
                 e.stopPropagation();
-                go(s.id);
+                go(s.id, "brief", braid.project);
               }}
             >
               <LaneDot lane={s.lane} />
@@ -593,6 +656,7 @@ function Card({ braid, details }: { braid: BraidCard; details: boolean }) {
         <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.total === 0 ? braid.thread : null} threadRole={braid.threadRole} coordinator={braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
       </div>
     </div>
+    </ProjectContext>
   );
 }
 
@@ -607,7 +671,7 @@ function Chevron({ open }: { open: boolean }) {
 }
 
 /** The header chip: the open counts; it opens the Inbox page. */
-function InboxChip({ inbox, on }: { inbox: InboxData; on: boolean }) {
+function InboxChip({ inbox, on }: { inbox: MergedInbox; on: boolean }) {
   const zero = inbox.leftovers.length === 0 && inbox.ideas.length === 0;
   return (
     <a
@@ -630,6 +694,7 @@ function Title({ text }: { text: string }) {
 
 /** Promote to Braid: opens the confirmation; on confirm the server launches a coordinator thread that plans a braid from the idea. */
 function PromoteButton({ entry, expected, base, onLaunched }: { entry: InboxEntry; expected: string | null; base: string; onLaunched: () => void }) {
+  const project = useContext(ProjectContext);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -638,7 +703,7 @@ function PromoteButton({ entry, expected, base, onLaunched }: { entry: InboxEntr
     setBusy(true);
     setError(null);
     try {
-      setLaunched(await postAction<Launched & { base: string; branch: string }>("promote", { id: entry.id }));
+      setLaunched(await postAction<Launched & { base: string; branch: string }>("promote", { project, id: entry.id }));
       onLaunched();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -718,10 +783,34 @@ function IdeaActions({ entry, expected, base }: { entry: InboxEntry; expected: s
   return <PromoteButton entry={entry} expected={expected} base={base} onLaunched={() => setStarted(true)} />;
 }
 
-function InboxRow({ entry, expected, base }: { entry: InboxEntry; expected: string | null; base: string }) {
+/** An inbox entry with the project it is from. */
+type TaggedEntry = InboxEntry & { readonly project: string };
+
+/** The open entries of the projects shown, each tagged with its project (`note` is the first project's, for its name). */
+interface MergedInbox {
+  readonly leftovers: readonly TaggedEntry[];
+  readonly ideas: readonly TaggedEntry[];
+  readonly notes: readonly string[];
+}
+
+function mergeInbox(infos: readonly ProjectInfo[]): MergedInbox {
+  const tag = (project: string, list: readonly InboxEntry[]): TaggedEntry[] => list.map((e) => ({ ...e, project }));
+  return {
+    leftovers: infos.flatMap((i) => tag(i.name, i.inbox?.leftovers ?? [])),
+    ideas: infos.flatMap((i) => tag(i.name, i.inbox?.ideas ?? [])),
+    notes: infos.flatMap((i) => (i.inbox?.note == null ? [] : [i.inbox.note])),
+  };
+}
+
+function InboxRow({ entry }: { entry: TaggedEntry }) {
+  const scope = useContext(ScopeContext);
+  const meta = scope.projects.get(entry.project)?.info.inbox;
+  const expected = meta?.expected ?? null;
+  const base = meta?.base ?? "origin/main";
   const [open, setOpen] = useState(false);
   const preview = entry.kind === "idea" ? entry.text.split("\n").find((l) => l.trim() !== "") ?? "" : "";
   return (
+    <ProjectContext value={entry.project}>
     <div className="mb-2 rounded-lg border border-slate-200 bg-white shadow-sm" data-entry={entry.id}>
       <div className="flex items-start max-md:flex-wrap max-md:pb-2">
         <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 rounded-lg bg-transparent px-2.5 py-2 text-left hover:bg-slate-50 max-md:basis-full">
@@ -729,6 +818,7 @@ function InboxRow({ entry, expected, base }: { entry: InboxEntry; expected: stri
           <span className="min-w-0 flex-1">
             <span className="block font-semibold"><Title text={entry.title} /></span>
             <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+              {scope.tagged && <ProjectTag name={entry.project} />}
               {entry.kind === "leftover" && entry.from !== null && <span className="rounded-full bg-indigo-50 px-1.5 font-mono text-[11px] text-indigo-800"><Id id={entry.from} /></span>}
               {entry.passed > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[11px] text-amber-800" title="A sweep proposed it and you passed it over; at 2 it is dropped">passed over ×{entry.passed}</span>}
               {entry.age !== null && <span className="whitespace-nowrap">{entry.age} ago</span>}
@@ -750,10 +840,11 @@ function InboxRow({ entry, expected, base }: { entry: InboxEntry; expected: stri
         </div>
       )}
     </div>
+    </ProjectContext>
   );
 }
 
-function InboxColumn({ title, entries, note, empty, expected, base }: { title: string; entries: readonly InboxEntry[]; note?: string; empty: ReactNode; expected: string | null; base: string }) {
+function InboxColumn({ title, entries, note, empty }: { title: string; entries: readonly TaggedEntry[]; note?: string; empty: ReactNode }) {
   return (
     <section aria-label={title} className="rounded-xl bg-slate-200/70 p-3">
       <h2 className="mb-2.5 flex items-baseline gap-2 px-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
@@ -761,31 +852,29 @@ function InboxColumn({ title, entries, note, empty, expected, base }: { title: s
         {title}
         {note !== undefined && <small className="font-normal tracking-normal normal-case">{note}</small>}
       </h2>
-      {entries.length === 0 ? <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-[13px] text-slate-500">{empty}</div> : entries.map((e) => <InboxRow key={e.id} entry={e} expected={expected} base={base} />)}
+      {entries.length === 0 ? <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-[13px] text-slate-500">{empty}</div> : entries.map((e) => <InboxRow key={`${e.project}/${e.id}`} entry={e} />)}
     </section>
   );
 }
 
 /** The inbox: the open leftovers and ideas. An idea can be promoted to a braid; nothing else is written here. */
-function InboxPage({ inbox, expected, base }: { inbox: InboxData; expected: string | null; base: string }) {
+function InboxPage({ inbox }: { inbox: MergedInbox }) {
   return (
     <main className="max-w-[1200px] px-7 py-5">
       <a href="#/" className="text-[13px] text-blue-600 no-underline">← Board</a>
       <h1 className="text-xl font-bold">Inbox</h1>
       <p className="mb-2 max-w-[80ch] text-slate-500">Small findings agents left behind, and ideas you wrote down. Nothing here needs an answer now: leftovers are swept in one batch; an idea waits until you promote it to a braid, which launches a coordinator that plans it.</p>
       <p className="mb-3 text-xs text-slate-500">
-        Read from the local copy of <code>braid-inbox</code>; Refresh fetches the remote first.{inbox.note !== null && <b className="ml-1 text-amber-700">{inbox.note}.</b>}
+        Read from the local copy of <code>braid-inbox</code>; Refresh fetches the remote first.{inbox.notes.map((n) => <b key={n} className="ml-1 text-amber-700">{n}.</b>)}
       </p>
       <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
         <InboxColumn
-          expected={expected}
-          base={base}
           title="Leftovers"
           entries={inbox.leftovers}
           {...(inbox.leftovers.length >= SWEEP_DUE ? { note: "· sweep due" } : {})}
           empty={<><b className="block text-slate-900">No open leftovers.</b>Agents add them with <code>braid note "…" --from &lt;item&gt;</code>. A sweep is proposed at {SWEEP_DUE}.</>}
         />
-        <InboxColumn expected={expected} base={base} title="Ideas" entries={inbox.ideas} empty={<><b className="block text-slate-900">No ideas yet.</b>Write one down with <code>$braid-idea &lt;a sentence&gt;</code>.</>} />
+        <InboxColumn title="Ideas" entries={inbox.ideas} empty={<><b className="block text-slate-900">No ideas yet.</b>Write one down with <code>$braid-idea &lt;a sentence&gt;</code>.</>} />
       </div>
     </main>
   );
@@ -803,7 +892,8 @@ const dayOf = (iso: string | null): string => (iso === null ? "" : new Date(iso)
  * The Done lane: collapsed by default; opened, the 10 newest braids as rows, newest first by the day they became
  * Done, and Show more for the next 10.
  */
-function DoneLane({ cards }: { cards: readonly BraidCard[] }) {
+function DoneLane({ cards }: { cards: readonly TaggedCard[] }) {
+  const tagged = useContext(ScopeContext).tagged;
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState(DONE_PAGE);
   const rows = doneNewestFirst(cards);
@@ -815,9 +905,10 @@ function DoneLane({ cards }: { cards: readonly BraidCard[] }) {
       {open && (
         <div>
           {rows.slice(0, shown).map((b) => (
-            <button key={b.id} type="button" data-opens-details onClick={() => go(b.id)} className="flex w-full cursor-pointer items-center gap-2 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
+            <button key={`${b.project}/${b.id}`} type="button" data-opens-details onClick={() => go(b.id, "brief", b.project)} className="flex w-full cursor-pointer items-center gap-2 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
               <LaneDot lane="Done" />
               <span className="w-10 flex-none text-xs text-slate-500"><Id id={b.id} /></span>
+              {tagged && <ProjectTag name={b.project} />}
               <span className="min-w-0 flex-1">{b.title}</span>
               <span className="flex-none text-[11px] whitespace-nowrap text-slate-500">{dayOf(b.doneAt)}</span>
             </button>
@@ -837,7 +928,7 @@ function DoneLane({ cards }: { cards: readonly BraidCard[] }) {
  * The lanes. From `md` up all five stand side by side; on a phone a tab bar with counts shows one lane at a time
  * (Needs You first), and swiping left or right moves to the next or previous lane.
  */
-function Board({ data, details }: { data: BoardData; details: boolean }) {
+function Board({ data, details }: { data: { readonly lanes: readonly Lane[]; readonly braids: readonly TaggedCard[] }; details: boolean }) {
   const [active, setActive] = useState<Lane>(data.lanes[0] ?? "Waiting");
   const touch = useRef<{ x: number; y: number } | null>(null);
   const move = (by: number) => {
@@ -887,7 +978,7 @@ function Board({ data, details }: { data: BoardData; details: boolean }) {
                 <span className="flex items-center gap-1.5"><LaneDot lane={lane} />{LANE_LABEL[lane]}</span>
                 <span>{cards.length}</span>
               </h3>
-              {lane === "Done" ? <DoneLane cards={cards} /> : cards.map((b) => <Card key={b.id} braid={b} details={details} />)}
+              {lane === "Done" ? <DoneLane cards={cards} /> : cards.map((b) => <Card key={`${b.project}/${b.id}`} braid={b} details={details} />)}
             </section>
           );
         })}
@@ -897,6 +988,7 @@ function Board({ data, details }: { data: BoardData; details: boolean }) {
 }
 
 function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
+  const project = useContext(ProjectContext);
   const rows: [string, string][] = [
     ["Stored status", item.status],
     ["Branch", item.branch ?? "working tree"],
@@ -947,7 +1039,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           </div>
         )}
       </dl>
-      <Tabs.Root value={tab} onValueChange={(t) => go(item.id, t)}>
+      <Tabs.Root value={tab} onValueChange={(t) => go(item.id, t, project)}>
         <Tabs.List className="mb-3.5 flex gap-0.5 border-b border-slate-200">
           <Tabs.Trigger value="brief" className={trigger}>Brief</Tabs.Trigger>
           <Tabs.Trigger value="report" className={trigger}>Report</Tabs.Trigger>
@@ -988,11 +1080,12 @@ function Logs({ logs }: { logs: ItemDetail["logs"] }) {
 
 /** The braid's contents, a rail beside the details: the braid, its brief and one row per strand. */
 function Contents({ braid, current }: { braid: BraidCard; current: string }) {
+  const project = useContext(ProjectContext);
   const row = (id: string, label: ReactNode, title: string, strand: StrandCard | null) => (
     <button
       key={id}
       type="button"
-      onClick={() => go(id)}
+      onClick={() => go(id, "brief", project)}
       className={`mt-0.5 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-left hover:bg-slate-100 ${strand !== null ? "ml-3.5 w-[calc(100%-0.875rem)]" : "w-full"} ${current === id ? "bg-indigo-100 font-semibold" : ""}`}
     >
       {strand !== null && <LaneDot lane={strand.lane} />}
@@ -1018,9 +1111,12 @@ function Contents({ braid, current }: { braid: BraidCard; current: string }) {
  * The item's details: a panel over the right of the board (the whole screen below md). The board
  * stays mounted underneath; Esc, the close button, a click on the board and Back close it.
  */
-function DetailsPanel({ id, tab, tick }: { id: string; tab: string; tick: Tick }) {
-  const loaded = useItem(id, tick);
+function DetailsPanel({ id, tab, project, tick }: { id: string; tab: string; project: string; tick: Tick }) {
+  const scope = useContext(ScopeContext);
+  const loaded = useItem(id, project, tick);
+  const failure = scope.projects.get(project)?.info;
   return (
+    <ProjectContext value={project}>
     <Dialog.Root open modal={false} onOpenChange={(open) => { if (!open) closeDetails(); }}>
       <Dialog.Portal>
         <Dialog.Content
@@ -1037,9 +1133,15 @@ function DetailsPanel({ id, tab, tick }: { id: string; tab: string; tick: Tick }
         >
           <div className="flex flex-none items-center gap-2 border-b border-slate-200 px-7 py-2 max-md:px-4">
             <button type="button" onClick={closeDetails} className="cursor-pointer text-[13px] text-blue-700 md:hidden">← Board</button>
+            {scope.several && <ProjectTag name={project} />}
             <span className="flex-1" />
             <Dialog.Close aria-label="Close details" title="Close (Esc)" className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-base hover:border-blue-600 max-md:size-11">✕</Dialog.Close>
           </div>
+          {scope.several && failure?.failure != null && (
+            <div role="note" className="flex-none border-b border-red-200 bg-red-50 px-7 py-1.5 text-xs text-red-800 max-md:px-4">
+              <b>{project}: the latest read failed</b> ({failure.failure}). This is its board as of {ageOf(failure.ageMs) === "" ? "never" : `${ageOf(failure.ageMs)} ago`}; actions may be refused until a read succeeds.
+            </div>
+          )}
           <Status loaded={loaded}>
             {(item) => (
               <div className={`grid min-h-0 flex-1 ${item.braid.strands.length > 0 ? "grid-cols-[280px_minmax(0,1fr)] max-md:grid-cols-1 max-md:grid-rows-[auto_minmax(0,1fr)]" : ""}`}>
@@ -1051,6 +1153,7 @@ function DetailsPanel({ id, tab, tick }: { id: string; tab: string; tick: Tick }
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+    </ProjectContext>
   );
 }
 
@@ -1063,27 +1166,255 @@ function useDetails(): [boolean, (on: boolean) => void] {
   }];
 }
 
+const OPEN_KEY = "braid-projects-open";
+
+/** Whether the desktop Projects block is open: closed until clicked, then remembered in this browser (local storage). */
+function useProjectsOpen(): [boolean, (on: boolean) => void] {
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(OPEN_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  return [open, (on) => {
+    try {
+      localStorage.setItem(OPEN_KEY, on ? "1" : "0");
+    } catch {
+      // Private mode: the state still holds for this page.
+    }
+    setOpen(on);
+  }];
+}
+
+type Tone = "ok" | "nr" | "fail" | "none";
+
+/** What a project's line says about it: ready, not ready, a failed read (with how old its board is), or not read yet. */
+function readiness(info: ProjectInfo): { tone: Tone; text: string; age: string } {
+  const age = ageOf(info.ageMs);
+  if (info.failure !== null) {
+    return { tone: "fail", text: "Read failed", age: info.readAt === null ? "no board yet" : `board is ${age} old` };
+  }
+  if (info.problems.length > 0) {
+    return { tone: "nr", text: `Not ready · ${info.problems.length} problem${info.problems.length === 1 ? "" : "s"}`, age: age === "" ? "" : `read ${age} ago` };
+  }
+  if (info.readAt === null) {
+    return { tone: "none", text: "Not read yet", age: "" };
+  }
+  return { tone: "ok", text: "Ready", age: `read ${age} ago` };
+}
+
+const TONE: Record<Tone, string> = { ok: "text-green-800", nr: "text-amber-800", fail: "font-semibold text-red-800", none: "text-slate-500" };
+const TONE_MARK: Record<Tone, string> = { ok: "✓", nr: "▲", fail: "✕", none: "…" };
+const LANES_ORDER: readonly Lane[] = ["Waiting", "In Review", "In Progress", "To Do", "Done"];
+
+function ReadinessText({ info }: { info: ProjectInfo }) {
+  const r = readiness(info);
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs md:whitespace-nowrap ${TONE[r.tone]}`}>
+      <span aria-hidden>{TONE_MARK[r.tone]}</span>
+      {r.text}
+      {r.age !== "" && <span className="font-normal text-slate-500">· {r.age}</span>}
+    </span>
+  );
+}
+
+/** The five lane counts of a project. */
+function LaneCounts({ info }: { info: ProjectInfo }) {
+  return (
+    <span className="flex flex-wrap gap-1.5">
+      {LANES_ORDER.map((lane) => (
+        <span key={lane} className={`inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 text-[11.5px] ${info.counts[lane] === 0 ? "text-slate-400" : "text-slate-800"}`}>
+          <LaneDot lane={lane} />
+          <b>{info.counts[lane]}</b> {SHORT_LABEL[lane].toLowerCase()}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** The boxes under a project's line: a failed read and its readiness problems. */
+function ProjectNotes({ info }: { info: ProjectInfo }) {
+  return (
+    <>
+      {info.failure !== null && (
+        <div role="note" className="mb-1.5 ml-9 rounded-md border border-red-300 bg-red-50 px-2.5 py-1.5 text-xs text-red-800 max-md:ml-2">
+          <b>The latest read of {info.name} failed:</b> {info.failure}. {info.readAt === null ? "No board has been read yet." : `Showing the board read ${ageOf(info.ageMs)} ago; its cards have a dashed edge.`} The board retries every 30 s.
+        </div>
+      )}
+      {info.problems.length > 0 && (
+        <div role="note" aria-label={`${info.name} is not ready for braid`} className="mb-1.5 ml-9 rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900 max-md:ml-2">
+          <b>{info.name} is not ready for braid.</b> The board shows what it can read.
+          <ul className="mt-1 list-disc pl-5">
+            {info.problems.map((p) => (
+              <li key={p.key}>
+                {p.reason}: {p.todo}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** One project's line: tick it to show it, "only" to show just it. */
+function ProjectLine({ info, index, on, onToggle, onOnly, big = false }: { info: ProjectInfo; index: number; on: boolean; onToggle: () => void; onOnly: () => void; big?: boolean }) {
+  const c = colourOf(index);
+  return (
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-1.5 py-1 ${on ? "" : "opacity-55"} ${big ? "min-h-14" : "min-h-8"}`}>
+      <label className="flex min-w-[9rem] cursor-pointer items-center gap-2 font-bold">
+        <input type="checkbox" checked={on} onChange={onToggle} className={big ? "size-5" : "size-4"} />
+        <span className={`size-2.5 flex-none rounded-full ${c.dot}`} />
+        {info.name}
+      </label>
+      <LaneCounts info={info} />
+      <span className="flex-1" />
+      <ReadinessText info={info} />
+      <button type="button" onClick={onOnly} className={`cursor-pointer text-xs text-blue-700 ${big ? "min-h-11 px-2 text-sm font-semibold" : ""}`} aria-label={`Show only ${info.name}`}>only</button>
+    </div>
+  );
+}
+
+/** The projects with something to say: a failed read or a readiness problem. */
+const troubled = (infos: readonly ProjectInfo[]) => infos.filter((i) => i.failure !== null || i.problems.length > 0);
+
+/**
+ * The project filter. On a desktop a block that starts as one summary line (always naming a failed read or a project that
+ * isn't ready) and opens to one line per project; on a phone a picker above the lanes that opens a sheet.
+ */
+function ProjectsBar({ infos, selected, onSelect }: { infos: readonly ProjectInfo[]; selected: readonly string[]; onSelect: (next: string[]) => void }) {
+  const served = infos.map((i) => i.name);
+  const [open, setOpen] = useProjectsOpen();
+  const [sheet, setSheet] = useState(false);
+  const bad = troubled(infos);
+  const toggle = (name: string) => onSelect(toggleProject(selected, name, served));
+  return (
+    <>
+      <section aria-label="Projects" className="border-b border-slate-200 bg-white px-5 py-1.5 max-md:hidden">
+        <div className="flex items-center gap-2.5 text-xs text-slate-500">
+          <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-7 flex-1 cursor-pointer flex-wrap items-center gap-x-3 gap-y-0.5 text-left">
+            <b className="text-slate-900">Projects</b>
+            <span>{selected.length} of {infos.length} shown</span>
+            {bad.map((i) => (
+              <span key={i.name} data-problem={i.name} className={`inline-flex items-center gap-1.5 ${TONE[readiness(i).tone]} ${selected.includes(i.name) ? "" : "opacity-60"}`}>
+                <span className={`size-2 rounded-full ${colourOf(served.indexOf(i.name)).dot}`} />
+                {i.name}: {i.failure !== null ? "read failed" : "not ready"}
+              </span>
+            ))}
+            <span className="flex-1" />
+            <span className="text-blue-700">{open ? "▾ Hide projects" : "▸ Show projects"}</span>
+          </button>
+          {open && selected.length < infos.length && (
+            <button type="button" onClick={() => onSelect([...served])} className="cursor-pointer text-blue-700">Show all</button>
+          )}
+        </div>
+        {open && (
+          <div className="mt-1 border-t border-slate-100 pt-1">
+            {infos.map((info, index) => (
+              <div key={info.name}>
+                <ProjectLine info={info} index={index} on={selected.includes(info.name)} onToggle={() => toggle(info.name)} onOnly={() => onSelect([info.name])} />
+                <ProjectNotes info={info} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+      <div className="md:hidden">
+        <Dialog.Root open={sheet} onOpenChange={setSheet}>
+          <Dialog.Trigger asChild>
+            <button type="button" aria-label="Choose projects" className="mx-3.5 mt-2.5 flex min-h-12 w-[calc(100%-1.75rem)] cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-left text-[15px] font-bold">
+              <span className="flex gap-0.5">
+                {selected.map((n) => <span key={n} className={`size-2.5 rounded-full ${colourOf(served.indexOf(n)).dot}`} />)}
+              </span>
+              {selected.length === infos.length ? "All projects" : selected.join(" + ")}
+              <span className="ml-auto text-[13px] font-normal text-slate-500">{selected.length} of {infos.length} ▾</span>
+            </button>
+          </Dialog.Trigger>
+          {bad.filter((i) => selected.includes(i.name)).map((i) => (
+            <div key={i.name} role="note" className={`mx-3.5 mt-2 rounded-lg border-l-[3px] px-2.5 py-1.5 text-[12.5px] ${i.failure !== null ? "border-red-600 bg-red-50 text-red-800" : "border-amber-500 bg-amber-50 text-amber-900"}`}>
+              <b>{i.name}:</b> {i.failure !== null ? (i.readAt === null ? "read failed, no board yet" : `read failed, its board is ${ageOf(i.ageMs)} old`) : `not ready for braid · ${i.problems.length} problem${i.problems.length === 1 ? "" : "s"}`}
+            </div>
+          ))}
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/50" />
+            <Dialog.Content aria-describedby={undefined} className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white pb-4 shadow-[0_-8px_30px_rgba(0,0,0,0.25)]">
+              <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-300" />
+              <div className="flex items-center justify-between px-5 pt-2">
+                <Dialog.Title className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Projects</Dialog.Title>
+                {selected.length < infos.length && <button type="button" onClick={() => onSelect([...served])} className="min-h-11 cursor-pointer text-[13px] font-semibold text-blue-700">Show all</button>}
+              </div>
+              <div className="px-3">
+                {infos.map((info, index) => (
+                  <div key={info.name} className="border-t border-slate-100 first:border-0">
+                    <ProjectLine info={info} index={index} big on={selected.includes(info.name)} onToggle={() => toggle(info.name)} onOnly={() => onSelect([info.name])} />
+                    <ProjectNotes info={info} />
+                  </div>
+                ))}
+              </div>
+              <Dialog.Close className="mx-5 mt-3 block min-h-12 w-[calc(100%-2.5rem)] cursor-pointer rounded-xl bg-blue-700 text-[15px] font-semibold text-white">
+                Show {selected.length === infos.length ? "all" : selected.length} project{selected.length === 1 ? "" : "s"}
+              </Dialog.Close>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      </div>
+    </>
+  );
+}
+
+/** The projects shown: the address's `?projects=` (every project without it), kept in the address when changed. */
+function useSelected(served: readonly string[]): [string[], (next: string[]) => void] {
+  const [search, setSearch] = useState(location.search);
+  useEffect(() => {
+    const onChange = () => setSearch(location.search);
+    addEventListener("popstate", onChange);
+    return () => removeEventListener("popstate", onChange);
+  }, []);
+  const selected = parseFilter(search, served);
+  return [
+    selected,
+    (next) => {
+      const query = filterSearch(next, served);
+      history.replaceState(null, "", `${location.pathname}${query}${location.hash}`);
+      setSearch(query);
+    },
+  ];
+}
+
 export function App() {
   const route = useRoute();
   const [details, setDetails] = useDetails();
   const { tick, refresh } = useTick();
-  const board = useBoard(tick);
-  const notes =
-    board.state === "ready"
-      ? [
-          // Unreadable GitHub is a readiness problem, shown once in the banner below.
-          board.data.t3.state === "unavailable" ? `T3 unavailable (${board.data.t3.reason}): no agent states` : null,
-        ].filter((n) => n !== null)
-      : [];
+  const all = useAll(tick);
+  const infos = all.state === "ready" ? all.data.projects : [];
+  const served = infos.map((i) => i.name);
+  const [selected, setSelected] = useSelected(served);
+  const several = infos.length > 1;
+  severalProjects = several;
+  const scope: Scope = {
+    projects: new Map(infos.map((info, index) => [info.name, { info, index }])),
+    several,
+    tagged: several && selected.length > 1,
+  };
+  const shown = infos.filter((i) => selected.includes(i.name));
+  const board = all.state === "ready" ? { lanes: all.data.lanes, braids: all.data.braids.filter((b) => selected.includes(b.project)) } : null;
+  const inbox = mergeInbox(shown);
+  // One project served keeps the page as it was: its notes in the header, its problems in a banner.
+  const single = infos.length === 1 ? infos[0] : undefined;
+  const notes = shown.flatMap((i) => (i.t3?.state === "unavailable" ? [`T3 unavailable (${i.t3.reason})${several ? ` for ${i.name}` : ""}: no agent states`] : []));
+  const project = route.project ?? selected[0] ?? served[0] ?? null;
   return (
-    <RemoteContext value={board.state !== "ready" || board.data.remote}>
+    <RemoteContext value={all.state !== "ready" || all.data.remote}>
+    <ScopeContext value={scope}>
     <Tooltip.Provider>
       <div className="min-h-screen bg-slate-100 text-sm text-slate-900">
         <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-white px-5 py-2.5">
           <b className="text-base" title="Each braid sits in the lane where it needs you most.">braid · attention board</b>
-          {board.state === "ready" && <span className="text-slate-500 max-md:hidden">Each braid sits in the lane where it needs you most. · {board.data.repo} · braids/</span>}
+          {single !== undefined && <span className="text-slate-500 max-md:hidden">Each braid sits in the lane where it needs you most. · {single.repo} · braids/</span>}
+          {several && <span className="text-slate-500 max-md:hidden">Each braid sits in the lane where it needs you most.</span>}
           <span className="flex-1" />
-          {board.state === "ready" && <InboxChip inbox={board.data.inbox} on={route.inbox} />}
+          {all.state === "ready" && <InboxChip inbox={inbox} on={route.inbox} />}
           <label className="flex cursor-pointer items-center gap-1.5 text-xs" title="Show the line on each card saying what is needed; off moves the text into the icon's tooltip">
             <input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details
           </label>
@@ -1098,11 +1429,12 @@ export function App() {
             Refresh
           </button>
         </header>
-        {board.state === "ready" && board.data.problems.length > 0 && (
+        {several && <ProjectsBar infos={infos} selected={selected} onSelect={setSelected} />}
+        {single !== undefined && single.problems.length > 0 && (
           <div role="note" aria-label="This project is not ready for braid" className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs text-amber-900">
             <b>This project is not ready for braid.</b> The board shows what it can read.
             <ul className="mt-1 list-disc pl-5">
-              {board.data.problems.map((p) => (
+              {single.problems.map((p) => (
                 <li key={p.key}>
                   {p.reason}: {p.todo}
                 </li>
@@ -1110,14 +1442,20 @@ export function App() {
             </ul>
           </div>
         )}
-        {route.inbox ? (
-          <Status loaded={board}>{(data) => <InboxPage inbox={data.inbox} expected={data.inbox.expected ?? null} base={data.inbox.base ?? "origin/main"} />}</Status>
-        ) : (
-          <Status loaded={board}>{(data) => <Board data={data} details={details} />}</Status>
+        {single !== undefined && single.failure !== null && (
+          <div role="note" aria-label="The latest read failed" className="border-b border-red-300 bg-red-50 px-5 py-2 text-xs text-red-800">
+            <b>The latest read failed:</b> {single.failure}. {single.readAt === null ? "No board has been read yet." : `This is the board read ${ageOf(single.ageMs)} ago.`}
+          </div>
         )}
-        {route.id !== null && <DetailsPanel id={route.id} tab={route.tab} tick={tick} />}
+        {route.inbox ? (
+          <Status loaded={all}>{() => <InboxPage inbox={inbox} />}</Status>
+        ) : (
+          <Status loaded={all}>{() => (board === null ? null : <Board data={board} details={details} />)}</Status>
+        )}
+        {route.id !== null && project !== null && <DetailsPanel id={route.id} tab={route.tab} project={project} tick={tick} />}
       </div>
     </Tooltip.Provider>
+    </ScopeContext>
     </RemoteContext>
   );
 }

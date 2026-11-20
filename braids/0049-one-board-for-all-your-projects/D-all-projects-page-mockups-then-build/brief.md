@@ -47,11 +47,18 @@ Expected size: about 500 lines in 5 files, plus the mockups.
 - Server changes beyond what the page needs to read: strand C owns the API.
 - The dark theme and the other board ideas in the inbox.
 
+## Plan
+
+1. Mockups on `--demo` data (all, one, two of three; project lines; card and panel; phone): done, approved 2026-11-20 with the selector collapsed by default (log-2026-11-20-user.md).
+2. Pure parts in `src/board/`: `route.ts` learns `#/p/<project>/<id>`, `filter.ts` reads and writes `?projects=`; tests for both.
+3. `web/src/api.ts` reads `/api/all` once and the page filters it; `App.tsx` gets the Projects block (summary line, opened lines, phone picker and sheet), project tags, the dashed edge and ⚠ for a failed read, the merged inbox, and the project in every action and item address.
+4. Screenshots from `braid board --demo`, `docs/board.md`, `docs/decisions.md` (D79).
+
 ## Completion
 
-- [ ] Mockups of the combined board and its project filter, for desktop and phone, approved by the user and logged
-- [ ] The built page matches them: combined board, project filter for one or several projects kept in the address, project lines with readiness, project tags on cards
-- [ ] Single-project routes and the one-project page work as before
-- [ ] Screenshots from `--demo` and `docs/board.md` updated
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockups of the combined board and its project filter, for desktop and phone, approved by the user and logged
+- [x] The built page matches them: combined board, project filter for one or several projects kept in the address, project lines with readiness, project tags on cards
+- [x] Single-project routes and the one-project page work as before
+- [x] Screenshots from `--demo` and `docs/board.md` updated
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

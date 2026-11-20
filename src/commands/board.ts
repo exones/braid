@@ -781,7 +781,7 @@ export function startBoardWith(
     if (url.pathname !== "/api/board" && url.pathname !== "/api/item") {
       return json(404, { error: "no such endpoint" });
     }
-    // No project: the first one, so the single-project page keeps working (strand 0049/D adds the combined page).
+    // No project: the first one (the page itself always names the project).
     const asked = url.searchParams.get("project");
     const name = asked ?? feeds.keys().next().value;
     const entry = name === undefined ? undefined : feeds.get(name);
