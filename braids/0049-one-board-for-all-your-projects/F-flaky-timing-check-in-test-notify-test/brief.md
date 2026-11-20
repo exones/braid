@@ -1,7 +1,7 @@
 ---
 id: '0049/F'
 title: "Flaky timing check in test/notify.test.ts"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S", "sweep"]
 dependencies: []
 order: 14
@@ -34,7 +34,11 @@ Expected size: about 40 lines in 1 or 2 files.
 
 ## Completion
 
-- [ ] No assertion in `test/notify.test.ts` depends on wall-clock timing
-- [ ] `test/notify.test.ts` passes 20 runs in a row with several copies running in parallel, and `report.md` gives the command used
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] No assertion in `test/notify.test.ts` depends on wall-clock timing
+- [x] `test/notify.test.ts` passes 20 runs in a row with several copies running in parallel, and `report.md` gives the command used
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Replace the one elapsed-time assertion (`performance.now() - began < 50`) with `calls === 0` right after the synchronous `notify` calls: the send starts in a later microtask, so this proves "returns without waiting" with no clock. The other timeouts only fire on a send that never settles, and no assertion compares time.
