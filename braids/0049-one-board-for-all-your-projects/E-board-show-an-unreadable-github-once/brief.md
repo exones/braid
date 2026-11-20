@@ -37,5 +37,5 @@ Expected size: about 40 lines in 4 files.
 
 - [x] With GitHub unreadable, the board shows one GitHub message and `braid status` prints one GitHub line, with a test for each
 - [x] The docs describe the single message
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
