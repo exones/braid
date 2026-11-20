@@ -30,3 +30,10 @@ In the 0045 thread the coordinator planned and ran 0049 and never renamed the th
 
 For later items: none.
 Needs the user: none.
+
+## After review
+
+- Ground rules' rename exception: the provisional title of Plan step 0.
+- New work found while a braid runs is a strand of that braid by default (a lone story turns into phases), in the same thread; "Grow and adjust" says so, with a separate braid only when `main` needs the fix on its own. The sweep story is its own braid, so Sweep step 3 hands it to a new coordinator thread. D76 records both.
+- Step 6.5 order: the recap (before the merge) may ask which follow-up to plan; the new thread is launched after the merge, and Merge on request now runs step 5 for a spike story.
+- The 0051 case (docs-gate fix, made a separate braid) is the example: `main`'s Windows gate had passed (run 44745907768), so a strand would have done.
