@@ -2,7 +2,7 @@
 id: '0040'
 title: "Autonomy presets: you choose what braid decides"
 status: In Progress
-labels: ["kind:story", "tier:L", "auto"]
+labels: ["kind:story", "tier:L"]
 dependencies: []
 related: ['0029']
 delivery: epic
@@ -47,9 +47,9 @@ All from the user, 2026-11-19, in the thread that planned this braid:
 ## Completion
 
 - [ ] A coordinator that merged a strand itself is woken when the braid branch's CI ends
-- [ ] One approval of a plan merges the planning PR and starts the first strand
-- [ ] A braid runs on a named preset, from its brief or the project default, and `braid autonomy` prints it
-- [ ] The coordinator merges and decides stop cases as the preset says, and its decisions show in the recap
-- [ ] No skill, doc or project file still describes auto mode as the way to delegate
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] One approval of a plan merges the planning PR and starts the first strand
+- [x] A braid runs on a named preset, from its brief or the project default, and `braid autonomy` prints it
+- [x] The coordinator merges and decides stop cases as the preset says, and its decisions show in the recap
+- [x] No skill, doc or project file still describes auto mode as the way to delegate
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
