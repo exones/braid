@@ -33,8 +33,8 @@ Expected size: about 350 lines in 12 files, over three strands.
 
 ## Completion
 
-- [ ] The coordinator skill sets no watch on an item PR and waits for the worker's report; it reads the item PR's checks once before the handover.
-- [ ] After a merge the coordinator made, it waits for the braid branch's CI in the foreground with a bounded `braid wait`, repeated while CI still runs; no skill tells an agent to wait on a background command.
-- [ ] The "Say waiting" rule lists only wakes that are reliable in T3.
-- [ ] `braid start` run again on a started item says so and exits 0.
-- [ ] The decision that replaces D71 is in `docs/decisions.md` with its reason.
+- [x] The coordinator skill sets no watch on an item PR and waits for the worker's report; it reads the item PR's checks once before the handover.
+- [x] After a merge the coordinator made, it waits for the braid branch's CI in the foreground with a bounded `braid wait`, repeated while CI still runs; no skill tells an agent to wait on a background command.
+- [x] The "Say waiting" rule lists only wakes that are reliable in T3.
+- [x] `braid start` run again on a started item says so and exits 0.
+- [x] The decision that replaces D71 is in `docs/decisions.md` with its reason.
