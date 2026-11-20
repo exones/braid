@@ -40,8 +40,8 @@ Expected size: about 600 lines in 12 files across two strands.
 
 ## Completion
 
-- [ ] With notifications set up and the board running, a new Needs You or To Review item reaches the phone once, and a board restart doesn't repeat it
-- [ ] A braid that becomes Done while the board runs sends one push
-- [ ] A braid between strands whose coordinator stopped without asking reads Needs You `stalled` and is notified
-- [ ] docs/board.md, docs/cli.md and docs/decisions.md describe notifications and the braid-level stall
-- [ ] The gate command from BRAID.md passes
+- [x] With notifications set up and the board running, a new Needs You or To Review item reaches the phone once, and a board restart doesn't repeat it
+- [x] A braid that becomes Done while the board runs sends one push
+- [x] A braid between strands whose coordinator stopped without asking reads Needs You `stalled` and is notified
+- [x] docs/board.md, docs/cli.md and docs/decisions.md describe notifications and the braid-level stall
+- [x] The gate command from BRAID.md passes
