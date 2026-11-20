@@ -19,7 +19,7 @@
   - `BRAID.md` says `autonomy: steady`.
   - The `AGENTS.md` merge limit follows the preset, and `main` stays the user's.
   - README, getting-started and decisions: D74 replaces D31's auto mode, and D28 and D31 point to it.
-- **Main merged once, before 0040/E.** Main had taken D65, D66, D67 and D69, so this braid's D65, D67 and D69 became D71, D72 and D73; D68 stayed. Main's question-tool option sets (D66) and reviewer subagents (D69) are kept alongside this braid's changes.
+- **Main merged twice: before 0040/E and before the final merge.** Main had taken D65, D66, D67 and D69, so this braid's D65, D67 and D69 became D70, D71 and D72; D68 stayed. A second merge of main before the final merge found D70 taken by 0044 (ntfy), so this braid's decisions are now D68 and D71 to D74. Main's question-tool option sets (D66) and reviewer subagents (D69) are kept alongside this braid's changes.
 
 ## Why
 
