@@ -4,9 +4,9 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { after, test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 // realpathSync.native expands Windows 8.3 short names (RUNNER~1 on CI), as Git does.
 const scratch = realpathSync.native(mkdtempSync(join(tmpdir(), "braid-projects-")));
@@ -147,7 +147,7 @@ test("remove takes a project off the list and refuses an unknown name", () => {
 });
 
 test("a corrupt list or an unknown version: every command reports it, and nothing rewrites it", () => {
-  for (const text of ["{ not json", `${JSON.stringify({ version: 2, projects: [] })}\n`, `${JSON.stringify({ version: 1, projects: [{ name: "x" }] })}\n`]) {
+  for (const text of ["{ not json", `${JSON.stringify({ version: 2, projects: [] })}\n`, `${JSON.stringify({ version: 1, projects: [{ name: "x" }] })}\n`, twicePath()]) {
     const home = fresh("h");
     mkdirSync(join(home, ".braid"), { recursive: true });
     writeFileSync(listFile(home), text);
@@ -182,4 +182,26 @@ test("list shows a project whose folder is gone as a problem, and still lists th
   assert.equal(r.code, 0, r.stderr);
   assert.match(r.stdout, /^gone {2}.*\n {2}problem: the folder no longer exists; run braid projects remove gone/m);
   assert.match(r.stdout, /^kept {2}.*\n {2}not ready: BRAID\.md is missing/m);
+});
+
+/** A list naming one folder twice, the second time with a trailing separator (and other case on Windows). */
+function twicePath(): string {
+  const same = join(scratch, "Same");
+  const again = `${process.platform === "win32" ? same.toLowerCase() : same}${sep}`;
+  return `${JSON.stringify({ version: 1, projects: [{ name: "a", path: same }, { name: "b", path: again }] })}\n`;
+}
+
+const { samePath } = (await import(pathToFileURL(fileURLToPath(new URL("../dist/projects/list.js", import.meta.url))).href)) as { samePath: (a: string, b: string) => boolean };
+
+test("samePath: one folder in its spellings is the same, two folders are not", () => {
+  const base = join(scratch, "Same");
+  assert.equal(samePath(base, `${base}${sep}`), true, "a trailing separator");
+  assert.equal(samePath(base, join(scratch, "x", "..", "Same")), true, "a .. segment");
+  assert.equal(samePath(base, join(scratch, "Other")), false);
+  if (process.platform === "win32") {
+    assert.equal(samePath("C:\\Code\\Agento", "c:/code/agento/"), true, "case, / for \\ and a trailing slash");
+    assert.equal(samePath("C:\\code\\agento", "C:\\code\\agento2"), false);
+  } else {
+    assert.equal(samePath("/src/Agento", "/src/agento"), false, "case counts outside Windows");
+  }
 });

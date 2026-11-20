@@ -94,12 +94,11 @@ export function readProjects(home: string = braidHome()): Project[] {
     throw new ProjectsFileError(`${file} has no projects list; fix or remove the file by hand`);
   }
   const list = projects.map((p, i) => entry(p, i, file));
-  const names = new Set<string>();
-  for (const p of list) {
-    if (names.has(p.name)) {
-      throw new ProjectsFileError(`${file} lists the name ${p.name} twice; fix the file by hand`);
+  for (const [i, p] of list.entries()) {
+    const twin = list.slice(0, i).find((q) => q.name === p.name || samePath(q.path, p.path));
+    if (twin !== undefined) {
+      throw new ProjectsFileError(`${file} lists ${twin.name === p.name ? `the name ${p.name}` : `the path ${p.path}`} twice; fix the file by hand`);
     }
-    names.add(p.name);
   }
   return list;
 }

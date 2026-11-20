@@ -153,7 +153,7 @@ Recovery. Every clone that wrote or fetched the inbox keeps a copy (`braid-inbox
 {
   "version": 1,
   "projects": [
-    { "name": "agento", "path": "C:\code\agento", "port": 4100 },
+    { "name": "agento", "path": "C:\\code\\agento", "port": 4100 },
     { "name": "site", "path": "/home/me/src/site" }
   ]
 }
@@ -162,7 +162,7 @@ Recovery. Every clone that wrote or fetched the inbox keeps a copy (`braid-inbox
 - `version`: 1. A file with another version is refused (update braid, or fix the file).
 - `projects`: in the order they were added. Each has a `name` (unique; 1 to 64 letters, digits, `.`, `_` and `-`; by default the main checkout's folder name), a `path` (the absolute path of the repository's main checkout, also when `add` ran in a worktree; unique, compared without case on Windows) and an optional `port` (1 to 65535, a fixed port for the board).
 - A missing file is an empty list; the first `add` creates it (and `~/.braid/`).
-- A file braid can't read (not JSON, another version, an entry without a valid name, absolute path or port, a name listed twice) is reported by every `braid projects` command with exit code 2, and nothing rewrites it.
+- A file braid can't read (not JSON, another version, an entry without a valid name, absolute path or port, a name or a path listed twice, paths compared as `add` compares them) is reported by every `braid projects` command with exit code 2, and nothing rewrites it.
 - Writes take turns under a lock file next to it (`projects.json.lock`, the same lock as [requests](#commands): exclusive create, a lock older than 30 s taken over by one waiter, giving up after 10 s), re-read the file, then write a temporary file and rename it over the list, so two `add` runs at once both keep their entry.
 - Item worktrees go to `~/braid-worktrees/<folder name>/` ([`braid start`](#commands)), so two projects whose main checkouts have the same folder name share that folder; `add` warns when this happens.
 
