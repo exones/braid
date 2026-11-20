@@ -15,7 +15,7 @@ interface Problem {
 }
 type Gh = { status: { state: "ok" } | { state: "unavailable"; reason: string }; prs: Map<string, unknown> };
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
-const { readiness } = (await load("../dist/braids/readiness.js")) as { readiness: (folder: string, github?: Gh) => Problem[] };
+const { readiness } = (await load("../dist/braids/readiness.js")) as { readiness: (folder: string, github: Gh | null) => Problem[] };
 const { readGithubAsync, resetGithubMemory } = (await load("../dist/board/github.js")) as {
   readGithubAsync: (root: string, run: (root: string, args: readonly string[]) => unknown, ttl: number) => Promise<Gh>;
   resetGithubMemory: () => void;
@@ -91,9 +91,57 @@ test("unreadable GitHub is a problem, whatever the reason", async () => {
   }
 });
 
-test("T3 is not part of readiness: no T3 problem exists (the CLI has no project list)", () => {
+test("GitHub is left unchecked only when the caller passes null", () => {
+  const down: Gh = { status: { state: "unavailable", reason: "gh is not installed or not on PATH" }, prs: new Map() };
   const root = project(ready());
-  assert.deepEqual(readiness(root, OK), []);
+  assert.deepEqual(keys(readiness(root, down)), ["github"]);
+  assert.deepEqual(readiness(root, null), []);
+});
+
+test("readiness never throws: a file it can't read is a problem", () => {
+  // `braids` is a file, and BRAID.md is a folder: reading either fails.
+  const root = project({ braids: "x" });
+  mkdirSync(join(root, "BRAID.md"));
+  const ps = readiness(root, OK);
+  assert.ok(ps.length >= 1);
+  assert.ok(ps.every((p) => p.reason !== "" && p.todo !== ""));
+  assert.ok(keys(ps).includes("braid-md"));
+});
+
+test("a malformed brief is a problem, not an error, and the board still serves", async () => {
+  resetGithubMemory();
+  resetT3Memory();
+  const root = project({ ...ready(), "braids/0002-b/brief.md": "not a brief" });
+  assert.deepEqual(keys(readiness(root, OK)), ["check"]);
+  const web = project({ "index.html": "<html></html>" });
+  const src = repoSources(root, () => ({ status: 0, stdout: "[]", stderr: "" }), () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }));
+  const { server, url } = await startBoardWith(src, web, 60_000);
+  try {
+    const res = await fetch(`${url}api/board`);
+    assert.equal(res.status, 200);
+    const board = (await res.json()) as { problems: Problem[] };
+    assert.deepEqual(keys(board.problems), ["check"]);
+  } finally {
+    server.closeAllConnections();
+    server.close();
+  }
+});
+
+test("braid status on backlog/ without braids/ names braid import-backlog instead of failing", async () => {
+  resetGithubMemory();
+  resetT3Memory();
+  const root = project({ "BRAID.md": GOOD, "backlog/tasks/t.md": "x" });
+  const out = await statusCommand(root, ["1"], { gh: () => ({ status: 0, stdout: "[]", stderr: "" }), t3: () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }) });
+  assert.match(out, /^not ready: it has backlog\/ but no braids\/; run braid import-backlog\n/);
+  assert.match(out, /no braid 0001/);
+});
+
+test("braid status on a malformed brief prints the problem too", async () => {
+  resetGithubMemory();
+  resetT3Memory();
+  const root = project({ ...ready(), "braids/0002-b/brief.md": "not a brief" });
+  const out = await statusCommand(root, ["1"], { gh: () => ({ status: 0, stdout: "[]", stderr: "" }), t3: () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }) });
+  assert.match(out, /^not ready: braid check reports 1 error/);
 });
 
 test("braid status prints a line per problem before the strand lines", async () => {

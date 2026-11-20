@@ -30,38 +30,52 @@ function braidMdKeys(file: string): Set<string> | string {
 
 /**
  * What stops `folder` from working as a braid project. A project with problems is still served; the list only says what to fix.
- * GitHub's state comes from the read the caller already made. T3 not running is not a problem here (the board has its own note).
+ * It never throws: a file it can't read is a problem too, so one broken project can't fail a caller that reads several.
+ * `github` is the caller's read of GitHub; pass `null` to leave GitHub unchecked. T3 not running is not a problem here (the board has its own note).
  */
-export function readiness(folder: string, github?: Github): Problem[] {
+export function readiness(folder: string, github: Github | null): Problem[] {
   const problems: Problem[] = [];
-  if (!existsSync(join(folder, "braids"))) {
-    problems.push(
-      existsSync(join(folder, "backlog"))
-        ? { key: "no-braids", reason: "it has backlog/ but no braids/", todo: "run braid import-backlog" }
-        : { key: "no-braids", reason: "it has no braids/ folder", todo: "plan a first braid with the braid skill (braid new)" },
-    );
-  }
-  const md = join(folder, "BRAID.md");
-  if (!existsSync(md)) {
-    problems.push({ key: "braid-md", reason: "BRAID.md is missing", todo: `add BRAID.md with front matter ${REQUIRED_KEYS.join(", ")}` });
-  } else {
+  const attempt = (key: ProblemKey, what: string, work: () => void): void => {
+    try {
+      work();
+    } catch (error) {
+      problems.push({ key, reason: `${what} can't be read (${error instanceof Error ? error.message : String(error)})`, todo: `fix the permissions or the file, then run braid check` });
+    }
+  };
+  attempt("no-braids", "braids/", () => {
+    if (!existsSync(join(folder, "braids"))) {
+      problems.push(
+        existsSync(join(folder, "backlog"))
+          ? { key: "no-braids", reason: "it has backlog/ but no braids/", todo: "run braid import-backlog" }
+          : { key: "no-braids", reason: "it has no braids/ folder", todo: "plan a first braid with the braid skill (braid new)" },
+      );
+    }
+  });
+  attempt("braid-md", "BRAID.md", () => {
+    const md = join(folder, "BRAID.md");
+    if (!existsSync(md)) {
+      problems.push({ key: "braid-md", reason: "BRAID.md is missing", todo: `add BRAID.md with front matter ${REQUIRED_KEYS.join(", ")}` });
+      return;
+    }
     const keys = braidMdKeys(md);
     if (typeof keys === "string") {
       problems.push({ key: "braid-md", reason: `BRAID.md is unreadable: ${keys}`, todo: "fix the front matter of BRAID.md" });
-    } else {
-      const missing = REQUIRED_KEYS.filter((k) => !keys.has(k));
-      if (missing.length > 0) {
-        problems.push({ key: "braid-md", reason: `BRAID.md has no ${missing.join(", ")} in its front matter`, todo: `add ${missing.join(", ")} to BRAID.md` });
-      }
+      return;
     }
-  }
+    const missing = REQUIRED_KEYS.filter((k) => !keys.has(k));
+    if (missing.length > 0) {
+      problems.push({ key: "braid-md", reason: `BRAID.md has no ${missing.join(", ")} in its front matter`, todo: `add ${missing.join(", ")} to BRAID.md` });
+    }
+  });
   if (existsSync(join(folder, "braids"))) {
-    const errors = checkBraids(folder).errors;
-    if (errors.length > 0) {
-      problems.push({ key: "check", reason: `braid check reports ${errors.length} error${errors.length === 1 ? "" : "s"} (first: ${errors[0] ?? ""})`, todo: "run braid check and fix them" });
-    }
+    attempt("check", "braids/", () => {
+      const errors = checkBraids(folder).errors;
+      if (errors.length > 0) {
+        problems.push({ key: "check", reason: `braid check reports ${errors.length} error${errors.length === 1 ? "" : "s"} (first: ${errors[0] ?? ""})`, todo: "run braid check and fix them" });
+      }
+    });
   }
-  if (github !== undefined && github.status.state !== "ok") {
+  if (github !== null && github.status.state !== "ok") {
     problems.push({ key: "github", reason: `GitHub can't be read (${github.status.reason})`, todo: "install gh, run gh auth login, and make sure this repository is on GitHub" });
   }
   return problems;

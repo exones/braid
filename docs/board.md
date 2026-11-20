@@ -126,11 +126,11 @@ The server reads the inbox again (fetching `braid-inbox`) and refuses with `Prom
 
 ## Not ready
 
-A folder that isn't a working braid project would show an empty board, so the board and `braid status` say what is wrong and what to do (`src/braids/readiness.ts`). Nothing is stored: the problems are computed at each read, and the board is still served with what it can read. The page shows them in a note above the lanes; startup prints one `not ready: <reason>; <what to do>` line per problem, and `braid status` prints the same lines before the strand lines. The problems:
+A folder that isn't a working braid project would show an empty board, so the board and `braid status` say what is wrong and what to do (`src/braids/readiness.ts`). Nothing is stored: the problems are computed at each read, and the board is still served with what it can read. The page shows them in a note above the lanes; startup prints one `not ready: <reason>; <what to do>` line per problem, and `braid status` prints the same lines before the strand lines (when it can't show a braid at all, for a folder with `backlog/` and no `braids/`, it prints the lines and why, instead of failing). Startup prints the lines of the first snapshot, so `gh` runs once. `readiness(folder, github)` never throws: a file it can't read is a problem, and `null` for `github` leaves GitHub unchecked. The problems:
 
 - no `braids/` folder (when `backlog/` exists: run `braid import-backlog`);
 - `BRAID.md` missing, its front matter unreadable, or missing `gate`, `main`, `ci` or `models`;
-- `braid check` reports errors;
+- `braid check` reports errors (a brief the loader can't read counts: the board is then served without braids, with the note instead of an error page);
 - GitHub can't be read (`gh` missing, not logged in, or the repository unknown).
 
 T3 not running is not one of them: it keeps its own note in the header. T3 not knowing the main checkout is not checked yet: the `t3` CLI has no project list, and `t3 thread list --project <folder>` prints `[]` for a folder T3 doesn't know just as for a project with no threads (see the log of 0049/A).

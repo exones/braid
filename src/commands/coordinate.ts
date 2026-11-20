@@ -11,6 +11,7 @@ import { toCard, type BraidCard, type Lane, type StrandCard } from "../board/mod
 import { problemLine, readiness } from "../braids/readiness.js";
 import { readSignals } from "../board/signals.js";
 import { readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
+import { FormatError } from "../braids/frontmatter.js";
 import { UsageError } from "./braids.js";
 
 export interface Sources {
@@ -130,9 +131,28 @@ export function unreadable(w: World, next: boolean): string {
   return out;
 }
 
+/**
+ * The world of `braid status`, or, when it can't be read (no braid, briefs the loader refuses) in a project with problems, the problem lines
+ * and why the status can't be shown, so a folder that isn't a braid project still hears what to do.
+ */
+async function readOrProblems(root: string, number: string, src: Sources): Promise<World | string> {
+  try {
+    return await read(root, number, "status", src);
+  } catch (error) {
+    const problems = readiness(root, null);
+    if (problems.length === 0 || !(error instanceof UsageError || error instanceof FormatError)) {
+      throw error;
+    }
+    return [...problems.map(problemLine), `braid status: ${error.message}`].map((l) => `${l}\n`).join("");
+  }
+}
+
 export async function statusCommand(root: string, args: readonly string[], src: Sources = {}): Promise<string> {
   const number = braidNumber(args, "status");
-  const w = await read(root, number, "status", src);
+  const w = await readOrProblems(root, number, src);
+  if (typeof w === "string") {
+    return w;
+  }
   const names = ciChecks(root);
   const out = [...readiness(root, w.github).map(problemLine), ...line(names, w, w.card, null), ...w.card.strands.flatMap((s) => line(names, w, s, s.id.slice(5)).map((l) => `  ${l}`))];
   if (w.github.status.state !== "ok") {

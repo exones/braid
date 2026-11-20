@@ -696,8 +696,18 @@ export function startBoardWith(
     github.catch(() => {}); // their failure is reported when they are awaited below
     t3.catch(() => {});
     try {
-      const braids = await timed("braids", () => src.braids());
       const [gh, threads] = [await github, await t3];
+      // Briefs the loader can't read (a malformed brief.md, a bad folder name) are readiness problems, and the board is served without them.
+      const braids = await timed("braids", async () => {
+        try {
+          return await src.braids();
+        } catch (error) {
+          if (src.readiness?.(gh).some((p) => p.key === "check") === true) {
+            return [];
+          }
+          throw error;
+        }
+      });
       const sig = await timed("signals", () => src.signals(gh));
       await timed("done dates", () => sig.prepare?.(braids));
       const inbox = await timed("inbox", () => src.inbox(fetch));
@@ -918,22 +928,30 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   if (!existsSync(join(webDir, "index.html"))) {
     throw new UsageError("the board page is not built; run npm run build");
   }
-  const started = demo ? await startBoardWith(demoSources(t3Down, notReady), webDir, REFRESH_MS, undefined, tailnet, fixedPort) : await startBoardWith({ ...repoSources(root, runGhAsync, runT3), notify: boardNotifier(root) }, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  // The problems printed at startup are the first snapshot's own: no second read of GitHub.
+  let firstProblems: (problems: Problem[]) => void = () => {};
+  const first = new Promise<Problem[]>((done) => {
+    firstProblems = done;
+  });
+  const own = demo ? demoSources(t3Down, notReady) : { ...repoSources(root, runGhAsync, runT3), notify: boardNotifier(root) };
+  const inner = own.readiness;
+  const src: Sources = inner === undefined ? own : { ...own, readiness: (github) => { const problems = inner(github); firstProblems(problems); return problems; } };
+  const started = await startBoardWith(src, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
   process.stdout.write(`braid board${demo ? " (demo: sample data; nothing is read or written)" : ""}: ${url}\n`);
   if (started.tailnet !== undefined && tailnet !== undefined) {
     process.stdout.write(`On Tailscale: ${started.tailnet.url}\nOnly ${tailnet.owner}'s own devices (no tagged nodes) may open it; Open thread there uses the T3 app on the phone.\n`);
   }
-  // One line per problem; GitHub is read here once more (cached for a moment) so its problem shows too.
-  const sources = demo ? demoSources(t3Down, notReady) : repoSources(root, runGhAsync, runT3);
-  for (const p of sources.readiness?.(await sources.github(false)) ?? []) {
-    process.stdout.write(`${problemLine(p)}
-`);
-  }
   process.stdout.write(demo ? "Notifications: none in the demo\n" : `${notifyLine(readConfig())}\n`);
   process.stdout.write("Press Ctrl+C to stop.\n");
   if (!args.includes("--no-open")) {
     openBrowser(url);
+  }
+  // One line per problem, once the first snapshot has read them.
+  if (inner !== undefined) {
+    for (const p of await first) {
+      process.stdout.write(`${problemLine(p)}\n`);
+    }
   }
 }
