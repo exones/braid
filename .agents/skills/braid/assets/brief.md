@@ -27,7 +27,7 @@ braid strand new 0012 'Title' --labels 'kind:task,tier:S' --order 10
 
 Expected size: about <N> lines in <K> files.
 
-For a spike, or a story that includes research, add under Change: look at <how wide: how many sources, of which kinds>, read each one rather than its title, and record each in `sources.md` in the item folder; name that file in Completion.
+For a spike, or a story that includes research, add under Change: look at <how wide: how many sources, of which kinds>, read each one rather than its title, record each in `sources.md` in the item folder in the [braid-researcher](../../braid-researcher/SKILL.md) source line format, and cite source ids (`[S1]`) for claims in `report.md`; name that file in Completion.
 
 ## Start here
 
@@ -51,7 +51,7 @@ For a spike, or a story that includes research, add under Change: look at <how w
 Only what the worker can do and prove; none for the reviewer, coordinator or user. A goal's own brief has no worker: its boxes cover the whole, and the coordinator ticks them at "Finish".
 
 - [ ] <first testable outcome>
-- [ ] Research items only: `sources.md` in the item folder (per source: link, how it was read (whole, part, search result only), what it says, adopted or not and why)
+- [ ] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
 ```
