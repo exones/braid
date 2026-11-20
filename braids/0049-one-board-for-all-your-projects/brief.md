@@ -49,9 +49,9 @@ Expected size: about 1,500 to 2,000 lines with tests, in four strands.
 
 ## Completion
 
-- [ ] With two projects listed, one `braid board` shows both in one combined board, and the project filter narrows it to one or several projects
-- [ ] Pushes for every listed project come from that one board, each titled with its project
-- [ ] A project that isn't ready shows why, on the board and in `braid status`
-- [ ] `braid board` in a project folder with no list works as before
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] With two projects listed, one `braid board` shows both in one combined board, and the project filter narrows it to one or several projects
+- [x] Pushes for every listed project come from that one board, each titled with its project
+- [x] A project that isn't ready shows why, on the board and in `braid status`
+- [x] `braid board` in a project folder with no list works as before
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
