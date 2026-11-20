@@ -1,7 +1,7 @@
 ---
 id: '0049/B'
 title: "Project list in ~/.braid/projects.json"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:architecture"]
 dependencies: ['0049/A']
 order: 20
