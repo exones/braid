@@ -99,12 +99,12 @@ test("exit 1 naming the failed checks, only after all have finished", async () =
   assert.equal(w.asked.length, 2);
 });
 
-test("exit 2 at the timeout while a check is still running", async () => {
+test("exit 3 at the timeout while a check is still running", async () => {
   const w = world();
   w.answers.set(w.code, [[done(NAMES[0]!, "success"), running(NAMES[1]!)]]);
   const r = await waitCommand(w.root, ["1", "--timeout", "10"], w.opts);
-  assert.equal(r.code, 2);
-  assert.match(r.stdout, /timed out after 10 minutes at [0-9a-f]{7} on braid\/0001-alpha; still running: verify \(windows-latest\)/);
+  assert.equal(r.code, 3);
+  assert.match(r.stdout, /still running after 10 minutes at [0-9a-f]{7} on braid\/0001-alpha; still running: verify \(windows-latest\); call braid wait 0001 again to continue on [0-9a-f]{7}\n$/);
   assert.equal(w.minutes(), 10);
 });
 
@@ -136,8 +136,8 @@ test("the timeout names a failed check next to one still running", async () => {
   const w = world();
   w.answers.set(w.code, [[done(NAMES[0]!, "failure"), running(NAMES[1]!)], null]);
   const r = await waitCommand(w.root, ["1", "--timeout", "2"], w.opts);
-  assert.equal(r.code, 2);
-  assert.match(r.stdout, /timed out after 2 minutes at [0-9a-f]{7} on braid\/0001-alpha; failed: verify \(ubuntu-latest\); still running: verify \(windows-latest\); GitHub could not be read at the last poll\n$/);
+  assert.equal(r.code, 3);
+  assert.match(r.stdout, /still running after 2 minutes at [0-9a-f]{7} on braid\/0001-alpha; failed: verify \(ubuntu-latest\); still running: verify \(windows-latest\); GitHub could not be read at the last poll; call braid wait 0001 again/);
 });
 
 test("a BRAID.md without ci names ends at once with exit 0", async () => {
@@ -204,4 +204,11 @@ test("the CLI exits 2 on an error, so 1 always means a failed check", () => {
   const r = spawnSync(process.execPath, [cli, "wait", "0001/A"], { cwd: w.root, encoding: "utf8" });
   assert.equal(r.status, 2);
   assert.match(r.stderr, /^error: usage: braid wait <number>/);
+});
+
+test("a short call before any run appeared is still running (3), not no answer (2)", async () => {
+  const w = world();
+  const r = await waitCommand(w.root, ["1", "--timeout", "1"], w.opts);
+  assert.equal(r.code, 3);
+  assert.match(r.stdout, /not started: verify \(ubuntu-latest\), verify \(windows-latest\)/);
 });
