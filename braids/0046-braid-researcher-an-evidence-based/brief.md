@@ -68,11 +68,11 @@ Look at about 6 sources on research method for agents and people (for example ev
 
 ## Completion
 
-- [ ] `.agents/skills/braid-researcher/SKILL.md` has the ten practices above and the result format, and says it never commits, pushes, edits the repository or launches agents
-- [ ] The coordinator and worker skills say when and how to launch a researcher subagent and where its findings and sources go; the spike paragraph points to the method
-- [ ] The brief template's `sources.md` format has source id, version and access date, and asks for claims to cite source ids
-- [ ] `BRAID.md` and `assets/braid-md.md` have the `researcher` role; getting-started, README and a decision record it
-- [ ] `test/pester/Install-Skills.Tests.ps1` expects `braid-researcher` and passes
-- [ ] `sources.md` in the item folder (per source: link, how it was read (whole, part, search result only), what it says, adopted or not and why)
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `.agents/skills/braid-researcher/SKILL.md` has the ten practices above and the result format, and says it never commits, pushes, edits the repository or launches agents
+- [x] The coordinator and worker skills say when and how to launch a researcher subagent and where its findings and sources go; the spike paragraph points to the method
+- [x] The brief template's `sources.md` format has source id, version and access date, and asks for claims to cite source ids
+- [x] `BRAID.md` and `assets/braid-md.md` have the `researcher` role; getting-started, README and a decision record it
+- [x] `test/pester/Install-Skills.Tests.ps1` expects `braid-researcher` and passes
+- [x] `sources.md` in the item folder (per source: link, how it was read (whole, part, search result only), what it says, adopted or not and why)
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

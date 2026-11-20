@@ -18,7 +18,7 @@ What changed:
 
 Why: braid's research reports mixed measured facts, things read, inferences and guesses without saying which. The method comes from the research round recorded below. The user reviewed the text in two rounds: the first draft was not approved, and the revised one was approved.
 
-Validation: `npm run verify` passed on the final head. That includes the Pester suites and the install test with `braid-researcher`. CI results are on the PR.
+Validation: `npm run verify` (quick: docs gate, typecheck, build, 383 Node tests) passed. `scripts/Test-Pester.ps1` passed 20 of 20, including the install test with `braid-researcher`. CI results are on the PR.
 
 Open: `AGENTS.md` "Where to look" doesn't list `braid-researcher`. The brief didn't include it, and `AGENTS.md` changes only at the user's request.
 
