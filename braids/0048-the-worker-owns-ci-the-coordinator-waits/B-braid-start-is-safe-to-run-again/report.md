@@ -1,6 +1,6 @@
 ## What changed
 
-`braid start <id>` can be run again. When the item's branch is already checked out in the worktree folder `start` would make (for a strand, at or after the braid branch's tip; for a story, sharing history with `main`), it creates and pushes nothing, prints the three lines with `branch <name> (already started)` and exits 0. The check runs before the ready check, because the pushed branch makes a started item look not ready. A branch checked out in another folder, or a strand branch that lacks its base, still fails and says what was found. A branch with no worktree keeps the old behaviour.
+`braid start <id>` can be run again. When the item's branch is already checked out in the worktree folder `start` would make (for a strand, at or after the braid branch's tip; a story has no base check), it creates and pushes nothing, prints the three lines with `branch <name> (already started)` and exits 0. The check runs before the ready check, because the pushed branch makes a started item look not ready. A branch checked out in another folder, or a strand branch that lacks its base, still fails and says what was found. A branch with no worktree keeps the old behaviour.
 
 ## Why
 
@@ -12,7 +12,9 @@ A coordinator whose session lost the result of `braid start` can retry without c
 
 ## Open
 
-For a story the base check is only "shares history with main", since main moves on while the story runs.
+A story has no base check, since `main` moves on while it runs.
+
+The path comparison in `start` and `clean` now shares one helper (`normPath` in `src/braids/worktrees.ts`).
 
 For later items: none
 Needs the user: none

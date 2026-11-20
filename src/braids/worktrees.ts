@@ -1,5 +1,6 @@
 // Where braid puts the worktrees it creates, and which item a worktree folder belongs to.
 import { spawnSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 
@@ -35,3 +36,15 @@ export function itemOfFolder(name: string): { key: string } | null {
   const m = /^(\d{4})(?:-([A-Z]))?$/.exec(name);
   return m === null ? null : { key: m[2] === undefined ? (m[1] ?? "") : `${m[1] ?? ""}/${m[2]}` };
 }
+
+/** A path in one comparable form: absolute, real (long names on Windows), forward slashes, lower case on Windows. */
+export const normPath = (p: string): string => {
+  let real = resolve(p);
+  try {
+    real = realpathSync.native(real);
+  } catch {
+    // a folder that is gone keeps its plain path
+  }
+  const slashed = real.replace(/\\/g, "/").replace(/\/$/, "");
+  return process.platform === "win32" ? slashed.toLowerCase() : slashed;
+};

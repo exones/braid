@@ -2,11 +2,11 @@
 // item's branch from its base, pushed, and a worktree for the worker. The first step that fails
 // stops it; nothing is rolled back beyond what was never created.
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import type { BranchRef } from "../braids/branches.js";
 import { closeRequest } from "../braids/requests.js";
-import { repoNameOf, workFolder, worktreesDir } from "../braids/worktrees.js";
+import { normPath, repoNameOf, workFolder, worktreesDir } from "../braids/worktrees.js";
 import { UsageError } from "./braids.js";
 import { notReady, read, type Sources, type World } from "./coordinate.js";
 
@@ -158,20 +158,11 @@ function worktrees(root: string): { path: string; branch: string | null; head: s
     .filter((x) => x.path !== "");
 }
 
-const same = (a: string, b: string): boolean => {
-  const norm = (p: string) => {
-    const r = existsSync(p) ? realpathSync.native(p) : resolve(p);
-    return process.platform === "win32" ? r.toLowerCase() : r;
-  };
-  return norm(a) === norm(b);
-};
-
 /**
  * A second `braid start`: when the item's branch is checked out in the worktree folder `start` would make, and that
  * branch is at or after its base, there is nothing to do and it says so. A branch checked out anywhere else, or on
  * other commits, fails and says what was found. No branch, or a branch without a worktree, is left to the normal start.
- * The base is the braid branch's tip for a strand. A story's base is `main`, which moves on while the story runs, so
- * for a story the branch only has to share history with it.
+ * A strand's branch must contain the braid branch's tip. A story has no base check: `main` moves on while it runs.
  */
 function alreadyStarted(root: string, id: string, own: BranchRef | undefined, folder: string, braidTip: BranchRef | undefined): string | null {
   if (own === undefined) {
@@ -182,7 +173,7 @@ function alreadyStarted(root: string, id: string, own: BranchRef | undefined, fo
   if (at === undefined) {
     return null;
   }
-  if (!same(at.path, folder)) {
+  if (normPath(at.path) !== normPath(folder)) {
     throw new UsageError(`${id} already has the branch ${name}, checked out in a worktree at ${at.path}, not in ${folder}; nothing was created`);
   }
   if (braidTip !== undefined) {
