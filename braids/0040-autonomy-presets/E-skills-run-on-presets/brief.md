@@ -1,7 +1,7 @@
 ---
 id: '0040/E'
 title: "Skills run on presets"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0040/A', '0040/B', '0040/D']
 order: 50
