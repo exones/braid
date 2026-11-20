@@ -40,7 +40,7 @@ Expected size: about 100 lines in 3 files.
 
 ## Completion
 
-- [ ] Running `braid start <id>` twice on a strand and on a planned story succeeds both times, the second printing "already started" with the branch, commit and folder; tests cover it.
-- [ ] A start that finds something else in the way still fails and names it; tests cover it.
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Running `braid start <id>` twice on a strand and on a planned story succeeds both times, the second printing "already started" with the branch, commit and folder; tests cover it.
+- [x] A start that finds something else in the way still fails and names it; tests cover it.
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
