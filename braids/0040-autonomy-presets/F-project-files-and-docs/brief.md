@@ -31,6 +31,16 @@ Expected size: about 90 lines in 7 files.
 - `docs/decisions.md`: a new decision for presets with its reasons (the thread review's numbers), and D28 and D31 changed to point to it where they describe auto mode.
 - `docs/roadmap.md` if it names auto mode or the unattended mode: one line.
 
+## Plan
+
+1. `BRAID.md`: `auto: allowed` → `autonomy: steady`; check with `braid autonomy 0040` (no preset of its own once the `auto` label is ignored) that it prints `steady` from `BRAID.md`.
+2. `AGENTS.md` hard limit on merges: the preset's `merge`, here `strands`; `main` stays the user's.
+3. `README.md`: the review bullet, the capability bullet, walk-through step 5, the getting-started pointers; images unchanged (their text doesn't name auto mode).
+4. `docs/getting-started.md`: the `autonomy` key; "Merging and autonomy presets" replaces "Merging and auto mode": merges on request, choosing a preset for a project and for one braid, writing your own, hold, the planning PR paragraph kept.
+5. `docs/decisions.md`: D73 replaces D31's auto mode (reasons: the thread review's numbers); D31 keeps merge on request and points to D73; D28 points to D73; a log line.
+6. Small leftovers in docs that still say auto mode (`docs/board.md`, `docs/autonomy.md` careful line); `docs/roadmap.md` names neither, so it stays.
+7. Gate, report, PR.
+
 ## Already decided
 
 - This repository's default is `steady`: goals here have run in auto mode since 0009, and the user asked for the coordinator to make the evident decisions itself.
@@ -44,9 +54,9 @@ Expected size: about 90 lines in 7 files.
 
 ## Completion
 
-- [ ] `BRAID.md` names `autonomy: steady` and `braid autonomy` on a braid without its own preset prints it
-- [ ] `AGENTS.md`, the README and `docs/getting-started.md` name presets and no longer auto mode
-- [ ] `docs/decisions.md` has the new decision, and D28 and D31 point to it
-- [ ] Every link the docs gate checks resolves
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `BRAID.md` names `autonomy: steady` and `braid autonomy` on a braid without its own preset prints it
+- [x] `AGENTS.md`, the README and `docs/getting-started.md` name presets and no longer auto mode
+- [x] `docs/decisions.md` has the new decision, and D28 and D31 point to it
+- [x] Every link the docs gate checks resolves
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

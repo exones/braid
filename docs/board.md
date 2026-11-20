@@ -33,7 +33,7 @@ For each braid and strand, the first rule that matches wins (`derive` in `src/bo
 7. **Working, while being planned:** a braid that rules 1–6 leave in To Do is Working when a coordinator thread of it runs (a thread titled `<repo> <number> coordinator: …`), or when a planning PR (`plan/<slug>` into `braid/<number>-<slug>`) into its braid branch is open; the card shows the checks activity while that PR's checks run. This holds with and without strands. It lifts only To Do: Done, To Review and Needs You come first, so an open plan request still shows Needs You. An idle coordinator with no planning PR lifts nothing. A planning PR is never the braid's own PR: it is kept apart from the braid's PRs, so a merged one never makes the braid Done (D53).
 8. **To Do:** the rest (stored `To Do` or `Outline`).
 
-An `ask:<key>` label set when planning doesn't move the lane: it marks a decision expected at review (and keeps auto mode from merging), so the item stays in the lane its other state gives and carries the amber flag. `braid status` prints the label as `ask:<key>` after the lane.
+An `ask:<key>` label set when planning doesn't move the lane: it marks a decision expected at review (which the coordinator judges against the braid's [autonomy preset](autonomy.md) before it merges by itself), so the item stays in the lane its other state gives and carries the amber flag. `braid status` prints the label as `ask:<key>` after the lane.
 
 ### Requests
 

@@ -85,7 +85,7 @@ It warns, without failing, about a preset that lets the agents decide `security`
 
 ### careful
 
-What braid does without auto mode: you decide every stop case and every merge.
+You decide every stop case and every merge, as braid did before presets.
 
 - `merge: none`, `continue: no`.
 - Every case "never" and "always", except `scope`: up to two strands or one prerequisite of tier S or M by itself, logged on the braid and in the next recap; anything more, new tier L work or a change to the goal or a Completion box goes to you.
