@@ -249,6 +249,11 @@ async function main(argv: readonly string[]): Promise<void> {
         process.exitCode = 2;
         return;
       }
+      if (error instanceof ProjectsFileError) {
+        process.stderr.write(`error: ${error.message}\n`);
+        process.exitCode = 2;
+        return;
+      }
       throw error;
     }
     return;

@@ -1,7 +1,7 @@
 ---
 id: '0049/H'
 title: "Board start with an unreadable project list exits 2"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: ['0049/G']
 order: 60
@@ -34,7 +34,11 @@ Expected size: about 30 lines in 2-3 files.
 
 ## Completion
 
-- [ ] `braid board` started with an unreadable project list exits 2 with a message naming the file, and starts nothing
-- [ ] A test for a corrupt list and for an unknown version
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid board` started with an unreadable project list exits 2 with a message naming the file, and starts nothing
+- [x] A test for a corrupt list and for an unknown version
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Map `ProjectsFileError` in the `board` handler of `src/cli.ts` to exit 2 with its message (it already names the file), and add two spawned-CLI tests in `test/projects.test.ts` (corrupt JSON, unknown version). No doc change: `docs/board.md` already promises this.
