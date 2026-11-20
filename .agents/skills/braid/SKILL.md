@@ -38,6 +38,13 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 1. Before planning a new braid, propose a sweep if any leftover is open ("Sweep"). When the user asks for an idea to become braids, plan from it as from any goal, and once the plan is approved, `braid inbox take <idea> --into <braid ids>`. Never propose ideas yourself.
 2. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
+   - **Research.** When the plan needs an answer the code doesn't give (outside facts, a choice between tools, an estimate), launch a researcher subagent per question: `delegate_task` with `role: research`, `mode: async`, the researcher model from `BRAID.md` as `target`, `title` the output of `braid title <id> --role research` (run `braid new` first if the item has no id yet) and the first message below as `task`. Wait as the task's `next` says; never poll it. A follow-up question is a fresh task.
+   - Put its answer and labelled findings into the brief, citing source ids, and its sources into the item's `sources.md`.
+
+   ```text
+   You are a braid researcher for <id>. Use the braid-researcher skill (sibling folder of the braid skill).
+   Question: <one question>. Decision it feeds: <what the answer changes>. Time box: <minutes>. Source ids start at S<n>.
+   ```
 3. Look around: `braid list --open` shows every unfinished braid, wherever it lives. Read the brief (`braid view`, which reads it where it lives) of each whose goal touches the same commands, files or decisions, and judge it:
    - **Overlap without conflict:** `related`, and one line under "Already decided" saying what is shared and how the two stay apart (order, which merges first).
    - **One needs the other's result:** a dependency if the id resolves here; otherwise that line says to start after the other braid merges.

@@ -1,6 +1,38 @@
 # 0046 report
 
-Draft in progress (converge loop, round 2). Only `.agents/skills/braid-researcher/SKILL.md` and this item's files have changed; nothing is wired into the other skills yet.
+braid 0046 adds the `braid-researcher` skill: an evidence-based research method and a one-message report. A coordinator while planning, or a worker for a side question, runs it as a `research` subagent. A spike worker follows its method.
+
+What changed:
+- **New skill:** `.agents/skills/braid-researcher/SKILL.md` has the 11 practices and the report format the user approved at `0bfe20d`, unchanged. `agents/openai.yaml` is new beside it.
+- **Coordinator:** in `.agents/skills/braid/SKILL.md`, "Plan" step 2 now has a Research sub-step. It launches the researcher with:
+  - `delegate_task` with `role: research`, `mode: async`, the `researcher` model from `BRAID.md`, and `braid title <id> --role research`
+  - the first message to send
+  - waiting as `next` says
+
+  It also says where the findings and sources go.
+- **Worker:** in `.agents/skills/braid-worker/SKILL.md`, the spike paragraph now points to the researcher's Method and Report shape. A new line lets any worker launch a researcher for a side question and record the sources it uses.
+- **Brief template:** in `.agents/skills/braid/assets/brief.md`, the research line uses the researcher's source line format and asks `report.md` to cite source ids. The `sources.md` Completion box now has id, version and access date.
+- **Models:** `.agents/skills/braid/assets/braid-md.md` and `BRAID.md` have a `researcher` role. The spike worker lines in `BRAID.md` name the method instead of "(researcher)".
+- **Docs:** `docs/getting-started.md` (the skills list, a `braid-researcher` bullet, the models line), the `README.md` skills row, and decision D75 with its Decided line in `docs/decisions.md`.
+- **Test:** `test/pester/Install-Skills.Tests.ps1` expects `braid-researcher` among the installed skills, and checks that the worker's link to it resolves after install.
+
+Why: braid's research reports mixed measured facts, things read, inferences and guesses without saying which. The method comes from the research round recorded below. The user reviewed the text in two rounds: the first draft was not approved, and the revised one was approved.
+
+Validation: `npm run verify` passed on the final head. That includes the Pester suites and the install test with `braid-researcher`. CI results are on the PR.
+
+Open: `AGENTS.md` "Where to look" doesn't list `braid-researcher`. The brief didn't include it, and `AGENTS.md` changes only at the user's request.
+
+Decisions:
+- User: the plan (2026-11-20). An open research round instead of the first draft. The revised text approved at `0bfe20d`.
+- Mine:
+  - The researcher runs in the coordinator's checkout (no `isolation: worktree`): it never edits, so there is no checkout for `braid clean` to remove.
+  - With no item id yet, the coordinator runs `braid new` first, so `braid title` has an id.
+  - Decision number D75, because `main` holds D71–D74.
+  - `main` merged into the branch before wiring.
+
+For later items: add `braid-researcher` to `AGENTS.md` "Where to look" if the user wants it. A small evaluation of the method on about 20 real braid questions, with and without the skill (see Unknowns below).
+
+Needs the user: none
 
 ## Round 2 result
 
