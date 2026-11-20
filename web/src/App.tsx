@@ -1071,7 +1071,7 @@ export function App() {
   const notes =
     board.state === "ready"
       ? [
-          board.data.github.state === "unavailable" ? `GitHub unavailable (${board.data.github.reason}): showing stored states` : null,
+          // Unreadable GitHub is a readiness problem, shown once in the banner below.
           board.data.t3.state === "unavailable" ? `T3 unavailable (${board.data.t3.reason}): no agent states` : null,
         ].filter((n) => n !== null)
       : [];

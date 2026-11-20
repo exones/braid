@@ -112,7 +112,9 @@ test("status reports failing checks and says when GitHub or T3 cannot be read", 
     gh: () => ({ status: 1, stdout: "", stderr: "gh auth login needed" }),
     t3: () => Promise.resolve({ status: 1, stdout: "", stderr: "not running" }),
   });
-  assert.match(down, /note: GitHub could not be read \(gh is not logged in; run gh auth login\)/);
+  assert.equal(down.split(String.fromCharCode(10)).filter((l) => /GitHub/.test(l)).length, 1, "GitHub unreadable shows once");
+  assert.match(down, /not ready: GitHub can't be read \(gh is not logged in; run gh auth login\);.*PRs and checks are missing and lanes come from stored statuses/);
+  assert.doesNotMatch(down, /note: GitHub/);
   assert.match(down, /note: T3 could not be read \(T3 is not running \(not running\)\)/);
   assert.match(down, /thread \?/);
 });

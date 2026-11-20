@@ -5,6 +5,9 @@ import { join } from "node:path";
 import type { Github } from "../board/github.js";
 import { checkBraids } from "./check.js";
 
+/** What to do about unreadable GitHub, and what it hides (the one message for it, on the board and in `braid status`). */
+export const GITHUB_TODO = "install gh, run gh auth login, and make sure this repository is on GitHub; until then PRs and checks are missing and lanes come from stored statuses";
+
 export type ProblemKey = "no-braids" | "braid-md" | "check" | "github";
 
 export interface Problem {
@@ -76,7 +79,7 @@ export function readiness(folder: string, github: Github | null): Problem[] {
     });
   }
   if (github !== null && github.status.state !== "ok") {
-    problems.push({ key: "github", reason: `GitHub can't be read (${github.status.reason})`, todo: "install gh, run gh auth login, and make sure this repository is on GitHub" });
+    problems.push({ key: "github", reason: `GitHub can't be read (${github.status.reason})`, todo: GITHUB_TODO });
   }
   return problems;
 }

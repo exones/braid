@@ -1,7 +1,7 @@
 // Sample braids with faked GitHub, T3 and requests for `braid board --demo`: every state and every
 // reason shows. Nothing here reads the repository, `gh` or `t3`, and nothing is written.
 import { loadTree, type Braid, type Tree } from "../braids/store.js";
-import type { Problem } from "../braids/readiness.js";
+import { GITHUB_TODO, type Problem } from "../braids/readiness.js";
 import type { Request } from "../braids/requests.js";
 import type { InboxData } from "./inbox.js";
 import type { Github } from "./github.js";
@@ -219,6 +219,6 @@ export function demoProblems(): Problem[] {
   return [
     { key: "no-braids", reason: "it has backlog/ but no braids/", todo: "run braid import-backlog" },
     { key: "braid-md", reason: "BRAID.md has no gate, ci in its front matter", todo: "add gate, ci to BRAID.md" },
-    { key: "github", reason: "GitHub can't be read (gh is not logged in; run gh auth login)", todo: "install gh, run gh auth login, and make sure this repository is on GitHub" },
+    { key: "github", reason: "GitHub can't be read (gh is not logged in; run gh auth login)", todo: GITHUB_TODO },
   ];
 }

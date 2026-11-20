@@ -57,7 +57,7 @@ Two kinds of thread count. The worker's: a running thread whose worktree braid c
 - **GitHub:** one `gh pr list` per refresh (state, head commit and checks); a PR belongs to the item named by its head branch (`braid/0006-slug` or `braid/0006/A-slug`). Merged and closed PRs are cached (an open one wins over both, a merged one over a closed one).
 - **T3:** `t3 thread list --project <main checkout>`, plus `t3 thread show` for each running thread (its worktree and pending questions) and for each recorded review thread (whether it runs, and its pending questions). An idle thread (not running, not archived) is placed by its title alone, with no `show`: `<emoji> <repo> <id> <role>: <title>` (built by `braid title`; the emoji may be missing in older titles, the repo is the GitHub repository's name or the checkout folder's) names its item (`0009` or `0009/D`) and its role (`worker`, `coordinator`); a `review` title and any other title drop it. A running thread belongs to an item by its worktree folder, as above. `braid clean` reads T3 the same way, so it shows only running threads.
 - **Requests, review threads and broke clock:** `.braid/` of the main checkout.
-- Without `gh` or T3 the board still works on the stored states and requests, and its header says why. Without T3 no agent shows and no alarm can be told.
+- Without `gh` or T3 the board still works on the stored states and requests; without `gh` the banner says why (see [Not ready](#not-ready)), without T3 the header does. Without T3 no agent shows and no alarm can be told.
 
 ## Icons and lines
 
@@ -131,7 +131,7 @@ A folder that isn't a working braid project would show an empty board, so the bo
 - no `braids/` folder (when `backlog/` exists: run `braid import-backlog`);
 - `BRAID.md` missing, its front matter unreadable, or missing `gate`, `main`, `ci` or `models`;
 - `braid check` reports errors (a brief the loader can't read counts: the board is then served without braids, with the note instead of an error page);
-- GitHub can't be read (`gh` missing, not logged in, or the repository unknown).
+- GitHub can't be read (`gh` missing, not logged in, or the repository unknown). This is the only GitHub message, on the board and in `braid status`; it says that PRs and checks are missing and lanes come from stored statuses.
 
 T3 not running is not one of them: it keeps its own note in the header. T3 not knowing the main checkout is not checked yet: the `t3` CLI has no project list, and `t3 thread list --project <folder>` prints `[]` for a folder T3 doesn't know just as for a project with no threads (see the log of 0049/A).
 
