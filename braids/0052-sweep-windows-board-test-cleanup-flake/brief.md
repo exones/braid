@@ -1,7 +1,7 @@
 ---
 id: '0052'
 title: "Sweep: Windows board-test cleanup flake, braid-researcher in AGENTS.md"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L", "sweep"]
 dependencies: []
 related: ['0049']
