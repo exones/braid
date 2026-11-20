@@ -1,7 +1,7 @@
 ---
 id: '0044/B'
 title: "A braid whose coordinator stopped reads stalled"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 20
@@ -42,8 +42,12 @@ Expected size: about 150 lines in 5 files, most of them tests and docs.
 
 ## Completion
 
-- [ ] A braid as described reads Needs You `stalled` on the board and in `braid status` after ten minutes, and not in the cases listed under Change
-- [ ] Tests listed under Change pass
-- [ ] `docs/board.md` and `docs/decisions.md` updated
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A braid as described reads Needs You `stalled` on the board and in `braid status` after ten minutes, and not in the cases listed under Change
+- [x] Tests listed under Change pass
+- [x] `docs/board.md` and `docs/decisions.md` updated
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+In `toCard` (src/board/model.ts) a braid with strands gets the `stalled` alarm on its number when the Change conditions hold; it then becomes the braid's own need (who null, since = clock start). Tests in test/lanes.test.ts, docs in board.md and D46.
