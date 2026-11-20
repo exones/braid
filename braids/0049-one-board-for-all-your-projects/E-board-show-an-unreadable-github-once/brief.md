@@ -1,7 +1,7 @@
 ---
 id: '0049/E'
 title: "Board: show an unreadable GitHub once"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S", "sweep"]
 dependencies: ['0049/A']
 order: 12
