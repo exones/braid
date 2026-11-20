@@ -205,3 +205,22 @@ test("samePath: one folder in its spellings is the same, two folders are not", (
     assert.equal(samePath("/src/Agento", "/src/agento"), false, "case counts outside Windows");
   }
 });
+
+for (const [what, text, message] of [
+  ["corrupt JSON", "{ not json", /is not valid JSON/],
+  ["an unknown version", `${JSON.stringify({ version: 99, projects: [] })}\n`, /has version 99/],
+] as const) {
+  test(`braid board with a list that has ${what} exits 2, names the file, starts nothing and leaves the file`, () => {
+    const home = fresh("h");
+    mkdirSync(join(home, ".braid"), { recursive: true });
+    writeFileSync(listFile(home), text);
+    // spawnSync with a timeout: a board that started listening would hang here and fail the test.
+    const r = spawnSync(process.execPath, [cli, "board", "--no-open"], { cwd: repo("alpha"), env: envFor(home), encoding: "utf8", timeout: 20000 });
+    assert.equal(r.status, 2, r.stderr);
+    assert.ok(r.stderr.startsWith("error: "), r.stderr);
+    assert.ok(r.stderr.includes(listFile(home)), `names the file: ${r.stderr}`);
+    assert.match(r.stderr, message);
+    assert.equal(r.stdout, "", "no URL printed, so nothing listened");
+    assert.equal(readFileSync(listFile(home), "utf8"), text, "the file is left as it was");
+  });
+}
