@@ -24,7 +24,7 @@ Expected size: about 1,500 to 2,000 lines with tests, in four strands.
 ## Strands
 
 - A. Project readiness check (M): `braid board` and `braid status` say why a folder isn't a working braid project.
-- B. Project list in `~/.braid/projects.json` (L): `braid projects add|remove|list|suggest`.
+- B. Project list in `~/.braid/projects.json` (L): `braid projects add|remove|list`.
 - C. Board server for several projects (L): one process reads every listed project; a combined board API; actions by project name; pushes for all.
 - D. Combined board page with a project filter (M, ui): mockups first for the user's review, then the build.
 
