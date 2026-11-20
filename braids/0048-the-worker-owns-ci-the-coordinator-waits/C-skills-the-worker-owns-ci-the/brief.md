@@ -1,7 +1,7 @@
 ---
 id: '0048/C'
 title: "Skills: the worker owns CI, the coordinator waits in the foreground"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ask:process"]
 dependencies: ['0048/A']
 order: 30
