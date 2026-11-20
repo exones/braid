@@ -2,7 +2,7 @@
 
 An autonomy preset says what braid's agents decide by themselves in a braid and what they bring to you. It is one short Markdown file you can read and edit in a minute. A braid names the preset it runs on; `braid autonomy <number>` prints it.
 
-This page describes the file format, where presets come from and the three presets braid ships. How the coordinator acts on a preset (merging, starting the next item, logging its decisions) comes with later items of braid 0040; until then a preset is read and checked, and nothing merges or decides differently.
+This page describes the file format, where presets come from and the three presets braid ships. How the agents act on a preset (merging, starting the next item, deciding and logging stop cases, telling you their decisions) is in the braid skill's [autonomy reference](../.agents/skills/braid/references/autonomy.md) and its [stop cases](../.agents/skills/braid/references/stop-cases.md).
 
 ## The format
 
