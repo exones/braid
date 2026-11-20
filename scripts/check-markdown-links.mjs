@@ -5,15 +5,21 @@
 // directory: on Windows its ignore helper throws when path.relative crosses
 // drives, which is how CI (checkout on D:, temp fixture on C:) failed.
 import path from 'node:path'
+import {text} from 'node:stream/consumers'
 import {remark} from 'remark'
 import remarkValidateLinks from 'remark-validate-links'
 import {engine} from 'unified-engine'
 import config from '../.remarkrc.mjs'
 
 const root = process.argv[2]
-const files = process.argv.slice(3)
+// Path arguments, or one path per line on standard input when there are none
+// (a long list does not fit the Windows command line).
+let files = process.argv.slice(3)
+if (root && files.length === 0 && !process.stdin.isTTY) {
+  files = (await text(process.stdin)).split(/\r?\n/).filter((line) => line !== '')
+}
 if (!root || files.length === 0) {
-  process.stderr.write('usage: check-markdown-links.mjs <repository-root> <relative-markdown>...\n')
+  process.stderr.write('usage: check-markdown-links.mjs <repository-root> [<relative-markdown>...] (or the list on standard input, one per line)\n')
   process.exit(2)
 }
 
