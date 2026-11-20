@@ -870,17 +870,12 @@ export function startBoard(root: string, webDir: string = defaultWebDir(), gh: G
   return startBoardWith(repoSources(root, gh, t3), webDir, refreshMs, undefined, tailnet, fixedPort);
 }
 
-/** Opens `url` in the default browser; a failure only means the user opens it by hand. */
+/**
+ * Opens `url` in the default browser; a failure only means the user opens it by hand.
+ * Windows goes through `start` (openWithOs): explorer.exe given an http URL with a `#token=` fragment opens a folder window instead.
+ */
 export function openBrowser(url: string): void {
-  const [cmd, args]: [string, string[]] =
-    process.platform === "win32"
-      ? ["explorer.exe", [url]]
-      : process.platform === "darwin"
-        ? ["open", [url]]
-        : ["xdg-open", [url]];
-  const child = spawn(cmd, args, { stdio: "ignore", detached: true });
-  child.on("error", () => {});
-  child.unref();
+  openWithOs(url).catch(() => {});
 }
 
 /** `--host <address>`'s Tailscale listener: the address checked against `tailscale status`, refused (UsageError) before anything listens. */
