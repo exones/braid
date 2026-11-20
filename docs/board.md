@@ -124,6 +124,17 @@ The server reads the inbox again (fetching `braid-inbox`) and refuses with `Prom
 
 `/api/board` carries it as `inbox: { leftovers, ideas, note, expected, base }` (`src/board/inbox.ts`): the open entries, newest first, each with `kind`, `id`, `title`, `text` (after the title line), `from`, `ref`, `age`, `passed` and, for an idea with a running coordinator, `planning: { link }`. Every refresh (the 30 s reload and file changes) reads the local `braid-inbox` and `origin/braid-inbox` refs; the **Refresh** button (`?fresh=1`) fetches `braid-inbox` first, so an entry captured in another clone shows up. `note` says when that fetch failed (the local copy is shown) or an entry is malformed and left out. The demo board has sample entries.
 
+## Not ready
+
+A folder that isn't a working braid project would show an empty board, so the board and `braid status` say what is wrong and what to do (`src/braids/readiness.ts`). Nothing is stored: the problems are computed at each read, and the board is still served with what it can read. The page shows them in a note above the lanes; startup prints one `not ready: <reason>; <what to do>` line per problem, and `braid status` prints the same lines before the strand lines. The problems:
+
+- no `braids/` folder (when `backlog/` exists: run `braid import-backlog`);
+- `BRAID.md` missing, its front matter unreadable, or missing `gate`, `main`, `ci` or `models`;
+- `braid check` reports errors;
+- GitHub can't be read (`gh` missing, not logged in, or the repository unknown).
+
+T3 not running is not one of them: it keeps its own note in the header. T3 not knowing the main checkout is not checked yet: the `t3` CLI has no project list, and `t3 thread list --project <folder>` prints `[]` for a folder T3 doesn't know just as for a project with no threads (see the log of 0049/A).
+
 ## Refresh
 
 The server reads GitHub, T3, the braids and the inbox in the background, never inside a request, and keeps the latest complete result as a **snapshot**. `/api/board` and `/api/item` answer from it, so opening an item costs no `gh` or `t3` call, and `gh` runs without blocking the server (a static file is served while it runs). A snapshot is stored only when every source has been read; before the first one exists a request waits for it, and a failed read of the braids is stored as the error the page shows. Reads run one at a time: a refresh asked for while one runs queues exactly one more read, however many asks come.
@@ -216,7 +227,7 @@ The running board sends a push to your phone over [ntfy](https://ntfy.sh) when a
 
 ## Demo
 
-`braid board --demo` serves built-in sample braids (`src/board/demo.ts`) with faked GitHub, T3 and requests, so every lane, request kind, alarm and icon shows, and enough Done braids (12, set Done on different days) to show Show more. It reads no repository, `gh` or `t3`, and writes nothing (not even the broke clock). It accepts every action with the token and fakes the result (`{ ok: true, demo: true }`), so the action states can be shown. `--demo-t3-down` shows the note for T3 not running. The screenshots in `docs/design/board-screenshots/` come from it; the mockups the user approved are in `docs/design/board-mockups/` (`needs-you.html`, screens 21 to 28).
+`braid board --demo` serves built-in sample braids (`src/board/demo.ts`) with faked GitHub, T3 and requests, so every lane, request kind, alarm and icon shows, and enough Done braids (12, set Done on different days) to show Show more. It reads no repository, `gh` or `t3`, and writes nothing (not even the broke clock). It accepts every action with the token and fakes the result (`{ ok: true, demo: true }`), so the action states can be shown. `--demo-t3-down` shows the note for T3 not running, and `--demo-not-ready` the note for a project with problems. The screenshots in `docs/design/board-screenshots/` come from it; the mockups the user approved are in `docs/design/board-mockups/` (`needs-you.html`, screens 21 to 28).
 
 ## Changing the board
 

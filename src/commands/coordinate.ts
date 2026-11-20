@@ -8,6 +8,7 @@ import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner, type Github } from "../board/github.js";
 import { LANE_LABEL, needLine } from "../board/marks.js";
 import { toCard, type BraidCard, type Lane, type StrandCard } from "../board/model.js";
+import { problemLine, readiness } from "../braids/readiness.js";
 import { readSignals } from "../board/signals.js";
 import { readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { UsageError } from "./braids.js";
@@ -133,7 +134,7 @@ export async function statusCommand(root: string, args: readonly string[], src: 
   const number = braidNumber(args, "status");
   const w = await read(root, number, "status", src);
   const names = ciChecks(root);
-  const out = [...line(names, w, w.card, null), ...w.card.strands.flatMap((s) => line(names, w, s, s.id.slice(5)).map((l) => `  ${l}`))];
+  const out = [...readiness(root, w.github).map(problemLine), ...line(names, w, w.card, null), ...w.card.strands.flatMap((s) => line(names, w, s, s.id.slice(5)).map((l) => `  ${l}`))];
   if (w.github.status.state !== "ok") {
     out.push(`note: GitHub could not be read (${w.github.status.reason}); PRs and checks are missing and lanes come from stored statuses`);
   }

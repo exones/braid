@@ -8,11 +8,12 @@ import { fileURLToPath } from "node:url";
 import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
-import { DEMO_START, demoBraids, demoGithub, demoInbox, demoSignals, demoT3, demoTree } from "../board/demo.js";
+import { DEMO_START, demoBraids, demoGithub, demoInbox, demoProblems, demoSignals, demoT3, demoTree } from "../board/demo.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toBoard, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
 import { t3codeUrl } from "../board/marks.js";
+import { problemLine, readiness, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
 import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
@@ -61,6 +62,8 @@ export interface Sources {
   inbox(fetch: boolean): InboxData | Promise<InboxData>;
   /** The T3 project folder (the main checkout). */
   project(): string;
+  /** What stops the folder from working as a braid project, given the GitHub read; absent: nothing does (the demo shows its own). */
+  readiness?(github: Github): Problem[];
   /** The action registered under `name`, or undefined. `POST /api/action/<name>` runs it. */
   action(name: string): Action | undefined;
   /** Hands each complete snapshot to the notifier (docs/board.md, "Notifications"); returns at once. Absent: no pushes (the demo). */
@@ -441,6 +444,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     start: () => readStartContext(root),
     inbox: (fetch) => inboxOfAsync(root, fetch),
     project: () => mainCheckout(root),
+    readiness: (github) => readiness(root, github),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
   const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src) };
@@ -457,8 +461,9 @@ export function boardNotifier(root: string): (board: BoardData) => void {
 }
 
 /** The samples of `braid board --demo`: no repository, `gh` or `t3` is touched. */
-export function demoSources(t3Down = false): Sources {
+export function demoSources(t3Down = false, notReady = false): Sources {
   return {
+    ...(notReady ? { readiness: () => demoProblems() } : {}),
     repo: "demo",
     braids: demoBraids,
     github: () => demoGithub(),
@@ -698,7 +703,7 @@ export function startBoardWith(
       const inbox = await timed("inbox", () => src.inbox(fetch));
       const start = src.start();
       const board = await timed("board", () => {
-        const b = toBoard(src.repo, braids, gh, threads, sig, start, inbox);
+        const b = toBoard(src.repo, braids, gh, threads, sig, start, inbox, src.readiness?.(gh) ?? []);
         sig.commit();
         return b;
       });
@@ -886,7 +891,7 @@ export async function tailnetListen(host: string, tailscale: TailscaleRunner = r
 }
 
 export async function runBoard(root: string, args: readonly string[], tailscale: TailscaleRunner = runTailscale): Promise<void> {
-  const flags = ["--no-open", "--demo", "--demo-t3-down"];
+  const flags = ["--no-open", "--demo", "--demo-t3-down", "--demo-not-ready"];
   const at = args.indexOf("--host");
   const host = at === -1 ? undefined : args[at + 1];
   if (at !== -1 && (host === undefined || host.startsWith("--"))) {
@@ -905,19 +910,26 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
     throw new UsageError(`braid board takes only ${flags.join(", ")}, --host <address>, --port <n>; got: ${unknown.join(" ")}`);
   }
   const t3Down = args.includes("--demo-t3-down");
-  const demo = args.includes("--demo") || t3Down;
+  const notReady = args.includes("--demo-not-ready");
+  const demo = args.includes("--demo") || t3Down || notReady;
   // Checked before anything listens: a wrong address starts nothing.
   const tailnet = host === undefined ? undefined : await tailnetListen(host, tailscale);
   const webDir = defaultWebDir();
   if (!existsSync(join(webDir, "index.html"))) {
     throw new UsageError("the board page is not built; run npm run build");
   }
-  const started = demo ? await startBoardWith(demoSources(t3Down), webDir, REFRESH_MS, undefined, tailnet, fixedPort) : await startBoardWith({ ...repoSources(root, runGhAsync, runT3), notify: boardNotifier(root) }, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  const started = demo ? await startBoardWith(demoSources(t3Down, notReady), webDir, REFRESH_MS, undefined, tailnet, fixedPort) : await startBoardWith({ ...repoSources(root, runGhAsync, runT3), notify: boardNotifier(root) }, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
   process.stdout.write(`braid board${demo ? " (demo: sample data; nothing is read or written)" : ""}: ${url}\n`);
   if (started.tailnet !== undefined && tailnet !== undefined) {
     process.stdout.write(`On Tailscale: ${started.tailnet.url}\nOnly ${tailnet.owner}'s own devices (no tagged nodes) may open it; Open thread there uses the T3 app on the phone.\n`);
+  }
+  // One line per problem; GitHub is read here once more (cached for a moment) so its problem shows too.
+  const sources = demo ? demoSources(t3Down, notReady) : repoSources(root, runGhAsync, runT3);
+  for (const p of sources.readiness?.(await sources.github(false)) ?? []) {
+    process.stdout.write(`${problemLine(p)}
+`);
   }
   process.stdout.write(demo ? "Notifications: none in the demo\n" : `${notifyLine(readConfig())}\n`);
   process.stdout.write("Press Ctrl+C to stop.\n");

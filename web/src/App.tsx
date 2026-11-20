@@ -1098,6 +1098,18 @@ export function App() {
             Refresh
           </button>
         </header>
+        {board.state === "ready" && board.data.problems.length > 0 && (
+          <div role="note" aria-label="This project is not ready for braid" className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs text-amber-900">
+            <b>This project is not ready for braid.</b> The board shows what it can read.
+            <ul className="mt-1 list-disc pl-5">
+              {board.data.problems.map((p) => (
+                <li key={p.key}>
+                  {p.reason}: {p.todo}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {route.inbox ? (
           <Status loaded={board}>{(data) => <InboxPage inbox={data.inbox} expected={data.inbox.expected ?? null} base={data.inbox.base ?? "origin/main"} />}</Status>
         ) : (

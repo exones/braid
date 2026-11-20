@@ -232,7 +232,7 @@ async function main(argv: readonly string[]): Promise<void> {
   if (argv[0] === "board") {
     try {
       // The demo reads no repository, so it does not look for one.
-      await runBoard(argv.includes("--demo") || argv.includes("--demo-t3-down") ? process.cwd() : findRoot(process.cwd()), argv.slice(1));
+      await runBoard(argv.includes("--demo") || argv.includes("--demo-t3-down") || argv.includes("--demo-not-ready") ? process.cwd() : findRoot(process.cwd()), argv.slice(1));
     } catch (error) {
       if (error instanceof UsageError) {
         process.stderr.write(`error: ${error.message}\n`);
