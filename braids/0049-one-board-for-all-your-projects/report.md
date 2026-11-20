@@ -13,14 +13,14 @@ One `braid board` now serves every project on a per-machine list, with one combi
   - actions addressed by project name;
   - one notifier per project, with keys in that project's `.braid/notified.json`;
   - local requests must carry `Host: 127.0.0.1:<port>` or `localhost:<port>`, for reads too, against DNS rebinding.
-  
+
   Decision D78 supersedes D40's "one project for now".
 - **Combined page** (0049/D, PR #199):
   - every lane of every project, with cards, Done rows and inbox entries tagged by project;
   - a project filter kept in the address (`?projects=a,b`);
   - a Projects block, collapsed by default, that always names a failed read or a not-ready project;
   - a phone picker, and `#/p/<project>/<id>` routes, with today's `#/0003` and `#/inbox` still working.
-  
+
   Decision D79.
 - **Sweep** (0049/F, PR #195): the flaky timing check in `test/notify.test.ts`.
 - **Merge of main** (0049/G, PR #200): main's `close()` and watcher filter now hold per project.
