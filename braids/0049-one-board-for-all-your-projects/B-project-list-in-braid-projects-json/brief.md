@@ -1,7 +1,7 @@
 ---
 id: '0049/B'
 title: "Project list in ~/.braid/projects.json"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:architecture"]
 dependencies: ['0049/A']
 order: 20
@@ -52,8 +52,15 @@ Expected size: about 400 lines in 6 files, with tests.
 
 ## Completion
 
-- [ ] `braid projects add`, `remove` and `list` work as described, with readiness in `add` and `list`
-- [ ] The four failure modes above each have a passing test
-- [ ] The format of `projects.json` is documented
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid projects add`, `remove` and `list` work as described, with readiness in `add` and `list`
+- [x] The four failure modes above each have a passing test
+- [x] The format of `projects.json` is documented
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `src/projects/list.ts`: the file `~/.braid/projects.json` (`{ "version": 1, "projects": [{ name, path, port? }] }`), a strict reader (missing → empty; corrupt, unknown version or bad entries → `ProjectsFileError`, nothing rewrites it) and `updateProjects`, a locked read-modify-write (the `locked` helper of the requests store, lock file next to the list) that writes a temporary file and renames it.
+- `src/commands/projects.ts`: `braid projects add [<path>] [--name] [--port]`, `remove <name>`, `list`. `add` resolves the main checkout (`git rev-parse --show-toplevel`, then `mainCheckout`), refuses a non-repository, a duplicate name or path; the name defaults to the main checkout's folder name; warns when two projects share a folder name. Readiness from `readiness(path, null)`: GitHub is not checked here (no `gh` call per project).
+- `src/cli.ts` wiring, help line; `docs/cli.md` command row and the file format in `docs/braids-format.md`; note in `docs/board.md`.
+- `test/projects.test.ts`: runs `node dist/cli.js` with HOME/USERPROFILE/APPDATA/LOCALAPPDATA/XDG_* in a temp folder; the four failure modes plus the happy paths.

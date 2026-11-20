@@ -145,9 +145,31 @@ Readers. `braid inbox` fetches first; the reading functions read the refs withou
 
 Recovery. Every clone that wrote or fetched the inbox keeps a copy (`braid-inbox` or `origin/braid-inbox`). If the remote branch is deleted, the next `braid note` pushes it again from that copy. If it is force-pushed to a different history, a write from a clone that still has the lost commits on its local `braid-inbox` replays them on top of the new remote tip, so the entries come back. By hand, from a clone that has the good commit (`git reflog show braid-inbox` finds it): `git push origin <good commit>:refs/heads/braid-inbox` when the remote branch is gone, or `git branch -f braid-inbox <good commit>` and then any `braid note` when it was rewritten.
 
+## The project list
+
+`~/.braid/projects.json` lists the projects of this machine that one board will serve (strand C of 0049 reads it). It is per machine and per user: nothing about it goes into any repository. `braid projects add|remove|list` keep it ([the CLI](cli.md)); edit it by hand only to repair it.
+
+```json
+{
+  "version": 1,
+  "projects": [
+    { "name": "agento", "path": "C:\\code\\agento", "port": 4100 },
+    { "name": "site", "path": "/home/me/src/site" }
+  ]
+}
+```
+
+- `version`: 1. A file with another version is refused (update braid, or fix the file).
+- `projects`: in the order they were added. Each has a `name` (unique; 1 to 64 letters, digits, `.`, `_` and `-`; by default the main checkout's folder name), a `path` (the absolute path of the repository's main checkout, also when `add` ran in a worktree; unique, compared without case on Windows) and an optional `port` (1 to 65535, a fixed port for the board).
+- A missing file is an empty list; the first `add` creates it (and `~/.braid/`).
+- A file braid can't read (not JSON, another version, an entry without a valid name, absolute path or port, a name or a path listed twice, paths compared as `add` compares them) is reported by every `braid projects` command with exit code 2, and nothing rewrites it.
+- Writes take turns under a lock file next to it (`projects.json.lock`, the same lock as [requests](#commands): exclusive create, a lock older than 30 s taken over by one waiter, giving up after 10 s), re-read the file, then write a temporary file and rename it over the list, so two `add` runs at once both keep their entry.
+- Item worktrees go to `~/braid-worktrees/<folder name>/` ([`braid start`](#commands)), so two projects whose main checkouts have the same folder name share that folder; `add` warns when this happens.
+
 ## Commands
 
 - `braid check`: validates every brief and folder name under `braids/` against this page and lists every problem as `<file>: <message>` (with the line where there is one), then the error count; exit code 2 if there is any, 0 and `braids OK: <n> braids, <m> strands` if there is none. Unlike the other commands it does not stop at the first error. It also checks the [autonomy presets](autonomy.md#checks): the project's files under `autonomy/`, and that `BRAID.md` and every brief name a preset that exists. A `related` id found in no source of `braid list --open` is a warning on stderr (`warning: <file>: related braid <id> is not ...`), not an error: the braid may live on a branch this checkout hasn't fetched.
+- `braid projects add [<path>] [--name <name>] [--port <n>]`: adds the repository that holds `<path>` (default: the current folder) to [the project list](#the-project-list): its main checkout, found from a worktree too. It refuses, changing nothing, a folder outside a Git repository, a name or a main checkout already listed, a bad name or port. It prints the entry and its readiness ([Not ready](board.md#not-ready), GitHub not checked), and a warning on standard error for each listed project with the same folder name. `braid projects remove <name>` takes one off. `braid projects list` prints each project (name, path, port) with its readiness lines under it: `ready (GitHub not checked here)`, a `not ready: …` line per problem, or `problem: the folder no longer exists` for a path that is gone; the other projects still list. GitHub is not asked, so `list` runs no `gh`.
 - `braid board`: serves the local attention board: lanes To Do, Working, To Review, Needs You and Done, from the stored status (read from the item's own branch when it has one, see [Branches](#branches)), GitHub PRs and T3 threads. How lanes, icons, refresh and `--demo` work: [the attention board](board.md).
 - `braid import-backlog`: turns the Backlog.md tasks in `backlog/tasks/` and the docs in `backlog/docs/` into braids; `--dry-run` prints the files it would write and writes nothing. TASK-N becomes braid `000N-<slug>`; its subtasks become strands in subtask-number order (TASK-6.1 → `0006/A`, TASK-6.2 → `0006/B`). Status, labels, dependencies (as braid and strand ids) and ordinal (→ `order`) carry over; a task with subtasks gets `delivery: epic`, a task without `delivery: main`. The brief body is the description as it is, then `## Acceptance` and `## Definition of done` as checkbox lists with their ticks, then `## Plan`. The implementation notes become `log-<created date>-import.md`, the final summary `report.md`, and a linked doc's text is appended to that report under the doc's title (a doc linked from a braid and from one of its strands goes to the strand only). Milestones are dropped. Archived tasks, drafts and docs no task links are not imported; the output lists them. It refuses, changing nothing, when a braid number already exists in `braids/` (exit 1), when an input file doesn't parse or a dependency or doc link points nowhere (exit 2, every problem listed), and it ends with the checks of `braid check`. It never deletes or moves `backlog/`.
 - `braid list`: every braid by number, with its strands indented in run order: id, status, order (`-` if none) and title. It ends with `Inbox: <open> leftovers, <ideas> ideas`: the open counts of the whole project's inbox, read from the local refs without fetching (`braid inbox` reads fresh).
