@@ -24,6 +24,7 @@ A story is merged from the phone with one word: the installed CLI and skills are
 - Leftovers and sweeps named with what they are; recaps lead with the action
 - Decision numbers that don't collide between braids running side by side
 - Wake-ups for a superseded commit or a merged PR
+- Foreseeable stops asked at planning: the plan request puts each stop case the coordinator can see coming (a library, security, data, outward, architecture) to the user as a concrete question with options; the answers go under "Already decided" or as `This braid:` lines under `## Autonomy`, so the run decides them itself and logs `Decided:`
 
 ## What was seen
 
@@ -35,6 +36,7 @@ A story is merged from the phone with one word: the installed CLI and skills are
 - Most of the user's replies came from the phone; in 0012 three follow-ups were needed on how to run the board.
 - 0030 renumbered its decision to D63 after `main` took D61 and D62.
 - Coordinators spent turns on wakes for a commit already replaced or a PR already merged (0026, 0027, 0012).
+- The user, 2026-11-20 (after 0040): sensitive questions such as libraries or security should be asked before a braid starts, so it runs with fewer interruptions. Today the plan only labels foreseeable cases `ask:<key>` and the stop still happens mid-run; Plan step 2 asks only what changes scope or the Completion boxes.
 
 ## Open questions
 
@@ -44,5 +46,6 @@ A story is merged from the phone with one word: the installed CLI and skills are
 - Decision numbers: numbered at merge, or named by braid?
 - Stale wake-ups: a skill rule (check the head first, say nothing) or a host matter outside braid?
 - A running coordinator keeps the skill text it loaded; is a "reload the skill" step after an install worth a line?
+- Foreseeable stops: does an answer at planning drop the strand's `ask:<key>` label, and should the recap count stops foreseen against stops not foreseen?
 
 Plan it fully when its turn comes, asking the user if needed.
