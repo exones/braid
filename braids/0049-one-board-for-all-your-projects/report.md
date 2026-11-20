@@ -24,6 +24,7 @@ One `braid board` now serves every project on a per-machine list, with one combi
   Decision D79.
 - **Sweep** (0049/F, PR #195): the flaky timing check in `test/notify.test.ts`.
 - **Merge of main** (0049/G, PR #200): main's `close()` and watcher filter now hold per project.
+- **Fix from the final review** (0049/H, PR #202): `braid board` started with an unreadable project list exits 2 with a message naming the file, as documented.
 
 Without a list, `braid board` in a project folder serves that folder alone, as before.
 
@@ -44,7 +45,7 @@ Each decision is logged on its strand.
 ## Validation
 
 - Each strand was reviewed independently at its merged head, with re-checks after fixes, and had green CI on Ubuntu and Windows.
-- `npm run verify` passes on the braid branch (432 tests at 0049/G). The braid branch's CI is green after main was merged.
+- `npm run verify` passes on the braid branch (434 tests at 0049/H). The braid branch's CI is green after main was merged.
 - The failure modes of each strand have tests, listed in each strand's report.md. Among them:
   - one project hanging or failing while the others refresh;
   - an unlisted project or a path in an action;
