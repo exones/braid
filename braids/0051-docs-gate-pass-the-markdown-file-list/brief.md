@@ -1,7 +1,7 @@
 ---
 id: '0051'
 title: "Docs gate: pass the Markdown file list without the command line"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 delivery: epic
