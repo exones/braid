@@ -86,6 +86,12 @@ test("braid facts: a plain change shows no stop-case fact", async () => {
   assert.match(out, /no stop-case facts/);
 });
 
+test("braid facts: a change under autonomy/ is a process fact", async () => {
+  const w = world("about 100 lines", (put) => put("autonomy/steady.md", "x\n"));
+  const out = await factsCommand(w.root, ["7"], { gh: w.gh });
+  assert.match(out, /^process: workflow, BRAID\.md, AGENTS\.md, CLAUDE\.md, skill or autonomy preset changed: autonomy\/steady\.md$/m);
+});
+
 test("braid facts: dependency, process, deleted test and skip markers each name their case", async () => {
   const w = world("about 100 lines", (put, rm) => {
     put("package.json", "{}\n");
@@ -96,7 +102,7 @@ test("braid facts: dependency, process, deleted test and skip markers each name 
   });
   const out = await factsCommand(w.root, ["#7"], { gh: w.gh });
   assert.match(out, /^dependency: manifest or lockfile changed: package\.json$/m);
-  assert.match(out, /^process: workflow, BRAID\.md, AGENTS\.md, CLAUDE\.md or skill changed: .*AGENTS\.md.*SKILL\.md|^process: workflow.*: .*SKILL\.md.*AGENTS\.md/m);
+  assert.match(out, /^process: workflow, BRAID\.md, AGENTS\.md, CLAUDE\.md, skill or autonomy preset changed: .*AGENTS\.md.*SKILL\.md|^process: workflow.*: .*SKILL\.md.*AGENTS\.md/m);
   assert.match(out, /^process: deleted test: test\/old\.test\.ts$/m);
   assert.match(out, /^process: skip or only marker added or removed: test\/new\.test\.ts$/m);
   assert.doesNotMatch(out, /quality or scope/);
@@ -167,4 +173,18 @@ test("braid recap: Sweep due appears only at 3 or more open leftovers, with no e
   const out = await recapCommand(w.root, ["1"], { gh: w.gh });
   assert.equal(out.trimEnd().split("\n").at(-1), "Sweep due: 3 open leftovers");
   assert.doesNotMatch(out, /Secret|idea/i);
+});
+
+test("braid recap: carries the item's Decided: entries under Decisions, a final PR's those of its strands too", async () => {
+  const log = (at: string, text: string) => `## ${at}Z\n\n${text}\n`;
+  const w = world("about 10 lines", (put) => {
+    put("braids/0001-alpha/log-2026-11-19-abcdef01.md", `${log("2026-11-19 10:00", "Decided: kept the old flag.\nSecond line.")}\n${log("2026-11-20 09:00", "Merged strand A.")}\n${log("2026-11-21 08:00", "Decided: braid-level choice")}`);
+    put("braids/0001-alpha/A-first/brief.md", "---\nid: '0001/A'\ntitle: \"A\"\nstatus: Done\nlabels: []\ndependencies: []\n---\n\n## Goal\n\nx\n");
+    put("braids/0001-alpha/A-first/log-2026-11-20-12345678.md", log("2026-11-20 11:30", "Decided: strand choice"));
+  });
+  const out = await recapCommand(w.root, ["0001"], { gh: w.gh });
+  const decided = out.split("\n").filter((l) => /^- \d{4}-\d{2}-\d{2} /.test(l) && l.includes("Decided:"));
+  assert.deepEqual(decided, ["- 2026-11-19 0001: Decided: kept the old flag. Second line.", "- 2026-11-20 0001/A: Decided: strand choice", "- 2026-11-21 0001: Decided: braid-level choice"]);
+  assert.ok(out.indexOf("**Decisions:**") < out.indexOf("- 2026-11-19 0001"));
+  assert.doesNotMatch(out, /Merged strand A/);
 });

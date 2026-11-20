@@ -11,6 +11,6 @@ Read `BRAID.md`, then:
 - A closed, unmerged PR of a story whose braid now has strands: it grew; continue as phases.
 - A strand whose folder is gone was dropped.
 - Otherwise read the item's log on its branch, then relaunch or `braid ask`.
-- An `auto` label on the braid: continue in [auto mode](auto-mode.md).
+- The preset: `braid autonomy <number>` (the skill, "Autonomy").
 
 Beyond the log, put notes on the braid only for what a fresh session couldn't work out from these.
