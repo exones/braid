@@ -160,7 +160,7 @@ function worktrees(root: string): { path: string; branch: string | null; head: s
 
 const same = (a: string, b: string): boolean => {
   const norm = (p: string) => {
-    const r = existsSync(p) ? realpathSync(p) : resolve(p);
+    const r = existsSync(p) ? realpathSync.native(p) : resolve(p);
     return process.platform === "win32" ? r.toLowerCase() : r;
   };
   return norm(a) === norm(b);
