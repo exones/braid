@@ -38,7 +38,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 1. Before planning a new braid, propose a sweep if any leftover is open ("Sweep"). When the user asks for an idea to become braids, plan from it as from any goal, and once the plan is approved, `braid inbox take <idea> --into <braid ids>`. Never propose ideas yourself.
 2. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
-   - **Research.** When the plan needs an answer the code doesn't give (outside facts, a choice between tools, an estimate), launch a researcher subagent per question: `delegate_task` with `role: research`, `mode: async`, the researcher model from `BRAID.md` as `target`, `title` the output of `braid title <id> --role research` (run `braid new` first if the item has no id yet) and the first message below as `task`. Wait as the task's `next` says; never poll it. A follow-up question is a fresh task.
+   - **Research.** When the plan needs an answer the code doesn't give (outside facts, a choice between tools, an estimate), launch a researcher subagent per question: `delegate_task` with `role: research`, `isolation: shared` (it never edits, so it needs no checkout of its own and leaves nothing to clean), `mode: async`, the researcher model from `BRAID.md` as `target`, `title` the output of `braid title <id> --role research` (run `braid new` first if the item has no id yet) and the first message below as `task`. Wait as the task's `next` says; never poll it. A follow-up question is a fresh task.
    - Put its answer and labelled findings into the brief, citing source ids, and its sources into the item's `sources.md`.
 
    ```text

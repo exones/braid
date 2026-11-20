@@ -25,7 +25,7 @@ Open: `AGENTS.md` "Where to look" doesn't list `braid-researcher`. The brief did
 Decisions:
 - User: the plan (2026-11-20). An open research round instead of the first draft. The revised text approved at `0bfe20d`.
 - Mine:
-  - The researcher runs in the coordinator's checkout (no `isolation: worktree`): it never edits, so there is no checkout for `braid clean` to remove.
+  - The researcher runs with `isolation: shared`, in the coordinator's checkout: it never edits, so there is no checkout for `braid clean` to remove (named in the skill after review).
   - With no item id yet, the coordinator runs `braid new` first, so `braid title` has an id.
   - Decision number D75, because `main` holds D71–D74.
   - `main` merged into the branch before wiring.

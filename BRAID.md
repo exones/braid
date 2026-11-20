@@ -13,7 +13,7 @@ models:
     story: Claude_Everix / claude-sonnet-5-5 / effort=medium
     task: Claude_Everix / claude-sonnet-5-5 / effort=medium
     spike: Claude_Everix / claude-opus-5-5 / effort=medium (follows braid-researcher's Method)
-    L: Claude_Everix / claude-opus-5-5 / effort=medium (tier L items, including spikes, which follow braid-researcher's Method)
+    L: Claude_Everix / claude-opus-5-5 / effort=medium (tier L items, including spikes)
   reviewer: cursor / grok-4.6 / effort=high, fastMode=false; skill braid-reviewer
   researcher: Claude_Everix / claude-opus-5-5 / effort=medium; skill braid-researcher
 ---
