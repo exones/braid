@@ -1,7 +1,7 @@
 ---
 id: '0054'
 title: "braid-pm: a project manager that runs the braids toward one goal"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:process", "ask:architecture"]
 dependencies: []
 related: ['0036']
