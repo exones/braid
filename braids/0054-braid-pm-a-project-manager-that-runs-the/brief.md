@@ -65,13 +65,13 @@ Expected size: about 350 lines in 7 files (one new skill of 2 to 3 files, the co
 
 ## Completion
 
-- [ ] `.agents/skills/braid-pm/SKILL.md` exists and covers taking a goal, the plan file, running in parallel up to a limit, answering coordinators as the user's proxy (reversal cost decides), the digest, replanning, hold, merges under `free` with its exception line, the live check before and after a merge, and resuming.
-- [ ] The braid skill has the "Launched by a PM" rule, and nothing changes for a coordinator without a PM.
-- [ ] The "Launched by a PM" rule says the coordinator never uses the question tool or asks the user in chat under a PM: it opens the request on the board, sends it with its options to the PM thread and ends its turn; without a PM the question tool rules stay as they are.
-- [ ] `scripts/Install-Skills.ps1` installs `braid-pm` (the Pester test names it), and `docs/getting-started.md` and `README.md` list it.
-- [ ] `docs/decisions.md` records the decision and its reasons.
-- [ ] The gate command from BRAID.md passes.
-- [ ] report.md written: what changed, why, validation, anything open.
+- [x] `.agents/skills/braid-pm/SKILL.md` exists and covers taking a goal, the plan file, running in parallel up to a limit, answering coordinators as the user's proxy (reversal cost decides), the digest, replanning, hold, merges under `free` with its exception line, the live check before and after a merge, and resuming.
+- [x] The braid skill has the "Launched by a PM" rule, and nothing changes for a coordinator without a PM.
+- [x] The "Launched by a PM" rule says the coordinator never uses the question tool or asks the user in chat under a PM: it opens the request on the board, sends it with its options to the PM thread and ends its turn; without a PM the question tool rules stay as they are.
+- [x] `scripts/Install-Skills.ps1` installs `braid-pm` (the Pester test names it), and `docs/getting-started.md` and `README.md` list it.
+- [x] `docs/decisions.md` records the decision and its reasons.
+- [x] The gate command from BRAID.md passes.
+- [x] report.md written: what changed, why, validation, anything open.
 
 ## Plan
 
