@@ -1,7 +1,7 @@
 ---
 id: '0055'
 title: "Done lane collapses to a narrow strip"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S", "ui"]
 dependencies: []
 related: ['0053']
@@ -47,3 +47,9 @@ Expected size: about 40 to 80 lines in 2 to 3 files, plus mockups and retaken sc
 - [ ] `docs/board.md` and the desktop screenshots showing the Done lane are updated
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Mockups (done, on `braid board --demo` data, from a throwaway prototype of the real page): Done collapsed as a 3rem strip and opened, at 1440 and 900 px. Stop for the user's review.
+2. After approval: `Board` owns the Done open state; grid is `repeat(4, 1fr) 3rem` collapsed, 5 columns opened; `DoneLane` takes `open`/`setOpen`; the strip is one `aria-expanded` button (dot, count, vertical "Done"); phone unchanged.
+3. `docs/board.md` Done paragraph, retake 61 and 62 (and any other desktop shot with Done), report.md, gate, PR.
