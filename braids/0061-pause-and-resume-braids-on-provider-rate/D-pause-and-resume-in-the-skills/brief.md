@@ -1,7 +1,7 @@
 ---
 id: '0061/D'
 title: "Pause and resume in the skills"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0061/A', '0061/B', '0061/C']
 order: 40
