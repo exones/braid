@@ -1,7 +1,7 @@
 ---
 id: '0057'
 title: "Faster Windows CI"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 delivery: epic
