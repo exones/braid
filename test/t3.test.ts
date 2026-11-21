@@ -107,7 +107,7 @@ function t3Stub(root: string, calls: string[] = [], list: object[] = threads): T
   };
 }
 
-async function start(root: string, t3: T3Run, refreshMs = 30_000) {
+async function start(root: string, t3: T3Run, refreshMs = 600_000) {
   const { server, url } = await board.startBoard(root, join(scratch, "no-web"), gh, t3, refreshMs);
   after(() => {
     server.close();
@@ -161,7 +161,7 @@ test("a running thread is shown once per refresh; an idle one is not shown at al
   const shows = calls.filter((c) => c.startsWith("thread show"));
   assert.equal(shows.filter((c) => c.includes("t-stop")).length, 0);
   assert.equal(shows.filter((c) => c.includes("t-done")).length, 0);
-  assert.equal(shows.filter((c) => c.includes("t-run ")).length, 3); // the read at start, then one per fresh=1
+  assert.equal(shows.filter((c) => c.includes("t-run ")).length, 3); // the read at start, then one per fresh=1; start() sets a refresh timer no test run outlasts
 });
 
 test("a refresh inside the share window reads t3 once; fresh=1 reads again", async () => {

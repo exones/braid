@@ -1,7 +1,7 @@
 ---
 id: '0059'
 title: "Sweep: flaky refresh test, Windows CI failure, docs.update check, demo mail"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M", "sweep"]
 dependencies: []
 related: ['0056', '0057']
@@ -69,3 +69,10 @@ Expected size: about 150 lines in 6 to 8 files, plus throwaway CI runs for part 
 - [ ] The docs name the new check
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. t3.test.ts: `start()` default refresh interval 30 s -> 600 s, so a slow run cannot add a timer refresh and change the count.
+2. `braid check`: docs.update / docs.public / docs.internal errors (like a bad autonomy value); test in autonomy.test.ts; docs.
+3. Part 4 (mail demo project) is not on main (0053 unmerged): waiting for the coordinator.
+4. Part 2: throwaway draft PR rerunning Windows verify with junit kept.
