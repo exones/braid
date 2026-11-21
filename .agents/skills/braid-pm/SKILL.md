@@ -86,7 +86,7 @@ Send the user a short digest when three braids have finished since the last one,
 
 ## Checking the result live
 
-Reports are not enough. Before a story's or a final PR's merge into `main` (when its coordinator sends you the PR and head), and again on `main` after it merges, launch a checker: `delegate_task` with `isolation: worktree`, `mode: async`, the coordinator model as `target`, title `🧭 <repo> pm check: <number> <title>`, and this task:
+Reports are not enough. Before a story's or a final PR's merge into `main` (when its coordinator sends you the PR and head), launch a checker: `delegate_task` with `isolation: worktree`, `mode: async`, the coordinator model as `target`, title `🧭 <repo> pm check: <number> <title>`, and this task:
 
 ```text
 Check what braid <number> "<title>" built, live. Check out <PR head sha, or origin/main after the merge> in your worktree.
@@ -96,8 +96,9 @@ Report: what works and what doesn't, each with evidence (commands and output, sc
 If something can't be run live (no `run` in BRAID.md, no display), say why and what you checked instead.
 ```
 
+- **After a braid's merge into `main`** (a story's PR or a goal's final PR; never a strand's merge into its braid branch): the check on `main` is its `ci` run on the merge commit, waited for in the background, with no agent. Launch the checker again on `main` only when `main` moved between the pre-merge check and the merge and brought in code the checker didn't run.
 - **Pass:** tell the coordinator to merge (or, where `main` is the user's, mark the braid `ready to merge` for the digest).
-- **Failure before the merge:** send it to the coordinator as a fix, with the evidence. **After the merge:** add a fix braid to the plan and run it next.
+- **Failure before the merge:** send it to the coordinator as a fix, with the evidence. **After the merge** (a red `ci` run on the merge commit, or the checker's failure): `main` must stay green, so add a fix braid to the plan and run it next, ahead of the others.
 - **Expensive to reverse** (the failure shows the platform or the product's form is wrong): ask the user.
 - **Couldn't run:** never a pass for what wasn't run. Name the PR and its head in the digest as "not fully checked", with what was and wasn't checked, so the user can still merge it.
 
