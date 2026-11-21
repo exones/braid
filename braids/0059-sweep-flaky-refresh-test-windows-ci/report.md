@@ -9,7 +9,7 @@
 
 ## Validation
 
-`npm run verify` passed (436 tests) after parts 1 and 3. Part 1's repeated runs under load are still to do.
+`npm run verify` passed (444 tests) after merging main (0053) and part 4; `test/t3.test.ts` passed 5 runs in a row (the refresh timer can no longer fire during a test).
 
 ## Docs
 

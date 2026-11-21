@@ -62,13 +62,13 @@ Expected size: about 150 lines in 6 to 8 files, plus throwaway CI runs for part 
 
 ## Completion
 
-- [ ] 'a running thread is shown once per refresh' no longer depends on wall-clock timing: the report says how, and the test passes under load (for example 10 runs of `test/t3.test.ts` alongside the full suite)
-- [ ] The Windows baseline was rerun with the test output kept: the report names the failing test and its fix, or links the green runs; the throwaway PR is closed and its branch deleted
-- [ ] `braid check` reports an unknown `docs.update` value and a non-list `docs.public`/`docs.internal` in BRAID.md, and accepts a BRAID.md without `docs`; tests cover each case
-- [ ] `braid board --demo` shows `mail` with its failed-read state on the first page load; a test covers it
-- [ ] The docs name the new check
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] 'a running thread is shown once per refresh' no longer depends on wall-clock timing: the report says how, and the test passes under load (for example 10 runs of `test/t3.test.ts` alongside the full suite)
+- [x] The Windows baseline was rerun with the test output kept: the report names the failing test and its fix, or links the green runs; the throwaway PR is closed and its branch deleted
+- [x] `braid check` reports an unknown `docs.update` value and a non-list `docs.public`/`docs.internal` in BRAID.md, and accepts a BRAID.md without `docs`; tests cover each case
+- [x] `braid board --demo` shows `mail` with its failed-read state on the first page load; a test covers it
+- [x] The docs name the new check
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
