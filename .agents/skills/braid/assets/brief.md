@@ -48,9 +48,10 @@ For a spike, or a story that includes research, add under Change: look at <how w
 
 ## Completion
 
-Only what the worker can do and prove; none for the reviewer, coordinator or user. A goal's own brief has no worker: its boxes cover the whole, and the coordinator ticks them at "Finish".
+Only what the worker can do and prove; none for the reviewer, coordinator or user. A goal's own brief has no worker: its boxes cover the whole, and the coordinator ticks them at "Finish". The docs box goes where `docs.update` in `BRAID.md` calls for it: every brief with `strand` or `both`, a story and the docs strand with `braid` (the default), none with `on-demand`.
 
 - [ ] <first testable outcome>
+- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
