@@ -79,14 +79,10 @@ const notifierMod = (await load("../dist/notify/notifier.js")) as {
 };
 
 const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
-const never = <T>() => new Promise<T>(() => {});
 
 async function serve(served: Sources | (() => readonly Member[]), timeoutMs?: number) {
   const started = await board.startBoardWith(served, web, 600_000, undefined, undefined, 0, timeoutMs);
-  after(() => {
-    started.server.close();
-    started.server.closeAllConnections();
-  });
+  after(() => started.close());
   const get = async <T>(path: string): Promise<{ status: number; body: T }> => {
     const response = await fetch(`${started.url}${path}`);
     return { status: response.status, body: (await response.json()) as T };
@@ -199,7 +195,10 @@ test("failure mode: one project's read hangs; the other still refreshes and push
   const api = members[1]!;
   let hang = false;
   const base = api.src.github.bind(api.src);
-  api.src = { ...api.src, github: (fresh) => (hang ? never() : base(fresh)) };
+  // The hung read ends when the test does, so close() has nothing left to wait for.
+  const stuck: (() => void)[] = [];
+  api.src = { ...api.src, github: (fresh) => (hang ? new Promise((done) => stuck.push(() => done(base(fresh)))) : base(fresh)) };
+  after(() => stuck.forEach((release) => release())); // registered before serve's close, so it runs first
   const { get } = await serve(() => members, 400);
   const first = await get<All>("api/all");
   assert.equal(first.body.projects.find((p) => p.name === "api")?.failure, null);
@@ -208,13 +207,13 @@ test("failure mode: one project's read hangs; the other still refreshes and push
   const pushesBefore = log.notified.filter((n) => n === "demo").length;
   const apiPushesBefore = log.notified.filter((n) => n === "api").length;
   const began = Date.now();
-  const after = await get<All>("api/all?fresh=1");
+  const later = await get<All>("api/all?fresh=1");
   assert.ok(Date.now() - began < 3000, `answered in ${Date.now() - began} ms`);
-  const hung = after.body.projects.find((p) => p.name === "api");
+  const hung = later.body.projects.find((p) => p.name === "api");
   assert.match(hung?.failure ?? "", /took longer than/);
   assert.ok(hung?.readAt !== null && (hung?.ageMs ?? -1) >= 0, "the old snapshot's age is shown");
-  assert.equal(after.body.braids.filter((c) => c.project === "api").length, goodCards, "the hung project keeps its last snapshot");
-  assert.equal(after.body.projects.find((p) => p.name === "demo")?.failure, null);
+  assert.equal(later.body.braids.filter((c) => c.project === "api").length, goodCards, "the hung project keeps its last snapshot");
+  assert.equal(later.body.projects.find((p) => p.name === "demo")?.failure, null);
   assert.ok(log.notified.filter((n) => n === "demo").length > pushesBefore, "the other project refreshed and pushed");
   assert.equal(log.notified.filter((n) => n === "api").length, apiPushesBefore, "the hung project sent nothing");
   assert.equal((await get<Board>("api/board?project=api")).body.failure !== null, true);
@@ -360,6 +359,56 @@ test("failure mode: with no list, run in a project folder, the board is that fol
   assert.equal((await act("start", { id: "0011", project: "/elsewhere" })).status, 400);
 });
 
+test("braid board: pushes name the project when two listed projects share a repository name, and the repository otherwise", async () => {
+  const saved = { HOME: process.env["HOME"], USERPROFILE: process.env["USERPROFILE"] };
+  process.env["HOME"] = scratch;
+  process.env["USERPROFILE"] = scratch;
+  const quiet = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (() => true) as typeof process.stdout.write;
+  const ok = () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" });
+  const folder = (...parts: string[]) => {
+    const f = join(scratch, "titles", ...parts);
+    mkdirSync(join(f, "braids"), { recursive: true });
+    return f;
+  };
+  const clash = [
+    { name: "work-app", path: folder("one", "app") },
+    { name: "home-app", path: folder("two", "app") },
+    { name: "solo", path: folder("three", "tool") },
+  ];
+  const seen = new Map<string, string>();
+  let started: Started | undefined;
+  try {
+    started = await board.runBoard(clash[0]!.path, ["--no-open"], undefined, { gh: ok, t3: ok, projects: () => clash, notifier: (root) => (b) => void seen.set(root, b.repo) });
+    await fetch(`${started.url}api/all`);
+    assert.deepEqual(
+      clash.map((p) => seen.get(p.path)),
+      ["work-app", "home-app", "tool"],
+      "clashing repository names give the project name; a unique one keeps its repository name",
+    );
+  } finally {
+    process.stdout.write = quiet;
+    process.env["HOME"] = saved.HOME;
+    process.env["USERPROFILE"] = saved.USERPROFILE;
+    if (saved.HOME === undefined) delete process.env["HOME"];
+    if (saved.USERPROFILE === undefined) delete process.env["USERPROFILE"];
+    await started?.close();
+  }
+});
+
+test("close() resolves only after the server's close event, which stops the board's timers", async () => {
+  const [a] = board.demoMembers();
+  const started = await board.startBoardWith(() => [a!], web, 600_000);
+  let event = false;
+  started.server.on("close", () => {
+    event = true;
+  });
+  await started.close();
+  assert.equal(event, true, "the close event had fired when close() resolved");
+  assert.equal(started.server.listening, false);
+  await started.close(); // calling it again is harmless
+});
+
 test("braid board: no list serves this folder alone; a list serves every listed project or the one --project names", async () => {
   const saved = { HOME: process.env["HOME"], USERPROFILE: process.env["USERPROFILE"] };
   process.env["HOME"] = scratch;
@@ -402,17 +451,19 @@ test("braid board: no list serves this folder alone; a list serves every listed 
     if (saved.HOME === undefined) delete process.env["HOME"];
     if (saved.USERPROFILE === undefined) delete process.env["USERPROFILE"];
     for (const s of servers) {
-      s.server.closeAllConnections();
-      s.server.close();
+      await s.close();
     }
   }
   assert.ok(!existsSync(join(scratch, ".braid", "projects.json")), "the test never wrote a project list");
 });
 
-test("the demo serves three projects, one of them not ready", async () => {
+test("the demo serves four projects, one of them not ready and one whose read failed", async () => {
   const { get } = await serve(() => board.demoMembers());
-  const all = await get<All>("api/all");
-  assert.deepEqual(all.body.projects.map((p) => p.name), ["demo", "api", "notes"]);
+  const all = await get<All>("api/all"); // the very first page: mail's failed read shows at once, over its stored snapshot
+  assert.deepEqual(all.body.projects.map((p) => p.name), ["demo", "api", "mail", "notes"]);
+  const mail = all.body.projects.find((p) => p.name === "mail");
+  assert.match(mail?.failure ?? "", /can't be read/);
+  assert.ok(all.body.braids.some((c) => c.project === "mail"), "the last good snapshot's cards still show");
   const notes = all.body.projects.find((p) => p.name === "notes");
   assert.ok((notes?.problems.length ?? 0) > 0, "notes isn't ready");
   assert.deepEqual(all.body.projects.find((p) => p.name === "api")?.problems, []);
