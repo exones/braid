@@ -196,6 +196,8 @@ A goal, when every strand is Done on the braid branch:
 - **Options.** Offer the option set of the stop's kind below, recommended first, each label 1 to 5 words; the tool adds "Other" for free text. A host without the tool, or a question in chat, gets the same options as a numbered question with lettered answers and your recommendation. If an answer is a value such as a path, say where it will be stored.
 - **A reply to an open request** (an option, "Other", a chat reply after a dismissed dialog, the board's merge message): first `braid answer <id> --log -`, then act; a new question means a new `braid ask`.
 - **Say "waiting" only when something will wake you:** only the worker's message, a PR watch on the planning, final or accepted story PR, a `delegate_task` result, or, within this turn, a `t3_thread_wait` on a worker thread or a foreground `braid wait` running now. Otherwise say what you will do when the user next writes.
+- **Hourglass:** a message that ends the turn while waiting (for agents, CI or the user) has `⏳ Waiting for <what>` as its last line, e.g. `⏳ Waiting for you: approve the plan`; before a question tool call, it ends the chat message. Nothing pending: no ⏳ line.
+- **Thread links:** when you mention a worker's or reviewer's thread, link it (the `link` T3 returns), never a bare title or id.
 
 The option sets, and what you do next on each answer:
 

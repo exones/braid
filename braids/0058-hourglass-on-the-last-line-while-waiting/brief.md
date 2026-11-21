@@ -1,7 +1,7 @@
 ---
 id: '0058'
 title: "Hourglass on the last line while waiting"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 related: ['0054']
@@ -34,10 +34,14 @@ Expected size: about 4 lines in 1 file.
 
 - The worker, reviewer and researcher skills, the CLI, the board, `docs/`.
 
+## Plan
+
+Add the two bullets after the "Say waiting" bullet in SKILL.md, then run the gate.
+
 ## Completion
 
-- [ ] "Talking to the user" in `.agents/skills/braid/SKILL.md` has the hourglass rule: the last line is `⏳ Waiting for <what>` when the turn ends waiting (agents, CI or the user), it comes before a question tool call, and no ⏳ line appears when nothing is pending
-- [ ] The same section says to link a worker's or reviewer's thread when mentioning it
-- [ ] The diff adds no more than about 6 lines to skill files
+- [x] "Talking to the user" in `.agents/skills/braid/SKILL.md` has the hourglass rule: the last line is `⏳ Waiting for <what>` when the turn ends waiting (agents, CI or the user), it comes before a question tool call, and no ⏳ line appears when nothing is pending
+- [x] The same section says to link a worker's or reviewer's thread when mentioning it
+- [x] The diff adds no more than about 6 lines to skill files
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
