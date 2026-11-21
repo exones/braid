@@ -12,6 +12,6 @@ Review of f741baa6 was not blocking; its three suggestions are in this PR: the d
 
 Validation: `npm run verify` passes (435 tests); `braid check` OK.
 
-Decisions: the user approved the plan with `docs.update` (log, 2026-11-21). Own: the decision is D81, since 0054 takes D80; whichever merges second checks the number. The help-text entry in `BRAID.md` is a quoted description ("the CLI's help text (src/cli.ts and the commands' usage lines)"), since it isn't one file.
-For later items: 0054 also edits `.agents/skills/braid/SKILL.md` and `docs/decisions.md`; whichever merges second merges `main` and renumbers if needed. No CLI reads `docs` yet; a `braid check` warning for an unknown `docs.update` value could come later.
+Decisions: the user approved the plan with `docs.update` (log, 2026-11-21). Own: the decision is D81, after D80 from 0055 (merged from main); 0054 takes the next free number. The help-text entry in `BRAID.md` is a quoted description ("the CLI's help text (src/cli.ts and the commands' usage lines)"), since it isn't one file.
+For later items: 0054 also edits `.agents/skills/braid/SKILL.md` and `docs/decisions.md`; it merges `main` and takes the next free decision number (D82). No CLI reads `docs` yet; a `braid check` warning for an unknown `docs.update` value could come later.
 Needs the user: process: this PR changes the braid skills (worker, reviewer, coordinator, brief and BRAID.md templates, workflow) and `BRAID.md`, as the brief asked; the user reviews and merges it.
