@@ -133,6 +133,19 @@ jobs:
           }
           Get-Module -ListAvailable -Name Pester | Sort-Object Version -Descending | Select-Object -First 1 Name, Version
 
+      # C: is slow on hosted Windows runners (D: is the fast disk, and the workspace is on it). The temporary
+      # folder tests make hundreds of git repositories in is on C: by default; the 0057/A spike measured
+      # node --test 13-21% faster in pairs with TEMP and TMP on D:. See docs/development.md.
+      - name: Put TEMP on D:
+        if: runner.os == 'Windows' && steps.fast.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          $tmp = Join-Path $env:RUNNER_TEMP 'tmp'
+          New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+          "TEMP=$tmp" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TMP=$tmp" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Output "TEMP and TMP: $tmp"
+
       - name: Setup Node.js 26
         if: steps.fast.outputs.skip != 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
