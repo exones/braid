@@ -26,6 +26,7 @@ Expected size: about 120 lines across 4 to 5 skill and reference files.
 
 - **braid skill**, a new section "Provider limits" (or a reference file `references/limits.md` linked from it, if it is long), and one line at each launch point that points to it:
   - **Check before launch.** Before launching a worker, reviewer, researcher or spike, run `braid limits --role <role> --kind <kind>` (or `--tier`) for the model that agent will use. Exit 0 (`ok` or `unknown`): launch; on `unknown` say so in one line. Exit 3 (`pause`): don't launch; pause the braid.
+  - **Check while agents run** (the user, 2026-11-21): while any agent of the braid runs, the coordinator keeps one `interval` task in its own thread, every 15 min, titled `braid <number> limits check`, whose prompt runs `braid limits` for the providers its running agents use and pauses as below on exit 3, else ends at once with no message to the user. It creates the task when it launches the first agent and deletes it when no agent runs, when it pauses (the resume task takes over), and at Finish. Under a PM, the PM keeps this check for all its braids instead.
   - **Pause.** Send each running or idle agent of this braid on that provider (workers; a running `delegate_task` child too) a pause message with `t3_thread_send` `mode:"auto"` (never `queue`: it arrives only after the whole turn). The message: "Pause for <provider> <window> until <resume time>. Finish or undo your current step; never stop mid-commit. A running command may already have moved to the background: let it finish. Commit and push your WIP, log a checkpoint (`braid log --checkpoint`), send `Paused: <id> at <sha>` to <coordinator thread>, end your turn. Start no new work until a resume message; if something wakes you meanwhile (a background command, a PR watch), note it, include your item's CI result in a short reply if that is what woke you, and end your turn again."
   - **Wait for the clean point.** `t3_thread_wait` each paused thread and read its last message for the `Paused:` line; a wait cut short by an incoming message is re-checked, not taken as the result.
   - **Schedule the resume** in the coordinator's own thread: `schedule_task` with `{type:"interval", everyMs: max(60000, resumeAt − now)}`, bound to this thread, title `braid <number> resume <provider>`. Its prompt starts with deleting itself (`delete_scheduled_task <id>`), then re-checks `braid limits`. Never `fixed_time` (skipped when T3 was down for over 10 min). Prefer a one-shot (`once`) when the `schedule_task` schema offers it.
@@ -50,7 +51,6 @@ Expected size: about 120 lines across 4 to 5 skill and reference files.
 
 ## Out of scope
 
-- A periodic limit check while the coordinator waits on a long-running worker, unless the user picks it in the go for this strand.
 - Product code; `BRAID.md`, `AGENTS.md`, `CLAUDE.md`.
 
 ## Failure modes and regression tests
@@ -62,7 +62,7 @@ Expected size: about 120 lines across 4 to 5 skill and reference files.
 
 ## Completion
 
-- [ ] The braid skill has the check before every launch, the pause, the wait for the clean point, the scheduled resume, the resume, weekly windows and the user-asked pause, with exact commands
+- [ ] The braid skill has the check before every launch, the 15-minute check while agents run (created, deleted), the pause, the wait for the clean point, the scheduled resume, the resume, weekly windows and the user-asked pause, with exact commands
 - [ ] The PM-run case is covered in the braid skill's "Launched by a PM" and in braid-pm
 - [ ] braid-worker says what a worker does on a pause message and on resume
 - [ ] workflow.md has the failure-mode row
