@@ -1,7 +1,7 @@
 ---
 id: '0057/A'
 title: "Spike: where Windows CI time goes and what cuts it"
-status: To Do
+status: In Progress
 labels: ["kind:spike", "tier:M"]
 dependencies: []
 order: 10
