@@ -892,25 +892,29 @@ const dayOf = (iso: string | null): string => (iso === null ? "" : new Date(iso)
  * The Done lane: collapsed by default; opened, the 10 newest braids as rows, newest first by the day they became
  * Done, and Show more for the next 10.
  */
-function DoneLane({ cards }: { cards: readonly TaggedCard[] }) {
+function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open: boolean; setOpen: (open: boolean) => void }) {
   const tagged = useContext(ScopeContext).tagged;
-  const [open, setOpen] = useState(false);
   const [shown, setShown] = useState(DONE_PAGE);
   const rows = doneNewestFirst(cards);
   return (
     <div>
-      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:min-h-11">
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:min-h-11 md:hidden">
         <span aria-hidden>{open ? "▾" : "▸"}</span> {open ? "Hide" : "Show"} done
       </button>
       {open && (
+        <button type="button" aria-expanded onClick={() => setOpen(false)} className="mb-1 flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:hidden">
+          <span aria-hidden>▾</span> Hide done
+        </button>
+      )}
+      {open && (
         <div>
           {rows.slice(0, shown).map((b) => (
-            <button key={`${b.project}/${b.id}`} type="button" data-opens-details onClick={() => go(b.id, "brief", b.project)} className="flex w-full cursor-pointer items-center gap-2 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
+            <button key={`${b.project}/${b.id}`} type="button" data-opens-details onClick={() => go(b.id, "brief", b.project)} className="flex w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
               <LaneDot lane="Done" />
               <span className="w-10 flex-none text-xs text-slate-500"><Id id={b.id} /></span>
               {tagged && <ProjectTag name={b.project} />}
-              <span className="min-w-0 flex-1">{b.title}</span>
-              <span className="flex-none text-[11px] whitespace-nowrap text-slate-500">{dayOf(b.doneAt)}</span>
+              <span className="min-w-24 flex-1">{b.title}</span>
+              <span className="ml-auto flex-none text-[11px] whitespace-nowrap text-slate-500">{dayOf(b.doneAt)}</span>
             </button>
           ))}
           {rows.length > shown && (
@@ -930,6 +934,8 @@ function DoneLane({ cards }: { cards: readonly TaggedCard[] }) {
  */
 function Board({ data, details }: { data: { readonly lanes: readonly Lane[]; readonly braids: readonly TaggedCard[] }; details: boolean }) {
   const [active, setActive] = useState<Lane>(data.lanes[0] ?? "Waiting");
+  const [doneOpen, setDoneOpen] = useState(false);
+  const stripped = !doneOpen && data.lanes.includes("Done");
   const touch = useRef<{ x: number; y: number } | null>(null);
   const move = (by: number) => {
     const next = data.lanes[data.lanes.indexOf(active) + by];
@@ -955,7 +961,7 @@ function Board({ data, details }: { data: { readonly lanes: readonly Lane[]; rea
         ))}
       </div>
       <div
-        className="grid grid-cols-5 items-start gap-3 p-4 max-md:grid-cols-1 max-md:px-3.5"
+        className={`grid items-start gap-3 p-4 max-md:grid-cols-1 max-md:px-3.5 ${stripped ? "grid-cols-[repeat(4,minmax(0,1fr))_3rem]" : "grid-cols-5"}`}
         onTouchStart={(e) => {
           const t = e.touches[0];
           // A touch that starts at a screen edge is the browser's back or forward gesture, not a swipe.
@@ -972,13 +978,25 @@ function Board({ data, details }: { data: { readonly lanes: readonly Lane[]; rea
       >
         {data.lanes.map((lane) => {
           const cards = data.braids.filter((b) => b.lane === lane);
+          if (lane === "Done" && stripped) {
+            return (
+              <section key={lane} aria-label={LANE_LABEL[lane]} className={`max-md:min-h-48 max-md:rounded-xl max-md:bg-slate-200/70 max-md:p-2.5 ${lane === active ? "" : "max-md:hidden"}`}>
+                <button type="button" aria-expanded={false} onClick={() => setDoneOpen(true)} className="flex min-h-48 w-full cursor-pointer flex-col items-center gap-2 rounded-xl bg-slate-200/70 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 hover:bg-slate-300/70 max-md:hidden">
+                  <LaneDot lane={lane} />
+                  <span>{cards.length}</span>
+                  <span className="[writing-mode:vertical-rl]">{LANE_LABEL[lane]}</span>
+                </button>
+                <div className="md:hidden"><DoneLane cards={cards} open={false} setOpen={setDoneOpen} /></div>
+              </section>
+            );
+          }
           return (
             <section key={lane} aria-label={LANE_LABEL[lane]} className={`min-h-48 rounded-xl bg-slate-200/70 p-2.5 ${lane === active ? "" : "max-md:hidden"}`}>
               <h3 className="mx-1 mb-2.5 mt-0.5 flex justify-between text-xs font-semibold uppercase tracking-wide text-slate-500 max-md:hidden">
                 <span className="flex items-center gap-1.5"><LaneDot lane={lane} />{LANE_LABEL[lane]}</span>
                 <span>{cards.length}</span>
               </h3>
-              {lane === "Done" ? <DoneLane cards={cards} /> : cards.map((b) => <Card key={`${b.project}/${b.id}`} braid={b} details={details} />)}
+              {lane === "Done" ? <DoneLane cards={cards} open={doneOpen} setOpen={setDoneOpen} /> : cards.map((b) => <Card key={`${b.project}/${b.id}`} braid={b} details={details} />)}
             </section>
           );
         })}

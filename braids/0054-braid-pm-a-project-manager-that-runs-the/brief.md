@@ -78,5 +78,5 @@ Expected size: about 350 lines in 7 files (one new skill of 2 to 3 files, the co
 1. `.agents/skills/braid-pm/SKILL.md`: taking a goal, the plan file and its branch, running up to the limit with an overlap check, answering coordinators by reversal cost, the digest, replanning, hold, merges under `free` with the exception line (quoted once, so every coordinator gets the same text), the live check before and after a merge into `main`, resuming, titles. `assets/plan.md`: the plan file template. `agents/openai.yaml` like the other skills.
 2. `.agents/skills/braid/SKILL.md`: a "Launched by a PM" section after "Autonomy": requests still opened on the board and also sent to the PM thread; asked in chat, not with the question tool (a pending question would hold the PM's replies); the PM's reply counts as the user's; a new braid goes to the PM instead of a launch; Done or stopped is messaged to the PM. Without a PM nothing changes.
 3. `scripts/Install-Skills.ps1` already installs every `braid-*` folder; the Pester test names `braid-pm` and checks its link to the braid skill resolves.
-4. `docs/getting-started.md`, `README.md`: list and link the skill. `docs/decisions.md`: D80 and a log line.
+4. `docs/getting-started.md`, `README.md`: list and link the skill. `docs/decisions.md`: D81 and a log line.
 5. Gate, report.
