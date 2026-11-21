@@ -41,13 +41,13 @@ Expected size: about 400 lines in 6 files, half of them tests.
 
 ## Completion
 
-- [ ] `braid limits` prints per provider in `BRAID.md` `models` each window's usage, the verdict and, for `pause`, the window and resume time; `--json` gives the same
-- [ ] A models line maps to its instance's windows, a model-scoped weekly window only for its model
-- [ ] `limits:` in `BRAID.md` overrides the defaults; absent keys use them; an invalid value names the key
-- [ ] Tests on the fixtures cover ok, pause on session, pause on a scoped weekly window, a scoped window for another model ignored, stale, disabled, unsupported and a past `resetsAt`
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid limits` prints per provider in `BRAID.md` `models` each window's usage, the verdict and, for `pause`, the window and resume time; `--json` gives the same
+- [x] A models line maps to its instance's windows, a model-scoped weekly window only for its model
+- [x] `limits:` in `BRAID.md` overrides the defaults; absent keys use them; an invalid value names the key
+- [x] Tests on the fixtures cover ok, pause on session, pause on a scoped weekly window, a scoped window for another model ignored, stale, disabled, unsupported and a past `resetsAt`
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
