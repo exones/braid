@@ -136,7 +136,7 @@ jobs:
       # C: is slow on hosted Windows runners (D: is the fast disk, and the workspace is on it). The temporary
       # folder tests make hundreds of git repositories in is on C: by default; the 0057/A spike measured
       # node --test 13-21% faster in pairs with TEMP and TMP on D:. See docs/development.md.
-      - name: Put TEMP on D:
+      - name: "Put TEMP on D:"
         if: runner.os == 'Windows' && steps.fast.outputs.skip != 'true'
         shell: pwsh
         run: |
