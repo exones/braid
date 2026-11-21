@@ -46,8 +46,8 @@ Expected size: about 40 to 80 lines in 2 to 3 files, plus mockups and retaken sc
 - [x] The phone layout and Done tab behave as before
 - [x] Open Done rows at narrow widths: the title wraps and the day goes under it, no overlap (added by the user with the mockup approval)
 - [x] `docs/board.md` and the desktop screenshots showing the Done lane are updated
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
