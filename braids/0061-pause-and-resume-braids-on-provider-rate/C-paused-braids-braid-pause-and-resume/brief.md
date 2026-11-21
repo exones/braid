@@ -30,6 +30,15 @@ Expected size: about 500 lines in 8 files, half of them tests.
 - Tests: the store (open, clear, idempotence, a damaged file), the board mark, `stalled` held back while paused and back once overdue.
 - `docs/cli.md`, `docs/board.md`, `docs/braids-format.md` (the new file).
 
+## Plan
+
+1. Mockups first (ui): `docs/design/board-mockups/paused.html` and `60-paused.png` on demo-like data; stop for the user's review.
+2. `src/braids/pauses.ts`: the `.braid/pauses.json` store copied from `requests.ts` (main checkout, lock, a load that reads a damaged file as no pauses, set, clear).
+3. `braid pause` and `braid resume` in `src/commands/`, defaults from `src/braids/limits.ts` (refuse unless the verdict is `pause` or `--until` is given), idempotent; usage lines in `src/cli.ts`.
+4. Board: `Signals` gets the pauses; `derive` holds back `stalled` while paused and until `resumeAt` + 25 min; a `paused` mark (its due state after `resumeAt` + 15 min) in `src/board/marks.ts`, the card line, strand marks and the details box in `web/src/App.tsx`; a header note for a damaged file; the demo gets a paused, a due and a stalled-after-pause braid.
+5. `braid status`: a `(paused)` lane suffix and the pause line.
+6. Tests: store, commands, marks, derive timing; docs: cli.md, board.md, braids-format.md, decisions.md.
+
 ## Already decided
 
 - The board never writes `pauses.json`; only `braid pause` and `braid resume` do.
