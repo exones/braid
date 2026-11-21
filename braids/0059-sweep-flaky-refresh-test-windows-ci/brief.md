@@ -50,8 +50,8 @@ Expected size: about 150 lines in 6 to 8 files, plus throwaway CI runs for part 
 ## Already decided
 
 - This is the sweep of 2026-11-21: leftovers 1gie, 27yx, az63 and jhmo. di81 and qrwu were passed by the 0057 coordinator (qrwu dropped on its second pass). The user's answer is logged on 0057.
-- Related to 0056 (Every braid keeps the docs current, on `braid/0056-every-braid-keeps-the-docs-current`, PR #207): part 3 checks the `docs` key and D81 that 0056 adds, and 0056 also changes `test/readiness.test.ts`. Start this story only after 0056 has merged into `main`, and merge `main` into this branch first.
-- Related to 0057 (Faster Windows CI, on `braid/0057-faster-windows-ci`): 0057/B changes `.github/workflows/ci.yml` and splits `test/done.test.ts` and `test/start.test.ts`. This story starts after 0057 merges into `main`. It doesn't change `ci.yml`; if part 2 names a test in the split files, fix it in those files as they are on `main` after 0057.
+- Related to 0056 (Every braid keeps the docs current, on `braid/0056-every-braid-keeps-the-docs-current`, PR #207): part 3 checks the `docs` key and D81 that 0056 adds, and 0056 also changes `test/readiness.test.ts`. 0056 has merged into `main`: merge `main` into this branch first.
+- Related to 0057 (Faster Windows CI, on `braid/0057-faster-windows-ci`): 0057/B changes `.github/workflows/ci.yml` and splits `test/done.test.ts` and `test/start.test.ts`. This story starts before 0057 merges (the user, 2026-11-21) and doesn't change `ci.yml`. Do parts 1, 3 and 4 first and part 2 last. At part 2, if 0057 has merged into `main`, merge `main` in and measure on the new CI; if not, measure on the current CI, and if the failing test is in `test/done.test.ts` or `test/start.test.ts`, don't fix it there: report it and stop for the coordinator, which decides whether to wait for 0057.
 - Part 2 may come up empty: about 15 green runs with the output kept is an acceptable result, reported with the run links.
 
 ## Out of scope
