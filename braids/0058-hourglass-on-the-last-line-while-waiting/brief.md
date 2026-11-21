@@ -43,5 +43,5 @@ Add the two bullets after the "Say waiting" bullet in SKILL.md, then run the gat
 - [x] "Talking to the user" in `.agents/skills/braid/SKILL.md` has the hourglass rule: the last line is `⏳ Waiting for <what>` when the turn ends waiting (agents, CI or the user), it comes before a question tool call, and no ⏳ line appears when nothing is pending
 - [x] The same section says to link every worker or reviewer thread, PR and item brief the coordinator names, also in the ⏳ line
 - [x] The diff adds no more than about 6 lines to skill files
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
