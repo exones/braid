@@ -1,7 +1,7 @@
 ---
 id: '0061/A'
 title: "Spike: scheduled resume, pause messages, and who pauses"
-status: To Do
+status: In Progress
 labels: ["kind:spike", "tier:M"]
 dependencies: []
 order: 10
@@ -33,10 +33,17 @@ Follow the braid-researcher skill's Method. Look at the T3 source (pingdotgg/t3c
 
 - Building anything; editing skills, docs or `docs/roadmap.md`. Proposed changes go in `report.md` as follow-ups for C and D.
 
+## Plan
+
+1. Read the T3 scheduler, `sendToThread` and the provider steering code, both in upstream main and in the installed server bundle (the version in use).
+2. Measure here: a `once` task (does the installed build take it?), a bound `interval` task left to fire into this thread mid-turn, then deleted; an unbound `fixed_time` task created and deleted; two throwaway `delegate_task` children on claude-haiku-5-5 messaged mid-command and mid-`t3_thread_wait` with `auto` and `queue`.
+3. Leave out a T3 restart unless the user agrees.
+4. Write `report.md` (Q1–Q3, proposals for C and D) and `sources.md`.
+
 ## Completion
 
-- [ ] `report.md` answers questions 1 to 3, each marked measured, read in source, or unknown, with a recommendation and proposed changes for 0061/C and 0061/D
-- [ ] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `report.md` answers questions 1 to 3, each marked measured, read in source, or unknown, with a recommendation and proposed changes for 0061/C and 0061/D
+- [x] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
