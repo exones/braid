@@ -1,7 +1,7 @@
 ---
 id: '0058'
 title: "Hourglass on the last line while waiting"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 related: ['0054']
