@@ -78,7 +78,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 One implementation worker at a time. The next item is under "Starting the next item" in the workflow; a story has only itself.
 
-1. Check the worker's provider first ([provider limits](references/limits.md), "Check before launch"); on `pause`, pause instead of launching. Then run `braid start <id>` and launch a top-level T3 thread with `t3_thread_launch` on the folder it prints as an existing worktree (`existing_worktree`), with the worker model for the item's tier and kind and `title` the output of `braid title <id> --role worker`. Launch it with no message, so it starts idle.
+1. Check the worker's provider first ([provider limits](references/limits.md), "Check before launch"); on `pause`, launch nothing and act as its "On exit 3" says. Then run `braid start <id>` and launch a top-level T3 thread with `t3_thread_launch` on the folder it prints as an existing worktree (`existing_worktree`), with the worker model for the item's tier and kind and `title` the output of `braid title <id> --role worker`. Launch it with no message, so it starts idle.
 2. Send the first message with `t3_thread_send`, filling in the thread id the launch returned, so the worker logs under its own id and not yours. If the worker might not find the skill by name, add the absolute path of its `SKILL.md`.
 
    ```text
@@ -86,7 +86,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    Brief: `braid view <id>`. Branch: <branch> at <short sha>. Open the PR into <base branch>.
    Send your result to thread <your thread id>. Your thread id: <worker thread id>.
    ```
-3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread with `timeoutMs: 600000` (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. On a timeout, run the limits check for the worker's provider and wait again; on exit 3 pause ([provider limits](references/limits.md), "Check while agents run"). Run nothing else in parallel with it. If no report arrived, read the thread's last message and `gh pr checks`:
+3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread with `timeoutMs: 600000` (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. On a timeout, run the limits check for the worker's provider and wait again; on exit 3 act as [provider limits](references/limits.md) "On exit 3" says (a PM-run coordinator tells the PM and doesn't pause itself). Run nothing else in parallel with it. If no report arrived, read the thread's last message and `gh pr checks`:
    - The worker waits on its own PR watch (CI pending): end your turn; its report wakes you. You never watch an item PR: the worker alone waits on its CI.
    - Green: take the result from the thread and continue.
    - The PR is already merged: the item is done.
