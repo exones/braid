@@ -79,5 +79,5 @@ Follow the braid-researcher skill's Method. Look at about 10 to 15 sources of th
 - [x] `docs/design/board-mockups/programmes.html` shows the programme on the board, a request handled by the PM, an escalated one, the PM's own question, the filter and the phone layout; screenshots in the item folder
 - [x] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
