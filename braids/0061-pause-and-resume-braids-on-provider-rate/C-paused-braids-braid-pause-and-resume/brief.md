@@ -1,7 +1,7 @@
 ---
 id: '0061/C'
 title: "Paused braids: braid pause and resume, board and status"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:architecture", "ui"]
 dependencies: ['0061/A', '0061/B']
 order: 30
