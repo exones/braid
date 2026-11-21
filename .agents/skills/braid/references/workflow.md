@@ -10,7 +10,7 @@ How work is organized in a project that uses braid: what an item is, who writes 
 - Statuses are `Outline`, `To Do`, `In Progress`, `Done`. There is no `In Review`: an open PR is in review. Blocked means a dependency isn't Done, or the log says what it waits for.
 - An `Outline` holds only the goal, what works at the end, strand titles and open questions. It is never started as it is: the coordinator details it into a full brief when its turn comes.
 - Run order is `order`, then dependencies.
-- Docs: `docs.update` in `BRAID.md` decides who keeps the project's docs true: each item's PR (the docs Completion box), a last **docs strand** in every goal that updates them as a whole against the braid's whole diff, both, or neither (`on-demand`). The skill, "Plan" step 5.
+- Docs: `docs.update` in `BRAID.md` decides who keeps the project's docs true, with the docs Completion box and a last **docs strand** in every goal that updates them as a whole: `strand` (every item's PR), `braid` (the default: a story's PR and the docs strand), `both`, or `on-demand` (neither). Details: the skill, "Plan" step 5.
 - A dropped strand gets a log entry on its braid saying why, and its folder is removed; its letter is never reused.
 
 ## One writer per branch

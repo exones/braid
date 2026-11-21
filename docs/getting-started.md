@@ -46,7 +46,7 @@ A target repository needs a `BRAID.md` at its root with the facts the skills rea
 `docs.update` takes one of four values:
 
 - `strand`: every item's PR, strand or story, updates the docs its change makes untrue. Its brief has a Completion box for it, and the reviewer blocks a PR that leaves a doc untrue.
-- `braid` (the default): a story's PR does the same, and every goal ends with a docs strand (`Docs: <braid title>`), planned last, that reads the braid's whole diff against `main` and brings the docs up to date as a whole before the final PR; it lists each doc it checked as updated or unchanged. Strands carry no docs box.
+- `braid` (the default): a story's PR does the same, and every goal ends with a docs strand (`Docs: <braid title>`), planned last, that reads everything the braid changed, from its first strand, and brings the docs up to date as a whole before the final PR; it lists each doc it checked as updated or unchanged. Other strands carry no docs box; the docs strand does.
 - `both`: the two together; this repository uses it.
 - `on-demand`: docs change only when a brief or you ask for it. What you decided is still documented, in the doc that describes it and the decisions record.
 

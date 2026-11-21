@@ -48,7 +48,7 @@ For a spike, or a story that includes research, add under Change: look at <how w
 
 ## Completion
 
-Only what the worker can do and prove; none for the reviewer, coordinator or user. A goal's own brief has no worker: its boxes cover the whole, and the coordinator ticks them at "Finish". The docs box goes where `docs.update` in `BRAID.md` calls for it: every brief with `strand` or `both`, a story with `braid` (the default), none with `on-demand`.
+Only what the worker can do and prove; none for the reviewer, coordinator or user. A goal's own brief has no worker: its boxes cover the whole, and the coordinator ticks them at "Finish". The docs box goes where `docs.update` in `BRAID.md` calls for it: every brief with `strand` or `both`, a story and the docs strand with `braid` (the default), none with `on-demand`.
 
 - [ ] <first testable outcome>
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
