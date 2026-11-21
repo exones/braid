@@ -76,3 +76,17 @@ The thread S1 and the plan file S2 were read whole by a researcher subagent I la
 - S28 `docs/design/board-mockups/all-projects.html` — this repository · version: ab06142 · accessed 2026-11-21 · read: part (its CSS, the project lines, the phone picker) · says: the approved style for a block above the lanes, filter lines and the phone picker sheet. · adopted as the style of `programmes.html`.
 
 Set aside: OpenAI Agents SDK, Temporal, Devin and the Copilot coding agent were not read, for time. Three orchestrators with readable docs were enough to show that none has built-in escalation on timeout. ArchWiki's Systemd/User page was blocked by bot protection, so the freedesktop man pages were used instead. A search summary calling Agent Inbox active was set aside: GitHub shows it archived.
+
+Added after the design review, to check question 6 and strands B to E against 0061 as built:
+
+- S29 0061/C as built — branch `origin/braid/0061-pause-and-resume-braids-on-provider-rate` (PR #229 merged into it) · version: 59a723c5 (2026-11-21 23:30 +0100) · accessed 2026-11-22 · read: part (`src/braids/pauses.ts` whole; `src/board/pause.ts` phases; the diff of `docs/cli.md`, `docs/braids-format.md` and `docs/decisions.md` D86; `docs/board.md` "Paused") · says:
+  - A pause record requires `braid`, a non-empty `provider`, `resumeAt` (ISO), `thread`, `by` (`coordinator` or `pm`) and `at`, with `window`, `label`, `usedPercent`, `resetsAt` and `task` nullable. It has no reason field. Invalid records "are left out with a note".
+  - `braid pause` needs `--provider` and is "refused unless the verdict is `pause`" or `--until` is given.
+  - The board shows "a sky pause icon" and a line on Working or To Do cards. A pause "opens no Needs You", and `stalled` "is held back (both kinds)".
+  - 15 min past `resumeAt` the mark turns amber ("resume was due"). At 25 min the item reads `stalled`.
+  · adopted: the hold goes in this store, which needs `reason` and nullable `provider` and `resumeAt` (strand B).
+- S30 0061/D, pause and resume in the skills — PR #231 (`braid/0061/D-pause-and-resume-in-the-skills`, open) · version: the PR diff on 2026-11-22 · accessed 2026-11-22 · read: part (the diff of `braid-pm/SKILL.md`, `braid/SKILL.md`, `references/limits.md`, `references/autonomy.md` and `braid-worker/SKILL.md`) · says:
+  - braid-pm gets "Provider limits": a `braid pm limits check` task every 15 min, a pause message to each coordinator, `braid pause --by pm`, and a resume task in the PM's thread.
+  - braid-pm's "Hold" stays message-only and adds "A pause for a provider's usage limit is "Provider limits" instead."
+  - Under a PM, a coordinator over a threshold tells the PM and runs no `braid pause`.
+  · adopted: E builds on these sections after #231 merges, and adds `braid pause --hold` to "Hold".

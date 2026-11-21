@@ -12,7 +12,7 @@ A request addressed to the PM stays in Working with a teal "PM is handling" line
 
 The PM's own questions become requests on the programme (`braid ask pm/<slug>`) or on the braid they concern. They are pushed at high priority with the PM thread as the click target.
 
-On the board, programmes get a collapsible panel on the left, revised after the user's review. It has two sections, "Needs you" on top and "Working" below. A programme is Working whenever its PM runs, and it jumps to Needs you while one of the PM's own questions or actions is open. Each programme has an "Only these" button that filters the lanes to its braids. The panel lists the programmes of every project the board serves, keyed `<project>/<slug>` (question 9). Needs that belong to one braid stay on its card in the lanes.
+On the board, programmes get a collapsible panel on the left, revised after the user's review. It has two sections, "Needs you" on top and "Working" below. A programme is Working whenever its PM runs, and it jumps to Needs you while one of the PM's own questions or actions is open, or when for ten minutes neither its PM nor any of its braids has been running (an idle PM whose braids work is normal). Each programme has an "Only these" button that filters the lanes to its braids. The panel lists the programmes of every project the board serves, keyed `<project>/<slug>` (question 9). Needs that belong to one braid stay on its card in the lanes.
 
 A hold is 0061's paused state with a second reason. The names `braid-pm`, `🧭 … pm:` and `pm/<slug>` stay. ntfy action buttons wait for a later braid.
 
@@ -80,13 +80,24 @@ The user's reasons: a programme isn't a braid. Several of its braids run at once
 - **Where.** A panel on the left of the lanes, about 320 px wide. « in its header collapses it to a rail of icons, and » brings it back. The board remembers the choice in the browser (local storage), like Details.
 - **Two sections**, stacked vertically:
   - **Needs you**: a programme with an open request of the PM's own on the programme (`braid ask pm/<slug>`; question 3). Its card shows the request the way a braid card does: the label ("Q8 from the PM", "The PM asks you to"), the text with its options as a list, the age, "answer in the PM thread", and the 🧭 PM thread button. The oldest ask comes first.
-  - **Working**: every other programme whose plan `state` is `running` or `held`, whether or not a braid of it runs. Its card shows the goal, a done bar with "3/10 done · 3 running", and one status line. That line is `next` from the front matter, or what the PM is doing when no braid runs ("No braid running · the PM is checking PR #12 live"), or the hold in the user's words.
+  - **Working**: a programme whose PM thread is running, or at least one of whose braids is running (rule below), or which is held. Its card shows the goal, a done bar with "3/10 done · 3 running", and one status line. That line is `next` from the front matter, or what the PM is doing when no braid runs ("No braid running · the PM is checking PR #12 live"), or the hold in the user's words.
   - `done` and `stopped` programmes leave the panel. Their details stay reachable from the braids' 🧭 tags.
 - **Only these.** Each card has a "◎ Only these" button that shows just that programme's braids in the lanes. The button stays pressed, the other cards dim, and a teal bar above the lanes says what is shown and offers "Show all". Pressing the button again does the same. The address keeps it as `?programme=<project>/<slug>`, rewritten like `?projects=` without a history entry. Lane counts, the phone tabs and the inbox chip follow it.
 - **Details.** "≡ Plan", or a click on the name, opens a side panel like a braid's (`#/programme/<project>/<slug>`). It shows the open question, the goal, every plan row with its braid number, next, what the PM is handling, the last digest, the parallel limit, the hold, and a link to the plan file (screen 64).
 - **Rail.** Collapsed, the panel keeps one icon per programme. Programmes that need you come first, amber with a count. Working ones show 🧭, or ⏸ when held. Each icon has its project's colour dot, and its tooltip names the programme (screen 61).
-- **What stays on braid cards.** Item-level needs stay in the lanes: a coordinator request to the PM (Working, teal), one escalated or forwarded to the user, a PM action on one braid ("The PM asks you to" on 0005). Only the PM's own requests on the programme put the programme itself into Needs you. The lanes no longer have a programme card, and there is no Programmes block above them.
-- **A PM thread that stopped.** If the plan says `running` but T3 says the PM thread is archived, unknown or failed, the card stays in Working with a red line, "The PM thread failed 12 min ago", and the PM's open requests escalate to their braid cards (question 2). Per the user's rule, this doesn't move the programme to Needs you. If the user wants a stopped PM to count as needing them, it is a one-line change in D. That is open for their review.
+- **What stays on braid cards.** Item-level needs stay in the lanes: a coordinator request to the PM (Working, teal), one escalated or forwarded to the user, a PM action on one braid ("The PM asks you to" on 0005). The PM's own requests on the programme put the programme itself into Needs you, and so does a stalled PM (next point). The lanes no longer have a programme card, and there is no Programmes block above them.
+- **A stalled programme** (decided by the user in review; screen 63). In the user's words: "usually pm has some braids running, or if not, it's running itself. otherwise it can be stalled unless it's marked done". So a programme is Working while either of these holds:
+  - its PM thread is running;
+  - at least one of its braids is running: any agent thread of the braid runs (coordinator, worker or reviewer, as D46 counts them [S9]), or the PM's checker thread for it (`🧭 <repo> pm check: …`), or a PR of the braid has checks pending.
+
+  Otherwise, after ten minutes, the programme reads Needs you `stalled`: "⏳ Stalled: the PM stopped and none of its braids is running". An idle PM thread counts as not running, and so does one that is failed, archived or unknown to T3. The rule has the same shape and clock as the braid-level stall (D46 [S9], `docs/board.md` "stalled, braid with strands" [S5]), and it applies only after T3 and GitHub were read. The clock sits in `.braid/broke.json` under its own key, `<project>/<slug> pm`, apart from the braids' keys. It clears as soon as the PM or any of its braids runs again, so a brief blip in a T3 read raises no alarm.
+
+  Not stalled:
+  - a programme marked `done` (or `stopped`) in its plan, which leaves the panel;
+  - a programme on hold: the plan's `hold` is set, or every braid of it that isn't Done is paused (0061's limit pause or a hold; question 6). It stays Working with the hold's words or the pause line;
+  - a programme with a PM request to the user open, which is already in Needs you for that request. The request shows, and no stall line is added.
+
+  The card adds what it saw ("PM thread idle 14 min · no braid running"), or names a thread that is gone ("the PM thread failed 12 min ago"). The push is `<repo> <slug>: Needs You`, with tag `stalled` ⏳ and priority high, and tapping it opens the PM thread. Open requests to a failed or gone PM still escalate onto their braid cards at once, as question 2 designs; that path doesn't wait for this clock.
 - **Options.** A request has no options field [S6], and none is added. The PM writes the options as lines of the text ("A. …", "B. …"). The panel shows the text's lines, and lines starting with a letter and a dot show as a list. The answer is given in the PM thread, as today: the board has no Answer button [S5].
 - **Phone** (screens 66–67). The panel becomes a strip above the lane tabs. Closed, it is one 48 px line: "🧭 1 needs you · 3 working", amber when a programme needs you. Open, it lists programmes that need you as cards (question, options, a 44 px PM thread button), then working programmes one line each with 🧭 and ◎ buttons. A programme filter shows as a chip under the strip, and ✕ clears it.
 
@@ -114,7 +125,7 @@ The user's reasons: a programme isn't a braid. Several of its braids run at once
 1. **Timeout:** 20 min for a question, decision or plan, and 60 min for a handover (a review).
    - Base rate [S1]: the PM's answer gaps were 6–55 s, so 20 min is over 20 times the slowest and leaves room for a PM in a long turn on something else. A live check took 2.7 and 19.4 min, and the failed first check of 0003 about 18 min, so 60 min covers one check and a re-check.
    - These are constants, like the 10-minute broke clock. Made configurable only if a run shows the need.
-2. **The PM thread is not there to answer:** T3 says it is archived, unknown or failed (`t3 thread list` status). An idle PM thread is normal (the PM waits by ending its turn [S3]) and doesn't escalate.
+2. **The PM thread is not there to answer:** T3 says it is archived, unknown or failed (`t3 thread list` status). An idle PM thread is normal (the PM waits by ending its turn [S3]) and doesn't escalate. A programme whose PM is idle and none of whose braids is running is the programme-level stall (question 1, "A stalled programme").
 3. **The PM forwards it:** `braid forward <id> [--note <text>]`, run by the PM, sets `to: "user"` and `forwarded: <time>`, and keeps the text, adding the note. It then reads as an ordinary request of the user's, with "Forwarded by the PM:" and the PM thread as click. This is the fix for #147: the coordinator's request stays open, now for the user.
 
 No request escalates while its braid is paused or held (question 6).
@@ -166,6 +177,7 @@ Agent Inbox's item ("action request" plus the responses it allows [S19]) points 
 | The PM's own request (programme or braid) | yes, title `<repo> <slug>: the PM asks` | high | the PM thread |
 | The PM's `action` request | yes, "the PM asks you to" | high | the PM thread |
 | A PM-run braid becoming Done | yes | **low** (no sound or vibration [S12]) | none |
+| A programme stalled (PM not running and none of its braids running, 10 min) | yes, `<repo> <slug>: Needs You`, tag ⏳ | high | the PM thread |
 | The broke alarms on a PM-run braid (checks failed, stalled) | yes | default (not high) | the PM thread |
 | The digest; PM-run strands merging | none | | |
 | Held or paused braids | none | | |
@@ -201,26 +213,43 @@ Not adopted: `braid ask` sending its push at once. It would split sending betwee
 
 ## 6. Hold and pause
 
-**Recommendation: one board state, "paused" (grey ⏸), with two reasons.**
+**Recommendation: one board state, 0061's "paused", with two reasons.**
 
-- The two reasons are 0061's rate-limit pause and the user's hold.
-- Both mean no Needs You, no `stalled`, no escalation and no push [S10].
+- The two reasons are 0061's provider-limit pause and the user's hold.
+- Both mean no Needs You, no `stalled`, no escalation and no push [S10][S29].
+- They use 0061's mark as built: the sky pause icon, and a line on Working and To Do cards when Details is on [S29]. The mockups here draw it grey; read that as 0061's sky mark.
 - The line says which reason applies:
-  - "⏸ Paused: Claude 5-hour window 93 %, resumes 21:40";
-  - "⏸ Held by the PM: “Please freeze work…” · since 16:31".
+  - a limit, as 0061/C words it: "Paused: Claude_Everix Session 97%, resumes 21:05", with "paused by the coordinator 18 min ago" under it [S29];
+  - a hold: "Held: “Please freeze work…”", with "held by the PM since 16:31" under it.
 
 The mockup's screen 63 shows a held programme (`notes/ios-beta`) in Working, with its braid paused.
 
-**Store.** The hold uses 0061/C's `.braid/pauses.json` with a `reason: "hold"` and the user's words, and no `resumeAt`, through `braid pause <n> --hold "<words>" --thread <PM thread>`. The PM runs it for each running braid when it sends `Hold from the user` [S3]. `braid resume` clears it.
+**Store.** The hold uses 0061/C's `.braid/pauses.json` and `braid pause` / `braid resume`. As built, though, they don't fit a hold yet (checked against `origin/braid/0061-…` at 59a723c5, PR #229 [S29]):
+
+- A record requires `provider` (non-empty) and `resumeAt` (ISO), and has no reason field. A hold has neither a provider nor a resume time.
+- `braid pause` requires `--provider`, and refuses unless `braid limits` says `pause` or `--until` is given.
+- Past `resumeAt`, the mark turns amber after 15 min ("resume was due"), and the item reads `stalled` after 25 min (`src/board/pause.ts`).
+- A record that fails validation is left out with a note, so a hold record would be dropped by a 0061-era board.
+
+So strand B extends the store, as follows:
+
+- A record gains `reason: "limit" | "hold"`, where a missing reason reads as `limit`, so 0061's records stay valid. A hold also gains `words` (the user's words).
+- For a hold, `provider`, `resumeAt`, `window` and `task` are null. Validation requires them only for `limit`.
+- `braid pause <n> --hold "<words>" --thread <id> [--by pm]` writes a hold. `--provider` and `braid limits` are not used.
+- The overdue phases (`due`, `over`) apply only to a limit. A hold has no due time, so it never turns amber or `stalled`. It shows its age instead.
+- `braid status` and the details box show the hold and its words.
+- `braid resume <n>` clears either kind, as built.
+
+The PM runs `braid pause --hold` for each running braid when it sends `Hold from the user` [S3], and `braid resume` on "go".
 
 - A pause record already says who paused (`coordinator` or `pm`) [S10].
 - One store means one rule in `derive`, and a hold works for a braid the user runs without a PM too.
-- A hold has no due time, so it never turns `stalled`. It shows its age instead.
 - The plan's front-matter `hold` field gives the programme's panel card "On hold since 16:31" and the user's words. A held programme stays in Working: a hold is the user's own choice and needs nothing from them.
+- **A programme paused for a limit.** Under 0061/D the PM pauses every braid on the provider and keeps a resume task in its own thread [S30]. While every braid of the programme that isn't Done is paused (for either reason), the programme counts as held for the stall rule (question 1). Its card shows "Paused for Claude_Everix Session until 21:05". Once the resume is overdue, 0061's own `stalled` on the braids takes over [S29].
 
 Against: the hold is written twice, in the plan file and once per braid. The other way, deriving each braid's hold from the plan, would make B's escalation and the board's `stalled` read plan files. That couples B to D, and a held user-run braid would have no store.
 
-**Dependency.** This needs 0061/C merged. The braid brief already starts B to D after 0061.
+**Dependency.** 0061/C is merged into the 0061 braid branch (PR #229), not yet into `main`. 0061/D (PR #231, skills) is open. B and E start after 0061 merges into `main`, which the braid brief already requires for B to D.
 
 ## 7. Naming
 
@@ -263,9 +292,9 @@ The board can serve several projects (`/api/all`, `?projects=` [S5]). The panel 
 
 ## Strands, restated
 
-Sizes are estimates. Together about 2,050 lines, more than the braid's 1,200: the plan-file contract, the second request slot and the programmes panel across projects weren't in the original estimate.
+Sizes are estimates. Together about 2,240 lines, more than the braid's 1,200: the plan-file contract, the second request slot and the programmes panel across projects weren't in the original estimate.
 
-**B. Requests addressed to the PM (M, about 450 lines, 9 files).**
+**B. Requests addressed to the PM, and the hold in the pause store (M, about 570 lines, 12 files).**
 
 What it builds:
 
@@ -275,13 +304,15 @@ What it builds:
 - The notifier pushes only what is on the user's side, with high priority and the right click for escalations and forwards.
 - `braid status` and `braid requests` show the addressee.
 - The ntfy sequence ID with `clear` on close.
+- The hold in 0061/C's pause store (question 6): `reason` (missing reads as `limit`) and `words` on a record; `provider`, `resumeAt`, `window` and `task` null for a hold; `braid pause <n> --hold "<words>" --thread <id> [--by pm]`; the overdue phases only for a limit; the hold shown in `braid status`, on the card line and in the details box.
 
-Needs 0061/C (paused). Completion boxes:
+Needs 0061 merged into `main` (0061/C's `pauses.json`, `braid pause`, `braid resume` and paused marks). Completion boxes:
 
 - [ ] A request opened with `--to pm` reads Working with "The PM is handling" and sends no push; tests cover each lane rule
 - [ ] It reads Needs You (a review: To Review) and is pushed once after 20 min (a review: 60 min), when the PM thread is archived, unknown or failed, or after `braid forward`, and never while the braid is paused; tests cover each case
 - [ ] Old request records without `to` read as the user's
 - [ ] An answered request's push is cleared on Android (sequence ID), checked with `braid notify test`
+- [ ] `braid pause <n> --hold "<words>"` records a hold with no provider or resume time; it shows paused with the words, never turns amber or stalled, and `braid resume` clears it; 0061's limit records without `reason` still read as before; tests cover both kinds
 
 **C. The PM asks you through the board (M, about 350 lines, 8 files).**
 
@@ -299,13 +330,14 @@ Completion boxes:
 - [ ] `braid ask pm/<slug>` opens a programme request that shows in Needs You and is pushed at high priority with the PM thread as click
 - [ ] `--kind action` reads "The PM asks you to: …" on the board and in the push
 
-**D. The programmes panel on the board (L, ui, about 950 lines, 12 files).**
+**D. The programmes panel on the board (L, ui, about 1,000 lines, 13 files).**
 
 What it builds:
 
 - The plan front-matter format, with a reader and `braid check --plan`.
 - The board reads `pm/*` branches per project, and `programmes` in `/api/board` and `/api/all` (question 9).
 - The collapsible programmes panel left of the lanes, with Needs you and Working sections, and the rail (screens 60, 61 and 63).
+- The programme-level stall (PM not running and no braid running, except done, held or asking): its clock key `<project>/<slug> pm` in `broke.json`, the card line and the push (screen 63).
 - "Only these" with `?programme=<project>/<slug>`, combined with `?projects=` (screen 62).
 - The programme details side panel (screen 64).
 - The 🧭 tag on PM-run cards and Done rows, and project colour tags on programme cards.
@@ -315,20 +347,22 @@ What it builds:
 
 Needs B and C. Completion boxes:
 
-- [ ] A plan with valid front matter shows as a programme in the panel, in Needs you while a PM request on it is open and in Working otherwise, including with no braid running; an unreadable one shows "plan unreadable: <line>" and the board still works
+- [ ] A plan with valid front matter shows as a programme in the panel, in Needs you while a PM request on it is open and in Working otherwise while its PM or one of its braids runs (including an idle PM whose braids work, and a running PM with no braid running); an unreadable one shows "plan unreadable: <line>" and the board still works
+- [ ] A programme whose PM thread isn't running (idle, failed, archived or gone) and none of whose braids is running (no agent thread, no checker, no PR checks pending) reads Needs you `stalled` after ten minutes on its own clock (`<project>/<slug> pm`) and is pushed once; it clears when the PM or a braid runs again; a done, stopped or held programme never stalls, and one with an open PM request shows that request instead; tests cover each case
 - [ ] "Only these" filters the lanes to the programme's braids and back, keeps `?programme=<project>/<slug>` with `?projects=`, and survives a reload on desktop and phone
 - [ ] With several projects served, the panel lists every shown project's programmes with project tags; two projects with the same slug stay apart in the panel, the filter and the pushes
 - [ ] The panel collapses to the rail and back, and the board remembers the choice
 - [ ] A held programme shows the user's words on its card, and its braids show paused, not stalled
 - [ ] Screenshots of each screen, matching the approved mockups
 
-**E. Skills: the programme manager routes through the board (L, about 200 lines, 4 files).**
+**E. Skills: the programme manager routes through the board (L, about 220 lines, 5 files).**
 
 What it builds:
 
 - `braid-pm` is named "programme manager". It keeps the plan file's front matter (the template changes) and validates it with `braid check --plan`.
 - It asks the user through `braid ask pm/<slug>` or `--by pm` (still also in chat, context first).
-- It forwards with `braid forward`, holds with `braid pause --hold`, and writes `digest`.
+- It forwards with `braid forward`, and writes `digest`.
+- **Builds on 0061/D** (PR #231), which rewrote braid-pm's "Hold" line and added "Provider limits" to braid-pm and "Under a PM" to `references/limits.md` [S30]. As 0061/D leaves it, a hold is message-only: `Hold from the user: <words>` to every coordinator, noted in the plan file. E adds `braid pause <n> --hold "<words>" --thread <PM thread> --by pm` for each running braid and the front-matter `hold`, and `braid resume` on "go". It keeps 0061/D's limit protocol as is: the PM's `braid pm limits check` task, `braid pause --by pm`, and its resume task. E changes 0061/D's text, so it starts after #231 merges and edits those sections rather than rewriting them.
 - "Launched by a PM" uses `--to pm` on `ask` and `handover`, and never closes a request the user still has to act on.
 
 Changes skills, so the user merges it. Completion boxes:
@@ -336,6 +370,7 @@ Changes skills, so the user merges it. Completion boxes:
 - [ ] `braid-pm` and "Launched by a PM" use `--to pm`, `braid forward`, `braid ask pm/<slug>`, `--kind action` and `braid pause --hold` as built
 - [ ] The plan template has the front matter, and the skill validates it before each push
 - [ ] The name "programme manager" throughout; `braid-pm`, `🧭 … pm:` and `pm/<slug>` unchanged
+- [ ] braid-pm's "Hold" records `braid pause --hold` per running braid and the plan's `hold`, and "Provider limits" from 0061/D is unchanged
 
 **F. Docs (L, about 200 lines).**
 
@@ -352,7 +387,7 @@ No strand is dropped. The headless board is docs in F, not a strand of its own.
 
 ## Validation
 
-- `npm run verify` passed locally on 2026-11-21: 444 tests, 0 failed.
+- `npm run verify` passed locally on 2026-11-22: 444 tests, 0 failed.
 - The mockups render in Edge headless (screenshots in `screenshots/`).
 - The report changes no product code, skill or docs; the only new file outside the item folder is `docs/design/board-mockups/programmes.html`.
 - Docs: none affected (a spike with mockups only).
@@ -364,7 +399,7 @@ No strand is dropped. The headless board is docs in F, not a strand of its own.
 - 60 desktop, one project: the programmes panel with a programme in Needs you, the lanes with the PM-handled, escalated, forwarded and PM-asked braid cards;
 - 61 the panel collapsed to its rail, three projects;
 - 62 filtered to one programme ("Only these"), three projects;
-- 63 three projects, four programmes: one needs you, one has no braid running, one is held;
+- 63 three projects, five programmes: one asks you a question, one is stalled, one has no braid running, one is held;
 - 64 a programme's details side panel;
 - 65 the side panel of a braid whose request the PM handles (unchanged);
 - 66 the phone, the programmes strip open;
@@ -387,8 +422,8 @@ Needs the user: `architecture`: the design for programmes on the board (screens 
 - the plan file's front matter, which the PM writes and the board reads;
 - request fields `to`, `pm` and `by`, and the new kind `action`;
 - the new command `braid forward`;
-- `braid pause --hold` on 0061's store;
+- `braid pause --hold` on 0061's store, which needs `reason` and nullable `provider` and `resumeAt` in its records (question 6);
 - the 20 and 60 min escalation timeouts;
 - the programme key `<project>/<slug>`, `programmes` in `/api/board` and `/api/all`, and `?programme=`.
 
-Open for the user's review: whether a PM thread that stopped puts its programme into Needs you. The design keeps it in Working with a red line, per the user's rule that only the PM's own requests do.
+Settled in review: a programme is Working while its PM or one of its braids runs. Otherwise, after ten minutes, it reads Needs you `stalled`, unless it is done, held, or already in Needs you for a PM request (question 1, "A stalled programme").
