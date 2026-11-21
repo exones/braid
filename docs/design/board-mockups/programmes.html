@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>braid board – programmes mockups (0062/A)</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#3b5bdb;--todo:#cbd5e1;--prog:#2563eb;--rev:#7c3aed;--wait:#f59e0b;--done:#16a34a;--bad:#dc2626;--pm:#0f766e;--pmbg:#e9f6f4;--pause:#64748b}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+.cap{padding:6px 20px;color:var(--mut);font-size:12px;background:#fff;border-bottom:1px solid var(--line)}
+.url{padding:5px 20px;font:12px ui-monospace,Consolas,monospace;background:#e9ecf3;color:#444}.url b{color:#000}
+header{display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line)}header b{font-size:16px}.sp{flex:1}
+.mut{color:var(--mut);font-size:12px}
+button,.btn{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.btn.pm{border-color:#99d5cc;color:var(--pm);font-weight:600}
+/* programmes block */
+.progs{background:#fff;border-bottom:1px solid var(--line);padding:6px 20px 8px}
+.progs .ph{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mut);padding:2px 0 4px}.progs .ph a{color:var(--acc)}
+.pg{display:grid;grid-template-columns:22px 230px 1fr auto;gap:12px;align-items:center;padding:6px 6px;border-radius:8px;min-height:36px}
+.pg+.pg{border-top:1px solid #f0f1f5}.pg.off{opacity:.5}
+.pg .cb{width:16px;height:16px;border:1.5px solid #9aa3b8;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;background:#fff}
+.pg.on .cb{background:var(--pm);border-color:var(--pm)}
+.pg .nm{font-weight:700;display:flex;flex-direction:column;line-height:1.25}.pg .nm small{font-weight:400;color:var(--mut);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px}
+.chips{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.chip{font-size:11.5px;padding:1px 7px 1px 5px;border-radius:99px;background:#eef0f7;color:#38405a;display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.chip.plan{background:#fff;border:1px dashed #c3c9d6;color:var(--mut)}
+.chip b{font-weight:700}
+.next{font-size:12px;color:#38405a;white-space:nowrap}.next u{text-decoration:none;color:var(--mut)}
+.q{font-size:12px;background:#fff6e0;color:#7a4d00;border-radius:99px;padding:1px 9px;font-weight:600;white-space:nowrap}
+.hold{font-size:12px;background:#eef1f5;color:#334155;border-radius:99px;padding:1px 9px;font-weight:600;white-space:nowrap}
+.pgx{margin:2px 0 8px 40px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fbfcfd;display:grid;grid-template-columns:1.1fr 1fr;gap:6px 24px;font-size:13px}
+.pgx h5{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.pgx table{border-collapse:collapse;width:100%;font-size:12.5px}.pgx td{padding:3px 6px 3px 0;border-bottom:1px solid #eef0f4;vertical-align:top}.pgx td.r{color:var(--mut);width:28px}
+.pgx .full{grid-column:1/3}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.l-todo{background:var(--todo)}.l-prog{background:var(--prog)}.l-rev{background:var(--rev)}.l-wait{background:var(--wait)}.l-done{background:var(--done)}.l-plan{background:#fff;border:1.5px dashed #9aa3b8}.l-pause{background:var(--pause)}
+.lanes{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 20px;align-items:start}
+.lane{background:#eceef3;border-radius:10px;padding:10px}
+.lane h3{margin:2px 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
+.lane h3 span:first-child{display:flex;gap:6px;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;box-shadow:0 1px 2px #0001}
+.card.sel{border-color:var(--acc);box-shadow:0 0 0 2px #3b5bdb33}
+.card.prog{border-color:#99d5cc;background:linear-gradient(#f3fbf9,#fff 40%)}
+.card .id{color:var(--mut);font-size:12px}.card .t{font-weight:600;margin:2px 0 6px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:#e8ebf3;color:#49506a}
+.ptag{font-size:11px;padding:1px 8px 1px 6px;border-radius:99px;border:1px solid #99d5cc;color:var(--pm);display:inline-flex;gap:4px;align-items:center;font-weight:600;background:#fff}
+.bar{height:5px;background:#e6e9f0;border-radius:3px;flex:1;min-width:50px;overflow:hidden}.bar i{display:block;height:100%;background:var(--done)}
+.need{margin-top:6px;font-size:12.5px;border-radius:6px;padding:4px 7px;line-height:1.35}.need small{display:block;color:var(--mut);font-size:11px}
+.need .lbl{font-weight:700}
+.n-wait{background:#fff6e0;color:#7a4d00;border-left:3px solid var(--wait)}.n-bad{background:#fff1f1;color:#8f1f1f;border-left:3px solid var(--bad)}.n-rev{background:#f1ecff;color:#4a2a9a;border-left:3px solid var(--rev)}
+.n-pm{background:var(--pmbg);color:#134e48;border-left:3px solid var(--pm)}.n-pause{background:#f1f3f6;color:#334155;border-left:3px solid var(--pause)}
+.n-esc{background:#fff6e0;color:#7a4d00;border-left:3px solid var(--wait);box-shadow:inset 0 0 0 1px #fcd34d}
+.ic{display:inline-flex;width:26px;height:26px;border:1px solid var(--line);border-radius:6px;align-items:center;justify-content:center;font-size:12px;margin-top:6px;background:#fff}
+.ic.pm{border-color:#99d5cc}
+.mk{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700;margin-left:auto}
+.mk.q{background:var(--wait);color:#fff}.mk.f{background:var(--wait);color:#fff}.mk.pm{background:var(--pm);color:#fff}.mk.w{background:var(--prog);color:#fff}.mk.p{background:var(--pause);color:#fff}.mk.e{background:var(--rev);color:#fff}
+.done-row{display:flex;gap:8px;align-items:center;padding:5px 4px;border-bottom:1px solid #dfe2ea;font-size:13px}
+.done-row .d{color:var(--mut);font-size:11px;margin-left:auto;white-space:nowrap}
+.empty{color:var(--mut);font-size:12px;padding:10px 4px}
+/* panel */
+.panel{position:absolute;right:0;top:0;bottom:0;width:720px;background:#fff;border-left:1px solid var(--line);box-shadow:-8px 0 24px #0002;display:flex;flex-direction:column}
+.panel .ph2{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line)}
+.panel h2{margin:0;font-size:16px}.tabs2{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--line)}
+.tabs2 a{padding:8px 12px;color:var(--mut);border-bottom:2px solid transparent}.tabs2 a.on{color:var(--ink);font-weight:600;border-color:var(--acc)}
+.panel .body{padding:14px 16px;overflow:hidden}.panel h4{margin:14px 0 4px;font-size:13px}.panel p,.panel li{font-size:13px;margin:3px 0}
+.banner{border-radius:8px;padding:10px 12px;font-size:13px}.banner.pm{background:var(--pmbg);border:1px solid #99d5cc;color:#134e48}
+.banner ol{margin:6px 0 0;padding-left:20px}
+/* phone */
+body.ph{width:390px;min-height:844px;position:relative;overflow-x:hidden;background:#fff}
+.ph header{padding:10px 14px;gap:8px}.ph header b{font-size:15px}
+.ph .url{padding:4px 14px;font-size:11px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line)}
+.tabs a{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--mut);border-bottom:3px solid transparent}
+.tabs a b{font-size:16px;color:var(--ink)}.tabs a.on{border-color:var(--wait);color:var(--ink);font-weight:600}
+.pick{display:flex;align-items:center;gap:8px;margin:10px 14px 0;min-height:48px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:15px;font-weight:700}
+.pick .c{margin-left:auto;font-weight:400;color:var(--mut);font-size:13px}
+.pstrip{display:flex;align-items:center;gap:8px;margin:10px 14px 0;min-height:52px;padding:6px 12px;border:1px solid #99d5cc;border-radius:10px;background:var(--pmbg);font-size:13px}
+.pstrip b{font-size:14.5px;color:#134e48}.pstrip .c{margin-left:auto;color:var(--pm);font-weight:600}
+.pcards{padding:12px 14px 90px;background:#eceef3;min-height:640px;margin-top:10px}
+.ph .card{padding:12px;margin-bottom:10px}.ph .card .t{font-size:15px}
+.tap{min-height:44px;min-width:44px;font-size:14px;padding:0 14px;border-radius:8px;font-weight:600;color:#49506a;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;gap:6px;background:#fff}
+.tap.pm{color:var(--pm);border-color:#99d5cc}
+.shade{position:absolute;inset:0;background:#0007;z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -8px 30px #0004;padding:8px 0 16px;z-index:5}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:#cfd4df;margin:0 auto 6px}
+.sheet h5{margin:6px 20px 6px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between}
+.opt{display:flex;gap:12px;align-items:center;padding:10px 20px;min-height:56px;font-size:15px}.opt+.opt{border-top:1px solid #f0f1f5}
+.opt .rb{width:22px;height:22px;border-radius:50%;border:2px solid #9aa3b8}.opt.on .rb{border:7px solid var(--pm)}
+.opt small{display:block;color:var(--mut);font-size:12.5px}
+.sheet .sec{padding:4px 20px 8px;font-size:14px}.sheet .sec p{margin:4px 0}
+.sheet table{width:100%;border-collapse:collapse;font-size:13.5px}.sheet td{padding:6px 4px;border-bottom:1px solid #f0f1f5}
+/* notification shade */
+.android{background:#1f2430;min-height:844px;padding:14px 10px;color:#e7e9ee}
+.android .clock{font-size:40px;font-weight:300;padding:10px 12px 0}.android .date{padding:0 12px 14px;color:#aab}
+.nt{background:#2b3140;border-radius:18px;padding:12px 14px;margin:0 0 10px}
+.nt .app{font-size:12px;color:#aeb6c6;display:flex;gap:6px;align-items:center}.nt .app b{color:#e7e9ee;font-weight:600}
+.nt .tt{font-weight:700;margin-top:4px;font-size:14.5px}.nt .bd{font-size:13.5px;color:#d5d9e2;margin-top:2px}
+.nt .acts{display:flex;gap:18px;margin-top:8px;font-size:13px;color:#9cc3ff;font-weight:600}
+.nt.hi{box-shadow:inset 3px 0 0 #f59e0b}
+.android .note{font-size:12px;color:#aab;padding:6px 12px}
+</style></head>
+<body>
+<script>
+// ---- test data, shaped like the first real PM run (dctl-studio, 2026-11-21) ----------------------------------
+// Programme `working-product` (plan file pm/working-product.md on branch pm/working-product). Braids 0002-0007 and 0010 are
+// PM-run; 0008 and 0009 are run by the user directly (no programme).
+const PROG = {slug:'working-product', goal:'A working product per the specs: write and debug a DCTL from VS Code against your Resolve',
+  thread:'🧭 dctl-studio pm: working product per specs', limit:3, started:'15:21',
+  rows:[ // [row, braid, title, state]
+    ['P0','0002','Leftover sweep','done'],['P1','0003','Thin end-to-end path: debug a DCTL from VS Code','done'],['P8','0004','CI on a self-hosted Windows runner','done'],
+    ['P9','0005','Live-check kit','waiting on user'],['P2','0006','Compare view','running'],['P4','0007','Diagnostics panel','running'],['P5','0010','Export presets','running'],
+    ['P3',null,'Packaging for Windows','planned'],['P6',null,'Settings and first run','planned'],['P7',null,'Marketplace release','planned']],
+  next:'P3 Packaging for Windows, after 0006 merges', digest:'20:03 · 3 done · 3 running · 7 PM decisions since 18:31',
+  question:'Q8: should the compare view drive your Resolve? A, B or C', qAge:'2 min'};
+const LN = ['Needs you','To review','Working','To do','Done'];
+const LC = ['l-wait','l-rev','l-prog','l-todo','l-done'];
+// [id, tier, title, lane, done, total, need-html, need-class, mark, inProgramme, btns]
+const CARDS = [
+  ['prog','','Programme: working product per specs',0,3,10,`<span class="lbl">Q8 from the PM:</span> should the compare view drive your Resolve? A, B or C<small>programme · asked 2 min ago · answer in the PM thread</small>`,'wait','q',true,'pm'],
+  ['0010','tier:M','Export presets',0,0,2,`<span class="lbl">Escalated:</span> add ffmpeg as a runtime dependency? (decision: dependency)<small>to the PM 21 min ago, no answer · strand 0010/A</small>`,'esc','f',true,'coord'],
+  ['0005','tier:M','Live-check kit',0,1,3,`<span class="lbl">The PM asks you to:</span> sign in to the Resolve test account on the runner PC<small>something only you can do · asked 1 h ago</small>`,'wait','q',true,'pm'],
+  ['0008','tier:S','Marketplace listing copy',0,0,1,`Which name goes on the listing: “DCTL Studio” or “dctl-studio”?<small>braid, no strand involved · asked 8 min ago</small>`,'wait','q',false,'coord'],
+  ['0011','tier:M','Shader snippets',1,2,2,`<span class="lbl">Forwarded by the PM:</span> live check passed · merge PR #31 into main at 4be1c2a<small>braid · forwarded 12 min ago</small>`,'rev','e',true,'merge'],
+  ['0007','tier:M','Diagnostics panel',2,0,4,`<span class="lbl">🧭 The PM is handling:</span> approve the plan: 4 strands, A to D<small>braid · to the PM 40 s ago</small>`,'pm','pm',true,'coord'],
+  ['0006','tier:L','Compare view',2,1,3,`<span class="lbl">🧭 The PM is checking:</span> PR #29, its live check runs<small>strand 0006/B · handed to the PM 6 min ago</small>`,'pm','pm',true,'coord'],
+  ['0009','tier:S','Telemetry opt-in',3,0,0,null,null,null,false,'go'],
+];
+const DONES = [['0004','CI on a self-hosted Windows runner','Nov 21',true],['0003','Thin end-to-end path: debug a DCTL from VS Code','Nov 21',true],['0002','Leftover sweep','Nov 21',true],['0001','Repository skeleton','Nov 20',false]];
+
+const stateDot = s=>({done:'l-done',running:'l-prog','waiting on user':'l-wait',planned:'l-plan',held:'l-pause'}[s]||'l-todo');
+function chips(rows){return `<span class="chips">${rows.map(r=>r[1]?`<span class="chip" title="${r[0]} · ${r[2]} · ${r[3]}"><span class="dot ${stateDot(r[3])}"></span><b>${r[1]}</b></span>`:`<span class="chip plan" title="${r[0]} · ${r[2]} · planned, no braid yet"><span class="dot l-plan"></span>${r[0]}</span>`).join('')}</span>`;}
+function count(rows){const d=rows.filter(r=>r[3]==='done').length;return `${d} of ${rows.length} done`;}
+function progLine(opt={}){const on=opt.on!==false;const hold=opt.hold;
+  return `<div class="pg ${on?'on':'off'}"><span class="cb">${on?'✓':''}</span><span class="nm"><span>🧭 ${PROG.slug}</span><small>${PROG.goal}</small></span>
+  <span class="row" style="gap:10px">${chips(hold?PROG.rows.map(r=>r[3]==='running'||r[3]==='waiting on user'?[r[0],r[1],r[2],'held']:r):PROG.rows)}<span class="mut">${count(PROG.rows)}</span>${hold?`<span class="hold">⏸ On hold since 16:31</span>`:`<span class="next"><u>Next:</u> P3 Packaging, after 0006</span>`}${hold?'':`<span class="q">? Q8 for you · 2 min</span>`}</span>
+  <span class="row"><span class="btn pm">🧭 PM thread</span><span class="btn">Plan</span><a class="mut" style="color:var(--acc)">${opt.open?'▾':'▸'}</a></span></div>`;}
+function progOther(on){return `<div class="pg ${on?'on':'off'}"><span class="cb">${on?'✓':''}</span><span class="nm"><span style="color:var(--mut)">Not in a programme</span><small>braids you run yourself</small></span><span class="row"><span class="chips"><span class="chip"><span class="dot l-done"></span><b>0001</b></span><span class="chip"><span class="dot l-wait"></span><b>0008</b></span><span class="chip"><span class="dot l-todo"></span><b>0009</b></span></span></span><span></span></div>`;}
+function progExpanded(hold){return `<div class="pgx">
+ <div><h5>Goal (the user's words)</h5>“${PROG.goal}.”<h5 style="margin-top:10px">Braids, in plan order</h5><table>${PROG.rows.map(r=>`<tr><td class="r">${r[0]}</td><td>${r[1]?`<span class="dot ${stateDot(hold&&(r[3]==='running'||r[3]==='waiting on user')?'held':r[3])}"></span> <b>${r[1]}</b> `:'<span class="dot l-plan"></span> '}${r[2]}</td><td class="mut">${hold&&(r[3]==='running'||r[3]==='waiting on user')?'held':r[3]}</td></tr>`).join('')}</table></div>
+ <div><h5>Next</h5>${PROG.next}<h5 style="margin-top:10px">${hold?'Hold':'Open question for you'}</h5>${hold?`<div class="need n-pause" style="margin:0">⏸ On hold since 16:31, from you: “Please freeze work for a bit, limit is approaching.”<small>the PM launches nothing and its coordinators stop at a clean point; “go” in the PM thread lifts it</small></div>`:`<div class="need n-wait" style="margin:0">? ${PROG.question}<small>asked 2 min ago · answer in the PM thread</small></div>`}
+ <h5 style="margin-top:10px">PM is handling</h5><div class="mut" style="font-size:12.5px">0007 plan approval (40 s) · 0006/B live check of PR #29 (6 min)</div>
+ <h5 style="margin-top:10px">Last digest</h5><div class="mut" style="font-size:12.5px">${PROG.digest}</div>
+ <h5 style="margin-top:10px">Parallel limit</h5><div class="mut" style="font-size:12.5px">3 · 3 running</div></div>
+ <div class="full row" style="margin-top:4px"><span class="btn pm">🧭 Open PM thread</span><span class="btn">Plan file on pm/working-product</span><span class="btn">Show only this programme</span></div></div>`;}
+function progs(opt={}){return `<div class="progs"><div class="ph"><b style="color:var(--ink)">Programmes</b><span>1 running</span><span class="sp"></span><span>Click a line to show or hide its braids · ▸ opens it</span></div>${progLine({open:opt.open,hold:opt.hold,on:opt.sel!=='none'})}${opt.open?progExpanded(opt.hold):''}${progOther(opt.sel!=='prog')}</div>`;}
+function ic(btn,pm){return `<span class="ic" title="Open thread">↗</span>${pm?'<span class="ic pm" title="PM thread">🧭</span>':''}${btn==='go'?'<span class="ic" style="background:var(--prog);color:#fff;border-color:var(--prog)">▶</span>':''}${btn==='merge'?'<span class="ic" style="background:var(--rev);color:#fff;border-color:var(--rev)">⑂</span>':''}`;}
+function card(c,opt={}){let [id,tier,title,lane,d,t,need,kind,mark,inp,btn]=c;
+  if(opt.hold&&inp&&lane===2){need=`<span class="lbl">⏸ Held by the PM:</span> “Please freeze work for a bit, limit is approaching.”<small>since 16:31 · not stalled while held</small>`;kind='pause';mark='p';}
+  if(opt.hold&&id==='0009'){need=`<span class="lbl">⏸ Paused:</span> Claude 5-hour window 93 %, resumes 21:40<small>rate limit (0061) · paused by its coordinator</small>`;kind='pause';mark='p';}
+  if(id==='prog')return `<div class="card prog ${opt.sel==='prog'?'sel':''}"><div class="row"><span class="ptag">🧭 ${PROG.slug}</span><span class="mk q">?</span></div><div class="t">${title}</div><div class="row"><div class="bar"><i style="width:${100*d/t}%"></i></div><span class="mut">${d}/${t} done</span></div><div class="need n-wait">${need}</div><div class="row"><span class="ic pm" title="PM thread">🧭</span><span class="ic" title="Plan">≡</span></div></div>`;
+  return `<div class="card ${opt.sel===id?'sel':''}"><div class="row"><span class="id">${id}</span><span class="badge">${tier}</span>${inp?`<span class="ptag" title="run by the programme manager of ${PROG.slug}">🧭 ${PROG.slug}</span>`:''}${mark?`<span class="mk ${mark}">${{q:'?',f:'⚑',pm:'🧭',w:'🔧',p:'⏸',e:'👁'}[mark]}</span>`:''}</div><div class="t">${title}</div><div class="row"><div class="bar"><i style="width:${t?100*d/t:0}%"></i></div><span class="mut">${d}/${t}</span></div>${need?`<div class="need n-${kind}">${need}</div>`:''}<div class="row">${ic(btn,inp)}</div></div>`;}
+function lanes(opt={}){const vis=CARDS.filter(c=>opt.filter==='prog'?c[9]:opt.filter==='none'?!c[9]:true);
+ const hold=opt.hold?CARDS.map(c=>c):null;
+ return `<div class="lanes">${LN.map((n,i)=>{let cs=vis.filter(c=>c[3]===i);
+   if(opt.hold&&i===0)cs=cs.filter(c=>c[0]!=='10'&&c[0]!=='0010');
+   if(opt.hold){ if(i===2)cs=[...cs,...vis.filter(c=>c[0]==='0010'),...vis.filter(c=>c[0]==='0009')].map(c=>c[0]==='0010'||c[0]==='0009'?[...c.slice(0,3),2,...c.slice(4)]:c); if(i===3)cs=cs.filter(c=>c[0]!=='0009'); }
+   let inner;
+   if(i===4){const ds=DONES.filter(d=>opt.filter==='prog'?d[3]:opt.filter==='none'?!d[3]:true);inner=ds.map(d=>`<div class="done-row"><span class="dot l-done"></span><span class="mut" style="width:38px;font-size:12px">${d[0]}</span>${d[3]?'<span title="'+PROG.slug+'" style="font-size:11px">🧭</span>':''}<span>${d[1]}</span><span class="d">${d[2]}</span></div>`).join('')||'<div class="empty">Nothing done yet.</div>';}
+   else inner=cs.map(c=>card(c,{hold:opt.hold,sel:opt.sel})).join('')||'<div class="empty">Nothing here.</div>';
+   const total=i===4?(inner.match(/done-row/g)||[]).length:cs.length;
+   return `<div class="lane"><h3><span><span class="dot ${LC[i]}"></span>${n}</span><span>${total}</span></h3>${inner}</div>`}).join('')}</div>`;}
+function head(){return `<header><b>braid · attention board</b><span class="mut">dctl-studio · Each braid sits in the lane where it needs you most.</span><span class="sp"></span><span class="badge" style="padding:3px 10px">Inbox · 2</span><label class="mut"><input type="checkbox" checked> Details</label><span class="mut">refreshes every 30 s</span><button>Refresh</button></header>`;}
+const url=(q,h)=>`<div class="url">localhost:7700/<b>${q}</b>${h}</div>`;
+
+// ---- phone ---------------------------------------------------------------------------------------------------
+function ptabs(c,on=0){return `<div class="tabs">${['Needs you','Review','Working','To do','Done'].map((n,i)=>`<a class="${i===on?'on':''}"><b>${c[i]}</b>${n}</a>`).join('')}</div>`;}
+function pstrip(){return `<div class="pstrip"><span style="font-size:20px">🧭</span><span><b>${PROG.slug}</b><br><span class="mut">3 of 10 done · Q8 for you · next P3</span></span><span class="c">▸</span></div>`;}
+function pcard(c){let [id,tier,title,lane,d,t,need,kind,mark,inp,btn]=c;
+  if(id==='prog')return `<div class="card prog"><div class="row"><span class="ptag">🧭 ${PROG.slug}</span><span class="mk q">?</span></div><div class="t">${title}</div><div class="need n-wait">${need}</div><div class="row" style="margin-top:10px"><a class="tap pm" aria-label="PM thread">🧭</a><a class="tap">≡ Plan</a></div></div>`;
+  return `<div class="card"><div class="row"><span class="id">${id}</span><span class="badge">${tier}</span>${inp?`<span class="ptag">🧭 ${PROG.slug}</span>`:''}${mark?`<span class="mk ${mark}">${{q:'?',f:'⚑',pm:'🧭',e:'👁'}[mark]}</span>`:''}</div><div class="t">${title}</div>${need?`<div class="need n-${kind}">${need}</div>`:''}<div class="row" style="margin-top:10px"><a class="tap" aria-label="Coordinator">🧠</a>${inp?'<a class="tap pm" aria-label="PM thread">🧭</a>':''}${btn==='merge'?'<a class="tap" style="background:var(--rev);color:#fff;border-color:var(--rev)">⑂ Merge</a>':''}</div></div>`;}
+
+// ---- screens -------------------------------------------------------------------------------------------------
+const S = {};
+S['60-board'] = ()=>`<div class="cap">60 · Desktop. The Programmes block above the lanes: one line per programme (goal, its braids as chips in plan order with their lane colour, dashed chips for planned rows with no braid yet, next, the open question, the PM thread and plan buttons), and a line for braids not in any programme. In the lanes, PM-run braids carry the 🧭 programme tag. The PM's own question is a programme card in Needs You. A request the PM is handling stays in Working with a teal line. One the PM didn't answer in 20 min is escalated to Needs You. A merge the PM forwarded sits in To Review.</div>${url('','#/')}${head()}${progs()}${lanes()}`;
+S['61-programme-open'] = ()=>`<div class="cap">61 · Desktop. The programme line opened (▸): the goal in the user's words, every plan row with its braid number (P-rows keep their own name, so “P4” and “0007” are never confused), next, the open question, what the PM is handling now, the last digest and the parallel limit, read from the plan file's front matter.</div>${url('','#/')}${head()}${progs({open:true})}${lanes()}`;
+S['62-hold'] = ()=>`<div class="cap">62 · Desktop, the programme on hold. Hold and 0061's rate-limit pause are one board state, “paused” (grey ⏸): no Needs You, no stalled alarm, no push. The line says why: the user's hold, quoted from the plan file, on the PM's braids; a rate-limit pause (0061) on 0009, which its coordinator paused. The escalated request is gone: no request escalates while its programme is held.</div>${url('','#/')}${head()}${progs({open:true,hold:true})}${lanes({hold:true})}`;
+S['63-filter'] = ()=>`<div class="cap">63 · Desktop, filtered to one programme (a click on the line, or “Show only this programme”). The “Not in a programme” line is dimmed and its braids are hidden; lane totals count what is shown. The address keeps the filter (?programme=working-product), as ?projects= does for projects.</div>${url('?programme=working-product','#/')}${head()}${progs({sel:'prog'})}${lanes({filter:'prog'})}`;
+S['64-panel'] = ()=>`<div class="cap">64 · Desktop, the side panel of a braid whose request the PM is handling. The banner says whom the request is for, and when and why it would come to you. Both threads are one click away: 🧠 the coordinator, 🧭 the PM.</div>${url('','#/0007')}<div style="position:relative;height:900px;overflow:hidden">${head()}${progs()}${lanes({sel:'0007'})}
+ <div class="panel"><div class="ph2"><h2>0007 · Diagnostics panel</h2><span class="badge">tier:M</span><span class="ptag">🧭 ${PROG.slug} · P4</span><span class="sp"></span><span class="btn">🧠 Coordinator</span><span class="btn pm">🧭 PM thread</span><button>✕</button></div>
+ <div class="tabs2"><a class="on">Brief</a><a>Report</a><a>Logs</a></div>
+ <div class="body"><div class="banner pm"><b>🧭 For the PM:</b> approve the plan: 4 strands, A to D. <span class="mut">Asked 40 s ago by the coordinator.</span>
+ <div style="margin-top:6px">The programme manager answers this in the coordinator's thread. It comes to you, in Needs You and as a push, when:</div><ol><li>the PM hasn't answered by <b>20:31</b> (20 min after it was asked);</li><li>the PM thread is archived or gone, or its last turn failed;</li><li>the PM forwards it to you.</li></ol><div style="margin-top:6px" class="mut">You can still answer it yourself in the coordinator's thread: your answer wins.</div></div>
+ <div class="row" style="margin-top:12px"><span class="badge">In Progress</span><span class="mut">being planned · planning PR #33 checks running</span></div>
+ <h4>Goal</h4><p>A panel in VS Code that lists the DCTL compiler's diagnostics with their line, and jumps to them. Sample text.</p>
+ <h4>Strands (proposed)</h4><ul><li>A. Diagnostics from the compiler output</li><li>B. The panel</li><li>C. Jump to line</li><li>D. Docs</li></ul></div></div></div>`;
+S['65-phone-needs'] = ()=>`<div class="cap" style="width:390px">65 · Phone, Needs You. The programme strip sits under the header (one line per running programme; ▸ opens it). The PM's question and its request to you come first, then the escalated request, then the user-run braid.</div>${url('','#/')}<header><b>braid</b><span class="sp"></span><span class="badge">Inbox 2</span></header>${pstrip()}${ptabs([4,1,2,1,4],0)}<div class="pcards">${CARDS.filter(c=>c[3]===0).map(pcard).join('')}</div>`;
+S['66-phone-programme'] = ()=>`<div class="cap" style="width:390px">66 · Phone, the programme strip opened: a bottom sheet with the goal, the open question, the plan rows with their braid numbers and states, next, and the PM thread as a 44 px button (it opens the phone's T3 app, like the other thread links).</div>${url('','#/')}<header><b>braid</b><span class="sp"></span><span class="badge">Inbox 2</span></header>${pstrip()}${ptabs([4,1,2,1,4],0)}<div class="pcards">${CARDS.filter(c=>c[3]===0).slice(0,2).map(pcard).join('')}</div><div class="shade"></div>
+ <div class="sheet"><div class="grab"></div><h5><span>🧭 Programme ${PROG.slug}</span><span>✕</span></h5><div class="sec"><p>“${PROG.goal}.”</p><div class="need n-wait">? ${PROG.question}<small>asked 2 min ago · answer in the PM thread</small></div></div>
+ <div class="sec"><table>${PROG.rows.map(r=>`<tr><td class="mut" style="width:30px">${r[0]}</td><td>${r[1]?`<span class="dot ${stateDot(r[3])}"></span> <b>${r[1]}</b> `:'<span class="dot l-plan"></span> '}${r[2]}</td></tr>`).join('')}</table><p class="mut" style="margin-top:8px">Next: ${PROG.next}</p></div>
+ <div class="sec row"><a class="tap pm" style="flex:1">🧭 Open PM thread</a><a class="tap" style="flex:1">Show only these</a></div></div>`;
+S['67-phone-filter'] = ()=>`<div class="cap" style="width:390px">67 · Phone, the filter. A picker under the header, like the project picker of 0049/D: all braids, one programme, or only the braids not in a programme.</div>${url('?programme=working-product','#/')}<header><b>braid</b><span class="sp"></span><span class="badge">Inbox 2</span></header><div class="pick"><span>🧭</span>working-product<span class="c">▾</span></div>${ptabs([3,1,2,0,3],0)}<div class="pcards">${CARDS.filter(c=>c[3]===0&&c[9]).map(pcard).join('')}</div><div class="shade"></div>
+ <div class="sheet"><div class="grab"></div><h5><span>Show</span><span>✕</span></h5>
+ <div class="opt"><span class="rb"></span><span>All braids<small>8 open</small></span></div>
+ <div class="opt on"><span class="rb"></span><span>🧭 working-product<small>6 open · Q8 for you</small></span></div>
+ <div class="opt"><span class="rb"></span><span>Not in a programme<small>2 open · 1 needs you</small></span></div></div>`;
+S['68-phone-pushes'] = ()=>`<div class="android" style="width:390px"><div class="cap" style="background:#2b3140;color:#aab;border:0;border-radius:8px;margin-bottom:8px">68 · The pushes under a PM, as ntfy shows them on Android. High priority (the amber edge) for what needs you; none for what the PM is handling. Each one opens its thread in the T3 app.</div><div class="clock">20:24</div><div class="date">Saturday, 21 November</div>
+ <div class="nt hi"><div class="app">🧭 <b>ntfy</b> · braid-…· now</div><div class="tt">dctl-studio working-product: the PM asks</div><div class="bd">Q8: should the compare view drive your Resolve? A, B or C</div><div class="note" style="padding:4px 0 0">opens the PM thread</div></div>
+ <div class="nt hi"><div class="app">⚖️ <b>ntfy</b> · braid-… · 3 min</div><div class="tt">dctl-studio 0010/A: Needs You (escalated)</div><div class="bd">Export presets<br>Add ffmpeg as a runtime dependency? The PM hasn't answered for 20 min</div><div class="note" style="padding:4px 0 0">opens the coordinator thread</div></div>
+ <div class="nt"><div class="app">👀 <b>ntfy</b> · braid-… · 12 min</div><div class="tt">dctl-studio 0011: To Review</div><div class="bd">Shader snippets<br>Forwarded by the PM: live check passed · merge PR #31 at 4be1c2a</div><div class="note" style="padding:4px 0 0">opens the PM thread</div></div>
+ <div class="nt hi"><div class="app">❓ <b>ntfy</b> · braid-… · 1 h</div><div class="tt">dctl-studio 0005: the PM asks you to</div><div class="bd">Live-check kit<br>Sign in to the Resolve test account on the runner PC</div></div>
+ <div class="note">Not pushed: 0007's plan approval and 0006/B's handover (to the PM), the PM's digest (on the programme line), and PM-run strands merging. A braid of the programme becoming Done is pushed at low priority (no sound).</div></div>`;
+
+const key = new URLSearchParams(location.search).get('s')||'60-board';
+document.body.className = key.includes('phone')?'ph':'';
+document.body.innerHTML += S[key]();
+if(/66|67/.test(key)){document.body.style.height='844px';document.body.style.minHeight='0';document.body.style.overflow='hidden';}
+</script>
+</body></html>
