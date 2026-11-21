@@ -67,6 +67,8 @@ Both stop on the first native command with a nonzero exit code and return that c
 
 `.github/workflows/ci.yml` runs `npm ci` and `npm run verify:full` on `windows-latest` and `ubuntu-latest` with `shell: pwsh` and Node.js `26`, for pull requests and for pushes to `main` and braid branches (`braid/<number>-<slug>`). A push that only changes files under `epics/` (past records) or `braids/` (briefs, reports and logs) doesn't run CI. Setup-node puts that runtime on `PATH`, so CI uses it instead of the shared Windows store. The job fails if `pwsh` is older than 7.6.0. Verification requires a clean checkout and uploads `artifacts/package/` as a workflow artifact. That upload is not a GitHub Release and not an npm publication.
 
+On Windows the job sets `TEMP` and `TMP` to a folder under `$RUNNER_TEMP` (on D:) before setup-node and `npm ci`. The hosted runner's default temporary folder is on the slow C: drive, and the tests create thousands of small files and Git repositories there; the 0057/A spike measured `node --test` 13–21% faster in paired runs with the move. The two slowest test files are split in two so the test runner can run the halves on separate threads: `done.test.ts` and `done-merge.test.ts` share `test/support/done-fixtures.ts`, and `start.test.ts` and `start-clean.test.ts` share `test/support/start-fixtures.ts`.
+
 The workflow uses pinned checkout, setup-node and upload-artifact actions and the runner's PowerShell installation. It needs no T3 access, private infrastructure or npm publishing credentials. `.github/workflows/release.yml` is a manual dispatch and is not part of the pull-request gate.
 
 ## Contributing
