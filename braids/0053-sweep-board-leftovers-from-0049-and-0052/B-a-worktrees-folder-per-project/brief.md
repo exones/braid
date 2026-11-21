@@ -1,7 +1,7 @@
 ---
 id: '0053/B'
 title: "A worktrees folder per project"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:architecture", "ask:data"]
 dependencies: []
 order: 20
@@ -47,9 +47,18 @@ First a proposal on realistic examples, then stop (converge loop): the new folde
 
 ## Completion
 
-- [ ] The proposal (key, existing worktrees, `projects add` message) was approved by the user, and the item's log records the verdict
-- [ ] Two listed projects with the same folder name get different worktrees folders; a test shows it
-- [ ] Worktrees made under the old layout are still found by start, clean and the board, or moved as approved; a test shows it
-- [ ] Docs that name the worktrees folder describe the new layout
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The proposal (key, existing worktrees, `projects add` message) was approved by the user, and the item's log records the verdict
+- [x] Two listed projects with the same folder name get different worktrees folders; a test shows it
+- [x] Worktrees made under the old layout are still found by start, clean and the board, or moved as approved; a test shows it
+- [x] Docs that name the worktrees folder describe the new layout
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Approved by the user as proposed (verdict A, 2026-11-21); built:
+
+- Key: the project's name in `~/.braid/projects.json` when the main checkout is listed (found by `samePath`, also when started from a worktree); otherwise the checkout's folder name, as today. Names are unique in the list, so two listed projects never share a folder. `braid projects add` defaults the name to the folder name, so default-named projects keep their current folder. An unreadable list falls back to the folder name.
+- Existing worktrees: left where they are, never moved (a move on Windows can fail half-way, and a worktree may hold unpushed work). Every lookup (start's "already started" check, clean, the board) looks in the project folder and in the old `<folder name>/`; git's own worktree list says which repository a worktree belongs to, so a twin's worktrees in a shared old folder are not touched. New items go to the project folder.
+- `braid projects add`: the same-folder-name warning is replaced by a note that the two projects' worktrees go to separate folders (`~/braid-worktrees/<name>/` and `~/braid-worktrees/<twin name>/`).
+- Docs: braids-format.md, cli.md, board.md; decision D84.
