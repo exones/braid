@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 export const scratch = mkdtempSync(join(tmpdir(), "braid-start-"));
 after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
-const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
+export const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 export const { startCommand, worktreesDir } = (await load("../../dist/commands/start.js")) as {
   startCommand: (root: string, args: string[], src: object, env: Record<string, string>) => Promise<string>;
   worktreesDir: (env: Record<string, string>) => string;
@@ -79,3 +79,27 @@ export function repo(withStrands = true): { root: string; env: Record<string, st
 
 
 export const gone = (root: string, branch: string) => git(root, "branch", "--list", branch) === "";
+
+export const { agentsDirs } = (await load("../../dist/braids/worktree-folders.js")) as { agentsDirs: (root: string, env: Record<string, string>) => string[] };
+
+let homes = 0;
+/** Runs `body` with a project list in a scratch home (homedir() follows HOME and USERPROFILE). */
+export async function listed<T>(projects: { name: string; path: string }[] | string, body: () => Promise<T> | T): Promise<T> {
+  const home = join(scratch, `home${++homes}`);
+  mkdirSync(join(home, ".braid"), { recursive: true });
+  writeFileSync(join(home, ".braid", "projects.json"), typeof projects === "string" ? projects : JSON.stringify({ version: 1, projects }));
+  const saved = { HOME: process.env["HOME"], USERPROFILE: process.env["USERPROFILE"] };
+  process.env["HOME"] = home;
+  process.env["USERPROFILE"] = home;
+  try {
+    return await body();
+  } finally {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) {
+        delete process.env[k];
+      } else {
+        process.env[k] = v;
+      }
+    }
+  }
+}

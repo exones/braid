@@ -4,7 +4,7 @@
 
 - `.github/workflows/ci.yml`: a Windows-only step ("Put TEMP on D:") before setup-node and `npm ci` creates `$RUNNER_TEMP\tmp` (on D:) and sets `TEMP`/`TMP` through `GITHUB_ENV`. It is skipped on the braids-only fast path; Ubuntu is unchanged. A comment gives the reason. The CI log shows `TEMP and TMP: D:\a\_temp\tmp`. (My first push had the step name unquoted with a trailing colon, which made the workflow file invalid; fixed in the next commit.)
 - `test/done.test.ts` (23 tests) is now `done.test.ts` (13: stories, a braid's final PR, refusals, box check) + `done-merge.test.ts` (10: strands, `--merge --preset`). `test/start.test.ts` (22 tests) is now `start.test.ts` (13: `braid start`) + `start-clean.test.ts` (9: `braid clean`). Totals 23 and 22 before and after (45 tests in the four files, all pass). Shared helpers are in `test/support/done-fixtures.ts` and `start-fixtures.ts`; tests and assertions are unchanged. Summed test time measured locally per half: done 89 s / 89 s, start about 89 s / 70 s.
-- `docs/development.md` describes the setup; `docs/decisions.md` has D83 (renumbered from D80 when main was merged in; TEMP on D:, the split, the Windows check stays one job, no paid runner or Dev Drive).
+- `docs/development.md` describes the setup; `docs/decisions.md` has D85 (renumbered from D80 when main was merged in; TEMP on D:, the split, the Windows check stays one job, no paid runner or Dev Drive).
 
 **Why:** the spike 0057/A measured `node --test` 13–21% faster in paired runs with TEMP on D:, and one test file runs on one thread.
 

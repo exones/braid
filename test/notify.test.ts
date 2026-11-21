@@ -63,7 +63,7 @@ const command = (await load("../dist/commands/notify.js")) as {
 };
 const boardMod = (await load("../dist/commands/board.js")) as {
   demoSources(): Record<string, unknown>;
-  startBoardWith(src: Record<string, unknown>, web: string, refreshMs?: number): Promise<{ server: Server; url: string }>;
+  startBoardWith(src: Record<string, unknown>, web: string, refreshMs?: number): Promise<{ server: Server; url: string; close(): Promise<void> }>;
 };
 
 // ---- board fixtures ----
@@ -445,10 +445,7 @@ test("the board hands each snapshot to the notifier and keeps serving when it th
     },
   };
   const started = await boardMod.startBoardWith(src, web, 600_000);
-  after(() => {
-    started.server.close();
-    started.server.closeAllConnections();
-  });
+  after(() => started.close());
   const res = await fetch(`${started.url}api/board`);
   assert.equal(res.status, 200);
   assert.ok(seen.length >= 1);

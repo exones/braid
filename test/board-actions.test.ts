@@ -15,7 +15,7 @@ interface Sources {
   [key: string]: unknown;
 }
 interface BoardModule {
-  startBoardWith: (src: Sources, web: string, refreshMs?: number, token?: string) => Promise<{ server: Server; url: string; token: string }>;
+  startBoardWith: (src: Sources, web: string, refreshMs?: number, token?: string) => Promise<{ server: Server; url: string; token: string; close(): Promise<void> }>;
   demoSources: () => Sources;
 }
 // A computed specifier keeps the compiled module out of the typecheck, which runs before the build.
@@ -29,12 +29,12 @@ const echo = (body: unknown): unknown => {
 };
 
 async function withBoard<T>(src: Sources, run: (port: number, token: string) => Promise<T>): Promise<T> {
-  const { server, token } = await board.startBoardWith(src, join(scratch, "no-web"));
+  const started = await board.startBoardWith(src, join(scratch, "no-web"));
+  const { server, token } = started;
   try {
     return await run((server.address() as AddressInfo).port, token);
   } finally {
-    server.close();
-    server.closeAllConnections();
+    await started.close();
   }
 }
 
@@ -98,10 +98,7 @@ test("each run has its own random token, and the opened URL carries it in the fr
     assert.notEqual(a.token, b.token);
     assert.doesNotMatch(a.url, /token/);
   } finally {
-    for (const s of [a.server, b.server]) {
-      s.close();
-      s.closeAllConnections();
-    }
+    await Promise.all([a.close(), b.close()]);
   }
 });
 
