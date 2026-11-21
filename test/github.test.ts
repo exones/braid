@@ -26,7 +26,7 @@ interface Pr {
 // Computed specifiers keep the compiled modules out of the typecheck, which runs before the build.
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 const { startBoard } = (await load("../dist/commands/board.js")) as {
-  startBoard: (root: string, web: string, gh: Runner) => Promise<{ server: Server; url: string }>;
+  startBoard: (root: string, web: string, gh: Runner) => Promise<{ server: Server; url: string; close(): Promise<void> }>;
 };
 const { resetGithubMemory, readGithub, setGithubClock } = (await load("../dist/board/github.js")) as {
   resetGithubMemory: () => void;
@@ -75,10 +75,10 @@ const green = [{ conclusion: "SUCCESS", status: "COMPLETED" }];
 const red = [{ conclusion: "SUCCESS", status: "COMPLETED" }, { conclusion: "FAILURE", status: "COMPLETED" }];
 
 async function board(root: string, gh: Runner) {
-  const { server, url } = await startBoard(root, join(scratch, "no-web"), gh);
+  const { close, url } = await startBoard(root, join(scratch, "no-web"), gh);
   const data = (await (await fetch(`${url}api/board`)).json()) as any;
   const item = async (id: string) => (await (await fetch(`${url}api/item?id=${encodeURIComponent(id)}`)).json()) as any;
-  after(() => server.close());
+  after(() => close());
   return { data, item, url };
 }
 

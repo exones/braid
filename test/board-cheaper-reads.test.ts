@@ -44,7 +44,7 @@ const t3mod = (await load("../dist/board/t3.js")) as {
 };
 const board = (await load("../dist/commands/board.js")) as {
   repoSources: (root: string, gh: unknown, t3: unknown) => { braids(): unknown };
-  startBoardWith: (src: unknown, web: string, refreshMs?: number) => Promise<{ server: Server; url: string }>;
+  startBoardWith: (src: unknown, web: string, refreshMs?: number) => Promise<{ server: Server; url: string; close(): Promise<void> }>;
 };
 
 const brief = (id: string, status: string, title = `T ${id}`) => `---\nid: '${id}'\ntitle: ${title}\nstatus: ${status}\n---\n\n## Goal\n\n${"Some text of the brief that is long enough to be paired as a rename. ".repeat(6)}\n`;
@@ -195,10 +195,7 @@ test("a static file is served while a slow read of the board's git sources runs"
   const src = board.repoSources(root, fail, fail);
   const slow = { ...src, braids: async () => (await new Promise((r) => setTimeout(r, 1500)), src.braids()) };
   const started = await board.startBoardWith(slow, web, 600_000);
-  after(() => {
-    started.server.close();
-    started.server.closeAllConnections();
-  });
+  after(() => started.close());
   const began = Date.now();
   const page = await fetch(started.url);
   assert.equal(page.status, 200);

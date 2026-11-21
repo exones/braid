@@ -27,8 +27,8 @@ interface Demo {
 // Computed specifiers keep the compiled modules out of the typecheck, which runs before the build.
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 const board = (await load("../dist/commands/board.js")) as {
-  startBoard: (root: string, web: string, gh: Gh, t3: T3Run, refreshMs?: number) => Promise<{ server: Server; url: string }>;
-  startBoardWith: (src: unknown, web: string, refreshMs?: number) => Promise<{ server: Server; url: string }>;
+  startBoard: (root: string, web: string, gh: Gh, t3: T3Run, refreshMs?: number) => Promise<{ server: Server; url: string; close(): Promise<void> }>;
+  startBoardWith: (src: unknown, web: string, refreshMs?: number) => Promise<{ server: Server; url: string; close(): Promise<void> }>;
   demoSources: (down?: boolean) => unknown;
 };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
@@ -108,11 +108,8 @@ function t3Stub(root: string, calls: string[] = [], list: object[] = threads): T
 }
 
 async function start(root: string, t3: T3Run, refreshMs = 30_000) {
-  const { server, url } = await board.startBoard(root, join(scratch, "no-web"), gh, t3, refreshMs);
-  after(() => {
-    server.close();
-    server.closeAllConnections();
-  });
+  const { url, close } = await board.startBoard(root, join(scratch, "no-web"), gh, t3, refreshMs);
+  after(() => close());
   return { url, get: async (path: string) => (await (await fetch(`${url}${path}`)).json()) as any };
 }
 
@@ -223,8 +220,8 @@ test("a change under braids/ pushes a refresh at once", async () => {
 });
 
 test("the demo shows every lane and every reason, request and alarm from built-in samples", async () => {
-  const { server, url } = await board.startBoardWith(board.demoSources(), join(scratch, "no-web"));
-  after(() => server.close());
+  const { url, close } = await board.startBoardWith(board.demoSources(), join(scratch, "no-web"));
+  after(() => close());
   const data = (await (await fetch(`${url}api/board`)).json()) as any;
   assert.equal(data.repo, "demo");
   assert.deepEqual(new Set(data.braids.map((b: any) => b.lane)), new Set(data.lanes));
@@ -238,7 +235,7 @@ test("the demo shows every lane and every reason, request and alarm from built-i
   assert.equal(strands.some((s: any) => s.lane === "In Progress"), true);
   assert.equal(((await (await fetch(`${url}api/item?id=0008/A`)).json()) as any).report.startsWith("# Report"), true);
   const down = await board.startBoardWith(board.demoSources(true), join(scratch, "no-web"));
-  after(() => down.server.close());
+  after(() => down.close());
   assert.equal(((await (await fetch(`${down.url}api/board`)).json()) as any).t3.state, "unavailable");
 });
 

@@ -1,7 +1,7 @@
 ---
 id: '0053/A'
 title: "Board fixes: push titles, demo failed read, close()"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M", "sweep"]
 dependencies: []
 order: 10
@@ -44,11 +44,18 @@ Expected size: about 80 to 150 lines in 6 to 10 files, plus retaken screenshots.
 
 - Worktrees folders (strand B); other notify or board changes.
 
+## Plan
+
+1. `runBoard` wraps each listed project's notifier: when another listed project has the same repository name, the board handed to the notifier carries the project name as `repo`, so `pushesOf` builds the title from it (no change in message.ts).
+2. `demoMembers` gets a fourth project `mail` whose first read works and later ones fail; retake screenshots 81 to 83 with Chrome on the built page.
+3. `Started.close()` waits for the server's `close` event (10 s bound).
+4. Every in-process board test closes with `await started.close()`; tests for 1 to 3 added.
+
 ## Completion
 
-- [ ] Two listed projects with the same repository name get push titles that name their projects; a test shows it, and projects with distinct repository names keep today's title
-- [ ] `braid board --demo` has a project whose last read failed, and new screenshots in docs/design/board-screenshots/ show its dashed edge, ⚠ tag and panel note
-- [ ] `Started.close()` resolves only after the server's close event; a test shows it
-- [ ] Every test that starts the board in process stops it with `close()`
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Two listed projects with the same repository name get push titles that name their projects; a test shows it, and projects with distinct repository names keep today's title
+- [x] `braid board --demo` has a project whose last read failed, and new screenshots in docs/design/board-screenshots/ show its dashed edge, ⚠ tag and panel note
+- [x] `Started.close()` resolves only after the server's close event; a test shows it
+- [x] Every test that starts the board in process stops it with `close()`
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

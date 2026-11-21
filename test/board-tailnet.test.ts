@@ -38,6 +38,7 @@ interface Started {
   server: Server;
   url: string;
   token: string;
+  close(): Promise<void>;
   tailnet?: { server: Server; url: string };
 }
 interface TailnetModule {
@@ -164,8 +165,7 @@ async function withTailnet<T>(kind: keyof typeof WHOIS, run: (port: number, host
   try {
     return await run(port, `${NAME}:${port}`, (started.server.address() as AddressInfo).port, started.token);
   } finally {
-    started.server.close();
-    started.server.closeAllConnections();
+    await started.close();
   }
 }
 
@@ -290,8 +290,7 @@ test("--port serves the local listener on that port; one in use is refused and n
     await assert.rejects(board.startBoardWith(sources(), web, undefined, undefined, undefined, port), /--port \d+ is already in use on 127\.0\.0\.1/);
     assert.equal((await call(port, "GET", "/api/board", { host: `127.0.0.1:${port}` })).status, 200);
   } finally {
-    started.server.close();
-    started.server.closeAllConnections();
+    await started.close();
   }
 });
 
@@ -305,8 +304,7 @@ test("--port with --host serves both listeners on that port; a port in use on th
     assert.equal((started.tailnet?.server.address() as AddressInfo).port, port);
     assert.equal(started.tailnet?.url, `http://${NAME}:${port}/`);
   } finally {
-    started.server.close();
-    started.server.closeAllConnections();
+    await started.close();
   }
   const blocker = createServer();
   await new Promise<void>((done) => blocker.listen(port, "127.0.0.2", done));

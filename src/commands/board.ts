@@ -594,6 +594,8 @@ async function postAction(req: IncomingMessage, url: URL, listener: Listener, pi
 
 /** How often open pages are told to refresh. */
 export const REFRESH_MS = 30_000;
+/** How long `Started.close()` waits for the server's close event. */
+const CLOSE_TIMEOUT_MS = 10_000;
 
 /** The second listener of `braid board --host`: a Tailscale address, the names it answers to and the identity check. */
 export interface TailnetListen {
@@ -610,7 +612,7 @@ export interface Started {
   readonly token: string;
   /** The Tailscale listener's server and URL (`http://<MagicDNS name>:<port>/`); closing `server` closes it too. */
   readonly tailnet?: { readonly server: Server; readonly url: string };
-  /** Closes the server (and the Tailscale listener) and resolves once the read in flight has ended, so no `git`, `gh` or `t3` it started still runs. */
+  /** Closes the server (and the Tailscale listener) and resolves once the HTTP server's `close` event has fired (interval and watchers torn down; a stuck close rejects after 10 s) and the read in flight has ended, so no `git`, `gh` or `t3` it started still runs. */
   close(): Promise<void>;
 }
 
@@ -936,8 +938,18 @@ export function startBoardWith(
     timer.unref();
     const close = async (): Promise<void> => {
       if (server.listening) {
+        // The server's close event runs stop(): the interval and the watchers are gone once it has fired.
+        const closedEvent = new Promise<void>((done, fail) => {
+          const timeout = setTimeout(() => fail(new Error(`the board did not close within ${CLOSE_TIMEOUT_MS / 1000} s`)), CLOSE_TIMEOUT_MS);
+          timeout.unref();
+          server.once("close", () => {
+            clearTimeout(timeout);
+            done();
+          });
+        });
         server.close();
         server.closeAllConnections();
+        await closedEvent;
       }
       // A read that runs (and the one queued after it) still has children in its repository; wait for every project's, dropped ones included.
       await Promise.all([...feeds.values(), ...dropped].map((entry) => entry.feed.idle()));
@@ -976,7 +988,7 @@ export interface Runners {
   readonly notifier?: (root: string) => (board: BoardData) => void;
 }
 
-/** The three sample projects of `braid board --demo`: the full sample (`demo`), a small one (`api`) and one that isn't ready (`notes`). */
+/** The four sample projects of `braid board --demo`: the full sample (`demo`), a small one (`api`), one whose reads fail after the first (`mail`) and one that isn't ready (`notes`). */
 export function demoMembers(t3Down = false, notReady = false): Member[] {
   const accept: Sources["action"] = () => () => ({ ok: true, demo: true });
   const small = (repo: string, braids: () => Braid[], github: () => Github, signals: () => ReadSignals, tree: () => Tree, problems: () => Problem[] | null): Sources => {
@@ -996,9 +1008,19 @@ export function demoMembers(t3Down = false, notReady = false): Member[] {
       action: accept,
     };
   };
+  // `mail`: its first read works, every later one fails, so the board shows its last good snapshot with the failed-read marks.
+  let mailReads = 0;
+  const mail = small("mail", () => {
+    mailReads += 1;
+    if (mailReads > 1) {
+      throw new Error("the mail repository can't be read (demo: a read that failed)");
+    }
+    return apiBraids();
+  }, apiGithub, () => apiSignals(), apiTree, () => null);
   return [
     { name: "demo", src: demoSources(t3Down, notReady) },
     { name: "api", src: small("api", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null) },
+    { name: "mail", src: mail },
     { name: "notes", src: small("notes", () => [], () => ({ status: { state: "ok" }, prs: new Map() }), () => ({ ...apiSignals(), requests: new Map() }), apiTree, notesProblems) },
   ];
 }
@@ -1074,13 +1096,30 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   } else {
     // One Sources and one notifier per listed project, kept while its name and path stay; the list is read again at each refresh.
     let cache = new Map<string, Member>();
+    let listedNow: readonly Project[] = list;
+    const repoNames = new Map<string, string>();
+    const repoOf = (p: Project): string => {
+      const known = repoNames.get(p.path);
+      if (known !== undefined) {
+        return known;
+      }
+      const name = titleRepoName(p.path);
+      repoNames.set(p.path, name);
+      return name;
+    };
+    // Two listed projects with the same repository name would send pushes that read the same: those name their project instead.
+    const withNotify = (p: Project, own: Sources): Sources => {
+      const inner = notifierOf(p.path);
+      return { ...own, notify: (board) => inner(listedNow.filter((q) => repoOf(q) === board.repo).length > 1 ? { ...board, repo: p.name } : board) };
+    };
     const membersOf = (projects: readonly Project[], first = false): Member[] => {
       const next = new Map<string, Member>();
+      listedNow = projects;
       const members = projects
         .filter((p) => only === undefined || p.name === only)
         .map((p) => {
           const key = `${p.name}\0${p.path}`;
-          const member = cache.get(key) ?? { name: p.name, src: ((s: Sources) => (first ? printing(p.name, s) : s))({ ...repoSources(p.path, gh, t3), notify: notifierOf(p.path) }) };
+          const member = cache.get(key) ?? { name: p.name, src: ((s: Sources) => (first ? printing(p.name, s) : s))(withNotify(p, repoSources(p.path, gh, t3))) };
           next.set(key, member);
           return member;
         });
