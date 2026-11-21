@@ -20,7 +20,9 @@ While any agent of the braid runs, keep one check task in your own thread: `sche
 braid <number> limits check. Run `braid limits <instanceId>` for each provider the braid's running agents use. Exit 3 on any: pause as the braid skill's references/limits.md "Pause" says. Otherwise end the turn at once, with no message to the user.
 ```
 
-Create it when you launch the first agent. Delete it (`delete_scheduled_task`; `list_scheduled_tasks` finds it by title) when no agent of the braid runs, when you pause (the resume task takes over), and at "Finish". Under a PM, the PM keeps this check for all its braids instead; don't create one.
+A scheduled run only queues while your turn is active, so the task covers the times your turn has ended (a worker on its PR watch, a reviewer `delegate_task` running, waiting for the user): a queued run starts at once. While you block in a wait, check yourself: wait on a worker with `t3_thread_wait` `timeoutMs: 600000` (10 min), and on each timeout run the same `braid limits` check before waiting again; exit 3: pause ("Pause"), otherwise wait again.
+
+Create the task when you launch the first agent. Delete it (`delete_scheduled_task`; `list_scheduled_tasks` finds it by title) when no agent of the braid runs, when you pause (the resume task takes over), and at "Finish". Under a PM, the PM keeps this check for all its braids instead; don't create one.
 
 ## Pause
 

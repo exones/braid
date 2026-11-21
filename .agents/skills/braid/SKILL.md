@@ -86,7 +86,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    Brief: `braid view <id>`. Branch: <branch> at <short sha>. Open the PR into <base branch>.
    Send your result to thread <your thread id>. Your thread id: <worker thread id>.
    ```
-3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. Run nothing else in parallel with it. If no report arrived, read the thread's last message and `gh pr checks`:
+3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread with `timeoutMs: 600000` (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. On a timeout, run the limits check for the worker's provider and wait again; on exit 3 pause ([provider limits](references/limits.md), "Check while agents run"). Run nothing else in parallel with it. If no report arrived, read the thread's last message and `gh pr checks`:
    - The worker waits on its own PR watch (CI pending): end your turn; its report wakes you. You never watch an item PR: the worker alone waits on its CI.
    - Green: take the result from the thread and continue.
    - The PR is already merged: the item is done.
@@ -94,7 +94,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    - Stopped with no watch and no report, or stuck: send it a nudge.
    - The run failed: read its error, and the item's `report.md`, log and PR. Retry once with the same model and settings; if it fails again, `braid ask --key quality`, naming the error (stop-case options).
    - The user says it finished: believe them and look at the PR.
-   - While it runs, the 15-minute limits check runs in your thread ([provider limits](references/limits.md), "Check while agents run"); a `Paused:` reply or a scheduled resume run continues there.
+   - Once your turn has ended, the 15-minute limits check task covers the running agents ([provider limits](references/limits.md), "Check while agents run").
 4. **Coordinator habits.**
    - After a wake or a resume, check the state first (branches, worktrees, worker threads, `braid next`), then act.
    - A "STOP" result during a wait is an incoming message, not the user: read it, never say "as you asked".
