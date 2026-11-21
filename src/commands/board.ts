@@ -612,7 +612,7 @@ export interface Started {
   readonly token: string;
   /** The Tailscale listener's server and URL (`http://<MagicDNS name>:<port>/`); closing `server` closes it too. */
   readonly tailnet?: { readonly server: Server; readonly url: string };
-  /** Closes the server (and the Tailscale listener) and resolves once the read in flight has ended, so no `git`, `gh` or `t3` it started still runs. */
+  /** Closes the server (and the Tailscale listener) and resolves once the HTTP server's `close` event has fired (interval and watchers torn down; a stuck close rejects after 10 s) and the read in flight has ended, so no `git`, `gh` or `t3` it started still runs. */
   close(): Promise<void>;
 }
 

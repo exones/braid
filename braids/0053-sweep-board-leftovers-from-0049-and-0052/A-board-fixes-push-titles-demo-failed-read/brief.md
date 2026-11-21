@@ -57,5 +57,5 @@ Expected size: about 80 to 150 lines in 6 to 10 files, plus retaken screenshots.
 - [x] `braid board --demo` has a project whose last read failed, and new screenshots in docs/design/board-screenshots/ show its dashed edge, ⚠ tag and panel note
 - [x] `Started.close()` resolves only after the server's close event; a test shows it
 - [x] Every test that starts the board in process stops it with `close()`
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

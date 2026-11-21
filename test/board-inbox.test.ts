@@ -66,16 +66,25 @@ function world() {
 function apiBoard(src: Sources, query = ""): Promise<{ inbox: Inbox; braids: unknown[] }> {
   return board.startBoardWith(src, join(scratch, "no-web")).then(
     ({ server, close }) =>
-      new Promise((resolve, reject) => {
+      new Promise<{ inbox: Inbox; braids: unknown[] }>((resolve, reject) => {
         get({ host: "127.0.0.1", port: (server.address() as AddressInfo).port, path: `/api/board${query}` }, (res) => {
           let text = "";
           res.on("data", (c: Buffer) => (text += c.toString()));
           res.on("end", () => {
-            const answer = JSON.parse(text) as { inbox: Inbox; braids: unknown[] };
-            close().then(() => resolve(answer), reject);
+            try {
+              resolve(JSON.parse(text) as { inbox: Inbox; braids: unknown[] });
+            } catch (e) {
+              reject(e);
+            }
           });
         }).on("error", reject);
-      }),
+      }).then(
+        async (answer) => (await close(), answer),
+        async (error: unknown) => {
+          await close();
+          throw error;
+        },
+      ),
   );
 }
 
