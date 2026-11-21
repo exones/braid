@@ -1,7 +1,7 @@
 ---
 id: '0057/B'
 title: "Apply the chosen Windows CI speedups"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M"]
 dependencies: ['0057/A']
 order: 20
