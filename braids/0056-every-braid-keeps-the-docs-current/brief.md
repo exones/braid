@@ -62,11 +62,20 @@ From the user's idea `2026-11-19-qkie` "Each braid keeps the project's docs curr
 
 ## Completion
 
-- [ ] `BRAID.md` and `assets/braid-md.md` have the `docs` key (`update` and the public and internal lists; here `update: both`), and `braid check` and the board still work with it (a test if the front matter is parsed)
-- [ ] The worker skill's "Docs stay true" rule replaces "Decided means documented", and report.md names the docs updated or says none were affected
-- [ ] The brief template's Completion has the docs box, and the reviewer skill checks it as blocking
-- [ ] The coordinator skill drafts briefs by `docs.update`: the docs box where it applies, and with `braid` or `both` a last docs strand in every goal (with its brief's content), none for a story; `workflow.md` says the same
-- [ ] `docs/getting-started.md` describes the `docs` key, its four `update` values and the docs strand; `docs/decisions.md` has the decision and a log line
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `BRAID.md` and `assets/braid-md.md` have the `docs` key (`update` and the public and internal lists; here `update: both`), and `braid check` and the board still work with it (a test if the front matter is parsed)
+- [x] The worker skill's "Docs stay true" rule replaces "Decided means documented", and report.md names the docs updated or says none were affected
+- [x] The brief template's Completion has the docs box, and the reviewer skill checks it as blocking
+- [x] The coordinator skill drafts briefs by `docs.update`: the docs box where it applies, and with `braid` or `both` a last docs strand in every goal (with its brief's content), none for a story; `workflow.md` says the same
+- [x] `docs/getting-started.md` describes the `docs` key, its four `update` values and the docs strand; `docs/decisions.md` has the decision and a log line
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `BRAID.md` and `assets/braid-md.md`: a nested `docs:` key (`update`, `public`, `internal` block lists). The CLI reads BRAID.md by regex for single keys (`ci`, `main`, `autonomy`, `models.coordinator`) and readiness collects top-level keys, so a nested key needs no code change; a regression test in `test/readiness.test.ts` runs every reader over a BRAID.md with `docs:`.
+2. Worker skill: "Docs stay true" replaces "Decided means documented"; Deliver step 0 has report.md name the docs updated or "none affected".
+3. Brief template: the docs Completion box, with when it applies by `docs.update`; reviewer skill: check the `docs` list against the change, a stale doc fails the box (blocking).
+4. Coordinator skill: Project facts reads `docs`; Plan step 5 drafts the box and, for a goal with `braid`/`both`, the last docs strand and its brief content; Finish notes the docs strand is one of the strands. `workflow.md`: one line under "Items are braids".
+5. `docs/getting-started.md` BRAID.md section; `docs/decisions.md` D81 (D80 is 0054's) and a log line; README docs table if it needs it.
+6. Gate, report.md.

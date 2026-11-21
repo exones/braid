@@ -95,7 +95,7 @@ pwsh -NoProfile -File .\scripts\Install-Skills.ps1   # the skills for Claude, Co
 
 Then, in the repository you want braid to work on:
 
-1. Add a `BRAID.md` from the [template](.agents/skills/braid/assets/braid-md.md): the gate command, the CI checks and the models per role.
+1. Add a `BRAID.md` from the [template](.agents/skills/braid/assets/braid-md.md): the gate command, the CI checks, the models per role and, optionally, the docs braid keeps true and when (`docs`).
 2. Add `braids/**/temp/` to `.gitignore`, commit and push.
 3. Open the repository as a T3 project and start a thread with `braid`: "braid: add dark mode to the settings page".
 
@@ -117,7 +117,7 @@ The full list is in [the CLI reference](docs/cli.md).
 
 | Page | What's in it |
 | --- | --- |
-| [Getting started](docs/getting-started.md) | Installing the skills and CLI, `BRAID.md`, setting up a repository, choosing an autonomy preset. |
+| [Getting started](docs/getting-started.md) | Installing the skills and CLI, `BRAID.md` (including which docs braid keeps true), setting up a repository, choosing an autonomy preset. |
 | [CLI reference](docs/cli.md) | Every command, with examples and exit codes. |
 | [The attention board](docs/board.md) | What `braid board` shows, how it decides, and its actions (Start, Merge, Open thread). |
 | [The braids/ format](docs/braids-format.md) | The files in `braids/`, branches and each command's behaviour. |
