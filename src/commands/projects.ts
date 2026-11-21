@@ -95,10 +95,11 @@ function add(args: readonly string[], home: string, cwd: string): ProjectsOut {
     return { list: [...list, project], result: list };
   }, home);
   const twins = others.filter((p) => folderKey(p.path) === folderKey(path));
-  const warnings = twins.map(
-    (t) => `warning: ${t.name} (${t.path}) has the same folder name ${basename(path)}; both projects' item worktrees go to ~/braid-worktrees/${basename(path)}/\n`,
+  const notes = twins.map(
+    (t) => `note: ${t.name} (${t.path}) has the same folder name ${basename(path)}; item worktrees go to ~/braid-worktrees/${name}/ for ${name} and ~/braid-worktrees/${t.name}/ for ${t.name}, so they stay apart
+`,
   );
-  return { stdout: [`Added ${header(project)}`, ...readinessLines(project), `List: ${projectsFile(home)}`, ""].join("\n"), stderr: warnings.join("") };
+  return { stdout: [`Added ${header(project)}`, ...readinessLines(project), `List: ${projectsFile(home)}`, ""].join("\n"), stderr: notes.join("") };
 }
 
 function remove(args: readonly string[], home: string): ProjectsOut {

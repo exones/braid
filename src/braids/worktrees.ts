@@ -10,19 +10,20 @@ export function worktreesDir(env: NodeJS.ProcessEnv = process.env): string {
   return set !== undefined && set !== "" ? resolve(set) : join(homedir(), "braid-worktrees");
 }
 
-/** The repository's name for the worktree folder: the main checkout's folder, also from inside a worktree; null when `root` is not a repository. */
-export function repoNameOf(root: string): string | null {
+/** The main checkout's folder, also from inside a worktree; null when `root` is not a repository. */
+export function mainCheckoutOf(root: string): string | null {
   const r = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" });
   if (r.status !== 0) {
     return null;
   }
   const dir = resolve(root, r.stdout.trim());
-  return basename(basename(dir) === ".git" ? dirname(dir) : dir).replace(/\.git$/, "");
+  return basename(dir) === ".git" ? dirname(dir) : dir;
 }
 
-/** The folder holding this repository's braid worktrees (`<worktrees>/<repo>`). */
-export function agentsDir(root: string, env: NodeJS.ProcessEnv = process.env): string {
-  return join(worktreesDir(env), repoNameOf(root) ?? basename(root));
+/** The repository's folder name: the main checkout's folder, also from inside a worktree; null when `root` is not a repository. */
+export function repoNameOf(root: string): string | null {
+  const main = mainCheckoutOf(root);
+  return main === null ? null : basename(main).replace(/\.git$/, "");
 }
 
 /** The folder of a worker's worktree: `0015` for a story, `0015-D` for a strand. */

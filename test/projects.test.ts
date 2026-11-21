@@ -122,12 +122,12 @@ test("add refuses a duplicate name, a duplicate path, a folder outside Git and a
   assert.equal(readFileSync(listFile(home), "utf8"), before, "a refused add leaves the list alone");
 });
 
-test("add warns when two projects share a folder name (one worktrees folder)", () => {
+test("add notes that two projects with one folder name get separate worktrees folders", () => {
   const home = fresh("h");
   assert.equal(braid(home, ["projects", "add", repo("app")]).code, 0);
   const second = braid(home, ["projects", "add", repo("app"), "--name", "app2"]);
   assert.equal(second.code, 0, second.stderr);
-  assert.match(second.stderr, /warning: app \(.*\) has the same folder name app; both projects' item worktrees go to ~\/braid-worktrees\/app\//);
+  assert.match(second.stderr, /note: app \(.*\) has the same folder name app; item worktrees go to ~\/braid-worktrees\/app2\/ for app2 and ~\/braid-worktrees\/app\/ for app, so they stay apart/);
   assert.equal(stored(home).projects.length, 2);
 });
 
