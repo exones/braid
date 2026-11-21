@@ -45,6 +45,6 @@ The tests that start `git` and `node dist/cli.js` many times run 6–8× slower 
 
 ## Completion
 
-- [ ] A's report names where the Windows time goes and measures the candidate fixes on real runners
-- [ ] The changes the user picked from A's report are merged into the braid branch, with the before and after Windows job times on the final PR
-- [ ] `verify (windows-latest)` still runs `verify:full` on every PR, unless the user decided otherwise
+- [x] A's report names where the Windows time goes and measures the candidate fixes on real runners
+- [x] The changes the user picked from A's report are merged into the braid branch, with the before and after Windows job times on the final PR
+- [x] `verify (windows-latest)` still runs `verify:full` on every PR, unless the user decided otherwise
