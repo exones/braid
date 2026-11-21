@@ -316,7 +316,7 @@ No strand is dropped. The headless board is docs in F, not a strand of its own.
 
 ## Validation
 
-- `npm run verify`: not run yet (stopped for the hold; run before the PR).
+- `npm run verify` passed locally on 2026-11-21: 444 tests, 0 failed.
 - The mockups render in Edge headless (screenshots in `screenshots/`).
 - The report changes no product code, skill or docs; the only new file outside the item folder is `docs/design/board-mockups/programmes.html`.
 - Docs: none affected (a spike with mockups only).

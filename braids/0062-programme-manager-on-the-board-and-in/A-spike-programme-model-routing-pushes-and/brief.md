@@ -80,4 +80,4 @@ Follow the braid-researcher skill's Method. Look at about 10 to 15 sources of th
 - [x] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
