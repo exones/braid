@@ -22,7 +22,7 @@ Expected size: about 4 lines in 1 file.
 
 - `.agents/skills/braid/SKILL.md`, "Talking to the user": two short bullets, one or two lines each.
   - **Hourglass.** A message that ends the turn while waiting has `⏳ Waiting for <what>` as its last line, for example `⏳ Waiting for the worker's report on 0058/A` or `⏳ Waiting for you: approve the plan`. This holds for waits on agents or CI (only what the "Say waiting" bullet allows) and for waits on the user. When the turn ends with the question tool, the ⏳ line is the last line of the chat message, before the call. With nothing pending, there is no ⏳ line.
-  - **Thread links.** Mentioning a worker's or reviewer's thread, link it (the `link` T3 returns for the thread), never a bare title or id.
+  - **Links.** Every worker or reviewer thread (its T3 `link`), PR (its URL) and item brief (its brief.md on GitHub, at the branch it is read from) the coordinator names is a link, also in the ⏳ line, e.g. `⏳ Waiting for the [worker](<thread link>)'s report on [0058](<brief url>), CI pending on [PR #210](<pr url>)`.
 
 ## Already decided
 
@@ -41,7 +41,7 @@ Add the two bullets after the "Say waiting" bullet in SKILL.md, then run the gat
 ## Completion
 
 - [x] "Talking to the user" in `.agents/skills/braid/SKILL.md` has the hourglass rule: the last line is `⏳ Waiting for <what>` when the turn ends waiting (agents, CI or the user), it comes before a question tool call, and no ⏳ line appears when nothing is pending
-- [x] The same section says to link a worker's or reviewer's thread when mentioning it
+- [x] The same section says to link every worker or reviewer thread, PR and item brief the coordinator names, also in the ⏳ line
 - [x] The diff adds no more than about 6 lines to skill files
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open

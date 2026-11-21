@@ -197,7 +197,7 @@ A goal, when every strand is Done on the braid branch:
 - **A reply to an open request** (an option, "Other", a chat reply after a dismissed dialog, the board's merge message): first `braid answer <id> --log -`, then act; a new question means a new `braid ask`.
 - **Say "waiting" only when something will wake you:** only the worker's message, a PR watch on the planning, final or accepted story PR, a `delegate_task` result, or, within this turn, a `t3_thread_wait` on a worker thread or a foreground `braid wait` running now. Otherwise say what you will do when the user next writes.
 - **Hourglass:** a message that ends the turn while waiting (for agents, CI or the user) has `⏳ Waiting for <what>` as its last line, e.g. `⏳ Waiting for you: approve the plan`; before a question tool call, it ends the chat message. Nothing pending: no ⏳ line.
-- **Thread links:** when you mention a worker's or reviewer's thread, link it (the `link` T3 returns), never a bare title or id.
+- **Links:** every worker or reviewer thread (its T3 `link`), PR (its URL) and item brief (its brief.md on GitHub, at the branch you read it from) you name is a link, also in the ⏳ line, e.g. `⏳ Waiting for the [worker](<thread link>)'s report on [0058](<brief url>), CI pending on [PR #210](<pr url>)`.
 
 The option sets, and what you do next on each answer:
 

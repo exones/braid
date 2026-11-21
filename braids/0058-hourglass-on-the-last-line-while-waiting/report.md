@@ -1,10 +1,10 @@
 ## What changed
 
-`.agents/skills/braid/SKILL.md`, "Talking to the user": two bullets (+2 lines). A turn that ends while waiting has `⏳ Waiting for <what>` as its last line (before a question tool call, last line of the chat message; no line when nothing is pending). Worker and reviewer threads are linked when mentioned.
+`.agents/skills/braid/SKILL.md`, "Talking to the user": two bullets (+2 lines). A turn that ends while waiting has `⏳ Waiting for <what>` as its last line (before a question tool call, last line of the chat message; no line when nothing is pending). One links bullet: worker/reviewer threads, PRs and item briefs the coordinator names are links, also in the ⏳ line (the user's follow-up request).
 
 ## Why
 
-The user can't tell a waiting turn from a finished one, and needs to open the threads.
+The user can't tell a waiting turn from a finished one, and needs to open the threads, PRs and briefs.
 
 ## Validation
 
