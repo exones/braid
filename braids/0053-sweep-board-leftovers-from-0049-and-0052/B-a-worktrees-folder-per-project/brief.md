@@ -47,12 +47,12 @@ First a proposal on realistic examples, then stop (converge loop): the new folde
 
 ## Completion
 
-- [ ] The proposal (key, existing worktrees, `projects add` message) was approved by the user, and the item's log records the verdict
-- [ ] Two listed projects with the same folder name get different worktrees folders; a test shows it
-- [ ] Worktrees made under the old layout are still found by start, clean and the board, or moved as approved; a test shows it
-- [ ] Docs that name the worktrees folder describe the new layout
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The proposal (key, existing worktrees, `projects add` message) was approved by the user, and the item's log records the verdict
+- [x] Two listed projects with the same folder name get different worktrees folders; a test shows it
+- [x] Worktrees made under the old layout are still found by start, clean and the board, or moved as approved; a test shows it
+- [x] Docs that name the worktrees folder describe the new layout
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 

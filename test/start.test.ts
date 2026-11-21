@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { after, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -386,4 +386,84 @@ test("a start whose branch is in another folder or off its base fails and says w
   await startCommand(b.root, ["0001/B"], src(), b.env);
   git(join(b.wt, "proj", "0001-B"), "reset", "-q", "--hard", "HEAD~1");
   await assert.rejects(startCommand(b.root, ["0001/B"], src(), b.env), /does not contain its base braid\/0001-alpha/);
+});
+
+const { agentsDirs } = (await load("../dist/braids/worktree-folders.js")) as { agentsDirs: (root: string, env: Record<string, string>) => string[] };
+
+/** Runs `body` with a project list in a scratch home (homedir() follows HOME and USERPROFILE). */
+async function listed<T>(projects: { name: string; path: string }[], body: () => Promise<T> | T): Promise<T> {
+  const home = join(scratch, `home${++n}`);
+  mkdirSync(join(home, ".braid"), { recursive: true });
+  writeFileSync(join(home, ".braid", "projects.json"), JSON.stringify({ version: 1, projects }));
+  const saved = { HOME: process.env["HOME"], USERPROFILE: process.env["USERPROFILE"] };
+  process.env["HOME"] = home;
+  process.env["USERPROFILE"] = home;
+  try {
+    return await body();
+  } finally {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) {
+        delete process.env[k];
+      } else {
+        process.env[k] = v;
+      }
+    }
+  }
+}
+
+test("two listed projects with one folder name get different worktrees folders; an unlisted repository keeps the folder name", async () => {
+  const a = repo();
+  const b = repo();
+  assert.equal(basename(a.root), basename(b.root));
+  await listed(
+    [
+      { name: "proj", path: a.root },
+      { name: "proj-b", path: b.root },
+    ],
+    async () => {
+      assert.deepEqual(agentsDirs(a.root, a.env), [join(a.wt, "proj")]);
+      assert.deepEqual(agentsDirs(b.root, b.env), [join(b.wt, "proj-b"), join(b.wt, "proj")]);
+      assert.deepEqual(agentsDirs(a.root, { BRAID_WORKTREES_DIR: a.wt }), agentsDirs(a.root, a.env));
+      const same = { BRAID_WORKTREES_DIR: a.wt };
+      assert.notEqual(agentsDirs(a.root, same)[0], agentsDirs(b.root, same)[0]);
+      await startCommand(b.root, ["0001/B"], src(), same);
+      assert.ok(existsSync(join(a.wt, "proj-b", "0001-B")));
+      assert.equal(existsSync(join(a.wt, "proj", "0001-B")), false, "the other project's folder is not used");
+    },
+  );
+  // Not in the list: the folder name, and from a worktree too.
+  await listed([], () => {
+    assert.deepEqual(agentsDirs(a.root, a.env), [join(a.wt, "proj")]);
+  });
+});
+
+test("worktrees made under the old folder are still found by start and clean; new items go to the project folder", async () => {
+  const { root, env, wt, prs } = await started();
+  const legacy = join(wt, "proj");
+  const old = await listed([{ name: "renamed", path: root }], async () => {
+    // A second start finds the worktree where it is and creates nothing.
+    const again = await startCommand(root, ["0001/C", "--force"], src(prs), env);
+    assert.equal(again, `branch braid/0001/C-third (already started)\ncommit ${git(join(legacy, "0001-C"), "rev-parse", "HEAD")}\nfolder ${join(legacy, "0001-C")}\n`);
+    assert.equal(existsSync(join(wt, "renamed")), false);
+    // Clean removes the merged items' worktrees from the old folder and keeps the unmerged one.
+    const out = await cleanCommand(root, ["--yes"], src(prs), env);
+    assert.match(out, /removed 0001\/A:/);
+    assert.equal(existsSync(join(legacy, "0001-A")), false);
+    assert.ok(existsSync(join(legacy, "0001-C")));
+    return legacy;
+  });
+  assert.equal(old, legacy);
+});
+
+test("a new item of a listed project goes to the project's folder, and clean removes it there", async () => {
+  const { root, env, wt } = repo();
+  await listed([{ name: "renamed", path: root }], async () => {
+    await startCommand(root, ["0001/B"], src(), env);
+    const folder = join(wt, "renamed", "0001-B");
+    assert.ok(existsSync(folder));
+    git(root, "merge", "-q", "--no-ff", "-m", "merge braid", "braid/0001-alpha");
+    const out = await cleanCommand(root, ["--yes"], src([merged(6, "braid/0001/B-second-one")]), env);
+    assert.match(out, /removed 0001\/B:/);
+    assert.equal(existsSync(folder), false);
+  });
 });
