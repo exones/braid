@@ -123,7 +123,7 @@ The full list is in [the CLI reference](docs/cli.md).
 | [The braids/ format](docs/braids-format.md) | The files in `braids/`, branches and each command's behaviour. |
 | [Autonomy presets](docs/autonomy.md) | The preset file a braid runs on, the three shipped presets and `braid autonomy`. |
 | [Workflow](.agents/skills/braid/references/workflow.md) | Items, tiers, branches, merges and checks. |
-| [Skills](.agents/skills/braid/SKILL.md) | How agents plan ([braid](.agents/skills/braid/SKILL.md)), do ([worker](.agents/skills/braid-worker/SKILL.md)) and review ([reviewer](.agents/skills/braid-reviewer/SKILL.md)) items, research one question with checked evidence ([researcher](.agents/skills/braid-researcher/SKILL.md)), and note your ideas for later ([idea](.agents/skills/braid-idea/SKILL.md)). |
+| [Skills](.agents/skills/braid/SKILL.md) | How agents plan ([braid](.agents/skills/braid/SKILL.md)), run a goal as several braids for you ([pm](.agents/skills/braid-pm/SKILL.md)), do ([worker](.agents/skills/braid-worker/SKILL.md)) and review ([reviewer](.agents/skills/braid-reviewer/SKILL.md)) items, research one question with checked evidence ([researcher](.agents/skills/braid-researcher/SKILL.md)), and note your ideas for later ([idea](.agents/skills/braid-idea/SKILL.md)). |
 | [Decisions](docs/decisions.md) | Current requirements and their reasons. |
 | [Roadmap](docs/roadmap.md) | What comes next. |
 | [npm distribution](docs/npm-distribution.md) | The release path and the steps before publication. |

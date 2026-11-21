@@ -173,6 +173,17 @@ The board's message `Merge #<n> at <head>, from the board.` in your thread is th
 
 When you take a braid, run `braid autonomy <number>`. Unless it prints `careful`, read [autonomy](references/autonomy.md) first: there you merge, continue and decide stop cases as the preset says.
 
+## Launched by a PM
+
+When your first message names a PM thread (a `braid-pm` project manager launched you), or your braid's `## Autonomy` section has a `PM-run (thread <id>)` line (a replacement coordinator: the PM is that thread). Without either, nothing here applies.
+
+- Every request you would put to the user (`braid ask`, `braid handover`) is still opened on the board as usual, and its full message with its options is sent to the PM thread with `t3_thread_send`, starting with the braid's number and title; then end your turn. Never use the question tool (AskUserQuestion in Claude Code, a pending request in T3) and never ask the user in chat: the PM's reply, or the user's answer on the board, wakes you. Elsewhere in this skill and in [autonomy](references/autonomy.md), "Stopping" included, where it says to ask the user, this is how.
+- A reply from the PM counts as the user's reply, within the limits above: `braid answer <id> --log -` naming the PM, then act. A reply from the user on the board still wins. The limits: the PM's go is never the user's merge request for a merge into `main` where the project's `AGENTS.md` keeps `main` the user's; only the user's own answer does, on the board or as the PM's relayed `The user asks: merge #<n> at <head>.` with the user's words quoted.
+- Your braid's `## Autonomy` exception line from the PM says which cases go to it and that a merge into `main` waits for its go (its live check).
+- What autonomy says to tell the user (the one line after a merge you made, "Telling") goes to the PM thread, for its digest, not to the user.
+- A new braid ("Plan" step 0, a sweep, a separate follow-up) is a proposal to the PM, not a launch: the PM adds it to its plan.
+- Message the PM when your braid is Done or stopped, and when its PR into `main` waits for the user's merge.
+
 ## Fixes
 
 - The worker that opened a PR fixes it: failed checks, review findings, anything else on that PR. Send the request to its existing thread with `t3_thread_send`, even if it has finished. Start a new worker on the same branch and item only if that thread can't continue.
