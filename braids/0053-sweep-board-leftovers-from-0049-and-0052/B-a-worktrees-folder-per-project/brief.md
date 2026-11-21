@@ -1,7 +1,7 @@
 ---
 id: '0053/B'
 title: "A worktrees folder per project"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ask:architecture", "ask:data"]
 dependencies: []
 order: 20
