@@ -57,10 +57,10 @@ Expected size: about 500 lines in 8 files, half of them tests.
 
 ## Completion
 
-- [ ] `braid pause` and `braid resume` record and clear a braid's pause in `.braid/pauses.json`, idempotent, with values from `braid limits` by default
-- [ ] The board and `braid status` show a paused braid with provider, window, usage and resume time, and don't call it stalled
-- [ ] An overdue pause shows "resume was due at <time>", then `stalled`; tests cover it
-- [ ] A damaged pauses file reads as no pause; tests cover it
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid pause` and `braid resume` record and clear a braid's pause in `.braid/pauses.json`, idempotent, with values from `braid limits` by default
+- [x] The board and `braid status` show a paused braid with provider, window, usage and resume time, and don't call it stalled
+- [x] An overdue pause shows "resume was due at <time>", then `stalled`; tests cover it
+- [x] A damaged pauses file reads as no pause; tests cover it
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
