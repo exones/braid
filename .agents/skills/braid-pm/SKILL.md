@@ -34,7 +34,7 @@ Models: coordinators and the live checker use `models.coordinator` from `BRAID.m
 
 1. **Ready braids, up to the limit.** The limit is 2 unless the user sets another. A braid is ready when its dependencies are done and the plan doesn't hold it.
 2. **Overlap first.** Before running two braids at once, compare the commands, files and decisions they will touch. Overlapping braids run one after the other; if they must overlap, tell both coordinators which merges first and that the second merges `main` before its final PR.
-3. **Launch** each coordinator as "Plan" step 0 of the braid skill does: `t3_thread_launch` a top-level thread on the project's main checkout with the coordinator model and the provisional title `🧠 <repo> coordinator: <short goal>`, then its first message with `t3_thread_send`:
+3. **Launch** each coordinator, after the limits check for the coordinator's model ("Provider limits"), as "Plan" step 0 of the braid skill does: `t3_thread_launch` a top-level thread on the project's main checkout with the coordinator model and the provisional title `🧠 <repo> coordinator: <short goal>`, then its first message with `t3_thread_send`:
 
    ```text
    Use the braid skill and plan this goal. You are launched by the PM in thread <your thread id>; follow "Launched by a PM".
@@ -100,9 +100,19 @@ When the user says something about the work, update the plan file and tell the u
 - Never edit a braid's brief yourself.
 - A coordinator that proposes a new braid sends it to you: add it to the plan.
 
+## Provider limits
+
+You check and pause for all your braids, as the braid skill's [provider limits](../braid/references/limits.md) says for one coordinator, with these differences:
+
+- **Before launching a coordinator:** `braid limits --role coordinator`. Exit 3: launch nothing on that provider and pause as below.
+- **While braids run:** keep one `braid pm limits check` task in your own thread (`schedule_task`, `{type:"interval", everyMs:900000}`, bound to it), whose prompt runs `braid limits` for the providers your running braids use (their coordinators and agents, from `BRAID.md` `models`), pauses as below on exit 3, and otherwise ends at once with no message. Create it with the first running braid; delete it when none runs and while you are paused. A coordinator's `<number>: <provider> … over its threshold` message is the same signal.
+- **Pause:** for every braid you run with agents on that provider, steer its coordinator (`t3_thread_send`, `mode:"auto"`): `Pause for <provider> <window> until <resume time>: pause your agents on it as "Under a PM" in references/limits.md says, then reply Paused: <number>.` Wait for each `Paused:` reply as the reference's "Pause" step 2 says. Schedule one resume task in your own thread (title `braid pm resume <provider>`, the reference's step 3), then run `braid pause <number> --by pm --provider <instanceId> --thread <your thread id> --task <task id>` for each braid. Weekly windows ask the user in chat, context first, with the same two options; never switch providers yourself.
+- **Resume:** the task deletes itself, then `braid limits <instanceId>`. Exit 0: `braid resume <number>` for each paused braid, and tell each coordinator `Resume: continue your agents on <provider>.` Exit 3: schedule a new resume and run `braid pause` again with the new `--task`.
+- **Digest:** name the pause (provider, window, resume time, braids held).
+
 ## Hold
 
-"Hold" or "pause" from the user: launch nothing, send `Hold from the user: <their words>` to every running coordinator (each follows its "Hold"), and note it in the plan file. "Go" lifts it the same way.
+"Hold" or "pause" from the user: launch nothing, send `Hold from the user: <their words>` to every running coordinator (each follows its "Hold"), and note it in the plan file. "Go" lifts it the same way. A pause for a provider's usage limit is "Provider limits" instead.
 
 ## Resuming
 
