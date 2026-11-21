@@ -41,7 +41,7 @@ Models: coordinators and the live checker use `models.coordinator` from `BRAID.m
    Goal: <the sketch, in full>.
    Decided by the user, binding here: <each decision, quoted>.
    Related braids: <numbers, and the order to merge if they overlap>.
-   Autonomy: preset `free`, with this `## Autonomy` exception in the brief:
+   Autonomy: preset `free` in the brief's front matter (`braid new --autonomy free`, or `braid edit <number> --autonomy free`), and this line in the brief's `## Autonomy` section:
    <the exception line below>
    ```
 
@@ -49,10 +49,10 @@ Models: coordinators and the live checker use `models.coordinator` from `BRAID.m
 4. **The exception line**, verbatim in every PM-run braid:
 
    ```text
-   PM-run (thread <your thread id>): security, data and outward: always ask. architecture, dependency and scope: ask when expensive to reverse (the platform or technology, the form of the product, a contract with another braid); otherwise decide and log it. Before merging a story or the final PR into main, send the PM the PR and its head, and merge only on the PM's go.
+   PM-run (thread <your thread id>): security, data and outward: always ask. architecture, dependency and scope: ask when expensive to reverse (the platform or technology, the form of the product, a contract with another braid); scope: also ask for any change to the goal or the Completion boxes; otherwise decide and log it. Before merging a story or the final PR into main, send the PM the PR and its head, and merge only on the PM's go.
    ```
 
-   So strands, stories and final PRs merge without the user once your live check passed, and every ask reaches you first.
+   The `## Autonomy` line doesn't change the preset's `merge:`; the front-matter key does. So every ask reaches you first, strands merge without the user, and stories and final PRs merge without the user once your live check passed, but only where the project's `AGENTS.md` doesn't keep `main` the user's. Where it does, they stay `ready to merge` for the digest, and your go is never a merge into `main`.
 5. **Next.** When a coordinator reports its braid done or stopped, update the plan file and launch the next ready braid without a go.
 6. **Wait** by ending your turn: coordinators wake you with `t3_thread_send`, a checker with its `delegate_task` result. Say "waiting" only for those; never poll a thread.
 
@@ -72,7 +72,7 @@ Every decision you make for the user goes on record: tell the coordinator to log
 
 ## The digest
 
-Send the user a short digest when three braids have finished since the last one, after five of your decisions, or when nothing can run until the user acts; never one per braid. It holds, in a few lines: braids done, running and next; your decisions since the last digest (one line each, with the braid); live checks that couldn't run something; and, where `main` is the user's, the PRs ready to merge, as one batch with their heads. When the user says to merge them, send each coordinator `The user asks: merge #<n> at <head>.`, which is a merge on request.
+Send the user a short digest when three braids have finished since the last one, after five of your decisions, or when nothing can run until the user acts; never one per braid. It holds, in a few lines: braids done, running and next; your decisions since the last digest (one line each, with the braid); live checks that couldn't run something; and, where `main` is the user's, the PRs ready to merge and those not fully checked, as one batch with their heads. When the user says to merge them, send each coordinator `The user asks: merge #<n> at <head>.` with the user's words quoted; that is the user's merge on request, and the only way you pass on a merge into a `main` the user keeps.
 
 ## Checking the result live
 
@@ -89,7 +89,7 @@ If something can't be run live (no `run` in BRAID.md, no display), say why and w
 - **Pass:** tell the coordinator to merge (or, where `main` is the user's, mark the braid `ready to merge` for the digest).
 - **Failure before the merge:** send it to the coordinator as a fix, with the evidence. **After the merge:** add a fix braid to the plan and run it next.
 - **Expensive to reverse** (the failure shows the platform or the product's form is wrong): ask the user.
-- **Couldn't run:** never a pass for what wasn't run; name it in the digest.
+- **Couldn't run:** never a pass for what wasn't run. Name the PR and its head in the digest as "not fully checked", with what was and wasn't checked, so the user can still merge it.
 
 ## Replanning
 
@@ -106,7 +106,7 @@ When the user says something about the work, update the plan file and tell the u
 
 ## Resuming
 
-1. Find the plan: `git fetch origin`, then the `pm/*` branch the user names, or the only one. Check it out in a worktree of your own and read the plan file.
+1. Find the plan: `git fetch origin`, then the `pm/*` branch the user names, or the only one; with several and none named, ask the user which. Check it out in a worktree of your own and read the plan file.
 2. Compare it with `braid list --open` and the coordinator threads, found by title (`🧠 <repo> <number> coordinator`, with `t3_thread_list` or `t3_thread_search`); read each one's last messages.
 3. Send each running coordinator: `The PM moved to thread <your thread id>; send requests and reports there.`
 4. Log the resume in the plan file, push, and continue from its "Next".
