@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { test } from "node:test";
-import { git, gone, repo, scratch, src, startCommand, worktreesDir } from "./support/start-fixtures.ts";
+import { agentsDirs, git, gone, listed, load, repo, scratch, src, startCommand, worktreesDir } from "./support/start-fixtures.ts";
 
 // Starting items: `braid start`. The `braid clean` tests are in start-clean.test.ts.
 
@@ -158,4 +158,81 @@ test("a start whose branch is in another folder or off its base fails and says w
   await startCommand(b.root, ["0001/B"], src(), b.env);
   git(join(b.wt, "proj", "0001-B"), "reset", "-q", "--hard", "HEAD~1");
   await assert.rejects(startCommand(b.root, ["0001/B"], src(), b.env), /does not contain its base braid\/0001-alpha/);
+});
+
+test("two listed projects with one folder name get different worktrees folders; an unlisted repository keeps the folder name", async () => {
+  const a = repo();
+  const b = repo();
+  assert.equal(basename(a.root), basename(b.root));
+  await listed(
+    [
+      { name: "proj", path: a.root },
+      { name: "proj-b", path: b.root },
+    ],
+    async () => {
+      assert.deepEqual(agentsDirs(a.root, a.env), [join(a.wt, "proj")]);
+      assert.deepEqual(agentsDirs(b.root, b.env), [join(b.wt, "proj-b"), join(b.wt, "proj")]);
+      assert.deepEqual(agentsDirs(a.root, { BRAID_WORKTREES_DIR: a.wt }), agentsDirs(a.root, a.env));
+      const same = { BRAID_WORKTREES_DIR: a.wt };
+      assert.notEqual(agentsDirs(a.root, same)[0], agentsDirs(b.root, same)[0]);
+      await startCommand(b.root, ["0001/B"], src(), same);
+      assert.ok(existsSync(join(a.wt, "proj-b", "0001-B")));
+      assert.equal(existsSync(join(a.wt, "proj", "0001-B")), false, "the other project's folder is not used");
+    },
+  );
+  // Not in the list: the folder name, and from a worktree too.
+  await listed([], () => {
+    assert.deepEqual(agentsDirs(a.root, a.env), [join(a.wt, "proj")]);
+  });
+});
+
+test("a worktree of the old folder placed by a thread: the board counts it as an agent when the project name differs", async () => {
+  const { root, env, wt } = repo();
+  await listed([], () => startCommand(root, ["0001/B"], src(), env));
+  await listed([{ name: "renamed", path: root }], async () => {
+    await startCommand(root, ["0001/C", "--force"], src(), env);
+    const t3 = (await load("../../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; project: string }): Promise<{ threads: Map<string, { id: string }[]> }> };
+    const where: Record<string, string> = {
+      old: join(wt, "proj", "0001-B"),
+      fresh: join(wt, "renamed", "0001-C"),
+      other: join(wt, "elsewhere", "0001-A"),
+      nested: join(wt, "proj", "0001-B", "sub", "0001-A"),
+    };
+    const run = (_r: string, args: readonly string[]) => {
+      const out = args[1] === "list" ? Object.keys(where).map((threadId) => ({ threadId, status: "running" })) : { thread: { worktreePath: where[args[2] ?? ""] ?? null, pendingRequestCount: 0 } };
+      return Promise.resolve({ status: 0, stdout: JSON.stringify(out), stderr: "" });
+    };
+    const saved = process.env["BRAID_WORKTREES_DIR"];
+    process.env["BRAID_WORKTREES_DIR"] = wt;
+    try {
+      const read = await t3.readT3(root, { run, ttlMs: 0, project: root });
+      assert.deepEqual(read.threads.get("0001/B")?.map((t) => t.id), ["old"]);
+      assert.deepEqual(read.threads.get("0001/C")?.map((t) => t.id), ["fresh"]);
+      assert.equal(read.threads.has("0001/A"), false);
+    } finally {
+      if (saved === undefined) {
+        delete process.env["BRAID_WORKTREES_DIR"];
+      } else {
+        process.env["BRAID_WORKTREES_DIR"] = saved;
+      }
+    }
+  });
+});
+
+test("a projects.json braid can't read falls back to the folder name, and start still works", async () => {
+  const { root, env, wt } = repo();
+  await listed("{ not json", async () => {
+    assert.deepEqual(agentsDirs(root, env), [join(wt, "proj")]);
+    await startCommand(root, ["0001/B"], src(), env);
+    assert.ok(existsSync(join(wt, "proj", "0001-B")));
+  });
+});
+
+test("a project name that differs from the folder name only by case is one folder on Windows, two on Linux", async () => {
+  const { root, env, wt } = repo();
+  await listed([{ name: "PROJ", path: root }], () => {
+    const dirs = agentsDirs(root, env);
+    assert.equal(dirs.length, process.platform === "win32" ? 1 : 2);
+    assert.equal(dirs.at(-1), join(wt, "proj"));
+  });
 });

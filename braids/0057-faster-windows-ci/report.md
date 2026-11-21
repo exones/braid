@@ -1,7 +1,7 @@
 Braid 0057 looked for why `verify (windows-latest)` takes about 8 minutes against 2 on Ubuntu, and applied the two changes the user picked.
 
 - **0057/A** (spike, PR #213): `node --test` is 60–65% of the Windows job. The work is CPU-bound: the tests start about 9,500 processes, 96% of them `git`. Defender is already off on the runner, and `TEMP` sits on the slow C: drive. In pairs on one runner, moving `TEMP` to D: made `node --test` 13–21% faster. Splitting `node --test` across 3 parallel jobs cut the longest Windows job to 142–163 s. Git settings, `NODE_COMPILE_CACHE`, more test concurrency, a Dev Drive and paid runners didn't help or weren't worth it. The report has the evidence and 28 checked sources.
-- **0057/B** (PR #215): the Windows job puts `TEMP`/`TMP` on D: before `npm ci`. `done.test.ts` and `start.test.ts` are each split into two files; all 434 tests are unchanged. `docs/development.md` describes the setup, and decision D83 records why (renumbered from D80 when `main` was merged in, since 0055 had taken D80).
+- **0057/B** (PR #215): the Windows job puts `TEMP`/`TMP` on D: before `npm ci`. `done.test.ts` and `start.test.ts` are each split into two files; all 434 tests are unchanged. `docs/development.md` describes the setup, and decision D85 records why (renumbered from D80 when `main` was merged in, since 0055 had taken D80).
 
 Windows job times on full runs, from the jobs API:
 

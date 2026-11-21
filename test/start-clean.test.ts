@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { cleanCommand, git, gone, repo, resetGithubMemory, src, startCommand } from "./support/start-fixtures.ts";
+import { cleanCommand, git, gone, listed, repo, resetGithubMemory, src, startCommand } from "./support/start-fixtures.ts";
 
 // `braid clean`: removing merged items' worktrees and branches. The `braid start` tests are in start.test.ts.
 
@@ -166,4 +166,66 @@ test("clean removes a merged plan/ branch and its clean worktree, and skips a di
   assert.ok(existsSync(join(wt, "plan-dirty")));
   assert.equal(gone(root, "plan/dirty"), false);
   assert.equal(gone(root, "plan/open"), false);
+});
+
+test("worktrees made under the old folder are still found by start and clean; new items go to the project folder", async () => {
+  const { root, env, wt, prs } = await started();
+  const legacy = join(wt, "proj");
+  const old = await listed([{ name: "renamed", path: root }], async () => {
+    // A second start finds the worktree where it is and creates nothing.
+    const again = await startCommand(root, ["0001/C", "--force"], src(prs), env);
+    assert.equal(again, `branch braid/0001/C-third (already started)\ncommit ${git(join(legacy, "0001-C"), "rev-parse", "HEAD")}\nfolder ${join(legacy, "0001-C")}\n`);
+    assert.equal(existsSync(join(wt, "renamed")), false);
+    // Clean removes the merged items' worktrees from the old folder and keeps the unmerged one.
+    const out = await cleanCommand(root, ["--yes"], src(prs), env);
+    assert.match(out, /removed 0001\/A:/);
+    assert.equal(existsSync(join(legacy, "0001-A")), false);
+    assert.ok(existsSync(join(legacy, "0001-C")));
+    return legacy;
+  });
+  assert.equal(old, legacy);
+});
+
+test("a new item of a listed project goes to the project's folder, and clean removes it there", async () => {
+  const { root, env, wt } = repo();
+  await listed([{ name: "renamed", path: root }], async () => {
+    await startCommand(root, ["0001/B"], src(), env);
+    const folder = join(wt, "renamed", "0001-B");
+    assert.ok(existsSync(folder));
+    git(root, "merge", "-q", "--no-ff", "-m", "merge braid", "braid/0001-alpha");
+    const out = await cleanCommand(root, ["--yes"], src([merged(6, "braid/0001/B-second-one")]), env);
+    assert.match(out, /removed 0001\/B:/);
+    assert.equal(existsSync(folder), false);
+  });
+});
+
+test("clean in one listed twin leaves the other twin's worktree in the shared old folder alone", async () => {
+  const a = repo();
+  const b = repo();
+  const env = { BRAID_WORKTREES_DIR: a.wt };
+  // Before the list had names, both twins' worktrees were in <worktrees>/proj.
+  await listed([], async () => {
+    await startCommand(a.root, ["0001/B", "--force"], src(), env);
+    await startCommand(b.root, ["0001/C", "--force"], src(), env);
+  });
+  const shared = join(a.wt, "proj");
+  const bFolder = join(shared, "0001-C");
+  assert.ok(existsSync(join(shared, "0001-B")) && existsSync(bFolder));
+  await listed(
+    [
+      { name: "alpha", path: a.root },
+      { name: "beta", path: b.root },
+    ],
+    async () => {
+      git(a.root, "merge", "-q", "--no-ff", "-m", "merge braid", "braid/0001-alpha");
+      git(b.root, "merge", "-q", "--no-ff", "-m", "merge braid", "braid/0001-alpha");
+      // Both PRs read as merged for both twins; each clean may touch only its own repository's worktrees.
+      const prs = [merged(6, "braid/0001/B-second-one"), merged(7, "braid/0001/C-third")];
+      const out = await cleanCommand(a.root, ["--yes"], src(prs), env);
+      assert.match(out, /removed 0001\/B:/);
+      assert.equal(existsSync(join(shared, "0001-B")), false, "a's own old worktree is cleaned");
+      assert.ok(existsSync(bFolder), "b's worktree is untouched");
+      assert.equal(gone(b.root, "braid/0001/C-third"), false);
+    },
+  );
 });

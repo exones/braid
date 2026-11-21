@@ -26,7 +26,7 @@ interface Result {
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 const board = (await load("../dist/commands/board.js")) as {
   demoSources(): Sources;
-  startBoardWith(src: Sources, web: string, refreshMs?: number, token?: string): Promise<{ server: Server; url: string; token: string }>;
+  startBoardWith(src: Sources, web: string, refreshMs?: number, token?: string): Promise<{ server: Server; url: string; token: string; close(): Promise<void> }>;
   openAction(src: Sources, open: (url: string) => Promise<void>): (body: unknown, board?: () => Promise<unknown>) => Promise<{ url: string }>;
   startAction(src: Sources, root: string, t3: (root: string, args: readonly string[], input?: string) => Promise<Result>, git: (root: string, args: readonly string[]) => Result): (body: unknown) => Promise<unknown>;
   mergeAction(src: Sources, root: string, t3: (root: string, args: readonly string[]) => Promise<Result>): (body: unknown) => Promise<unknown>;
@@ -56,10 +56,7 @@ function slow(ms: number) {
 
 async function serve(src: Sources) {
   const started = await board.startBoardWith(src, web, 600_000);
-  after(() => {
-    started.server.close();
-    started.server.closeAllConnections();
-  });
+  after(() => started.close());
   const timed = async (path: string, init?: RequestInit) => {
     const began = Date.now();
     const response = await fetch(`${started.url}${path}`, init);

@@ -1,7 +1,7 @@
 ---
 id: '0057/C'
 title: "Merge main: 0053 start tests and decision number"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 30
@@ -36,8 +36,8 @@ Expected size: the merge, plus about 170 lines moved into the right test file an
 
 ## Completion
 
-- [ ] `origin/main` is merged in with no conflict markers left, and the PR into the braid branch shows no conflict with `main` (`git merge-tree` of the result against `origin/main` is clean)
-- [ ] Every test 0053/B added runs in `test/start.test.ts` or `test/start-clean.test.ts`, unchanged; the report gives the `node --test` total on `origin/main` and on this branch, and they match
-- [ ] This braid's decision is D85 in `docs/decisions.md` and in both 0057 reports; main's D83 and D84 are unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `origin/main` is merged in with no conflict markers left, and the PR into the braid branch shows no conflict with `main` (`git merge-tree` of the result against `origin/main` is clean)
+- [x] Every test 0053/B added runs in `test/start.test.ts` or `test/start-clean.test.ts`, unchanged; the report gives the `node --test` total on `origin/main` and on this branch, and they match
+- [x] This braid's decision is D85 in `docs/decisions.md` and in both 0057 reports; main's D83 and D84 are unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

@@ -23,8 +23,8 @@ const { readGithubAsync, resetGithubMemory } = (await load("../dist/board/github
 const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
 const { statusCommand } = (await load("../dist/commands/coordinate.js")) as { statusCommand: (root: string, args: string[], src: object) => Promise<string> };
 const { startBoardWith, repoSources, runBoard } = (await load("../dist/commands/board.js")) as {
-  runBoard: (root: string, args: string[], tailscale: undefined, run: { gh: (root: string, args: readonly string[]) => unknown; t3: unknown }) => Promise<{ server: import("node:http").Server }>;
-  startBoardWith: (src: unknown, web: string, refreshMs?: number) => Promise<{ server: import("node:http").Server; url: string }>;
+  runBoard: (root: string, args: string[], tailscale: undefined, run: { gh: (root: string, args: readonly string[]) => unknown; t3: unknown }) => Promise<{ server: import("node:http").Server; close(): Promise<void> }>;
+  startBoardWith: (src: unknown, web: string, refreshMs?: number) => Promise<{ server: import("node:http").Server; url: string; close(): Promise<void> }>;
   repoSources: (root: string, gh: unknown, t3: unknown) => unknown;
 };
 
@@ -116,15 +116,14 @@ test("a malformed brief is a problem, not an error, and the board still serves",
   assert.deepEqual(keys(readiness(root, OK)), ["check"]);
   const web = project({ "index.html": "<html></html>" });
   const src = repoSources(root, () => ({ status: 0, stdout: "[]", stderr: "" }), () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }));
-  const { server, url } = await startBoardWith(src, web, 60_000);
+  const { close, url } = await startBoardWith(src, web, 60_000);
   try {
     const res = await fetch(`${url}api/board`);
     assert.equal(res.status, 200);
     const board = (await res.json()) as { problems: Problem[] };
     assert.deepEqual(keys(board.problems), ["check"]);
   } finally {
-    server.closeAllConnections();
-    server.close();
+    await close();
   }
 });
 
@@ -164,15 +163,14 @@ test("the board snapshot carries the problems", async () => {
   const root = project({ "BRAID.md": GOOD, "backlog/tasks/t.md": "x" });
   const web = project({ "index.html": "<html></html>" });
   const src = repoSources(root, () => ({ status: 0, stdout: "[]", stderr: "" }), () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }));
-  const { server, url } = await startBoardWith(src, web, 60_000);
+  const { close, url } = await startBoardWith(src, web, 60_000);
   try {
     const board = (await (await fetch(`${url}api/board`)).json()) as { braids: unknown[]; problems: Problem[] };
     assert.deepEqual(board.braids, []);
     assert.deepEqual(keys(board.problems), ["no-braids"]);
     assert.match(board.problems[0]?.todo ?? "", /braid import-backlog/);
   } finally {
-    server.closeAllConnections();
-    server.close();
+    await close();
   }
 });
 
@@ -195,7 +193,7 @@ test("braid board reads GitHub once from startup until it prints the not ready l
     written.push(String(chunk));
     return true;
   }) as typeof process.stdout.write;
-  let started: { server: import("node:http").Server } | undefined;
+  let started: { server: import("node:http").Server; close(): Promise<void> } | undefined;
   try {
     started = await runBoard(root, ["--no-open"], undefined, { gh, t3: () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }) });
   } finally {
@@ -204,8 +202,7 @@ test("braid board reads GitHub once from startup until it prints the not ready l
     process.env["USERPROFILE"] = saved.USERPROFILE;
     if (saved.HOME === undefined) delete process.env["HOME"];
     if (saved.USERPROFILE === undefined) delete process.env["USERPROFILE"];
-    started?.server.closeAllConnections();
-    started?.server.close();
+    await started?.close();
   }
   // runBoard returns after the not ready lines are printed: one `gh pr list` so far.
   assert.ok(written.some((l) => /^not ready: it has backlog\/ but no braids\/; run braid import-backlog/.test(l)), written.join(""));

@@ -9,7 +9,8 @@ import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { loadReviews, type ReviewRecord } from "../braids/reviews.js";
 import { parseThreadTitle, titleRepoName } from "../braids/title.js";
-import { agentsDir, itemOfFolder, repoNameOf } from "../braids/worktrees.js";
+import { itemOfFolder, repoNameOf } from "../braids/worktrees.js";
+import { agentsDirs } from "../braids/worktree-folders.js";
 
 export interface T3Thread {
   readonly id: string;
@@ -168,7 +169,7 @@ async function pool<T, R>(items: readonly T[], work: (item: T) => Promise<R>, si
 export interface T3Options {
   readonly run?: T3Runner;
   /** The folder holding the worktrees braid created (`<worktrees>/<repo>`); derived from the repository when not given. */
-  readonly agents?: string;
+  readonly agents?: string | readonly string[];
   /** The T3 project folder; the main checkout when not given. */
   readonly project?: string;
   readonly ttlMs?: number;
@@ -186,7 +187,7 @@ export function readT3(root: string, options: T3Options = {}): Promise<T3> {
   if (shared !== undefined && Date.now() - shared.at < ttl) {
     return shared.t3;
   }
-  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDir(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root));
+  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root));
   recent.set(root, { at: Date.now(), t3 });
   return t3;
 }
@@ -196,7 +197,7 @@ function archived(t: Json): boolean {
   return t["archived"] === true || (t["archivedAt"] !== undefined && t["archivedAt"] !== null) || t["status"] === "archived";
 }
 
-async function readFresh(root: string, run: T3Runner, agents: string, project: string, reviews: readonly ReviewRecord[]): Promise<T3> {
+async function readFresh(root: string, run: T3Runner, agents: string | readonly string[], project: string, reviews: readonly ReviewRecord[]): Promise<T3> {
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
   const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
@@ -221,11 +222,12 @@ async function readFresh(root: string, run: T3Runner, agents: string, project: s
     .filter((x): x is { t: Json; id: string; status: string } => x.id !== null)
     .map((x) => ({ ...x, running: x.status === "running" }));
 
-  const mine = norm(agents);
+  const mine = (typeof agents === "string" ? [agents] : agents).map(norm);
   // Only a worker's worktree directly inside the braid worktree folder, named for an item, is an agent's; a leftover `-review` checkout is no one's.
   const ownerOf = (path: string | null) => {
     const folder = path === null ? null : norm(path);
-    return path !== null && folder !== null && folder.startsWith(`${mine}/`) && !folder.slice(mine.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
+    const dir = folder === null ? undefined : mine.find((m) => folder.startsWith(`${m}/`));
+    return path !== null && folder !== null && dir !== undefined && !folder.slice(dir.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
   };
   const repos = new Set([titleRepoName(root), repoNameOf(root) ?? basename(root)]);
   // The title of a braid thread of this repository (`<emoji> <repo> <id> <role>: <title>`); other titles are no braid thread's.
