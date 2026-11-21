@@ -12,6 +12,8 @@ A request addressed to the PM stays in Working with a teal "PM is handling" line
 
 The PM's own questions become requests on the programme (`braid ask pm/<slug>`) or on the braid they concern. They are pushed at high priority with the PM thread as the click target.
 
+On the board, programmes get a collapsible panel on the left, revised after the user's review. It has two sections, "Needs you" on top and "Working" below. A programme is Working whenever its PM runs, and it jumps to Needs you while one of the PM's own questions or actions is open. Each programme has an "Only these" button that filters the lanes to its braids. The panel lists the programmes of every project the board serves, keyed `<project>/<slug>` (question 9). Needs that belong to one braid stay on its card in the lanes.
+
 A hold is 0061's paused state with a second reason. The names `braid-pm`, `🧭 … pm:` and `pm/<slug>` stay. ntfy action buttons wait for a later braid.
 
 Confidence in the basis: high for routing and timeouts (the first PM run measured, the code read), medium for the plan-file contract (no second programme run yet), high for the ntfy facts (the docs and the app source read).
@@ -55,7 +57,7 @@ The dctl-studio run is the base rate here: one run, about 5 hours, 5 braids [S1]
   - `digest` (one line, the latest).
 - The body keeps the goal in full, the decisions and the change log, for people. The markdown table goes, because it would duplicate `rows`.
 - The board reads each `pm/*` branch through the one `git cat-file --batch` it already uses for braid branches [S5 "Refresh"]: local refs, then `origin/pm/*`. That costs nothing extra.
-- A plan whose front matter doesn't parse shows the programme line with "plan unreadable: <line>" and still shows the braids. That is the same pattern as Not ready [S5].
+- A plan whose front matter doesn't parse shows its programme in the panel with "plan unreadable: <line>" and still shows the braids. That is the same pattern as Not ready [S5].
 - `braid check` learns to check a plan file (`braid check --plan <file>`), so the PM can validate before it pushes.
 
 **How a braid is tied to its programme.** The plan's `rows` are the one source for the board, and the PM is their only writer [S3]. Between `braid new` and the PM recording the number, the braid shows untagged for a minute. That is acceptable.
@@ -67,9 +69,26 @@ Not adopted:
 - (d), a new brief field: it adds a second writer, the coordinator, to programme membership.
 - The coordinator's first message: the board can't read it.
 
-**Does a programme need an id?** Yes, and the slug is the id: `pm/<slug>` is a branch name, so it is unique per repository and stable. No number is needed. In the requests store and the URL it reads `pm/working-product`, and the filter is `?programme=working-product`.
+**Does a programme need an id?** Yes, and the slug is the id: `pm/<slug>` is a branch name, so it is unique per repository and stable. No number is needed. In a project's requests store it reads `pm/working-product`. On the board, which can serve several projects, a programme's key is `<project>/<slug>`, so the filter is `?programme=dctl-studio/working-product` (question 9).
 
 Against: a number like a braid's would sort and fit the `<repo> <id>` push title. But the PM picks the slug from the goal, it already names the branch, and a second counter would be one more thing to keep in step.
+
+**On the board: the programmes panel** (revised after the user's review; screens 60–64).
+
+The user's reasons: a programme isn't a braid. Several of its braids run at once, and while none runs it can still be executing (its PM is checking a PR live, or planning the next braid). There will be few programmes, and for the user they have two states, working and needing attention. So they don't belong in the lanes.
+
+- **Where.** A panel on the left of the lanes, about 320 px wide. « in its header collapses it to a rail of icons, and » brings it back. The board remembers the choice in the browser (local storage), like Details.
+- **Two sections**, stacked vertically:
+  - **Needs you**: a programme with an open request of the PM's own on the programme (`braid ask pm/<slug>`; question 3). Its card shows the request the way a braid card does: the label ("Q8 from the PM", "The PM asks you to"), the text with its options as a list, the age, "answer in the PM thread", and the 🧭 PM thread button. The oldest ask comes first.
+  - **Working**: every other programme whose plan `state` is `running` or `held`, whether or not a braid of it runs. Its card shows the goal, a done bar with "3/10 done · 3 running", and one status line. That line is `next` from the front matter, or what the PM is doing when no braid runs ("No braid running · the PM is checking PR #12 live"), or the hold in the user's words.
+  - `done` and `stopped` programmes leave the panel. Their details stay reachable from the braids' 🧭 tags.
+- **Only these.** Each card has a "◎ Only these" button that shows just that programme's braids in the lanes. The button stays pressed, the other cards dim, and a teal bar above the lanes says what is shown and offers "Show all". Pressing the button again does the same. The address keeps it as `?programme=<project>/<slug>`, rewritten like `?projects=` without a history entry. Lane counts, the phone tabs and the inbox chip follow it.
+- **Details.** "≡ Plan", or a click on the name, opens a side panel like a braid's (`#/programme/<project>/<slug>`). It shows the open question, the goal, every plan row with its braid number, next, what the PM is handling, the last digest, the parallel limit, the hold, and a link to the plan file (screen 64).
+- **Rail.** Collapsed, the panel keeps one icon per programme. Programmes that need you come first, amber with a count. Working ones show 🧭, or ⏸ when held. Each icon has its project's colour dot, and its tooltip names the programme (screen 61).
+- **What stays on braid cards.** Item-level needs stay in the lanes: a coordinator request to the PM (Working, teal), one escalated or forwarded to the user, a PM action on one braid ("The PM asks you to" on 0005). Only the PM's own requests on the programme put the programme itself into Needs you. The lanes no longer have a programme card, and there is no Programmes block above them.
+- **A PM thread that stopped.** If the plan says `running` but T3 says the PM thread is archived, unknown or failed, the card stays in Working with a red line, "The PM thread failed 12 min ago", and the PM's open requests escalate to their braid cards (question 2). Per the user's rule, this doesn't move the programme to Needs you. If the user wants a stopped PM to count as needing them, it is a one-line change in D. That is open for their review.
+- **Options.** A request has no options field [S6], and none is added. The PM writes the options as lines of the text ("A. …", "B. …"). The panel shows the text's lines, and lines starting with a letter and a dot show as a list. The answer is given in the PM thread, as today: the board has no Answer button [S5].
+- **Phone** (screens 66–67). The panel becomes a strip above the lane tabs. Closed, it is one 48 px line: "🧭 1 needs you · 3 working", amber when a programme needs you. Open, it lists programmes that need you as cards (question, options, a 44 px PM thread button), then working programmes one line each with 🧭 and ◎ buttons. A programme filter shows as a chip under the strip, and ✕ clears it.
 
 ## 2. Request addressee
 
@@ -85,7 +104,7 @@ Against: a number like a braid's would sort and fit the `<repo> <id>` push title
 - Without `--to`, a request is the user's, as today. A coordinator that forgets `--to pm` produces today's behaviour, which is noisy but safe.
 - Not (b): it would take the user's own requests, on a braid the PM runs, away from them.
 
-**On the board** (the mockup's screen 60 and the panel on screen 64):
+**On the board** (the mockup's screen 60 and the braid panel on screen 65):
 
 - A request to the PM doesn't move the card. The braid stays in Working, and the card carries a teal line: "🧭 The PM is handling: <text> · to the PM 40 s ago". A handover reads "🧭 The PM is checking: PR #29, its live check runs".
 - The card's mark is 🧭. The details banner says "For the PM", when it would come to the user, and that the user's own answer still wins [S4].
@@ -126,13 +145,13 @@ Agent Inbox's item ("action request" plus the responses it allows [S19]) points 
 
 **On the board:**
 
-- A programme request is a programme card in Needs You (teal edge, 🧭 tag, the PM thread and Plan buttons) and a "? Q8 for you" pill on the programme line (screens 60 and 61).
+- A programme request puts the programme into the panel's Needs you section, with the request on its card (screens 60 and 63). It isn't a card in the lanes.
 - A PM request on a braid shows on that braid's card, above a coordinator's request to the PM when there is one.
 
 **Digest and ready-to-merge batch:**
 
-- The **digest** is not a request. The PM writes its one-line summary into the front matter's `digest`, and the programme line shows "Last digest 20:03 · 3 done · 3 running · 7 PM decisions". It isn't pushed: the user didn't ask for digests on the phone, and they would be noise.
-- The **ready-to-merge batch**, where `main` is the user's, is the set of handovers the PM forwards after its live check. Each shows in To Review as "Forwarded by the PM: live check passed · merge PR #31 at 4be1c2a" and is pushed once at default priority, as To Review is today. The programme line counts them ("2 ready to merge").
+- The **digest** is not a request. The PM writes its one-line summary into the front matter's `digest`, and the programme's details show "Last digest 20:03 · 3 done · 3 running · 7 PM decisions" (screen 64). It isn't pushed: the user didn't ask for digests on the phone, and they would be noise.
+- The **ready-to-merge batch**, where `main` is the user's, is the set of handovers the PM forwards after its live check. Each shows in To Review as "Forwarded by the PM: live check passed · merge PR #31 at 4be1c2a" and is pushed once at default priority, as To Review is today. The programme's panel card counts them in its status line ("2 ready to merge").
 - In dctl-studio `main` wasn't the user's, so the PM merged itself and no batch formed [S1].
 
 ## 4. Pushes
@@ -190,14 +209,14 @@ Not adopted: `braid ask` sending its push at once. It would split sending betwee
   - "⏸ Paused: Claude 5-hour window 93 %, resumes 21:40";
   - "⏸ Held by the PM: “Please freeze work…” · since 16:31".
 
-The mockup's screen 62 shows both.
+The mockup's screen 63 shows a held programme (`notes/ios-beta`) in Working, with its braid paused.
 
 **Store.** The hold uses 0061/C's `.braid/pauses.json` with a `reason: "hold"` and the user's words, and no `resumeAt`, through `braid pause <n> --hold "<words>" --thread <PM thread>`. The PM runs it for each running braid when it sends `Hold from the user` [S3]. `braid resume` clears it.
 
 - A pause record already says who paused (`coordinator` or `pm`) [S10].
 - One store means one rule in `derive`, and a hold works for a braid the user runs without a PM too.
 - A hold has no due time, so it never turns `stalled`. It shows its age instead.
-- The plan's front-matter `hold` field gives the programme line "On hold since 16:31" and the user's words.
+- The plan's front-matter `hold` field gives the programme's panel card "On hold since 16:31" and the user's words. A held programme stays in Working: a hold is the user's own choice and needs nothing from them.
 
 Against: the hold is written twice, in the plan file and once per braid. The other way, deriving each braid's hold from the plan, would make B's escalation and the board's `stalled` read plan files. That couples B to D, and a held user-run braid would have no store.
 
@@ -227,12 +246,24 @@ Against: the hold is written twice, in the plan file and once per braid. The oth
   - Don't adopt: answering through an endpoint (question 4).
 - **AutoGen and Magentic-One** [S22][S23]:
   - `UserProxyAgent` blocks the whole team, and the docs advise stopping and resuming instead. The orchestrator keeps a task ledger and a progress ledger.
-  - Adopt: the programme line is the ledger shown to the user. The PM never blocks on the user, which the PM skill already follows ("Don't use the question tool" [S3]).
+  - Adopt: the programme's details panel is the ledger shown to the user. The PM never blocks on the user, which the PM skill already follows ("Don't use the question tool" [S3]).
 - **Across all three** (`inferred`): none routes a sub-agent's question to a supervisor first, with escalation to the human on a timeout. So the addressee and timeout design here is braid's own, and its values come from the dctl-studio run, not from prior art.
+
+## 9. Programmes across several projects
+
+The board can serve several projects (`/api/all`, `?projects=` [S5]). The panel lists the programmes of every project shown, in one list.
+
+- **Key.** `<project>/<slug>`, where `<project>` is the board's name for the project, which is unique on one board. Two projects may both have `working-product`, and their keys stay apart. Inside one repository the request id stays `pm/<slug>` (the store is per repository). On a one-project board, `?programme=<slug>` works too.
+- **API.** `/api/board` gains `programmes`, and `/api/all` gains `programmes` with a `project` on each: `key`, `project`, `slug`, `title`, `goal`, `thread`, `state`, `hold`, `need` (the open PM request, if any), `running`, `done`, `total`, `status` and `braids` (their numbers). It is read per project with that project's braids, so a project whose read failed keeps its older programmes, dashed, as its cards do.
+- **Look.** Each programme card carries its project's colour tag, as cards do. With one project shown, the tag is hidden, again as on cards (screen 63).
+- **Order.** Needs you sorts across all projects, oldest ask first. Working sorts by project order, then slug.
+- **Filters combine.** `?projects=` picks the projects. The panel, like the lanes and the inbox chip, shows only those projects' programmes. `?programme=` then narrows the lanes to one programme's braids. A `?programme=` whose project isn't shown is ignored and dropped from the address. Pushes don't follow the filter, as today.
+- **Pushes.** A programme is named `<repo> <slug>`, as in `dctl-studio working-product: the PM asks`. When two served projects share a repository name, the project name replaces the repository's, by D83's rule [S9]. The push key carries the project key, so the same slug in two projects never collapses into one push.
+- **Several programmes in one repository.** D82 has one PM per project, so normally a project has one running programme at a time [S9]. The panel doesn't assume it: every `pm/*` branch whose plan says `running` or `held` is shown. Screen 63 shows two in `notes` (one held) to check the layout holds.
 
 ## Strands, restated
 
-Sizes are estimates. Together about 1,900 lines, more than the braid's 1,200: the plan-file contract and the second request slot weren't in the original estimate.
+Sizes are estimates. Together about 2,050 lines, more than the braid's 1,200: the plan-file contract, the second request slot and the programmes panel across projects weren't in the original estimate.
 
 **B. Requests addressed to the PM (M, about 450 lines, 9 files).**
 
@@ -259,7 +290,7 @@ What it builds:
 - The requests store keys by item and asker (`by`).
 - `braid ask pm/<slug> …` and `braid ask <braid> … --by pm` (the id `pm/<slug>` must be a `pm/*` branch).
 - The `action` kind.
-- A programme request reads as a programme card in Needs You, before D draws the programme line: in C a card with the slug and the request.
+- Until D builds the panel, a programme request shows as a plain card in Needs you, with the slug and the request. D replaces it with the panel.
 - A push titled `<repo> <slug>: the PM asks`, at high priority, with 🧭 and the PM thread as click.
 
 Completion boxes:
@@ -268,22 +299,27 @@ Completion boxes:
 - [ ] `braid ask pm/<slug>` opens a programme request that shows in Needs You and is pushed at high priority with the PM thread as click
 - [ ] `--kind action` reads "The PM asks you to: …" on the board and in the push
 
-**D. The programme on the board (L, ui, about 800 lines, 10 files).**
+**D. The programmes panel on the board (L, ui, about 950 lines, 12 files).**
 
 What it builds:
 
 - The plan front-matter format, with a reader and `braid check --plan`.
-- The board reads `pm/*` branches and shows the Programmes block above the lanes (screens 60–61): goal, row chips, next, hold, the open question, the last digest, PM thread and Plan buttons.
-- The 🧭 tag on PM-run cards and Done rows.
-- The filter `?programme=` with "Not in a programme" (screen 63), and the phone strip, sheet and picker (screens 65–67).
-- The hold shown as paused (screen 62).
-- The demo board gets a sample programme.
+- The board reads `pm/*` branches per project, and `programmes` in `/api/board` and `/api/all` (question 9).
+- The collapsible programmes panel left of the lanes, with Needs you and Working sections, and the rail (screens 60, 61 and 63).
+- "Only these" with `?programme=<project>/<slug>`, combined with `?projects=` (screen 62).
+- The programme details side panel (screen 64).
+- The 🧭 tag on PM-run cards and Done rows, and project colour tags on programme cards.
+- The phone strip and filter chip (screens 66–67).
+- The hold shown on the programme card and as paused on its braids.
+- The demo board gets sample programmes in two projects.
 
 Needs B and C. Completion boxes:
 
-- [ ] A plan with valid front matter shows as a programme line with its rows mapped to braid numbers and states; an unreadable one shows "plan unreadable: <line>" and the board still works
-- [ ] PM-run braids carry the 🧭 programme tag, and the filter by programme (and "Not in a programme") works on desktop and phone and survives a reload
-- [ ] A held programme shows "On hold" with the user's words, and its braids show paused, not stalled
+- [ ] A plan with valid front matter shows as a programme in the panel, in Needs you while a PM request on it is open and in Working otherwise, including with no braid running; an unreadable one shows "plan unreadable: <line>" and the board still works
+- [ ] "Only these" filters the lanes to the programme's braids and back, keeps `?programme=<project>/<slug>` with `?projects=`, and survives a reload on desktop and phone
+- [ ] With several projects served, the panel lists every shown project's programmes with project tags; two projects with the same slug stay apart in the panel, the filter and the pushes
+- [ ] The panel collapses to the rail and back, and the board remembers the choice
+- [ ] A held programme shows the user's words on its card, and its braids show paused, not stalled
 - [ ] Screenshots of each screen, matching the approved mockups
 
 **E. Skills: the programme manager routes through the board (L, about 200 lines, 4 files).**
@@ -303,7 +339,7 @@ Changes skills, so the user merges it. Completion boxes:
 
 **F. Docs (L, about 200 lines).**
 
-- `docs/board.md`: Programmes, PM routing and escalation, pushes under a PM, and paused with a hold.
+- `docs/board.md`: the programmes panel and its filter, programmes across projects, PM routing and escalation, pushes under a PM, and paused with a hold.
 - `docs/braids-format.md`: the plan front matter and the request fields.
 - `docs/cli.md` and `docs/decisions.md`.
 - A new "Run the board at login" section, Windows and Linux, each run once.
@@ -325,15 +361,17 @@ No strand is dropped. The headless board is docs in F, not a strand of its own.
 
 `docs/design/board-mockups/programmes.html?s=<screen>`, with screenshots in `screenshots/`:
 
-- 60 the board with the Programmes block, the PM-handled, escalated, forwarded and PM-asked cards;
-- 61 the programme line opened;
-- 62 hold and the rate-limit pause as one state;
-- 63 the filter;
-- 64 the panel of a braid whose request the PM handles;
-- 65 the phone, Needs You;
-- 66 the phone, the programme sheet;
-- 67 the phone, the filter;
+- 60 desktop, one project: the programmes panel with a programme in Needs you, the lanes with the PM-handled, escalated, forwarded and PM-asked braid cards;
+- 61 the panel collapsed to its rail, three projects;
+- 62 filtered to one programme ("Only these"), three projects;
+- 63 three projects, four programmes: one needs you, one has no braid running, one is held;
+- 64 a programme's details side panel;
+- 65 the side panel of a braid whose request the PM handles (unchanged);
+- 66 the phone, the programmes strip open;
+- 67 the phone, the strip closed and filtered;
 - 68 the pushes on Android.
+
+The first design (a Programmes block above the lanes and a programme card in Needs you) was replaced after the user's review. It is in this PR's history at 92182e8a.
 
 ## Unknowns
 
@@ -350,4 +388,7 @@ Needs the user: `architecture`: the design for programmes on the board (screens 
 - request fields `to`, `pm` and `by`, and the new kind `action`;
 - the new command `braid forward`;
 - `braid pause --hold` on 0061's store;
-- the 20 and 60 min escalation timeouts.
+- the 20 and 60 min escalation timeouts;
+- the programme key `<project>/<slug>`, `programmes` in `/api/board` and `/api/all`, and `?programme=`.
+
+Open for the user's review: whether a PM thread that stopped puts its programme into Needs you. The design keeps it in Working with a red line, per the user's rule that only the PM's own requests do.
