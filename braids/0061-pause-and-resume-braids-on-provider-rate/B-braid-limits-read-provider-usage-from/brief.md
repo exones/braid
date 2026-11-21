@@ -1,7 +1,7 @@
 ---
 id: '0061/B'
 title: "braid limits: read provider usage from the T3 caches"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ask:architecture"]
 dependencies: []
 order: 20
