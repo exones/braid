@@ -172,6 +172,16 @@ The board's message `Merge #<n> at <head>, from the board.` in your thread is th
 
 When you take a braid, run `braid autonomy <number>`. Unless it prints `careful`, read [autonomy](references/autonomy.md) first: there you merge, continue and decide stop cases as the preset says.
 
+## Launched by a PM
+
+Only when your first message names a PM thread (a `braid-pm` project manager launched you); without one, nothing here applies.
+
+- Every request you would put to the user (`braid ask`, `braid handover`) is still opened on the board as usual, and its full message is also sent to the PM thread with `t3_thread_send`, starting with the braid's number and title. Ask in chat, not with the question tool: a pending question would hold the PM's reply.
+- A reply from the PM counts as the user's reply: `braid answer <id> --log -` naming the PM, then act. A reply from the user on the board still wins.
+- Your braid's `## Autonomy` exception line from the PM says which cases go to it and that a merge into `main` waits for its go (its live check).
+- A new braid ("Plan" step 0, a sweep, a separate follow-up) is a proposal to the PM, not a launch: the PM adds it to its plan.
+- Message the PM when your braid is Done or stopped, and when its PR into `main` waits for the user's merge.
+
 ## Fixes
 
 - The worker that opened a PR fixes it: failed checks, review findings, anything else on that PR. Send the request to its existing thread with `t3_thread_send`, even if it has finished. Start a new worker on the same branch and item only if that thread can't continue.
