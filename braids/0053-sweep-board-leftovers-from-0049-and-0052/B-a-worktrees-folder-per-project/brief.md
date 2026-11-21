@@ -56,8 +56,9 @@ First a proposal on realistic examples, then stop (converge loop): the new folde
 
 ## Plan
 
-Proposal (awaiting the user's verdict; nothing is built yet):
+Approved by the user as proposed (verdict A, 2026-11-21); built:
 
-- Key: the project's name in `~/.braid/projects.json` when the main checkout is listed (found by `samePath`, also when started from a worktree); otherwise the checkout's folder name, as today. Names are unique in the list, so two listed projects never share a folder. `braid projects add` defaults the name to the folder name, so default-named projects keep their current folder.
-- Existing worktrees: left where they are, never moved (a move on Windows can fail half-way, and a worktree may hold unpushed work). Every lookup (start's "already started" and "folder exists" checks, clean, board) looks in the new folder and in the legacy `<folder name>/`; git's own worktree list says which repository a worktree belongs to, so a twin's worktrees in the shared legacy folder are not touched. New items go to the new folder.
-- `braid projects add`: the same-folder-name warning goes; instead it prints nothing when names differ, since worktrees are now separate.
+- Key: the project's name in `~/.braid/projects.json` when the main checkout is listed (found by `samePath`, also when started from a worktree); otherwise the checkout's folder name, as today. Names are unique in the list, so two listed projects never share a folder. `braid projects add` defaults the name to the folder name, so default-named projects keep their current folder. An unreadable list falls back to the folder name.
+- Existing worktrees: left where they are, never moved (a move on Windows can fail half-way, and a worktree may hold unpushed work). Every lookup (start's "already started" check, clean, the board) looks in the project folder and in the old `<folder name>/`; git's own worktree list says which repository a worktree belongs to, so a twin's worktrees in a shared old folder are not touched. New items go to the project folder.
+- `braid projects add`: the same-folder-name warning is replaced by a note that the two projects' worktrees go to separate folders (`~/braid-worktrees/<name>/` and `~/braid-worktrees/<twin name>/`).
+- Docs: braids-format.md, cli.md, board.md; decision D83.

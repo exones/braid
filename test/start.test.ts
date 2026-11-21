@@ -391,10 +391,10 @@ test("a start whose branch is in another folder or off its base fails and says w
 const { agentsDirs } = (await load("../dist/braids/worktree-folders.js")) as { agentsDirs: (root: string, env: Record<string, string>) => string[] };
 
 /** Runs `body` with a project list in a scratch home (homedir() follows HOME and USERPROFILE). */
-async function listed<T>(projects: { name: string; path: string }[], body: () => Promise<T> | T): Promise<T> {
+async function listed<T>(projects: { name: string; path: string }[] | string, body: () => Promise<T> | T): Promise<T> {
   const home = join(scratch, `home${++n}`);
   mkdirSync(join(home, ".braid"), { recursive: true });
-  writeFileSync(join(home, ".braid", "projects.json"), JSON.stringify({ version: 1, projects }));
+  writeFileSync(join(home, ".braid", "projects.json"), typeof projects === "string" ? projects : JSON.stringify({ version: 1, projects }));
   const saved = { HOME: process.env["HOME"], USERPROFILE: process.env["USERPROFILE"] };
   process.env["HOME"] = home;
   process.env["USERPROFILE"] = home;
@@ -465,5 +465,87 @@ test("a new item of a listed project goes to the project's folder, and clean rem
     const out = await cleanCommand(root, ["--yes"], src([merged(6, "braid/0001/B-second-one")]), env);
     assert.match(out, /removed 0001\/B:/);
     assert.equal(existsSync(folder), false);
+  });
+});
+
+test("clean in one listed twin leaves the other twin's worktree in the shared old folder alone", async () => {
+  const a = repo();
+  const b = repo();
+  const env = { BRAID_WORKTREES_DIR: a.wt };
+  // Before the list had names, both twins' worktrees were in <worktrees>/proj.
+  await listed([], async () => {
+    await startCommand(a.root, ["0001/B", "--force"], src(), env);
+    await startCommand(b.root, ["0001/C", "--force"], src(), env);
+  });
+  const shared = join(a.wt, "proj");
+  const bFolder = join(shared, "0001-C");
+  assert.ok(existsSync(join(shared, "0001-B")) && existsSync(bFolder));
+  await listed(
+    [
+      { name: "alpha", path: a.root },
+      { name: "beta", path: b.root },
+    ],
+    async () => {
+      git(a.root, "merge", "-q", "--no-ff", "-m", "merge braid", "braid/0001-alpha");
+      git(b.root, "merge", "-q", "--no-ff", "-m", "merge braid", "braid/0001-alpha");
+      // Both PRs read as merged for both twins; each clean may touch only its own repository's worktrees.
+      const prs = [merged(6, "braid/0001/B-second-one"), merged(7, "braid/0001/C-third")];
+      const out = await cleanCommand(a.root, ["--yes"], src(prs), env);
+      assert.match(out, /removed 0001\/B:/);
+      assert.equal(existsSync(join(shared, "0001-B")), false, "a's own old worktree is cleaned");
+      assert.ok(existsSync(bFolder), "b's worktree is untouched");
+      assert.equal(gone(b.root, "braid/0001/C-third"), false);
+    },
+  );
+});
+
+test("a worktree of the old folder placed by a thread: the board counts it as an agent when the project name differs", async () => {
+  const { root, env, wt } = repo();
+  await listed([], () => startCommand(root, ["0001/B"], src(), env));
+  await listed([{ name: "renamed", path: root }], async () => {
+    await startCommand(root, ["0001/C", "--force"], src(), env);
+    const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; project: string }): Promise<{ threads: Map<string, { id: string }[]> }> };
+    const where: Record<string, string> = {
+      old: join(wt, "proj", "0001-B"),
+      fresh: join(wt, "renamed", "0001-C"),
+      other: join(wt, "elsewhere", "0001-A"),
+      nested: join(wt, "proj", "0001-B", "sub", "0001-A"),
+    };
+    const run = (_r: string, args: readonly string[]) => {
+      const out = args[1] === "list" ? Object.keys(where).map((threadId) => ({ threadId, status: "running" })) : { thread: { worktreePath: where[args[2] ?? ""] ?? null, pendingRequestCount: 0 } };
+      return Promise.resolve({ status: 0, stdout: JSON.stringify(out), stderr: "" });
+    };
+    const saved = process.env["BRAID_WORKTREES_DIR"];
+    process.env["BRAID_WORKTREES_DIR"] = wt;
+    try {
+      const read = await t3.readT3(root, { run, ttlMs: 0, project: root });
+      assert.deepEqual(read.threads.get("0001/B")?.map((t) => t.id), ["old"]);
+      assert.deepEqual(read.threads.get("0001/C")?.map((t) => t.id), ["fresh"]);
+      assert.equal(read.threads.has("0001/A"), false);
+    } finally {
+      if (saved === undefined) {
+        delete process.env["BRAID_WORKTREES_DIR"];
+      } else {
+        process.env["BRAID_WORKTREES_DIR"] = saved;
+      }
+    }
+  });
+});
+
+test("a projects.json braid can't read falls back to the folder name, and start still works", async () => {
+  const { root, env, wt } = repo();
+  await listed("{ not json", async () => {
+    assert.deepEqual(agentsDirs(root, env), [join(wt, "proj")]);
+    await startCommand(root, ["0001/B"], src(), env);
+    assert.ok(existsSync(join(wt, "proj", "0001-B")));
+  });
+});
+
+test("a project name that differs from the folder name only by case is one folder on Windows, two on Linux", async () => {
+  const { root, env, wt } = repo();
+  await listed([{ name: "PROJ", path: root }], () => {
+    const dirs = agentsDirs(root, env);
+    assert.equal(dirs.length, process.platform === "win32" ? 1 : 2);
+    assert.equal(dirs.at(-1), join(wt, "proj"));
   });
 });

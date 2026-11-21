@@ -4,6 +4,9 @@ import { braidHome } from "../notify/config.js";
 import { readProjects, samePath } from "../projects/list.js";
 import { mainCheckoutOf, repoNameOf, worktreesDir } from "./worktrees.js";
 
+/** Two folder names are one folder: compared like `folderKey` does, without case on Windows. */
+const sameFolder = (a: string, b: string): boolean => (process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b);
+
 /**
  * The folders holding this repository's braid worktrees, the one new items go to first. A repository listed in
  * `~/.braid/projects.json` gets `<worktrees>/<project name>` (names are unique, so two projects whose checkouts
@@ -20,7 +23,7 @@ export function agentsDirs(root: string, env: NodeJS.ProcessEnv = process.env, h
   } catch {
     // an unreadable list is `braid projects`' to report; worktrees keep the folder name
   }
-  return name === undefined || name === basename(legacy) ? [legacy] : [join(worktreesDir(env), name), legacy];
+  return name === undefined || sameFolder(name, basename(legacy)) ? [legacy] : [join(worktreesDir(env), name), legacy];
 }
 
 /** The folder new items' worktrees go to (`<worktrees>/<project name>`, or `<worktrees>/<repo>` for an unlisted repository). */
