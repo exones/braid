@@ -1,7 +1,7 @@
 ---
 id: '0062'
 title: "Programme manager on the board and in notifications"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ui", "ask:architecture", "ask:process"]
 dependencies: []
 related: ['0061', '0036', '0060', '0011']
