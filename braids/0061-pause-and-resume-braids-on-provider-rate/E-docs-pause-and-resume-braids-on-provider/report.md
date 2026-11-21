@@ -1,7 +1,7 @@
 ## What changed
 
 - `README.md`: a "Pauses before a usage limit" bullet.
-- `docs/getting-started.md`: a "Provider usage limits" paragraph (the check, thresholds and `limits:`, pause, resume, weekly question, a pause is not a hold).
+- `docs/getting-started.md`: a "Provider usage limits" paragraph (checks before each launch, at each 10-minute wait timeout and every 15 minutes, the PM-run case, thresholds, pause, resume, weekly question, a pause is not a hold) and the `limits:` key in the BRAID.md keys list.
 - `docs/autonomy.md`: a "Pausing for a provider limit" section (every preset pauses by itself, the PM's part, the weekly question, not a hold).
 - `docs/roadmap.md`: status line for braid 0061.
 - `docs/decisions.md`: decision log entry for D87 (D86 and D87 hold the pause design and its reasons: coordinator/PM-driven, unknown never pauses, defaults, weekly windows).
