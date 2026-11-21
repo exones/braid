@@ -1,7 +1,7 @@
 ---
 id: '0053/A'
 title: "Board fixes: push titles, demo failed read, close()"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:M", "sweep"]
 dependencies: []
 order: 10
