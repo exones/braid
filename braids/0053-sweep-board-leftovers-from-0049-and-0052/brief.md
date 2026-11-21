@@ -1,7 +1,7 @@
 ---
 id: '0053'
 title: "Sweep: board leftovers from 0049 and 0052, a worktrees folder per project"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:M", "sweep"]
 dependencies: []
 related: ['0049', '0052']
