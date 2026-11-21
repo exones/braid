@@ -117,6 +117,10 @@ The agents decide everything themselves and log it.
 
 Print any of them in full with `braid autonomy <number>` on a braid that runs on it.
 
+## Pausing for a provider limit
+
+A pause for a provider's usage limit is not part of a preset: every preset pauses and resumes by itself, since it needs no decision. The coordinator runs `braid limits` before each launch and on a 15-minute check, pauses its agents when a window is over its threshold, and resumes them at the reset plus a buffer. In a braid run by a PM the PM pauses every braid on that provider and schedules the one resume; the coordinators launch nothing and tell the PM once. A weekly window is the exception: the agent asks you (`braid ask --kind decision`) whether to wait for the reset or move the role to another provider, whatever the preset. A "hold" is separate: it is your request, and a limit pause neither sets nor clears it. See [the CLI](cli.md#provider-limits) and [decision D87](decisions.md).
+
 ## What the CLI enforces
 
 - `braid accept <id> --head <sha> --merge --preset` is a merge the coordinator makes under the braid's preset. `merge: strands` lets it merge a strand's PR, `all` also a story's and a final PR into `main`, `none` nothing; it also refuses when `ci` in `BRAID.md` is `none`. The refusal names the preset and its `merge` value. Without `--preset`, `--merge` is a merge you asked for.

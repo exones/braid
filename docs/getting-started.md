@@ -84,6 +84,8 @@ Whatever the preset, a merge by the coordinator needs green CI (`ci` not `none`)
 
 "Hold", "pause" or "stop" lets the running item finish and then merges and starts nothing until you say go.
 
+**Provider usage limits.** Before each launch the coordinator runs `braid limits`, which reads the usage T3 caches for each provider in `BRAID.md` `models`. A provider at or over its threshold (session 97%, weekly 95%; change them with `limits:` in `BRAID.md`) pauses the braid: running agents stop at a clean point, the coordinator schedules its own resume for the reset plus a buffer, and `braid pause` records it, so the board shows a pause mark instead of a stall. At the resume time it checks again and goes on (`braid resume`). Unknown usage never pauses. A weekly limit also asks you whether to wait or move the role to another provider. A pause is not a hold: it needs no go from you. See [the CLI](cli.md#provider-limits) and [the board](board.md#paused).
+
 A goal's plan is merged into its braid branch, so `main` gets its briefs with the final PR. Approving the plan is the only answer it needs: `braid` then merges the planning PR itself once its checks are green, exactly the commit you approved, and starts the first strand (unless you asked only for a plan). If that PR changed after your approval, `braid` shows you what changed and asks again. The plan, and the first message after you ask to start or resume a braid, open with the braid's number and title, so you can catch a wrong number at once.
 
 ## See the board

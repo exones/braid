@@ -109,6 +109,7 @@ The user confirmed using npm directly. Public packages can use npm's free tier; 
 
 ## Decision log
 
+- 2026-11-21, user (0061/D): adopted D87, whoever launches a braid's agents pauses them for a provider's usage limit (a check before each launch and every 15 minutes, a pause message, a self-deleting resume task, a user question for weekly windows, no snooze). Documented in [the CLI](cli.md#provider-limits), [autonomy](autonomy.md#pausing-for-a-provider-limit) and the braid skill's `references/limits.md`.
 - 2026-11-21, user (0061/C): adopted D86, a braid's pause for a provider limit as a recorded state (`braid pause`, `braid resume`, `.braid/pauses.json`) that the board and `braid status` show; approved the mockups as shown (`docs/design/board-mockups/60-paused.png`). Documented in [docs/board.md](board.md#paused) and [the CLI](cli.md#pauses).
 - 2026-11-21, user (0057/A, built in 0057/B): adopted D85, `TEMP` on D: in the Windows CI job and the two slowest test files split; the Windows check stays one job.
 - 2026-11-21, user (0054): adopted D82, the `braid-pm` skill: one project manager per project that runs a goal as braids through their coordinators, answers them by reversal cost, checks results live and keeps its plan on its own branch. Documented in [getting started](getting-started.md#the-skills) and the skills.

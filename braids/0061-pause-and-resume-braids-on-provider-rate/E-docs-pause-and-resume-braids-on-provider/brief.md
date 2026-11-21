@@ -1,7 +1,7 @@
 ---
 id: '0061/E'
 title: "Docs: Pause and resume braids on provider rate limits"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: ['0061/A', '0061/B', '0061/C', '0061/D']
 order: 50
@@ -29,8 +29,12 @@ Expected size: about 150 lines across 6 to 9 docs.
 
 ## Completion
 
-- [ ] Docs from BRAID.md `docs` are up to date with braid 0061 as a whole
-- [ ] `docs/decisions.md` has the pause design's entry with its reasons
-- [ ] `report.md` lists each doc checked, as updated or unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Docs from BRAID.md `docs` are up to date with braid 0061 as a whole
+- [x] `docs/decisions.md` has the pause design's entry with its reasons
+- [x] `report.md` lists each doc checked, as updated or unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## plan
+
+Check each doc from BRAID.md docs against strands A to D; add what is missing (README, getting started, autonomy, roadmap, decisions log); no duplication of C/D edits.
