@@ -43,7 +43,7 @@ interface Inbox { leftovers: Entry[]; ideas: Entry[]; note: string | null }
 interface Sources { inbox(fetch: boolean): Inbox }
 const board = (await import(pathToFileURL(fileURLToPath(new URL("../dist/commands/board.js", import.meta.url))).href)) as {
   demoSources(): Sources;
-  startBoardWith(src: Sources, web: string): Promise<{ server: Server; url: string; token: string }>;
+  startBoardWith(src: Sources, web: string): Promise<{ server: Server; url: string; token: string; close(): Promise<void> }>;
 };
 const { inboxOf } = (await import(pathToFileURL(fileURLToPath(new URL("../dist/board/inbox.js", import.meta.url))).href)) as {
   inboxOf(root: string, fetch: boolean): Inbox;
@@ -65,14 +65,14 @@ function world() {
 
 function apiBoard(src: Sources, query = ""): Promise<{ inbox: Inbox; braids: unknown[] }> {
   return board.startBoardWith(src, join(scratch, "no-web")).then(
-    ({ server }) =>
+    ({ server, close }) =>
       new Promise((resolve, reject) => {
         get({ host: "127.0.0.1", port: (server.address() as AddressInfo).port, path: `/api/board${query}` }, (res) => {
           let text = "";
           res.on("data", (c: Buffer) => (text += c.toString()));
           res.on("end", () => {
-            server.close();
-            resolve(JSON.parse(text) as { inbox: Inbox; braids: unknown[] });
+            const answer = JSON.parse(text) as { inbox: Inbox; braids: unknown[] };
+            close().then(() => resolve(answer), reject);
           });
         }).on("error", reject);
       }),
