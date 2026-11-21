@@ -980,7 +980,7 @@ function Board({ data, details }: { data: { readonly lanes: readonly Lane[]; rea
           const cards = data.braids.filter((b) => b.lane === lane);
           if (lane === "Done" && stripped) {
             return (
-              <section key={lane} aria-label={LANE_LABEL[lane]} className={lane === active ? "" : "max-md:hidden"}>
+              <section key={lane} aria-label={LANE_LABEL[lane]} className={`max-md:min-h-48 max-md:rounded-xl max-md:bg-slate-200/70 max-md:p-2.5 ${lane === active ? "" : "max-md:hidden"}`}>
                 <button type="button" aria-expanded={false} onClick={() => setDoneOpen(true)} className="flex min-h-48 w-full cursor-pointer flex-col items-center gap-2 rounded-xl bg-slate-200/70 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 hover:bg-slate-300/70 max-md:hidden">
                   <LaneDot lane={lane} />
                   <span>{cards.length}</span>
