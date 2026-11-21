@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
@@ -210,4 +210,22 @@ test("braid board reads GitHub once from startup until it prints the not ready l
   // runBoard returns after the not ready lines are printed: one `gh pr list` so far.
   assert.ok(written.some((l) => /^not ready: it has backlog\/ but no braids\/; run braid import-backlog/.test(l)), written.join(""));
   assert.equal(ghCalls, 1);
+});
+
+test("a BRAID.md with the nested docs key reads as before (0056)", async () => {
+  // This repository's own BRAID.md, which has `docs:` with `update`, `public` and `internal` lists.
+  const text = readFileSync(fileURLToPath(new URL("../BRAID.md", import.meta.url)), "utf8");
+  assert.match(text, /^docs:\n {2}update: both\n {2}public:\n {4}- README\.md$/m);
+  const root = project({ "BRAID.md": text, "braids/0001-a/brief.md": BRIEF });
+  assert.deepEqual(readiness(root, OK), []);
+  const { checkBraids } = (await load("../dist/braids/check.js")) as { checkBraids: (root: string) => { errors: string[] } };
+  assert.deepEqual(checkBraids(root).errors, []);
+  const { ciChecks } = (await load("../dist/commands/coordinate.js")) as { ciChecks: (root: string) => string[] };
+  assert.deepEqual(ciChecks(root), ["verify (ubuntu-latest)", "verify (windows-latest)"]);
+  const { mainBranch } = (await load("../dist/commands/start.js")) as { mainBranch: (root: string) => string };
+  assert.equal(mainBranch(root), "main");
+  const { projectDefault } = (await load("../dist/braids/autonomy.js")) as { projectDefault: (root: string) => string | null };
+  assert.equal(projectDefault(root), "steady");
+  const { readStartContext } = (await load("../dist/commands/board.js")) as { readStartContext: (root: string) => { main: string; expected: { provider: string; model: string } | null } };
+  assert.deepEqual(readStartContext(root), { main: "main", expected: { provider: "Claude_Everix", model: "claude-opus-5-5" } });
 });

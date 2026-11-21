@@ -40,7 +40,17 @@ A target repository needs a `BRAID.md` at its root with the facts the skills rea
 - the required `ci` checks (`none` if it has no hosted CI);
 - optional `autonomy`: the [autonomy preset](autonomy.md) braids run on unless a braid names its own (`careful` if absent);
 - optional `shell`, `setup` and `test` commands, and how to `run` the app;
+- optional `docs`: the project's docs in two lists, `public` (for its users: README, guides, help text) and `internal` (for its developers: development notes, the decisions record, format references), and `update`, when braid keeps them true (below). Without the lists, agents take `README.md` and `docs/`;
 - `models`: the provider, model and options for each role, with optional overrides per tier (`worker.L`) or kind (`worker.spike`). The tier key wins over the kind key, then the plain role. A role may name a skill, such as `braid-reviewer` for the reviewer and `braid-researcher` for the researcher.
+
+`docs.update` takes one of four values:
+
+- `strand`: every item's PR, strand or story, updates the docs its change makes untrue. Its brief has a Completion box for it, and the reviewer blocks a PR that leaves a doc untrue.
+- `braid` (the default): a story's PR does the same, and every goal ends with a docs strand (`Docs: <braid title>`), planned last, that reads everything the braid changed, from its first strand, and brings the docs up to date as a whole before the final PR; it lists each doc it checked as updated or unchanged. Other strands carry no docs box; the docs strand does.
+- `both`: the two together; this repository uses it.
+- `on-demand`: docs change only when a brief or you ask for it. What you decided is still documented, in the doc that describes it and the decisions record.
+
+Docs that need your go (`AGENTS.md`, `CLAUDE.md`, `BRAID.md`, the skills) are proposed in the report, not edited, unless the brief allows it.
 
 Start from the [`braid` template](../.agents/skills/braid/assets/braid-md.md). This repository's own [BRAID.md](../BRAID.md) is an example. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
 

@@ -7,6 +7,21 @@ shell: pwsh 7.6+
 setup: npm ci, with Node.js 26 on PATH (docs/development.md)
 test: "npm run build && node --test test/<file>.test.ts; Pester suites: pwsh -NoProfile -File scripts/Test-Pester.ps1"
 run: npm run build, then node dist/cli.js --help (a CLI; no UI)
+docs:
+  update: both
+  public:
+    - README.md
+    - docs/getting-started.md
+    - docs/cli.md
+    - docs/board.md
+    - docs/autonomy.md
+    - "the CLI's help text (src/cli.ts and the commands' usage lines)"
+  internal:
+    - docs/development.md
+    - docs/decisions.md
+    - docs/braids-format.md
+    - docs/roadmap.md
+    - docs/npm-distribution.md
 models:
   coordinator: Claude_Everix / claude-opus-5-5 / effort=medium
   worker:

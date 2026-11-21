@@ -11,7 +11,7 @@ Plan the user's goal or story as braids and strands, then deliver them through w
 
 ## Project facts
 
-Read `BRAID.md` at the repository root first (`gate`, `main`, `ci`, `run`, `models`), and follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
+Read `BRAID.md` at the repository root first (`gate`, `main`, `ci`, `run`, `models`, `docs`), and follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
 Models: use `models.<role>.<tier>` (tier key `S`, `M` or `L`) if present, then `models.<role>.<kind>`, then `models.<role>`; if none exists, ask the user. Use any named skill. Use the exact provider, model and options (in T3 they are `instanceId`, `model` and `options`: `effort=high` is `{"effort":"high"}`); if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line.
 
@@ -62,6 +62,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
    Never edit another braid's brief for a link: its side shows it with `braid view --links`.
 4. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
 5. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order`, `related` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers"). Set the braid's `autonomy` and its `## Autonomy` exceptions only as the user asked.
+   - **Docs.** Draft by `docs.update` in `BRAID.md` (`braid` if absent): the template's docs box in every brief with `strand` or `both`, in a story's brief and the docs strand's with `braid`, in none with `on-demand`. With `braid` or `both`, a goal's plan ends with a docs strand: `Docs: <braid title>`, `kind:task`, tier S (L if it edits agent instructions), ordered last and depending on every other strand. Its brief, with the docs box: read everything the braid changed, from its first strand, bring the docs from `docs` up to date as a whole (overview and README, getting started, roadmap status, the decisions record, help text), and list in `report.md` each doc checked as updated or unchanged. A story has no docs strand. The plan drops the docs strand only with a reason the user sees in the plan.
 6. Create them and commit locally; push nothing yet.
    - **Goal:** in your worktree on `plan/<slug>` from `main`, `braid new`, then `braid strand new` per strand.
    - **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `braid new`, then `git branch -m braid/<number>-<slug>` (its folder name).
@@ -181,7 +182,7 @@ When you take a braid, run `braid autonomy <number>`. Unless it prints `careful`
 
 A story is finished when the user merges its PR.
 
-A goal, when every strand is Done on the braid branch:
+A goal, when every strand is Done on the braid branch (the docs strand, if planned, included):
 
 1. Merge `main` into the braid branch, open one PR from it into `main` and watch it.
 2. In one commit, tick the braid's boxes that now hold, write its `report.md` naming any box left open and why, and add a closing log entry.
