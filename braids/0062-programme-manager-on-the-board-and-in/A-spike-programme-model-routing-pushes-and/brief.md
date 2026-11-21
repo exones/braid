@@ -1,7 +1,7 @@
 ---
 id: '0062/A'
 title: "Spike: programme model, routing, pushes and board mockups"
-status: To Do
+status: In Progress
 labels: ["kind:spike", "tier:L", "ui"]
 dependencies: []
 order: 10
@@ -65,11 +65,19 @@ Follow the braid-researcher skill's Method. Look at about 10 to 15 sources of th
 - Building any of B to E.
 - Editing other files under `docs/`, including `docs/decisions.md` and the roadmap. The answers go in `report.md`; decided behaviour reaches the docs through the strands and the docs strand.
 
+## Plan
+
+1. Read the as-built PM (skill, template), board, requests, notifier, title parsing, D70/D82/D83, 0061's briefs and spike report, the inbox idea and the approved mockup style.
+2. Researcher subagents: one reads the dctl-studio PM thread and its plan file whole, the other ntfy, two or three orchestrators and the login-task docs.
+3. Frame each question with candidates, decide from the run's measurements, write `report.md` and `sources.md`.
+4. Mockups `docs/design/board-mockups/programmes.html` on dctl-studio-shaped data, screenshots in `screenshots/`.
+5. Gate, PR, stop for the user's review.
+
 ## Completion
 
-- [ ] `report.md` answers questions 1 to 8 with evidence and a recommendation each, and restates strands B to E (what, tier, Completion boxes)
-- [ ] `docs/design/board-mockups/programmes.html` shows the programme on the board, a request handled by the PM, an escalated one, the PM's own question, the filter and the phone layout; screenshots in the item folder
-- [ ] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `report.md` answers questions 1 to 8 with evidence and a recommendation each, and restates strands B to E (what, tier, Completion boxes)
+- [x] `docs/design/board-mockups/programmes.html` shows the programme on the board, a request handled by the PM, an escalated one, the PM's own question, the filter and the phone layout; screenshots in the item folder
+- [x] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
