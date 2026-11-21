@@ -1,7 +1,7 @@
 ---
 id: '0061/B'
 title: "braid limits: read provider usage from the T3 caches"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:architecture"]
 dependencies: []
 order: 20
@@ -48,3 +48,9 @@ Expected size: about 400 lines in 6 files, half of them tests.
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `src/braids/limits.ts`: read `BRAID.md` `limits:` and `models` lines, read `<T3CODE_HOME>/caches/<instance>.json`, apply the reading rules, give a verdict per provider. Model-scoped windows are one table (`SCOPED_WINDOWS`).
+2. `src/commands/limits.ts` + `src/cli.ts`: `braid limits [<instance>] [--role r --tier T --kind k] [--json]`; exit 3 on pause, 0 for ok and unknown.
+3. `test/limits.test.ts` with fixtures in `test/fixtures/limits/` and a fixed now; `docs/cli.md`.
