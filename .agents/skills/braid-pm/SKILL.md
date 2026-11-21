@@ -18,10 +18,20 @@ Models: coordinators and the live checker use `models.coordinator` from `BRAID.m
 ## Taking a goal
 
 1. Read `braid list --open`, `braid inbox --no-fetch`, and the briefs (`braid view`) of open braids the goal touches.
-2. Draft the plan: braids as goal or story sketches (a title and two or three lines each), their order and dependencies, which can run in parallel, the open braids they relate to, and the product-shaping questions (see "Answering coordinators").
+2. Draft the plan by "Slicing a goal into braids": braids as goal or story sketches (a title and two or three lines each, saying what a user can try after each), their order and dependencies, which can run in parallel, the open braids they relate to, and the product-shaping questions (see "Answering coordinators").
 3. Show it to the user with the questions, context first. Discuss only the product-shaping questions, at most three rounds. Then start without a further go; the user can still change anything later ("Replanning").
 4. If the project's `AGENTS.md` keeps merges into `main` the user's (as braid's own does), say so once here: stories and final PRs will wait for the user's merge, and the digest lists them as one batch.
 5. Create the plan file and launch the first braids ("Running").
+
+## Slicing a goal into braids
+
+1. **Each braid leaves `main` usable and demoable.** A user can try what it adds, and the live check can test it. It is a step in the product, not a layer of it.
+2. **The first braid is a thin end-to-end path.** It takes the riskiest path through the whole system at the smallest size; later braids widen it.
+3. **Slice vertically.** A braid cuts through every layer its feature needs; never "parser braid, then UI braid".
+4. **Strands may be technical steps.** Only the braid's final PR into `main` has to be an increment; strands land on the braid branch.
+5. **Tooling and cleanup braids are allowed** (CI, sweeps). Their increment is for the team, and the plan says so.
+6. **Order by risk, then value.** Unproven technology first, then what users need most; polish and packaging last.
+7. **Shape contracts in the braid that creates them.** A CLI, file format or API that later braids will build on is designed for those uses from the start (for example machine-readable output, one gate point for licensing), so it doesn't have to break later.
 
 ## The plan file
 
