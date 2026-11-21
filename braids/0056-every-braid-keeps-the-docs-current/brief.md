@@ -1,7 +1,7 @@
 ---
 id: '0056'
 title: "Every braid keeps the docs current"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 related: ['0054', '0036', '0035']
