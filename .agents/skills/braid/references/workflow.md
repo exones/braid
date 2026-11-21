@@ -105,3 +105,4 @@ The user merges, whatever the tier. The coordinator merges in three cases only:
 | A worker proposes growth beyond the mandate | The skill, "Grow and adjust". |
 | CI is red on a braid branch or a final PR | The skill, "Fixes". |
 | A PR's head moved after its recap or review | The skill, "Merge on request"; under a preset, [autonomy](autonomy.md). |
+| A provider crosses its usage threshold | [Provider limits](limits.md): pause that provider's agents at a clean point, schedule the resume. |

@@ -1,7 +1,7 @@
 ---
 id: '0061/D'
 title: "Pause and resume in the skills"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0061/A', '0061/B', '0061/C']
 order: 40
@@ -60,12 +60,21 @@ Expected size: about 120 lines across 4 to 5 skill and reference files.
 - A resume while still over: reschedule; never resume into a limit.
 - Tests: the Pester or node checks the repo already runs on skills (links, names) pass; no new product tests.
 
+## Plan
+
+1. New reference `.agents/skills/braid/references/limits.md` with the protocol: check before launch, 15-minute check task, pause (message, wait, resume task, `braid pause`), resume, weekly windows, user-asked pause, under a PM.
+2. braid skill: link it from the reference list and from each launch point (researcher, worker, reviewer), the wait, "Launched by a PM", "Finish" and "Say waiting".
+3. braid-pm: a "Provider limits" section and the check before launching a coordinator; "Hold" points to it.
+4. braid-worker "Habits": the pause and resume messages.
+5. workflow.md failure-mode row; autonomy.md "Hold" and resuming.md each get one line pointing to it.
+6. docs/decisions.md D87 for the user's decisions (15-minute check, weekly ask, no snooze).
+
 ## Completion
 
-- [ ] The braid skill has the check before every launch, the 15-minute check while agents run (created, deleted), the pause, the wait for the clean point, the scheduled resume, the resume, weekly windows and the user-asked pause, with exact commands
-- [ ] The PM-run case is covered in the braid skill's "Launched by a PM" and in braid-pm
-- [ ] braid-worker says what a worker does on a pause message and on resume
-- [ ] workflow.md has the failure-mode row
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The braid skill has the check before every launch, the 15-minute check while agents run (created, deleted), the pause, the wait for the clean point, the scheduled resume, the resume, weekly windows and the user-asked pause, with exact commands
+- [x] The PM-run case is covered in the braid skill's "Launched by a PM" and in braid-pm
+- [x] braid-worker says what a worker does on a pause message and on resume
+- [x] workflow.md has the failure-mode row
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

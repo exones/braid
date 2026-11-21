@@ -74,3 +74,5 @@ Use plain language and this format even when blocked; then "Done" lists what got
 - If you must stop before finishing, log a checkpoint (`'done: …; next: …; open: …' | braid log <id> --checkpoint --thread <your thread id> --file -`) and commit it with your work.
 - Don't edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless your brief says so.
 - Don't merge, publish, or start other items.
+- **Pause message** (`Pause for <provider> …`, a provider is near its usage limit): do what it says: finish or undo your current step, commit and push your WIP, log a checkpoint, send `Paused: <id> at <sha>` to the coordinator and end your turn. Start no new work until `Resume:`; if something wakes you meanwhile, note it, reply briefly only with your item's CI result if that is what woke you, and end your turn again.
+- **`Resume: continue <id> from your checkpoint`:** read your last checkpoint (`braid view <id>` and your log) and go on from there.
