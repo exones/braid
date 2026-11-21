@@ -43,9 +43,9 @@ Expected size: about 10–20 lines in `.github/workflows/ci.yml`, two test files
 
 ## Completion
 
-- [ ] The Windows job sets `TEMP`/`TMP` to a folder on D: before `npm ci`, with a comment saying why; Ubuntu and the braids-only fast path are unchanged
-- [ ] `test/done.test.ts` and `test/start.test.ts` are each split into two files; the total number of tests is the same before and after (state both counts in the report)
-- [ ] `docs/development.md` describes the Windows CI setup, and `docs/decisions.md` records the decision and its reasons
-- [ ] `report.md` gives `verify (windows-latest)` and `node --test` times from at least three full PR runs, against the spike's baselines
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The Windows job sets `TEMP`/`TMP` to a folder on D: before `npm ci`, with a comment saying why; Ubuntu and the braids-only fast path are unchanged
+- [x] `test/done.test.ts` and `test/start.test.ts` are each split into two files; the total number of tests is the same before and after (state both counts in the report)
+- [x] `docs/development.md` describes the Windows CI setup, and `docs/decisions.md` records the decision and its reasons
+- [x] `report.md` gives `verify (windows-latest)` and `node --test` times from at least three full PR runs, against the spike's baselines
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
