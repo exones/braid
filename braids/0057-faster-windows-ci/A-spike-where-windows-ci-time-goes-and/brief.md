@@ -1,7 +1,7 @@
 ---
 id: '0057/A'
 title: "Spike: where Windows CI time goes and what cuts it"
-status: To Do
+status: In Progress
 labels: ["kind:spike", "tier:M"]
 dependencies: []
 order: 10
@@ -52,10 +52,19 @@ Look at about 8–15 sources: GitHub's runner-images docs and issues, the docs o
 
 ## Completion
 
-- [ ] The Windows time per `verify:full` phase is confirmed on at least two runs
-- [ ] At least the first four candidates are measured on real Windows runners, each at least twice, with run links
-- [ ] Every experiment PR is closed unmerged and its branch deleted; the report lists them
-- [ ] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
-- [ ] `report.md` recommends B's changes in order, with expected saving, cost and risk, and proposes Completion boxes for B
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The Windows time per `verify:full` phase is confirmed on at least two runs
+- [x] At least the first four candidates are measured on real Windows runners, each at least twice, with run links
+- [x] Every experiment PR is closed unmerged and its branch deleted; the report lists them
+- [x] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
+- [x] `report.md` recommends B's changes in order, with expected saving, cost and risk, and proposes Completion boxes for B
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Round 1 (PR #209, `spike/0057-variants`): split `verify:full` into one step per phase, so each phase has its own time from the jobs API. Run 8 Windows variants × 2 samples: baseline, Defender off plus exclusions, Dev Drive (workspace and TEMP), `--test-concurrency` 8 and 16, git settings, `NODE_COMPILE_CACHE`, and all combined. A probe records the image, the Defender state and the drives. A small benchmark times one process start the way the tests start them.
+2. Researcher subagent in parallel: runner image facts, Dev Drive, process-start cost, Node test runner options, setup-node caching, larger-runner prices.
+3. Round 2 (PR #211, `spike/0057-paired`): runner noise was ±25%, so run baseline and variant `node --test` back to back on one runner, alternating the order, 3 samples each. Measure sharding (`--test-shard` 1–3/3, 2 samples).
+4. Count process starts per test file locally (a preload that counts `child_process` calls) to price the in-process CLI candidate.
+5. Round 3 (PR #212, `spike/0057-combined`): whole `verify:full` jobs, baseline against TEMP on D:, 3 samples each, plus a sharded layout (rest of `verify:full` ‖ 3 test shards → gate job), 2 samples.
+6. Write report.md and sources.md, then close the spike PRs and delete their branches.
