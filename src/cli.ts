@@ -54,7 +54,7 @@ export function helpText(version: string): string {
     "  title <id> --role <role>    Print the thread title for an item: <emoji> <repo> <id> <role>: <title> (role coordinator, worker, review or research)",
     "  edit <id>                   Change --status, --title, --labels, --dep, --related, --order, --delivery, --autonomy (none clears a list, the order or the preset)",
     "  autonomy <number>           Print the autonomy preset a braid runs on, where its name and text come from, and the brief's ## Autonomy section (--list: the presets available here)",
-    "  limits [<instance>]         Whether an agent may be launched on each provider in BRAID.md models, from T3's usage caches: windows, usage, verdict ok|pause|unknown, for pause the resume time (--role <role> [--tier <T>] [--kind <k>] narrows; --json; exit 3 on pause)",
+    "  limits [<instance>]         Whether an agent may be launched on each provider in BRAID.md models, from T3's usage caches: windows, usage, verdict ok|pause|unknown, for pause the resume time (--role <role> [--tier <T>] [--kind <k>] narrows, e.g. --role worker --kind story; --json; exit 3 on pause)",
     "  brief <id> <section>       Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",

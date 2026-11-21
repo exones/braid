@@ -14,7 +14,7 @@ export interface Limits {
   readonly stale: number;
 }
 
-export const DEFAULT_LIMITS: Limits = { session: 90, weekly: 95, buffer: 5, stale: 10 };
+export const DEFAULT_LIMITS: Limits = { session: 97, weekly: 95, buffer: 5, stale: 10 };
 
 /**
  * Windows that count only for one model: window id -> a lowercase marker that the model slug must contain.
@@ -162,7 +162,9 @@ export function roleLines(lines: readonly ModelLine[], role: string, tier: strin
   if (plain !== undefined) {
     return [plain];
   }
-  throw new LimitsError(`BRAID.md models.${role} has no entry for ${[tier === null ? null : `tier ${tier}`, kind === null ? null : `kind ${kind}`].filter((x) => x !== null).join(" or ")}`);
+  const tried = [tier, kind].flatMap((k) => (k === null ? [] : [`models.${role}.${k}`])).join(" or ");
+  const keys = own.map((l) => l.role.slice(role.length + 1)).join(", ");
+  throw new LimitsError(`BRAID.md has no ${tried}, and models.${role} is a map of ${keys}; name one with --kind <kind> or --tier <tier>`);
 }
 
 interface RawWindow {

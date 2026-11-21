@@ -62,7 +62,7 @@ Options: `braid --version` prints the version; `braid --help` shows the help.
 
 ```yaml
 limits:
-  session: 90   # pause at this percent of a session (5 h) window
+  session: 97   # pause at this percent of a session (5 h) window
   weekly: 95    # pause at this percent of a weekly window
   buffer: 5     # minutes after the reset until work resumes
   stale: 10     # minutes after which a cache reading is unknown
@@ -81,7 +81,7 @@ braid strand new 0002 'Read braids' --order 1           # the next free letter
 braid edit 0002/A --status 'In Progress'                # status, title, labels, dependencies, order, delivery
 braid edit 0002 --autonomy steady                       # the braid runs on the steady preset; none goes back to the project default
 braid autonomy 0002                                     # the preset 0002 runs on, where it comes from, and its text
-braid limits --role worker --tier M                       # may a worker of tier M be launched now? exit 3 means pause
+braid limits --role worker --kind story                    # may a story worker be launched now? exit 3 means pause
 braid brief 0002 Goal --file goal.md                    # set a section; --file - reads standard input
 braid log 0002/A --thread mcp:launch:5d80964a 'Parser done'   # a dated entry in that thread's log file, staged with git add
 braid log 0002/A --checkpoint 'Paused after the parser'       # a checkpoint entry; no thread: the log-<date>-user.md file
