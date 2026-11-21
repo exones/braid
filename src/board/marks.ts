@@ -26,8 +26,16 @@ export interface ActivityIcon {
   readonly tooltip: string;
 }
 
+/** The pause mark: sky while paused, amber once the resume is overdue. */
+export interface PausedIcon {
+  readonly state: "paused" | "due";
+  readonly tooltip: string;
+}
+
 export interface Marks {
   readonly reasons: readonly ReasonIcon[];
+  /** The braid is paused (`braid pause`); null when not, or when a card on the user's side shows its need instead. */
+  readonly paused: PausedIcon | null;
   /** The hover text of the review eye, or null. */
   readonly review: string | null;
   /** What runs: an agent, a review, or only CI. */
@@ -85,7 +93,10 @@ export function askTooltip(key: string): string {
   return `Will need your decision: ${key}`;
 }
 
-export type Row = Pick<StrandCard, "lane" | "reason" | "need" | "ask" | "pr" | "activity">;
+export type Row = Pick<StrandCard, "lane" | "reason" | "need" | "ask" | "pr" | "activity" | "pause">;
+
+/** A strand row's tooltip is the pause line; a card's, with Details off, also carries the smaller line. */
+const pausedOf = (pause: Row["pause"], full: boolean): PausedIcon | null => (pause === null ? null : { state: pause.state, tooltip: full ? `${pause.text} — ${pause.note}` : pause.text });
 
 const reviewTip = (row: Pick<Row, "need" | "pr">): string => {
   const n = row.need?.pr ?? row.pr?.number;
@@ -114,7 +125,7 @@ const iconOf = (activity: Activity | null): ActivityIcon[] => (activity === null
 /** A strand row: with Details off, the text of what is needed moves into the reason icon's tooltip. */
 export function strandMarks(strand: Row, details = true): Marks {
   const { reasons, review } = ofRow(strand, details, false);
-  return { reasons, review, activities: iconOf(strand.activity), done: strand.lane === "Done" };
+  return { reasons, paused: pausedOf(strand.pause, false), review, activities: iconOf(strand.activity), done: strand.lane === "Done" };
 }
 
 /**
@@ -125,9 +136,9 @@ export function cardMarks(card: BraidCard, details = true): Marks {
   if ((card.lane === "Waiting" || card.lane === "In Review") && card.need !== null) {
     const who = card.need.who;
     const source: Row = who === null ? card : (card.strands.find((s) => s.id === who) ?? card);
-    const row: Row = { lane: card.lane, reason: card.reason, need: card.need, ask: null, pr: source.pr, activity: null };
+    const row: Row = { lane: card.lane, reason: card.reason, need: card.need, ask: null, pr: source.pr, activity: null, pause: null };
     const { reasons, review } = ofRow(row, details, true);
-    return { reasons: reasons.slice(0, 1), review, activities: [], done: false };
+    return { reasons: reasons.slice(0, 1), paused: null, review, activities: [], done: false };
   }
   const rows: Row[] = card.strands.length === 0 ? [card] : [...card.strands];
   const reasons = new Map<ReasonKind, ReasonIcon>();
@@ -142,7 +153,7 @@ export function cardMarks(card: BraidCard, details = true): Marks {
       activities.set(a.kind, a);
     }
   }
-  return { reasons: [...reasons.values()], review: null, activities: [...activities.values()], done: card.lane === "Done" };
+  return { reasons: [...reasons.values()], paused: pausedOf(card.pause, !details), review: null, activities: [...activities.values()], done: card.lane === "Done" };
 }
 
 const T3_SEGMENT = /^[\w.%~-]+$/;

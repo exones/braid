@@ -18,6 +18,8 @@ These are the commands `braid help` lists, in its order.
 | `braid edit <id>` | Change `--status`, `--title`, `--labels`, `--dep`, `--related`, `--order`, `--delivery`, `--autonomy` (`none` clears a list, the order or the preset). |
 | `braid autonomy <number>` | Print the [autonomy preset](autonomy.md) a braid runs on: its name, where the name comes from (the brief, `BRAID.md` or the built-in default), where the text comes from (`autonomy/<name>.md` or shipped with braid), the preset's text and then the brief's `## Autonomy` section under `This braid:`. `--list` names the presets available here and marks the project default. |
 | `braid limits [<instanceId>] [--role <role> [--tier <T>] [--kind <kind>]] [--json]` | May an agent be launched on a provider? Reads T3's provider caches (`$T3CODE_HOME/caches/<instanceId>.json`, default `~/.t3/caches`) and never writes them or calls T3, Anthropic or OpenAI. Lists every provider named in `BRAID.md` `models` with its roles, each window's usage against its threshold, and a verdict: `pause` (a window is at or over its threshold; says which and the resume time, the window's reset plus the buffer), `unknown` (the cache is stale, missing, has no `usageLimits` or is `unsupported`; launch as usual) or `ok`. A provider or `--role` (resolved as the braid skill resolves models: tier, then kind, then the role) narrows it. Times are local; `--json` gives ISO UTC and the same data. Exit 0 for `ok` and `unknown`, 3 for `pause`. |
+| `braid pause <number> --provider <instanceId> --thread <id> [--window <id>] [--until <iso>] [--task <id>] [--by coordinator|pm]` | Record that a braid waits for a provider's usage window, in `.braid/pauses.json` of the main checkout ([Pauses](#pauses)). Without `--window` and `--until` the window, its usage and reset and the resume time (reset plus the buffer) come from `braid limits` for that provider, and it is refused unless the verdict is `pause`. `--window` picks a window (its reset plus the buffer); `--until` sets the resume time and pauses whatever the verdict. `--task` is the scheduled resume task's id, `--thread` the pausing thread (the one the task wakes), `--by` who paused (default `coordinator`). Pausing again with the same values changes nothing; other values replace the record. Prints the pause line. |
+| `braid resume <number>` | Clear a braid's pause and print what was cleared, with the resume task to delete if it is still set; a braid that isn't paused is left as it is. |
 | `braid brief <id> <section>` | Set a section of `brief.md` from `--file <path>`, `--file -` or `--text`. |
 | `braid log <id> <text>` | Append an entry to this thread's log and `git add` it (`--thread`, `--checkpoint`, `--file`). |
 | `braid report <id>` | Write `report.md` from `--file <path>`, `--file -` or `--text` (`--append` adds). |
@@ -68,6 +70,17 @@ limits:
   stale: 10     # minutes after which a cache reading is unknown
 ```
 
+## Pauses
+
+A pause holds a whole braid, never one strand; under a PM, the PM pauses each braid on that provider. One record per braid: number, provider, window id and label, used percent, the window's `resetsAt`, `resumeAt`, the resume task's id, the pausing thread, who paused (`coordinator` or `pm`) and when ([the format](braids-format.md#commands)). Only `braid pause` and `braid resume` write it; the [board](board.md#paused) and `braid status` only show it, and neither sends messages or schedules anything: the coordinator or PM schedules its own resume. `braid status` adds `(paused)` or `(paused, resume was due)` to the lane and prints the pause under the braid:
+
+```text
+0009  In Progress  Working (paused)  branch local+pushed  PR -  ci -  thread -  Sample reports
+    Paused: Claude_Everix Session 97%, resumes 21:05 (by coordinator 3194eef8 at 20:29, task 9c1e42)
+```
+
+A damaged `pauses.json` reads as no pauses, and `braid status` says so in a `note:` line.
+
 ## Examples
 
 ```powershell
@@ -82,6 +95,8 @@ braid edit 0002/A --status 'In Progress'                # status, title, labels,
 braid edit 0002 --autonomy steady                       # the braid runs on the steady preset; none goes back to the project default
 braid autonomy 0002                                     # the preset 0002 runs on, where it comes from, and its text
 braid limits --role worker --kind story                    # may a story worker be launched now? exit 3 means pause
+braid pause 0061 --provider Claude_Everix --thread 3194eef8-be42 --task 9c1e42   # values from braid limits; refused unless it says pause
+braid resume 0061                                       # clear the pause; prints what was cleared
 braid brief 0002 Goal --file goal.md                    # set a section; --file - reads standard input
 braid log 0002/A --thread mcp:launch:5d80964a 'Parser done'   # a dated entry in that thread's log file, staged with git add
 braid log 0002/A --checkpoint 'Paused after the parser'       # a checkpoint entry; no thread: the log-<date>-user.md file

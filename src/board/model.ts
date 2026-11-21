@@ -5,6 +5,8 @@ import type { Status } from "../braids/brief.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
 import { age, type Request } from "../braids/requests.js";
+import type { Pause } from "../braids/pauses.js";
+import { pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
 
 /** Left to right, what needs the user most first. The board shows Waiting as Needs You, In Review as To Review, In Progress as Working. */
 export const LANES = ["Waiting", "In Review", "In Progress", "To Do", "Done"] as const;
@@ -104,6 +106,8 @@ export interface StrandCard {
   readonly merge: MergeInfo | null;
   /** When it became Done (the commit that set its status Done, ISO); null when it isn't Done or the date isn't known. */
   readonly doneAt: string | null;
+  /** Its braid's pause (`braid pause`); null when the braid isn't paused or this item is Done. */
+  readonly pause: PauseView | null;
 }
 
 export interface BraidCard {
@@ -135,6 +139,8 @@ export interface BraidCard {
   readonly coordinator: CoordinatorInfo | null;
   /** When it became Done: the commit that set its own brief Done, else its newest strand's (ISO); null when it isn't Done or the date isn't known. */
   readonly doneAt: string | null;
+  /** The braid's pause (`braid pause`); null when it isn't paused or is Done. */
+  readonly pause: PauseView | null;
 }
 
 export interface BoardData {
@@ -152,6 +158,8 @@ export interface BoardData {
   readonly remote: boolean;
   /** What stops this folder from working as a braid project (docs/board.md, "Not ready"); empty when nothing does. The board is served anyway. */
   readonly problems: readonly Problem[];
+  /** Why `.braid/pauses.json` was read as no pauses (or some left out); null when it read cleanly or is missing. */
+  readonly pausesNote: string | null;
 }
 
 export interface ItemDetail {
@@ -175,6 +183,7 @@ export interface ItemDetail {
   readonly thread: string | null;
   readonly threadRole: ThreadRole | null;
   readonly merge: MergeInfo | null;
+  readonly pause: PauseView | null;
   readonly brief: string;
   readonly report: string | null;
   readonly logs: readonly { readonly name: string; readonly text: string }[];
@@ -203,6 +212,10 @@ export interface Signals {
   readonly alarm: (id: string, reason: BrokeReason, holds: boolean | null) => string | null;
   /** When the item whose brief is in `folder` became Done (ISO; the commit that set `status: Done`), or null when it isn't known. Absent: no dates. */
   readonly doneAt?: (folder: string, source: Source | null) => string | null;
+  /** The paused braids by number (`.braid/pauses.json`). Absent: none. */
+  readonly pauses?: ReadonlyMap<string, Pause>;
+  /** Why the pauses file was read as no pauses; null or absent when it read cleanly. */
+  readonly pausesNote?: string | null;
 }
 
 export function noSignals(): Signals {
@@ -218,6 +231,7 @@ export interface Derived {
   /** The agents of the item that run now. */
   readonly agents: readonly T3Thread[];
   readonly activity: Activity | null;
+  readonly pause: PauseView | null;
 }
 
 const plain = { key: null, pr: null, who: null, more: 0 } as const;
@@ -257,7 +271,7 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   if (pr?.state === "merged" || (stored === "Done" && pr?.state !== "open")) {
     sig.alarm(key, "checks failed", false);
     sig.alarm(key, "stalled", false);
-    return { lane: "Done", pr, reason: null, need: null, ask: null, agents, activity: null };
+    return { lane: "Done", pr, reason: null, need: null, ask: null, agents, activity: null, pause: null };
   }
   const label = labels.find((l) => l.startsWith("ask:") && l.length > 4);
   const ask = label === undefined ? null : label.slice(4);
@@ -269,8 +283,13 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const failing = pr?.state === "open" && pr.checks === "failing";
   const checking = pr?.state === "open" && (pr.checks === "pending" || pr.checks === "failing");
   const failed = sig.alarm(key, "checks failed", waiting ? false : known ? failing && agents.length === 0 : null);
-  const stalled = sig.alarm(key, "stalled", waiting || stored !== "In Progress" ? false : known ? agents.length === 0 && !checking : null);
-  const out = (lane: Lane, reason: Reason | null, need: Need | null): Derived => ({ lane, pr, reason, need, ask, agents, activity });
+  const stallHolds = waiting || stored !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
+  // A paused braid's items aren't stalled while the pause lasts; once its resume is 25 min overdue they are, at once, naming the pause.
+  const paused = sig.pauses?.get(key.slice(0, 4)) ?? null;
+  const stalled = sig.alarm(key, "stalled", paused === null ? stallHolds : false);
+  const pausedStall = paused !== null && stallHolds === true && phaseOf(paused, sig.now) === "over" ? stalledSince(paused) : null;
+  const pause = paused === null ? null : pauseView(paused, sig.now);
+  const out = (lane: Lane, reason: Reason | null, need: Need | null): Derived => ({ lane, pr, reason, need, ask, agents, activity, pause });
   if (req !== undefined) {
     const r = requestLane(req, sig.now);
     return out(r.lane, r.reason, r.need);
@@ -287,6 +306,9 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   }
   if (stalled !== null) {
     return out("Waiting", "stalled", { ...plain, kind: "stalled", text: "Stalled: nobody is working and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled });
+  }
+  if (paused !== null && pausedStall !== null) {
+    return out("Waiting", "stalled", { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(pausedStall, sig.now), since: pausedStall });
   }
   const started = stored === "In Progress" || agents.length > 0 || pr?.state === "open";
   return out(started ? "In Progress" : laneOfStatus(stored), null, null);
@@ -428,13 +450,14 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
       threadRole: openThreadRole(`${braid.number}/${s.letter}`, d.agents, t3, d.lane),
       merge: mergeOf(`${braid.number}/${s.letter}`, gh, sig),
       doneAt: d.lane === "Done" && s.brief.status === "Done" ? (sig.doneAt?.(s.folder, s.source) ?? null) : null,
+      pause: d.pause,
     };
   });
   if (strands.length === 0) {
     const derived = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
     const lift = planned(braid.number, derived.lane, gh, t3);
     const own = lift === null ? derived : { ...derived, ...lift };
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null };
+    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null, pause: own.lane === "Done" ? null : derived.pause };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -449,7 +472,9 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const asked = req !== undefined && pr?.state !== "merged";
   const holds = finalPr || asked || pr?.state === "merged" || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
-  const stalled = sig.alarm(`${braid.number} coordinator`, "stalled", holds);
+  const paused = sig.pauses?.get(braid.number) ?? null;
+  const stalled = sig.alarm(`${braid.number} coordinator`, "stalled", paused === null ? holds : false);
+  const pausedStall = paused !== null && holds === true && phaseOf(paused, sig.now) === "over" ? stalledSince(paused) : null;
   let own: { lane: Lane; reason: Reason | null; need: Need | null; agents?: readonly T3Thread[]; activity?: Activity | null } | null = null;
   if (finalPr) {
     // The braid's recorded reviewers (`braid review <n>`) are its agents in wrap-up; the coordinator never counts.
@@ -460,6 +485,8 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   }
   if (stalled !== null) {
     own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: "Stalled: the coordinator stopped and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled } };
+  } else if (paused !== null && pausedStall !== null) {
+    own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(pausedStall, sig.now), since: pausedStall } };
   }
   const candidates = [
     ...(own?.need == null ? [] : [{ lane: own.lane, reason: own.reason, need: own.need, who: null as string | null }]),
@@ -491,6 +518,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     start: startOf(braid, lane, t3, ctx),
     coordinator: coordinatorOf(braid.number, t3, ctx, lane),
     doneAt: lane === "Done" ? ((braid.brief.status === "Done" ? sig.doneAt?.(braid.folder, braid.source) : null) ?? strands.map((s) => s.doneAt).filter((d) => d !== null).sort().pop() ?? null) : null,
+    pause: paused === null || lane === "Done" ? null : pauseView(paused, sig.now),
   };
 }
 
@@ -507,7 +535,7 @@ export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: 
     const c = ideaPlanning(t3, i.id);
     return c === null ? i : { ...i, planning: { link: c.link } };
   });
-  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems };
+  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems, pausesNote: sig.pausesNote ?? null };
 }
 
 export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): ItemDetail {
@@ -533,6 +561,7 @@ export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T
     thread: own?.thread ?? null,
     threadRole: own?.threadRole ?? null,
     merge: own?.merge ?? null,
+    pause: own?.pause ?? null,
     brief: item.brief.body.trim(),
     report: item.hasReport ? tree.read(`${item.folder}/report.md`) : null,
     logs: item.logs.map((name) => ({ name, text: tree.read(`${item.folder}/${name}`) ?? "" })),

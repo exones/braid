@@ -6,6 +6,7 @@ import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, thread
 import { closeMode, hashFor, openMode, parseHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, resolveProject, toggleProject } from "../../src/board/filter.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
+import { pauseBox, type PauseView } from "../../src/board/pause.ts";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
@@ -130,6 +131,11 @@ function Marks({ marks }: { marks: Marks }) {
       {marks.reasons.map((r) => (
         <ReasonMark key={r.kind} kind={r.kind} tooltip={r.tooltip} />
       ))}
+      {marks.paused !== null && (
+        <Icon tip={marks.paused.tooltip} className={PAUSE_TONE[marks.paused.state].icon}>
+          <svg {...svg} strokeWidth={2.4}><circle cx="12" cy="12" r="9" /><path d="M10 9v6M14 9v6" /></svg>
+        </Icon>
+      )}
       {marks.review !== null && (
         <Icon tip={marks.review} className="text-violet-600">
           <svg {...svg} strokeWidth={2.2}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -164,6 +170,22 @@ const NEED_TONE = {
   bad: "border-red-600 bg-red-50 text-red-900",
   wait: "border-amber-500 bg-amber-50 text-amber-900",
 } as const;
+
+/** A paused braid: sky while it waits for its resume, amber once the resume is overdue. */
+const PAUSE_TONE = {
+  paused: { icon: "text-sky-600", box: "border-sky-600 bg-sky-50 text-sky-900" },
+  due: { icon: "text-amber-600", box: "border-amber-500 bg-amber-50 text-amber-900" },
+} as const;
+
+/** The card's line for a paused braid in Working or To Do: the pause, and who paused it or when it reads Stalled. */
+function PauseLine({ pause }: { pause: PauseView }) {
+  return (
+    <div className={`mt-1.5 rounded-md border-l-[3px] px-1.5 py-1 text-[12.5px] leading-snug ${PAUSE_TONE[pause.state].box}`}>
+      {pause.text}
+      <small className="mt-px block text-[11px] text-slate-500">{pause.note}</small>
+    </div>
+  );
+}
 
 const toneOf = (need: Need): string => NEED_TONE[need.kind === "review" ? "review" : need.kind === "checks failed" || need.kind === "stalled" ? "bad" : "wait"];
 
@@ -625,6 +647,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
         </div>
       )}
       {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
+      {details && !open && braid.pause !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PauseLine pause={braid.pause} />}
       {open && (
         <div className="mt-2 border-t border-dashed border-slate-200 pt-1">
           {braid.strands.map((s) => (
@@ -1041,6 +1064,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <div className="mt-1.5 text-[11px] text-slate-500">{item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
       )}
+      {item.pause !== null && <PauseBox pause={item.pause} />}
       <dl className="my-3 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1 text-[13px]">
         {rows.map(([k, v]) => (
           <div key={k} className="contents">
@@ -1067,6 +1091,18 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
         <Tabs.Content value="report"><Md text={item.report} empty="No report yet." /></Tabs.Content>
         <Tabs.Content value="logs"><Logs logs={item.logs} /></Tabs.Content>
       </Tabs.Root>
+    </div>
+  );
+}
+
+/** The details panel's pause: since when, the window and the resume, who paused it and how to resume by hand. */
+function PauseBox({ pause }: { pause: PauseView }) {
+  const box = pauseBox(pause, new Date());
+  return (
+    <div role="note" className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${PAUSE_TONE[pause.state].box}`}>
+      <b className="mb-0.5 block text-xs uppercase tracking-wide">{box.head}</b>
+      {box.text}
+      <div className="mt-1.5 text-[11px] text-slate-500">{box.foot}</div>
     </div>
   );
 }
@@ -1423,6 +1459,7 @@ export function App() {
   // One project served keeps the page as it was: its notes in the header, its problems in a banner.
   const single = infos.length === 1 ? infos[0] : undefined;
   const notes = shown.flatMap((i) => (i.t3?.state === "unavailable" ? [`T3 unavailable (${i.t3.reason})${several ? ` for ${i.name}` : ""}: no agent states`] : []));
+  const pauseNotes = shown.filter((i) => i.pausesNote !== null);
   const resolved = resolveProject(route.project, selected, served);
   return (
     <RemoteContext value={all.state !== "ready" || all.data.remote}>
@@ -1439,6 +1476,9 @@ export function App() {
             <input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details
           </label>
           <span className="text-xs text-slate-500">
+            {pauseNotes.map((i) => (
+              <b key={i.name} title={i.pausesNote ?? ""} className="text-amber-700">.braid/pauses.json{several ? ` of ${i.name}` : ""} could not be read: no pauses shown · </b>
+            ))}
             {notes.length > 0 ? `${notes.join(" · ")} · ` : ""}refreshes every 30 s
           </span>
           <button

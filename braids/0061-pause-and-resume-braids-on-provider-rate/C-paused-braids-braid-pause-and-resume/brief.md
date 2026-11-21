@@ -1,7 +1,7 @@
 ---
 id: '0061/C'
 title: "Paused braids: braid pause and resume, board and status"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:architecture", "ui"]
 dependencies: ['0061/A', '0061/B']
 order: 30
@@ -30,6 +30,15 @@ Expected size: about 500 lines in 8 files, half of them tests.
 - Tests: the store (open, clear, idempotence, a damaged file), the board mark, `stalled` held back while paused and back once overdue.
 - `docs/cli.md`, `docs/board.md`, `docs/braids-format.md` (the new file).
 
+## Plan
+
+1. Mockups first (ui): `docs/design/board-mockups/paused.html` and `60-paused.png` on demo-like data; stop for the user's review.
+2. `src/braids/pauses.ts`: the `.braid/pauses.json` store copied from `requests.ts` (main checkout, lock, a load that reads a damaged file as no pauses, set, clear).
+3. `braid pause` and `braid resume` in `src/commands/`, defaults from `src/braids/limits.ts` (refuse unless the verdict is `pause` or `--until` is given), idempotent; usage lines in `src/cli.ts`.
+4. Board: `Signals` gets the pauses; `derive` holds back `stalled` while paused and until `resumeAt` + 25 min; a `paused` mark (its due state after `resumeAt` + 15 min) in `src/board/marks.ts`, the card line, strand marks and the details box in `web/src/App.tsx`; a header note for a damaged file; the demo gets a paused, a due and a stalled-after-pause braid.
+5. `braid status`: a `(paused)` lane suffix and the pause line.
+6. Tests: store, commands, marks, derive timing; docs: cli.md, board.md, braids-format.md, decisions.md.
+
 ## Already decided
 
 - The board never writes `pauses.json`; only `braid pause` and `braid resume` do.
@@ -48,10 +57,10 @@ Expected size: about 500 lines in 8 files, half of them tests.
 
 ## Completion
 
-- [ ] `braid pause` and `braid resume` record and clear a braid's pause in `.braid/pauses.json`, idempotent, with values from `braid limits` by default
-- [ ] The board and `braid status` show a paused braid with provider, window, usage and resume time, and don't call it stalled
-- [ ] An overdue pause shows "resume was due at <time>", then `stalled`; tests cover it
-- [ ] A damaged pauses file reads as no pause; tests cover it
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid pause` and `braid resume` record and clear a braid's pause in `.braid/pauses.json`, idempotent, with values from `braid limits` by default
+- [x] The board and `braid status` show a paused braid with provider, window, usage and resume time, and don't call it stalled
+- [x] An overdue pause shows "resume was due at <time>", then `stalled`; tests cover it
+- [x] A damaged pauses file reads as no pause; tests cover it
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
