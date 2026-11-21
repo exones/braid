@@ -459,8 +459,7 @@ test("braid board: no list serves this folder alone; a list serves every listed 
 
 test("the demo serves four projects, one of them not ready and one whose read failed", async () => {
   const { get } = await serve(() => board.demoMembers());
-  await get("api/all");
-  const all = await get<All>("api/all?fresh=1");
+  const all = await get<All>("api/all"); // the very first page: mail's failed read shows at once, over its stored snapshot
   assert.deepEqual(all.body.projects.map((p) => p.name), ["demo", "api", "mail", "notes"]);
   const mail = all.body.projects.find((p) => p.name === "mail");
   assert.match(mail?.failure ?? "", /can't be read/);

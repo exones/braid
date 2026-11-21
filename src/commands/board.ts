@@ -53,6 +53,8 @@ function json(status: number, body: unknown): Reply {
 /** Where the board gets its data: the repository, `gh` and `t3`, or the built-in samples. */
 export interface Sources {
   readonly repo: string;
+  /** A stored last-good read the feed starts from (the demo's failing `mail` project); the first real read runs after it. */
+  readonly seed?: Sources;
   braids(): Braid[] | Promise<Braid[]>;
   github(fresh: boolean): Github | Promise<Github>;
   t3(fresh: boolean): Promise<T3>;
@@ -1008,15 +1010,15 @@ export function demoMembers(t3Down = false, notReady = false): Member[] {
       action: accept,
     };
   };
-  // `mail`: its first read works, every later one fails, so the board shows its last good snapshot with the failed-read marks.
-  let mailReads = 0;
-  const mail = small("mail", () => {
-    mailReads += 1;
-    if (mailReads > 1) {
+  // `mail`: every read fails, behind a stored last-good snapshot (`seed`), so even the first page shows the board with the failed-read marks.
+  const working = small("mail", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null);
+  const mail: Sources = {
+    ...working,
+    seed: working,
+    braids: () => {
       throw new Error("the mail repository can't be read (demo: a read that failed)");
-    }
-    return apiBraids();
-  }, apiGithub, () => apiSignals(), apiTree, () => null);
+    },
+  };
   return [
     { name: "demo", src: demoSources(t3Down, notReady) },
     { name: "api", src: small("api", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null) },

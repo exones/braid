@@ -179,3 +179,20 @@ test("braid check: preset file errors, missing presets, and a warning for delega
     ].join("\n"),
   );
 });
+
+test("braid check: docs.update must be a known value, docs.public and docs.internal lists; no docs is valid", () => {
+  const root = repo();
+  ok(root, "new", "Alpha", "--no-fetch");
+  const check = (front: string) => {
+    put(root, "BRAID.md", `---\n${front}---\n`);
+    const r = braid(root, "check");
+    return [r.status, r.stderr.trim().split("\n").filter((l) => l !== "")];
+  };
+  assert.deepEqual(check("gate: x\n"), [0, []]);
+  assert.deepEqual(check("docs:\n  update: both\n  public:\n    - README.md\n  internal: [a.md]\n"), [0, []]);
+  assert.deepEqual(check("docs:\n  update: strands\n"), [2, ["BRAID.md: docs.update must be one of strand, braid, both, on-demand; got: strands", "1 error"]]);
+  assert.deepEqual(check("docs:\n  public: README.md\n  internal:\n"), [
+    2,
+    ["BRAID.md: docs.public must be a list of files or folders; got: README.md", "BRAID.md: docs.internal must be a list of files or folders", "2 errors"],
+  ]);
+});

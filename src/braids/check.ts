@@ -128,7 +128,7 @@ export function checkBraids(root: string): CheckResult {
     }
   }
   const presets = presetProblems(root, links);
-  return { errors: [...errors, ...presets.errors], warnings: [...relatedWarnings(root, links), ...presets.warnings], braids, strands };
+  return { errors: [...errors, ...presets.errors, ...docsProblems(root)], warnings: [...relatedWarnings(root, links), ...presets.warnings], braids, strands };
 }
 
 /**
@@ -189,4 +189,50 @@ function presetProblems(root: string, briefs: readonly Checked[]): { errors: str
     }
   }
   return { errors, warnings };
+}
+
+const DOCS_UPDATE = ["strand", "braid", "both", "on-demand"];
+
+/** The `docs` key of BRAID.md's front matter: `update` must be one of DOCS_UPDATE, `public` and `internal` lists. A BRAID.md without `docs` is valid. */
+function docsProblems(root: string): string[] {
+  const file = join(root, "BRAID.md");
+  if (!existsSync(file)) {
+    return [];
+  }
+  const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
+  const lines = front.split(/\r?\n/);
+  const start = lines.findIndex((l) => /^docs:/.test(l));
+  if (start === -1) {
+    return [];
+  }
+  const inline = /^docs:[ \t]*(.*?)[ \t]*$/.exec(lines[start] ?? "")?.[1] ?? "";
+  if (inline !== "") {
+    return [`BRAID.md: docs must be a nested key with update, public and internal; got: ${inline}`];
+  }
+  const block: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (/^\S/.test(line)) {
+      break;
+    }
+    block.push(line);
+  }
+  const problems: string[] = [];
+  const unquote = (v: string) => v.replace(/^(["'])(.*)\1$/, "$2");
+  const update = /^[ \t]+update:[ \t]*(.*?)[ \t]*$/m.exec(block.join("\n"))?.[1];
+  if (update !== undefined && !DOCS_UPDATE.includes(unquote(update))) {
+    problems.push(`BRAID.md: docs.update must be one of ${DOCS_UPDATE.join(", ")}; got: ${unquote(update)}`);
+  }
+  for (const key of ["public", "internal"]) {
+    const at = block.findIndex((l) => new RegExp(`^[ \t]+${key}:`).test(l));
+    if (at === -1) {
+      continue;
+    }
+    const rest = /:[ \t]*(.*?)[ \t]*$/.exec(block[at] ?? "")?.[1] ?? "";
+    const next = block.slice(at + 1).find((l) => l.trim() !== "");
+    const isList = rest !== "" ? /^\[.*\]$/.test(rest) : next !== undefined && /^[ \t]+-/.test(next);
+    if (!isList) {
+      problems.push(`BRAID.md: docs.${key} must be a list of files or folders${rest === "" ? "" : `; got: ${rest}`}`);
+    }
+  }
+  return problems;
 }

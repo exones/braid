@@ -107,7 +107,18 @@ export function feed(src: Sources, options: FeedOptions): Feed {
   let readAt: number | null = null;
   let failure: string | null = null;
   let error: unknown;
-  let running: Promise<void> | undefined;
+  // A stored last-good read (`src.seed`) is taken first; real reads queue behind it.
+  let running: Promise<void> | undefined =
+    src.seed === undefined
+      ? undefined
+      : readSnapshot(src.seed, false).then((snap) => {
+          running = undefined;
+          if (snap.ok && !closed) {
+            good = snap;
+            readAt = Date.now();
+          }
+        });
+  let firstDone = false;
   let queued: { fetch: boolean; done: Promise<void> } | undefined;
   let closed = false;
   const wait = (ms: number): Promise<void> =>
@@ -167,7 +178,9 @@ export function feed(src: Sources, options: FeedOptions): Feed {
     }
     return queued.done;
   };
-  const first = refresh();
+  const first = refresh().then(() => {
+    firstDone = true;
+  });
   return {
     src,
     good: () => good,
@@ -175,7 +188,7 @@ export function feed(src: Sources, options: FeedOptions): Feed {
     failure: () => failure,
     error: () => (good === undefined ? (error ?? new Error(`${src.repo}: not read yet`)) : undefined),
     refresh,
-    ready: (fresh) => Promise.race([fresh ? refresh(true) : good !== undefined || failure !== null ? Promise.resolve() : first, wait(timeoutMs)]),
+    ready: (fresh) => Promise.race([fresh ? refresh(true) : firstDone || failure !== null ? Promise.resolve() : first, wait(timeoutMs)]),
     idle: async () => {
       while (running !== undefined || queued !== undefined) {
         await (queued?.done ?? running);
