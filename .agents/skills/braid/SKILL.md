@@ -176,7 +176,7 @@ When you take a braid, run `braid autonomy <number>`. Unless it prints `careful`
 
 Only when your first message names a PM thread (a `braid-pm` project manager launched you); without one, nothing here applies.
 
-- Every request you would put to the user (`braid ask`, `braid handover`) is still opened on the board as usual, and its full message is also sent to the PM thread with `t3_thread_send`, starting with the braid's number and title. Ask in chat, not with the question tool: a pending question would hold the PM's reply.
+- Every request you would put to the user (`braid ask`, `braid handover`) is still opened on the board as usual, and its full message with its options is sent to the PM thread with `t3_thread_send`, starting with the braid's number and title; then end your turn. Never use the question tool (AskUserQuestion in Claude Code, a pending request in T3) and never ask the user in chat: the PM's reply, or the user's answer on the board, wakes you. Elsewhere in this skill, where it says to ask the user, this is how.
 - A reply from the PM counts as the user's reply: `braid answer <id> --log -` naming the PM, then act. A reply from the user on the board still wins.
 - Your braid's `## Autonomy` exception line from the PM says which cases go to it and that a merge into `main` waits for its go (its live check).
 - A new braid ("Plan" step 0, a sweep, a separate follow-up) is a proposal to the PM, not a launch: the PM adds it to its plan.

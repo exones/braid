@@ -44,6 +44,7 @@ Expected size: about 350 lines in 7 files (one new skill of 2 to 3 files, the co
 - The user, 2026-11-21: "the problem with [steady] is that I have to get back for each braid". The PM checks what was done itself, opening and testing the software live where possible, and continues mostly without the user. An experimental project; the user wants it this way.
 - PM-run braids use the shipped `free` preset with a `## Autonomy` exception line, not a new preset.
 - One braid per coordinator thread stays absolute (0050). The PM launches coordinators and never plans or runs a braid itself.
+- The user, 2026-11-21: "when it's run by PM, the braid coordinator should not ask for modal user input as it does now." Under a PM the coordinator never uses the question tool (AskUserQuestion in Claude Code, a pending request in T3) and never asks the user in chat. It still opens the request on the board (`braid ask` / `braid handover`), sends the full message with its options to the PM thread with `t3_thread_send`, and ends its turn; the PM's reply, or the user's answer on the board, wakes it.
 - No CLI or board change in this braid. The board keeps showing braids as it does; coordinators still open their requests on it, so the user can see and answer them there too.
 - Related to 0036 (Coordinator polish from the thread review, Outline on `main`): both change `.agents/skills/braid/SKILL.md`. This braid adds only the "Launched by a PM" rule. 0036 starts after this merges and plans on top of it.
 
@@ -66,6 +67,7 @@ Expected size: about 350 lines in 7 files (one new skill of 2 to 3 files, the co
 
 - [ ] `.agents/skills/braid-pm/SKILL.md` exists and covers taking a goal, the plan file, running in parallel up to a limit, answering coordinators as the user's proxy (reversal cost decides), the digest, replanning, hold, merges under `free` with its exception line, the live check before and after a merge, and resuming.
 - [ ] The braid skill has the "Launched by a PM" rule, and nothing changes for a coordinator without a PM.
+- [ ] The "Launched by a PM" rule says the coordinator never uses the question tool or asks the user in chat under a PM: it opens the request on the board, sends it with its options to the PM thread and ends its turn; without a PM the question tool rules stay as they are.
 - [ ] `scripts/Install-Skills.ps1` installs `braid-pm` (the Pester test names it), and `docs/getting-started.md` and `README.md` list it.
 - [ ] `docs/decisions.md` records the decision and its reasons.
 - [ ] The gate command from BRAID.md passes.
