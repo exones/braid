@@ -18,6 +18,7 @@ Review someone else's PR with fresh eyes, report once, and stop.
 - Each Completion box: met or not, and where in the diff.
 - Focus first: correctness, unsafe behavior, missing tests on risky paths, tests weakened or deleted, and scope creep beyond the brief.
 - Read around the diff: whole changed functions, their callers, docs and decisions made stale.
+- Docs: check the docs from `docs` in `BRAID.md` (without it, `README.md` and `docs/`) against the change. Where the brief has the docs box, a doc the PR leaves untrue or incomplete fails it.
 - Failure paths: empty or missing input, errors (also swallowed ones), a second or concurrent run, Windows against Linux.
 - Test the tests: would each new test fail on the old code? Watch for assertions that can't fail.
 - In skills and agent instructions, wording that could be shorter.
