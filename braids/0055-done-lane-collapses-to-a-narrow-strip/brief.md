@@ -40,11 +40,12 @@ Expected size: about 40 to 80 lines in 2 to 3 files, plus mockups and retaken sc
 
 ## Completion
 
-- [ ] Mockups of the strip (collapsed and opened, two desktop widths) reported, and the build waited for the user's review of them
-- [ ] From `md` up, the collapsed Done lane is a narrow strip with its dot, name and count, and the other four lanes take the freed width
-- [ ] Clicking the strip opens Done as a full column with today's rows and Show more; Hide done collapses it to the strip again
-- [ ] The phone layout and Done tab behave as before
-- [ ] `docs/board.md` and the desktop screenshots showing the Done lane are updated
+- [x] Mockups of the strip (collapsed and opened, two desktop widths) reported, and the build waited for the user's review of them
+- [x] From `md` up, the collapsed Done lane is a narrow strip with its dot, name and count, and the other four lanes take the freed width
+- [x] Clicking the strip opens Done as a full column with today's rows and Show more; Hide done collapses it to the strip again
+- [x] The phone layout and Done tab behave as before
+- [x] Open Done rows at narrow widths: the title wraps and the day goes under it, no overlap (added by the user with the mockup approval)
+- [x] `docs/board.md` and the desktop screenshots showing the Done lane are updated
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
 
