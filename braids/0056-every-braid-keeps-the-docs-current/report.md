@@ -1,0 +1,17 @@
+Every braid now keeps the project's docs true, at the level `docs.update` in `BRAID.md` sets.
+
+- `BRAID.md` (this repository: `update: both`) and the template `assets/braid-md.md` have a nested `docs` key: `update` (`strand`, `braid`, `both`, `on-demand`; `braid` if absent) and the `public` and `internal` lists. Without the lists, agents take `README.md` and `docs/`.
+- Worker skill: "Docs stay true" replaces "Decided means documented"; Deliver step 0 has report.md name the docs updated or say none were affected. Docs that need the user's go (`AGENTS.md`, `CLAUDE.md`, `BRAID.md`, skills) are proposed under `For later items:` unless the brief allows editing them.
+- Brief template: the docs Completion box, and when it applies by `docs.update`. Reviewer skill: checks the `docs` list against the change; a doc left untrue fails the box, which the blocking bar already makes blocking.
+- Coordinator skill: reads `docs` with the project facts; Plan step 5 has a **Docs** bullet (the box by `docs.update`, the docs strand's brief included; with `braid` or `both` a last docs strand per goal that reads everything the braid changed from its first strand, so it also holds with `delivery: main`, `Docs: <braid title>`, `kind:task`, tier S or L for agent instructions, ordered last, depending on every other strand, and its brief's content; none for a story; dropped only with a reason in the plan). Finish says the docs strand is among the strands that must be Done. `workflow.md`: one line under "Items are braids" with the four `update` values, pointing to Plan step 5.
+- Docs: `docs/getting-started.md` (the `docs` key in the BRAID.md list, the four `update` values and the docs strand), `docs/decisions.md` (D81 and a log line), `README.md` (quick start step 1 and the Documentation table row). Unchanged after checking: `docs/cli.md`, `docs/board.md` (its required-keys list is still `gate`, `main`, `ci`, `models`), `docs/autonomy.md`, `docs/development.md`, `docs/braids-format.md`, `docs/roadmap.md`, `docs/npm-distribution.md`, the CLI help text (no CLI change).
+
+The CLI reads `BRAID.md` by single-key regexes (`ci`, `main`, `autonomy`, `models.coordinator`) and readiness only collects top-level keys, so the nested key needed no code change. A regression test in `test/readiness.test.ts` runs readiness, `braid check`, `ciChecks`, `mainBranch`, `projectDefault` and the board's `readStartContext` over this repository's own `BRAID.md`.
+
+Review of f741baa6 was not blocking; its three suggestions are in this PR: the docs strand carries the docs box under every `update` value that plans it, `workflow.md` names the four values, and the docs strand's scope is worded for `delivery: main` too.
+
+Validation: `npm run verify` passes (435 tests); `braid check` OK.
+
+Decisions: the user approved the plan with `docs.update` (log, 2026-11-21). Own: the decision is D81, after D80 from 0055 (merged from main); 0054 takes the next free number. The help-text entry in `BRAID.md` is a quoted description ("the CLI's help text (src/cli.ts and the commands' usage lines)"), since it isn't one file.
+For later items: 0054 also edits `.agents/skills/braid/SKILL.md` and `docs/decisions.md`; it merges `main` and takes the next free decision number (D82). No CLI reads `docs` yet; a `braid check` warning for an unknown `docs.update` value could come later.
+Needs the user: process: this PR changes the braid skills (worker, reviewer, coordinator, brief and BRAID.md templates, workflow) and `BRAID.md`, as the brief asked; the user reviews and merges it.

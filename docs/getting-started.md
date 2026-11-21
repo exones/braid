@@ -4,9 +4,10 @@ How to install the braid skills and CLI, set up a repository for braid, and foll
 
 ## The skills
 
-The agent skills `braid`, `braid-worker`, `braid-reviewer`, `braid-researcher` and `braid-idea` are developed in this repository's `.agents/skills/` and can drive work in any repository. They are installed together and may link to each other (the stop cases exist once, in `braid`); the docs gate fails if a skill links anywhere else outside its own folder.
+The agent skills `braid`, `braid-pm`, `braid-worker`, `braid-reviewer`, `braid-researcher` and `braid-idea` are developed in this repository's `.agents/skills/` and can drive work in any repository. They are installed together and may link to each other (the stop cases exist once, in `braid`); the docs gate fails if a skill links anywhere else outside its own folder.
 
 - `braid` is the one skill you talk to, for work of any size: a goal, a single story, or "run 0012". It decides whether the work is a story or a goal, keeps the items as braids in the target repository's `braids/` through the `braid` CLI, and launches the workers.
+- `braid-pm` is a project manager for one project: give it a goal in a few lines (`$braid-pm <goal>`) and it plans the braids, settles the product-shaping questions with you, then runs the braids through their own coordinator threads, two at a time by default. It keeps its plan in `pm/<slug>.md` on the branch `pm/<slug>`, answers the coordinators for you, checks each result live before and after it merges, and asks you only about what is expensive to reverse (the platform, the form of the product, contracts between braids, security, data, anything outside the repository); the rest reaches you in a periodic digest. Its braids run on the `free` preset with an exception line that sends those cases to it ([autonomy](autonomy.md)).
 - `braid-worker` and `braid-reviewer` are the skills of the worker and reviewer threads a coordinator launches. You don't start them yourself. In T3 a worker is a top-level thread in the sidebar; a reviewer is a subagent of the coordinator and shows inside the coordinator's thread.
 - `braid-researcher` answers one research question with checked evidence: what it read, ran or inferred, the evidence against, what stays unknown, and its sources. A coordinator while planning, or a worker for a side question, launches it as a subagent that reports once and changes nothing; a spike worker follows its method. Its sources go into the item's `sources.md`.
 - `braid-idea` writes down an idea for later: start a thread with `$braid-idea <a sentence>`, and it restates the idea cleanly in the project's inbox (`braid note --idea`), asking only if it can't state it without guessing.
@@ -40,7 +41,17 @@ A target repository needs a `BRAID.md` at its root with the facts the skills rea
 - the required `ci` checks (`none` if it has no hosted CI);
 - optional `autonomy`: the [autonomy preset](autonomy.md) braids run on unless a braid names its own (`careful` if absent);
 - optional `shell`, `setup` and `test` commands, and how to `run` the app;
+- optional `docs`: the project's docs in two lists, `public` (for its users: README, guides, help text) and `internal` (for its developers: development notes, the decisions record, format references), and `update`, when braid keeps them true (below). Without the lists, agents take `README.md` and `docs/`;
 - `models`: the provider, model and options for each role, with optional overrides per tier (`worker.L`) or kind (`worker.spike`). The tier key wins over the kind key, then the plain role. A role may name a skill, such as `braid-reviewer` for the reviewer and `braid-researcher` for the researcher.
+
+`docs.update` takes one of four values:
+
+- `strand`: every item's PR, strand or story, updates the docs its change makes untrue. Its brief has a Completion box for it, and the reviewer blocks a PR that leaves a doc untrue.
+- `braid` (the default): a story's PR does the same, and every goal ends with a docs strand (`Docs: <braid title>`), planned last, that reads everything the braid changed, from its first strand, and brings the docs up to date as a whole before the final PR; it lists each doc it checked as updated or unchanged. Other strands carry no docs box; the docs strand does.
+- `both`: the two together; this repository uses it.
+- `on-demand`: docs change only when a brief or you ask for it. What you decided is still documented, in the doc that describes it and the decisions record.
+
+Docs that need your go (`AGENTS.md`, `CLAUDE.md`, `BRAID.md`, the skills) are proposed in the report, not edited, unless the brief allows it.
 
 Start from the [`braid` template](../.agents/skills/braid/assets/braid-md.md). This repository's own [BRAID.md](../BRAID.md) is an example. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
 
