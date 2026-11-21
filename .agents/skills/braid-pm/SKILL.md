@@ -32,6 +32,7 @@ Models: coordinators and the live checker use `models.coordinator` from `BRAID.m
 5. **Tooling and cleanup braids are allowed** (CI, sweeps). Their increment is for the team, and the plan says so.
 6. **Order by risk, then value.** Unproven technology first, then what users need most; polish and packaging last.
 7. **Shape contracts in the braid that creates them.** A CLI, file format or API that later braids will build on is designed for those uses from the start (for example machine-readable output, one gate point for licensing), so it doesn't have to break later.
+8. **Leftovers:** route each to the planned braid that owns its area (note it in that row). When several without an owner share a theme that would make a demoable increment, add a braid for them instead of a sweep; sweep only the small, unrelated rest. When a row collects so many that the braid would outgrow one goal, tell its coordinator to split it when it plans.
 
 ## The plan file
 
