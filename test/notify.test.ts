@@ -370,10 +370,9 @@ test("a hanging send returns at once, isn't sent twice while in flight, and time
   let calls = 0;
   const counting: Sender = (c, p, t) => (calls++, new Promise<void>(() => {}).then(() => f.send(c, p, t)));
   const hung = notifierMod.notifier({ file, config: () => CFG, send: counting, token: () => null, warn: (l) => warnings.push(l), timeoutMs: 150 });
-  const began = performance.now();
   hung(b);
   hung(b);
-  assert.ok(performance.now() - began < 50, "notify returns without waiting for the send");
+  assert.equal(calls, 0, "notify returns before the send even starts, so it can't wait for it");
   await new Promise((done) => setImmediate(done));
   assert.equal(calls, 1, "an in-flight key isn't sent again");
   await hung.idle();

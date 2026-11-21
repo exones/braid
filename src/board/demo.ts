@@ -1,6 +1,7 @@
 // Sample braids with faked GitHub, T3 and requests for `braid board --demo`: every state and every
 // reason shows. Nothing here reads the repository, `gh` or `t3`, and nothing is written.
 import { loadTree, type Braid, type Tree } from "../braids/store.js";
+import { GITHUB_TODO, type Problem } from "../braids/readiness.js";
 import type { Request } from "../braids/requests.js";
 import type { InboxData } from "./inbox.js";
 import type { Github } from "./github.js";
@@ -73,7 +74,11 @@ const DONE_DAYS: Readonly<Record<string, number>> = { "0008": 1, ...Object.fromE
 
 /** The sample files as a read-only tree; no disk is touched. */
 export function demoTree(): Tree {
-  const names = Object.keys(FILES);
+  return filesTree(FILES);
+}
+
+function filesTree(files: Readonly<Record<string, string>>): Tree {
+  const names = Object.keys(files);
   return {
     source: null,
     list(dir) {
@@ -89,7 +94,7 @@ export function demoTree(): Tree {
       return [...seen].sort(([a], [b]) => (a < b ? -1 : 1)).map(([name, isDir]) => ({ name, isDir }));
     },
     read(file) {
-      return FILES[file] ?? null;
+      return files[file] ?? null;
     },
   };
 }
@@ -212,3 +217,72 @@ export function demoInbox(): InboxData {
     ],
   };
 }
+
+/** `braid board --demo-not-ready`: a project with problems, for the note above the lanes. */
+export function demoProblems(): Problem[] {
+  return [
+    { key: "no-braids", reason: "it has backlog/ but no braids/", todo: "run braid import-backlog" },
+    { key: "braid-md", reason: "BRAID.md has no gate, ci in its front matter", todo: "add gate, ci to BRAID.md" },
+    { key: "github", reason: "GitHub can't be read (gh is not logged in; run gh auth login)", todo: GITHUB_TODO },
+  ];
+}
+
+// The second and third sample projects of `braid board --demo` (docs/board.md, "Several projects"): a small
+// project with a question waiting and a PR in review, and one that isn't ready for braid.
+
+const API_FILES: Readonly<Record<string, string>> = {
+  "braids/0001-rate-limits/brief.md": brief("0001", "Rate limits per key", "In Progress", "labels:\n  - tier:M\n"),
+  "braids/0001-rate-limits/A-counter/brief.md": brief("0001/A", "Request counter", "Done", "order: 1\n"),
+  "braids/0001-rate-limits/B-headers/brief.md": brief("0001/B", "Limit headers", "In Progress", "order: 2\n"),
+  "braids/0002-token-rotation/brief.md": brief("0002", "Token rotation", "In Progress", "labels:\n  - tier:S\n"),
+  "braids/0003-openapi-docs/brief.md": brief("0003", "OpenAPI docs", "To Do", "labels:\n  - tier:S\n"),
+  "braids/0004-health-check/brief.md": brief("0004", "Health check endpoint", "Done", "labels:\n  - tier:S\n"),
+};
+
+/** The `api` sample project's braids. */
+export function apiTree(): Tree {
+  return filesTree(API_FILES);
+}
+
+export function apiBraids(): Braid[] {
+  return loadTree(apiTree());
+}
+
+export function apiGithub(): Github {
+  return {
+    status: { state: "ok" },
+    prs: new Map([
+      ["0001/A", pr(41, "merged", "passing")],
+      ["0002", pr(43, "open", "passing")],
+      ["0004", pr(40, "merged", "passing")],
+    ]),
+  };
+}
+
+/** T3 runs no agent of the `api` project. */
+export function apiT3(): T3 {
+  return { status: { state: "ok" }, threads: new Map() };
+}
+
+/** `api`: a question on 0001/B and 0002's PR handed over for review. */
+export function apiSignals(now: Date = new Date()): ReadSignals {
+  const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
+  const requests: Request[] = [
+    { id: "0001/B", kind: "question", text: "Send Retry-After in seconds or as a date?", at: at(15), thread: null },
+    { id: "0002", kind: "review", text: "review PR #43 at 000002b", at: at(50), thread: null, pr: 43, head: demoHead(43) },
+  ];
+  return {
+    now,
+    requests: new Map(requests.map((r) => [r.id, r])),
+    alarm: () => null,
+    doneAt: (folder) => (folder.startsWith("braids/0004-") ? new Date(now.getTime() - 2 * 86_400_000).toISOString() : null),
+    commit() {},
+  };
+}
+
+/** `notes`: a project still on Backlog.md, with an incomplete BRAID.md. */
+export function notesProblems(): Problem[] {
+  return demoProblems().filter((p) => p.key !== "github");
+}
+
+export const EMPTY_INBOX: InboxData = { note: null, leftovers: [], ideas: [] };

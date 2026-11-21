@@ -1,4 +1,5 @@
 import { type Github, type PullRequest } from "./github.js";
+import type { Problem } from "../braids/readiness.js";
 import { ideaPlanning, NO_T3, type T3, type T3Coordinator, type T3Thread } from "./t3.js";
 import type { Status } from "../braids/brief.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
@@ -149,6 +150,8 @@ export interface BoardData {
   readonly inbox: InboxData;
   /** True when this answer goes to the Tailscale listener (the phone): there the server refuses `open`. The server sets it per listener; `toBoard` says false. */
   readonly remote: boolean;
+  /** What stops this folder from working as a braid project (docs/board.md, "Not ready"); empty when nothing does. The board is served anyway. */
+  readonly problems: readonly Problem[];
 }
 
 export interface ItemDetail {
@@ -499,12 +502,12 @@ export function doneNewestFirst<T extends { readonly id: string; readonly doneAt
   return [...cards].sort((a, b) => (a.doneAt === b.doneAt ? 0 : a.doneAt === null ? 1 : b.doneAt === null ? -1 : a.doneAt < b.doneAt ? 1 : -1) || (a.id < b.id ? 1 : -1));
 }
 
-export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX): BoardData {
+export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX, problems: readonly Problem[] = []): BoardData {
   const ideas = inbox.ideas.map((i) => {
     const c = ideaPlanning(t3, i.id);
     return c === null ? i : { ...i, planning: { link: c.link } };
   });
-  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false };
+  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems };
 }
 
 export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): ItemDetail {

@@ -163,12 +163,16 @@ test("the item API returns brief, report and logs, and rejects bad ids", async (
   });
 });
 
-test("a broken brief gives a 500 that points at braid check", async () => {
+test("a broken brief still serves the board, with a note that points at braid check", async () => {
   const root = repo({ "braids/0001-a/brief.md": brief("0001", "Nope") });
   await withBoard(root, async (url) => {
     const r = await fetch(`${url}api/board`);
-    assert.equal(r.status, 500);
-    assert.match(((await r.json()) as { error: string }).error, /0001-a\/brief\.md.*Run braid check/);
+    assert.equal(r.status, 200);
+    const board = (await r.json()) as { braids: unknown[]; problems: { key: string; reason: string; todo: string }[] };
+    assert.equal(board.braids.length, 0);
+    const check = board.problems.find((p) => p.key === "check");
+    assert.match(check?.reason ?? "", /0001-a\/brief\.md/);
+    assert.match(check?.todo ?? "", /braid check/);
   });
 });
 
