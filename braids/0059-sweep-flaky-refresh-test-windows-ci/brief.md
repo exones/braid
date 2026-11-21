@@ -1,7 +1,7 @@
 ---
 id: '0059'
 title: "Sweep: flaky refresh test, Windows CI failure, docs.update check, demo mail"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:M", "sweep"]
 dependencies: []
 related: ['0056', '0057']
