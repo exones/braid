@@ -38,7 +38,7 @@ Each strand's brief carries its leftovers' full text.
 
 ## Completion
 
-- [ ] Strand A merged: push titles, demo failed read, `close()` and the board tests
-- [ ] Strand B merged: each project gets its own worktrees folder, and existing worktrees are still found and cleaned
-- [ ] The gate command from BRAID.md passes on the braid branch
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Strand A merged: push titles, demo failed read, `close()` and the board tests
+- [x] Strand B merged: each project gets its own worktrees folder, and existing worktrees are still found and cleaned
+- [x] The gate command from BRAID.md passes on the braid branch
+- [x] report.md written: what changed, why, validation, anything open
