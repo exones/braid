@@ -1,7 +1,7 @@
 ---
 id: '0061/A'
 title: "Spike: scheduled resume, pause messages, and who pauses"
-status: To Do
+status: In Progress
 labels: ["kind:spike", "tier:M"]
 dependencies: []
 order: 10
