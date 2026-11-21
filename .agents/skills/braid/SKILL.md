@@ -11,7 +11,7 @@ Plan the user's goal or story as braids and strands, then deliver them through w
 
 ## Project facts
 
-Read `BRAID.md` at the repository root first (`gate`, `main`, `ci`, `run`, `models`), and follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
+Read `BRAID.md` at the repository root first (`gate`, `main`, `ci`, `run`, `models`, `docs`), and follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
 Models: use `models.<role>.<tier>` (tier key `S`, `M` or `L`) if present, then `models.<role>.<kind>`, then `models.<role>`; if none exists, ask the user. Use any named skill. Use the exact provider, model and options (in T3 they are `instanceId`, `model` and `options`: `effort=high` is `{"effort":"high"}`); if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line.
 
@@ -62,6 +62,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
    Never edit another braid's brief for a link: its side shows it with `braid view --links`.
 4. Decide the shape: work for one PR is a story; anything bigger, or with phases, is a goal with strands, each small enough for one PR. Items further out, or that depend on a spike, may stay `Outline`.
 5. Draft the briefs from [the brief template](assets/brief.md), each with a few testable Completion boxes. Its "Fields" say how to set dependencies, `order`, `related` and the `ask:<key>` labels; the tier is the lowest that fits (workflow, "Tiers"). Set the braid's `autonomy` and its `## Autonomy` exceptions only as the user asked.
+   - **Docs.** Draft by `docs.update` in `BRAID.md` (`braid` if absent): the template's docs box in every brief with `strand` or `both`, in a story's brief and the docs strand's with `braid`, in none with `on-demand`. With `braid` or `both`, a goal's plan ends with a docs strand: `Docs: <braid title>`, `kind:task`, tier S (L if it edits agent instructions), ordered last and depending on every other strand. Its brief, with the docs box: read everything the braid changed, from its first strand, bring the docs from `docs` up to date as a whole (overview and README, getting started, roadmap status, the decisions record, help text), and list in `report.md` each doc checked as updated or unchanged. A story has no docs strand. The plan drops the docs strand only with a reason the user sees in the plan.
 6. Create them and commit locally; push nothing yet.
    - **Goal:** in your worktree on `plan/<slug>` from `main`, `braid new`, then `braid strand new` per strand.
    - **Story:** `git fetch`, then in a temporary worktree on a new branch from `origin/main`, `braid new`, then `git branch -m braid/<number>-<slug>` (its folder name).
@@ -192,7 +193,7 @@ When your first message names a PM thread (a `braid-pm` project manager launched
 
 A story is finished when the user merges its PR.
 
-A goal, when every strand is Done on the braid branch:
+A goal, when every strand is Done on the braid branch (the docs strand, if planned, included):
 
 1. Merge `main` into the braid branch, open one PR from it into `main` and watch it.
 2. In one commit, tick the braid's boxes that now hold, write its `report.md` naming any box left open and why, and add a closing log entry.
@@ -207,6 +208,8 @@ A goal, when every strand is Done on the braid branch:
 - **Options.** Offer the option set of the stop's kind below, recommended first, each label 1 to 5 words; the tool adds "Other" for free text. A host without the tool, or a question in chat, gets the same options as a numbered question with lettered answers and your recommendation. If an answer is a value such as a path, say where it will be stored.
 - **A reply to an open request** (an option, "Other", a chat reply after a dismissed dialog, the board's merge message): first `braid answer <id> --log -`, then act; a new question means a new `braid ask`.
 - **Say "waiting" only when something will wake you:** only the worker's message, a PR watch on the planning, final or accepted story PR, a `delegate_task` result, or, within this turn, a `t3_thread_wait` on a worker thread or a foreground `braid wait` running now. Otherwise say what you will do when the user next writes.
+- **Hourglass:** a message that ends the turn while waiting (for agents, CI or the user) has `⏳ Waiting for <what>` as its last line, e.g. `⏳ Waiting for you: approve the plan`; before a question tool call, it ends the chat message. Nothing pending: no ⏳ line.
+- **Links:** every worker or reviewer thread (its T3 `link`), PR (its URL) and item brief (its brief.md on GitHub, at the branch you read it from) you name is a link, also in the ⏳ line, e.g. `⏳ Waiting for the [worker](<thread link>)'s report on [0058](<brief url>), CI pending on [PR #210](<pr url>)`.
 
 The option sets, and what you do next on each answer:
 
