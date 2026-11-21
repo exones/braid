@@ -1,7 +1,7 @@
 ---
 id: '0053/B'
 title: "A worktrees folder per project"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ask:architecture", "ask:data"]
 dependencies: []
 order: 20
@@ -53,3 +53,11 @@ First a proposal on realistic examples, then stop (converge loop): the new folde
 - [ ] Docs that name the worktrees folder describe the new layout
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Proposal (awaiting the user's verdict; nothing is built yet):
+
+- Key: the project's name in `~/.braid/projects.json` when the main checkout is listed (found by `samePath`, also when started from a worktree); otherwise the checkout's folder name, as today. Names are unique in the list, so two listed projects never share a folder. `braid projects add` defaults the name to the folder name, so default-named projects keep their current folder.
+- Existing worktrees: left where they are, never moved (a move on Windows can fail half-way, and a worktree may hold unpushed work). Every lookup (start's "already started" and "folder exists" checks, clean, board) looks in the new folder and in the legacy `<folder name>/`; git's own worktree list says which repository a worktree belongs to, so a twin's worktrees in the shared legacy folder are not touched. New items go to the new folder.
+- `braid projects add`: the same-folder-name warning goes; instead it prints nothing when names differ, since worktrees are now separate.
