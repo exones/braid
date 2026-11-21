@@ -1,7 +1,7 @@
 ---
 id: '0055'
 title: "Done lane collapses to a narrow strip"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:S", "ui"]
 dependencies: []
 related: ['0053']
