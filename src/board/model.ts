@@ -4,7 +4,7 @@ import { ideaPlanning, NO_T3, type T3, type T3Coordinator, type T3Thread } from 
 import type { Status } from "../braids/brief.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
-import { age, type Request } from "../braids/requests.js";
+import { age, programmeOf, type Request } from "../braids/requests.js";
 import type { Pause } from "../braids/pauses.js";
 import { pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
 import { pmLine, routeOf, viaNote, type PmLine, type Routed, type Via } from "./pm.js";
@@ -14,7 +14,7 @@ export const LANES = ["Waiting", "In Review", "In Progress", "To Do", "Done"] as
 export type Lane = (typeof LANES)[number];
 
 /** What an item shows as the reason it is on the user's side: a request's kind, or a broke alarm. */
-export type Reason = "question" | "decision" | "plan" | "checks failed" | "stalled";
+export type Reason = "question" | "decision" | "plan" | "action" | "checks failed" | "stalled";
 /** A broke alarm: shown only after its condition has held for ten minutes. */
 export type BrokeReason = "checks failed" | "stalled";
 /** What is going on in Working: a worker agent, a reviewer, or only CI. */
@@ -40,6 +40,10 @@ export interface Need {
   readonly more: number;
   /** A request that reached the user's side from the PM: after a timeout, a gone PM thread, or the PM's `braid forward`. */
   readonly via?: Via;
+  /** `pm`: the programme manager asks the user itself (`braid ask … --by pm`, or a programme request). */
+  readonly by?: "pm";
+  /** The T3 link of the PM's thread, where a PM request is answered; set with `by`, null when T3 doesn't list the thread. */
+  readonly link?: string | null;
 }
 
 /** What Merge on request needs of an item with an open review request: what the confirmation shows, and why it can't be asked for yet. */
@@ -113,6 +117,8 @@ export interface StrandCard {
   readonly pause: PauseView | null;
   /** The open request the PM is handling (`--to pm`); the lane comes from the item's other state. */
   readonly pm: PmLine | null;
+  /** The PM's own open request on this item (`--by pm`), whatever the coordinator's request says; `need` shows it when nothing else is asked. */
+  readonly pmAsk: Need | null;
 }
 
 export interface BraidCard {
@@ -148,6 +154,8 @@ export interface BraidCard {
   readonly pause: PauseView | null;
   /** A request the PM is handling: the braid's own, else the first strand's. */
   readonly pm: PmLine | null;
+  /** The PM's own open request on this item (`--by pm`), whatever the coordinator's request says; `need` shows it when nothing else is asked. */
+  readonly pmAsk: Need | null;
 }
 
 export interface BoardData {
@@ -192,6 +200,8 @@ export interface ItemDetail {
   readonly merge: MergeInfo | null;
   readonly pause: PauseView | null;
   readonly pm: PmLine | null;
+  /** The PM's own open request on this item (`--by pm`), whatever the coordinator's request says; `need` shows it when nothing else is asked. */
+  readonly pmAsk: Need | null;
   readonly brief: string;
   readonly report: string | null;
   readonly logs: readonly { readonly name: string; readonly text: string }[];
@@ -212,6 +222,10 @@ export interface Signals {
   readonly now: Date;
   /** The open (live) requests by item id. */
   readonly requests: ReadonlyMap<string, Request>;
+  /** The PM's own open requests on an item (`by: pm`), by item id. Absent: none. */
+  readonly asks?: ReadonlyMap<string, Request>;
+  /** The open programme requests (`pm/<slug>`). Absent: none. */
+  readonly programmes?: readonly Request[];
   /**
    * Notes whether a broke condition holds for an item now (`null`: it can't be told) and returns when it
    * began (ISO) once it has held for ten minutes, else null. Called for every item, so a condition that
@@ -241,6 +255,8 @@ export interface Derived {
   readonly activity: Activity | null;
   readonly pause: PauseView | null;
   readonly pm: PmLine | null;
+  /** The PM's own open request on this item (`--by pm`), whatever the coordinator's request says; `need` shows it when nothing else is asked. */
+  readonly pmAsk: Need | null;
 }
 
 const plain = { key: null, pr: null, who: null, more: 0 } as const;
@@ -251,6 +267,14 @@ function needOfRequest(r: Request, now: Date, routed: Routed): Need {
     return { kind: r.kind, text: `${routed.words} ${text}${viaNote(routed.via, r, now)}`, verb: "asked", age: age(r.at, now), since: routed.since, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: routed.via };
   }
   return { kind: r.kind, text, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0 };
+}
+
+/** "The PM asks you: …", or "The PM asks you to: …" for something only the user can do. */
+export const askWords = (kind: Request["kind"]): string => (kind === "action" ? "The PM asks you to:" : "The PM asks you:");
+
+/** The PM's own request as a need: always on the user's side, pushed at once. */
+export function needOfAsk(r: Request, now: Date, t3: T3, who: string | null = null): Need {
+  return { kind: r.kind === "review" ? "question" : r.kind, text: `${askWords(r.kind)} ${r.text}`, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: null, who, more: 0, by: "pm", link: (r.thread === null ? undefined : t3.links?.get(r.thread)) ?? null };
 }
 
 /** Whether the braid of this item is paused or held (either reason). */
@@ -286,7 +310,7 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   if (pr?.state === "merged" || (stored === "Done" && pr?.state !== "open")) {
     sig.alarm(key, "checks failed", false);
     sig.alarm(key, "stalled", false);
-    return { lane: "Done", pr, reason: null, need: null, ask: null, agents, activity: null, pause: null, pm: null };
+    return { lane: "Done", pr, reason: null, need: null, ask: null, agents, activity: null, pause: null, pm: null, pmAsk: null };
   }
   const label = labels.find((l) => l.startsWith("ask:") && l.length > 4);
   const ask = label === undefined ? null : label.slice(4);
@@ -295,8 +319,10 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const routed = asked === undefined ? undefined : routeOf(asked, sig.now, t3, pausedBraid(key, sig));
   const req = routed !== undefined && "via" in routed ? asked : routed?.to === "pm" ? undefined : asked;
   const pm = asked !== undefined && routed?.to === "pm" && !("via" in routed) ? pmLine(asked, sig.now) : null;
+  const pmAskOf = sig.asks?.get(key);
+  const pmAsk = pmAskOf === undefined ? null : needOfAsk(pmAskOf, sig.now, t3);
   const question = agents.some((t) => t.pending > 0);
-  const waiting = asked !== undefined || question || stored === "Done";
+  const waiting = asked !== undefined || pmAsk !== null || question || stored === "Done";
   // The alarms: the condition, only while nothing else already has the user's attention.
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const failing = pr?.state === "open" && pr.checks === "failing";
@@ -308,7 +334,9 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const stalled = sig.alarm(key, "stalled", paused === null ? stallHolds : false);
   const pausedStall = paused !== null && stallHolds === true && phaseOf(paused, sig.now) === "over" ? stalledSince(paused) : null;
   const pause = paused === null ? null : pauseView(paused, sig.now);
-  const out = (lane: Lane, reason: Reason | null, need: Need | null): Derived => ({ lane, pr, reason, need, ask, agents, activity, pause, pm });
+  // The PM's own request puts the item in Needs You and is its need when nothing else is asked; the coordinator's request stays what it was.
+  const out = (lane: Lane, reason: Reason | null, need: Need | null): Derived =>
+    pmAsk === null ? { lane, pr, reason, need, ask, agents, activity, pause, pm, pmAsk } : { lane: "Waiting", pr, reason: lane === "Waiting" && reason !== null ? reason : pmAsk.kind as Reason, need: need ?? pmAsk, ask, agents, activity, pause, pm, pmAsk };
   if (req !== undefined && routed !== undefined) {
     const r = requestLane(req, sig.now, routed);
     return out(r.lane, r.reason, r.need);
@@ -475,13 +503,14 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
       doneAt: d.lane === "Done" && s.brief.status === "Done" ? (sig.doneAt?.(s.folder, s.source) ?? null) : null,
       pause: d.pause,
       pm: d.pm,
+      pmAsk: d.pmAsk,
     };
   });
   if (strands.length === 0) {
     const derived = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
     const lift = planned(braid.number, derived.lane, gh, t3);
     const own = lift === null ? derived : { ...derived, ...lift };
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null, pause: own.lane === "Done" ? null : derived.pause, pm: own.lane === "Done" ? null : derived.pm };
+    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null, pause: own.lane === "Done" ? null : derived.pause, pm: own.lane === "Done" ? null : derived.pm, pmAsk: own.lane === "Done" ? null : derived.pmAsk };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -493,12 +522,14 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const toPm = routed?.to === "pm" && !("via" in routed);
   const req = toPm ? undefined : asked0;
   const pm = asked0 !== undefined && toPm ? pmLine(asked0, sig.now) : (strands.find((s) => s.pm !== null)?.pm ?? null);
+  const askOf = pr?.state === "merged" ? undefined : sig.asks?.get(braid.number);
+  const pmNeed = askOf === undefined ? null : needOfAsk(askOf, sig.now, t3);
   const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
   // The braid-level stall clock is settled first, so wrap-up's derive keeps its own clock on the braid's number, so this one has its own key and is cleared in wrap-up:
   // a final PR open or merged, an open request or any other condition failing clears it.
   const quiet = strands.every((s) => s.lane === "To Do" || s.lane === "Done");
   const known = gh.status.state === "ok" && t3.status.state === "ok";
-  const asked = asked0 !== undefined && pr?.state !== "merged";
+  const asked = (asked0 !== undefined && pr?.state !== "merged") || pmNeed !== null;
   const holds = finalPr || asked || pr?.state === "merged" || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
   const paused = sig.pauses?.get(braid.number) ?? null;
   const stalled = sig.alarm(`${braid.number} coordinator`, "stalled", paused === null ? holds : false);
@@ -518,10 +549,11 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   }
   const candidates = [
     ...(own?.need == null ? [] : [{ lane: own.lane, reason: own.reason, need: own.need, who: null as string | null }]),
+    ...(pmNeed === null ? [] : [{ lane: "Waiting" as Lane, reason: pmNeed.kind as Reason, need: pmNeed, who: null as string | null }]),
     ...strands.flatMap((s) => (s.need === null ? [] : [{ lane: s.lane, reason: s.reason, need: s.need, who: s.id as string | null }])),
   ];
   const top = [...candidates].sort((a, b) => URGENCY.indexOf(a.lane) - URGENCY.indexOf(b.lane))[0];
-  const base = braidLane(braid.brief.status, strands, own);
+  const base = braidLane(braid.brief.status, strands, pmNeed === null ? own : { lane: "Waiting" });
   const lift = planned(braid.number, base, gh, t3);
   const lane = lift?.lane ?? base;
   return {
@@ -548,6 +580,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     doneAt: lane === "Done" ? ((braid.brief.status === "Done" ? sig.doneAt?.(braid.folder, braid.source) : null) ?? strands.map((s) => s.doneAt).filter((d) => d !== null).sort().pop() ?? null) : null,
     pause: paused === null || lane === "Done" ? null : pauseView(paused, sig.now),
     pm: lane === "Done" ? null : pm,
+    pmAsk: lane === "Done" ? null : (pmNeed ?? ((s) => (s?.pmAsk == null ? null : { ...s.pmAsk, who: s.id }))(strands.find((x) => x.pmAsk !== null))),
   };
 }
 
@@ -559,12 +592,44 @@ export function doneNewestFirst<T extends { readonly id: string; readonly doneAt
   return [...cards].sort((a, b) => (a.doneAt === b.doneAt ? 0 : a.doneAt === null ? 1 : b.doneAt === null ? -1 : a.doneAt < b.doneAt ? 1 : -1) || (a.id < b.id ? 1 : -1));
 }
 
+/** A programme request as a plain card in Needs You: the slug, the request, the PM thread. Strand D's programmes panel replaces it. */
+export function programmeCard(r: Request, now: Date, t3: T3, ctx: StartContext): BraidCard {
+  const slug = programmeOf(r.id) ?? r.id;
+  const need = needOfAsk(r, now, t3);
+  return {
+    id: r.id,
+    title: `Programme ${slug}`,
+    status: "In Progress",
+    lane: "Waiting",
+    labels: [],
+    branch: null,
+    pr: null,
+    reason: need.kind as Reason,
+    need,
+    ask: null,
+    running: false,
+    activity: null,
+    done: 0,
+    total: 0,
+    strands: [],
+    thread: need.link ?? null,
+    threadRole: null,
+    merge: null,
+    start: { base: `origin/${ctx.main}`, branch: "", planned: false, expected: null, reason: "a programme isn't a braid" },
+    coordinator: null,
+    doneAt: null,
+    pause: null,
+    pm: null,
+    pmAsk: need,
+  };
+}
+
 export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX, problems: readonly Problem[] = []): BoardData {
   const ideas = inbox.ideas.map((i) => {
     const c = ideaPlanning(t3, i.id);
     return c === null ? i : { ...i, planning: { link: c.link } };
   });
-  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: braids.map((b) => toCard(b, gh, t3, sig, ctx)), inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems, pausesNote: sig.pausesNote ?? null };
+  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: [...braids.map((b) => toCard(b, gh, t3, sig, ctx)), ...(sig.programmes ?? []).map((r) => programmeCard(r, sig.now, t3, ctx))], inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems, pausesNote: sig.pausesNote ?? null };
 }
 
 export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): ItemDetail {
@@ -592,6 +657,7 @@ export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T
     merge: own?.merge ?? null,
     pause: own?.pause ?? null,
     pm: own?.pm ?? null,
+    pmAsk: own?.pmAsk ?? null,
     brief: item.brief.body.trim(),
     report: item.hasReport ? tree.read(`${item.folder}/report.md`) : null,
     logs: item.logs.map((name) => ({ name, text: tree.read(`${item.folder}/${name}`) ?? "" })),

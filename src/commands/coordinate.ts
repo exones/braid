@@ -120,7 +120,9 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
   const head = `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}${hint}`;
   const pause = letter === null && card.pause !== null && card.reason !== "stalled" ? [`    ${statusLine(card.pause, w.now)}`] : [];
   const pm = card.pm === null ? [] : [`    🧭 ${card.pm.text} (to the PM ${card.pm.age} ago)`];
-  return [head, ...pause, ...pm, ...(card.need === null ? [] : [`    ${needLine(card.need)}`])];
+  // The PM's own request, when the need line is another one (the coordinator's).
+  const pmAsk = card.pmAsk === null || card.need === card.pmAsk || card.need?.by === "pm" ? [] : [`    🧭 ${needLine(card.pmAsk)}`];
+  return [head, ...pause, ...pm, ...(card.need === null ? [] : [`    ${needLine(card.need)}`]), ...pmAsk];
 }
 
 /** The notes for a source that couldn't be read; `next` also says what that hides. */
