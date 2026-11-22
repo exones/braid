@@ -10,6 +10,7 @@ import { LANE_LABEL, needLine } from "../board/marks.js";
 import { toCard, type BraidCard, type Lane, type StrandCard } from "../board/model.js";
 import { problemLine, readiness } from "../braids/readiness.js";
 import { readSignals } from "../board/signals.js";
+import { laneNote, statusLine } from "../board/pause.js";
 import { readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { FormatError } from "../braids/frontmatter.js";
 import { UsageError } from "./braids.js";
@@ -46,6 +47,9 @@ export interface World {
   readonly refs: readonly BranchRef[];
   readonly github: Github;
   readonly t3: T3;
+  /** Why `.braid/pauses.json` was read as no pauses; null when it read cleanly or is missing. */
+  readonly pausesNote: string | null;
+  readonly now: Date;
 }
 
 export async function read(root: string, number: string, command: string, src: Sources, reuse?: World): Promise<World> {
@@ -71,7 +75,7 @@ export async function read(root: string, number: string, command: string, src: S
     }
   }
   sig.commit();
-  return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3 };
+  return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3, pausesNote: sig.pausesNote ?? null, now: sig.now };
 }
 
 export function branchState(refs: readonly BranchRef[], number: string, letter: string | null): { local: boolean; pushed: boolean } {
@@ -109,12 +113,13 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
   const thread = w.t3.status.state !== "ok" ? "?" : threads.some((t) => t.role === "worker") ? "running" : threads.length > 0 ? "review running" : "-";
   const where = b.local ? (b.pushed ? "local+pushed" : "local") : b.pushed ? "+pushed" : "-";
   const pr = card.pr === null ? "-" : `#${card.pr.number} ${card.pr.state}`;
-  const lane = card.reason === null ? LANE_LABEL[card.lane] : `${LANE_LABEL[card.lane]} (${card.reason})`;
+  const lane = card.reason !== null ? `${LANE_LABEL[card.lane]} (${card.reason})` : card.pause !== null ? `${LANE_LABEL[card.lane]} (${laneNote(card.pause)})` : LANE_LABEL[card.lane];
   const ask = card.ask === null ? "" : `  ask:${card.ask}`;
   // Merged but not stamped (a merge in GitHub's UI, or a run that stopped after the merge): the coordinator's next step.
   const hint = card.pr?.state === "merged" && card.status !== "Done" ? `  run braid accept ${card.id}` : "";
   const head = `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}${hint}`;
-  return card.need === null ? [head] : [head, `    ${needLine(card.need)}`];
+  const pause = letter === null && card.pause !== null && card.reason !== "stalled" ? [`    ${statusLine(card.pause, w.now)}`] : [];
+  return [head, ...pause, ...(card.need === null ? [] : [`    ${needLine(card.need)}`])];
 }
 
 /** The notes for a source that couldn't be read; `next` also says what that hides. */
@@ -154,7 +159,8 @@ export async function statusCommand(root: string, args: readonly string[], src: 
     return w;
   }
   const names = ciChecks(root);
-  const out = [...readiness(root, w.github).map(problemLine), ...line(names, w, w.card, null), ...w.card.strands.flatMap((s) => line(names, w, s, s.id.slice(5)).map((l) => `  ${l}`))];
+  const pauses = w.pausesNote === null ? [] : [`note: ${w.pausesNote}; read as no pauses`];
+  const out = [...readiness(root, w.github).map(problemLine), ...pauses, ...line(names, w, w.card, null), ...w.card.strands.flatMap((s) => line(names, w, s, s.id.slice(5)).map((l) => `  ${l}`))];
   // Unreadable GitHub is already the `not ready:` line above (readiness), so no second note.
   if (w.t3.status.state !== "ok") {
     out.push(`note: T3 could not be read (${w.t3.status.reason}); threads show as ?`);

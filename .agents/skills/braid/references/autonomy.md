@@ -46,7 +46,7 @@ After every third merge you made yourself, send the user `braid decisions <numbe
 
 ## Hold
 
-"Hold", "pause" or "stop" from the user: let the running item finish, start nothing and merge nothing until they say go, and log it on the braid.
+"Hold", "pause" or "stop" from the user: let the running item finish, start nothing and merge nothing until they say go, and log it on the braid. A pause for a provider's usage limit ("pause, limit close") is [provider limits](limits.md) instead.
 
 ## Changing the preset
 

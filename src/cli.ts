@@ -22,6 +22,8 @@ import { factsCommand, recapCommand } from "./commands/facts.js";
 import { answerCommand, askCommand, handoverCommand, requestsCommand, reviewCommand } from "./commands/requests.js";
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
 import { autonomyCommand } from "./commands/autonomy.js";
+import { limitsCommand } from "./commands/limits.js";
+import { pauseCommand, resumeCommand } from "./commands/pauses.js";
 import { decisionsCommand } from "./commands/decisions.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 
@@ -53,7 +55,10 @@ export function helpText(version: string): string {
     "  title <id> --role <role>    Print the thread title for an item: <emoji> <repo> <id> <role>: <title> (role coordinator, worker, review or research)",
     "  edit <id>                   Change --status, --title, --labels, --dep, --related, --order, --delivery, --autonomy (none clears a list, the order or the preset)",
     "  autonomy <number>           Print the autonomy preset a braid runs on, where its name and text come from, and the brief's ## Autonomy section (--list: the presets available here)",
-    "  brief <id> <section>        Set a section of brief.md from --file <path>, --file - or --text",
+    "  limits [<instance>]         Whether an agent may be launched on each provider in BRAID.md models, from T3's usage caches: windows, usage, verdict ok|pause|unknown, for pause the resume time (--role <role> [--tier <T>] [--kind <k>] narrows, e.g. --role worker --kind story; --json; exit 3 on pause)",
+    "  pause <number> --provider <instance> --thread <id>  Record that a braid waits for a provider's usage window in .braid/pauses.json: window, usage and resume time from braid limits (refused unless its verdict is pause; --window <id> picks the window, --until <iso> sets the resume time and pauses anyway), --task <id> the scheduled resume task, --by coordinator|pm. The board and status show it",
+    "  resume <number>             Clear a braid's pause and print what was cleared",
+    "  brief <id> <section>       Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
     "  import-backlog              Turn backlog/ tasks into braids/ (--dry-run: print only; backlog/ is never touched)",
@@ -108,12 +113,18 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["autonomy", "decisions", "note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
+const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
     case "autonomy":
       return autonomyCommand(root, args);
+    case "limits":
+      return limitsCommand(root, args);
+    case "pause":
+      return pauseCommand(root, args);
+    case "resume":
+      return resumeCommand(root, args);
     case "decisions":
       return decisionsCommand(root, args);
     case "note":

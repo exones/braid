@@ -1,5 +1,5 @@
 // What the lanes need besides GitHub and T3: the open requests (read through src/braids/requests.ts, never
-// written here) and the broke alarms' clock: when each condition was first seen, kept in `.braid/broke.json`
+// written here), the paused braids (src/braids/pauses.ts, read only) and the broke alarms' clock: when each condition was first seen, kept in `.braid/broke.json`
 // of the main checkout, so `braid status`, the board and a restart agree.
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -9,6 +9,7 @@ import { gitAsync } from "../braids/gitio.js";
 import type { Braid } from "../braids/store.js";
 import { BROKE_MS, type BrokeReason, type Signals } from "./model.js";
 import { ensureStateDir, filterLive, loadRequests, mainCheckout, type PrNow, type Request } from "../braids/requests.js";
+import { loadPauses, type Pause } from "../braids/pauses.js";
 
 export interface ReadSignals extends Signals {
   /** Writes the first-seen times if they changed. */
@@ -74,9 +75,12 @@ function readBroke(file: string): Record<string, string> {
 export function readSignals(root: string, github: Github, now: Date = new Date()): ReadSignals {
   let requests: Request[] = [];
   let file: string | null = null;
+  let pauses: readonly Pause[] = [];
+  let pausesNote: string | null = null;
   try {
     requests = filterLive(loadRequests(root), (n) => prOf(github, n));
     file = brokeFile(root);
+    ({ pauses, note: pausesNote } = loadPauses(root));
   } catch {
     // not a repository: no requests, and no place to keep the alarms' clock
   }
@@ -85,6 +89,8 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
   return {
     now,
     requests: new Map(requests.map((r) => [r.id, r])),
+    pauses: new Map(pauses.map((p) => [p.braid, p])),
+    pausesNote,
     alarm: clock.alarm,
     doneAt: (folder, source) => {
       head ??= headOf(root) ?? "";

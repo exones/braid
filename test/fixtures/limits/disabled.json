@@ -1,0 +1,6 @@
+{
+  "displayName": "Disabled",
+  "enabled": false,
+  "instanceId": "disabled",
+  "driver": "claudeAgent"
+}

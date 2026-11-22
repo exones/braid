@@ -12,6 +12,8 @@ import { SWEEP_VERBS, sweepCommand } from "./sweep.js";
 
 /** A command's output with warnings for standard error. */
 export interface Said {
+  /** The exit code when not 0 (`braid limits`: 3 for pause). */
+  readonly code?: number;
   readonly stdout: string;
   readonly stderr: string;
 }

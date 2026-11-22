@@ -155,6 +155,9 @@ test("a braid shows the most urgent of its strands and its own request", () => {
     ["0012", "To Do"],
     ["0013", "Working"], // To Do, but its coordinator runs
     ...Array.from({ length: 11 }, (_, i) => [`00${14 + i}`, "Done"]), // older Done braids
+    ["0025", "Working"], // paused: its pause holds back stalled
+    ["0026", "Working"], // paused, resume overdue: still not stalled
+    ["0027", "Needs You"], // the resume never came: stalled, naming the pause
   ]);
 });
 

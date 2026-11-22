@@ -3,6 +3,7 @@
 import { loadTree, type Braid, type Tree } from "../braids/store.js";
 import { GITHUB_TODO, type Problem } from "../braids/readiness.js";
 import type { Request } from "../braids/requests.js";
+import type { Pause } from "../braids/pauses.js";
 import type { InboxData } from "./inbox.js";
 import type { Github } from "./github.js";
 import type { ReadSignals } from "./signals.js";
@@ -48,6 +49,15 @@ const BASE_FILES: Readonly<Record<string, string>> = {
   "braids/0011-sample-notices/brief.md": brief("0011", "Sample notifications", "To Do", "labels:\n  - tier:S\n"),
   "braids/0012-sample-import-csv/brief.md": brief("0012", "Sample CSV import", "To Do", "labels:\n  - tier:M\n"),
   "braids/0013-sample-audit-trail/brief.md": brief("0013", "Sample audit trail", "To Do", "labels:\n  - tier:M\n"),
+  // Paused for a provider limit (`braid pause`): 0025 waits for its resume, 0026's resume is overdue, 0027's never came (stalled).
+  "braids/0025-sample-uploads/brief.md": brief("0025", "Sample uploads", "In Progress", "labels:\n  - tier:M\n"),
+  "braids/0025-sample-uploads/A-store/brief.md": brief("0025/A", "Upload store", "Done", "order: 1\n"),
+  "braids/0025-sample-uploads/B-page/brief.md": brief("0025/B", "Upload page", "In Progress", "order: 2\n"),
+  "braids/0025-sample-uploads/C-limits/brief.md": brief("0025/C", "Size limits", "To Do", "order: 3\n"),
+  "braids/0026-sample-webhooks/brief.md": brief("0026", "Sample webhooks", "In Progress", "labels:\n  - tier:S\n"),
+  "braids/0026-sample-webhooks/A-sender/brief.md": brief("0026/A", "Webhook sender", "In Progress"),
+  "braids/0027-sample-quotas/brief.md": brief("0027", "Sample quotas", "In Progress", "labels:\n  - tier:S\n"),
+  "braids/0027-sample-quotas/A-counter/brief.md": brief("0027/A", "Quota counter", "In Progress"),
 };
 
 /** Older Done braids, so the Done lane has more than a page: number, title, days since it was merged. */
@@ -175,6 +185,13 @@ export function demoT3(down = false): T3 {
 
 const MIN = 60_000;
 
+/** The demo's pauses: 0025 resumes in 18 min, 0026's resume was due 20 min ago, 0027's 42 min ago (stalled for 17 min). */
+export function demoPauses(now: Date = new Date()): Pause[] {
+  const at = (minutes: number): string => new Date(now.getTime() + minutes * MIN).toISOString();
+  const pause = (braid: string, resume: number, task: string): Pause => ({ braid, provider: "Claude_Everix", window: "five_hour", label: "Session", usedPercent: 97, resetsAt: at(resume - 5), resumeAt: at(resume), task, thread: "demo-coordinator-thread", by: "coordinator", at: at(-36) });
+  return [pause("0025", 18, "demo-task-1"), pause("0026", -20, "demo-task-2"), pause("0027", -42, "demo-task-3")];
+}
+
 /** The requests and broke alarms of the demo, as of `now`: every kind of request, both alarms. Nothing is read or written. */
 export function demoSignals(now: Date = new Date()): ReadSignals {
   const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
@@ -191,6 +208,7 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
   return {
     now,
     requests: new Map(requests.map((r) => [r.id, r])),
+    pauses: new Map(demoPauses(now).map((p) => [p.braid, p])),
     alarm: (id, _reason, holds) => (holds === true && began[id] !== undefined ? at(began[id] ?? 0) : null),
     doneAt: (folder) => {
       const days = DONE_DAYS[/^braids\/(\d{4})-/.exec(folder)?.[1] ?? ""];

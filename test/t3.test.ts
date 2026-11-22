@@ -240,7 +240,7 @@ test("the demo shows every lane and every reason, request and alarm from built-i
 });
 
 test("the demo data is reusable and loads without a repository", () => {
-  assert.equal(demo.demoBraids().length, 24);
+  assert.equal(demo.demoBraids().length, 27);
   assert.ok(demo.demoGithub());
   assert.ok(demo.demoT3());
 });
