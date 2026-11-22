@@ -26,6 +26,8 @@ export interface ProjectInfo {
   readonly failure: string | null;
   /** The project's open inbox entries; null with no snapshot. */
   readonly inbox: InboxData | null;
+  /** Why its `.braid/pauses.json` was read as no pauses; null when it read cleanly, is missing, or there is no snapshot. */
+  readonly pausesNote: string | null;
 }
 
 /** A card of the combined board: the project's own card, tagged with the project's name. */
@@ -69,6 +71,7 @@ export function projectInfo(held: Held, now: number = Date.now()): ProjectInfo {
     ageMs: held.readAt === null ? null : Math.max(0, now - held.readAt),
     failure: held.failure,
     inbox: held.board?.inbox ?? null,
+    pausesNote: held.board?.pausesNote ?? null,
   };
 }
 

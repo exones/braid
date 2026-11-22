@@ -1,0 +1,15 @@
+Braid 0061 makes braid pause work on a provider before its usage limit and resume it by itself after the reset, so a Claude thread no longer hits T3's hard stop mid-turn. Five strands, merged into the braid branch under `steady`:
+
+- 0061/A, spike (PR #223): on T3 0.1.6 there is no one-time `schedule_task`; a self-deleting `interval` task in the coordinator's own thread is the resume (fires about 4 s late; survives a T3 restart, the user checked). `t3_thread_send` `mode:auto` reaches a busy agent in about 1 s; `queue` waits for the turn end. The coordinator or PM pauses; the board only shows it.
+- 0061/B, `braid limits` (PR #224): reads `$T3CODE_HOME/caches`, applies the reading rules (stale or missing is unknown, a past reset is 0%, unknown never pauses), maps a `models` line to its windows including model-scoped weekly ones, and gives ok/pause/unknown with the resume time; exit 3 on pause; `limits:` in `BRAID.md` (session 97, weekly 95, buffer 5, stale 10).
+- 0061/C, `braid pause` / `braid resume` (PR #229): `.braid/pauses.json`; a sky paused mark on the board and in `braid status` (mockups approved by the user), "resume was due" at +15 min, stalled at +25 min naming the missed pause (D86).
+- 0061/D, the skills (PR #231): `references/limits.md` with one "On exit 3" rule; the check before every launch, at each 10-minute wait timeout and in a 15-minute check task while the turn has ended; the pause message, the wait for `Paused:` replies, the resume task, the resume; weekly windows also ask the user; braid-pm pauses its braids and keeps one resume and check task; braid-worker follows pause and resume (D87). Two review fix rounds.
+- 0061/E, docs (PR #232): README, getting started, autonomy, roadmap, the decisions log.
+
+Validation: every strand passed the gate and CI on Ubuntu and Windows, and an independent review (tier L strands re-checked after fixes). The pause and resume were run once by hand on 2026-11-21: at 95% of the session window the 0061/C worker paused cleanly about 1 minute after an `auto` message, and the `interval` resume fired at 21:55 UTC; the cache was then 25 minutes stale with a past reset, which reads as go, and the worker continued.
+
+Open: the 15-minute check and the PM path have not run live. T3's Claude usage cache went stale for about an hour after the limit was reached (last check 21:30 UTC), so a stale cache reads as unknown and doesn't pause until T3 checks again.
+
+Decisions: the user chose weekly windows pause and ask; a limit hit mid-turn is out of scope (pre-emptive pause only); no snooze; session threshold 97%; the mockups as shown; the 15-minute check while agents run. Decided: the PR #224 size (868 lines, a third fixtures) absorbed under `steady` scope.
+For later items: none
+Needs the user: process: this braid changes braid skills (`.agents/skills/braid` with `references/limits.md`, `autonomy.md`, `resuming.md`, `workflow.md`; `braid-pm`; `braid-worker`), which the user asked for in this braid; `steady` asks at the final PR.

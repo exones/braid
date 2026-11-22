@@ -12,5 +12,6 @@ Read `BRAID.md`, then:
 - A strand whose folder is gone was dropped.
 - Otherwise read the item's log on its branch, then relaunch or `braid ask`.
 - The preset: `braid autonomy <number>` (the skill, "Autonomy").
+- A paused braid (a `Paused:` line in `braid status`): its resume task wakes the thread that paused it. If that isn't yours, delete that task (`list_scheduled_tasks`, by its title `braid <number> resume <provider>`) and schedule your own ([provider limits](limits.md), "Pause" steps 3 and 4).
 
 Beyond the log, put notes on the braid only for what a fresh session couldn't work out from these.

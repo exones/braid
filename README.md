@@ -25,6 +25,7 @@ Tell braid a goal. It splits the goal into small work items, has a coding agent 
 - **Review before it reaches you.** Medium and large changes get an independent reviewer (you can set it to a different model than the worker's); the coordinator checks small ones itself, and every PR the coordinator merges by itself gets a reviewer.
 - **Resume from the files.** Briefs, logs and reports live in `braids/`; after a crash or in a new session any agent continues from them.
 - **See what needs you.** `braid board` shows what waits on you, and can Start a braid, ask the coordinator to merge, and open an agent's thread.
+- **Pauses before a usage limit.** `braid limits` reads each provider's usage; over a threshold the coordinator pauses its agents at a clean point, schedules its own resume for the window's reset and continues by itself. The board shows the pause, not a stall.
 - **Check in from your phone.** The board has a phone layout, and `braid board --host tailscale` serves it on your Tailscale network, to your own login only.
 - **Stops and asks when a decision is yours.** Security, a new dependency, stored data, an effect outside the repository, a change of scope: it waits for you, unless your preset lets it decide that case.
 - **Autonomy presets: you choose what braid decides.** A short file per project or per braid says what the coordinator merges and starts by itself and, per stop case, what it decides and what it asks you; what it decides it logs, and you read those decisions in the recap.

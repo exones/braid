@@ -1,0 +1,35 @@
+{
+  "displayName": "Claude",
+  "enabled": true,
+  "instanceId": "claude_weekly_over",
+  "driver": "claudeAgent",
+  "usageLimits": {
+    "checkedAt": "2026-11-21T18:00:00.000Z",
+    "windows": [
+      {
+        "id": "five_hour",
+        "kind": "session",
+        "label": "Session",
+        "windowDurationMins": 300,
+        "usedPercent": 22,
+        "resetsAt": "2026-11-21T21:50:00.000Z"
+      },
+      {
+        "id": "seven_day",
+        "kind": "weekly",
+        "label": "Weekly",
+        "windowDurationMins": 10080,
+        "usedPercent": 95,
+        "resetsAt": "2026-11-26T06:00:00.000Z"
+      },
+      {
+        "id": "seven_day_fable",
+        "kind": "weekly",
+        "label": "Weekly · Fable",
+        "windowDurationMins": 10080,
+        "usedPercent": 8,
+        "resetsAt": "2026-11-26T06:00:00.000Z"
+      }
+    ]
+  }
+}
