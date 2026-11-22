@@ -48,6 +48,7 @@ Expected size: about 1,000 lines in 13 files.
   - A PM-run braid becoming Done is pushed at `low` priority (added in B).
 - **The phone:** a strip above the lane tabs that opens like a drawer, programmes needing the user first, with a filter chip (screens 66 and 67).
 - **Demo:** sample programmes in two projects. Screenshots of each screen go in `docs/design/board-screenshots/`.
+- **From the 0062/C review** (PR #236): replace C's synthetic "Programme <slug>" card (its click opens details and `/api/item` answers 400 for `pm/<slug>`); decide the lane when a `--by pm` ask shares a card with a coordinator handover (today Needs You wins and Merge is hidden, while `docs/board.md` says To Review comes first), and keep the teal "The PM is handling" line when a `--to pm` request and a `--by pm` ask share a card.
 - Tests, and `docs/board.md`.
 
 ## Already decided
