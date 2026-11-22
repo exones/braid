@@ -1,7 +1,7 @@
 ---
 id: '0064/E'
 title: "Docs: The board watches provider limits"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: ['0064/A', '0064/B', '0064/C', '0064/D']
 order: 50
