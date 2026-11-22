@@ -56,6 +56,8 @@ export interface T3 {
   readonly states?: ReadonlyMap<string, string>;
   /** The T3 link of every thread `thread list` named, by id: where a request addressed by a thread id (the PM's) opens. */
   readonly links?: ReadonlyMap<string, string>;
+  /** What each running PM checker thread of this repository checks: the text after `🧭 <repo> pm check: `. A programme whose checker runs is running. */
+  readonly pmChecks?: readonly string[];
 }
 
 export const IDEA_BRANCH = "coordinator/idea-";
@@ -293,7 +295,11 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
       into.set(f.key, [...(into.get(f.key) ?? []), f.thread]);
     }
   }
-  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links };
+  const pmChecks = wanted.flatMap(({ t, running }) => {
+    const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) pm check: (.*)$/.exec(str(t["title"]) ?? "");
+    return running && m !== null && repos.has(m[1] ?? "") ? [m[2] ?? ""] : [];
+  });
+  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, pmChecks };
 }
 
 /** Forgets what was read, for tests. */

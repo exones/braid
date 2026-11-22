@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parsePlan } from "./braids/plan.js";
 import { FormatError } from "./braids/frontmatter.js";
 import { findRoot } from "./braids/store.js";
 import { checkBraids } from "./braids/check.js";
@@ -63,7 +65,7 @@ export function helpText(version: string): string {
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
     "  import-backlog              Turn backlog/ tasks into braids/ (--dry-run: print only; backlog/ is never touched)",
-    "  check                       Check every brief under braids/; list each error with its file (exit 2 on any)",
+    "  check                       Check every brief under braids/; list each error with its file (exit 2 on any). --plan <file>: check a programme's plan file (pm/<slug>.md) instead; an error names its line",
     "  status <number>             One line per strand: status, lane (as the board shows it), ask:<key>, branch, PR, ci checks, T3 thread, and the request text of an item on your side (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id> [--force]        Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
@@ -142,6 +144,21 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
     case "requests":
       return requestsCommand(root, args);
     case "check": {
+      if (args[0] === "--plan") {
+        if (args.length !== 2) {
+          throw new UsageError("usage: braid check --plan <file>");
+        }
+        const file = resolve(cwd, args[1] ?? "");
+        let text: string;
+        try {
+          text = readFileSync(file, "utf8");
+        } catch {
+          throw new UsageError(`braid check --plan: can't read ${args[1] ?? ""}`);
+        }
+        const plan = parsePlan(text, args[1] ?? "");
+        return `plan OK: pm/${plan.programme}, ${plan.state}, ${plan.rows.length} row${plan.rows.length === 1 ? "" : "s"}
+`;
+      }
       if (args.length > 0) {
         throw new UsageError(`braid check takes no arguments; got: ${args.join(" ")}`);
       }

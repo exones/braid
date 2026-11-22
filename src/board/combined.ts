@@ -5,6 +5,7 @@ import type { Github } from "./github.js";
 import type { InboxData } from "./inbox.js";
 import { LANES, type BoardData, type BraidCard, type Lane } from "./model.js";
 import type { T3 } from "./t3.js";
+import type { Programme } from "./programme.js";
 
 /** What the board knows about one served project, besides its cards. */
 export interface ProjectInfo {
@@ -33,6 +34,12 @@ export interface ProjectInfo {
 /** A card of the combined board: the project's own card, tagged with the project's name. */
 export type TaggedCard = BraidCard & { readonly project: string };
 
+/** A programme of the combined board: keyed `<project>/<slug>`, so one slug in two projects stays two programmes. */
+export type TaggedProgramme = Programme & { readonly project: string; readonly key: string };
+
+/** The programmes of one project, tagged with its name and keyed. */
+export const tagProgrammes = (project: string, programmes: readonly Programme[]): TaggedProgramme[] => programmes.map((p) => ({ ...p, project, key: `${project}/${p.slug}` }));
+
 /** `GET /api/all`. */
 export interface AllBoard {
   readonly lanes: readonly Lane[];
@@ -40,6 +47,8 @@ export interface AllBoard {
   readonly projects: readonly ProjectInfo[];
   /** Every card of the projects in `projects`, in list order, each project's cards in their own order. */
   readonly braids: readonly TaggedCard[];
+  /** Every programme of those projects (done and stopped ones too), in list order, each project's in slug order. */
+  readonly programmes: readonly TaggedProgramme[];
   /** Names asked for with `?projects=` that aren't served (a project removed from the list). */
   readonly missing: readonly string[];
 }
@@ -82,6 +91,7 @@ export function combine(held: readonly Held[], remote: boolean, missing: readonl
     remote,
     projects: held.map((h) => projectInfo(h, now)),
     braids: held.flatMap((h) => (h.board?.braids ?? []).map((card) => ({ ...card, project: h.name }))),
+    programmes: held.flatMap((h) => tagProgrammes(h.name, h.board?.programmes ?? [])),
     missing,
   };
 }

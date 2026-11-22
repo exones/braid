@@ -158,7 +158,6 @@ test("a braid shows the most urgent of its strands and its own request", () => {
     ["0025", "Working"], // paused: its pause holds back stalled
     ["0026", "Working"], // paused, resume overdue: still not stalled
     ["0027", "Needs You"], // the resume never came: stalled, naming the pause
-    ["pm/working-product", "Needs You"], // a programme request of the PM, a plain card until the programmes panel
   ]);
 });
 

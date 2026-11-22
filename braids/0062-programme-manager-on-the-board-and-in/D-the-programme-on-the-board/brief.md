@@ -1,7 +1,7 @@
 ---
 id: '0062/D'
 title: "The programme on the board"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ui"]
 dependencies: ['0062/A', '0062/B', '0062/C']
 order: 40
@@ -62,16 +62,25 @@ Expected size: about 1,000 lines in 13 files.
 - ntfy action buttons, per-programme charters, and a "what the PM decided" view (report, "For later items").
 - Skill changes: strand E.
 
+## Plan
+
+1. **Plan file** (`src/braids/plan.ts`): `parsePlan` on the front-matter parser; required `programme`, `title`, `goal`, `state`; optional `thread`, `limit`, `hold` (`<ISO> <words>`), `next`, `digest`, `rows` (`P<n> | <number or -> | <title> | <state>`); unknown keys and bad values fail with their line. `braid check --plan <file>` in `src/cli.ts`.
+2. **Reading** (`src/board/plans.ts`): `pm/*` refs (local first, then `origin/pm/*`) and their `pm/<slug>.md` through one `git cat-file --batch`; a `plans` source on `Sources`, read in `readSnapshot`; a failed read gives no programmes, never a failed board.
+3. **Derive** (`src/board/programme.ts`): one `Programme` per plan: rows joined with the braid cards, section `needs` (programme request, or stalled) / `working` / none (done, stopped), status line, PM thread state and link. Stall clock `<repo>/<slug> pm` through `sig.alarm`; held (plan `hold`/`state: held`, or every braid not Done paused) never stalls; a held plan's braids without a pause record read as held. `programmes` on `BoardData`, keyed `<project>/<slug>` in `/api/board` and `/api/all`; `programme` (slug) on each braid card. C's `programmeCard` goes.
+4. **Pushes** (`src/notify/message.ts`): programme requests and the stall pushed from `board.programmes`; a programme braid's Done push at `low`.
+5. **Web** (`web/src/App.tsx`, `src/board/route.ts`, `src/board/filter.ts`): the left panel with Needs you / Working, the rail (local storage), Only these with `?programme=`, the filter bar, `#/programme/<project>/<slug>` details panel, 🧭 tags on cards and Done rows, the phone strip and chip. From the 0062/C review: Merge stays on a card whose PM ask moved it to Needs You, and the teal PM line shows next to a PM ask.
+6. **Demo** with programmes in `demo` and `api`; screenshots in `docs/design/board-screenshots/`; tests; `docs/board.md`, `docs/braids-format.md`, `docs/cli.md`, `docs/decisions.md`.
+
 ## Completion
 
-- [ ] A plan with valid front matter shows as a programme in the panel: in Needs you while a programme request is open, in Working while its PM or one of its braids runs (including an idle PM whose braids work, and a running PM with no braid running); an unreadable plan shows "plan unreadable: <line>" and the board still works
-- [ ] A programme whose PM thread isn't running and none of whose braids is running reads Needs you `stalled` after ten minutes on its own clock and is pushed once; it clears when the PM or a braid runs again; a done, stopped or held programme never stalls, and one with an open PM request shows that request instead; tests cover each case
-- [ ] "Only these" filters the lanes to the programme's braids and back, keeps `?programme=<project>/<slug>` with `?projects=`, and survives a reload on desktop and phone
-- [ ] With several projects served, the panel lists every shown project's programmes with project tags; two projects with the same slug stay apart in the panel, the filter and the pushes
-- [ ] The panel collapses to the rail and back, and the board remembers the choice
-- [ ] A held programme shows the user's words on its card, and its braids show paused, not stalled
-- [ ] `braid check --plan` accepts the template and names the line of an error
-- [ ] Screenshots of each screen, matching the approved mockups
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A plan with valid front matter shows as a programme in the panel: in Needs you while a programme request is open, in Working while its PM or one of its braids runs (including an idle PM whose braids work, and a running PM with no braid running); an unreadable plan shows "plan unreadable: <line>" and the board still works
+- [x] A programme whose PM thread isn't running and none of whose braids is running reads Needs you `stalled` after ten minutes on its own clock and is pushed once; it clears when the PM or a braid runs again; a done, stopped or held programme never stalls, and one with an open PM request shows that request instead; tests cover each case
+- [x] "Only these" filters the lanes to the programme's braids and back, keeps `?programme=<project>/<slug>` with `?projects=`, and survives a reload on desktop and phone
+- [x] With several projects served, the panel lists every shown project's programmes with project tags; two projects with the same slug stay apart in the panel, the filter and the pushes
+- [x] The panel collapses to the rail and back, and the board remembers the choice
+- [x] A held programme shows the user's words on its card, and its braids show paused, not stalled
+- [x] `braid check --plan` accepts the template and names the line of an error
+- [x] Screenshots of each screen, matching the approved mockups
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
