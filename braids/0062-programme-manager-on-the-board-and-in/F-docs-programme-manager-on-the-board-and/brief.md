@@ -1,7 +1,7 @@
 ---
 id: '0062/F'
 title: "Docs: Programme manager on the board and in notifications"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L"]
 dependencies: ['0062/A', '0062/B', '0062/C', '0062/D', '0062/E', '0062/G']
 order: 60
@@ -25,9 +25,18 @@ Expected size: about 200 lines.
 
 ## Completion
 
-- [ ] Each doc from BRAID.md `docs` is checked, and report.md lists it as updated or unchanged
-- [ ] The docs describe programmes, PM routing and escalation, the stalled programme, the pushes under a PM and the login recipes
-- [ ] Each login recipe was run once on its OS, or report.md says why not
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Each doc from BRAID.md `docs` is checked, and report.md lists it as updated or unchanged
+- [x] The docs describe programmes, PM routing and escalation, the stalled programme, the pushes under a PM and the login recipes
+- [x] Each login recipe was run once on its OS, or report.md says why not
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Read the strand reports and the braid log for the notes left to F; take what B to E already documented as the base.
+2. Fill the gaps: board.md lane rules 2 and 3 for requests to the PM and PM requests; braids-format.md command bullets (`--to pm`, `--by pm`, `pm/<slug>`, `action`, `braid forward`, `answer --by pm`); the `braid forward` help line (pause case).
+3. The D46 misstatement: board.md cited D46 as counting the coordinator as an agent; name the coordinator on its own. Update D46's stale `braid start --review` wording; add D89 (PM routing) beside D88, with a decision-log line for both.
+4. README, getting-started, autonomy and roadmap: the programme manager and what reaches the user.
+5. "Run the board at login" in board.md: Windows scheduled task (run once here with `--demo`), Linux systemd user service (no systemd Linux here: verify the unit file with systemd-analyze in WSL).
+6. Gate, report, PR.

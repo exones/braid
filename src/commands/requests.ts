@@ -181,7 +181,7 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   return `${id}: ${kind} request ${by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : ""}opened: ${text}\n`;
 }
 
-/** `braid forward <id> [--note <text>]`: the PM hands a request on to the user; it reaches Needs You (a handover: To Review) at once and is pushed. */
+/** `braid forward <id> [--note <text>]`: the PM hands a request on to the user; it reaches Needs You (a handover: To Review) and is pushed, at once or, while the braid is paused or held, after `braid resume`. */
 export function forwardCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid forward", args, { note: { type: "string" } });
   if (positionals.length !== 1) {
