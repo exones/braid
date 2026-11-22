@@ -11,6 +11,44 @@ Free-form notes from the planning session with the user. They become the plan in
 - **Involve the user in planning, not in the work.** "My priority: to be involved as much as possible in the initial planning, and as little as possible during the work."
 - **Per-programme say settings.** "Per-programme settings (mb just in MD file) must allow defining where I want to have a say similar to current autonomy settings (maybe just with more precise areas / topics)". So: a programme-level settings block (in the plan file or next to it) with finer areas and topics than today's `ask:` keys (security, data, outward, architecture, dependency, scope). The PM applies it to every braid it runs.
 
+## Priorities (the user, 2026-11-22)
+
+The user's order; fractional numbers insert between 2 and 3. The user wrote "#5" twice; the PM reads the first as 4 (to confirm).
+
+1. Precise notifications (below). Inbox idea 2026-11-22-n46f is the same thing: "basically what I told about more precise notifications".
+2. Explicit questions (below).
+2.4. Board lanes collapse, a Held lane, and a Hold button (below).
+2.5. The board nudges stalled threads (below).
+3. Headless board started at login (inbox 2026-11-21-mbb2; relates to 0067's token address file).
+4. (written "#5") Better output in chat and reports, especially the PM's: where we are, how it's going; intermediate reports too. HTML reports and notebooks belong here. "This we can think through later".
+5. Evidence for braids: on big projects, an evidence collection stage before the work, so a worker starts with context from a stronger model: what exists, where to look, what not to do. Related inbox: 2026-11-19-q6jw (evidence folder with a manifest), 2026-11-19-ha6j (final report says where the proof is), 2026-11-18-bvcs (workers say how they verified).
+6. Per-project learnings: "we can define it better when we get to it". Related inbox: 2026-11-19-by68 (learnings for future workers), 2026-11-18-ndmt (review checklist that grows), 2026-11-19-co8u (one place for BRAID.md, AGENTS.md, learnings), 2026-11-20-gb5r (use AGENTS.md and CLAUDE.md).
+
+Not yet placed: 0064, 0067, 0060, 0036, the per-programme say settings, the other inbox ideas and cleanups, T3 Issues.
+
+## Board: collapsible lanes, Held lane, Hold button (2.4)
+
+The user: "possibility to collapse each lane (like DONE now) + new lain held (when held) + button to hold a braid / whole programme with a reason".
+
+- Every lane collapses to a narrow strip, as Done does since 0055; the choice is remembered per browser.
+- A **Held** lane: braids under a deliberate hold (`braid pause --hold`, by the user or the PM) leave their lane for it, with the reason and who held them. Provider-limit pauses: Held too, or a separate marker (to decide).
+- A **Hold** button on a braid's card and on a programme in the programmes panel, with a reason field; and Go to lift it. A braid hold records `braid pause <n> --hold "<reason>"` and tells its coordinator; a programme hold tells the PM, which holds its braids as the braid-pm skill's "Hold" says. Telling a thread is the board messaging a thread on a click: an idle thread gets a plain `t3 thread send`; a busy one needs the steering of 0064.
+
+## Board nudges stalled threads (2.5)
+
+The user: "board surveys sends "hey what's going on to threads it conseders stalled" (stallness already surveyed). It should say like this is board, I deteced you don't work and none of your subitems don't please check all good. You can propose better".
+
+- The board already derives stalls (docs/board.md, the broke alarms and the programme stall). New: on a stall, the board sends the stalled thread one nudge. A stalled thread is idle, so a plain `t3 thread send` reaches it as its next turn; no steering thread needed.
+- One nudge per stall (the key kept like `notified.json`); if nothing changes within a set time after it, the stall escalates as today (to the PM, else to the user's Needs You and a push).
+- Not nudged: a braid held or paused, a thread waiting on an open request (that's the user's or the PM's turn), a Done braid.
+- The PM's proposed text:
+
+  ```text
+  Board check (<time>): braid <number> looks stalled. This thread has been idle for <n> min, none of its agents (<workers, reviewers>) is running, and no request is open. If you are waiting for something, open a request for it (braid ask) so it shows. If work is done, report it. If you lost track, run braid status <number> and continue. Reply with one line starting "Board:", e.g. "Board: continuing 0064/D" or "Board: waiting on CI run 123".
+  ```
+
+- This is the board acting without a click, as 0064 does for limits; it needs its own decision next to 0064's.
+
 ## Ship first (ASAP)
 
 **Precise notifications: a push only when the PM really needs the user, or the coordinator when no PM runs the braid.**
@@ -112,6 +150,7 @@ From the release notes (https://github.com/pingdotgg/t3code/releases/tag/v0.1.11
 ## Session log
 
 - 2026-11-22 21:47Z: session started; 0064, 0067, 0060 in.
+- 2026-11-22 23:05Z: priorities 1 to 6 set; n46f is priority 1; lanes, Held, Hold button (2.4); stall nudges (2.5).
 - 2026-11-22 22:50Z: no board Answer for now; questions get a short code to refer to them in any thread.
 - 2026-11-22 22:45Z: questions always through the CLI; PM answers recorded as answers.
 - 2026-11-22 22:35Z: explicit questions as priority 2.
