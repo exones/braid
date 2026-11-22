@@ -1,7 +1,7 @@
 ---
 id: '0062/G'
 title: "Sweep: 0062 review leftovers"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S", "sweep"]
 dependencies: []
 order: 55
