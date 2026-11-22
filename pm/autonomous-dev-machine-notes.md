@@ -31,6 +31,8 @@ Free-form notes from the planning session with the user. They become the plan in
   - **Answered reliably:** an Answer action on the board (pick an option or type), delivered to the asking thread (a `t3 thread send`, or the agent reads it at its next wake), on desktop and phone. This changes the rule that the board acts only on clicks: here it is a click, but the board then messages a thread (0064 opens that door for limits).
   - **Marked irrelevant:** a question an agent no longer needs (superseded by a later one, decided another way, the braid stopped) is closed as "withdrawn" or "no longer needed", with a reason, never just disappears; and its push is cleared.
   - Fits with: 2026-11-19-aeli (what the answer unblocks), 2026-11-21-t7b8 (recap after the answer), HTML reports (the question rendered with its context).
+- **Every question goes through the CLI, never chat only.** The user (2026-11-22): "actually pm / coordinator skills should know: if they need some info, it should go not only via chat, but via braid cli." The skills (braid, braid-pm, and the workers, reviewers and researchers that ask through their coordinator) say: a question that needs an answer is a `braid ask` record first; the chat message repeats it. A question in chat with no record is a skill violation the board could flag (T3's pending-question flag with no open request).
+- **The PM answers like the user, and that is recorded.** The user: "And of course, same goes for PM case: coordinator can ask question to PM, and it can answer as I would. And coordinator would record it as answer". Today a coordinator under a PM asks `--to pm`, the PM answers in the coordinator's thread, and the coordinator closes the request, but the answer and who gave it aren't kept on the record. In the new record: `answered by: pm | user`, the answer text, the PM's reason, the time; the coordinator records it when closing (`braid answer <id> --by pm --text "…"` or similar). Then the board and the digest can list "decided by the PM" next to "decided by you", and a user who disagrees can find and reverse it.
 - Order: right after precise notifications; they share the request model (who it is for, its state), so one braid may shape the contract for both: settle the request record (addressee, state open/answered/withdrawn, answer, reason, history) in the first.
 
 ## Braids already in (order to discuss)
@@ -110,6 +112,7 @@ From the release notes (https://github.com/pingdotgg/t3code/releases/tag/v0.1.11
 ## Session log
 
 - 2026-11-22 21:47Z: session started; 0064, 0067, 0060 in.
+- 2026-11-22 22:45Z: questions always through the CLI; PM answers recorded as answers.
 - 2026-11-22 22:35Z: explicit questions as priority 2.
 - 2026-11-22 22:20Z: T3 v0.1.11 read; HTML reports back in as a candidate; T3 Issues noted.
 - 2026-11-22 22:00Z: principles (planning, not the work; per-programme say settings), notifications first, inbox ideas in except HTML, 0036 to review.
