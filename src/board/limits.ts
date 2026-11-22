@@ -59,11 +59,12 @@ const fullest = (windows: readonly WindowReading[], kind: WindowReading["kind"])
 
 /** The chip state of a reading, given whether a limit pause record names the provider. */
 export function stateOf(reading: ProviderReading, paused: boolean): ChipState {
-  if (reading.verdict === "unknown") {
-    return reading.reason?.startsWith(NOT_MEASURED) === true ? "unmeasured" : "unknown";
-  }
+  // A pause record decides first: after a pause T3 may not refresh the cache for a while, and the braid is paused all the same.
   if (paused) {
     return "paused";
+  }
+  if (reading.verdict === "unknown") {
+    return reading.reason?.startsWith(NOT_MEASURED) === true ? "unmeasured" : "unknown";
   }
   if (reading.verdict === "pause") {
     return "over";
@@ -118,7 +119,7 @@ export function buildView(readings: readonly ProviderReading[], limits: Limits, 
       session: fullest(r.windows, "session"),
       weekly: fullest(r.windows, "weekly"),
       resumeAt: state === "paused" ? (resumes[0] ?? r.resumeAt) : r.resumeAt,
-      pauseWindow: r.pauseWindow,
+      pauseWindow: mine.find((p) => p.window !== null)?.window ?? r.pauseWindow,
       agents: [...stopped, ...(running.get(r.instanceId) ?? [])],
     };
   });
@@ -174,10 +175,14 @@ export function mergeLimits(views: readonly { readonly project: string; readonly
     const all = byId.get(id) ?? [];
     // The reading read last wins; the state shown is the most pressing one any project saw.
     const latest = all.reduce((a, b) => (Date.parse(b.checkedAt ?? "") > Date.parse(a.checkedAt ?? "") || a.checkedAt === null ? b : a));
-    const state = all.reduce<ChipState>((s, p) => (rank[p.state] > rank[s] ? p.state : s), latest.state === "unmeasured" ? "unmeasured" : latest.state);
+    const state = all.reduce<ChipState>((s, p) => (rank[p.state] > rank[s] ? p.state : s), latest.state);
+    // A project's pause record wins over another project's unknown or unmeasured reading; the resume time is the earliest of the records.
+    const paused = all.filter((p) => p.state === "paused");
+    const resumes = paused.map((p) => p.resumeAt).filter((r): r is string => r !== null).sort();
     return {
       ...latest,
-      state: latest.state === "unknown" || latest.state === "unmeasured" ? latest.state : state,
+      state: latest.state === "unknown" || latest.state === "unmeasured" ? (paused.length > 0 ? "paused" : latest.state) : state,
+      ...(paused.length > 0 ? { resumeAt: resumes[0] ?? latest.resumeAt, pauseWindow: paused.find((p) => p.pauseWindow !== null)?.pauseWindow ?? latest.pauseWindow } : {}),
       roles: [...new Set(all.flatMap((p) => p.roles))],
       models: [...new Set(all.flatMap((p) => p.models))],
       agents: all.flatMap((p) => p.agents),

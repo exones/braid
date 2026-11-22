@@ -78,6 +78,40 @@ test("projects merge by provider, and a project with no reading adds nothing", (
   const one = readLimitsView(project(MODELS), NO_THREADS, new Map(), NOW, fixtures);
   const merged = mergeLimits([{ project: "a", view: one }, { project: "b", view: one }, { project: "c", view: empty }]);
   assert.deepEqual(merged.providers.map((p: any) => p.instanceId), ["claude_ok", "codex_ok", "cursor_unsupported"]);
+  assert.deepEqual(merged.providers.map((p: any) => p.state), ["ok", "ok", "unmeasured"]);
+});
+
+const record = (provider: string, extra: Record<string, unknown> = {}): Record<string, unknown> => ({ braid: "0025", provider, window: "five_hour", label: "Session", usedPercent: 98, resetsAt: null, resumeAt: "2026-11-21T19:00:00.000Z", task: null, thread: "t", by: "coordinator", at: NOW.toISOString(), ...extra });
+
+test("a limit pause record makes the chip paused even when the cache is stale or the provider is not measured", () => {
+  const later = new Date("2026-11-21T18:30:00.000Z");
+  const stale = readLimitsView(project("models:\n  coordinator: claude_stale / claude-opus-5-5 / effort=medium"), NO_THREADS, new Map([["0025", record("claude_stale")]]), later, fixtures);
+  assert.equal(stale.providers[0].state, "paused");
+  assert.equal(stale.providers[0].resumeAt, "2026-11-21T19:00:00.000Z");
+  assert.match(chipNote(stale.providers[0], later), /^paused · resumes \d\d:\d\d$/);
+  const cursor = readLimitsView(project("models:\n  reviewer: cursor_unsupported / grok-4.6 / effort=high"), NO_THREADS, new Map([["0025", record("cursor_unsupported")]]), NOW, fixtures);
+  assert.equal(cursor.providers[0].state, "paused");
+});
+
+test("in the combined board a pause record in one project wins over another project's unknown reading", () => {
+  const front = "models:\n  coordinator: claude_stale / claude-opus-5-5 / effort=medium";
+  const later = new Date("2026-11-21T18:30:00.000Z");
+  const quiet = readLimitsView(project(front), NO_THREADS, new Map(), later, fixtures);
+  const paused = readLimitsView(project(front), NO_THREADS, new Map([["0025", record("claude_stale")]]), later, fixtures);
+  assert.equal(quiet.providers[0].state, "unknown");
+  for (const views of [[quiet, paused], [paused, quiet]]) {
+    const merged = mergeLimits(views.map((view, i) => ({ project: `p${i}`, view })));
+    assert.equal(merged.providers[0].state, "paused");
+    assert.equal(merged.providers[0].resumeAt, "2026-11-21T19:00:00.000Z");
+  }
+});
+
+test("a weekly pause reads weekly · resumes <weekday> <time>", () => {
+  const root = project("models:\n  coordinator: claude_weekly_over / claude-opus-5-5 / effort=medium");
+  const weekly = record("claude_weekly_over", { window: "seven_day", label: "Weekly", resumeAt: "2026-11-26T06:05:00.000Z" });
+  const p = readLimitsView(root, NO_THREADS, new Map([["0025", weekly]]), NOW, fixtures).providers[0];
+  assert.equal(p.state, "paused");
+  assert.match(chipNote(p, NOW), /^weekly · resumes (Wed|Thu|Fri) \d\d:\d\d$/);
 });
 
 function stub(list: unknown[], shown: Record<string, unknown>) {
@@ -112,6 +146,8 @@ test("the steering title has no item id, and nothing but a steering title reads 
   assert.deepEqual(parseSteeringTitle(title), { repo: "braid", what: "pause Claude_Everix Session 97%" });
   assert.equal(parseThreadTitle(title), null);
   assert.equal(parseSteeringTitle("🧠 braid 0064 coordinator: x"), null);
+  assert.equal(parseSteeringTitle("braid steering: x"), null); // the 🚦 is required
+  assert.equal(parseSteeringTitle("💻 braid steering: x"), null);
 });
 
 test("the demo shows Claude_Everix paused, codex ok and cursor not measured, and the board data carries it", () => {

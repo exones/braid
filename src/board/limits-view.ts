@@ -16,6 +16,21 @@ function inText(ms: number): string {
   return min < 60 ? `in ${min} min` : min < 2880 ? `in ${Math.round(min / 60)} h` : `in ${Math.round(min / 1440)} d`;
 }
 
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** `07:05` today, `Thu 07:05` within the next six days (a weekly reset), else the date as `clock` gives it. */
+export function whenText(iso: string, now: Date): string {
+  const days = (Date.parse(iso) - now.getTime()) / 86_400_000;
+  const d = new Date(iso);
+  if (d.toDateString() !== now.toDateString() && days > 0 && days < 6) {
+    return `${DAYS[d.getDay()] ?? ""} ${clock(iso, d).slice(-5)}`;
+  }
+  return clock(iso, now);
+}
+
+/** Whether the window a pause waits for is a weekly one: by the reading when it has the window, else by the record's window id. */
+const isWeekly = (p: ProviderView): boolean => p.windows.find((w) => w.id === p.pauseWindow)?.kind === "weekly" || (p.pauseWindow !== null && /seven_day|week/i.test(p.pauseWindow));
+
 /** The note on a chip, after the name: what the state says beyond the meters; empty for ok and near. */
 export function chipNote(p: ProviderView, now: Date): string {
   switch (p.state) {
@@ -26,8 +41,7 @@ export function chipNote(p: ProviderView, now: Date): string {
     case "over":
       return "over";
     case "paused": {
-      const weekly = p.windows.some((w) => w.id === p.pauseWindow && w.kind === "weekly");
-      return `${weekly ? "weekly · " : "paused · "}resumes ${p.resumeAt === null ? "?" : clock(p.resumeAt, now)}`;
+      return `${isWeekly(p) ? "weekly · " : "paused · "}resumes ${p.resumeAt === null ? "?" : whenText(p.resumeAt, now)}`;
     }
     default:
       return "";
@@ -48,7 +62,7 @@ export function chipTitle(p: ProviderView): string {
 
 /** `resets 13:50 (in 52 min)` for a window. */
 export function resetText(resetsAt: string, reset: boolean, now: Date): string {
-  return reset ? "reset" : `resets ${clock(resetsAt, now)} (${inText(Date.parse(resetsAt) - now.getTime())})`;
+  return reset ? "reset" : `resets ${whenText(resetsAt, now)} (${inText(Date.parse(resetsAt) - now.getTime())})`;
 }
 
 /** The state's tone: which colours the chip, bar and badge take. */

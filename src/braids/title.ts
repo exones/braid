@@ -38,8 +38,8 @@ export function steeringTitle(repo: string, what: string): string {
   return `${STEERING_EMOJI} ${repo} steering: ${what}`;
 }
 
-/** A steering thread's title read back, with or without the emoji; null for any other title. */
+/** A steering thread's title read back; the 🚦 is required, so no other thread with a similar title is taken for it. Null for any other title. */
 export function parseSteeringTitle(text: string): { readonly repo: string; readonly what: string } | null {
-  const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) steering: (.*)$/.exec(text);
+  const m = new RegExp(`^${STEERING_EMOJI}\\s+(\\S+) steering: (.*)$`).exec(text);
   return m === null ? null : { repo: m[1] ?? "", what: m[2] ?? "" };
 }

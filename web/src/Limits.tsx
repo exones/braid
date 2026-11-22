@@ -21,11 +21,11 @@ const TONE_BADGE = {
 
 type Tone = keyof typeof TONE_FILL;
 
-/** A bar of one window's usage, with its threshold as a tick; a window over its threshold is red whatever the state. */
+/** A bar of one window's usage, with its threshold as a tick; a window over its threshold is red, except on a paused chip, where the bars stay sky (the pause is handled). */
 function Track({ w, fill, height }: { w: WindowReading; fill: string; height: string }) {
   return (
     <span className={`relative flex-1 rounded-sm bg-slate-200 ${height}`}>
-      <span className={`absolute inset-y-0 left-0 rounded-sm ${w.over ? "bg-red-600" : fill}`} style={{ width: `${Math.min(100, w.usedPercent)}%` }} />
+      <span className={`absolute inset-y-0 left-0 rounded-sm ${w.over && fill !== TONE_FILL.sky ? "bg-red-600" : fill}`} style={{ width: `${Math.min(100, w.usedPercent)}%` }} />
       <span className="absolute -inset-y-0.5 w-0.5 rounded-sm bg-slate-700" style={{ left: `${w.threshold}%` }} />
     </span>
   );

@@ -78,7 +78,7 @@ The header shows a chip per provider: every instance in `BRAID.md` `models` of t
 
 - **ok** (grey) and **near** (amber, within 10 points of a threshold): the meters only.
 - **over** (red): a window is past its threshold. The board shows it; it does not act on it yet.
-- **paused** (sky): a limit pause record names the provider; "paused · resumes 13:55", or "weekly · resumes Thu 07:05" when the window is the weekly one.
+- **paused** (sky): a limit pause record names the provider, whatever its cache says (a stale or unmeasured cache doesn't turn it unknown; the combined board keeps `paused` over another project's unknown); its bars stay sky even past a threshold; "paused · resumes 13:55", or "weekly · resumes Thu 07:05" when the window is the weekly one.
 - **unknown** (dashed): no usable reading ("no reading for 14 min" for a stale cache). Unknown never pauses anything.
 - **not measured** (dashed): T3 can't read this provider's usage (cursor).
 
