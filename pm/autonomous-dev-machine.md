@@ -39,6 +39,8 @@ Branch: `pm/autonomous-dev-machine`. The planning notes, with the user's words i
 
 The principle: "My priority: to be involved as much as possible in the initial planning, and as little as possible during the work."
 
+A requirement for every braid of the programme (the user, 2026-11-22): "don't overblow skills, try to see how to make easier, don't create spaghetti states and lean more to realiable calls like with requests". So: each braid leaves the skills no longer, or shorter, than it found them where it can; it prefers one CLI call that records and checks a state (as `braid ask` and `braid answer` do) over prose rules agents must remember; it adds no new state file or state kind when an existing one can carry it. The PM quotes this in every coordinator's first message and checks it at each plan and live check.
+
 The user adds items as the programme runs; the PM places them ("other things I will add as we go and you will adjust").
 
 ## Decisions
@@ -60,6 +62,7 @@ The user's decisions, quoted and dated, then the PM's own.
 - 2026-11-22, user: after each merged item, install, restart the board and wait for the user's instructions ("After each merge").
 - 2026-11-22, user, P2 Q3: "I don't care about T3 notifs. I want to rely on braid notify and ntfy for the moment (BTW it always should contain a coordinator / PM thread link that needs my attention: now it doesn't all the time)".
 - 2026-11-22, user, P2 Q1: "if they do, I'm OK if I only get one notif with 2" (PRs ready to merge: one notification for the batch). Q2: "A" (no Done notification; the after-merge "have a look" covers it).
+- 2026-11-22, user, for the whole programme: "don't overblow skills, try to see how to make easier, don't create spaghetti states and lean more to realiable calls like with requests".
 - 2026-11-22, PM: 2026-11-22-n46f (pushes only for what needs the user under a PM) is P2, as the user said ("basically what I told about more precise notifications").
 - 2026-11-22, PM: the headless board (2026-11-21-mbb2) goes into P7 · 0067: `braid board --no-open` and the login recipes already exist (docs/board.md "Run the board at login"); what is missing is the page being able to act (0067's token address) and, if the coordinator finds it worth it, a command that installs the login task.
 
