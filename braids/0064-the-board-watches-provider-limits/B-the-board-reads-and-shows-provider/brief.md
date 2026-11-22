@@ -1,7 +1,7 @@
 ---
 id: '0064/B'
 title: "The board reads and shows provider limits"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: ['0064/A']
 order: 20
@@ -26,6 +26,15 @@ Expected size: about 350 lines in 8 files (0064/A's estimate).
 - `providerInstanceId` is kept on worker and reviewer threads as well as coordinators (C needs it for targets).
 - The header chips (ok, near, over, paused, unknown, not measured), the limits panel opened from a chip (windows, roles, agents per provider; the steering line stays empty until C), and the phone strip, all as in the mockups, also in `--demo` with demo readings.
 - The steering role: `steering: "🚦"` in the roles and a title pattern for `🚦 <repo> steering: …` threads, so no item reads such a thread as one of its agents.
+
+## Plan
+
+- `src/braids/limits.ts`: export the not-measured reason marker (the verdicts stay as they are).
+- `src/board/limits.ts` (new): `LimitsView`, per provider the reading, a chip state (ok, near within 10 points, over, paused when a pause record names it, unknown, not measured), its roles and the paused and running agents. Built from `readProviders` over BRAID.md `models` plus the providers running threads use. Pure; merged across projects by provider.
+- `src/board/t3.ts`: `provider` on every `T3Thread` (the list's `providerInstanceId`, `show` for reviewers); a steering title (`🚦 <repo> steering: …`) is no agent; `ROLES.steering`.
+- `Sources.limits(t3)` read in each snapshot (T3 caches only), `BoardData.limits`, `/api/all` `limits`; demo readings.
+- `web/src/App.tsx`: header chips, the limits panel from a chip, the phone strip with a full-screen panel, as mockups 1, 3 and 5.
+- Tests for the view, the thread provider, the steering title, the board data and the page; `docs/board.md`.
 
 ## Already decided
 
