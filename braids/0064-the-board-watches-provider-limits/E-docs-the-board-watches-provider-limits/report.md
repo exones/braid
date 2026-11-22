@@ -7,7 +7,7 @@
 
 **Docs, one by one:**
 - README.md: unchanged (C/D wording is true: the board pauses, coordinators launch nothing meanwhile).
-- docs/getting-started.md, docs/autonomy.md, docs/cli.md, docs/braids-format.md: unchanged (already say the board pauses and resumes; the `coordinator`/`pm` records are described as older). 
+- docs/getting-started.md, docs/autonomy.md, docs/cli.md, docs/braids-format.md: unchanged (already say the board pauses and resumes; the `coordinator`/`pm` records are described as older).
 - docs/board.md: updated (Paused paragraph, screenshots).
 - CLI help text (`src/cli.ts`, `src/commands/pauses.ts`): unchanged; it already has `--no-pause`, `--by ...|board`.
 - docs/decisions.md: unchanged (D90 and the log entry replace D87's pauser).
