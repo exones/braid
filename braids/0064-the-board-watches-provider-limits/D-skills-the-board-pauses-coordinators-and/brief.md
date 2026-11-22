@@ -1,7 +1,7 @@
 ---
 id: '0064/D'
 title: "Skills: the board pauses, coordinators and PMs follow"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:M", "ask:process"]
 dependencies: ['0064/A', '0064/C']
 order: 40
