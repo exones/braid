@@ -1,7 +1,7 @@
 ---
 id: '0064/E'
 title: "Docs: The board watches provider limits"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: ['0064/A', '0064/B', '0064/C', '0064/D']
 order: 50
@@ -31,7 +31,7 @@ Expected size: about 150 lines in 6 files.
 
 ## Completion
 
-- [ ] report.md lists each doc in `BRAID.md` `docs` as updated or unchanged
-- [ ] Docs from BRAID.md `docs` that this braid makes untrue are updated
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md lists each doc in `BRAID.md` `docs` as updated or unchanged
+- [x] Docs from BRAID.md `docs` that this braid makes untrue are updated
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
