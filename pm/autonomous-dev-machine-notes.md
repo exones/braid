@@ -15,8 +15,10 @@ Free-form notes from the planning session with the user. They become the plan in
 
 The user's order; fractional numbers insert between 2 and 3. The user wrote "#5" twice; the PM reads the first as 4 (to confirm).
 
+0. **Coordinators stop waiting in the foreground** ("almost immediately", below).
 1. Precise notifications (below). Inbox idea 2026-11-22-n46f is the same thing: "basically what I told about more precise notifications".
 2. Explicit questions (below).
+2.x. **Needs You says what the answer unblocks** (inbox 2026-11-19-aeli), promoted to its own braid: "I like the idea 2026-11-19-aeli, include in programme as braid I guess (promote)". It builds on the question record of 2: each question says what it unblocks (items, strands) and whether it is a decision or something to do outside braid; answered questions stay listed as decided, with the answer.
 2.4. Board lanes collapse, a Held lane, and a Hold button (below).
 2.5. The board nudges stalled threads (below).
 3. Headless board started at login (inbox 2026-11-21-mbb2; relates to 0067's token address file).
@@ -25,6 +27,19 @@ The user's order; fractional numbers insert between 2 and 3. The user wrote "#5"
 6. Per-project learnings: "we can define it better when we get to it". Related inbox: 2026-11-19-by68 (learnings for future workers), 2026-11-18-ndmt (review checklist that grows), 2026-11-19-co8u (one place for BRAID.md, AGENTS.md, learnings), 2026-11-20-gb5r (use AGENTS.md and CLAUDE.md).
 
 Not yet placed: 0064, 0067, 0060, 0036, the per-programme say settings, the other inbox ideas and cleanups, T3 Issues.
+
+## Coordinators stop waiting in the foreground (0)
+
+The user (2026-11-22): "very annoying thing to fix almost immediately: now coordinator waits for subordinate threads in foreground. remove it, it puts arriving messages in the queue".
+
+- Where: the braid skill, "Running" step 3 (`t3_thread_wait` on the worker's thread with `timeoutMs: 600000`, again on a timeout, "Run nothing else in parallel with it"), step 4 (`braid wait <number> --timeout 9` in the foreground after a strand's merge, called again until CI ends), the reviewer wait, and references/limits.md "Pause" step 2 (`t3_thread_wait` for each `Paused:` reply). While these run, the user's and the PM's messages queue behind them, for up to 10 minutes per call, in a loop.
+- The fix: the coordinator ends its turn and is woken by events, never blocks: the worker's report (`t3_thread_send`), a `delegate_task` result (reviewers, researchers, and workers after 0060), a PR watch. A message from the user or the PM is then answered at once.
+- What replaces the waits:
+  - Worker: its report wakes the coordinator; a forgotten report or a dead worker is caught by the board's stall survey and nudge (2.5), and fully by 0060 (a subagent's end always wakes the parent).
+  - CI on the braid branch after a strand merge (`braid wait`): needs a wake that isn't a foreground call. Background Bash with `t3_background_wait` killed sessions (D77), so not that. Options to settle: the next strand starts without waiting and a red braid-branch CI is caught before the final PR (and by the board); or a PR watch where there is a PR; or a scheduled task in the coordinator's thread.
+  - `Paused:` replies under a limit pause: each agent's reply wakes the coordinator, which counts them.
+- This is a skill change (`.agents/skills/braid`), which the user asked for here; the user merges it.
+- Overlaps 0060 (workers as subagents), which removes the worker wait at its root. Either this goes first as a small fix and 0060 builds on it, or 0060 is planned to include it. Overlaps 0064/D too (it rewrites the limits reference's pause steps).
 
 ## Board: collapsible lanes, Held lane, Hold button (2.4)
 
@@ -150,6 +165,7 @@ From the release notes (https://github.com/pingdotgg/t3code/releases/tag/v0.1.11
 ## Session log
 
 - 2026-11-22 21:47Z: session started; 0064, 0067, 0060 in.
+- 2026-11-22 23:15Z: priority 0, coordinators stop waiting in the foreground; aeli promoted to its own braid.
 - 2026-11-22 23:05Z: priorities 1 to 6 set; n46f is priority 1; lanes, Held, Hold button (2.4); stall nudges (2.5).
 - 2026-11-22 22:50Z: no board Answer for now; questions get a short code to refer to them in any thread.
 - 2026-11-22 22:45Z: questions always through the CLI; PM answers recorded as answers.
