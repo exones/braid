@@ -34,7 +34,7 @@ Free-form notes from the planning session with the user. They become the plan in
 
 ## Inbox ideas: all go into the programme (except the HTML one)
 
-The user: "ideas from inbox indeed all have to be turned into this programme work except HTML one" (2026-11-21-xebx, HTML reports, stays out).
+The user: "ideas from inbox indeed all have to be turned into this programme work except HTML one". Then, after T3 v0.1.11: "I think HTML notebooks can be interesting. If it can show HTML in chat, maybe we can consider it". So 2026-11-21-xebx (HTML reports before questions and at the end of work) is back in, as a candidate (see "T3 v0.1.11").
 
 Notifications and asking the user:
 - 2026-11-22-n46f Pushes only for what needs the user under a PM (see "Ship first")
@@ -74,13 +74,28 @@ Cleanups:
 - 2026-11-20-6ce8 Flaky test at midnight UTC (test/done.test.ts)
 - Leftover 2026-11-22-zmry A failed one-shot limit push can be lost on a multi-project board (0064/C review)
 
+## T3 v0.1.11 (released 2026-11-20)
+
+From the release notes (https://github.com/pingdotgg/t3code/releases/tag/v0.1.11), what touches this programme:
+
+- **HTML in chat works today.** `html_preview` and `html_render` show a self-contained HTML page inline in the thread, above the reply, themed, on desktop and phone (the PM showed the notes this way on 2026-11-22). v0.1.11 fixes how these render: no white flash, no scroll jumps, page scripts don't scroll the chat. HTML reports in dot-prefixed folders now open too. That would cover `.braid/` and `~/.braid/artifacts/`. So the HTML idea (xebx) is feasible without new infrastructure: rundowns before a question, recaps and final reports rendered in the coordinator's or PM's thread. Hosts without HTML (plain Claude Code, Codex) fall back to Markdown. "HTML notebooks": a living HTML page per programme or braid, re-rendered at each digest or recap, is a possible shape.
+- **Issues page, with issue tools for agents** (GitHub, Linear, GitLab, Azure DevOps, Forgejo), and issues linked to threads: "hand an issue to an agent all the way to a merged PR". This is an intake path for the machine (an issue becomes an inbox idea or a braid), or it overlaps with braid's own inbox. To discuss.
+- **`t3 thread start` takes model options** (#23932): the board's steering thread in 0064 can set them.
+- **Delegated tasks are more reliable** (child reports kept, wakes name the child thread, resumed subagents keep their result, a delegated wake survives cancellation). This lowers the risk for 0060 (workers as subagents).
+- **Steers are reliable** (an unread steer no longer hangs or is lost, accepted steers replay after the turn ends). This supports 0064's steering thread.
+- **One-time scheduled tasks are removed after their turn.** This bears on the PM's and coordinators' resume tasks, which 0064 replaces anyway.
+- Usage limit rows show your pace (UI only; `braid limits` reads T3's caches).
+
 ## Open points
 
 - Order of 0064, 0067, 0060, and where "precise notifications" goes among them.
 - The format and the areas of the per-programme say settings.
 - How much of 0036 is still relevant.
+- HTML reports and notebooks: where they render (chat, board, a file), and for which messages.
+- T3 Issues: an intake path for the machine, or not?
 
 ## Session log
 
 - 2026-11-22 21:47Z: session started; 0064, 0067, 0060 in.
+- 2026-11-22 22:20Z: T3 v0.1.11 read; HTML reports back in as a candidate; T3 Issues noted.
 - 2026-11-22 22:00Z: principles (planning, not the work; per-programme say settings), notifications first, inbox ideas in except HTML, 0036 to review.
