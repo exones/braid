@@ -1,7 +1,7 @@
 ---
 id: '0064/C'
 title: "The board pauses and resumes through a steering thread"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: ['0064/A', '0064/B']
 order: 30
