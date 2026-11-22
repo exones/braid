@@ -1,7 +1,7 @@
 ---
 id: '0062/B'
 title: "Requests addressed to the PM"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: ['0062/A']
 order: 20
