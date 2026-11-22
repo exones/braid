@@ -8,8 +8,8 @@ import { dirname } from "node:path";
 import type { BoardData } from "../board/model.js";
 import { ensureStateDir } from "../braids/requests.js";
 import { readConfig, tokenOf, type NotifyConfig } from "./config.js";
-import { pushesOf, type Push } from "./message.js";
-import { ntfySender, SEND_TIMEOUT_MS, type Sender } from "./sender.js";
+import { pushesOf, sequenceOf, type Push } from "./message.js";
+import { ntfyClearer, ntfySender, SEND_TIMEOUT_MS, type Clearer, type Sender } from "./sender.js";
 
 export interface SentState {
   /** The sent keys and the item each is about. */
@@ -44,6 +44,8 @@ export interface NotifierOptions {
   /** The settings, read at each refresh so `braid notify off` takes effect without a restart. */
   readonly config?: () => NotifyConfig | null;
   readonly send?: Sender;
+  /** Clears a push whose need is gone; replaced in tests. */
+  readonly clear?: Clearer;
   readonly token?: () => string | null;
   /** Where a failed send is reported: the board's standard error. */
   readonly warn?: (line: string) => void;
@@ -61,6 +63,7 @@ export interface Notifier {
 export function notifier(opts: NotifierOptions): Notifier {
   const config = opts.config ?? (() => readConfig());
   const send = opts.send ?? ntfySender();
+  const clear = opts.clear ?? ntfyClearer();
   const token = opts.token ?? (() => tokenOf());
   const warn = opts.warn ?? ((line: string) => void process.stderr.write(`${line}\n`));
   const timeoutMs = opts.timeoutMs ?? SEND_TIMEOUT_MS + 1_000;
@@ -86,7 +89,7 @@ export function notifier(opts: NotifierOptions): Notifier {
       timer = setTimeout(() => fail(new Error(`${new URL(cfg.server).host} did not answer in time`)), timeoutMs);
       timer.unref();
     });
-    const run = Promise.race([Promise.resolve().then(() => send(cfg, { title: push.title, body: push.body, tags: push.tags, priority: push.priority, click: push.click }, token())), late])
+    const run = Promise.race([Promise.resolve().then(() => send(cfg, { title: push.title, body: push.body, tags: push.tags, priority: push.priority, click: push.click, sequence: push.sequence }, token())), late])
       .then(
         () => {
           if (failing) {
@@ -131,6 +134,22 @@ export function notifier(opts: NotifierOptions): Notifier {
         continue;
       }
       start(cfg, push);
+    }
+    // A need that is gone (its request answered or closed) takes its push off the phone: clear it by its sequence ID,
+    // unless the item has a push now (the same ID: that push replaced the old one). A failed clear is reported, not retried.
+    const live = new Set(pushes.map((p) => p.item));
+    const gone = new Set(Object.entries(stored.keys).filter(([k, item]) => !current.has(k) && !k.endsWith("|done") && !live.has(item)).map(([, item]) => item));
+    for (const item of gone) {
+      const name = `clear ${item}`;
+      if (!flying.has(name)) {
+        flying.set(
+          name,
+          Promise.resolve()
+            .then(() => clear(cfg, sequenceOf(board.repo, item), token()))
+            .catch((e: unknown) => warn(`braid notify: can't clear the push of ${item} (${e instanceof Error ? e.message : "failed"})`))
+            .finally(() => flying.delete(name)),
+        );
+      }
     }
     const dropped = Object.keys(stored.keys).some((k) => !current.has(k));
     if (stored.fresh || dropped || Object.keys(quiet).length > 0) {

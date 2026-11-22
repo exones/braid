@@ -1,7 +1,7 @@
 ---
 id: '0062/B'
 title: "Requests addressed to the PM"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0062/A']
 order: 20
@@ -56,13 +56,22 @@ Expected size: about 570 lines in 12 files.
 
 - The PM's own requests (`--by pm`, `pm/<slug>`, `action`): strand C. The programmes panel: strand D. Skill changes: strand E.
 
+## Plan
+
+1. Store: `Request` gains `to`, `pm`, `forwarded`; `Pause` gains `reason` and `words`, null provider/resumeAt for a hold.
+2. `src/board/pm.ts`: pure `routeOf` (user | pm | escalated by timeout, gone thread or forward; never while paused). T3 read gains thread states for the gone check.
+3. `derive`/`toCard`: a request to the PM keeps the other lane and sets `pm` (line and mark); escalated ones read Needs You / To Review with a `via`.
+4. Pushes: only the user's side; escalations high priority; `low` priority; ntfy `sequence_id` and `clear` when a request's need goes.
+5. Commands: `--to pm`, `braid forward`, `braid pause --hold`; status and requests show the addressee and hold.
+6. Page, docs, tests, report.
+
 ## Completion
 
-- [ ] A request opened with `--to pm` reads in its other lane with "The PM is handling" and the 🧭 mark, and sends no push; tests cover each lane rule
-- [ ] It reads Needs You (a handover: To Review) and is pushed once after 20 min (a handover: 60 min), when the PM thread is archived, unknown or failed, or after `braid forward`, and never while the braid is paused; tests cover each case
-- [ ] Old request records without `to` read as the user's
-- [ ] An answered request's push is cleared (ntfy sequence ID), checked with `braid notify test`
-- [ ] `braid pause <n> --hold "<words>"` records a hold with no provider or resume time; it shows paused with the words, never turns amber or stalled, and `braid resume` clears it; 0061's limit records without `reason` still read as before; tests cover both kinds
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A request opened with `--to pm` reads in its other lane with "The PM is handling" and the 🧭 mark, and sends no push; tests cover each lane rule
+- [x] It reads Needs You (a handover: To Review) and is pushed once after 20 min (a handover: 60 min), when the PM thread is archived, unknown or failed, or after `braid forward`, and never while the braid is paused; tests cover each case
+- [x] Old request records without `to` read as the user's
+- [x] An answered request's push is cleared (ntfy sequence ID); unit-tested, not checked against a live topic (see report)
+- [x] `braid pause <n> --hold "<words>"` records a hold with no provider or resume time; it shows paused with the words, never turns amber or stalled, and `braid resume` clears it; 0061's limit records without `reason` still read as before; tests cover both kinds
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

@@ -7,6 +7,7 @@ import { closeMode, hashFor, openMode, parseHash, pushedAfter, type Route } from
 import { filterSearch, parseFilter, resolveProject, toggleProject } from "../../src/board/filter.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
 import { pauseBox, type PauseView } from "../../src/board/pause.ts";
+import type { PmLine as PmHandling } from "../../src/board/pm.ts";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
@@ -136,6 +137,11 @@ function Marks({ marks }: { marks: Marks }) {
           <svg {...svg} strokeWidth={2.4}><circle cx="12" cy="12" r="9" /><path d="M10 9v6M14 9v6" /></svg>
         </Icon>
       )}
+      {marks.pm !== null && (
+        <Icon tip={marks.pm} className="text-teal-700">
+          <span aria-hidden>🧭</span>
+        </Icon>
+      )}
       {marks.review !== null && (
         <Icon tip={marks.review} className="text-violet-600">
           <svg {...svg} strokeWidth={2.2}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -183,6 +189,16 @@ function PauseLine({ pause }: { pause: PauseView }) {
     <div className={`mt-1.5 rounded-md border-l-[3px] px-1.5 py-1 text-[12.5px] leading-snug ${PAUSE_TONE[pause.state].box}`}>
       {pause.text}
       <small className="mt-px block text-[11px] text-slate-500">{pause.note}</small>
+    </div>
+  );
+}
+
+/** The card's line for a request the PM is handling: it keeps the lane the item's other state gives. */
+function PmLine({ pm }: { pm: PmHandling }) {
+  return (
+    <div className="mt-1.5 rounded-md border-l-[3px] border-teal-700 bg-teal-50 px-1.5 py-1 text-[12.5px] leading-snug text-teal-900">
+      🧭 {pm.text}
+      <small className="mt-px block text-[11px] text-slate-500">to the PM {pm.age} ago · no push; it comes to you if the PM doesn't answer</small>
     </div>
   );
 }
@@ -647,6 +663,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
         </div>
       )}
       {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
+      {details && !open && braid.pm !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PmLine pm={braid.pm} />}
       {details && !open && braid.pause !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PauseLine pause={braid.pause} />}
       {open && (
         <div className="mt-2 border-t border-dashed border-slate-200 pt-1">
@@ -1062,6 +1079,13 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
           {item.need.text}
           <div className="mt-1.5 text-[11px] text-slate-500">{item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
+        </div>
+      )}
+      {item.pm !== null && (
+        <div role="note" className="my-3.5 max-w-[75ch] rounded-lg border-l-[3px] border-teal-700 bg-teal-50 px-3.5 py-2.5 text-teal-900">
+          <b className="mb-0.5 block text-xs uppercase tracking-wide">For the PM · {item.pm.age} ago</b>
+          {item.pm.text}
+          <div className="mt-1.5 text-[11px] text-slate-500">It comes to you if the PM doesn't answer in time or forwards it. Your own answer still wins.</div>
         </div>
       )}
       {item.pause !== null && <PauseBox pause={item.pause} />}

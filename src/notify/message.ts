@@ -14,9 +14,11 @@ export interface Push {
   readonly title: string;
   readonly body: string;
   readonly tags: readonly string[];
-  readonly priority: "high" | "default";
+  readonly priority: "high" | "default" | "low";
   /** The thread's T3 app link (`t3code://threads/<env>/<thread>`); null for none. */
   readonly click: string | null;
+  /** ntfy's sequence ID: a later push or a clear with the same ID replaces or removes this one. Set on each need's push; null for a Done push. */
+  readonly sequence: string | null;
 }
 
 /** The ntfy tag (an emoji short code) per reason. */
@@ -37,6 +39,9 @@ export function needKey(id: string, lane: Lane, need: Need): string {
   return [id, lane, need.kind, need.since ?? (need.pr === null ? "-" : `#${need.pr}`)].join("|");
 }
 
+/** The sequence ID of an item's need push: the repository and the item, in the characters a URL path holds. */
+export const sequenceOf = (repo: string, id: string): string => `braid-${repo}-${id}`.replace(/[^A-Za-z0-9_-]/g, "-");
+
 export const doneKey = (id: string): string => `${id}|done`;
 
 function needPush(repo: string, id: string, title: string, lane: Lane, need: Need, thread: string | null): Push {
@@ -44,11 +49,13 @@ function needPush(repo: string, id: string, title: string, lane: Lane, need: Nee
     key: needKey(id, lane, need),
     item: id,
     kind: "need",
-    title: `${repo} ${id}: ${LANE_LABEL[lane]}`,
+    title: `${repo} ${id}: ${LANE_LABEL[lane]}${need.via === undefined ? "" : need.via === "forwarded" ? " (forwarded by the PM)" : " (escalated)"}`,
     body: `${title}\n${need.text}`,
     tags: [TAGS[need.kind]],
-    priority: lane === "Waiting" ? "high" : "default",
+    // An escalation or a forward is high even for a review: the PM was meant to deal with it, and didn't or couldn't.
+    priority: lane === "Waiting" || need.via !== undefined ? "high" : "default",
     click: thread === null ? null : t3codeUrl(thread),
+    sequence: sequenceOf(repo, id),
   };
 }
 
@@ -70,6 +77,7 @@ export function pushesOf(board: BoardData): Push[] {
         tags: [TAGS.done],
         priority: "default",
         click: null,
+        sequence: null,
       });
       continue;
     }
