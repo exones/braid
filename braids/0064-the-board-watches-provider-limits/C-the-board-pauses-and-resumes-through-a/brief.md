@@ -58,12 +58,12 @@ Expected size: about 750 lines in 12 files (0064/A's estimate). If it heads past
 
 ## Completion
 
-- [ ] Over a threshold the board writes one `by: board` record per braid under the lock, starts one steering thread per provider and pause, and stores its outcome; braids on other providers are untouched, and a second board or a later refresh starts nothing
-- [ ] The board resumes at the reset plus the buffer after a re-check, keeps the record with a new resume time when the provider is still over, and resumes after a start a pause it missed
-- [ ] A weekly window and a failed pause read Needs You; the pushes of the mockups' screen 6 are sent once each with their keys
-- [ ] A hold outlives a limit pause: neither the board nor braid pause/resume replaces or clears it; tests cover it
-- [ ] `--no-pause` turns the exception off; `--demo` never acts
-- [ ] Tests cover the decisions with a fake T3 and fake limits; a live Claude run and the Codex probe are reported with times
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Over a threshold the board writes one `by: board` record per braid under the lock, starts one steering thread per provider and pause, and stores its outcome; braids on other providers are untouched, and a second board or a later refresh starts nothing
+- [x] The board resumes at the reset plus the buffer after a re-check, keeps the record with a new resume time when the provider is still over, and resumes after a start a pause it missed
+- [x] A weekly window and a failed pause read Needs You; the pushes of the mockups' screen 6 are sent once each with their keys
+- [x] A hold outlives a limit pause: neither the board nor braid pause/resume replaces or clears it; tests cover it
+- [x] `--no-pause` turns the exception off; `--demo` never acts
+- [x] Tests cover the decisions with a fake T3 and fake limits; a live Claude run and the Codex probe are reported with times
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

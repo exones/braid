@@ -118,7 +118,7 @@ ${rows}
 
 ${variants}
 
-4. Collect the replies. Each arrives as a message (it cuts your \`t3_thread_wait\`); the id in its \`Paused:\` line says whose it is. Wait again after each one until every target and child answered, for at most 10 minutes after your sends. Then read each silent one with \`t3_thread_read\` (last message, status) and count it as no answer.
+4. Collect the replies; don't end your turn before every target and child answered or 10 minutes passed since your sends. Wait with \`t3_thread_wait\` on a target that hasn't answered (\`timeoutMs\`: what is left of the 10 minutes). Each reply arrives as a message to you and cuts that wait; the id in its \`Paused:\` line says whose it is. After each reply or timeout, wait again on the next one still silent. At the 10 minutes, read each silent one with \`t3_thread_read\` (last message, status) and count it as no answer.
 5. Settle yourself: \`t3_thread_organize\` with \`action: "settle"\` and no \`threadId\`. Never archive yourself.
 6. End your final message with exactly this line, last:
 
