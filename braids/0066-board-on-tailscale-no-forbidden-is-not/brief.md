@@ -37,9 +37,9 @@ Expected size: about 80 lines in 4 files, plus tests.
 
 ## Completion
 
-- [ ] A whois that times out or fails refuses that request but isn't kept; a definite answer is still kept 5 s (tests)
-- [ ] A refused `/api/` request on the Tailscale listener answers JSON with an `error` that says what failed and that the next refresh retries (test)
-- [ ] The page never shows a JSON parse error for a non-JSON error body; it shows the status and text (test)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md "On Tailscale" and the plain-text `forbidden` line; D60 in docs/decisions.md), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A whois that times out or fails refuses that request but isn't kept; a definite answer is still kept 5 s (tests)
+- [x] A refused `/api/` request on the Tailscale listener answers JSON with an `error` that says what failed and that the next refresh retries (test)
+- [x] The page never shows a JSON parse error for a non-JSON error body; it shows the status and text (test)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md "On Tailscale" and the plain-text `forbidden` line; D60 in docs/decisions.md), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
