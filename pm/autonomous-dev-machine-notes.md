@@ -28,7 +28,7 @@ Free-form notes from the planning session with the user. They become the plan in
 - Gaps against what the user wants:
   - **Logged:** every question and its answer (or its fate) kept as a record, not only while open. Today `requests.json` is local state in the main checkout, not in git.
   - **Seen:** every open question on the board, also the ones an agent asked only in chat (a question in the chat with no `braid ask` is invisible to the board, except T3's pending-question flag).
-  - **Answered reliably:** an Answer action on the board (pick an option or type), delivered to the asking thread (a `t3 thread send`, or the agent reads it at its next wake), on desktop and phone. This changes the rule that the board acts only on clicks: here it is a click, but the board then messages a thread (0064 opens that door for limits).
+  - **Answered reliably, in the thread, not on the board.** The user (2026-11-22): "about answers: I don't want to answer from board now, will be enough that I can see the question, navigate to the thread, refer to it by some code, ask question about this question etc." So, for now: no Answer action on the board. Each question has a **short code** shown on the board, in the push and in the chat message (for example `Q-0064-3` or a short id). The board's card links to the asking thread. In any thread, the user can say "about Q-0064-3: …" or ask a follow-up about the question, and the agent finds it by its code (`braid ask show <code>` or similar: the text, options, context, who asked, its state and history). The answer is still given in the asking thread, and the asker records it on the question.
   - **Marked irrelevant:** a question an agent no longer needs (superseded by a later one, decided another way, the braid stopped) is closed as "withdrawn" or "no longer needed", with a reason, never just disappears; and its push is cleared.
   - Fits with: 2026-11-19-aeli (what the answer unblocks), 2026-11-21-t7b8 (recap after the answer), HTML reports (the question rendered with its context).
 - **Every question goes through the CLI, never chat only.** The user (2026-11-22): "actually pm / coordinator skills should know: if they need some info, it should go not only via chat, but via braid cli." The skills (braid, braid-pm, and the workers, reviewers and researchers that ask through their coordinator) say: a question that needs an answer is a `braid ask` record first; the chat message repeats it. A question in chat with no record is a skill violation the board could flag (T3's pending-question flag with no open request).
@@ -105,13 +105,14 @@ From the release notes (https://github.com/pingdotgg/t3code/releases/tag/v0.1.11
 - Order of 0064, 0067, 0060, and where "precise notifications" goes among them.
 - The format and the areas of the per-programme say settings.
 - How much of 0036 is still relevant.
-- Explicit questions: where the record lives (git, like the inbox branch, or `.braid/`), whether one braid covers notifications and questions or two, the board's Answer action and how it reaches the asking thread.
+- Explicit questions: where the record lives (git, like the inbox branch, or `.braid/`), whether one braid covers notifications and questions or two, the form of the short code. (No board Answer action for now.)
 - HTML reports and notebooks: where they render (chat, board, a file), and for which messages.
 - T3 Issues: an intake path for the machine, or not?
 
 ## Session log
 
 - 2026-11-22 21:47Z: session started; 0064, 0067, 0060 in.
+- 2026-11-22 22:50Z: no board Answer for now; questions get a short code to refer to them in any thread.
 - 2026-11-22 22:45Z: questions always through the CLI; PM answers recorded as answers.
 - 2026-11-22 22:35Z: explicit questions as priority 2.
 - 2026-11-22 22:20Z: T3 v0.1.11 read; HTML reports back in as a candidate; T3 Issues noted.
