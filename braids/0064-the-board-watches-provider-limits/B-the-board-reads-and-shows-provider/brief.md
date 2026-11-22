@@ -48,7 +48,7 @@ Expected size: about 350 lines in 8 files (0064/A's estimate).
 ## Completion
 
 - [ ] The board data and page show each provider's usage, threshold and verdict as the approved mockups' screens 1, 3 and 5, in a real run and in `--demo`
-- [ ] Worker and reviewer threads carry their `providerInstanceId`; `🚦 … steering:` threads are no item's agent; tests cover both
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Worker and reviewer threads carry their `providerInstanceId`; `🚦 … steering:` threads are no item's agent; tests cover both
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

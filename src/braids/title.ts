@@ -3,9 +3,9 @@ import { spawnSync } from "node:child_process";
 import { basename } from "node:path";
 import { repoNameOf } from "./worktrees.js";
 
-import { ROLES, type TitleRole } from "./roles.js";
+import { ROLES, STEERING_EMOJI, type TitleRole } from "./roles.js";
 
-export { ROLES, type TitleRole };
+export { ROLES, STEERING_EMOJI, type TitleRole };
 
 export function threadTitle(repo: string, id: string, role: TitleRole, title: string): string {
   return `${ROLES[role]} ${repo} ${id} ${role}: ${title}`;
@@ -31,4 +31,15 @@ export function titleRepoName(root: string): string {
   const url = r.status === 0 ? r.stdout.trim() : "";
   const name = /[/:]([^/:]+?)(?:\.git)?\/?$/.exec(url)?.[1];
   return name ?? repoNameOf(root) ?? basename(root);
+}
+
+/** The title of the board's steering thread: `🚦 <repo> steering: <what>`. It has no item id, so no item reads it as one of its agents. */
+export function steeringTitle(repo: string, what: string): string {
+  return `${STEERING_EMOJI} ${repo} steering: ${what}`;
+}
+
+/** A steering thread's title read back, with or without the emoji; null for any other title. */
+export function parseSteeringTitle(text: string): { readonly repo: string; readonly what: string } | null {
+  const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) steering: (.*)$/.exec(text);
+  return m === null ? null : { repo: m[1] ?? "", what: m[2] ?? "" };
 }

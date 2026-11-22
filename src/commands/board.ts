@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
-import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
+import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed } from "../board/feed.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
@@ -18,6 +18,8 @@ import { t3codeUrl } from "../board/marks.js";
 import { problemLine, readiness, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
+import { readLimitsView, type LimitsView } from "../board/limits.js";
+import type { Pause } from "../braids/pauses.js";
 import { readPlans, type PlanRead } from "../board/plans.js";
 import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
@@ -67,6 +69,8 @@ export interface Sources {
   readonly watch: string | null;
   /** What BRAID.md says about the main branch and the coordinator's model. */
   start(): StartContext;
+  /** The providers' usage against their thresholds, from T3's caches (no `t3` call); absent: not shown. */
+  limits?(t3: T3, pauses: ReadonlyMap<string, Pause>): LimitsView | null;
   /** The open inbox entries; `fetch` (the Refresh button) fetches `braid-inbox` from origin first. */
   inbox(fetch: boolean): InboxData | Promise<InboxData>;
   /** The T3 project folder (the main checkout). */
@@ -473,6 +477,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
     signals: (github) => readSignals(root, github),
     plans: () => readPlans(root),
+    limits: (threads, pauses) => readLimitsView(root, threads, pauses),
     tree: (item) => treeOf(root, item),
     watch: join(root, "braids"),
     start: () => readStartContext(root),
@@ -502,6 +507,7 @@ export function demoSources(t3Down = false, notReady = false): Sources {
     braids: demoBraids,
     github: () => demoGithub(),
     t3: () => Promise.resolve(demoT3(t3Down)),
+    limits: (threads, pauses) => demoLimits(threads, pauses),
     signals: () => demoSignals(),
     plans: () => Promise.resolve(demoPlans()),
     tree: () => demoTree(),

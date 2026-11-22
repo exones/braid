@@ -9,6 +9,8 @@ import type { Github } from "./github.js";
 import type { ReadSignals } from "./signals.js";
 import type { StartContext } from "./model.js";
 import type { T3, T3Coordinator, T3Thread } from "./t3.js";
+import { buildView, type LimitsView } from "./limits.js";
+import { DEFAULT_LIMITS, NOT_MEASURED, type ProviderReading, type WindowReading } from "../braids/limits.js";
 import { planOf, type PlanRead } from "./plans.js";
 
 const brief = (id: string, title: string, status: string, extra = ""): string =>
@@ -144,7 +146,7 @@ export function demoGithub(): Github {
   };
 }
 
-const thread = (id: string, role: T3Thread["role"], pending = 0): T3Thread => ({ id, role, pending, link: `https://t3.example/thread/${id}` });
+const thread = (id: string, role: T3Thread["role"], pending = 0, provider = "Claude_Everix"): T3Thread => ({ id, role, pending, link: `https://t3.example/thread/${id}`, provider });
 
 /** What the demo's BRAID.md says. */
 export const DEMO_START: StartContext = { main: "main", expected: { provider: "Claude_Everix", model: "claude-opus-5-5" } };
@@ -180,9 +182,9 @@ export function demoT3(down = false): T3 {
       ["0002/A", [thread("demo-1", "worker")]],
       ["0003/A", [thread("demo-2", "worker", 1)]],
       ["0009/A", [thread("demo-3", "worker")]],
-      ["0009/B", [thread("demo-4", "worker")]],
+      ["0009/B", [thread("demo-4", "worker", 0, "codex")]],
       // A subagent reviewer (recorded with `braid review`): it has no Open thread; it shows inside its coordinator's thread.
-      ["0010/A", [{ ...thread("demo-5", "reviewer"), link: null }]],
+      ["0010/A", [{ ...thread("demo-5", "reviewer", 0, "cursor"), link: null }]],
     ]),
   };
 }
@@ -194,6 +196,27 @@ export function demoPauses(now: Date = new Date()): Pause[] {
   const at = (minutes: number): string => new Date(now.getTime() + minutes * MIN).toISOString();
   const pause = (braid: string, resume: number, task: string): Pause => ({ braid, provider: "Claude_Everix", window: "five_hour", label: "Session", usedPercent: 97, resetsAt: at(resume - 5), resumeAt: at(resume), task, thread: "demo-coordinator-thread", by: "coordinator", at: at(-36) });
   return [pause("0025", 18, "demo-task-1"), pause("0026", -20, "demo-task-2"), pause("0027", -42, "demo-task-3")];
+}
+
+/**
+ * The demo's provider readings, as of `now`: Claude_Everix's session is over its threshold (the three demo pauses name it, so it reads
+ * paused), codex is fine and cursor can't be measured. Built by the same code as a real read; no cache file is touched.
+ */
+export function demoLimits(t3: T3, pauses: ReadonlyMap<string, Pause>, now: Date = new Date()): LimitsView {
+  const window = (id: string, kind: WindowReading["kind"], label: string, used: number, resetMinutes: number): WindowReading => {
+    const threshold = DEFAULT_LIMITS[kind];
+    return { id, kind, label, usedPercent: used, threshold, resetsAt: new Date(now.getTime() + resetMinutes * MIN).toISOString(), reset: false, over: used >= threshold };
+  };
+  const checkedAt = new Date(now.getTime() - 20_000).toISOString();
+  const claude = [window("five_hour", "session", "Session", 98, 52), window("seven_day", "weekly", "Weekly", 72, 2 * 24 * 60 + 20 * 60), window("seven_day_fable", "weekly", "Weekly · Fable", 8, 2 * 24 * 60 + 20 * 60)];
+  const codex = [window("five_hour", "session", "Session", 18, 150), window("seven_day", "weekly", "Weekly", 60, 70)];
+  const reading = (instanceId: string, roles: string[], models: string[], windows: WindowReading[]): ProviderReading => {
+    const over = windows.filter((w) => w.over);
+    const latest = over.at(0);
+    return { instanceId, roles, models, verdict: latest === undefined ? "ok" : "pause", reason: latest === undefined ? null : `${latest.label} (${latest.id}) is at ${latest.usedPercent}%, threshold ${latest.threshold}%`, checkedAt, windows, pauseWindow: latest?.id ?? null, resumeAt: latest === undefined ? null : new Date(Date.parse(latest.resetsAt) + DEFAULT_LIMITS.buffer * MIN).toISOString() };
+  };
+  const cursor: ProviderReading = { instanceId: "cursor", roles: ["reviewer"], models: ["grok-4.6"], verdict: "unknown", reason: `${NOT_MEASURED} (unsupported)`, checkedAt: null, windows: [], pauseWindow: null, resumeAt: null };
+  return buildView([reading("Claude_Everix", ["coordinator", "worker.story", "researcher"], ["claude-opus-5-5", "claude-sonnet-5-5"], claude), reading("codex", ["worker.task"], ["gpt-6-luna"], codex), cursor], DEFAULT_LIMITS, t3, pauses, now);
 }
 
 /** The requests and broke alarms of the demo, as of `now`: every kind of request, both alarms. Nothing is read or written. */

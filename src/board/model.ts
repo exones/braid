@@ -10,6 +10,7 @@ import { pauseView, phaseOf, stalledSince, stalledText, type PauseView } from ".
 import { pmLine, routeOf, viaNote, type PmLine, type Routed, type Via } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import { programmeOfBraid, toProgrammes, type Programme } from "./programme.js";
+import type { LimitsView } from "./limits.js";
 
 /** Left to right, what needs the user most first. The board shows Waiting as Needs You, In Review as To Review, In Progress as Working. */
 export const LANES = ["Waiting", "In Review", "In Progress", "To Do", "Done"] as const;
@@ -181,6 +182,8 @@ export interface BoardData {
   readonly problems: readonly Problem[];
   /** Why `.braid/pauses.json` was read as no pauses (or some left out); null when it read cleanly or is missing. */
   readonly pausesNote: string | null;
+  /** Each provider's reading and chip state against its threshold (docs/board.md, "Provider limits"); null when not read. */
+  readonly limits: LimitsView | null;
 }
 
 export interface ItemDetail {
@@ -601,7 +604,7 @@ export function doneNewestFirst<T extends { readonly id: string; readonly doneAt
   return [...cards].sort((a, b) => (a.doneAt === b.doneAt ? 0 : a.doneAt === null ? 1 : b.doneAt === null ? -1 : a.doneAt < b.doneAt ? 1 : -1) || (a.id < b.id ? 1 : -1));
 }
 
-export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX, problems: readonly Problem[] = []): BoardData {
+export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START, inbox: InboxData = NO_INBOX, problems: readonly Problem[] = [], limits: LimitsView | null = null): BoardData {
   const ideas = inbox.ideas.map((i) => {
     const c = ideaPlanning(t3, i.id);
     return c === null ? i : { ...i, planning: { link: c.link } };
@@ -609,7 +612,7 @@ export function toBoard(repo: string, braids: readonly Braid[], gh: Github, t3: 
   const cards = braids.map((b) => toCard(b, gh, t3, sig, ctx));
   const programmes = toProgrammes(repo, sig.plans ?? [], cards, t3, sig, gh);
   const tags = programmeOfBraid(programmes);
-  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: cards.map((c) => ({ ...c, programme: tags.get(c.id) ?? null })), programmes, inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems, pausesNote: sig.pausesNote ?? null };
+  return { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: cards.map((c) => ({ ...c, programme: tags.get(c.id) ?? null })), programmes, inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems, pausesNote: sig.pausesNote ?? null, limits };
 }
 
 export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): ItemDetail {
