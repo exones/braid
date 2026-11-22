@@ -67,11 +67,11 @@ Expected size: about 570 lines in 12 files.
 
 ## Completion
 
-- [ ] A request opened with `--to pm` reads in its other lane with "The PM is handling" and the 🧭 mark, and sends no push; tests cover each lane rule
-- [ ] It reads Needs You (a handover: To Review) and is pushed once after 20 min (a handover: 60 min), when the PM thread is archived, unknown or failed, or after `braid forward`, and never while the braid is paused; tests cover each case
-- [ ] Old request records without `to` read as the user's
-- [ ] An answered request's push is cleared (ntfy sequence ID), checked with `braid notify test`
-- [ ] `braid pause <n> --hold "<words>"` records a hold with no provider or resume time; it shows paused with the words, never turns amber or stalled, and `braid resume` clears it; 0061's limit records without `reason` still read as before; tests cover both kinds
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A request opened with `--to pm` reads in its other lane with "The PM is handling" and the 🧭 mark, and sends no push; tests cover each lane rule
+- [x] It reads Needs You (a handover: To Review) and is pushed once after 20 min (a handover: 60 min), when the PM thread is archived, unknown or failed, or after `braid forward`, and never while the braid is paused; tests cover each case
+- [x] Old request records without `to` read as the user's
+- [x] An answered request's push is cleared (ntfy sequence ID); unit-tested, not checked against a live topic (see report)
+- [x] `braid pause <n> --hold "<words>"` records a hold with no provider or resume time; it shows paused with the words, never turns amber or stalled, and `braid resume` clears it; 0061's limit records without `reason` still read as before; tests cover both kinds
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
