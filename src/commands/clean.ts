@@ -1,6 +1,6 @@
 // `braid clean [<number>|<id>] [--yes]`: removes the worktrees and local branches of items whose
-// PR is merged, and of merged planning branches (`plan/<slug>`). A dry run unless `--yes`. It never forces and keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
-// changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay.
+// PR is merged, and of merged planning branches (`plan/<slug>`). A dry run unless `--yes`. It keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
+// changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay. The one exception is a recorded reviewer's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
 import { spawnSync } from "node:child_process";
 import { existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
@@ -96,11 +96,11 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
  * The recorded review threads of a merged item (`braid review`). A record holds the folder and branch T3 gave for the reviewer's checkout
  * when it was recorded; they are removed when the folder is a registered worktree of this repository (not the main checkout, not this one)
  * and T3 doesn't say the thread runs (a thread T3 doesn't know counts as not running); then the record goes. A branch is deleted
- * only when it is a `t3/…` branch, with `git branch -d`. A record without a folder (T3 gave none when it was recorded, or an older record) falls
+ * only when it is a `t3/…` branch: forced when its tip is the merged PR's head or is on a remote-tracking ref of `origin` (no commit is lost), else with `git branch -d`, which keeps one with commits found nowhere else. A record without a folder (T3 gave none when it was recorded, or an older record) falls
  * back to T3: its `worktreePath` and `branch`, only for a subagent's thread; one T3 doesn't know loses its record. When T3 can't be
  * read, everything is kept.
  */
-async function reviewThreads(root: string, yes: boolean, id: string, pr: number, t3Ok: boolean, run: T3Runner, listed: readonly Worktree[], here: string, lines: string[]): Promise<void> {
+async function reviewThreads(root: string, yes: boolean, id: string, pr: number, head: string | undefined, t3Ok: boolean, run: T3Runner, listed: readonly Worktree[], here: string, lines: string[]): Promise<void> {
   const records = loadReviews(root).filter((r) => r.id === id);
   const main = listed[0] === undefined ? null : norm(listed[0].path);
   const drop: string[] = [];
@@ -164,7 +164,10 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
     }
     let note = "";
     if (branch !== null && git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).status === 0) {
-      const b = git(root, ["branch", "-d", branch]);
+      // `git branch -d` checks this checkout's HEAD, but the reviewer sits at the PR head or a commit HEAD lacks. Nothing is lost when the tip is the merged PR's head or on origin.
+      const tip = git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).stdout.trim();
+      const safe = (head !== undefined && head === tip) || git(root, ["branch", "-r", "--contains", tip, "--list", "origin/*"]).stdout.trim() !== "";
+      const b = git(root, ["branch", safe ? "-D" : "-d", branch]);
       note = b.status === 0 ? "" : `; kept branch ${branch}: not fully merged here (${(b.stderr || b.stdout).trim().split("\n")[0] ?? ""})`;
     }
     lines.push(`removed ${what}${note}`);
@@ -207,7 +210,7 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
       if (item.card.pr?.state !== "merged") {
         continue;
       }
-      await reviewThreads(root, yes, item.id, item.card.pr.number, w.t3.status.state === "ok", src.t3 ?? runT3, listed, here, lines);
+      await reviewThreads(root, yes, item.id, item.card.pr.number, item.card.pr.head, w.t3.status.state === "ok", src.t3 ?? runT3, listed, here, lines);
       // A leftover reviewer checkout from before 0039 (`braid start <id> --review`, detached at the PR head) goes with the merged item.
       const revPaths = folders.map((f) => norm(join(f, reviewFolder(number, item.letter))));
       const rev = listed.find((t) => revPaths.includes(norm(t.path)));

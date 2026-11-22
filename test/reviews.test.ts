@@ -319,3 +319,27 @@ test("a record that can't be read is no record", () => {
   assert.deepEqual(loadReviews(root), []);
   assert.deepEqual(loadReviews(join(scratch, "no-repo-here")), []);
 });
+
+test("clean deletes a reviewer's t3/ branch whose tip is on origin or is the merged PR's head though HEAD lacks it, and keeps one with a commit of its own", async () => {
+  const { root, env, folders, pr } = await mergedWithChildren(["aaa", "bbb", "ccc"], { aaa: child(1), bbb: child(2), ccc: child(3) });
+  const commit = (folder: string, file: string) => {
+    writeFileSync(join(folder, file), "x\n");
+    git(folder, "add", "-A");
+    git(folder, "commit", "-q", "-m", file);
+    const sha = git(folder, "rev-parse", "HEAD");
+    git(root, "branch", "-f", `t3/${folder.slice(-3)}`, sha);
+    return sha;
+  };
+  // aaa: a commit that is on origin only (the reviewer's work, pushed); bbb: a commit nowhere else; ccc: the merged PR's head, not pushed under any ref here.
+  commit(folders["aaa"] as string, "a.txt");
+  git(folders["aaa"] as string, "push", "-q", "origin", "HEAD:refs/heads/other-a");
+  git(root, "fetch", "-q", "origin");
+  commit(folders["bbb"] as string, "b.txt");
+  const head = commit(folders["ccc"] as string, "c.txt");
+  const src = { gh: () => ok([{ ...pr, headRefOid: head }]), t3: t3({}) };
+  const out = await cleanCommand(root, ["--yes"], src, env);
+  assert.equal(git(root, "branch", "--list", "t3/aaa"), "", out);
+  assert.equal(git(root, "branch", "--list", "t3/ccc"), "", out);
+  assert.notEqual(git(root, "branch", "--list", "t3/bbb"), "", out);
+  assert.match(out, /removed 0001\/B: review thread .*t3-bbb.*kept branch t3\/bbb: not fully merged here/);
+});
