@@ -264,30 +264,34 @@ exit 0
 '@ | Set-Content -LiteralPath $script:StubNpm
       @'
 Add-Content -LiteralPath $env:STUB_LOG -Value ("braid " + ($args -join ' '))
+if ($args[0] -eq 'wait') { if ($env:STUB_SHIM -and (Select-String -Quiet -Pattern 'volta run' -LiteralPath $env:STUB_SHIM)) { exit 126 }; exit ([int]$env:STUB_WAIT_CODE) }
 Write-Output $env:STUB_BRAID_PRINTS
 exit 0
 '@ | Set-Content -LiteralPath $script:StubBraid
       $env:STUB_LOG = $script:StubLog
       $env:STUB_BRAID_PRINTS = 'braid 0.9.0'
       $env:STUB_FAIL = ''
+      $env:STUB_WAIT_CODE = '2'
+      $env:STUB_SHIM = ''
       Write-RepoFile 'package.json' "{ `"name`": `"@exones/braid`", `"version`": `"0.9.0`" }`n"
       Invoke-RepoGit @('add', '-A')
       Invoke-RepoGit @('commit', '-q', '-m', 'package')
     }
     AfterEach {
-      foreach ($name in @('STUB_LOG', 'STUB_BRAID_PRINTS', 'STUB_FAIL')) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
+      foreach ($name in @('STUB_LOG', 'STUB_BRAID_PRINTS', 'STUB_FAIL', 'STUB_WAIT_CODE', 'STUB_SHIM')) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
     }
 
     It 'builds, packs and globally installs the ref, checks the version and stamps it' {
       $result = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
       $result.Code | Should -Be 0 -Because $result.Text
       $log = @(Get-Content -LiteralPath $script:StubLog)
-      $log.Count | Should -Be 5
+      $log.Count | Should -Be 6
       $log[0] | Should -Match '^npm ci @ source$'
       $log[1] | Should -Match '^npm run build @ source$'
       $log[2] | Should -Match '^npm pack --pack-destination .+ @ source$'
       $log[3] | Should -Match '^npm install -g .+exones-braid-0\.9\.0\.tgz @ '
       $log[4] | Should -Be 'braid --version'
+      $log[5] | Should -Be 'braid wait 9999'
       (Get-Installed $script:TargetA 'braid/.braid-install.json' | ConvertFrom-Json).cliVersion | Should -Be '0.9.0'
     }
 
@@ -297,6 +301,31 @@ exit 0
       $result.Code | Should -Not -Be 0
       $result.Text | Should -Match 'expected .braid 0\.9\.0.'
       Test-Path -LiteralPath $script:TargetA | Should -BeFalse
+    }
+
+    It 'fails and installs no skills when braid loses its exit codes and is no Volta shim' {
+      $env:STUB_WAIT_CODE = '126'
+      $result = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
+      $result.Code | Should -Not -Be 0
+      $result.Text | Should -Match 'braid wait 9999 exited 126'
+      Test-Path -LiteralPath $script:TargetA | Should -BeFalse
+    }
+
+    It 'replaces a Volta launcher that hides exit codes with one that runs node directly' {
+      $bin = Join-Path $TestDrive 'volta/bin'
+      $cli = Join-Path $TestDrive 'volta/tools/image/packages/@exones/braid/node_modules/@exones/braid/dist/cli.js'
+      New-Item -ItemType Directory -Force -Path $bin, (Split-Path -Parent $cli) | Out-Null
+      Set-Content -LiteralPath $cli -Value ''
+      $shim = Join-Path $bin 'braid'
+      Set-Content -LiteralPath $shim -Value "#!/bin/bash`nvolta run `"`$(basename `$0)`" `"`$@`""
+      Set-Content -LiteralPath "$shim.cmd" -Value "@echo off`nvolta run %~n0 %*"
+      Copy-Item -LiteralPath $script:StubBraid -Destination (Join-Path $bin 'braid-stub.ps1')
+      $env:STUB_SHIM = $shim
+      $result = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', (Join-Path $bin 'braid-stub.ps1'))
+      $result.Code | Should -Be 0 -Because $result.Text
+      $result.Text | Should -Match 'replaced the Volta launcher'
+      (Get-Content -LiteralPath $shim -Raw) | Should -Match 'exec node ".+cli\.js" "\$@"'
+      (Get-Content -LiteralPath "$shim.cmd" -Raw) | Should -Match '(?m)^node ".+cli\.js" %\*'
     }
 
     It 'fails when an npm step fails' {
