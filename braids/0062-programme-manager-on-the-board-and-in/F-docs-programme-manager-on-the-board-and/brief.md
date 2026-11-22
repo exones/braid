@@ -3,7 +3,7 @@ id: '0062/F'
 title: "Docs: Programme manager on the board and in notifications"
 status: To Do
 labels: ["kind:task", "tier:L"]
-dependencies: ['0062/A', '0062/B', '0062/C', '0062/D', '0062/E']
+dependencies: ['0062/A', '0062/B', '0062/C', '0062/D', '0062/E', '0062/G']
 order: 60
 ---
 
