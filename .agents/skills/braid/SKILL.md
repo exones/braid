@@ -135,7 +135,7 @@ When the worker reports green:
    PR: <url>, head commit <sha>. Focus: <what matters most here>.
    ```
 2. **Facts.** When nothing blocking remains, run `braid facts <pr>` and judge its facts against the [stop cases](references/stop-cases.md) and the braid's preset.
-3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, tell the worker CI isn't finished and end your turn (its report wakes you). You don't re-run the gate or download artifacts.
+3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, tell the worker CI isn't finished and end your turn (its report wakes you). For a strand, also run `braid wait <number> --timeout 0.25` on the braid branch (exit 1: "Fixes"). You don't re-run the gate or download artifacts.
 4. **Capture** before the handover, as leftovers ("Capture"): the non-blocking findings not fixed in the PR (`--from 'review <id>'`, `--ref` the review comment), and the report's unfinished bits and `For later items:` gaps (`--from <id>`, `--ref` the PR). Notes for the braid's later strands (names, interfaces) stay in the log line, which names the entry ids instead of repeating the text.
 5. **Hand over** when the checks are green on the latest commit.
    - A strand: run `braid handover <id> --head <sha> --thread <your thread id>`, edit the recap it prints, give it and ask with the handover options ("Talking to the user").
@@ -190,7 +190,7 @@ When your first message names a PM thread (a `braid-pm` programme manager launch
 ## Fixes
 
 - The worker that opened a PR fixes it: failed checks, review findings, anything else on that PR. Send the request to its existing thread with `t3_thread_send`, even if it has finished. Start a new worker on the same branch and item only if that thread can't continue.
-- CI failing on a braid branch itself, or on its final PR, and review findings on the final PR, belong to no worker, and you don't fix product code yourself. Add a tier S fix strand at the end of the braid, with no dependencies, and run it before the next item. A second red on the braid branch is a stop (`quality`). Find it with `braid wait <number> --timeout 0.25` before reviewing or merging the next strand and before "Finish" step 1.
+- CI failing on a braid branch itself, or on its final PR, and review findings on the final PR, belong to no worker, and you don't fix product code yourself. Add a tier S fix strand at the end of the braid, with no dependencies, and run it before the next item. A second red on the braid branch is a stop (`quality`).
 
 ## Finish
 

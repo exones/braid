@@ -2,7 +2,7 @@
 
 ## What changed
 
-- `.agents/skills/braid/SKILL.md`: "Run an item" step 3 is now **End the turn**: one sentence replaces the `t3_thread_wait` loop; the user or the PM is answered at once; the no-report checks stay. "Fixes" names the two read points in one sentence, "Finish" step 1 runs the read; "Say waiting" lists only the worker's message, a PR watch, a `delegate_task` result or the board.
+- `.agents/skills/braid/SKILL.md`: "Run an item" step 3 is now **End the turn**: one sentence replaces the `t3_thread_wait` loop; the user or the PM is answered at once; the no-report checks stay. The short braid-branch CI read sits where it is done: "Accept and hand over" step 3 (Checks) runs it for a strand, "Finish" step 1 before the final PR; "Say waiting" lists only the worker's message, a PR watch, a `delegate_task` result or the board.
 - `.agents/skills/braid/references/autonomy.md`, "Merging" step 4: after a strand's merge the next item starts at once; the step shrinks to the exit codes of the short read (0/3 go on, 1 "Fixes", 2 `braid ask`). A braid branch still running before the final PR doesn't hold it: the final PR's watched CI catches a red one before any merge into `main`.
 - `.agents/skills/braid/references/workflow.md` "Checks and reports": "waits only for a wake".
 - `docs/decisions.md`: D91 (with the user's words), dated notes on D77 and D71, and a decision log line.
@@ -17,7 +17,7 @@ A foreground wait of up to 10 minutes a call held the user's and the PM's messag
 - `rg -n "t3_thread_wait|timeout 9|in parallel with it" .agents/skills/braid` finds only `references/limits.md` (0064's, out of scope).
 - Checked in `src/commands/wait.ts` that a `--timeout 0.25` call reads the checks at least once and returns 0, 1 or 3 (the 5-minute no-run exit 2 can't trigger at that length), so the mapping in autonomy.md matches the code.
 - `npm run verify` passed.
-- Words in `.agents/skills/braid/` (SKILL.md + references/autonomy.md + references/workflow.md, `Measure-Object -Word`): 9424 before (4d07316), 9294 after (SKILL.md 6519 → 6470, autonomy.md 932 → 853, workflow.md 1973 → 1971).
+- Words in `.agents/skills/braid/` (SKILL.md + references/autonomy.md + references/workflow.md, `Measure-Object -Word`): 9424 before (4d07316), 9291 after (SKILL.md 6519 → 6467, autonomy.md 932 → 853, workflow.md 1973 → 1971).
 
 ## Docs
 
