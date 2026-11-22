@@ -9,7 +9,7 @@ The skills now say that the board pauses and resumes. Coordinators and PMs keep 
 - braid-pm "Provider limits": the pause and resume messages, `Paused: pm`, no steering of coordinators.
 - braid-worker: its pause step stays; `Paused:` now says the line carries the item id, never a thread id, and goes to the thread the message names.
 - `models.steering` (`first`, `fallback`) is named where the skills list the `BRAID.md` roles (braid, braid-pm, the `braid-md.md` template).
-- `docs/getting-started.md`: the provider-limits paragraph no longer describes the 15-minute check or the coordinator's resume.
+- Docs the old flow made untrue: `docs/getting-started.md`, `docs/autonomy.md` ("Pausing for a provider limit": the board pauses and resumes, the coordinator keeps the launch check, a weekly window is the board's Needs You, D90), `docs/cli.md` ("Pauses": the board resumes, older `coordinator`/`pm` records), `README.md` (the pause bullet) and `docs/board.md` (the resume-was-due causes).
 
 ## Why
 
@@ -23,7 +23,7 @@ The board does the watching, pausing and resuming (0064/C); agents' own check an
 
 ## Docs
 
-Updated: `docs/getting-started.md`. Others (`board.md`, `cli.md`, `braids-format.md`, `autonomy.md`, `decisions.md`) were updated by 0064/C and need no change.
+Updated: `docs/getting-started.md`, `docs/autonomy.md`, `docs/cli.md`, `README.md`, `docs/board.md` (see above). 0064/C had already covered the rest (`braids-format.md`, `decisions.md`). A `rg` over the docs for the old flow (15-minute check, resume task, PM pauses) finds only history in `decisions.md` and the old design mockups.
 
 ## Open
 
