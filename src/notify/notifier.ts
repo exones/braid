@@ -136,9 +136,14 @@ export function notifier(opts: NotifierOptions): Notifier {
       start(cfg, push);
     }
     // A need that is gone (its request answered or closed) takes its push off the phone: clear it by its sequence ID,
-    // unless the item has a push now (the same ID: that push replaced the old one). A failed clear is reported, not retried.
-    const live = new Set(pushes.map((p) => p.item));
-    const gone = new Set(Object.entries(stored.keys).filter(([k, item]) => !current.has(k) && !k.endsWith("|done") && !live.has(item)).map(([, item]) => item));
+    // unless a push now carries that same sequence ID (it replaced the old one). Another push of the item (a Done push has
+    // no sequence ID) doesn't hold it back. A failed clear is reported, not retried.
+    const live = new Set(pushes.flatMap((p) => (p.sequence === null ? [] : [p.sequence])));
+    const gone = new Set(
+      Object.entries(stored.keys)
+        .filter(([k, item]) => !current.has(k) && !k.endsWith("|done") && !live.has(sequenceOf(board.repo, item)))
+        .map(([, item]) => item),
+    );
     for (const item of gone) {
       const name = `clear ${item}`;
       if (!flying.has(name)) {

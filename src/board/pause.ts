@@ -59,8 +59,8 @@ export interface PauseView {
   readonly record: Pause;
 }
 
-/** `Held: “Please freeze work”`: a hold shows the words it was given. */
-const heldText = (p: Pause): string => `Held: “${p.words ?? ""}”`;
+/** `Held: “Please freeze work”`: a hold shows the words it was given; with none (a plan's `state: held`) it says so. */
+const heldText = (p: Pause): string => ((p.words ?? "").trim() === "" ? "Held: the plan says held" : `Held: “${p.words}”`);
 
 export function pauseView(p: Pause, now: Date): PauseView {
   const phase = phaseOf(p, now);

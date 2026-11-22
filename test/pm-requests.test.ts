@@ -384,3 +384,44 @@ test("braid status shows a request to the PM and a hold", async () => {
   assert.match(out, /Held: “Freeze”/);
   assert.equal(existsSync(join(root, ".braid", "pauses.json")), true);
 });
+
+test("T3's thread ids are kept exactly as given: a PM thread whose id matches byte for byte reads as running", async () => {
+  const mixed = "AbCd1111-aaaa-4bbb-8ccc-222222222222";
+  const run = async (_root: string, args: readonly string[]) => ({
+    status: 0,
+    stderr: "",
+    stdout: args[0] === "thread" && args[1] === "list" ? JSON.stringify([{ threadId: mixed, status: "running", title: "PM" }]) : "{}",
+  });
+  const t3mod: any = await load("../dist/board/t3.js");
+  const read = await t3mod.readT3("/nowhere", { run, ttlMs: 0, agents: "/agents", project: "/p", reviews: [] });
+  assert.equal(read.states.get(mixed), "running");
+  const pmMod: any = await load("../dist/board/pm.js");
+  assert.equal(pmMod.pmGone(read, mixed), false);
+  assert.equal(pmMod.pmGone(read, mixed.toLowerCase()), true, "a different case is a different thread, as in T3");
+});
+
+test("a gone need is cleared even when its item has a Done push in the same snapshot", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "braid-pm-notify-"));
+  after(() => rmSync(dir, { recursive: true, force: true }));
+  const cleared: string[] = [];
+  const notify = notifierMod.notifier({
+    file: join(dir, "notified.json"),
+    config: () => ({ server: "https://ntfy.example", topic: "braid-abcdefghijklmnopqrstuvwx", enabled: true }),
+    send: async () => {},
+    clear: async (_c: unknown, sequence: string) => void cleared.push(sequence),
+    token: () => null,
+    warn: () => {},
+  });
+  notify(board(cardOf(derive("In Progress", gh(), t3(), sig([request("question", 30)])))));
+  await notify.idle();
+  const done = { ...cardOf(derive("In Progress", gh(), t3(), sig([]))), lane: "Done", need: null };
+  notify(board(done));
+  await notify.idle();
+  assert.deepEqual(cleared, ["braid-agento-0001"]);
+});
+
+test("a hold with no words (a plan's state: held) reads without empty quotes", () => {
+  const view = pauseMod.pauseView({ ...hold(), words: null }, NOW);
+  assert.equal(view.text, "Held: the plan says held");
+  assert.equal(pauseMod.pauseView({ ...hold(), words: "  " }, NOW).text, "Held: the plan says held");
+});

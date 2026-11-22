@@ -1,12 +1,15 @@
 // `braid notify`: set up ntfy pushes once per machine, send a test, turn them off, or show the state.
 import { braidHome, configFile, DEFAULT_SERVER, newTopic, normaliseServer, partialTopic, readConfig, tokenOf, TOKEN_VAR, validTopic, writeConfig, type NotifyConfig } from "../notify/config.js";
-import { ntfySender, type Sender } from "../notify/sender.js";
+import { ntfyClearer, ntfySender, type Clearer, type Sender } from "../notify/sender.js";
 import { UsageError } from "./braids.js";
+
+const TEST_SEQUENCE = "braid-notify-test";
 
 export interface NotifyDeps {
   readonly home?: string;
   readonly env?: NodeJS.ProcessEnv;
   readonly send?: Sender;
+  readonly clear?: Clearer;
 }
 
 /** The one line `braid board` prints about notifications. */
@@ -111,5 +114,16 @@ export async function notifyCommand(args: readonly string[], deps: NotifyDeps = 
   } catch (e) {
     throw new UsageError(`the test push failed: ${e instanceof Error ? e.message : String(e)}`);
   }
-  return `Sent a test push to ${config.server}, topic ${partialTopic(config.topic)}${config.enabled ? "" : " (notifications are off: the board sends nothing until braid notify setup)"}.\n`;
+  // The second step: a push with a sequence ID, then its clear, so the clear a gone need relies on can be seen on a real topic.
+  const clear = deps.clear ?? ntfyClearer();
+  try {
+    await send(config, { title: "braid: test clear", body: "This push should leave the device a moment after it arrives.", tags: ["wastebasket"], priority: "default", click: null, sequence: TEST_SEQUENCE }, tokenOf(env));
+    await clear(config, TEST_SEQUENCE, tokenOf(env));
+  } catch (e) {
+    throw new UsageError(`the test push was sent, but the clear step failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  return (
+    `Sent a test push to ${config.server}, topic ${partialTopic(config.topic)}${config.enabled ? "" : " (notifications are off: the board sends nothing until braid notify setup)"}.\n` +
+    "Then sent a second push with a sequence ID and cleared it: it should arrive and then leave the device (Android and the web app only).\n"
+  );
 }

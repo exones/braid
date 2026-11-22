@@ -60,7 +60,7 @@ const notifierMod = (await load("../dist/notify/notifier.js")) as {
   notifier(opts: { file: string; config?: () => Config | null; send?: Sender; token?: () => string | null; warn?: (line: string) => void; timeoutMs?: number }): Notifier;
 };
 const command = (await load("../dist/commands/notify.js")) as {
-  notifyCommand(args: readonly string[], deps?: { home?: string; env?: Record<string, string | undefined>; send?: Sender }): Promise<string>;
+  notifyCommand(args: readonly string[], deps?: { home?: string; env?: Record<string, string | undefined>; send?: Sender; clear?: (c: Config, sequence: string, token: string | null) => Promise<void> }): Promise<string>;
 };
 const boardMod = (await load("../dist/commands/board.js")) as {
   demoSources(): Record<string, unknown>;
@@ -213,13 +213,19 @@ test("braid notify test sends one push with the token from the environment, and 
   await assert.rejects(command.notifyCommand(["test"], { home, env: {} }), /not set up/);
   config.writeConfig(CFG, home);
   const f = fakeSender();
-  const out = await command.notifyCommand(["test"], { home, env: { BRAID_NTFY_TOKEN: "tk" }, send: f.send });
+  const cleared: string[] = [];
+  const clear = async (_c: unknown, sequence: string) => void cleared.push(sequence);
+  const out = await command.notifyCommand(["test"], { home, env: { BRAID_NTFY_TOKEN: "tk" }, send: f.send, clear });
   assert.match(out, /Sent a test push to https:\/\/ntfy.example, topic braid-abcd…/);
   assert.ok(!out.includes(CFG.topic));
-  assert.equal(f.sent.length, 1);
+  assert.equal(f.sent.length, 2);
   assert.equal(f.sent[0]?.token, "tk");
+  assert.equal(f.sent[0]?.push.sequence, null);
+  assert.match(out, /second push with a sequence ID and cleared it/);
+  assert.equal(f.sent[1]?.push.sequence, "braid-notify-test");
+  assert.deepEqual(cleared, ["braid-notify-test"]);
   f.set("fail");
-  await assert.rejects(command.notifyCommand(["test"], { home, env: {}, send: f.send }), /test push failed: can't reach/);
+  await assert.rejects(command.notifyCommand(["test"], { home, env: {}, send: f.send, clear }), /test push failed: can't reach/);
 });
 
 // ---- the pushes ----
