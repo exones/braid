@@ -1,7 +1,7 @@
 ---
 id: '0062/B'
 title: "Requests addressed to the PM"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0062/A']
 order: 20
@@ -55,6 +55,15 @@ Expected size: about 570 lines in 12 files.
 ## Out of scope
 
 - The PM's own requests (`--by pm`, `pm/<slug>`, `action`): strand C. The programmes panel: strand D. Skill changes: strand E.
+
+## Plan
+
+1. Store: `Request` gains `to`, `pm`, `forwarded`; `Pause` gains `reason` and `words`, null provider/resumeAt for a hold.
+2. `src/board/pm.ts`: pure `routeOf` (user | pm | escalated by timeout, gone thread or forward; never while paused). T3 read gains thread states for the gone check.
+3. `derive`/`toCard`: a request to the PM keeps the other lane and sets `pm` (line and mark); escalated ones read Needs You / To Review with a `via`.
+4. Pushes: only the user's side; escalations high priority; `low` priority; ntfy `sequence_id` and `clear` when a request's need goes.
+5. Commands: `--to pm`, `braid forward`, `braid pause --hold`; status and requests show the addressee and hold.
+6. Page, docs, tests, report.
 
 ## Completion
 
