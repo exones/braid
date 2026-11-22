@@ -13,7 +13,7 @@ The board now reads every provider's usage at each refresh and shows it against 
 
 **Validation:** `npm run verify` passes (527 tests). New `test/board-limits.test.ts` (8 tests): chip states from the cache fixtures, a stale cache, the paused record and a hold (names no provider), a provider only a running thread uses, a BRAID.md without `models`, merging projects, the thread provider on worker, reviewer and coordinator threads, a steering thread placed in an item's worktree being no agent, the title pattern, and the demo data. `test/reviews.test.ts` expects the new `provider` key. A real run: `braid board --demo` in headless Edge, desktop and 390 px phone (screenshots in the final report).
 
-**Not proved:** a run against the real `~/.t3` caches. That is a read of real data, which the brief doesn't permit, so the first box stays open: the fixtures and `--demo` cover the same code.
+**Real run (2026-11-22, the coordinator allowed the read):** `node dist/cli.js board --no-open` against this repository and dctl-studio, read-only, nothing written to `~/.t3`. `/api/all` `limits` held Claude_Everix and cursor. Claude_Everix read **unknown** ("the cache was checked 16 min ago (stale after 10 min)", with 3 running agents listed) and cursor **not measured**: the same verdicts `braid limits` printed in the same minute. T3 had not refreshed its Claude cache, so no meters showed. The meters and the paused, over and near states are covered by the fixtures and `--demo`. Screenshot of the real chips and panel: `~/.braid/artifacts/agento/0064/real-desktop-panel.png`.
 
 **Docs:** `docs/board.md` updated. The decisions record, `docs/cli.md` and the CLI help are unaffected (no new command or flag; C and E document the pause itself).
 
