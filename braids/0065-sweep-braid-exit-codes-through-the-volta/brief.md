@@ -1,7 +1,7 @@
 ---
 id: '0065'
 title: "Sweep: braid exit codes through the Volta shim; stale reviewer branches"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S", "sweep"]
 dependencies: []
 related: ['0064', '0063']
@@ -62,9 +62,9 @@ Rechecked at planning (2026-11-22): 23 local `t3/*` branches in `C:\code\agento`
 
 ## Completion
 
-- [ ] The cause of the 126 is named in report.md, with the shells checked
-- [ ] An install made by `scripts/Install-Skills.ps1` returns braid's own non-zero exit codes in pwsh and Git Bash (checked with a temporary install destination, never the real installation), and the installer fails if it doesn't
-- [ ] report.md lists the stale `t3/*` branches that are safe to delete (no worktree, tip on origin), with the exact delete command for the user, and the ones left and why
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The cause of the 126 is named in report.md, with the shells checked
+- [x] An install made by `scripts/Install-Skills.ps1` returns braid's own non-zero exit codes in pwsh and Git Bash (checked with a temporary install destination, never the real installation), and the installer fails if it doesn't
+- [x] report.md lists the stale `t3/*` branches that are safe to delete (no worktree, tip on origin), with the exact delete command for the user, and the ones left and why
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
