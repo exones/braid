@@ -1,7 +1,7 @@
 ---
 id: '0064/B'
 title: "The board reads and shows provider limits"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: ['0064/A']
 order: 20
