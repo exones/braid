@@ -194,7 +194,7 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
         of("missing").length > 0 ? `not started: ${of("missing").join(", ")}` : "",
         unread ? "GitHub could not be read at the last poll" : "",
       ].filter((p) => p !== "");
-      return { code: 3, stdout: `${head}still running after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}; call braid wait ${number} again to continue on ${short}\n` };
+      return { code: 3, stdout: `${head}still running after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}\n` };
     }
     await sleep(POLL_MS);
   }
