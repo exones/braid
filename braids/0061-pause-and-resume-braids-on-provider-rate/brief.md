@@ -1,7 +1,7 @@
 ---
 id: '0061'
 title: "Pause and resume braids on provider rate limits"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: []
 related: ['0060']
