@@ -1,7 +1,7 @@
 ---
 id: '0063'
 title: "braid wait past cancelled runs; braid clean drops reviewer branches"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 delivery: epic
