@@ -204,10 +204,14 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     request("0006", "decision", "Decide: which spike option to build (spike-direction)", 120, { key: "spike-direction" }),
     request("0007", "plan", "Approve the plan: 3 strands, A to C", 20),
   ];
+  const asks: Request[] = [request("0004/B", "action", "install the runner on the build machine", 8, { by: "pm" })];
+  const programmes: Request[] = [request("pm/working-product", "decision", "A. keep the plan, B. cut the export strand", 12, { by: "pm" })];
   const began: Readonly<Record<string, number>> = { "0002/B": 14, "0004/A": 25 };
   return {
     now,
     requests: new Map(requests.map((r) => [r.id, r])),
+    asks: new Map(asks.map((r) => [r.id, r])),
+    programmes,
     pauses: new Map(demoPauses(now).map((p) => [p.braid, p])),
     alarm: (id, _reason, holds) => (holds === true && began[id] !== undefined ? at(began[id] ?? 0) : null),
     doneAt: (folder) => {

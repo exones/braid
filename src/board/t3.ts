@@ -54,6 +54,8 @@ export interface T3 {
   readonly ideaThreads?: ReadonlyMap<string, T3Coordinator>;
   /** The status of every thread `thread list` named, by id (lower case; `archived` for an archived one). A thread absent from it is unknown to T3. */
   readonly states?: ReadonlyMap<string, string>;
+  /** The T3 link of every thread `thread list` named, by id: where a request addressed by a thread id (the PM's) opens. */
+  readonly links?: ReadonlyMap<string, string>;
 }
 
 export const IDEA_BRANCH = "coordinator/idea-";
@@ -218,9 +220,14 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   const all = Array.isArray(raw) ? raw : (obj(raw)?.["threads"] ?? []);
   const named = (Array.isArray(all) ? all : []).map(obj).filter((t): t is Json => t !== null);
   const states = new Map<string, string>();
+  const links = new Map<string, string>();
   for (const t of named) {
     const id = str(t["threadId"]) ?? str(t["id"]);
     if (id !== null) {
+      const link = str(t["link"]);
+      if (link !== null) {
+        links.set(id, link);
+      }
       states.set(id, archived(t) ? "archived" : (str(t["status"]) ?? "unknown").toLowerCase());
     }
   }
@@ -286,7 +293,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
       into.set(f.key, [...(into.get(f.key) ?? []), f.thread]);
     }
   }
-  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states };
+  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links };
 }
 
 /** Forgets what was read, for tests. */

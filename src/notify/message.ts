@@ -26,6 +26,7 @@ export const TAGS: Readonly<Record<Need["kind"] | "done", string>> = {
   question: "question",
   decision: "scales",
   plan: "clipboard",
+  action: "compass",
   "checks failed": "x",
   stalled: "hourglass",
   review: "eyes",
@@ -41,6 +42,23 @@ export function needKey(id: string, lane: Lane, need: Need): string {
 
 /** The sequence ID of an item's need push: the repository and the item, in the characters a URL path holds. */
 export const sequenceOf = (repo: string, id: string): string => `braid-${repo}-${id}`.replace(/[^A-Za-z0-9_-]/g, "-");
+
+/** The push of the PM's own request (`braid ask … --by pm`, or a programme request `pm/<slug>`): high priority, tagged 🧭, the PM thread as click. Its own sequence ID, so it never replaces the coordinator's push for the same item. */
+function pmAskPush(repo: string, id: string, title: string, need: Need): Push {
+  const slug = /^pm\/(.+)$/.exec(id)?.[1];
+  return {
+    key: needKey(`${id}#pm`, "Waiting", need),
+    item: `${id}#pm`,
+    kind: "need",
+    title: `${repo} ${slug ?? id}: the PM asks`,
+    body: slug === undefined ? `${title}
+${need.text}` : need.text,
+    tags: ["compass"],
+    priority: "high",
+    click: need.link == null ? null : t3codeUrl(need.link),
+    sequence: sequenceOf(repo, `${id}#pm`),
+  };
+}
 
 export const doneKey = (id: string): string => `${id}|done`;
 
@@ -81,11 +99,17 @@ export function pushesOf(board: BoardData): Push[] {
       });
       continue;
     }
-    if (card.need !== null && card.need.who === null && ON_SIDE.includes(card.lane)) {
+    if (card.pmAsk?.who === null) {
+      out.push(pmAskPush(board.repo, card.id, card.title, card.pmAsk));
+    }
+    if (card.need !== null && card.need.who === null && card.need.by === undefined && ON_SIDE.includes(card.lane)) {
       out.push(needPush(board.repo, card.id, card.title, card.lane, card.need, card.thread ?? card.coordinator?.link ?? null));
     }
     for (const s of card.strands) {
-      if (s.need !== null && ON_SIDE.includes(s.lane)) {
+      if (s.pmAsk != null) {
+        out.push(pmAskPush(board.repo, s.id, s.title, s.pmAsk));
+      }
+      if (s.need !== null && s.need.by === undefined && ON_SIDE.includes(s.lane)) {
         out.push(needPush(board.repo, s.id, s.title, s.lane, s.need, s.thread));
       }
     }

@@ -663,6 +663,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
         </div>
       )}
       {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
+      {details && !open && braid.pmAsk !== null && braid.need?.by !== "pm" && <NeedLine need={braid.pmAsk} />}
       {details && !open && braid.pm !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PmLine pm={braid.pm} />}
       {details && !open && braid.pause !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PauseLine pause={braid.pause} />}
       {open && (
@@ -687,6 +688,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
               <Marks marks={strandMarks(s, details)} />
               <span onClick={(e) => e.stopPropagation()}><Actions id={s.id} lane={s.lane} thread={s.thread} threadRole={s.threadRole} merge={s.merge} /></span>
               {details && s.need !== null && <NeedLine need={s.need} className="ml-[34px] basis-full" />}
+              {details && s.pmAsk !== null && s.need?.by !== "pm" && <NeedLine need={s.pmAsk} className="ml-[34px] basis-full" />}
             </div>
           ))}
         </div>
@@ -1078,7 +1080,14 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.need)}`}>
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
           {item.need.text}
-          <div className="mt-1.5 text-[11px] text-slate-500">{item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
+          <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
+        </div>
+      )}
+      {item.pmAsk !== null && item.need?.by !== "pm" && (
+        <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.pmAsk)}`}>
+          <b className="mb-0.5 block text-xs uppercase tracking-wide">Needs you · from the PM{ageText(item.pmAsk) === "" ? "" : ` · ${ageText(item.pmAsk)}`}</b>
+          {item.pmAsk.text}
+          <div className="mt-1.5 text-[11px] text-slate-500">Answer in the PM thread; the card leaves Needs You when the PM closes the request.</div>
         </div>
       )}
       {item.pm !== null && (

@@ -84,6 +84,9 @@ export function reasonIcon(reason: string, failed: readonly string[] = [], key: 
   if (reason === "decision") {
     return { kind: "ask", tooltip: key === null ? "Decision needed" : `Decision needed: ${key}` };
   }
+  if (reason === "action") {
+    return { kind: "ask", tooltip: "The PM asks you to do something" };
+  }
   if (reason === "checks failed") {
     return { kind: "checks", tooltip: failed.length > 0 ? `Checks failed: ${failed.join(", ")}` : "Checks failed" };
   }

@@ -1,7 +1,7 @@
 ---
 id: '0062/C'
 title: "The PM asks you through the board"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0062/A', '0062/B']
 order: 30
@@ -40,11 +40,19 @@ Expected size: about 350 lines in 8 files.
 
 - The programmes panel and the stalled programme: strand D. Skill changes: strand E.
 
+## Plan
+
+- Store: `by` on a request (a record without it is the coordinator's); one open request per (item, asker); `closeRequest` takes an asker (none: both).
+- Signals: `requests` stays the coordinator's by item; new `asks` (the PM's, by item) and `programmes` (`pm/<slug>`).
+- Board: `pmAsk` on cards, strands and details; a PM request puts the item in Needs You and is its need when nothing else is asked; a programme request is a plain card "Programme <slug>". T3 gives `links` (thread id to link) for the PM thread click.
+- Pushes: own key and sequence ID, `<repo> <id|slug>: the PM asks`, high, `compass`, the PM thread.
+- CLI: `ask --by pm`, `ask pm/<slug>` (branch check), `--kind action`, `answer --by pm`, `requests` and `status` show the asker. Tests in test/pm-asks.test.ts; docs board, cli, braids-format.
+
 ## Completion
 
-- [ ] A PM request on a braid and that braid's coordinator request are both open and both shown; tests cover the store with old records
-- [ ] `braid ask pm/<slug>` opens a programme request that shows in Needs You and is pushed at high priority with the PM thread as its click; an unknown slug is refused
-- [ ] `--kind action` reads "The PM asks you to: …" on the board and in the push
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A PM request on a braid and that braid's coordinator request are both open and both shown; tests cover the store with old records
+- [x] `braid ask pm/<slug>` opens a programme request that shows in Needs You and is pushed at high priority with the PM thread as its click; an unknown slug is refused
+- [x] `--kind action` reads "The PM asks you to: …" on the board and in the push
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
