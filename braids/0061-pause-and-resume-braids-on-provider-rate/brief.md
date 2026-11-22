@@ -49,9 +49,9 @@ The user's words: "react to rate limits and at a threshold pause on pm or coordi
 
 ## Completion
 
-- [ ] Before launching any agent, a coordinator (or PM) checks that agent's provider, and over the threshold it pauses instead of launching.
-- [ ] A pause reaches every running agent of the braid (or of the PM's braids on that provider), and each stops at a clean point with its WIP pushed and logged.
-- [ ] The board shows a paused braid with its provider, window and resume time, and doesn't call it stalled.
-- [ ] Work resumes without the user at `resetsAt` + buffer, after re-checking the limits.
-- [ ] Work on providers under their threshold keeps running.
-- [ ] Docs from BRAID.md `docs` are updated (strand E).
+- [x] Before launching any agent, a coordinator (or PM) checks that agent's provider, and over the threshold it pauses instead of launching.
+- [x] A pause reaches every running agent of the braid (or of the PM's braids on that provider), and each stops at a clean point with its WIP pushed and logged.
+- [x] The board shows a paused braid with its provider, window and resume time, and doesn't call it stalled.
+- [x] Work resumes without the user at `resetsAt` + buffer, after re-checking the limits.
+- [x] Work on providers under their threshold keeps running.
+- [x] Docs from BRAID.md `docs` are updated (strand E).
