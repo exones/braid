@@ -72,6 +72,26 @@ A damaged `pauses.json` reads as no pauses, and the header says ".braid/pauses.j
 
 ![The same box once the resume is overdue](design/board-screenshots/93-paused-resume-due.png)
 
+## Provider limits
+
+The header shows a chip per provider: every instance in `BRAID.md` `models` of the listed projects, and any provider a running thread uses (a worker, reviewer or coordinator; T3's `providerInstanceId`). A chip has a Session and a Weekly meter, each with its threshold (`braid limits`: session 97%, weekly 95%, `limits` in `BRAID.md`) as a tick, and a note by its state:
+
+- **ok** (grey) and **near** (amber, within 10 points of a threshold): the meters only.
+- **over** (red): a window is past its threshold. The board shows it; it does not act on it yet.
+- **paused** (sky): a limit pause record names the provider, whatever its cache says (a stale or unmeasured cache doesn't turn it unknown; the combined board keeps `paused` over another project's unknown); its bars stay sky even past a threshold; "paused · resumes 13:55", or "weekly · resumes Thu 07:05" when the window is the weekly one.
+- **unknown** (dashed): no usable reading ("no reading for 14 min" for a stale cache). Unknown never pauses anything.
+- **not measured** (dashed): T3 can't read this provider's usage (cursor).
+
+A click on a chip opens the limits panel: per provider the windows with their bars, thresholds and reset times, the roles that use it, the braids paused for it and the agents running on it. The readings come from T3's provider caches (`<T3CODE_HOME>/caches`) with the code of `braid limits`, at each refresh and with no extra `t3` call. `/api/board` and `/api/all` carry them as `limits` (the combined board merges the projects' providers). On the phone the chips sit in a strip under the header, scrolling sideways, and the panel opens full-screen. `--demo` shows Claude_Everix paused, codex ok and cursor not measured.
+
+![The limits panel](design/board-screenshots/110-limits-panel.png)
+
+![The phone: the chip strip](design/board-screenshots/111-limits-phone-strip.png)
+
+![The phone: the limits panel](design/board-screenshots/112-limits-phone-panel.png)
+
+A thread titled `🚦 <repo> steering: …` is the board's own steering thread (0064); no item reads it as one of its agents.
+
 ## Programmes
 
 A programme is the goal a programme manager (PM, the `braid-pm` agent) runs as several braids. The board shows each one in a **panel left of the lanes**, not in a lane: a programme is no braid, several of its braids run at once, and it can be busy with none running. The user approved the design in 0062/A (`design/board-mockups/programmes.html`, screens 60 to 67) and the stall rule on 2026-11-22; decision D88.

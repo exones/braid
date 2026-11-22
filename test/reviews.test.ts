@@ -151,7 +151,7 @@ test("a recorded running review thread is the item's reviewer: review activity, 
     calls,
   );
   const read = await t3mod.readT3(root, { run, ttlMs: 0, agents: join(scratch, "none"), project: root });
-  assert.deepEqual(read.threads.get("0001/B"), [{ id: child(1), role: "reviewer", pending: 0, link: null }]);
+  assert.deepEqual(read.threads.get("0001/B"), [{ id: child(1), role: "reviewer", pending: 0, link: null, provider: null }]);
   assert.equal(read.threads.get("0001/C")?.[0]?.pending, 1);
   assert.equal(read.threads.has("0001"), false, "a thread T3 doesn't know counts for nothing");
   // The id of the real shape reaches the runner unchanged, as one argument.
