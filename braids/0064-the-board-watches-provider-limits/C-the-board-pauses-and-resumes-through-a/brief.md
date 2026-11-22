@@ -1,7 +1,7 @@
 ---
 id: '0064/C'
 title: "The board pauses and resumes through a steering thread"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: ['0064/A', '0064/B']
 order: 30
@@ -41,6 +41,15 @@ Expected size: about 750 lines in 12 files (0064/A's estimate). If it heads past
 - The `steering` role in this repository's `BRAID.md` is the user's edit; tests use fixtures, and the live run needs the user's line in place (ask the coordinator if it is missing).
 - Starts after 0062 merges into `main`; merge `main` into the braid branch first.
 - Live runs: only tiny probe threads titled `🧪 braid 0064/C probe:`, archived afterwards; never message real threads of other braids.
+
+## Plan
+
+1. `src/braids/pauses.ts`: `by: board` in `PAUSERS`; optional `targets` (thread id, kind, item) and `steering` (thread, provider, model, started, outcome, answered/total, children, no answer, reason) on a record; `claimPauses` adds records for braids without one in one `locked()` call and returns those it added; `patchPauses` updates them under the lock.
+2. `src/board/steer.ts` (new): the `steering` model lines and their pick; the targets per braid from the snapshot (coordinator, workers, reviewers, PM threads on the provider; children come from the steering thread); the first-message template; the `Steering:` line parser; the resume messages; the limit pushes and their keys.
+3. `src/board/steerer.ts` (new): one board-wide `Steerer` that every project's feed hands its good snapshot to. Per tick, serialised: follow running steering threads (`t3 thread show --messages 1 --json`: done, failed, 15-minute timeout), resume due `by: board` records after a re-check (`ok`/`unknown`: `t3 thread send` each target, clear; `pause`: new resume time), then pause providers over their threshold (claim records in each project, start one thread per provider in the first project with a `steering` role, fallback line once when the start fails). Pushes go through a limit pusher that keeps `pause:` keys in `notified.json`.
+4. Board: `braid board --no-pause`; the start line names the mode (`pauses through a 🚦 steering thread`, `--no-pause`, no `steering` role, demo). `--demo` gets no steerer.
+5. Model and page: reason `limit` (weekly window, failed pause) in Needs You, not pushed as a need; pause lines for pausing (spinner), paused by the board with answered counts, didn't answer (amber), failed; the chip's `pausing…` note and the panel's steering line.
+6. Tests: `test/board-steer.test.ts` with a fake T3 runner, fixture caches and temp repos; then docs (`docs/board.md`, `docs/cli.md`, CLI help, `docs/decisions.md` for the click-only exception), the live Claude run and the Codex probe.
 
 ## Out of scope
 
