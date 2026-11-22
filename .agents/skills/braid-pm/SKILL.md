@@ -18,10 +18,21 @@ Models: coordinators and the live checker use `models.coordinator` from `BRAID.m
 ## Taking a goal
 
 1. Read `braid list --open`, `braid inbox --no-fetch`, and the briefs (`braid view`) of open braids the goal touches.
-2. Draft the plan: braids as goal or story sketches (a title and two or three lines each), their order and dependencies, which can run in parallel, the open braids they relate to, and the product-shaping questions (see "Answering coordinators").
+2. Draft the plan by "Slicing a goal into braids": braids as goal or story sketches (a title and two or three lines each, saying what a user can try after each), their order and dependencies, which can run in parallel, the open braids they relate to, and the product-shaping questions (see "Answering coordinators").
 3. Show it to the user with the questions, context first. Discuss only the product-shaping questions, at most three rounds. Then start without a further go; the user can still change anything later ("Replanning").
 4. If the project's `AGENTS.md` keeps merges into `main` the user's (as braid's own does), say so once here: stories and final PRs will wait for the user's merge, and the digest lists them as one batch.
 5. Create the plan file and launch the first braids ("Running").
+
+## Slicing a goal into braids
+
+1. **Each braid leaves `main` usable and demoable.** A user can try what it adds, and the live check can test it. It is a step in the product, not a layer of it.
+2. **The first braid is a thin end-to-end path.** It takes the riskiest path through the whole system at the smallest size; later braids widen it.
+3. **Slice vertically.** A braid cuts through every layer its feature needs; never "parser braid, then UI braid".
+4. **Strands may be technical steps.** Only the braid's final PR into `main` has to be an increment; strands land on the braid branch.
+5. **Tooling and cleanup braids are allowed** (CI, sweeps). Their increment is for the team, and the plan says so.
+6. **Order by risk, then value.** Unproven technology first, then what users need most; polish and packaging last.
+7. **Shape contracts in the braid that creates them.** A CLI, file format or API that later braids will build on is designed for those uses from the start (for example machine-readable output, one gate point for licensing), so it doesn't have to break later.
+8. **Leftovers:** route each to the planned braid that owns its area (note it in that row). When several without an owner share a theme that would make a demoable increment, add a braid for them instead of a sweep; sweep only the small, unrelated rest. When a row collects so many that the braid would outgrow one goal, tell its coordinator to split it when it plans.
 
 ## The plan file
 
@@ -76,7 +87,7 @@ Send the user a short digest when three braids have finished since the last one,
 
 ## Checking the result live
 
-Reports are not enough. Before a story's or a final PR's merge into `main` (when its coordinator sends you the PR and head), and again on `main` after it merges, launch a checker: `delegate_task` with `isolation: worktree`, `mode: async`, the coordinator model as `target`, title `🧭 <repo> pm check: <number> <title>`, and this task:
+Reports are not enough. Before a story's or a final PR's merge into `main` (when its coordinator sends you the PR and head), launch a checker: `delegate_task` with `isolation: worktree`, `mode: async`, the coordinator model as `target`, title `🧭 <repo> pm check: <number> <title>`, and this task:
 
 ```text
 Check what braid <number> "<title>" built, live. Check out <PR head sha, or origin/main after the merge> in your worktree.
@@ -86,8 +97,9 @@ Report: what works and what doesn't, each with evidence (commands and output, sc
 If something can't be run live (no `run` in BRAID.md, no display), say why and what you checked instead.
 ```
 
+- **After a braid's merge into `main`** (a story's PR or a goal's final PR; never a strand's merge into its braid branch): the check on `main` is its `ci` run on the merge commit, waited for in the background, with no agent. Launch the checker again on `main` only when `main` moved between the pre-merge check and the merge and brought in code the checker didn't run.
 - **Pass:** tell the coordinator to merge (or, where `main` is the user's, mark the braid `ready to merge` for the digest).
-- **Failure before the merge:** send it to the coordinator as a fix, with the evidence. **After the merge:** add a fix braid to the plan and run it next.
+- **Failure before the merge:** send it to the coordinator as a fix, with the evidence. **After the merge** (a red `ci` run on the merge commit, or the checker's failure): `main` must stay green, so add a fix braid to the plan and run it next, ahead of the others.
 - **Expensive to reverse** (the failure shows the platform or the product's form is wrong): ask the user.
 - **Couldn't run:** never a pass for what wasn't run. Name the PR and its head in the digest as "not fully checked", with what was and wasn't checked, so the user can still merge it.
 
