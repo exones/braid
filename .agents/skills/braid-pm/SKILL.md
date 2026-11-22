@@ -104,7 +104,7 @@ If something can't be run live (no `run` in BRAID.md, no display), say why and w
 ```
 
 - **After a braid's merge into `main`** (a story's PR or a goal's final PR; never a strand's merge into its braid branch): the check on `main` is its `ci` run on the merge commit, waited for in the background, with no agent. Launch the checker again on `main` only when `main` moved between the pre-merge check and the merge and brought in code the checker didn't run.
-- **Pass:** tell the coordinator to merge (or, where `main` is the user's, mark the braid `ready to merge` for the digest and `braid forward <number> --note "live check passed · merge PR #<n> at <head>"` its handover, so it waits in the user's To Review).
+- **Pass:** tell the coordinator to merge (or, where `main` is the user's, mark the braid `ready to merge` for the digest and `braid forward <number> --note "live check passed · merge PR #<n> at <head>"` its handover, so it waits in the user's To Review; tell the coordinator the handover is now with the user, so it leaves it open).
 - **Failure before the merge:** send it to the coordinator as a fix, with the evidence. **After the merge** (a red `ci` run on the merge commit, or the checker's failure): `main` must stay green, so add a fix braid to the plan and run it next, ahead of the others.
 - **Expensive to reverse** (the failure shows the platform or the product's form is wrong): ask the user.
 - **Couldn't run:** never a pass for what wasn't run. Name the PR and its head in the digest as "not fully checked", with what was and wasn't checked, so the user can still merge it.
