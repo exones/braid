@@ -1,7 +1,7 @@
 ---
 id: '0062/E'
 title: "Skills: the programme manager routes through the board"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0062/B', '0062/C', '0062/D']
 order: 50
@@ -49,10 +49,21 @@ Expected size: about 220 lines in 5 files.
 
 ## Completion
 
-- [ ] `braid-pm` and "Launched by a PM" use `--to pm`, `braid forward`, `braid ask pm/<slug>`, `--by pm`, `--kind action` and `braid pause --hold` as built
-- [ ] The plan template has the front matter, and the skill validates it with `braid check --plan` before each push
-- [ ] The name "programme manager" throughout; `braid-pm`, `🧭 … pm:` and `pm/<slug>` unchanged
-- [ ] braid-pm's "Hold" records `braid pause --hold` per running braid and the plan's `hold`, and 0061/D's "Provider limits" is unchanged
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid-pm` and "Launched by a PM" use `--to pm`, `braid forward`, `braid ask pm/<slug>`, `--by pm`, `--kind action` and `braid pause --hold` as built
+- [x] The plan template has the front matter, and the skill validates it with `braid check --plan` before each push
+- [x] The name "programme manager" throughout; `braid-pm`, `🧭 … pm:` and `pm/<slug>` unchanged
+- [x] braid-pm's "Hold" records `braid pause --hold` per running braid and the plan's `hold`, and 0061/D's "Provider limits" is unchanged
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `braid-pm/SKILL.md`: "programme manager" in prose (title, description, intro); `braid-pm`, `🧭 <repo> pm:` and `pm/<slug>` stay.
+- "The plan file": the front matter the board reads (`programme`, `title`, `goal`, `thread`, `limit`, `state`, `hold`, `next`, `digest`, `rows`), kept in step with the body; `braid check --plan pm/<slug>.md` before each push.
+- "Answering coordinators": ask the user with `braid ask <number> --by pm` (one braid) or `braid ask pm/<slug>` (the programme), `--kind action` for what only the user can do; still in chat, context first, no question tool; `braid answer --by pm` when answered. Forward what it won't decide with `braid forward <id> --note`; answer and close only requests it decides.
+- "The digest": write it to `digest` in the front matter too.
+- "Hold": `braid pause <n> --hold "<words>" --thread <PM thread> --by pm` per running braid, plan `hold` and `state: held`; on go `braid resume <n>`, clear `hold`, `state: running`. "Provider limits" left as 0061/D wrote it.
+- `assets/plan.md`: the front matter; the header line drops what moved into it.
+- braid skill, "Launched by a PM" only: `--to pm` on `braid ask` and `braid handover`; close (`braid answer`) only a request the PM decided, never one forwarded to the user or an `action`.
+- Install test: no name changes, so unchanged. Docs: getting-started's naming line; the rest is 0062/F's.
