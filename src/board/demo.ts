@@ -9,6 +9,7 @@ import type { Github } from "./github.js";
 import type { ReadSignals } from "./signals.js";
 import type { StartContext } from "./model.js";
 import type { T3, T3Coordinator, T3Thread } from "./t3.js";
+import { planOf, type PlanRead } from "./plans.js";
 
 const brief = (id: string, title: string, status: string, extra = ""): string =>
   `---\nid: '${id}'\ntitle: ${title}\nstatus: ${status}\n${extra}---\n\n## Goal\n\n${title}. Sample text from \`braid board --demo\`.\n\n## Acceptance\n\n- It works.\n`;
@@ -169,6 +170,9 @@ export function demoT3(down = false): T3 {
     status: { state: "ok" },
     coordinators: demoCoordinators,
     idleCoordinators: demoIdleCoordinators,
+    // The programmes' PM threads: all idle (a PM waits between messages); `inbox-sweep`'s braids don't run either, so it reads stalled.
+    states: new Map([["demo-pm-1", "idle"], ["demo-pm-2", "idle"], ["demo-pm-3", "idle"]]),
+    links: new Map(["demo-pm-1", "demo-pm-2", "demo-pm-3"].map((id) => [id, `https://t3.example/thread/${id}`])),
     // The idea "Run two workers at once" is being planned (Promote to Braid): its row shows that and Open thread.
     ideaThreads: new Map<string, T3Coordinator>([["coordinator/idea-2026-11-15-w8nn", { id: "demo-11", link: "https://t3.example/thread/demo-11", provider: "Claude_Everix", model: "claude-opus-5-5" }]]),
     idle: new Map<string, readonly T3Thread[]>([["0002/B", [thread("demo-8", "worker")]]]),
@@ -203,11 +207,17 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     request("0004/B", "question", "Which rounding rule should refunds use, half-up or banker's?", 35),
     request("0006", "decision", "Decide: which spike option to build (spike-direction)", 120, { key: "spike-direction" }),
     request("0007", "plan", "Approve the plan: 3 strands, A to C", 20),
+    // A question the PM answers first: the card keeps its lane and shows the teal "The PM is handling" line, with 🧭.
+    request("0009/A", "question", "Should the report totals include refunds?", 3, { to: "pm", pm: "demo-pm-1" }),
   ];
-  const began: Readonly<Record<string, number>> = { "0002/B": 14, "0004/A": 25 };
+  const asks: Request[] = [request("0004/B", "action", "install the runner on the build machine", 8, { by: "pm" })];
+  const programmes: Request[] = [request("pm/working-product", "decision", "Should the export ship before billing? A. Yes: export first, billing after B. No: billing first C. Both at once, with the limit raised to 3", 12, { by: "pm", thread: "demo-pm-1" })];
+  const began: Readonly<Record<string, number>> = { "0002/B": 14, "0004/A": 25, "demo/inbox-sweep pm": 14 };
   return {
     now,
     requests: new Map(requests.map((r) => [r.id, r])),
+    asks: new Map(asks.map((r) => [r.id, r])),
+    programmes,
     pauses: new Map(demoPauses(now).map((p) => [p.braid, p])),
     alarm: (id, _reason, holds) => (holds === true && began[id] !== undefined ? at(began[id] ?? 0) : null),
     doneAt: (folder) => {
@@ -277,9 +287,55 @@ export function apiGithub(): Github {
   };
 }
 
-/** T3 runs no agent of the `api` project. */
+/** T3 runs no agent of the `api` project; its PM thread runs. */
 export function apiT3(): T3 {
-  return { status: { state: "ok" }, threads: new Map() };
+  return { status: { state: "ok" }, threads: new Map(), states: new Map([["api-pm-1", "running"]]), links: new Map([["api-pm-1", "https://t3.example/thread/api-pm-1"]]) };
+}
+
+const plan = (fields: readonly string[]): string => `---\n${fields.join("\n")}\n---\n\n# PM plan\n\nThe decisions and the change log, for people.\n`;
+
+/**
+ * The demo's programmes: `working-product` asks you (its request is in `demoSignals`), `inbox-sweep` is stalled (its PM is
+ * idle and none of its braids runs), `ios-beta` is held (its braid 0005 shows paused), `launch-v1` is done (off the panel;
+ * its braids carry the 🧭 tag in Done).
+ */
+export function demoPlans(now: Date = new Date()): PlanRead[] {
+  const since = new Date(now.getTime() - 95 * MIN).toISOString();
+  return [
+    planOf("inbox-sweep", "pm/inbox-sweep", plan(["programme: inbox-sweep", "title: Inbox sweep", "goal: Turn the inbox ideas into braids or close them", "thread: demo-pm-2", "limit: 2", "state: running", "next: P3 audit trail, after 0012", "rows:", "  - P1 | 0006 | Sample audit log | waiting on user", "  - P2 | 0012 | Sample CSV import | planned", "  - P3 | - | Audit trail | planned"])),
+    planOf("ios-beta", "pm/ios-beta", plan(["programme: ios-beta", "title: iOS beta", "goal: An iOS beta on TestFlight", "thread: demo-pm-3", "limit: 1", "state: held", `hold: ${since} wait until the App Store account is approved`, "rows:", "  - P1 | 0005 | Sample themes | running", "  - P2 | - | TestFlight build | planned"])),
+    planOf("launch-v1", "pm/launch-v1", plan(["programme: launch-v1", "title: Launch v1", "goal: The first public release", "thread: demo-pm-4", "state: done", "rows:", "  - P1 | 0014 | Sample reports v2 | done", "  - P2 | 0015 | Sample billing v2 | done"])),
+    planOf(
+      "working-product",
+      "pm/working-product",
+      plan([
+        "programme: working-product",
+        "title: Working product",
+        "goal: A working product per the specs: sign in, search, export and bill",
+        "thread: demo-pm-1",
+        "limit: 3",
+        "state: running",
+        "next: P4 Packaging, after 0003 merges",
+        "digest: 20:03 · 1 done · 3 running · 7 PM decisions since 18:31",
+        "rows:",
+        "  - P0 | 0008 | Sample mail | done",
+        "  - P1 | 0001 | Sample login flow | running",
+        "  - P2 | 0002 | Sample search | running",
+        "  - P3 | 0003 | Sample export | running",
+        "  - P5 | 0004 | Sample billing | waiting on user",
+        "  - P4 | - | Packaging for Windows | planned",
+        "  - P6 | - | Settings and first run | planned",
+      ]),
+    ),
+  ];
+}
+
+/** The `api` project's programmes: one with the same slug as the demo project's (they stay apart), and a plan that doesn't parse. */
+export function apiPlans(): PlanRead[] {
+  return [
+    planOf("broken-plan", "origin/pm/broken-plan", plan(["programme: broken-plan", "title: Broken plan", "goal: A plan the PM wrote wrong", "state: paused"])),
+    planOf("working-product", "pm/working-product", plan(["programme: working-product", "title: Working API", "goal: The public API, limited and documented", "thread: api-pm-1", "limit: 2", "state: running", "next: P3 OpenAPI docs, after 0002 merges", "rows:", "  - P0 | 0004 | Health check endpoint | done", "  - P1 | 0001 | Rate limits per key | running", "  - P2 | 0002 | Token rotation | ready to merge", "  - P3 | 0003 | OpenAPI docs | planned"])),
+  ];
 }
 
 /** `api`: a question on 0001/B and 0002's PR handed over for review. */

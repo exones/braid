@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
-import { apiBraids, apiGithub, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
-import { combine, projectInfo, projectsParam, type Held } from "../board/combined.js";
+import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
+import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed } from "../board/feed.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
@@ -18,6 +18,7 @@ import { t3codeUrl } from "../board/marks.js";
 import { problemLine, readiness, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
+import { readPlans, type PlanRead } from "../board/plans.js";
 import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
 import { normaliseId, UsageError } from "./braids.js";
@@ -59,6 +60,8 @@ export interface Sources {
   github(fresh: boolean): Github | Promise<Github>;
   t3(fresh: boolean): Promise<T3>;
   signals(github: Github): ReadSignals;
+  /** The plans of the project's programmes (`pm/*` branches); absent: none. A failed read gives none. */
+  plans?(): Promise<PlanRead[]>;
   tree(item: Item): Tree;
   /** A folder whose changes refresh the page; null for none. */
   readonly watch: string | null;
@@ -382,12 +385,36 @@ async function openIdea(src: Sources, idea: unknown, snapshot: Parameters<Action
   return { ok: true, idea, url };
 }
 
+/** Opens a programme's PM thread; the link comes from the snapshot's programmes only. */
+async function openProgramme(slug: unknown, snapshot: Parameters<Action>[1], open: Opener): Promise<unknown> {
+  if (typeof slug !== "string" || slug === "") {
+    throw new UsageError("open needs { programme }: the slug of the programme whose PM thread to open");
+  }
+  const link = (await snapshot?.())?.programmes.find((p) => p.slug === slug)?.link ?? null;
+  if (link === null) {
+    throw new UsageError(`Open thread: programme ${slug} has no PM thread T3 knows`);
+  }
+  const url = t3codeUrl(link);
+  if (url === null) {
+    throw new UsageError(`Open thread: T3's link isn't one the app can open (${link})`);
+  }
+  try {
+    await open(url);
+  } catch (e) {
+    throw new UsageError(`Open thread: the OS couldn't open ${url} (${e instanceof Error ? e.message : "failed"})`);
+  }
+  return { ok: true, programme: slug, url };
+}
+
 export function openAction(src: Sources, open: Opener = openWithOs): Action {
   return async (body, snapshot) => {
     const fields = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
     const idea = fields["idea"];
     if (idea !== undefined) {
       return openIdea(src, idea, snapshot, open);
+    }
+    if (fields["programme"] !== undefined) {
+      return openProgramme(fields["programme"], snapshot, open);
     }
     const raw = fields["id"];
     if (typeof raw !== "string") {
@@ -445,6 +472,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     github: (fresh) => readGithubAsync(root, gh, fresh ? 0 : undefined),
     t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
     signals: (github) => readSignals(root, github),
+    plans: () => readPlans(root),
     tree: (item) => treeOf(root, item),
     watch: join(root, "braids"),
     start: () => readStartContext(root),
@@ -475,6 +503,7 @@ export function demoSources(t3Down = false, notReady = false): Sources {
     github: () => demoGithub(),
     t3: () => Promise.resolve(demoT3(t3Down)),
     signals: () => demoSignals(),
+    plans: () => Promise.resolve(demoPlans()),
     tree: () => demoTree(),
     watch: null,
     start: () => DEMO_START,
@@ -806,7 +835,7 @@ export function startBoardWith(
       }
       if (url.pathname === "/api/board") {
         const readAt = entry.feed.readAt();
-        return json(200, { ...good.board, remote, project: name, readAt: readAt === null ? null : new Date(readAt).toISOString(), failure: entry.feed.failure() });
+        return json(200, { ...good.board, programmes: tagProgrammes(name, good.board.programmes), remote, project: name, readAt: readAt === null ? null : new Date(readAt).toISOString(), failure: entry.feed.failure() });
       }
       const raw = url.searchParams.get("id");
       if (raw === null) {
@@ -995,7 +1024,7 @@ export interface Runners {
 /** The four sample projects of `braid board --demo`: the full sample (`demo`), a small one (`api`), one whose reads fail after the first (`mail`) and one that isn't ready (`notes`). */
 export function demoMembers(t3Down = false, notReady = false): Member[] {
   const accept: Sources["action"] = () => () => ({ ok: true, demo: true });
-  const small = (repo: string, braids: () => Braid[], github: () => Github, signals: () => ReadSignals, tree: () => Tree, problems: () => Problem[] | null): Sources => {
+  const small = (repo: string, braids: () => Braid[], github: () => Github, signals: () => ReadSignals, tree: () => Tree, problems: () => Problem[] | null, plans: () => PlanRead[] = () => []): Sources => {
     const listed = problems();
     return {
       ...(listed === null ? {} : { readiness: () => listed }),
@@ -1004,6 +1033,7 @@ export function demoMembers(t3Down = false, notReady = false): Member[] {
       github,
       t3: () => Promise.resolve(apiT3()),
       signals,
+      plans: () => Promise.resolve(plans()),
       tree,
       watch: null,
       start: () => DEMO_START,
@@ -1023,7 +1053,7 @@ export function demoMembers(t3Down = false, notReady = false): Member[] {
   };
   return [
     { name: "demo", src: demoSources(t3Down, notReady) },
-    { name: "api", src: small("api", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null) },
+    { name: "api", src: small("api", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null, apiPlans) },
     { name: "mail", src: mail },
     { name: "notes", src: small("notes", () => [], () => ({ status: { state: "ok" }, prs: new Map() }), () => ({ ...apiSignals(), requests: new Map() }), apiTree, notesProblems) },
   ];

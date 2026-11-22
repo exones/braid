@@ -15,8 +15,32 @@ export function ntfyBody(config: NotifyConfig, push: Omit<Push, "key" | "item" |
     title: push.title,
     message: push.body,
     tags: [...push.tags],
-    priority: push.priority === "high" ? 4 : 3,
+    priority: push.priority === "high" ? 4 : push.priority === "low" ? 2 : 3,
     ...(push.click === null ? {} : { click: push.click }),
+    ...(push.sequence === null ? {} : { sequence_id: push.sequence }),
+  };
+}
+
+/** Clears a push by its sequence ID (`PUT <server>/<topic>/<sequence>/clear`): it leaves the device (Android and the web app only). */
+export type Clearer = (config: NotifyConfig, sequence: string, token: string | null) => Promise<void>;
+
+export function ntfyClearer(fetcher: typeof fetch = fetch, timeoutMs: number = SEND_TIMEOUT_MS): Clearer {
+  return async (config, sequence, token) => {
+    const host = new URL(config.server).host;
+    let res: Response;
+    try {
+      res = await fetcher(`${config.server}/${encodeURIComponent(config.topic)}/${encodeURIComponent(sequence)}/clear`, {
+        method: "PUT",
+        headers: token === null ? {} : { authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch {
+      throw new Error(`can't reach ${host}`);
+    }
+    await res.body?.cancel().catch(() => {});
+    if (!res.ok) {
+      throw new Error(`${host} answered HTTP ${res.status}`);
+    }
   };
 }
 

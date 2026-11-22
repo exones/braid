@@ -4,12 +4,18 @@ import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
-export const KINDS = ["review", "question", "decision", "plan"] as const;
+/** `action` is something only the user can do (an install, a login); only the PM opens one. */
+export const KINDS = ["review", "question", "decision", "plan", "action"] as const;
 export type Kind = (typeof KINDS)[number];
 
+/** Who opened a request: the braid's coordinator, or the programme manager asking the user itself. */
+export type Asker = "coordinator" | "pm";
+
 export interface Request {
-  /** The item: `0015` or `0015/C`. */
+  /** The item: `0015` or `0015/C`; for a programme request `pm/<slug>`. */
   readonly id: string;
+  /** Who asks: a record without it is the coordinator's. A braid has at most one open request per asker. */
+  readonly by?: Asker;
   readonly kind: Kind;
   /** One line: what is needed from the user. */
   readonly text: string;
@@ -22,6 +28,14 @@ export interface Request {
   /** A review request: the PR and the head commit handed over. */
   readonly pr?: number;
   readonly head?: string;
+  /** Whom it is for: `pm` (the programme manager answers first) or `user`. A record without it is the user's. */
+  readonly to?: "user" | "pm";
+  /** The PM's thread (id) of a request to the PM, from the brief's `PM-run (thread <id>)` line. */
+  readonly pm?: string;
+  /** When the PM forwarded it to the user (`braid forward`), ISO. */
+  readonly forwarded?: string;
+  /** The PM's note with the forward. */
+  readonly note?: string;
 }
 
 /** What `gh pr view --json state,headRefOid` says of a PR; `headRefOid` is the full commit sha, as stored in a review request's `head`. null: GitHub couldn't be read. */
@@ -156,28 +170,50 @@ function update(file: string, change: (list: Request[]) => Request[] | null): vo
   });
 }
 
+/** Who asked; an old record without `by` is the coordinator's. */
+export const askerOf = (r: Pick<Request, "by">): Asker => r.by ?? "coordinator";
+
+/** `pm/<slug>`: the id of a programme request; the slug, or null for any other id. */
+export const programmeOf = (id: string): string | null => /^pm\/(.+)$/.exec(id)?.[1] ?? null;
+
+const same = (r: Request, id: string, by: Asker | undefined): boolean => r.id === id && (by === undefined || askerOf(r) === by);
+
 export function loadRequests(root: string): Request[] {
   return readFile(requestsFile(root));
 }
 
-/** Opens a request; an earlier one on the same item is replaced. */
+/** Opens a request; an earlier one on the same item from the same asker is replaced, the other asker's stays. */
 export function openRequest(root: string, request: Request): void {
-  update(requestsFile(root), (list) => [...list.filter((r) => r.id !== request.id), request]);
+  update(requestsFile(root), (list) => [...list.filter((r) => !same(r, request.id, askerOf(request))), request]);
 }
 
-/** Closes the item's request; true when there was one. */
-export function closeRequest(root: string, id: string): boolean {
+/** Closes the item's request of this asker (without `by`: of both); true when there was one. */
+export function closeRequest(root: string, id: string, by?: Asker): boolean {
   const file = requestsFile(root);
   // Nothing to close: no lock, no write (start and done call this on every item).
-  if (!readFile(file).some((r) => r.id === id)) {
+  if (!readFile(file).some((r) => same(r, id, by))) {
     return false;
   }
   let found = false;
   update(file, (list) => {
-    found = list.some((r) => r.id === id);
-    return found ? list.filter((r) => r.id !== id) : null;
+    found = list.some((r) => same(r, id, by));
+    return found ? list.filter((r) => !same(r, id, by)) : null;
   });
   return found;
+}
+
+/** Hands the item's request to the user (`braid forward`): `to: user`, `forwarded` now, the note kept. Null when there is no open request. */
+export function forwardRequest(root: string, id: string, at: string, note: string | undefined): Request | null {
+  let out: Request | null = null;
+  update(requestsFile(root), (list) => {
+    const old = list.find((r) => same(r, id, "coordinator"));
+    if (old === undefined) {
+      return null;
+    }
+    out = { ...old, to: "user", forwarded: at, ...(note === undefined ? {} : { note }) };
+    return list.map((r) => (r === old ? out : r)) as Request[];
+  });
+  return out;
 }
 
 /** A review request is void when its PR is no longer open (in any letter case) or is at another head (the full sha). A PR that can't be read (null) leaves it. */

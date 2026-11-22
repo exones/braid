@@ -6,7 +6,7 @@ import type { AllBoard } from "../../src/board/combined.ts";
 export type { InboxData, InboxEntry } from "../../src/board/inbox.ts";
 export type { BoardData, BraidCard, ItemDetail, Lane, CoordinatorInfo, MergeInfo, Need, StartInfo, StrandCard, ThreadRole } from "../../src/board/model.ts";
 export type { PullRequest } from "../../src/board/github.ts";
-export type { AllBoard, ProjectInfo, TaggedCard } from "../../src/board/combined.ts";
+export type { AllBoard, ProjectInfo, TaggedCard, TaggedProgramme } from "../../src/board/combined.ts";
 
 export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
 

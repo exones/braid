@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parsePlan } from "./braids/plan.js";
 import { FormatError } from "./braids/frontmatter.js";
 import { findRoot } from "./braids/store.js";
 import { checkBraids } from "./braids/check.js";
@@ -19,7 +21,7 @@ import { startCommand } from "./commands/start.js";
 import { acceptCommand } from "./commands/done.js";
 import { waitCommand } from "./commands/wait.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
-import { answerCommand, askCommand, handoverCommand, requestsCommand, reviewCommand } from "./commands/requests.js";
+import { answerCommand, askCommand, forwardCommand, handoverCommand, requestsCommand, reviewCommand } from "./commands/requests.js";
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
 import { autonomyCommand } from "./commands/autonomy.js";
 import { limitsCommand } from "./commands/limits.js";
@@ -57,12 +59,13 @@ export function helpText(version: string): string {
     "  autonomy <number>           Print the autonomy preset a braid runs on, where its name and text come from, and the brief's ## Autonomy section (--list: the presets available here)",
     "  limits [<instance>]         Whether an agent may be launched on each provider in BRAID.md models, from T3's usage caches: windows, usage, verdict ok|pause|unknown, for pause the resume time (--role <role> [--tier <T>] [--kind <k>] narrows, e.g. --role worker --kind story; --json; exit 3 on pause)",
     "  pause <number> --provider <instance> --thread <id>  Record that a braid waits for a provider's usage window in .braid/pauses.json: window, usage and resume time from braid limits (refused unless its verdict is pause; --window <id> picks the window, --until <iso> sets the resume time and pauses anyway), --task <id> the scheduled resume task, --by coordinator|pm. The board and status show it",
+    "  pause <number> --hold \"<words>\" --thread <id>  Record a deliberate hold (yours or the PM's): no provider, no resume time, never stalled; shows paused with your words until braid resume (--by coordinator|pm)",
     "  resume <number>             Clear a braid's pause and print what was cleared",
     "  brief <id> <section>       Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
     "  import-backlog              Turn backlog/ tasks into braids/ (--dry-run: print only; backlog/ is never touched)",
-    "  check                       Check every brief under braids/; list each error with its file (exit 2 on any)",
+    "  check                       Check every brief under braids/; list each error with its file (exit 2 on any). --plan <file>: check a programme's plan file (pm/<slug>.md) instead; an error names its line",
     "  status <number>             One line per strand: status, lane (as the board shows it), ask:<key>, branch, PR, ci checks, T3 thread, and the request text of an item on your side (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id> [--force]        Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
@@ -72,10 +75,11 @@ export function helpText(version: string): string {
     "  wait <number> [--timeout <minutes>]  Wait for the braid branch's CI (reads only): each check is answered by the newest commit from the tip down to the newest one outside braids/ and epics/ that has a run for it, and a cancelled run stays pending while a newer commit may still run it: exit 0 green, 1 a ci check failed, 2 no run within 5 minutes or an error, 3 still running when --timeout (minutes, default 30) is up: call again",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case",
     "  recap <id>                  A draft recap and braid log line from report.md, the PR (head, checks) and the facts, to edit",
-    "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints the recap draft (--thread)",
-    "  ask <id> <text>             Open a request for what the coordinator needs from you (--kind question|decision|plan, --key <stop case>, --thread, --file -)",
-    "  answer <id>                 Close the item's request (--log <file>|- adds your decision to the braid log; --thread)",
-    "  requests                    List the open requests: item, kind, age, text",
+    "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints the recap draft (--thread, --to pm)",
+    "  ask <id> <text>             Open a request for what the coordinator needs from you (--kind question|decision|plan, --key <stop case>, --thread, --file -; --to pm: the PM answers first, from the braid's PM-run line). The PM's own: --by pm on a braid, or ask pm/<slug> for the programme (--kind action: something only you can do); a PM request shows in Needs You, is pushed and opens the PM thread",
+    "  forward <id>                The PM hands a request addressed to it on to you: it reaches Needs You (a handover: To Review) and is pushed, at once or, while the braid is paused or held, after braid resume (--note <text>)",
+    "  answer <id>                 Close the item's request (--by pm: the PM's, also for pm/<slug>; --log <file>|- adds your decision to the braid log; --thread)",
+    "  requests                    List the open requests: item, kind, age, who asks (the PM) and text",
     "  note <text> --from <source>  Capture a leftover on the braid-inbox branch and push it (source: 0012/A, review 0012/A, PR #12 or user; --ref <url> repeats; --file -)",
     "  note --idea <text>          Capture an idea on the braid-inbox branch and push it (from: user unless --from; --file -)",
     "  inbox                       List the open inbox entries: kind, id, age, source, passed, title (--leftovers, --ideas, --all adds taken and dropped, --no-fetch)",
@@ -86,7 +90,7 @@ export function helpText(version: string): string {
     "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; forces only a recorded reviewer's t3/ branch whose tip is the PR head or on origin)",
     "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port)",
-    "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends one, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
+    "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends a push, then one it clears, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
     "  projects add [<path>]       Add a project to this machine's list in ~/.braid/projects.json (its main checkout; --name <n>, --port <n>) and print its readiness",
     "  projects remove <name>      Remove a project from the list",
     "  projects list               Each listed project: name, path, port and readiness (GitHub not checked)",
@@ -113,7 +117,7 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
+const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "forward", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
@@ -135,9 +139,26 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
       return askCommand(root, args);
     case "answer":
       return answerCommand(root, cwd, args);
+    case "forward":
+      return forwardCommand(root, args);
     case "requests":
       return requestsCommand(root, args);
     case "check": {
+      if (args[0] === "--plan") {
+        if (args.length !== 2) {
+          throw new UsageError("usage: braid check --plan <file>");
+        }
+        const file = resolve(cwd, args[1] ?? "");
+        let text: string;
+        try {
+          text = readFileSync(file, "utf8");
+        } catch {
+          throw new UsageError(`braid check --plan: can't read ${args[1] ?? ""}`);
+        }
+        const plan = parsePlan(text, args[1] ?? "");
+        return `plan OK: pm/${plan.programme}, ${plan.state}, ${plan.rows.length} row${plan.rows.length === 1 ? "" : "s"}
+`;
+      }
       if (args.length > 0) {
         throw new UsageError(`braid check takes no arguments; got: ${args.join(" ")}`);
       }

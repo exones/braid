@@ -40,3 +40,30 @@ export function resolveProject(asked: string | null, selected: readonly string[]
   const first = selected[0] ?? served[0];
   return first === undefined ? null : { name: first };
 }
+
+/**
+ * The programme the lanes are narrowed to: `?programme=<project>/<slug>` (on a one-project board `?programme=<slug>`
+ * works too), when that programme is known and its project is shown; else null (the page then drops it from the address).
+ */
+export function parseProgramme(search: string, keys: readonly string[], shown: readonly string[]): string | null {
+  const raw = new URLSearchParams(search).get("programme")?.trim() ?? "";
+  if (raw === "") {
+    return null;
+  }
+  const key = raw.includes("/") ? raw : shown.length === 1 ? `${shown[0] ?? ""}/${raw}` : raw;
+  const project = key.slice(0, key.indexOf("/"));
+  return keys.includes(key) && shown.includes(project) ? key : null;
+}
+
+/** `search` with `?programme=` set to `key` (null removes it), the other parameters kept in their order. */
+export function programmeSearch(search: string, key: string | null): string {
+  const params = new URLSearchParams(search);
+  if (key === null) {
+    params.delete("programme");
+  } else {
+    params.set("programme", key);
+  }
+  // Keep `/` and `,` readable in the address, as `?projects=` writes them.
+  const text = params.toString().replaceAll("%2F", "/").replaceAll("%2C", ",");
+  return text === "" ? "" : `?${text}`;
+}
