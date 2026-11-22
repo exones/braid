@@ -49,13 +49,13 @@ Expected size: about 220 lines in 5 files.
 
 ## Completion
 
-- [ ] `braid-pm` and "Launched by a PM" use `--to pm`, `braid forward`, `braid ask pm/<slug>`, `--by pm`, `--kind action` and `braid pause --hold` as built
-- [ ] The plan template has the front matter, and the skill validates it with `braid check --plan` before each push
-- [ ] The name "programme manager" throughout; `braid-pm`, `🧭 … pm:` and `pm/<slug>` unchanged
-- [ ] braid-pm's "Hold" records `braid pause --hold` per running braid and the plan's `hold`, and 0061/D's "Provider limits" is unchanged
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid-pm` and "Launched by a PM" use `--to pm`, `braid forward`, `braid ask pm/<slug>`, `--by pm`, `--kind action` and `braid pause --hold` as built
+- [x] The plan template has the front matter, and the skill validates it with `braid check --plan` before each push
+- [x] The name "programme manager" throughout; `braid-pm`, `🧭 … pm:` and `pm/<slug>` unchanged
+- [x] braid-pm's "Hold" records `braid pause --hold` per running braid and the plan's `hold`, and 0061/D's "Provider limits" is unchanged
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
