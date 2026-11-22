@@ -1,7 +1,11 @@
 // `braid wait <number> [--timeout <minutes>]`: waits for the braid branch's CI after a merge the coordinator
 // made itself, where no PR is left to watch (decision D71). It reads only: one fetch of the braid branch, then
-// GitHub's check runs on the newest commit that changes anything outside `braids/` and `epics/` (the CI
-// workflow's push `paths-ignore`; a commit with only those changes starts no run). The exit code is the answer:
+// GitHub's check runs from the branch tip down to the newest commit that changes anything outside `braids/` and
+// `epics/` (the CI commit). A project's CI may skip `braids/`-only pushes or not; every commit above the CI commit
+// tests the same code, so a check is answered by the newest commit in that range that has a run for it. A run
+// CANCELLED on a commit that has a newer commit above it (a newer push cancels older runs) stays pending, not failing,
+// for the 5-minute start limit, since the newer commit may still start its run; after that, or when nothing is newer,
+// it fails. The exit code is the answer:
 // 0 green, 1 a `ci` check failed, 2 no answer (no run within 5 minutes, or an error), 3 still running when the
 // time is up (call again; the coordinator waits in foreground calls under 10 minutes and repeats).
 import { braidBranches } from "../braids/branches.js";
@@ -62,13 +66,17 @@ const PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);
 
 type Result = "passing" | "failing" | "pending" | "missing";
 
-function resultOf(rollup: ReturnType<typeof commitChecks>, name: string): Result {
+/** "cancelled" is a finished run that a newer commit's run may supersede; the caller turns it into pending or failing. */
+function resultOf(rollup: ReturnType<typeof commitChecks>, name: string): Result | "cancelled" {
   const c = (rollup ?? []).find((r) => r.name === name);
   if (c === undefined) {
     return "missing";
   }
   if ((c.status ?? "COMPLETED") !== "COMPLETED") {
     return "pending";
+  }
+  if (c.conclusion === "CANCELLED") {
+    return "cancelled";
   }
   return PASSED.has(c.conclusion ?? "") ? "passing" : "failing";
 }
@@ -127,22 +135,42 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
   const until = start + minutes * 60_000;
   const noRunUntil = start + START_MS;
   /** The last state GitHub gave; a failed or empty read never replaces a seen run. */
-  let last: { name: string; result: Result }[] | null = null;
+  let last: { name: string; result: Result; sha: string }[] | null = null;
   let unread = false;
+  // The tip first, the CI commit last: the newest commit with a run for a check answers it.
+  const range = [...found.skipped, sha];
+  /** The commits that answered, as short shas; the CI commit when nothing has a run yet. */
+  const at = (state: readonly { sha: string }[]) => [...new Set(state.map((s) => s.sha.slice(0, 7)))].join(", ") || short;
   for (;;) {
-    const rollup = commitChecks({ root, run }, sha);
-    const read = names.map((n) => ({ name: n, result: resultOf(rollup, n) }));
-    unread = rollup === null;
+    const rollups = new Map<string, ReturnType<typeof commitChecks>>();
+    unread = false;
+    const read = names.map((n) => {
+      for (const [i, c] of range.entries()) {
+        if (!rollups.has(c)) {
+          rollups.set(c, commitChecks({ root, run }, c));
+        }
+        const rollup = rollups.get(c) ?? null;
+        unread ||= rollup === null;
+        const r = resultOf(rollup, n);
+        if (r === "missing") {
+          continue;
+        }
+        // Cancelled with a newer commit above it: that commit may still start its run, within the start limit.
+        const result: Result = r === "cancelled" ? (i > 0 && now() < noRunUntil ? "pending" : "failing") : r;
+        return { name: n, result, sha: c };
+      }
+      return { name: n, result: "missing" as Result, sha };
+    });
     if (read.some((s) => s.result !== "missing")) {
       last = read;
     }
     const state = last ?? read;
     if (state.every((s) => s.result === "passing")) {
-      return { code: 0, stdout: `${head}green at ${short} on ${branch}: ${names.join(", ")}\n` };
+      return { code: 0, stdout: `${head}green at ${at(state)} on ${branch}: ${names.join(", ")}\n` };
     }
     if (state.every((s) => s.result === "passing" || s.result === "failing")) {
       const failed = state.filter((s) => s.result === "failing").map((s) => s.name);
-      return { code: 1, stdout: `${head}failed at ${short} on ${branch}: ${failed.join(", ")}\n` };
+      return { code: 1, stdout: `${head}failed at ${at(state.filter((s) => s.result === "failing"))} on ${branch}: ${failed.join(", ")}\n` };
     }
     const t = now();
     // Only a commit that never showed a run gives up early; once one was seen, only the timeout ends the wait.

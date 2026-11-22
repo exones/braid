@@ -1,7 +1,7 @@
 ---
 id: '0063'
 title: "braid wait past cancelled runs; braid clean drops reviewer branches"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 delivery: epic
@@ -44,8 +44,8 @@ Expected size: about 150 lines in 4 files, most of them tests.
 
 ## Completion
 
-- [ ] `braid wait` answers from a newer commit's run when the CI commit's run was cancelled and every commit between them changes only `braids/` or `epics/`, with tests for green, failed, cancelled with no newer commit, and a newer run not started yet
-- [ ] `braid clean --yes` deletes a recorded reviewer's `t3/…` branch whose tip is on `origin` or is the merged PR's head, and keeps one with commits found nowhere else, with tests for both
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid wait` answers from a newer commit's run when the CI commit's run was cancelled and every commit between them changes only `braids/` or `epics/`, with tests for green, failed, cancelled with no newer commit, and a newer run not started yet
+- [x] `braid clean --yes` deletes a recorded reviewer's `t3/…` branch whose tip is on `origin` or is the merged PR's head, and keeps one with commits found nowhere else, with tests for both
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
