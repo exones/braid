@@ -104,7 +104,7 @@ test("exit 3 at the timeout while a check is still running", async () => {
   w.answers.set(w.code, [[done(NAMES[0]!, "success"), running(NAMES[1]!)]]);
   const r = await waitCommand(w.root, ["1", "--timeout", "10"], w.opts);
   assert.equal(r.code, 3);
-  assert.match(r.stdout, /still running after 10 minutes at [0-9a-f]{7} on braid\/0001-alpha; still running: verify \(windows-latest\); call braid wait 0001 again to continue on [0-9a-f]{7}\n$/);
+  assert.match(r.stdout, /still running after 10 minutes at [0-9a-f]{7} on braid\/0001-alpha; still running: verify \(windows-latest\)\n$/);
   assert.equal(w.minutes(), 10);
 });
 
@@ -137,7 +137,7 @@ test("the timeout names a failed check next to one still running", async () => {
   w.answers.set(w.code, [[done(NAMES[0]!, "failure"), running(NAMES[1]!)], null]);
   const r = await waitCommand(w.root, ["1", "--timeout", "2"], w.opts);
   assert.equal(r.code, 3);
-  assert.match(r.stdout, /still running after 2 minutes at [0-9a-f]{7} on braid\/0001-alpha; failed: verify \(ubuntu-latest\); still running: verify \(windows-latest\); GitHub could not be read at the last poll; call braid wait 0001 again/);
+  assert.match(r.stdout, /still running after 2 minutes at [0-9a-f]{7} on braid\/0001-alpha; failed: verify \(ubuntu-latest\); still running: verify \(windows-latest\); GitHub could not be read at the last poll\n$/);
 });
 
 test("a BRAID.md without ci names ends at once with exit 0", async () => {
