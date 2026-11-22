@@ -1,7 +1,7 @@
 ---
 id: '0065'
 title: "Sweep: braid exit codes through the Volta shim; stale reviewer branches"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S", "sweep"]
 dependencies: []
 related: ['0064', '0063']
