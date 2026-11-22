@@ -62,7 +62,7 @@ export async function readSnapshot(src: Sources, fetch: boolean): Promise<Snapsh
     });
     const read = await timed("signals", () => src.signals(gh));
     // A held plan holds its braids too: those without a pause record of their own read as held by the PM.
-    const sig: ReadSignals = plans.length === 0 ? read : { ...read, plans, pauses: heldPauses(plans, read.pauses ?? new Map()) };
+    const sig: ReadSignals = plans.length === 0 ? read : { ...read, plans, pauses: heldPauses(plans, read.pauses ?? new Map(), read.now) };
     await timed("done dates", () => sig.prepare?.(braids));
     const inbox = await timed("inbox", () => src.inbox(fetch));
     const start = src.start();

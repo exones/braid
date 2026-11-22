@@ -57,17 +57,17 @@ export interface Programme {
 
 export const STALLED_TEXT = "Stalled: the PM stopped and none of its braids is running";
 
-/** The braids a held plan holds that have no pause record of their own: they read as held, by the PM. */
-export function heldPauses(plans: readonly PlanRead[], pauses: ReadonlyMap<string, Pause>): Map<string, Pause> {
+/** The braids a held plan (`hold`, or `state: held`) holds that have no pause record of their own: they read as held, by the PM. */
+export function heldPauses(plans: readonly PlanRead[], pauses: ReadonlyMap<string, Pause>, now: Date = new Date()): Map<string, Pause> {
   const out = new Map(pauses);
   for (const p of plans) {
     const plan = p.plan;
-    if (plan === null || plan.hold === null || plan.state === "done" || plan.state === "stopped") {
+    if (plan === null || (plan.hold === null && plan.state !== "held") || plan.state === "done" || plan.state === "stopped") {
       continue;
     }
     for (const row of plan.rows) {
       if (row.braid !== null && row.state !== "done" && row.state !== "dropped" && !out.has(row.braid)) {
-        out.set(row.braid, { braid: row.braid, reason: "hold", words: plan.hold.words, provider: null, window: null, label: null, usedPercent: null, resetsAt: null, resumeAt: null, task: null, thread: plan.thread ?? "", by: "pm", at: plan.hold.since });
+        out.set(row.braid, { braid: row.braid, reason: "hold", words: plan.hold?.words ?? null, provider: null, window: null, label: null, usedPercent: null, resetsAt: null, resumeAt: null, task: null, thread: plan.thread ?? "", by: "pm", at: plan.hold?.since ?? now.toISOString() });
       }
     }
   }
@@ -86,10 +86,19 @@ const hhmm = (iso: string): string => new Date(iso).toLocaleTimeString("en-GB", 
 export function toProgrammes(repo: string, plans: readonly PlanRead[], cards: readonly BraidCard[], t3: T3, sig: Signals, gh: { readonly status: { readonly state: string } }): Programme[] {
   const byId = new Map(cards.map((c) => [c.id, c]));
   const requests = new Map((sig.programmes ?? []).map((r) => [r.id, r] as const));
-  return plans.map((read) => programmeOf(repo, read, byId, requests.get(`pm/${read.slug}`), t3, sig, gh.status.state === "ok"));
+  const live = plans.filter((p) => p.plan === null || p.plan.state === "running" || p.plan.state === "held").length;
+  return plans.map((read) => programmeOf(repo, read, byId, requests.get(`pm/${read.slug}`), t3, sig, gh.status.state === "ok", live === 1));
 }
 
-function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, BraidCard>, request: Request | undefined, t3: T3, sig: Signals, ghOk: boolean): Programme {
+/**
+ * Whether a running PM checker belongs to this programme. Its title (`🧭 <repo> pm check: …`) has no slug, so it counts
+ * when it names the programme's slug or one of its braid numbers, or when this is the project's only live programme (D82: one PM per project).
+ */
+export function checkerOf(checks: readonly string[], slug: string, braids: readonly string[], only: boolean): boolean {
+  return checks.some((text) => only || text.includes(slug) || braids.some((n) => new RegExp(`(^|\\D)${n}(\\D|$)`).test(text)));
+}
+
+function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, BraidCard>, request: Request | undefined, t3: T3, sig: Signals, ghOk: boolean, only: boolean): Programme {
   const clock = `${repo}/${read.slug} pm`;
   const plan = read.plan;
   const asked = request === undefined ? null : needOfAsk(request, sig.now, t3);
@@ -120,7 +129,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
   const hold = plan.hold ?? (paused ? holdOfPauses(open, sig) : null);
   const held = plan.state === "held" || plan.hold !== null || paused;
   const over = plan.state === "done" || plan.state === "stopped";
-  const checking = (t3.pmChecks ?? 0) > 0;
+  const checking = checkerOf(t3.pmChecks ?? [], read.slug, braids, only);
   // The stall: neither the PM nor any braid of it runs. Unknown (T3 or GitHub unread) neither starts nor stops the clock.
   const holds = over || held || asked !== null ? false : t3ok && ghOk ? !(pmRunning || running > 0 || checking) : null;
   const since = sig.alarm(clock, "stalled", holds);
@@ -134,7 +143,9 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
       ? `On hold since ${hhmm(plan.hold.since)}: “${plan.hold.words}”`
       : (hold?.words ?? "") !== ""
         ? `On hold: “${hold?.words ?? ""}”`
-        : "Paused: every braid of it is paused"
+        : paused && plan.state !== "held"
+          ? "Paused: every braid of it is paused"
+          : "On hold: the plan says held"
     : running === 0
       ? `No braid running${pmRunning ? " · the PM is working" : ""}${handling.length > 0 ? ` · the PM is handling ${handling.join(", ")}` : ""}`
       : plan.next === null

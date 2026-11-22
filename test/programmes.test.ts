@@ -114,15 +114,32 @@ test("readPlans reads each pm/* branch's plan, a local branch before origin's, a
     rmSync(join(root, "pm"), { recursive: true, force: true });
   };
   branch("pm/working-product", "pm/working-product.md", TEMPLATE);
+  // origin: an older copy of pm/working-product (the local one wins) and pm/remote-only (read from origin).
+  const origin = mkdtempSync(join(scratch, "origin-"));
+  spawnSync("git", ["init", "-q", "--bare", origin]);
+  git("remote", "add", "origin", origin);
+  branch("pm/remote-only", "pm/remote-only.md", plan(["programme: remote-only", "title: R", "goal: G", "state: running"]));
+  git("push", "-q", "origin", "pm/remote-only");
+  git("branch", "-q", "-D", "pm/remote-only");
+  git("push", "-q", "origin", "pm/working-product:pm/working-product");
+  git("checkout", "-q", "pm/working-product");
+  mkdirSync(join(root, "pm"), { recursive: true });
+  writeFileSync(join(root, "pm/working-product.md"), TEMPLATE.replace("limit: 3", "limit: 5"));
+  git("commit", "-q", "-am", "newer local");
+  git("checkout", "-q", "main");
+  rmSync(join(root, "pm"), { recursive: true, force: true });
+  git("fetch", "-q", "origin");
   branch("pm/broken", "pm/broken.md", plan(["programme: broken", "title: B", "goal: G", "state: paused"]));
   branch("pm/empty", "pm/other.md", "x\n");
   const read = await readPlans(root);
   assert.deepEqual(read.map((r: any) => [r.slug, r.branch, r.error]), [
     ["broken", "pm/broken", "line 5: state is running, held, done, stopped; got: paused"],
     ["empty", "pm/empty", "no pm/empty.md on pm/empty"],
+    ["remote-only", "origin/pm/remote-only", null],
     ["working-product", "pm/working-product", null],
   ]);
-  assert.equal(read[2].plan.rows.length, 3);
+  assert.equal(read[3].plan.limit, 5, "the local branch wins over origin's older copy");
+  assert.equal(read[3].plan.rows.length, 3);
   assert.deepEqual(await readPlans(mkdtempSync(join(scratch, "nogit-"))), [], "no Git, no programmes");
   assert.match(planOf("x", "pm/x", plan(["programme: y", "title: T", "goal: G", "state: running"])).error, /programme is y, but the branch is pm\/x/);
 });
@@ -149,7 +166,7 @@ test("a programme is Working while its PM runs or one of its braids runs", () =>
   assert.equal(one({ cards: [card("0001", { running: true }), card("0002")], seen: long }).p.section, "working", "an idle PM whose braid has an agent");
   assert.equal(one({ cards: [card("0001", { activity: "checks" }), card("0002")], seen: long }).p.section, "working", "a PR of it has checks pending");
   assert.equal(one({ t3: t3("idle", { coordinators: new Map([["0002", {}]]) }), seen: long }).p.section, "working", "a coordinator of it runs");
-  assert.equal(one({ t3: t3("idle", { pmChecks: 1 }), seen: long }).p.section, "working", "the PM's checker runs");
+  assert.equal(one({ t3: t3("idle", { pmChecks: ["PR #12 of 0002, live"] }), seen: long }).p.section, "working", "the PM's checker runs");
   const working = one({ t3: t3("running"), cards: [card("0001", { running: true }), card("0002", { lane: "Done" })] }).p;
   assert.deepEqual([working.done, working.total, working.running, working.status], [1, 2, 1, "1 braid running"]);
 });
@@ -176,6 +193,22 @@ test("a programme with neither its PM nor a braid running reads stalled after te
   assert.equal(one({ ghOk: false, seen: long }).seen[KEY], long[KEY]);
 });
 
+test("a PM checker counts only for its own programme: by slug, by braid number, or as the project's only live programme", () => {
+  assert.equal(programme.checkerOf(["PR #12 of 0002, live"], "a", ["0002"], false), true);
+  assert.equal(programme.checkerOf(["working-product release"], "working-product", [], false), true);
+  assert.equal(programme.checkerOf(["PR #12 of 0002, live"], "b", ["0020", "0102"], false), false, "0002 isn't 0020 or 0102");
+  assert.equal(programme.checkerOf(["anything"], "b", [], true), true, "the only live programme");
+  assert.equal(programme.checkerOf([], "b", [], true), false);
+  // Two programmes: A's checker runs (it names 0001); B is idle with no braid running and stalls on its own clock.
+  const planB = planOf("other", "pm/other", plan(["programme: other", "title: O", "goal: G", `thread: ${PM}`, "state: running", "rows:", "  - P1 | 0003 | Three | running"]));
+  const clock = signals.brokeClock({ "agento/other pm stalled": ago(11), [KEY]: ago(11) }, NOW);
+  const sig = { now: NOW, requests: new Map(), programmes: [], pauses: new Map(), alarm: clock.alarm };
+  const [a, b] = programme.toProgrammes("agento", [read(), planB], [card("0001"), card("0002"), card("0003")], t3("idle", { pmChecks: ["PR #4 of 0001, live"] }), sig, gh());
+  assert.equal(a.section, "working");
+  assert.equal(b.section, "needs", "another programme's checker doesn't keep B working");
+  assert.equal(b.need.kind, "stalled");
+});
+
 test("done, stopped and held programmes never stall; an open PM request shows instead of the stall", () => {
   for (const state of ["done", "stopped"]) {
     const { p, seen } = one({ lines: [`state: ${state}`], seen: long });
@@ -187,6 +220,8 @@ test("done, stopped and held programmes never stall; an open PM request shows in
   assert.equal(held.section, "working");
   assert.equal(held.need, null);
   assert.match(held.status, /^On hold since \d\d:\d\d: “wait for the account”$/);
+  const plainHeld = one({ lines: ["state: held", "hold:"], seen: long }).p;
+  assert.deepEqual([plainHeld.section, plainHeld.need], ["working", null], "state: held with no words");
   const pause = { braid: "0001", reason: "limit", provider: "Claude", window: null, label: null, usedPercent: null, resetsAt: null, resumeAt: ago(-30), task: null, thread: PM, by: "pm", at: ago(5) };
   const paused = one({ cards: [card("0001", { pause: {} }), card("0002", { pause: {} })], pauses: new Map([["0001", pause], ["0002", { ...pause, braid: "0002" }]]), seen: long }).p;
   assert.equal(paused.section, "working", "every open braid paused counts as held");
@@ -220,6 +255,14 @@ test("a held plan holds its braids: they show paused (held by the PM), not stall
   assert.equal(c.pause.text, "Held: “wait for the account”");
   assert.equal(c.programme, "ios-beta", "the 🧭 tag");
   assert.equal(board.programmes[0].hold.words, "wait for the account");
+  // `state: held` with an empty hold holds the braids too, and the card says so.
+  const bare = [planOf("ios-beta", "pm/ios-beta", plan(["programme: ios-beta", "title: I", "goal: G", "state: held", "hold:", "rows:", "  - P1 | 0001 | One | running"]))];
+  const barePauses = programme.heldPauses(bare, new Map(), NOW);
+  assert.deepEqual([barePauses.get("0001").reason, barePauses.get("0001").words, barePauses.get("0001").at], ["hold", null, NOW.toISOString()]);
+  const shown = model.toBoard("agento", [braid], gh(), t3("idle"), { ...sig, plans: bare, pauses: barePauses, alarm: signals.brokeClock({ "0001 stalled": ago(30) }, NOW).alarm });
+  assert.equal(shown.braids[0].lane, "In Progress", "not stalled");
+  assert.notEqual(shown.braids[0].pause, null, "paused");
+  assert.equal(shown.programmes[0].status, "On hold: the plan says held");
 });
 
 test("two projects with one slug stay apart: keys, the filter and the pushes", () => {
