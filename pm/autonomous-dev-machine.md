@@ -64,6 +64,7 @@ The user's decisions, quoted and dated, then the PM's own.
 - 2026-11-22, user, P2 Q1: "if they do, I'm OK if I only get one notif with 2" (PRs ready to merge: one notification for the batch). Q2: "A" (no Done notification; the after-merge "have a look" covers it).
 - 2026-11-22, user, for the whole programme: "don't overblow skills, try to see how to make easier, don't create spaghetti states and lean more to realiable calls like with requests".
 - 2026-11-22, user: "consider the programme started -- let's go! 🚀"; "move P6 after P3".
+- 2026-11-22, user, limit: "B: due to too rapid Claude limits consumption" (keep 2; P2 starts when 0068 or 0064 finishes).
 - 2026-11-22, PM: 2026-11-22-n46f (pushes only for what needs the user under a PM) is P2, as the user said ("basically what I told about more precise notifications").
 - 2026-11-22, PM: the headless board (2026-11-21-mbb2) goes into P7 · 0067: `braid board --no-open` and the login recipes already exist (docs/board.md "Run the board at login"); what is missing is the page being able to act (0067's token address) and, if the coordinator finds it worth it, a command that installs the login task.
 
