@@ -1,7 +1,7 @@
 ---
 id: '0066'
 title: "Board on Tailscale: no \"forbidden is not valid JSON\""
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S", "ask:security"]
 dependencies: []
 delivery: epic
