@@ -1,7 +1,7 @@
 ---
 id: '0064/A'
 title: "Spike: steering thread, board limits view and pushes"
-status: To Do
+status: In Progress
 labels: ["kind:spike", "tier:M", "ui"]
 dependencies: []
 order: 10
