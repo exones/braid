@@ -1,7 +1,7 @@
 ---
 id: '0062/C'
 title: "The PM asks you through the board"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: ['0062/A', '0062/B']
 order: 30
