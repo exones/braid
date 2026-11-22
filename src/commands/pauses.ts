@@ -15,7 +15,7 @@ export interface PauseOptions {
   readonly now?: Date;
 }
 
-const PAUSE_USAGE = "usage: braid pause <number> --provider <instanceId> --thread <id> [--window <id>] [--until <iso time>] [--task <scheduled task id>] [--by coordinator|pm]";
+const PAUSE_USAGE = "usage: braid pause <number> --provider <instanceId> --thread <id> [--window <id>] [--until <iso time>] [--task <scheduled task id>] [--by coordinator|pm]\n   or: braid pause <number> --hold \"<words>\" --thread <id> [--by coordinator|pm]  (a deliberate hold: no provider, no resume time)";
 const RESUME_USAGE = "usage: braid resume <number>";
 
 /** The braid number of `0061` or `61`, checked against the braids `braid view` finds (this checkout's and those that live only on their branch). */
@@ -59,10 +59,15 @@ export function pauseCommand(root: string, args: readonly string[], options: Pau
     task: { type: "string" },
     thread: { type: "string" },
     by: { type: "string" },
+    hold: { type: "string" },
   });
   const provider = str(values, "provider");
   const thread = str(values, "thread");
-  if (positionals.length !== 1 || provider === undefined || thread === undefined) {
+  const hold = str(values, "hold");
+  if (hold !== undefined && (provider !== undefined || str(values, "window") !== undefined || str(values, "until") !== undefined || str(values, "task") !== undefined)) {
+    throw new UsageError("--hold takes no --provider, --window, --until or --task: a hold has no provider and no resume time");
+  }
+  if (positionals.length !== 1 || (provider === undefined && hold === undefined) || thread === undefined) {
     throw new UsageError(PAUSE_USAGE);
   }
   if (threadShort(thread) === null) {
@@ -72,12 +77,27 @@ export function pauseCommand(root: string, args: readonly string[], options: Pau
   if (!PAUSERS.includes(by)) {
     throw new UsageError(`--by is coordinator or pm; got: ${by}`);
   }
+  const words = hold?.replace(/\s+/g, " ").trim();
+  if (words === "") {
+    throw new UsageError("--hold needs the words of the hold");
+  }
   const until = str(values, "until");
   if (until !== undefined && Number.isNaN(Date.parse(until))) {
     throw new UsageError(`--until needs an ISO time such as 2026-11-21T21:05:00Z; got: ${until}`);
   }
   const braid = braidOf(root, positionals[0], PAUSE_USAGE);
   const now = options.now ?? new Date();
+  if (words !== undefined) {
+    const held: Pause = { braid, reason: "hold", words, provider: null, window: null, label: null, usedPercent: null, resetsAt: null, resumeAt: null, task: null, thread, by, at: now.toISOString() };
+    const done = setPause(root, held);
+    const line = statusLine(pauseView(held, now), now);
+    return done === "unchanged" ? `${braid} already held, unchanged: ${line}
+` : `${braid} ${done === "recorded" ? "held" : "hold updated"}: ${line}
+`;
+  }
+  if (provider === undefined) {
+    throw new UsageError(PAUSE_USAGE);
+  }
   const r = reading(root, provider, options, now);
   const windowId = str(values, "window") ?? r.pauseWindow;
   const window = windowId === null ? undefined : r.windows.find((w) => w.id === windowId);
@@ -126,6 +146,10 @@ export function resumeCommand(root: string, args: readonly string[], options: Pa
     return `${braid} was not paused; nothing changed\n`;
   }
   const now = options.now ?? new Date();
+  if (cleared.reason === "hold") {
+    return `${braid} resumed: cleared ${statusLine(pauseView(cleared, now), now)}
+`;
+  }
   const task = cleared.task === null ? "" : `; if scheduled task ${cleared.task} is still set, delete it (delete_scheduled_task) so it doesn't wake ${cleared.thread.slice(0, 8)} later`;
   return `${braid} resumed: cleared ${statusLine(pauseView(cleared, now), now)}${task}\n`;
 }

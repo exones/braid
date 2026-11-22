@@ -1,23 +1,17 @@
 import { useEffect, useState } from "react";
 import type { ItemDetail } from "../../src/board/model.ts";
+import { readReply } from "../../src/board/reply.ts";
 import type { AllBoard } from "../../src/board/combined.ts";
 
 export type { InboxData, InboxEntry } from "../../src/board/inbox.ts";
 export type { BoardData, BraidCard, ItemDetail, Lane, CoordinatorInfo, MergeInfo, Need, StartInfo, StrandCard, ThreadRole } from "../../src/board/model.ts";
 export type { PullRequest } from "../../src/board/github.ts";
-export type { AllBoard, ProjectInfo, TaggedCard } from "../../src/board/combined.ts";
+export type { AllBoard, ProjectInfo, TaggedCard, TaggedProgramme } from "../../src/board/combined.ts";
 
 export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
 
 async function get<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  const body: unknown = await response.json();
-  if (!response.ok) {
-    const message =
-      typeof body === "object" && body !== null && "error" in body ? String(body.error) : response.statusText;
-    throw new Error(message);
-  }
-  return body as T;
+  return readReply<T>(await fetch(url));
 }
 
 const TOKEN_KEY = "braid-token";
@@ -41,11 +35,7 @@ export async function postAction<T = unknown>(name: string, body: object = {}): 
     headers: { "content-type": "application/json", "x-braid-token": sessionToken() ?? "", "x-braid-request": "1" },
     body: JSON.stringify(body),
   });
-  const reply: unknown = await response.json();
-  if (!response.ok) {
-    throw new Error(typeof reply === "object" && reply !== null && "error" in reply ? String(reply.error) : response.statusText);
-  }
-  return reply as T;
+  return readReply<T>(response);
 }
 
 /** A reload request: `n` changes on every one; `fresh` skips the server's short-lived reads. */

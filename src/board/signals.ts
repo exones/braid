@@ -8,7 +8,7 @@ import { doneDate, headOf, prefetchDoneDates } from "./done.js";
 import { gitAsync } from "../braids/gitio.js";
 import type { Braid } from "../braids/store.js";
 import { BROKE_MS, type BrokeReason, type Signals } from "./model.js";
-import { ensureStateDir, filterLive, loadRequests, mainCheckout, type PrNow, type Request } from "../braids/requests.js";
+import { askerOf, ensureStateDir, filterLive, programmeOf, loadRequests, mainCheckout, type PrNow, type Request } from "../braids/requests.js";
 import { loadPauses, type Pause } from "../braids/pauses.js";
 
 export interface ReadSignals extends Signals {
@@ -88,7 +88,9 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
   const clock = brokeClock(file === null ? {} : readBroke(file), now);
   return {
     now,
-    requests: new Map(requests.map((r) => [r.id, r])),
+    requests: new Map(requests.filter((r) => askerOf(r) === "coordinator" && programmeOf(r.id) === null).map((r) => [r.id, r])),
+    asks: new Map(requests.filter((r) => askerOf(r) === "pm" && programmeOf(r.id) === null).map((r) => [r.id, r])),
+    programmes: requests.filter((r) => programmeOf(r.id) !== null),
     pauses: new Map(pauses.map((p) => [p.braid, p])),
     pausesNote,
     alarm: clock.alarm,

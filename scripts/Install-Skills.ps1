@@ -11,7 +11,9 @@
 # folders with the path separator (';' on Windows, ':' elsewhere).
 # It also builds the braid CLI from the same ref (npm ci, npm run build, npm
 # pack) and installs the tarball globally (npm install -g), then checks that
-# `braid --version` prints that version; the version goes into the stamp.
+# `braid --version` prints that version and that `braid wait 9999` exits 2 (a
+# Volta shim loses exit codes; its launcher is then replaced, see docs); the
+# version goes into the stamp.
 # Without -Ref it runs `git fetch origin main` and installs origin/main, never
 # the local main, which can be stale. -Ref origin/<branch> fetches that branch
 # first and a failed fetch stops the install; any other ref (a local branch, a
@@ -123,6 +125,33 @@ try {
     $printed = (@(& $BraidCommand --version 2>&1) | ForEach-Object { "$_" }) -join "`n"
     if ($LASTEXITCODE -ne 0 -or $printed.Trim() -ne "braid $cliVersion") {
       Fail "braid --version printed '$($printed.Trim())' after install, expected 'braid $cliVersion'"
+    }
+    # `volta run` turns every non-zero exit into 126, so a Volta shim hides braid's
+    # real exit codes (braid wait and braid limits answer through them). Check one
+    # known code (braid wait 9999 exits 2, no such braid); on a Volta shim,
+    # replace the launcher with one that runs node on the installed cli.js.
+    function Get-NoSuchBraidCode {
+      Push-Location -LiteralPath $work
+      try { & $BraidCommand wait 9999 *> $null; return $LASTEXITCODE } finally { Pop-Location }
+    }
+    if ((Get-NoSuchBraidCode) -ne 2) {
+      $found = Get-Command $BraidCommand -CommandType Application, ExternalScript -ErrorAction SilentlyContinue | Select-Object -First 1
+      $binDir = if ($found) { Split-Path -Parent $found.Source } else { $null }
+      $shim = if ($binDir) { Join-Path $binDir 'braid' } else { $null }
+      $cliJs = if ($binDir) { Join-Path (Split-Path -Parent $binDir) 'tools/image/packages/@exones/braid/node_modules/@exones/braid/dist/cli.js' } else { $null }
+      if ($shim -and (Test-Path -LiteralPath $shim -PathType Leaf) -and ((Get-Content -LiteralPath $shim -Raw) -match 'volta run') -and (Test-Path -LiteralPath $cliJs -PathType Leaf)) {
+        $posix = ([System.IO.Path]::GetFullPath($cliJs)).Replace('\', '/')
+        $utf8 = [System.Text.UTF8Encoding]::new($false)
+        [System.IO.File]::WriteAllText($shim, "#!/bin/sh`nexec node `"$posix`" `"`$@`"`n", $utf8)
+        if (Test-Path -LiteralPath "$shim.cmd") {
+          [System.IO.File]::WriteAllText("$shim.cmd", "@echo off`r`nnode `"$([System.IO.Path]::GetFullPath($cliJs))`" %*`r`n", $utf8)
+        }
+        Write-Output "replaced the Volta launcher $shim, which hides braid's exit codes (volta run returns 126), with one that runs node directly"
+      }
+      $code = Get-NoSuchBraidCode
+      if ($code -ne 2) {
+        Fail "braid wait 9999 exited $code after install, expected 2: the installed braid loses its exit codes (a Volta shim returns 126); put a launcher that runs node on the installed dist/cli.js first on PATH"
+      }
     }
     Write-Output "installed braid CLI $cliVersion from $($commit.Substring(0, 7)) ($Ref)"
   }

@@ -30,8 +30,9 @@ interface PushIn {
   title: string;
   body: string;
   tags: readonly string[];
-  priority: "high" | "default";
+  priority: "high" | "default" | "low";
   click: string | null;
+  sequence?: string | null;
 }
 interface Push extends PushIn {
   key: string;
@@ -59,7 +60,7 @@ const notifierMod = (await load("../dist/notify/notifier.js")) as {
   notifier(opts: { file: string; config?: () => Config | null; send?: Sender; token?: () => string | null; warn?: (line: string) => void; timeoutMs?: number }): Notifier;
 };
 const command = (await load("../dist/commands/notify.js")) as {
-  notifyCommand(args: readonly string[], deps?: { home?: string; env?: Record<string, string | undefined>; send?: Sender }): Promise<string>;
+  notifyCommand(args: readonly string[], deps?: { home?: string; env?: Record<string, string | undefined>; send?: Sender; clear?: (c: Config, sequence: string, token: string | null) => Promise<void> }): Promise<string>;
 };
 const boardMod = (await load("../dist/commands/board.js")) as {
   demoSources(): Record<string, unknown>;
@@ -212,13 +213,19 @@ test("braid notify test sends one push with the token from the environment, and 
   await assert.rejects(command.notifyCommand(["test"], { home, env: {} }), /not set up/);
   config.writeConfig(CFG, home);
   const f = fakeSender();
-  const out = await command.notifyCommand(["test"], { home, env: { BRAID_NTFY_TOKEN: "tk" }, send: f.send });
+  const cleared: string[] = [];
+  const clear = async (_c: unknown, sequence: string) => void cleared.push(sequence);
+  const out = await command.notifyCommand(["test"], { home, env: { BRAID_NTFY_TOKEN: "tk" }, send: f.send, clear });
   assert.match(out, /Sent a test push to https:\/\/ntfy.example, topic braid-abcd…/);
   assert.ok(!out.includes(CFG.topic));
-  assert.equal(f.sent.length, 1);
+  assert.equal(f.sent.length, 2);
   assert.equal(f.sent[0]?.token, "tk");
+  assert.equal(f.sent[0]?.push.sequence, null);
+  assert.match(out, /second push with a sequence ID and cleared it/);
+  assert.equal(f.sent[1]?.push.sequence, "braid-notify-test");
+  assert.deepEqual(cleared, ["braid-notify-test"]);
   f.set("fail");
-  await assert.rejects(command.notifyCommand(["test"], { home, env: {}, send: f.send }), /test push failed: can't reach/);
+  await assert.rejects(command.notifyCommand(["test"], { home, env: {}, send: f.send, clear }), /test push failed: can't reach/);
 });
 
 // ---- the pushes ----
@@ -233,9 +240,9 @@ test("a push carries the repo, id, lane, title, need line, tag, priority and app
   assert.equal(pushes.length, 2);
   assert.deepEqual(
     { ...pushes[0] },
-    { key: "0007|Waiting|decision|2026-11-20T10:00:00.000Z", item: "0007", kind: "need", title: "agento 0007: Needs You", body: "Title of 0007\nPick the database", tags: ["scales"], priority: "high", click: "t3code://threads/env1/th1" },
+    { key: "0007|Waiting|decision|2026-11-20T10:00:00.000Z", item: "0007", kind: "need", title: "agento 0007: Needs You", body: "Title of 0007\nPick the database", tags: ["scales"], priority: "high", click: "t3code://threads/env1/th1", sequence: "braid-agento-0007" },
   );
-  assert.deepEqual({ ...pushes[1] }, { key: "0008|In Review|review|2026-11-20T10:05:00.000Z", item: "0008", kind: "need", title: "agento 0008: To Review", body: "Title of 0008\nMerge PR #12", tags: ["eyes"], priority: "default", click: null });
+  assert.deepEqual({ ...pushes[1] }, { key: "0008|In Review|review|2026-11-20T10:05:00.000Z", item: "0008", kind: "need", title: "agento 0008: To Review", body: "Title of 0008\nMerge PR #12", tags: ["eyes"], priority: "default", click: null, sequence: "braid-agento-0008" });
 });
 
 test("a braid card with strands pushes per strand need, not once per braid", () => {
@@ -256,7 +263,7 @@ test("a Done braid's push names its title and PR", () => {
   const pushes = message.pushesOf(boardOf([card("0011", "Done", null, { pr: { number: 44 }, strands: [strand("0011/A", "Done", null)] })]));
   assert.deepEqual(
     pushes.map((p) => ({ ...p })),
-    [{ key: "0011|done", item: "0011", kind: "done", title: "agento 0011: Done", body: "Title of 0011\nPR #44 merged", tags: ["white_check_mark"], priority: "default", click: null }],
+    [{ key: "0011|done", item: "0011", kind: "done", title: "agento 0011: Done", body: "Title of 0011\nPR #44 merged", tags: ["white_check_mark"], priority: "default", click: null, sequence: null }],
   );
 });
 

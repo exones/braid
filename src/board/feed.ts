@@ -7,6 +7,7 @@ import type { Github } from "./github.js";
 import { toBoard, type BoardData, type StartContext } from "./model.js";
 import type { ReadSignals } from "./signals.js";
 import type { T3 } from "./t3.js";
+import { heldPauses } from "./programme.js";
 
 /** How long one project's whole read (GitHub, T3, braids, signals, inbox) may take before it counts as failed. */
 export const READ_TIMEOUT_MS = 60_000;
@@ -52,7 +53,16 @@ export async function readSnapshot(src: Sources, fetch: boolean): Promise<Snapsh
         throw error;
       }
     });
-    const sig = await timed("signals", () => src.signals(gh));
+    const plans = await timed("plans", async () => {
+      try {
+        return (await src.plans?.()) ?? [];
+      } catch {
+        return []; // the programmes are left out, never the board
+      }
+    });
+    const read = await timed("signals", () => src.signals(gh));
+    // A held plan holds its braids too: those without a pause record of their own read as held by the PM.
+    const sig: ReadSignals = plans.length === 0 ? read : { ...read, plans, pauses: heldPauses(plans, read.pauses ?? new Map(), read.now) };
     await timed("done dates", () => sig.prepare?.(braids));
     const inbox = await timed("inbox", () => src.inbox(fetch));
     const start = src.start();

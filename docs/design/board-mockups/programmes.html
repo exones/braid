@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>braid board – programmes panel mockups (0062/A, revised)</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#3b5bdb;--todo:#cbd5e1;--prog:#2563eb;--rev:#7c3aed;--wait:#f59e0b;--done:#16a34a;--bad:#dc2626;--pm:#0f766e;--pmbg:#e9f6f4;--pause:#64748b;
+ --p-dctl-studio:#3b5bdb;--p-braid:#be185d;--p-notes:#a16207}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+.cap{padding:6px 20px;color:var(--mut);font-size:12px;background:#fff;border-bottom:1px solid var(--line)}
+.url{padding:5px 20px;font:12px ui-monospace,Consolas,monospace;background:#e9ecf3;color:#444}.url b{color:#000}
+header{display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line)}header b{font-size:16px}.sp{flex:1}
+.mut{color:var(--mut);font-size:12px}
+button,.btn{font:inherit;font-size:12px;padding:3px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.btn.pm{border-color:#99d5cc;color:var(--pm);font-weight:600}.btn.on{background:var(--pm);border-color:var(--pm);color:#fff;font-weight:600}
+.main{display:grid;grid-template-columns:320px 1fr;align-items:start}.main.col{grid-template-columns:58px 1fr}
+/* programmes panel */
+.pp{background:#fff;border-right:1px solid var(--line);min-height:calc(100vh - 120px);padding:10px 12px 20px}
+.pp .hd{display:flex;align-items:center;gap:8px;margin:0 2px 8px}.pp .hd b{font-size:14px}
+.sec{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;gap:6px;align-items:center;margin:12px 2px 6px}.sec .n{margin-left:auto}
+.pc{border:1px solid var(--line);border-radius:9px;padding:9px 10px;margin-bottom:8px;background:#fff}
+.pc.need{border-color:#fcd34d;box-shadow:inset 3px 0 0 var(--wait);background:#fffdf6}
+.pc.sel{box-shadow:0 0 0 2px #0f766e55;border-color:var(--pm)}.pc.sel.need{box-shadow:inset 3px 0 0 var(--wait),0 0 0 2px #0f766e55}
+.pc.dim{opacity:.55}
+.pc .top{display:flex;align-items:center;gap:6px}.pc .nm{font-weight:700}.pc .goal{font-size:12px;color:var(--mut);margin:1px 0 5px;line-height:1.3}
+.pc .st{font-size:12.5px;color:#38405a;margin-top:4px}.pc .st u{text-decoration:none;color:var(--mut)}
+.pc .acts{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.q{margin-top:6px;font-size:12.5px;border-radius:6px;padding:5px 8px;background:#fff6e0;color:#5c3a00;border-left:3px solid var(--wait);line-height:1.4}
+.q .lbl{font-weight:700}.q ol{margin:3px 0 2px;padding-left:18px}.q li{margin:1px 0}.q small{display:block;color:var(--mut);font-size:11px;margin-top:2px}
+.hold{margin-top:5px;font-size:12px;border-radius:6px;padding:4px 7px;background:#f1f3f6;color:#334155;border-left:3px solid var(--pause)}
+.empty{color:var(--mut);font-size:12px;padding:4px 4px 8px}
+.pj{font-size:11px;padding:0 7px 0 5px;border-radius:99px;display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);color:#38405a;white-space:nowrap;background:#fff}
+.pd{width:8px;height:8px;border-radius:50%;display:inline-block}
+.p-dctl-studio{background:var(--p-dctl-studio)}.p-braid{background:var(--p-braid)}.p-notes{background:var(--p-notes)}
+.bar{height:5px;background:#e6e9f0;border-radius:3px;flex:1;min-width:50px;overflow:hidden}.bar i{display:block;height:100%;background:var(--done)}
+.mk{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700;margin-left:auto;flex:none}
+.mk.q{background:var(--wait);color:#fff}.mk.f{background:var(--wait);color:#fff}.mk.pm{background:var(--pm);color:#fff}.mk.p{background:var(--pause);color:#fff}.mk.e{background:var(--rev);color:#fff}
+/* rail */
+.rail{background:#fff;border-right:1px solid var(--line);min-height:calc(100vh - 120px);padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:8px}
+.rail .ri{position:relative;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;background:#fff}
+.rail .ri.need{border-color:#fcd34d;background:#fff6e0}.rail .ri .pd{position:absolute;left:3px;bottom:3px}
+.rail .ri .bd{position:absolute;right:-5px;top:-5px;background:var(--wait);color:#fff;font-size:10px;font-weight:700;border-radius:99px;padding:0 5px}
+.rail .rl{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.rail hr{width:30px;border:0;border-top:1px solid var(--line);margin:2px 0}
+/* lanes */
+.right{min-width:0}
+.fbar{margin:12px 20px 0;padding:6px 12px;border-radius:8px;background:var(--pmbg);border:1px solid #99d5cc;color:#134e48;font-size:13px;display:flex;gap:10px;align-items:center}
+.lanes{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:12px 16px;align-items:start}
+.lane{background:#eceef3;border-radius:10px;padding:8px}
+.lane h3{margin:2px 4px 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
+.lane h3 span:first-child{display:flex;gap:6px;align-items:center}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.l-todo{background:var(--todo)}.l-prog{background:var(--prog)}.l-rev{background:var(--rev)}.l-wait{background:var(--wait)}.l-done{background:var(--done)}.l-plan{background:#fff;border:1.5px dashed #9aa3b8}.l-pause{background:var(--pause)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:8px;box-shadow:0 1px 2px #0001}
+.card.sel{border-color:var(--acc);box-shadow:0 0 0 2px #3b5bdb33}
+.card .id{color:var(--mut);font-size:12px}.card .t{font-weight:600;margin:2px 0 6px}
+.row{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:#e8ebf3;color:#49506a}
+.ptag{font-size:11px;padding:0 7px 0 5px;border-radius:99px;border:1px solid #99d5cc;color:var(--pm);display:inline-flex;gap:3px;align-items:center;font-weight:600;background:#fff;white-space:nowrap}
+.need{margin-top:6px;font-size:12.5px;border-radius:6px;padding:4px 7px;line-height:1.35}.need small{display:block;color:var(--mut);font-size:11px}.need .lbl{font-weight:700}
+.n-wait{background:#fff6e0;color:#7a4d00;border-left:3px solid var(--wait)}.n-rev{background:#f1ecff;color:#4a2a9a;border-left:3px solid var(--rev)}
+.n-pm{background:var(--pmbg);color:#134e48;border-left:3px solid var(--pm)}.n-pause{background:#f1f3f6;color:#334155;border-left:3px solid var(--pause)}
+.n-esc{background:#fff6e0;color:#7a4d00;border-left:3px solid var(--wait);box-shadow:inset 0 0 0 1px #fcd34d}
+.ic{display:inline-flex;width:26px;height:26px;border:1px solid var(--line);border-radius:6px;align-items:center;justify-content:center;font-size:12px;margin-top:6px;background:#fff}.ic.pm{border-color:#99d5cc}
+.done-row{display:flex;gap:6px;align-items:center;padding:5px 4px;border-bottom:1px solid #dfe2ea;font-size:12.5px}.done-row .d{color:var(--mut);font-size:11px;margin-left:auto;white-space:nowrap}
+/* side panel */
+.panel{position:absolute;right:0;top:0;bottom:0;width:660px;background:#fff;border-left:1px solid var(--line);box-shadow:-8px 0 24px #0002;display:flex;flex-direction:column;z-index:3}
+.panel .ph2{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line)}
+.panel h2{margin:0;font-size:16px}.tabs2{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--line)}
+.tabs2 a{padding:8px 12px;color:var(--mut);border-bottom:2px solid transparent}.tabs2 a.on{color:var(--ink);font-weight:600;border-color:var(--acc)}
+.panel .body{padding:12px 16px;overflow:hidden}.panel h4{margin:14px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}.panel p,.panel li{font-size:13px;margin:3px 0}
+.panel table{border-collapse:collapse;width:100%;font-size:13px}.panel td{padding:4px 6px 4px 0;border-bottom:1px solid #eef0f4}.panel td.r{color:var(--mut);width:30px}
+.banner{border-radius:8px;padding:10px 12px;font-size:13px;background:var(--pmbg);border:1px solid #99d5cc;color:#134e48}.banner ol{margin:6px 0 0;padding-left:20px}
+/* phone */
+body.ph{width:390px;min-height:844px;position:relative;overflow-x:hidden;background:#fff}
+.ph header{padding:10px 14px;gap:8px}.ph header b{font-size:15px}.ph .url{padding:4px 14px;font-size:11px}
+.strip{margin:10px 12px 0;border:1px solid #99d5cc;border-radius:12px;background:var(--pmbg)}
+.strip .sh{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 12px;font-size:14px;color:#134e48}.strip .sh b{font-size:14.5px}
+.strip .sh .c{margin-left:auto;font-size:13px;color:var(--pm);font-weight:600}
+.strip .sb{padding:0 8px 8px}
+.strip .pc{margin-bottom:6px}
+.prow{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px 6px 6px 10px;margin-bottom:6px;min-height:52px}
+.prow .tx{flex:1;min-width:0;font-size:13px;line-height:1.3}.prow .tx b{font-size:14px}.prow .tx small{display:block;color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line);margin-top:10px}
+.tabs a{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--mut);border-bottom:3px solid transparent}
+.tabs a b{font-size:16px;color:var(--ink)}.tabs a.on{border-color:var(--wait);color:var(--ink);font-weight:600}
+.pcards{padding:12px 14px 40px;background:#eceef3}
+.ph .card{padding:12px;margin-bottom:10px}.ph .card .t{font-size:15px}
+.tap{min-height:44px;min-width:44px;font-size:14px;padding:0 12px;border-radius:8px;font-weight:600;color:#49506a;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;gap:6px;background:#fff}
+.tap.pm{color:var(--pm);border-color:#99d5cc}.tap.on{background:var(--pm);color:#fff;border-color:var(--pm)}
+.fchip{display:flex;align-items:center;gap:8px;margin:8px 12px 0;min-height:44px;padding:0 6px 0 12px;border-radius:10px;background:#fff;border:1px solid var(--pm);color:#134e48;font-size:14px}
+/* notification shade */
+.android{background:#1f2430;min-height:844px;padding:14px 10px;color:#e7e9ee}
+.android .clock{font-size:40px;font-weight:300;padding:10px 12px 0}.android .date{padding:0 12px 14px;color:#aab}
+.nt{background:#2b3140;border-radius:18px;padding:12px 14px;margin:0 0 10px}
+.nt .app{font-size:12px;color:#aeb6c6}.nt .app b{color:#e7e9ee;font-weight:600}
+.nt .tt{font-weight:700;margin-top:4px;font-size:14.5px}.nt .bd{font-size:13.5px;color:#d5d9e2;margin-top:2px}
+.nt.hi{box-shadow:inset 3px 0 0 #f59e0b}.android .note{font-size:12px;color:#aab;padding:6px 12px}
+</style></head>
+<body>
+<script>
+// ---- test data -------------------------------------------------------------------------------------------------
+// Programmes are keyed <project>/<slug>. The single-project screens serve dctl-studio only; the several-projects screens
+// serve dctl-studio, braid and notes (placeholder colours by position, as the all-projects board does).
+const PROGS = {
+ 'dctl-studio/working-product':{project:'dctl-studio',slug:'working-product',goal:'A working product per the specs: write and debug a DCTL from VS Code against your Resolve',
+   need:{kind:'question',lbl:'Q8 from the PM',text:'Should the compare view drive your Resolve?',opts:['Yes: render both sides live in Resolve (Resolve must be running)','No: compare two stills you export','Both, with B as the default'],age:'2 min'},
+   running:3,done:3,total:10,status:'<u>Next:</u> P3 Packaging, after 0006 merges',
+   braids:['0005','0006','0007','0010','0011','0004','0003','0002'],
+   rows:[['P0','0002','Leftover sweep','done'],['P1','0003','Thin end-to-end path: debug a DCTL from VS Code','done'],['P8','0004','CI on a self-hosted Windows runner','done'],['P9','0005','Live-check kit','waiting on you'],['P2','0006','Compare view','running'],['P4','0007','Diagnostics panel','running'],['P5','0010','Export presets','running'],['P3',null,'Packaging for Windows','planned'],['P6',null,'Settings and first run','planned'],['P7',null,'Marketplace release','planned']]},
+ 'braid/board-programmes':{project:'braid',slug:'board-programmes',goal:'The board shows programmes and routes requests to the PM',
+   running:2,done:1,total:5,status:'<u>Next:</u> P3 skills, after 0063',braids:['0063','0064']},
+ 'notes/sync-v2':{project:'notes',slug:'sync-v2',goal:'Sync between devices without conflicts',
+   running:0,done:2,total:4,status:'No braid running · 🧭 the PM is checking PR #12 live (4 min)',braids:['0014']},
+ 'notes/ios-beta':{project:'notes',slug:'ios-beta',goal:'An iOS beta on TestFlight',
+   running:1,done:0,total:3,hold:'⏸ On hold since 18:02, from you: “wait until the App Store account is approved”',braids:['0016']},
+ 'braid/inbox-sweep':{project:'braid',slug:'inbox-sweep',goal:'Turn the inbox ideas into braids or close them',
+   need:{stall:true,lbl:'⏳ Stalled',text:'the PM stopped and none of its braids is running',age:'14 min'},
+   running:0,done:2,total:3,status:'No braid running',braids:[]},
+};
+const LN = ['Needs you','To review','Working','To do','Done'], LC = ['l-wait','l-rev','l-prog','l-todo','l-done'];
+// cards: project, id, tier, title, lane, done, total, need, kind, mark, programme key, buttons
+const C = (project,id,tier,title,lane,d,t,need,kind,mark,prog,btn)=>({project,id,tier,title,lane,d,t,need,kind,mark,prog,btn});
+const WP='dctl-studio/working-product';
+const CARDS_ONE = [
+ C('dctl-studio','0010','tier:M','Export presets',0,0,2,`<span class="lbl">Escalated:</span> add ffmpeg as a runtime dependency? (decision: dependency)<small>to the PM 21 min ago, no answer · strand 0010/A</small>`,'esc','f',WP),
+ C('dctl-studio','0005','tier:M','Live-check kit',0,1,3,`<span class="lbl">The PM asks you to:</span> sign in to the Resolve test account on the runner PC<small>something only you can do · asked 1 h ago</small>`,'wait','q',WP),
+ C('dctl-studio','0008','tier:S','Marketplace listing copy',0,0,1,`Which name goes on the listing: “DCTL Studio” or “dctl-studio”?<small>braid, no strand involved · asked 8 min ago</small>`,'wait','q',null),
+ C('dctl-studio','0011','tier:M','Shader snippets',1,2,2,`<span class="lbl">Forwarded by the PM:</span> live check passed · merge PR #31 into main at 4be1c2a<small>braid · forwarded 12 min ago</small>`,'rev','e',WP,'merge'),
+ C('dctl-studio','0007','tier:M','Diagnostics panel',2,0,4,`<span class="lbl">🧭 The PM is handling:</span> approve the plan: 4 strands, A to D<small>braid · to the PM 40 s ago</small>`,'pm','pm',WP),
+ C('dctl-studio','0006','tier:L','Compare view',2,1,3,`<span class="lbl">🧭 The PM is checking:</span> PR #29, its live check runs<small>strand 0006/B · handed to the PM 6 min ago</small>`,'pm','pm',WP),
+ C('dctl-studio','0009','tier:S','Telemetry opt-in',3,0,0,null,null,null,null,'go'),
+];
+const DONES_ONE=[['dctl-studio','0004','CI on a self-hosted Windows runner','Nov 21',WP],['dctl-studio','0003','Thin end-to-end path','Nov 21',WP],['dctl-studio','0002','Leftover sweep','Nov 21',WP],['dctl-studio','0001','Repository skeleton','Nov 20',null]];
+const CARDS_ALL = [...CARDS_ONE.filter(c=>c.id!=='0009'),
+ C('braid','0063','tier:M','Requests addressed to the PM',2,1,2,`<span class="lbl">🧭 The PM is handling:</span> keep old request records as the user's? (decision)<small>strand 0063/B · to the PM 2 min ago</small>`,'pm','pm','braid/board-programmes'),
+ C('braid','0064','tier:L','Programmes panel',2,0,3,null,null,null,'braid/board-programmes'),
+ C('notes','0014','tier:M','Conflict-free merge',1,2,2,`<span class="lbl">🧭 The PM is checking:</span> PR #12, its live check runs<small>braid · handed to the PM 4 min ago</small>`,'pm','pm','notes/sync-v2'),
+ C('notes','0016','tier:M','TestFlight build',2,0,2,`<span class="lbl">⏸ Held by the PM:</span> “wait until the App Store account is approved”<small>since 18:02 · not stalled while held</small>`,'pause','p','notes/ios-beta'),
+ C('notes','0015','tier:S','Export to Markdown',3,0,0,null,null,null,null,'go'),
+];
+const DONES_ALL=[...DONES_ONE.slice(0,2),['notes','0013','Sync protocol','Nov 21','notes/sync-v2'],['braid','0062','Programme design','Nov 21',null]];
+
+const stateDot = s=>({done:'l-done',running:'l-prog','waiting on you':'l-wait',planned:'l-plan',held:'l-pause'}[s]||'l-todo');
+const pj = p=>`<span class="pj"><span class="pd p-${p}"></span>${p}</span>`;
+// ---- programme panel ---------------------------------------------------------------------------------------------
+function pcard(key,o){const p=PROGS[key];const sel=o.sel===key;const need=p.need;
+ return `<div class="pc ${need?'need':''} ${sel?'sel':''} ${o.sel&&!sel?'dim':''}"><div class="top">${o.multi?pj(p.project):''}<span class="nm">🧭 ${p.slug}</span>${need?`<span class="mk q">${need.stall?'⏳':'?'}</span>`:p.hold?'<span class="mk p">⏸</span>':''}</div>
+ <div class="goal">${p.goal}</div>
+ ${need&&need.stall?`<div class="q"><span class="lbl">${need.lbl}:</span> ${need.text}<small>PM thread idle ${need.age} · no braid running: no agent thread, no check, no PR checks pending · wake it in the PM thread</small></div>`:need?`<div class="q"><span class="lbl">${need.lbl}:</span> ${need.text}<ol type="A">${need.opts.map(x=>`<li>${x}</li>`).join('')}</ol><small>programme · asked ${need.age} ago · answer in the PM thread</small></div>`:''}
+ <div class="row" style="margin-top:6px"><div class="bar"><i style="width:${100*p.done/p.total}%"></i></div><span class="mut">${p.done}/${p.total} done · ${p.running} running</span></div>
+ ${p.hold?`<div class="hold">${p.hold}</div>`:`<div class="st">${p.status}</div>`}
+ <div class="acts"><span class="btn pm">🧭 PM thread</span><span class="btn ${sel?'on':''}" title="${sel?'Show all braids again':'Show only this programme’s braids'}">${sel?'◉ Only these · ✕':'◎ Only these'}</span><span class="btn">≡ Plan</span></div></div>`;}
+function panel(keys,o={}){const needs=keys.filter(k=>PROGS[k].need),work=keys.filter(k=>!PROGS[k].need);
+ return `<aside class="pp"><div class="hd"><b>🧭 Programmes</b><span class="mut">${keys.length}</span><span class="sp"></span><span class="btn" title="Collapse">«</span></div>
+ <div class="sec"><span class="dot l-wait"></span>Needs you<span class="n">${needs.length}</span></div>${needs.map(k=>pcard(k,o)).join('')||'<div class="empty">No programme needs you.</div>'}
+ <div class="sec"><span class="dot" style="background:var(--pm)"></span>Working<span class="n">${work.length}</span></div>${work.map(k=>pcard(k,o)).join('')||'<div class="empty">No other programme.</div>'}</aside>`;}
+function rail(keys){const needs=keys.filter(k=>PROGS[k].need),work=keys.filter(k=>!PROGS[k].need);
+ return `<aside class="rail"><span class="btn" title="Expand">»</span><span class="rl">Needs</span>${needs.map(k=>`<span class="ri need" title="${k}: ${PROGS[k].need.lbl}">?<span class="pd p-${PROGS[k].project}"></span><span class="bd">1</span></span>`).join('')}<hr><span class="rl">Work</span>${work.map(k=>`<span class="ri" title="${k}">${PROGS[k].hold?'⏸':'🧭'}<span class="pd p-${PROGS[k].project}"></span></span>`).join('')}</aside>`;}
+// ---- lanes -------------------------------------------------------------------------------------------------------
+function ic(c){return `<span class="ic" title="Open thread">↗</span>${c.prog?'<span class="ic pm" title="PM thread">🧭</span>':''}${c.btn==='go'?'<span class="ic" style="background:var(--prog);color:#fff;border-color:var(--prog)">▶</span>':''}${c.btn==='merge'?'<span class="ic" style="background:var(--rev);color:#fff;border-color:var(--rev)">⑂</span>':''}`;}
+function card(c,o){const prog=c.prog?PROGS[c.prog]:null;
+ return `<div class="card ${o.selCard===c.id?'sel':''}"><div class="row">${o.multi?pj(c.project):''}<span class="id">${c.id}</span><span class="badge">${c.tier}</span>${c.mark?`<span class="mk ${c.mark}">${{q:'?',f:'⚑',pm:'🧭',p:'⏸',e:'👁'}[c.mark]}</span>`:''}</div>
+ <div class="t">${c.title}</div>${prog?`<div class="row" style="margin:-3px 0 5px"><span class="ptag" title="run by the programme manager of ${c.prog}">🧭 ${prog.slug}</span></div>`:''}<div class="row"><div class="bar"><i style="width:${c.t?100*c.d/c.t:0}%"></i></div><span class="mut">${c.d}/${c.t}</span></div>${c.need?`<div class="need n-${c.kind}">${c.need}</div>`:''}<div class="row">${ic(c)}</div></div>`;}
+function lanes(cards,dones,o={}){const vis=o.sel?cards.filter(c=>c.prog===o.sel):cards;const vd=o.sel?dones.filter(d=>d[4]===o.sel):dones;
+ return `<div class="lanes">${LN.map((n,i)=>{const cs=vis.filter(c=>c.lane===i);
+  const inner=i===4?(vd.map(d=>`<div class="done-row">${o.multi?`<span class="pd p-${d[0]}" title="${d[0]}"></span>`:''}<span class="dot l-done"></span><span class="mut" style="width:34px;font-size:12px">${d[1]}</span>${d[4]?'<span title="'+d[4]+'" style="font-size:11px">🧭</span>':''}<span>${d[2]}</span><span class="d">${d[3]}</span></div>`).join('')||'<div class="empty">Nothing done yet.</div>'):(cs.map(c=>card(c,o)).join('')||'<div class="empty">Nothing here.</div>');
+  return `<div class="lane"><h3><span><span class="dot ${LC[i]}"></span>${n}</span><span>${i===4?vd.length:cs.length}</span></h3>${inner}</div>`}).join('')}</div>`;}
+function head(multi){return `<header><b>braid · attention board</b><span class="mut">${multi?'3 projects · dctl-studio, braid, notes':'dctl-studio'} · Each braid sits in the lane where it needs you most.</span><span class="sp"></span><span class="badge" style="padding:3px 10px">Inbox · 2</span><label class="mut"><input type="checkbox" checked> Details</label><span class="mut">refreshes every 30 s</span><button>Refresh</button></header>`;}
+const fbar = key=>`<div class="fbar">🧭 Showing only the braids of <b>${key}</b> (${PROGS[key].braids.length}). Your other braids are hidden, and lane counts follow.<span class="sp"></span><span class="btn">Show all</span></div>`;
+const url=(q,h='#/')=>`<div class="url">localhost:7700/<b>${q}</b>${h}</div>`;
+const ONE=[WP], ALL=['dctl-studio/working-product','braid/board-programmes','notes/sync-v2','notes/ios-beta'], ALL5=['braid/inbox-sweep',...ALL];
+
+// ---- phone -------------------------------------------------------------------------------------------------------
+function ptabs(c,on=0){return `<div class="tabs">${['Needs you','Review','Working','To do','Done'].map((n,i)=>`<a class="${i===on?'on':''}"><b>${c[i]}</b>${n}</a>`).join('')}</div>`;}
+function prow(k,sel){const p=PROGS[k];return `<div class="prow"><span class="pd p-${p.project}"></span><span class="tx"><b>${p.hold?'⏸':'🧭'} ${p.slug}</b><small>${p.project} · ${p.hold?'on hold since 18:02':p.running?p.running+' running · '+p.done+'/'+p.total+' done':'no braid running · PM checking PR #12'}</small></span><a class="tap pm" aria-label="PM thread">🧭</a><a class="tap ${sel?'on':''}" aria-label="Only these">◎</a></div>`;}
+function pneed(k){const p=PROGS[k],n=p.need;return `<div class="pc need"><div class="top">${pj(p.project)}<span class="nm">🧭 ${p.slug}</span><span class="mk q">?</span></div><div class="q" style="font-size:13.5px"><span class="lbl">${n.lbl}:</span> ${n.text}<ol type="A">${n.opts.map(x=>`<li>${x}</li>`).join('')}</ol><small>asked ${n.age} ago · answer in the PM thread</small></div><div class="acts"><a class="tap pm" style="flex:1">🧭 Open PM thread</a><a class="tap">◎ Only</a></div></div>`;}
+function pcardPhone(c){const prog=c.prog?PROGS[c.prog]:null;return `<div class="card"><div class="row">${pj(c.project)}<span class="id">${c.id}</span><span class="badge">${c.tier}</span>${c.mark?`<span class="mk ${c.mark}">${{q:'?',f:'⚑',pm:'🧭',e:'👁',p:'⏸'}[c.mark]}</span>`:''}</div><div class="t">${c.title}</div>${prog?`<span class="ptag">🧭 ${prog.slug}</span>`:''}${c.need?`<div class="need n-${c.kind}">${c.need}</div>`:''}<div class="row" style="margin-top:10px"><a class="tap">🧠</a>${prog?'<a class="tap pm">🧭</a>':''}</div></div>`;}
+
+// ---- screens -----------------------------------------------------------------------------------------------------
+const S = {};
+S['60-panel'] = ()=>`<div class="cap">60 · Desktop, one project. The programmes panel on the left has two sections. A programme that needs you jumps into “Needs you” and shows its question the way a card does: the text, its options, its age, and the PM thread button. Below is “Working”: every programme whose PM runs, even when no braid of it is running. On the right, the lanes are as today. Item-level needs stay on braid cards: an escalated request (0010), a PM action on one braid (0005), a forward (0011). PM-run cards carry the 🧭 programme tag. The lanes no longer hold a programme card.</div>${url('')}${head()}<div class="main">${panel(ONE)}<div class="right">${lanes(CARDS_ONE,DONES_ONE)}</div></div>`;
+S['61-collapsed'] = ()=>`<div class="cap">61 · Desktop, the panel collapsed (« in its header; » brings it back, and the board remembers the choice). The rail keeps one icon per programme. Programmes that need you come first, amber with a count. Working ones show 🧭, or ⏸ when held. Each icon has its project’s colour dot, and its tooltip names the programme.</div>${url('?projects=dctl-studio,braid,notes')}${head(true)}<div class="main col">${rail(ALL)}<div class="right">${lanes(CARDS_ALL,DONES_ALL,{multi:true})}</div></div>`;
+S['62-filtered'] = ()=>`<div class="cap">62 · Desktop, filtered to one programme with its “Only these” button. The button stays pressed, and the other programmes dim. The lanes show only that programme’s braids. A teal bar above them says so and offers “Show all”, which does the same as pressing the button again. The address keeps the filter as ?programme=&lt;project&gt;/&lt;slug&gt;, and it combines with ?projects=.</div>${url('?projects=dctl-studio,braid,notes&programme=dctl-studio/working-product')}${head(true)}<div class="main">${panel(ALL,{sel:WP,multi:true})}<div class="right">${fbar(WP)}${lanes(CARDS_ALL,DONES_ALL,{sel:WP,multi:true})}</div></div>`;
+S['63-projects'] = ()=>`<div class="cap">63 · Desktop, three projects (/api/all): five programmes in three repositories. Each programme carries its project’s colour tag, as cards do. “Needs you” sorts across all projects, oldest ask first. “Working” sorts by project order, then slug. sync-v2 has no braid running and is still Working: its PM is checking a PR live. ios-beta is held. It stays in Working with the user’s words, and its braid shows paused. inbox-sweep is stalled: its PM thread has been idle 14 min and none of its braids is running. After ten minutes that reads Needs you “Stalled” and is pushed like a braid’s stall. A programme is Working while its PM or any of its braids runs, so an idle PM whose braids work is normal. Done and held programmes never stall.</div>${url('?projects=dctl-studio,braid,notes')}${head(true)}<div class="main">${panel(ALL5,{multi:true})}<div class="right">${lanes(CARDS_ALL,DONES_ALL,{multi:true})}</div></div>`;
+S['64-programme-details'] = ()=>{const p=PROGS[WP];return `<div class="cap">64 · Desktop, a programme’s details (≡ Plan in its panel card, or a click on its name). The side panel shows what the plan file’s front matter holds: the goal, every plan row with its braid number (P-rows keep their names), next, what the PM is handling now, the last digest, the hold, and the parallel limit. It reads like a braid’s side panel, and the address is #/programme/dctl-studio/working-product.</div>${url('','#/programme/dctl-studio/working-product')}<div style="position:relative;height:960px;overflow:hidden">${head()}<div class="main">${panel(ONE,{sel:null})}<div class="right">${lanes(CARDS_ONE,DONES_ONE)}</div></div>
+ <div class="panel"><div class="ph2"><h2>🧭 working-product</h2><span class="pj"><span class="pd p-dctl-studio"></span>dctl-studio</span><span class="sp"></span><span class="btn pm">🧭 PM thread</span><span class="btn">◎ Only these</span><button>✕</button></div>
+ <div class="body"><div class="q" style="margin:0"><span class="lbl">Q8 from the PM:</span> ${p.need.text}<ol type="A">${p.need.opts.map(x=>`<li>${x}</li>`).join('')}</ol><small>asked 2 min ago · answer in the PM thread</small></div>
+ <h4>Goal, in your words</h4><p>“${p.goal}.”</p>
+ <h4>Plan</h4><table>${p.rows.map(r=>`<tr><td class="r">${r[0]}</td><td>${r[1]?`<span class="dot ${stateDot(r[3])}"></span> <b>${r[1]}</b> `:'<span class="dot l-plan"></span> '}${r[2]}</td><td class="mut">${r[3]}</td></tr>`).join('')}</table>
+ <h4>Next</h4><p>P3 Packaging for Windows, after 0006 merges</p>
+ <h4>The PM is handling</h4><p class="mut">0007 plan approval (40 s) · 0006/B live check of PR #29 (6 min)</p>
+ <h4>Last digest · parallel limit · hold</h4><p class="mut">20:03 · 3 done · 3 running · 7 PM decisions since 18:31 · limit 3, 3 running · no hold</p>
+ <p style="margin-top:10px"><span class="btn">Plan file on pm/working-product</span></p></div></div></div>`;};
+S['65-braid-panel'] = ()=>`<div class="cap">65 · Desktop, the side panel of a braid whose request the PM is handling. This screen is unchanged from the first design. The banner says who the request is for, and when and why it would come to you. Both threads are one click away.</div>${url('','#/0007')}<div style="position:relative;height:900px;overflow:hidden">${head()}<div class="main">${panel(ONE)}<div class="right">${lanes(CARDS_ONE,DONES_ONE,{selCard:'0007'})}</div></div>
+ <div class="panel"><div class="ph2"><h2>0007 · Diagnostics panel</h2><span class="badge">tier:M</span><span class="ptag">🧭 working-product · P4</span><span class="sp"></span><span class="btn">🧠 Coordinator</span><span class="btn pm">🧭 PM thread</span><button>✕</button></div>
+ <div class="tabs2"><a class="on">Brief</a><a>Report</a><a>Logs</a></div>
+ <div class="body"><div class="banner"><b>🧭 For the PM:</b> approve the plan: 4 strands, A to D. <span class="mut">Asked 40 s ago by the coordinator.</span>
+ <div style="margin-top:6px">The programme manager answers this in the coordinator’s thread. It comes to you, in Needs you and as a push, when:</div><ol><li>the PM hasn’t answered by <b>20:31</b> (20 min after it was asked);</li><li>the PM thread is archived or gone, or its last turn failed;</li><li>the PM forwards it to you.</li></ol><div style="margin-top:6px" class="mut">You can still answer it yourself in the coordinator’s thread. Your answer wins.</div></div>
+ <h4>Goal</h4><p>A panel in VS Code that lists the DCTL compiler’s diagnostics with their line, and jumps to them. Sample text.</p></div></div></div>`;
+S['66-phone-open'] = ()=>`<div class="cap" style="width:390px">66 · Phone, three projects. The programmes strip sits above the lane tabs and opens like a drawer. A programme that needs you comes first, as a card with its question, options, and a 44 px PM thread button. Working programmes follow, one line each, with 🧭 and “Only” buttons. Below the strip, the lanes are as today, here showing Needs you.</div>${url('')}<header><b>braid</b><span class="sp"></span><span class="badge">Inbox 2</span></header>
+ <div class="strip"><div class="sh"><span style="font-size:18px">🧭</span><b>Programmes</b><span class="mut">1 needs you · 3 working</span><span class="c">▴</span></div><div class="sb">${pneed(WP)}${ALL.slice(1).map(k=>prow(k)).join('')}</div></div>
+ ${ptabs([3,2,4,1,4],0)}<div class="pcards">${CARDS_ALL.filter(c=>c.lane===0).map(pcardPhone).join('')}</div>`;
+S['67-phone-filtered'] = ()=>`<div class="cap" style="width:390px">67 · Phone, the strip collapsed and filtered to one programme. Closed, the strip is one 48 px line, amber when a programme needs you. The filter shows as a chip under it, and ✕ clears it. The tab counts and cards follow the filter, as the project picker does.</div>${url('?programme=dctl-studio/working-product')}<header><b>braid</b><span class="sp"></span><span class="badge">Inbox 2</span></header>
+ <div class="strip" style="background:#fff6e0;border-color:#fcd34d"><div class="sh" style="color:#7a4d00"><span style="font-size:18px">🧭</span><b>1 needs you</b><span class="mut">· 3 working</span><span class="c" style="color:#7a4d00">▾</span></div></div>
+ <div class="fchip"><span class="pd p-dctl-studio"></span>Only: <b>🧭 working-product</b><span class="sp"></span><a class="tap" style="border:0">✕</a></div>
+ ${ptabs([2,1,2,0,3],0)}<div class="pcards">${CARDS_ONE.filter(c=>c.lane===0&&c.prog).map(pcardPhone).join('')}</div>`;
+S['68-phone-pushes'] = ()=>`<div class="android" style="width:390px"><div class="cap" style="background:#2b3140;color:#aab;border:0;border-radius:8px;margin-bottom:8px">68 · The pushes under a PM, as ntfy shows them on Android. Pushes that need you are high priority (amber edge); anything the PM is handling sends none. A programme is named &lt;repo&gt; &lt;slug&gt;, with the project name instead when two served projects share a repository name (D83). Each push opens its thread in the T3 app.</div><div class="clock">20:24</div><div class="date">Saturday, 21 November</div>
+ <div class="nt hi"><div class="app">🧭 <b>ntfy</b> · now</div><div class="tt">dctl-studio working-product: the PM asks</div><div class="bd">Q8: Should the compare view drive your Resolve? A, B or C</div><div class="note" style="padding:4px 0 0">opens the PM thread</div></div>
+ <div class="nt hi"><div class="app">⚖️ <b>ntfy</b> · 3 min</div><div class="tt">dctl-studio 0010/A: Needs You (escalated)</div><div class="bd">Export presets<br>Add ffmpeg as a runtime dependency? The PM hasn't answered for 20 min</div><div class="note" style="padding:4px 0 0">opens the coordinator thread</div></div>
+ <div class="nt"><div class="app">👀 <b>ntfy</b> · 12 min</div><div class="tt">dctl-studio 0011: To Review</div><div class="bd">Shader snippets<br>Forwarded by the PM: live check passed · merge PR #31 at 4be1c2a</div><div class="note" style="padding:4px 0 0">opens the PM thread</div></div>
+ <div class="nt hi"><div class="app">❓ <b>ntfy</b> · 1 h</div><div class="tt">dctl-studio 0005: the PM asks you to</div><div class="bd">Live-check kit<br>Sign in to the Resolve test account on the runner PC</div></div>
+ <div class="note">Not pushed: 0007’s plan approval and 0006/B’s handover (to the PM), the PM’s digest, PM-run strands merging, and held programmes. When a programme’s braid becomes Done, the push is low priority (no sound).</div></div>`;
+
+const key = new URLSearchParams(location.search).get('s')||'60-panel';
+document.body.className = key.includes('phone')?'ph':'';
+document.body.innerHTML += S[key]();
+</script>
+</body></html>

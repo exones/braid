@@ -14,9 +14,11 @@ export interface Push {
   readonly title: string;
   readonly body: string;
   readonly tags: readonly string[];
-  readonly priority: "high" | "default";
+  readonly priority: "high" | "default" | "low";
   /** The thread's T3 app link (`t3code://threads/<env>/<thread>`); null for none. */
   readonly click: string | null;
+  /** ntfy's sequence ID: a later push or a clear with the same ID replaces or removes this one. Set on each need's push; null for a Done push. */
+  readonly sequence: string | null;
 }
 
 /** The ntfy tag (an emoji short code) per reason. */
@@ -24,6 +26,7 @@ export const TAGS: Readonly<Record<Need["kind"] | "done", string>> = {
   question: "question",
   decision: "scales",
   plan: "clipboard",
+  action: "compass",
   "checks failed": "x",
   stalled: "hourglass",
   review: "eyes",
@@ -37,6 +40,41 @@ export function needKey(id: string, lane: Lane, need: Need): string {
   return [id, lane, need.kind, need.since ?? (need.pr === null ? "-" : `#${need.pr}`)].join("|");
 }
 
+/** The sequence ID of an item's need push: the repository and the item, in the characters a URL path holds. */
+export const sequenceOf = (repo: string, id: string): string => `braid-${repo}-${id}`.replace(/[^A-Za-z0-9_-]/g, "-");
+
+/** The push of the PM's own request (`braid ask … --by pm`, or a programme request `pm/<slug>`): high priority, tagged 🧭, the PM thread as click. Its own sequence ID, so it never replaces the coordinator's push for the same item. */
+function pmAskPush(repo: string, id: string, title: string, need: Need): Push {
+  const slug = /^pm\/(.+)$/.exec(id)?.[1];
+  return {
+    key: needKey(`${id}#pm`, "Waiting", need),
+    item: `${id}#pm`,
+    kind: "need",
+    title: `${repo} ${slug ?? id}: the PM asks`,
+    body: slug === undefined ? `${title}
+${need.text}` : need.text,
+    tags: ["compass"],
+    priority: "high",
+    click: need.link == null ? null : t3codeUrl(need.link),
+    sequence: sequenceOf(repo, `${id}#pm`),
+  };
+}
+
+/** A programme's stall: `<repo> <slug>: Needs You`, high, ⏳, opening the PM thread. */
+function stallPush(repo: string, id: string, slug: string, need: Need): Push {
+  return {
+    key: needKey(id, "Waiting", need),
+    item: id,
+    kind: "need",
+    title: `${repo} ${slug}: ${LANE_LABEL.Waiting}`,
+    body: need.text,
+    tags: [TAGS.stalled],
+    priority: "high",
+    click: need.link == null ? null : t3codeUrl(need.link),
+    sequence: sequenceOf(repo, id),
+  };
+}
+
 export const doneKey = (id: string): string => `${id}|done`;
 
 function needPush(repo: string, id: string, title: string, lane: Lane, need: Need, thread: string | null): Push {
@@ -44,11 +82,13 @@ function needPush(repo: string, id: string, title: string, lane: Lane, need: Nee
     key: needKey(id, lane, need),
     item: id,
     kind: "need",
-    title: `${repo} ${id}: ${LANE_LABEL[lane]}`,
+    title: `${repo} ${id}: ${LANE_LABEL[lane]}${need.via === undefined ? "" : need.via === "forwarded" ? " (forwarded by the PM)" : " (escalated)"}`,
     body: `${title}\n${need.text}`,
     tags: [TAGS[need.kind]],
-    priority: lane === "Waiting" ? "high" : "default",
+    // An escalation or a forward is high even for a review: the PM was meant to deal with it, and didn't or couldn't.
+    priority: lane === "Waiting" || need.via !== undefined ? "high" : "default",
     click: thread === null ? null : t3codeUrl(thread),
+    sequence: sequenceOf(repo, id),
   };
 }
 
@@ -59,6 +99,14 @@ function needPush(repo: string, id: string, title: string, lane: Lane, need: Nee
  */
 export function pushesOf(board: BoardData): Push[] {
   const out: Push[] = [];
+  // A programme's own pushes: the PM's request on it, else its stall (high, ⏳, the PM thread). Done and stopped ones push nothing.
+  for (const p of board.programmes ?? []) {
+    if (p.section === null || p.need === null) {
+      continue;
+    }
+    const id = `pm/${p.slug}`;
+    out.push(p.need.kind === "stalled" ? stallPush(board.repo, id, p.slug, p.need) : pmAskPush(board.repo, id, p.title, p.need));
+  }
   for (const card of board.braids) {
     if (card.lane === "Done") {
       out.push({
@@ -68,16 +116,24 @@ export function pushesOf(board: BoardData): Push[] {
         title: `${board.repo} ${card.id}: ${LANE_LABEL.Done}`,
         body: card.pr === null ? card.title : `${card.title}\nPR #${card.pr.number} merged`,
         tags: [TAGS.done],
-        priority: "default",
+        // A braid a programme runs: the PM handles what follows, so its Done is news without a sound.
+        priority: card.programme == null ? "default" : "low",
         click: null,
+        sequence: null,
       });
       continue;
     }
-    if (card.need !== null && card.need.who === null && ON_SIDE.includes(card.lane)) {
+    if (card.pmAsk?.who === null) {
+      out.push(pmAskPush(board.repo, card.id, card.title, card.pmAsk));
+    }
+    if (card.need !== null && card.need.who === null && card.need.by === undefined && ON_SIDE.includes(card.lane)) {
       out.push(needPush(board.repo, card.id, card.title, card.lane, card.need, card.thread ?? card.coordinator?.link ?? null));
     }
     for (const s of card.strands) {
-      if (s.need !== null && ON_SIDE.includes(s.lane)) {
+      if (s.pmAsk != null) {
+        out.push(pmAskPush(board.repo, s.id, s.title, s.pmAsk));
+      }
+      if (s.need !== null && s.need.by === undefined && ON_SIDE.includes(s.lane)) {
         out.push(needPush(board.repo, s.id, s.title, s.lane, s.need, s.thread));
       }
     }
