@@ -129,14 +129,16 @@ export function ownerOf(whois: string, owner: string): boolean {
 /**
  * The Tailscale listener's identity check: `tailscale whois --json <ip>:<port>` of each connection, allowed only for
  * the owner's login on an untagged node. Every failure (tailscaled down, an unknown peer, unreadable output,
- * a timeout) refuses. An answer is kept for a few seconds per remote address; concurrent asks share one call.
+ * a timeout) refuses. A definite answer (the owner, or not) is kept for a few seconds per remote address; a failure
+ * refuses only that request and isn't kept, so the next one asks again. Concurrent asks share one call.
  */
 export function whoisGate(owner: string, run: TailscaleRunner = runTailscale, options: GateOptions = {}): Gate {
   const ttl = options.ttlMs ?? 5_000;
   const timeout = options.timeoutMs ?? TAILSCALE_TIMEOUT_MS;
   const now = options.now ?? Date.now;
   const cache = new Map<string, { at: number; answer: Promise<boolean> }>();
-  const ask = async (ip: string, port: number): Promise<boolean> => {
+  /** True or false when tailscaled answered; null when it didn't (a timeout, a failure to run, a non-zero exit). */
+  const ask = async (ip: string, port: number): Promise<boolean | null> => {
     let timer: NodeJS.Timeout | undefined;
     const late = new Promise<null>((done) => {
       timer = setTimeout(() => done(null), timeout);
@@ -144,9 +146,9 @@ export function whoisGate(owner: string, run: TailscaleRunner = runTailscale, op
     });
     try {
       const r = await Promise.race([run(["whois", "--json", isIP(ip) === 6 ? `[${ip}]:${port}` : `${ip}:${port}`]), late]);
-      return r !== null && r.status === 0 && ownerOf(r.stdout, owner);
+      return r !== null && r.status === 0 ? ownerOf(r.stdout, owner) : null;
     } catch {
-      return false;
+      return null;
     } finally {
       clearTimeout(timer);
     }
@@ -160,8 +162,14 @@ export function whoisGate(owner: string, run: TailscaleRunner = runTailscale, op
     if (kept !== undefined && now() - kept.at < ttl) {
       return kept.answer;
     }
-    const answer = ask(ip, port);
-    cache.set(ip, { at: now(), answer });
-    return answer;
+    const entry = { at: now(), answer: ask(ip, port).then((r) => {
+      if (r === null && cache.get(ip) === entry) {
+        // Not an answer: refuse this request, but ask again on the next one.
+        cache.delete(ip);
+      }
+      return r === true;
+    }) };
+    cache.set(ip, entry);
+    return entry.answer;
   };
 }

@@ -549,6 +549,7 @@ export const REQUEST_HEADER = "x-braid-request";
 /** Where a request came in: the local listener (Host, Origin and the run's token, D50) or the Tailscale one (whois, Host, Origin and the request header, D60). */
 type Listener = { readonly kind: "local"; readonly origin: () => string; readonly token: string } | { readonly kind: "tailnet"; readonly hosts: () => readonly string[]; readonly gate: Gate };
 
+const TAILNET_REFUSED = "The board couldn't confirm through Tailscale who is asking (or this isn't the Host the board listens on), so it refused this request. Refresh the page; the board asks again.";
 const HOST_REFUSED = "This request didn't come from this board's own page (its Host or Origin doesn't match), so the board refused it. Use the page that `braid board` opened.";
 
 /**
@@ -884,7 +885,8 @@ export function startBoardWith(
         // Fail closed: who the peer is comes first, then whether it asked for this listener by name.
         const allowed = await listener.gate(req.socket.remoteAddress ?? "", req.socket.remotePort ?? 0);
         if (!allowed || !hostOk(listener, req.headers.host)) {
-          res.writeHead(403, { "content-type": "text/plain" }).end("forbidden");
+          const api = (req.url ?? "").startsWith("/api/");
+          res.writeHead(403, { "content-type": api ? (TYPES[".json"] ?? "") : "text/plain", "cache-control": "no-store" }).end(api ? JSON.stringify({ error: TAILNET_REFUSED }) : "forbidden");
           return;
         }
       } else if (!localHostOk(listener.origin(), req.headers.host)) {

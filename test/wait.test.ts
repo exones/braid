@@ -157,7 +157,8 @@ test("a braids-only tip waits on the commit before it", async () => {
   const r = await waitCommand(w.root, ["1"], w.opts);
   assert.equal(r.code, 0);
   assert.match(r.stdout, new RegExp(`^tip ${w.tip.slice(0, 7)} of braid/0001-alpha only changes braids/ or epics/; CI runs on ${w.code.slice(0, 7)}\ngreen at ${w.code.slice(0, 7)}`));
-  assert.deepEqual([...new Set(w.asked)], [w.code]);
+  // The tip has no run (CI skips braids-only pushes), so the CI commit answers.
+  assert.deepEqual([...new Set(w.asked)].sort(), [w.tip, w.code].sort());
 });
 
 test("the remote's tip counts, not the local branch", async () => {
@@ -211,4 +212,68 @@ test("a short call before any run appeared is still running (3), not no answer (
   const r = await waitCommand(w.root, ["1", "--timeout", "1"], w.opts);
   assert.equal(r.code, 3);
   assert.match(r.stdout, /not started: verify \(ubuntu-latest\), verify \(windows-latest\)/);
+});
+
+const cancelled = (n: string) => done(n, "cancelled");
+
+test("a run cancelled on the CI commit is answered by the green run on the braids-only commit above it", async () => {
+  const w = world(true);
+  w.answers.set(w.code, [NAMES.map(cancelled)]);
+  w.answers.set(w.tip, [NAMES.map((n) => done(n, "success"))]);
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 0, r.stdout);
+  assert.match(r.stdout, new RegExp(`CI runs on ${w.code.slice(0, 7)}\ngreen at ${w.tip.slice(0, 7)} on braid/0001-alpha`));
+});
+
+test("a run cancelled on the CI commit is answered by a failing run on the commit above it", async () => {
+  const w = world(true);
+  w.answers.set(w.code, [NAMES.map(cancelled)]);
+  w.answers.set(w.tip, [[done(NAMES[0]!, "failure"), done(NAMES[1]!, "success")]]);
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 1);
+  assert.ok(r.stdout.endsWith(`failed at ${w.tip.slice(0, 7)} on braid/0001-alpha: verify (ubuntu-latest)
+`), r.stdout);
+});
+
+test("a cancelled run with no newer commit fails", async () => {
+  const w = world();
+  w.answers.set(w.code, [NAMES.map(cancelled)]);
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 1);
+  assert.match(r.stdout, /^failed at [0-9a-f]{7} on braid\/0001-alpha: verify \(ubuntu-latest\), verify \(windows-latest\)\n$/);
+});
+
+test("a cancelled run with a newer commit that has no run yet keeps waiting, and the newer run then answers", async () => {
+  const w = world(true);
+  w.answers.set(w.code, [NAMES.map(cancelled)]);
+  const short = await waitCommand(w.root, ["1", "--timeout", "1"], w.opts);
+  assert.equal(short.code, 3);
+  assert.match(short.stdout, /still running: verify \(ubuntu-latest\), verify \(windows-latest\)/);
+  const late = world(true);
+  late.answers.set(late.code, [NAMES.map(cancelled)]);
+  late.answers.set(late.tip, [[], [], NAMES.map((n) => done(n, "success"))]);
+  const r = await waitCommand(late.root, ["1"], late.opts);
+  assert.equal(r.code, 0, r.stdout);
+});
+
+test("a cancelled run whose newer commit never starts a run fails after the start limit", async () => {
+  const w = world(true);
+  w.answers.set(w.code, [NAMES.map(cancelled)]);
+  const r = await waitCommand(w.root, ["1", "--timeout", "30"], w.opts);
+  assert.equal(r.code, 1);
+  assert.ok(w.minutes() >= 5);
+});
+
+test("a failed read of the newer commit never lets the older commit's cancelled run fail the wait", async () => {
+  const w = world(true);
+  w.answers.set(w.code, [NAMES.map(cancelled)]);
+  w.answers.set(w.tip, [null]);
+  const r = await waitCommand(w.root, ["1", "--timeout", "30"], w.opts);
+  assert.equal(r.code, 3, r.stdout);
+  assert.match(r.stdout, /GitHub could not be read at the last poll/);
+  // Once the tip can be read and is green, it answers.
+  const ok = world(true);
+  ok.answers.set(ok.code, [NAMES.map(cancelled)]);
+  ok.answers.set(ok.tip, [null, null, NAMES.map((n) => done(n, "success"))]);
+  assert.equal((await waitCommand(ok.root, ["1"], ok.opts)).code, 0);
 });
