@@ -88,7 +88,7 @@ The user merges, whatever the tier. The coordinator merges in three cases only:
 
 ## Checks and reports
 
-- The `gate` from `BRAID.md` passes before every PR. CI evidence is `gh pr checks` green on the PR's latest commit, limited to the `ci` names if listed; a required check that never reports isn't green. The worker alone waits on an item PR's CI (D77) and reports when it is green; the coordinator reads `gh pr checks` once and waits only where a wake is reliable ("Say waiting" in the braid skill). With `ci: none` the gate run is the evidence.
+- The `gate` from `BRAID.md` passes before every PR. CI evidence is `gh pr checks` green on the PR's latest commit, limited to the `ci` names if listed; a required check that never reports isn't green. The worker alone waits on an item PR's CI (D77) and reports when it is green; the coordinator reads `gh pr checks` once, runs no foreground wait, and ends its turn until the worker's report, a PR watch, a `delegate_task` result or the board wakes it ("Say waiting" in the braid skill; D91). With `ci: none` the gate run is the evidence.
 - The PR description says what changed, why, how it was checked and what is open. The worker's `report.md`, its final chat report and the coordinator's recap say the same.
 - **Converge loop.** A `ui` item, or one whose brief says the user chooses the shape (design, names, wording), starts with a proposal on realistic test data, and the worker stops. Each verdict of the user goes into the item's log at once; rounds repeat until the user approves; only then is it built.
 

@@ -86,7 +86,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    Brief: `braid view <id>`. Branch: <branch> at <short sha>. Open the PR into <base branch>.
    Send your result to thread <your thread id>. Your thread id: <worker thread id>.
    ```
-3. **Wait.** After launching a worker, or sending it fixes, call `t3_thread_wait` on its thread with `timeoutMs: 600000` (a reviewer is waited for as "Accept and hand over" step 1 says); it returns when the run ends, and at once on an idle thread. On a timeout, run the limits check for the worker's provider and wait again; on exit 3 act as [provider limits](references/limits.md) "On exit 3" says (a PM-run coordinator tells the PM and doesn't pause itself). Run nothing else in parallel with it. If no report arrived, read the thread's last message and `gh pr checks`:
+3. **End the turn.** After launching a worker, or sending it fixes, end your turn: the worker's report (`t3_thread_send`) wakes you (a reviewer is waited for as "Accept and hand over" step 1 says). Never block in a foreground wait on a worker: it holds the user's and the PM's messages in the queue until it ends. A message from the user or the PM while agents run is answered at once, in that turn, which then ends again. A wake without a report (a nudge from the user or the PM, the board's `stalled`): read the thread's last message and `gh pr checks`:
    - The worker waits on its own PR watch (CI pending): end your turn; its report wakes you. You never watch an item PR: the worker alone waits on its CI.
    - Green: take the result from the thread and continue.
    - The PR is already merged: the item is done.
@@ -97,7 +97,7 @@ One implementation worker at a time. The next item is under "Starting the next i
    - Once your turn has ended, the 15-minute limits check task covers the running agents ([provider limits](references/limits.md), "Check while agents run").
 4. **Coordinator habits.**
    - After a wake or a resume, check the state first (branches, worktrees, worker threads, `braid next`), then act.
-   - A "STOP" result during a wait is an incoming message, not the user: read it, never say "as you asked".
+   - A "STOP" result on a tool call is an incoming message, not the user: read it, never say "as you asked".
    - After "session ended", re-check before retrying; `braid start` is safe to run again and prints "(already started)".
    - **Watch rule:** you watch a PR (`watch_pull_request`) only while no worker is waiting on it: the planning PR, the final PR, and a story's PR from your own commit on it (`braid accept`), since the worker has reported, unwatched and stopped by then. Never an item PR a worker still owns. On a wake the planning PR continues at "Plan", step 7 (merge it when its checks are green); the final PR (watched from "Finish" step 1) continues at "Finish" where you are, and hands over only after `braid accept` and its new head is green; a story's PR, watched only after `braid accept`, continues with the handover once that head is green. A wake is never a merge decision. Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox, or after you merge it. After that, the user's "merged" or `gh pr list --state all` decides.
 5. Answer the worker's questions. If the brief must change, tell the worker; it applies the change on its branch.
@@ -190,7 +190,7 @@ When your first message names a PM thread (a `braid-pm` programme manager launch
 ## Fixes
 
 - The worker that opened a PR fixes it: failed checks, review findings, anything else on that PR. Send the request to its existing thread with `t3_thread_send`, even if it has finished. Start a new worker on the same branch and item only if that thread can't continue.
-- CI failing on a braid branch itself, or on its final PR, and review findings on the final PR, belong to no worker, and you don't fix product code yourself. Add a tier S fix strand at the end of the braid, with no dependencies, and run it before the next item. A second red on the braid branch is a stop (`quality`).
+- CI failing on a braid branch itself, or on its final PR, and review findings on the final PR, belong to no worker, and you don't fix product code yourself. Add a tier S fix strand at the end of the braid, with no dependencies, and run it before the next item. A second red on the braid branch is a stop (`quality`). You find a red braid branch in two short reads, also after a strand the user merged: `braid wait <number> --timeout 0.25` at each wake before reviewing or merging the next strand, and before "Finish" step 1 ([autonomy](references/autonomy.md), "Merging" step 4).
 
 ## Finish
 
@@ -199,7 +199,7 @@ A story is finished when the user merges its PR.
 A goal, when every strand is Done on the braid branch (the docs strand, if planned, included):
 
 0. Delete the limits check task if one is left ([provider limits](references/limits.md)).
-1. Merge `main` into the braid branch, open one PR from it into `main` and watch it.
+1. Read the braid branch's CI once with `braid wait <number> --timeout 0.25`: exit 1 goes to "Fixes" first; exit 3 (still running) is no reason to wait. Merge `main` into the braid branch, open one PR from it into `main` and watch it; its CI runs on the same code merged with `main`, and the handover waits for it to be green.
 2. In one commit, tick the braid's boxes that now hold, write its `report.md` naming any box left open and why, and add a closing log entry.
 3. Take the PR through "Accept and hand over" as a story of the braid's tier: review, facts, checks, capture, `braid accept <number>`; keep the watch until the new head is green, then unwatch it and hand that head over.
 4. Wait for the user, unless the preset let you merge it. The merge finishes the goal: don't commit or open a PR after it.
@@ -211,7 +211,7 @@ A goal, when every strand is Done on the braid branch (the docs strand, if plann
 - **The question tool** (AskUserQuestion in Claude Code, a pending request in T3) asks only when the turn ends waiting for the user alone. It never replaces the message: first the open request, then the full message in chat as the step asks (the recap, the plan, the proposal, the stop with its case and source), and only then the question, as the turn's last call. The question carries just its context line and what is asked. Write nothing for after it: text after the call reaches the user only once they have answered. While agents or CI still run for you (a sweep proposal while strands go on under the preset, a planning PR whose checks are pending), ask in chat with the open request instead: a pending question holds every watch wake and worker report until the user answers.
 - **Options.** Offer the option set of the stop's kind below, recommended first, each label 1 to 5 words; the tool adds "Other" for free text. A host without the tool, or a question in chat, gets the same options as a numbered question with lettered answers and your recommendation. If an answer is a value such as a path, say where it will be stored.
 - **A reply to an open request** (an option, "Other", a chat reply after a dismissed dialog, the board's merge message): first `braid answer <id> --log -`, then act; a new question means a new `braid ask`.
-- **Say "waiting" only when something will wake you:** only the worker's message, a PR watch on the planning, final or accepted story PR, a `delegate_task` result, or, within this turn, a `t3_thread_wait` on a worker thread or a foreground `braid wait` running now. Otherwise say what you will do when the user next writes. A provider pause ends with `⏳ Paused for <provider> <window>; resumes at <time>`: the scheduled resume wakes you ([provider limits](references/limits.md)).
+- **Say "waiting" only when something will wake you:** only the worker's message, a PR watch on the planning, final or accepted story PR, a `delegate_task` result, or the board's messages (a stall, a request answered). No foreground wait counts: you run none. Otherwise say what you will do when the user next writes. A provider pause ends with `⏳ Paused for <provider> <window>; resumes at <time>`: the scheduled resume wakes you ([provider limits](references/limits.md)).
 - **Hourglass:** a message that ends the turn while waiting (for agents, CI or the user) has `⏳ Waiting for <what>` as its last line, e.g. `⏳ Waiting for you: approve the plan`; before a question tool call, it ends the chat message. Nothing pending: no ⏳ line.
 - **Links:** every worker or reviewer thread (its T3 `link`), PR (its URL) and item brief (its brief.md on GitHub, at the branch you read it from) you name is a link, also in the ⏳ line, e.g. `⏳ Waiting for the [worker](<thread link>)'s report on [0058](<brief url>), CI pending on [PR #210](<pr url>)`.
 

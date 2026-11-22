@@ -126,5 +126,6 @@ A pause for a provider's usage limit is not part of a preset: every preset pause
 ## What the CLI enforces
 
 - `braid accept <id> --head <sha> --merge --preset` is a merge the coordinator makes under the braid's preset. `merge: strands` lets it merge a strand's PR, `all` also a story's and a final PR into `main`, `none` nothing; it also refuses when `ci` in `BRAID.md` is `none`. The refusal names the preset and its `merge` value. Without `--preset`, `--merge` is a merge you asked for.
+- After merging a strand, the coordinator starts the next item without waiting for the braid branch's CI. It reads that CI in one short `braid wait <number> --timeout 0.25` call at its next wake before reviewing or merging the next strand, and before opening the final PR; a red braid branch gets a fix strand first. The final PR's own CI is watched, so nothing reaches `main` on a red braid branch ([decision D91](decisions.md)).
 - Whether a stop case needs you stays the coordinator's judgement against the preset's table; the CLI checks only the `merge` value.
 - A decision made under a preset is logged as an ordinary log entry whose text starts with `Decided:` (`braid log <id> "Decided: ..."`). `braid decisions <number> [--since <date or sha>]` lists them, and the recap draft carries them under Decisions, so you read them in one place.

@@ -50,15 +50,22 @@ Expected size: about 60 changed lines in 7 files, nearly all text (skills and do
 - The `braid-worker`, `braid-reviewer`, `braid-researcher` and `braid-pm` skills, unless one names a coordinator foreground wait (none did when planned).
 - Launching workers as subagents (0060).
 
+## Plan
+
+1. SKILL.md "Run an item" step 3 becomes **End the turn**: no `t3_thread_wait`; the worker's report wakes the coordinator; messages from the user or the PM are answered at once; the no-report checks stay for a nudge or the board's `stalled`. The STOP habit is reworded for any tool call.
+2. autonomy.md "Merging" step 4: next item starts at once; the braid branch's CI is read with `braid wait <number> --timeout 0.25` before the next strand's review or merge and before the final PR; exit codes mapped (3 go on, 1 Fixes, 2 ask).
+3. SKILL.md "Fixes" and "Finish" step 1 name the two read points; "Say waiting" lists only event wakes; workflow.md "Checks and reports" says no foreground wait.
+4. decisions.md: D91, notes on D77 and D71, decision log line. docs/braids-format.md, docs/cli.md, docs/autonomy.md and the comment in src/commands/wait.ts describe the short reads.
+5. Gate, report, PR.
 ## Completion
 
-- [ ] `.agents/skills/braid/` has no foreground wait left for the coordinator: no `t3_thread_wait` on a worker thread, no looped `braid wait --timeout 9`, no "run nothing else in parallel"; `rg -n "t3_thread_wait|timeout 9|in parallel with it" .agents/skills/braid` finds none outside `references/limits.md`
-- [ ] "Run an item" says the coordinator ends its turn after a launch or a fix request, the worker's report wakes it, and a message from the user or the PM is answered at once; the no-report checks stay
-- [ ] After a strand merge the next item starts without waiting; the braid branch's CI is read in short `braid wait --timeout 0.25` calls before the next strand's review or merge and before the final PR, a red one goes to "Fixes", and the final PR's watched CI catches the rest before any merge into `main`
-- [ ] `docs/decisions.md` has the new dated decision and the notes on D77 (and D71 where it applies)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `.agents/skills/braid/` has no foreground wait left for the coordinator: no `t3_thread_wait` on a worker thread, no looped `braid wait --timeout 9`, no "run nothing else in parallel"; `rg -n "t3_thread_wait|timeout 9|in parallel with it" .agents/skills/braid` finds none outside `references/limits.md`
+- [x] "Run an item" says the coordinator ends its turn after a launch or a fix request, the worker's report wakes it, and a message from the user or the PM is answered at once; the no-report checks stay
+- [x] After a strand merge the next item starts without waiting; the braid branch's CI is read in short `braid wait --timeout 0.25` calls before the next strand's review or merge and before the final PR, a red one goes to "Fixes", and the final PR's watched CI catches the rest before any merge into `main`
+- [x] `docs/decisions.md` has the new dated decision and the notes on D77 (and D71 where it applies)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Autonomy
 
