@@ -21,6 +21,18 @@ Free-form notes from the planning session with the user. They become the plan in
 - Rule to settle: a push only when someone **explicitly** asked the user (an open request addressed to the user, a forward or escalation, a merge into `main` the user keeps), never because a lane moved.
 - Also T3's per-thread notifications: can they be muted for coordinator, worker and checker threads?
 
+## Ship second: explicit questions
+
+- The user's words (2026-11-22): "more explicit "questions": bcs now a lot of asynchrony happens. If pm / coordinator asks a question, it after an hour of the user away, this question can be lost in the chat history. related to board: if the question is asked, it should be logged, and I should see it in board, and have reliable way to answer it. also if question becomes irrelevant, it must be marked so. this is prio #2 after more precise notifs"
+- What exists today: `braid ask` opens a request in `.braid/requests.json` (one open request per asker per item; a new one replaces the old). The board shows it in Needs You or the programmes panel, with its options. Answering happens only in the asker's thread: "the board has no Answer or Approve button" (docs/board.md). The asker closes it with `braid answer`, and the record is gone from view; the answer lives only in the chat and, if the agent logged it, in the braid's log.
+- Gaps against what the user wants:
+  - **Logged:** every question and its answer (or its fate) kept as a record, not only while open. Today `requests.json` is local state in the main checkout, not in git.
+  - **Seen:** every open question on the board, also the ones an agent asked only in chat (a question in the chat with no `braid ask` is invisible to the board, except T3's pending-question flag).
+  - **Answered reliably:** an Answer action on the board (pick an option or type), delivered to the asking thread (a `t3 thread send`, or the agent reads it at its next wake), on desktop and phone. This changes the rule that the board acts only on clicks: here it is a click, but the board then messages a thread (0064 opens that door for limits).
+  - **Marked irrelevant:** a question an agent no longer needs (superseded by a later one, decided another way, the braid stopped) is closed as "withdrawn" or "no longer needed", with a reason, never just disappears; and its push is cleared.
+  - Fits with: 2026-11-19-aeli (what the answer unblocks), 2026-11-21-t7b8 (recap after the answer), HTML reports (the question rendered with its context).
+- Order: right after precise notifications; they share the request model (who it is for, its state), so one braid may shape the contract for both: settle the request record (addressee, state open/answered/withdrawn, answer, reason, history) in the first.
+
 ## Braids already in (order to discuss)
 
 - **0064** The board watches provider limits (In Progress, D running, E to do).
@@ -91,11 +103,13 @@ From the release notes (https://github.com/pingdotgg/t3code/releases/tag/v0.1.11
 - Order of 0064, 0067, 0060, and where "precise notifications" goes among them.
 - The format and the areas of the per-programme say settings.
 - How much of 0036 is still relevant.
+- Explicit questions: where the record lives (git, like the inbox branch, or `.braid/`), whether one braid covers notifications and questions or two, the board's Answer action and how it reaches the asking thread.
 - HTML reports and notebooks: where they render (chat, board, a file), and for which messages.
 - T3 Issues: an intake path for the machine, or not?
 
 ## Session log
 
 - 2026-11-22 21:47Z: session started; 0064, 0067, 0060 in.
+- 2026-11-22 22:35Z: explicit questions as priority 2.
 - 2026-11-22 22:20Z: T3 v0.1.11 read; HTML reports back in as a candidate; T3 Issues noted.
 - 2026-11-22 22:00Z: principles (planning, not the work; per-programme say settings), notifications first, inbox ideas in except HTML, 0036 to review.
