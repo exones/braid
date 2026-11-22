@@ -33,17 +33,18 @@ export function pmGone(t3: T3, thread: string | undefined): boolean | null {
 /**
  * Whom a request is for now. A request with no `to` is the user's. A forwarded request reads as the user's with
  * "Forwarded by the PM:". A request to the PM escalates after 20 min (a handover: 60), when its PM thread is
- * gone, and never while the braid is paused or held.
+ * gone, and never while the braid is paused or held: a pause keeps it, a forwarded one too, with the PM until `braid resume`.
  */
 export function routeOf(req: Request, now: Date, t3: T3, paused: boolean): Routed {
+  // A pause or hold keeps every request to the PM with the PM, a forwarded one too, until `braid resume`.
+  if (paused && (req.to === "pm" || req.forwarded !== undefined)) {
+    return { to: "pm" };
+  }
   if (req.forwarded !== undefined) {
     return { to: "user", via: "forwarded", since: req.forwarded, words: "Forwarded by the PM:" };
   }
   if (req.to !== "pm") {
     return { to: "user" };
-  }
-  if (paused) {
-    return { to: "pm" };
   }
   const limit = req.kind === "review" ? PM_REVIEW_MS : PM_QUESTION_MS;
   if (now.getTime() - Date.parse(req.at) >= limit) {

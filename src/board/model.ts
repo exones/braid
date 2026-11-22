@@ -373,7 +373,7 @@ export function mergeOf(key: string, gh: Github, sig: Signals, t3: T3 = NO_T3): 
     return null;
   }
   // A handover the PM is still checking isn't the user's to merge yet.
-  if (req.to === "pm" && !("via" in routeOf(req, sig.now, t3, pausedBraid(key, sig)))) {
+  if ((req.to === "pm" || req.forwarded !== undefined) && !("via" in routeOf(req, sig.now, t3, pausedBraid(key, sig)))) {
     return null;
   }
   const pr = [...gh.prs.values()].find((p) => p.number === req.pr);

@@ -239,6 +239,25 @@ test("a push is cleared when its request closes, once, and not when the item has
   assert.equal(sent.length, 3);
 });
 
+test("a forward made during a pause or hold reads with the PM until resume, then escalates", () => {
+  const forwarded = request("question", 2, { to: "user", forwarded: ago(1), note: "your call" });
+  for (const pause of [hold(), limit()]) {
+    const d = derive("In Progress", gh(), t3("running"), sig([forwarded], [pause]));
+    assert.equal(d.lane, "In Progress");
+    assert.equal(d.need, null);
+    assert.equal(d.pm.text, "The PM is handling: a question text");
+    assert.deepEqual(message.pushesOf(board(cardOf(d))), []);
+  }
+  // After `braid resume` the pause record is gone and the forward reaches the user.
+  const after = derive("In Progress", gh(), t3("running"), sig([forwarded]));
+  assert.equal(after.lane, "Waiting");
+  assert.equal(after.need.via, "forwarded");
+  // Merge stays off for a forwarded handover during a pause.
+  const s = sig([{ ...request("review", 3, { pr: 7, to: "user", forwarded: ago(1) }), id: "0001", head: "abc" }], [hold()]);
+  const card = model.toCard(braidOf(false), { status: { state: "ok" }, prs: new Map([["0001", { ...PR, head: "abc" }]]) }, t3("running"), s);
+  assert.equal(card.merge, null);
+});
+
 // ---- commands ----
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-pm-requests-"));
@@ -250,7 +269,7 @@ const git = (cwd: string, ...args: string[]) => {
 const brief = (id: string, status: string, extra = "") => `---\nid: '${id}'\ntitle: "T ${id}"\nstatus: ${status}\nlabels: []\ndependencies: []\n---\n\n## Goal\n\nx\n${extra}`;
 
 /** Braid 0001 has a PM-run line; braid 0002 has none. */
-function project(): string {
+function project(pm: string = PM): string {
   const root = mkdtempSync(join(scratch, "p-"));
   const put = (path: string, text: string) => {
     mkdirSync(dirname(join(root, path)), { recursive: true });
@@ -258,7 +277,7 @@ function project(): string {
   };
   git(root, "init", "-q", "-b", "main");
   put("BRAID.md", "---\nmain: main\n---\n");
-  put("braids/0001-a/brief.md", brief("0001", "In Progress", `\n## Autonomy\n\nPM-run (thread ${PM}): security always ask.\n`));
+  put("braids/0001-a/brief.md", brief("0001", "In Progress", `\n## Autonomy\n\nPM-run (thread ${pm}): security always ask.\n`));
   put("braids/0001-a/A-x/brief.md", brief("0001/A", "In Progress"));
   put("braids/0002-b/brief.md", brief("0002", "In Progress"));
   git(root, "-c", "user.email=t@example.com", "-c", "user.name=t", "add", "-A");
@@ -278,6 +297,12 @@ test("braid ask --to pm stores the PM thread from the brief's PM-run line, and f
   assert.equal(loadRequests(root).length, 1, "the refused ask opened nothing");
   askCommand(root, ["0001", "for you", "--to", "user"], { now: () => NOW });
   assert.equal(loadRequests(root).find((x: { id: string }) => x.id === "0001").to, undefined);
+  // Real T3 ids carry `:`, `%` and `.`: any id up to the closing parenthesis is taken.
+  for (const id of ["mcp:launch:aaaaaaaa11111111", "thread:delegated-task:command%3A7b2f.9", "mcp:8b23b4e6-161b-4f0c-ae32-37abd5c25d5f"]) {
+    const p = project(id);
+    askCommand(p, ["0001", "x", "--to", "pm"], { now: () => NOW });
+    assert.equal(loadRequests(p)[0].pm, id);
+  }
   return assert.rejects(Promise.resolve().then(() => handoverCommand(root, ["0002", "--head", "abcdef0", "--to", "pm"], {})), /PM-run/);
 });
 

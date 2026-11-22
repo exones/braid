@@ -28,7 +28,7 @@ function threadOf(values: Parameters<typeof str>[0]): string | null {
 }
 
 /** The braid's exception line names its PM: `PM-run (thread <id>)`. */
-const PM_RUN = /PM-run \(thread ([A-Za-z0-9_-]{8,})\)/;
+const PM_RUN = /PM-run \(thread ([^\s)]+)\)/;
 
 /** `--to user|pm`: whom the request is for; `pm` needs the PM's thread from the braid's `PM-run (thread <id>)` line, and fails (opening nothing) without it. */
 function addressee(root: string, values: Parameters<typeof str>[0], id: string): { to?: "pm"; pm?: string } {
