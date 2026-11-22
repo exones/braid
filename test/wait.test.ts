@@ -263,3 +263,17 @@ test("a cancelled run whose newer commit never starts a run fails after the star
   assert.equal(r.code, 1);
   assert.ok(w.minutes() >= 5);
 });
+
+test("a failed read of the newer commit never lets the older commit's cancelled run fail the wait", async () => {
+  const w = world(true);
+  w.answers.set(w.code, [NAMES.map(cancelled)]);
+  w.answers.set(w.tip, [null]);
+  const r = await waitCommand(w.root, ["1", "--timeout", "30"], w.opts);
+  assert.equal(r.code, 3, r.stdout);
+  assert.match(r.stdout, /GitHub could not be read at the last poll/);
+  // Once the tip can be read and is green, it answers.
+  const ok = world(true);
+  ok.answers.set(ok.code, [NAMES.map(cancelled)]);
+  ok.answers.set(ok.tip, [null, null, NAMES.map((n) => done(n, "success"))]);
+  assert.equal((await waitCommand(ok.root, ["1"], ok.opts)).code, 0);
+});

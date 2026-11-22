@@ -84,7 +84,7 @@ export function helpText(version: string): string {
     "  inbox pass <leftover>...    Pass leftovers over in a sweep: passed + 1; at 2 the leftover is dropped (an idea is refused)",
     "  inbox drop <entry>... --why <reason>  Drop entries with a reason",
     "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
-    "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; never forces)",
+    "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; forces only a recorded reviewer's t3/ branch whose tip is the PR head or on origin)",
     "  board                       Open the board in the browser (--no-open: only print the address; --demo: sample data, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port)",
     "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends one, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
     "  projects add [<path>]       Add a project to this machine's list in ~/.braid/projects.json (its main checkout; --name <n>, --port <n>) and print its readiness",

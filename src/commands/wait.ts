@@ -145,18 +145,24 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
     const rollups = new Map<string, ReturnType<typeof commitChecks>>();
     unread = false;
     const read = names.map((n) => {
+      // A commit above that could not be read may hold the real answer: what is found below it is not final.
+      let blind = false;
       for (const [i, c] of range.entries()) {
         if (!rollups.has(c)) {
           rollups.set(c, commitChecks({ root, run }, c));
         }
         const rollup = rollups.get(c) ?? null;
         unread ||= rollup === null;
+        if (rollup === null) {
+          blind = true;
+          continue;
+        }
         const r = resultOf(rollup, n);
         if (r === "missing") {
           continue;
         }
         // Cancelled with a newer commit above it: that commit may still start its run, within the start limit.
-        const result: Result = r === "cancelled" ? (i > 0 && now() < noRunUntil ? "pending" : "failing") : r;
+        const result: Result = blind ? "pending" : r === "cancelled" ? (i > 0 && now() < noRunUntil ? "pending" : "failing") : r;
         return { name: n, result, sha: c };
       }
       return { name: n, result: "missing" as Result, sha };

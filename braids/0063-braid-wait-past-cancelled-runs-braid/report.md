@@ -21,7 +21,9 @@ No path in this repository's CLI exits 126: `dist/cli.js` exits 2 for every `wai
 
 ## Docs
 
-Updated `docs/cli.md`, `docs/decisions.md` (note on D71), the `wait` help line. Others unaffected.
+Updated `docs/cli.md`, `docs/braids-format.md` (wait, clean), `docs/decisions.md` (notes on D71 and D42), the `wait` and `clean` help lines. Others unaffected.
+
+A commit whose check runs GitHub could not be read keeps the answer pending (what is found below it is not final); an empty answer still falls through to the older commit.
 
 For later items: the installed `braid` launcher mapping errors to 126 (see above).
 
