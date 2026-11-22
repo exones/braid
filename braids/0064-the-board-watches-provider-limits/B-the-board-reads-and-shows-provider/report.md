@@ -11,7 +11,7 @@ The board now reads every provider's usage at each refresh and shows it against 
 
 **Why:** the board, not each coordinator and PM, is to watch the limits (0064). B is the read-only part, so the user can see the chips before C makes the board act on them.
 
-**Validation:** `npm run verify` passes (527 tests). New `test/board-limits.test.ts` (8 tests): chip states from the cache fixtures, a stale cache, the paused record and a hold (names no provider), a provider only a running thread uses, a BRAID.md without `models`, merging projects, the thread provider on worker, reviewer and coordinator threads, a steering thread placed in an item's worktree being no agent, the title pattern, and the demo data. `test/reviews.test.ts` expects the new `provider` key. A real run: `braid board --demo` in headless Edge, desktop and 390 px phone (screenshots in the final report).
+**Validation:** `npm run verify` passes (530 tests). New `test/board-limits.test.ts` (11 tests): chip states from the cache fixtures, a stale cache, the paused record and a hold (names no provider), a provider only a running thread uses, a BRAID.md without `models`, merging projects, the thread provider on worker, reviewer and coordinator threads, a steering thread placed in an item's worktree being no agent, the title pattern, and the demo data. `test/reviews.test.ts` expects the new `provider` key. A real run: `braid board --demo` in headless Edge, desktop and 390 px phone (screenshots in the final report).
 
 **Real run (2026-11-22, the coordinator allowed the read):** `node dist/cli.js board --no-open` against this repository and dctl-studio, read-only, nothing written to `~/.t3`. `/api/all` `limits` held Claude_Everix and cursor. Claude_Everix read **unknown** ("the cache was checked 16 min ago (stale after 10 min)", with 3 running agents listed) and cursor **not measured**: the same verdicts `braid limits` printed in the same minute. T3 had not refreshed its Claude cache, so no meters showed. The meters and the paused, over and near states are covered by the fixtures and `--demo`. Screenshot of the real chips and panel: `~/.braid/artifacts/agento/0064/real-desktop-panel.png`.
 
@@ -22,6 +22,7 @@ The board now reads every provider's usage at each refresh and shows it against 
 Decisions:
 - The user approved mockups 1, 3 and 5 (2026-11-22); built to them without a new round.
 - `STEERING_EMOJI` is a constant next to `ROLES`, not a key of `ROLES`: `ROLES` feeds `braid title --role` and `TitleRole`, and a steering thread has no item id to title.
+- A limit pause record decides the chip before the reading does: paused wins over unknown and unmeasured, in one project and in the combined board; its bars stay sky. The weekly chip reads "weekly · resumes Thu 07:05" (a weekday within six days).
 - A paused chip's resume time is the earliest `resumeAt` among the limit pause records of that provider, else the reading's own.
 - The panel lists a paused braid as `<number>` and reads the pause record's provider; a hold (no provider) shows on no chip.
 
