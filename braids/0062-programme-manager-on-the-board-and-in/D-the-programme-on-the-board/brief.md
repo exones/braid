@@ -73,14 +73,14 @@ Expected size: about 1,000 lines in 13 files.
 
 ## Completion
 
-- [ ] A plan with valid front matter shows as a programme in the panel: in Needs you while a programme request is open, in Working while its PM or one of its braids runs (including an idle PM whose braids work, and a running PM with no braid running); an unreadable plan shows "plan unreadable: <line>" and the board still works
-- [ ] A programme whose PM thread isn't running and none of whose braids is running reads Needs you `stalled` after ten minutes on its own clock and is pushed once; it clears when the PM or a braid runs again; a done, stopped or held programme never stalls, and one with an open PM request shows that request instead; tests cover each case
-- [ ] "Only these" filters the lanes to the programme's braids and back, keeps `?programme=<project>/<slug>` with `?projects=`, and survives a reload on desktop and phone
-- [ ] With several projects served, the panel lists every shown project's programmes with project tags; two projects with the same slug stay apart in the panel, the filter and the pushes
-- [ ] The panel collapses to the rail and back, and the board remembers the choice
-- [ ] A held programme shows the user's words on its card, and its braids show paused, not stalled
-- [ ] `braid check --plan` accepts the template and names the line of an error
-- [ ] Screenshots of each screen, matching the approved mockups
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A plan with valid front matter shows as a programme in the panel: in Needs you while a programme request is open, in Working while its PM or one of its braids runs (including an idle PM whose braids work, and a running PM with no braid running); an unreadable plan shows "plan unreadable: <line>" and the board still works
+- [x] A programme whose PM thread isn't running and none of whose braids is running reads Needs you `stalled` after ten minutes on its own clock and is pushed once; it clears when the PM or a braid runs again; a done, stopped or held programme never stalls, and one with an open PM request shows that request instead; tests cover each case
+- [x] "Only these" filters the lanes to the programme's braids and back, keeps `?programme=<project>/<slug>` with `?projects=`, and survives a reload on desktop and phone
+- [x] With several projects served, the panel lists every shown project's programmes with project tags; two projects with the same slug stay apart in the panel, the filter and the pushes
+- [x] The panel collapses to the rail and back, and the board remembers the choice
+- [x] A held programme shows the user's words on its card, and its braids show paused, not stalled
+- [x] `braid check --plan` accepts the template and names the line of an error
+- [x] Screenshots of each screen, matching the approved mockups
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

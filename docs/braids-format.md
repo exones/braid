@@ -166,9 +166,42 @@ Recovery. Every clone that wrote or fetched the inbox keeps a copy (`braid-inbox
 - Writes take turns under a lock file next to it (`projects.json.lock`, the same lock as [requests](#commands): exclusive create, a lock older than 30 s taken over by one waiter, giving up after 10 s), re-read the file, then write a temporary file and rename it over the list, so two `add` runs at once both keep their entry.
 - Item worktrees go to `~/braid-worktrees/<name>/` ([`braid start`](#commands)), `<name>` being the project's name here, so two projects whose main checkouts have the same folder name keep apart; `add` says so when it happens. A repository that is not listed uses its main checkout's folder name. Worktrees made before this (in `~/braid-worktrees/<folder name>/`) stay where they are and are still found by `start`, `clean` and the board.
 
+## Plan files
+
+A programme manager (the `braid-pm` agent) keeps its programme in `pm/<slug>.md` on the branch `pm/<slug>`. Its front matter is what [the board](board.md#programmes) reads; the body (the goal in full, decisions, change log) is for people and is never read. The front matter uses the brief's YAML subset (`key: value`, quoted or plain strings, lists), read by `parsePlan` in `src/braids/plan.ts`:
+
+```markdown
+---
+programme: working-product
+title: Working product
+goal: A working product per the specs
+thread: 11111111-aaaa-4bbb-8ccc-222222222222
+limit: 3
+state: running
+hold:
+next: P3 Packaging, after 0006 merges
+digest: 20:03 · 3 done · 3 running · 7 PM decisions
+rows:
+  - P1 | 0001 | Login | running
+  - P2 | 0002 | Search | done
+  - P3 | - | Packaging | planned
+---
+```
+
+- `programme` (required): the slug, lower-case words joined by `-`; it must match the branch `pm/<slug>`.
+- `title`, `goal` (required): one line each; `goal` is the user's goal in short.
+- `thread`: the PM's T3 thread id (the PM thread button and the stall read it).
+- `limit`: how many braids run at once, a whole number.
+- `state` (required): `running`, `held`, `done` or `stopped`. `done` and `stopped` take the programme off the board's panel.
+- `hold`: empty, or `<ISO time> <the user's words>` while the user holds the work.
+- `next`: what starts next. `digest`: the PM's latest one-line summary.
+- `rows`: one per plan row, `P<n> | <braid number or -> | <title> | <state>`, the state one of `planned`, `running`, `waiting on user`, `ready to merge`, `done`, `stopped`, `dropped`. A braid number may appear in one row only. The rows are what ties a braid to its programme (its 🧭 tag, Only these).
+- Any other key, a missing required key or a bad value is an error naming its line. `-` or an empty value means none. `braid check --plan <file>` checks a plan file.
+
 ## Commands
 
 - `braid check`: validates every brief and folder name under `braids/` against this page and lists every problem as `<file>: <message>` (with the line where there is one), then the error count; exit code 2 if there is any, 0 and `braids OK: <n> braids, <m> strands` if there is none. Unlike the other commands it does not stop at the first error. It also checks the [autonomy presets](autonomy.md#checks): the project's files under `autonomy/`, and that `BRAID.md` and every brief name a preset that exists, and the `docs` key of `BRAID.md`: `docs.update` is one of `strand`, `braid`, `both`, `on-demand`, and `docs.public` and `docs.internal` are lists (errors; a `BRAID.md` without `docs` is valid). A `related` id found in no source of `braid list --open` is a warning on stderr (`warning: <file>: related braid <id> is not ...`), not an error: the braid may live on a branch this checkout hasn't fetched.
+- `braid check --plan <file>`: validates one [plan file](#plan-files) instead and prints `plan OK: pm/<slug>, <state>, <n> rows`, or `<file>: line <n>: <message>` with exit code 2.
 - `braid projects add [<path>] [--name <name>] [--port <n>]`: adds the repository that holds `<path>` (default: the current folder) to [the project list](#the-project-list): its main checkout, found from a worktree too. It refuses, changing nothing, a folder outside a Git repository, a name or a main checkout already listed, a bad name or port. It prints the entry and its readiness ([Not ready](board.md#not-ready), GitHub not checked), and a warning on standard error for each listed project with the same folder name. `braid projects remove <name>` takes one off. `braid projects list` prints each project (name, path, port) with its readiness lines under it: `ready (GitHub not checked here)`, a `not ready: …` line per problem, or `problem: the folder no longer exists` for a path that is gone; the other projects still list. GitHub is not asked, so `list` runs no `gh`.
 - `braid board`: serves the local attention board: lanes To Do, Working, To Review, Needs You and Done, from the stored status (read from the item's own branch when it has one, see [Branches](#branches)), GitHub PRs and T3 threads. How lanes, icons, refresh and `--demo` work: [the attention board](board.md).
 - `braid import-backlog`: turns the Backlog.md tasks in `backlog/tasks/` and the docs in `backlog/docs/` into braids; `--dry-run` prints the files it would write and writes nothing. TASK-N becomes braid `000N-<slug>`; its subtasks become strands in subtask-number order (TASK-6.1 → `0006/A`, TASK-6.2 → `0006/B`). Status, labels, dependencies (as braid and strand ids) and ordinal (→ `order`) carry over; a task with subtasks gets `delivery: epic`, a task without `delivery: main`. The brief body is the description as it is, then `## Acceptance` and `## Definition of done` as checkbox lists with their ticks, then `## Plan`. The implementation notes become `log-<created date>-import.md`, the final summary `report.md`, and a linked doc's text is appended to that report under the doc's title (a doc linked from a braid and from one of its strands goes to the strand only). Milestones are dropped. Archived tasks, drafts and docs no task links are not imported; the output lists them. It refuses, changing nothing, when a braid number already exists in `braids/` (exit 1), when an input file doesn't parse or a dependency or doc link points nowhere (exit 2, every problem listed), and it ends with the checks of `braid check`. It never deletes or moves `backlog/`.
