@@ -43,6 +43,7 @@ Expected size: about 60 changed lines in 7 files, nearly all text (skills and do
 - Related to 0064 (The board watches provider limits, on `braid/0064-the-board-watches-provider-limits`): 0064/D already rewrote `references/limits.md` (its rewrite has no `t3_thread_wait`) and changed the same lines of SKILL.md "Run an item" step 3 and "Say waiting". Don't touch `limits.md`. Whichever of the two PRs merges into `main` second merges `main` first and keeps both: 0064's limits wording and this story's removal of the waits.
 - Related to 0060 (Workers as T3 subagents, Outline): it builds on this later; nothing of it is planned here.
 - The user merges this PR into `main` (a skill change), after the PM's go.
+- The user, for every braid of the programme: "don't overblow skills, try to see how to make easier, don't create spaghetti states and lean more to realiable calls like with requests". For 0068 that means: the skill text (`.agents/skills/braid/`) comes out shorter than it went in. Removing the waits removes words and adds no new rules around them. Prefer one CLI call to prose the coordinator must remember: the braid-branch CI read is one `braid wait <number> --timeout 0.25` call at the named points, with little around it. No new state.
 
 ## Out of scope
 
