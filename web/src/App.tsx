@@ -3,12 +3,12 @@ import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { ROLES } from "../../src/braids/roles.ts";
 import { Md } from "./Md.tsx";
 import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
-import { closeMode, hashFor, openMode, parseHash, pushedAfter, type Route } from "../../src/board/route.ts";
-import { filterSearch, parseFilter, resolveProject, toggleProject } from "../../src/board/filter.ts";
+import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
+import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
 import { pauseBox, type PauseView } from "../../src/board/pause.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
-import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard } from "./api.ts";
+import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard, type TaggedProgramme } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
 let pushedOpen = false;
@@ -580,7 +580,7 @@ function Actions({ id, lane, thread, threadRole = null, coordinator = null, merg
       <OpenThread id={id} link={thread} role={threadRole} />
       <OpenThread id={id} link={coordinator} coordinator />
       {start !== null && <StartButton id={id} start={start} {...(onLaunched === undefined ? {} : { onLaunched })} />}
-      {lane === "In Review" && <MergeButton id={id} merge={merge} />}
+      {(lane === "In Review" || (lane === "Waiting" && merge !== null)) && <MergeButton id={id} merge={merge} />}
     </span>
   );
 }
@@ -651,6 +651,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
         )}
       </div>
       <div className="my-1 font-semibold">{braid.title}</div>
+      {braid.programme !== null && <div className="mb-1"><ProgrammeTag slug={braid.programme} /></div>}
       {braid.branch !== null && <FromBranch branch={braid.branch} />}
       {braid.total > 0 && (
         <div className="flex items-center gap-1.5">
@@ -664,7 +665,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
       )}
       {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
       {details && !open && braid.pmAsk !== null && braid.need?.by !== "pm" && <NeedLine need={braid.pmAsk} />}
-      {details && !open && braid.pm !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PmLine pm={braid.pm} />}
+      {details && !open && braid.pm !== null && <PmLine pm={braid.pm} />}
       {details && !open && braid.pause !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PauseLine pause={braid.pause} />}
       {open && (
         <div className="mt-2 border-t border-dashed border-slate-200 pt-1">
@@ -955,6 +956,7 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
               <LaneDot lane="Done" />
               <span className="w-10 flex-none text-xs text-slate-500"><Id id={b.id} /></span>
               {tagged && <ProjectTag name={b.project} />}
+              {b.programme !== null && <span title={`Run by the programme ${b.programme}`} aria-label={`programme ${b.programme}`} className="flex-none text-xs">🧭</span>}
               <span className="min-w-24 flex-1">{b.title}</span>
               <span className="ml-auto flex-none text-[11px] whitespace-nowrap text-slate-500">{dayOf(b.doneAt)}</span>
             </button>
@@ -1452,23 +1454,483 @@ function ProjectsBar({ infos, selected, onSelect }: { infos: readonly ProjectInf
   );
 }
 
-/** The projects shown: the address's `?projects=` (every project without it), kept in the address when changed. */
-function useSelected(served: readonly string[]): [string[], (next: string[]) => void] {
+// ---- Programmes (docs/board.md, "Programmes"): the panel left of the lanes, its rail, the filter, the details, the phone strip.
+
+const PANEL_KEY = "braid-programmes-open";
+
+/** Whether the programmes panel is open (not the rail): open until collapsed, then remembered in this browser (local storage). */
+function usePanelOpen(): [boolean, (on: boolean) => void] {
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(PANEL_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  return [open, (on) => {
+    try {
+      localStorage.setItem(PANEL_KEY, on ? "1" : "0");
+    } catch {
+      // not remembered: still applied
+    }
+    setOpen(on);
+  }];
+}
+
+/** The programme filter of the page: the key `?programme=` narrows the lanes to, and the setter (null shows all). */
+const FilterContext = createContext<{ readonly key: string | null; readonly set: (key: string | null) => void }>({ key: null, set: () => {} });
+
+/** Opens a programme's details over the board, as `go` opens an item's. */
+function goProgramme(key: string): void {
+  const target = programmeHash(key);
+  if (openMode(location.hash) === "push") {
+    pushedOpen = true;
+    location.hash = target;
+  } else {
+    location.replace(target);
+  }
+}
+
+/** Needs you first (oldest ask first, across projects), then Working in project order, then slug. */
+function programmeOrder(list: readonly TaggedProgramme[], order: ReadonlyMap<string, number>): { needs: TaggedProgramme[]; working: TaggedProgramme[] } {
+  const live = list.filter((p) => p.section !== null);
+  const needs = live.filter((p) => p.section === "needs").sort((a, b) => (a.need?.since ?? "").localeCompare(b.need?.since ?? ""));
+  const working = live.filter((p) => p.section === "working").sort((a, b) => (order.get(a.project) ?? 0) - (order.get(b.project) ?? 0) || a.slug.localeCompare(b.slug));
+  return { needs, working };
+}
+
+/** The PM thread button: the server opens the thread (`open` with the programme's slug); on a phone or over Tailscale the app link. */
+function PmThread({ p, big = false, icon = false }: { p: TaggedProgramme; big?: boolean; icon?: boolean }) {
+  const remoteBoard = useContext(RemoteContext);
+  const [error, setError] = useState<string | null>(null);
+  if (p.link === null) {
+    return null;
+  }
+  const app = t3codeUrl(p.link);
+  const look = `inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md border bg-white px-2 py-0.5 text-[12.5px] hover:border-blue-600 ${error === null ? "border-teal-600 text-teal-800" : "border-red-600 text-red-700"} ${big ? "min-h-11 flex-1 text-[15px] font-semibold" : "max-md:min-h-11"}`;
+  const label = icon ? "" : big ? "Open PM thread" : "PM thread";
+  return (
+    <>
+      {app !== null && (
+        <a href={app} onClick={(e) => e.stopPropagation()} aria-label="Open the PM thread in the T3 app" title="Open the PM thread in the T3 app" className={`${look} no-underline ${remoteBoard ? "" : "md:hidden"}`}>
+          <span aria-hidden>🧭</span> {label}
+        </a>
+      )}
+      {!remoteBoard && (
+        <button
+          type="button"
+          aria-label="Open the PM thread in T3"
+          title={error ?? "Open the PM thread in T3"}
+          onClick={(e) => {
+            e.stopPropagation();
+            setError(null);
+            postAction("open", { project: p.project, programme: p.slug }).catch((err: unknown) => setError(err instanceof Error ? err.message : "failed"));
+          }}
+          className={`${look} cursor-pointer ${app === null ? "" : "max-md:hidden"}`}
+        >
+          <span aria-hidden>🧭</span> {label}
+        </button>
+      )}
+    </>
+  );
+}
+
+/** ◎ Only these: narrows the lanes to the programme's braids; pressed again (or Show all) it shows every braid. */
+function OnlyThese({ p, short = false, icon = false }: { p: TaggedProgramme; short?: boolean; icon?: boolean }) {
+  const filter = useContext(FilterContext);
+  const on = filter.key === p.key;
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-label={on ? "Show every braid" : `Only the braids of ${p.slug}`}
+      title={on ? "Show every braid again" : "Show only this programme's braids in the lanes"}
+      onClick={(e) => {
+        e.stopPropagation();
+        filter.set(on ? null : p.key);
+      }}
+      className={`inline-flex cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-md border px-2 py-0.5 text-[12.5px] max-md:min-h-11 max-md:min-w-11 ${on ? "border-teal-700 bg-teal-700 font-semibold text-white" : "border-slate-200 bg-white text-slate-700 hover:border-blue-600"}`}
+    >
+      <span aria-hidden>◎</span> {icon ? "" : short ? "Only" : "Only these"}
+      {on && !short && <span aria-hidden> · ✕</span>}
+    </button>
+  );
+}
+
+/** The text of a PM request as lines: `A. …`, `B. …` options become a list. */
+function optionLines(text: string): { head: string; options: string[] } {
+  const parts = text.split(/\s+(?=[A-H]\.\s)/);
+  return { head: parts[0] ?? "", options: parts.slice(1) };
+}
+
+/** A programme's need: the PM's request with its options, or the stall with what the board saw. */
+function ProgrammeNeed({ p }: { p: TaggedProgramme }) {
+  const need = p.need;
+  if (need === null) {
+    return null;
+  }
+  if (need.kind === "stalled") {
+    return (
+      <div className="mt-1.5 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-2 py-1.5 text-[13px] leading-snug text-amber-950">
+        <b>⏳ Stalled:</b> the PM stopped and none of its braids is running
+        <small className="mt-0.5 block text-[11px] text-slate-500">{p.seen ?? ""} · for {need.age ?? "?"} · wake it in the PM thread</small>
+      </div>
+    );
+  }
+  const words = /^(The PM asks you(?: to)?:)\s*(.*)$/s.exec(need.text);
+  const { head, options } = optionLines(words?.[2] ?? need.text);
+  return (
+    <div className="mt-1.5 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-2 py-1.5 text-[13px] leading-snug text-amber-950">
+      <b>{words?.[1] ?? "The PM asks you:"}</b> {head}
+      {options.length > 0 && (
+        <ul className="mt-0.5 list-none pl-1">
+          {options.map((o) => (
+            <li key={o} className="pl-4 -indent-4">{o}</li>
+          ))}
+        </ul>
+      )}
+      <small className="mt-0.5 block text-[11px] text-slate-500">programme · {ageText(need)} · answer in the PM thread</small>
+    </div>
+  );
+}
+
+/** The mark at the top right of a programme card: ? asks, ⏳ stalled, ⏸ held. */
+function ProgrammeMark({ p }: { p: TaggedProgramme }) {
+  if (p.need !== null) {
+    return (
+      <span title={p.need.kind === "stalled" ? "Stalled" : "The PM asks you"} className="flex size-5 flex-none items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
+        {p.need.kind === "stalled" ? "⏳" : "?"}
+      </span>
+    );
+  }
+  return p.hold !== null ? <span title="Held" className="flex size-5 flex-none items-center justify-center rounded-full bg-sky-600 text-[10px] font-bold text-white">⏸</span> : null;
+}
+
+/** One programme in the panel. */
+function ProgrammeCard({ p }: { p: TaggedProgramme }) {
+  const scope = useContext(ScopeContext);
+  const filter = useContext(FilterContext);
+  const dim = filter.key !== null && filter.key !== p.key;
+  const on = filter.key === p.key;
+  const tone = p.section === "needs" ? "border-amber-400 bg-amber-50/40" : "border-slate-200 bg-white";
+  return (
+    <div data-programme={p.key} className={`mb-2 rounded-lg border p-2.5 shadow-sm ${tone} ${on ? "ring-2 ring-teal-600" : ""} ${dim ? "opacity-50" : ""}`}>
+      <div className="flex items-center gap-1.5">
+        {scope.tagged && <ProjectTag name={p.project} />}
+        <button type="button" data-opens-details onClick={() => goProgramme(p.key)} className="flex min-w-0 cursor-pointer items-center gap-1 font-semibold hover:underline">
+          <span aria-hidden>🧭</span>
+          <span className="truncate">{p.slug}</span>
+        </button>
+        <span className="flex-1" />
+        <ProgrammeMark p={p} />
+      </div>
+      {p.goal !== null && <div className="mt-0.5 text-xs leading-snug text-slate-500">{p.goal}</div>}
+      {p.error !== null && <div className="mt-1.5 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2 py-1 text-xs text-red-900">{p.error}</div>}
+      <ProgrammeNeed p={p} />
+      {p.error === null && (
+        <div className="mt-2 flex items-center gap-1.5">
+          <div className="h-1.5 flex-1 overflow-hidden rounded bg-slate-200">
+            <div className="h-full bg-green-600" style={{ width: `${p.total === 0 ? 0 : (p.done / p.total) * 100}%` }} />
+          </div>
+          <span className="text-xs whitespace-nowrap text-slate-500">
+            {p.done}/{p.total} done · {p.running} running
+          </span>
+        </div>
+      )}
+      {p.error === null && p.hold !== null && <div className="mt-1.5 rounded-md border-l-[3px] border-sky-600 bg-sky-50 px-2 py-1 text-[12.5px] leading-snug text-sky-900">⏸ {p.status}</div>}
+      {p.error === null && p.hold === null && <div className="mt-1 text-[13px] leading-snug text-slate-700">{p.need?.kind === "stalled" ? "No braid running" : p.status}</div>}
+      <div className="mt-2 flex flex-wrap gap-1">
+        <PmThread p={p} />
+        <OnlyThese p={p} />
+        <button type="button" data-opens-details onClick={() => goProgramme(p.key)} className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[12.5px] text-slate-700 hover:border-blue-600 max-md:min-h-11">
+          <span aria-hidden>≡</span> Plan
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SectionHead({ label, count, tone }: { label: string; count: number; tone: string }) {
+  return (
+    <h3 className="mx-1 mb-1.5 mt-3 flex items-center justify-between text-xs font-semibold tracking-wide text-slate-500 uppercase">
+      <span className="flex items-center gap-1.5"><span className={`size-2 rounded-full ${tone}`} />{label}</span>
+      <span>{count}</span>
+    </h3>
+  );
+}
+
+/** The desktop panel left of the lanes: Needs you and Working, or (collapsed) the rail of icons. */
+function ProgrammesPanel({ list }: { list: readonly TaggedProgramme[] }) {
+  const scope = useContext(ScopeContext);
+  const [open, setOpen] = usePanelOpen();
+  const order = new Map([...scope.projects].map(([name, { index }]) => [name, index]));
+  const { needs, working } = programmeOrder(list, order);
+  if (!open) {
+    return (
+      <aside aria-label="Programmes" className="flex w-14 flex-none flex-col items-center gap-1.5 self-stretch border-r border-slate-200 bg-white py-3 max-md:hidden">
+        <button type="button" aria-label="Open the programmes panel" title="Open the programmes panel" onClick={() => setOpen(true)} className="mb-1 flex size-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-xs hover:border-blue-600">»</button>
+        {needs.length > 0 && <span className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">Needs</span>}
+        {needs.map((p) => <RailIcon key={p.key} p={p} />)}
+        {working.length > 0 && <span className="mt-2 text-[10px] font-semibold tracking-wide text-slate-500 uppercase">Work</span>}
+        {working.map((p) => <RailIcon key={p.key} p={p} />)}
+      </aside>
+    );
+  }
+  return (
+    <aside aria-label="Programmes" className="w-80 flex-none self-stretch border-r border-slate-200 bg-white px-3 py-3 max-md:hidden">
+      <div className="mb-1 flex items-center gap-2">
+        <span aria-hidden>🧭</span>
+        <b className="text-[15px]">Programmes</b>
+        <span className="text-xs text-slate-500">{needs.length + working.length}</span>
+        <span className="flex-1" />
+        <button type="button" aria-label="Collapse the programmes panel" title="Collapse to icons" onClick={() => setOpen(false)} className="flex size-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-xs hover:border-blue-600">«</button>
+      </div>
+      <SectionHead label="Needs you" count={needs.length} tone="bg-amber-500" />
+      {needs.length === 0 ? <p className="mx-1 text-xs text-slate-500">No programme needs you.</p> : needs.map((p) => <ProgrammeCard key={p.key} p={p} />)}
+      <SectionHead label="Working" count={working.length} tone="bg-teal-700" />
+      {working.length === 0 ? <p className="mx-1 text-xs text-slate-500">No other programme.</p> : working.map((p) => <ProgrammeCard key={p.key} p={p} />)}
+    </aside>
+  );
+}
+
+/** One programme on the rail: amber with ? or ⏳ when it needs you, else 🧭 (⏸ held); its project's colour dot; the name in the tooltip. */
+function RailIcon({ p }: { p: TaggedProgramme }) {
+  const scope = useContext(ScopeContext);
+  const c = colourOf(scope.projects.get(p.project)?.index ?? 0);
+  const needs = p.section === "needs";
+  const tip = `${scope.several ? `${p.project}/` : ""}${p.slug}${needs ? (p.need?.kind === "stalled" ? ": stalled" : ": the PM asks you") : p.hold !== null ? ": on hold" : ""}`;
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <button type="button" data-opens-details aria-label={tip} onClick={() => goProgramme(p.key)} className={`relative flex size-9 cursor-pointer items-center justify-center rounded-lg border text-base ${needs ? "border-amber-400 bg-amber-100 text-amber-900" : "border-slate-200 bg-white"} hover:border-blue-600`}>
+          <span aria-hidden>{needs ? (p.need?.kind === "stalled" ? "⏳" : "?") : p.hold !== null ? "⏸" : "🧭"}</span>
+          {scope.several && <span className={`absolute bottom-0.5 left-0.5 size-2 rounded-full ${c.dot}`} />}
+          {needs && <span className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">1</span>}
+        </button>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content side="right" sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">{tip}</Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
+
+/** The teal bar above the lanes while a programme filter is on. */
+function FilterBar({ p, count }: { p: TaggedProgramme; count: number }) {
+  const filter = useContext(FilterContext);
+  return (
+    <div role="status" className="mx-4 mt-3 flex items-center gap-2 rounded-lg border border-teal-600 bg-teal-50 px-3 py-2 text-[13px] text-teal-950 max-md:hidden">
+      <span aria-hidden>🧭</span>
+      <span>
+        Showing only the braids of <b className="mx-1">{p.key}</b> ({count}). Your other braids are hidden, and lane counts follow.
+      </span>
+      <span className="flex-1" />
+      <button type="button" onClick={() => filter.set(null)} className="cursor-pointer rounded-md border border-slate-300 bg-white px-2.5 py-0.5 text-xs hover:border-blue-600">Show all</button>
+    </div>
+  );
+}
+
+/** The phone: a strip above the lane tabs that opens like a drawer, then the filter chip. */
+function PhoneProgrammes({ list }: { list: readonly TaggedProgramme[] }) {
+  const scope = useContext(ScopeContext);
+  const filter = useContext(FilterContext);
+  const [open, setOpen] = useState(false);
+  const order = new Map([...scope.projects].map(([name, { index }]) => [name, index]));
+  const { needs, working } = programmeOrder(list, order);
+  const filtered = list.find((p) => p.key === filter.key);
+  if (needs.length + working.length === 0 && filtered === undefined) {
+    return null;
+  }
+  return (
+    <div className="px-3.5 pt-3 md:hidden">
+      <div className={`rounded-xl border ${needs.length > 0 && !open ? "border-amber-400 bg-amber-50" : "border-teal-600 bg-teal-50"}`}>
+        <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-12 w-full cursor-pointer items-center gap-2 px-3.5 text-left">
+          <span aria-hidden className="text-lg">🧭</span>
+          {open && <b className="text-[15px] text-teal-900">Programmes</b>}
+          <span className={open ? "text-xs text-slate-500" : "text-[15px]"}>
+            {needs.length > 0 ? <b className={open ? "font-normal" : "text-amber-950"}>{needs.length} needs you</b> : <b>none needs you</b>}
+            <span className="text-slate-500"> · {working.length} working</span>
+          </span>
+          <span className="flex-1" />
+          <span aria-hidden className="text-xs text-slate-500">{open ? "▴" : "▾"}</span>
+        </button>
+        {open && (
+          <div className="px-2.5 pb-2.5">
+            {needs.map((p) => (
+              <div key={p.key} className="mb-2 rounded-lg border border-amber-400 bg-white p-2.5">
+                <div className="flex items-center gap-1.5">
+                  {scope.tagged && <ProjectTag name={p.project} />}
+                  <button type="button" data-opens-details onClick={() => goProgramme(p.key)} className="cursor-pointer font-semibold">🧭 {p.slug}</button>
+                  <span className="flex-1" />
+                  <ProgrammeMark p={p} />
+                </div>
+                <ProgrammeNeed p={p} />
+                <div className="mt-2 flex gap-2">
+                  <PmThread p={p} big />
+                  <OnlyThese p={p} short />
+                </div>
+              </div>
+            ))}
+            {working.map((p) => {
+              const c = colourOf(scope.projects.get(p.project)?.index ?? 0);
+              return (
+                <div key={p.key} className="mb-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
+                  {scope.several && <span className={`size-2 flex-none rounded-full ${c.dot}`} />}
+                  <button type="button" data-opens-details onClick={() => goProgramme(p.key)} className="min-w-0 flex-1 cursor-pointer text-left">
+                    <b className="block truncate">{p.hold !== null ? "⏸ " : "🧭 "}{p.slug}</b>
+                    <span className="block truncate text-xs text-slate-500">{scope.several ? `${p.project} · ` : ""}{p.hold !== null ? "on hold" : `${p.running} running · ${p.done}/${p.total} done`}</span>
+                  </button>
+                  <PmThread p={p} icon />
+                  <OnlyThese p={p} icon />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {filtered !== undefined && (
+        <div className="mt-2 flex min-h-12 items-center gap-2 rounded-xl border border-teal-700 bg-white px-3.5">
+          <span className={`size-2 rounded-full ${colourOf(scope.projects.get(filtered.project)?.index ?? 0).dot}`} />
+          <span className="text-slate-500">Only:</span>
+          <b>🧭 {filtered.slug}</b>
+          <span className="flex-1" />
+          <button type="button" aria-label="Show every braid" onClick={() => filter.set(null)} className="flex size-11 cursor-pointer items-center justify-center text-lg text-slate-600">✕</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ROW_TONE: Readonly<Record<string, string>> = { done: "text-slate-500", running: "text-slate-700", "waiting on user": "font-semibold text-amber-800", "ready to merge": "text-violet-800", planned: "text-slate-500", stopped: "text-slate-500", dropped: "text-slate-400 line-through" };
+
+const DetailHead = ({ children }: { children: ReactNode }) => <h4 className="mb-1 mt-4 text-xs font-semibold tracking-wide text-slate-500 uppercase">{children}</h4>;
+
+const clock = (iso: string): string => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+/** A programme's details over the right of the board (`#/programme/<project>/<slug>`): what the plan's front matter holds. */
+function ProgrammeDetails({ name, list }: { name: string; list: readonly TaggedProgramme[] }) {
+  const scope = useContext(ScopeContext);
+  const p = list.find((x) => x.key === name);
+  return (
+    <Dialog.Root open modal={false} onOpenChange={(open) => { if (!open) closeDetails(); }}>
+      <Dialog.Portal>
+        <Dialog.Content
+          aria-describedby={undefined}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          onInteractOutside={(e) => {
+            if (e.target instanceof Element && e.target.closest("[data-opens-details], [role=dialog], [role=tooltip]") !== null) {
+              e.preventDefault();
+            }
+          }}
+          className="fixed bottom-0 right-0 top-[45px] z-40 flex w-[min(100vw,max(640px,min(48vw,900px)))] flex-col border-l border-slate-200 bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.12)] max-md:inset-0 max-md:w-auto max-md:border-0"
+        >
+          <div className="flex flex-none flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-2 max-md:px-4">
+            <button type="button" onClick={closeDetails} className="cursor-pointer text-[13px] text-blue-700 md:hidden">← Board</button>
+            <Dialog.Title className="flex items-center gap-1.5 text-[17px] font-bold"><span aria-hidden>🧭</span>{p?.slug ?? name}</Dialog.Title>
+            {p !== undefined && scope.several && <ProjectTag name={p.project} />}
+            <span className="flex-1" />
+            {p !== undefined && <PmThread p={p} />}
+            {p !== undefined && <OnlyThese p={p} />}
+            <Dialog.Close aria-label="Close details" title="Close (Esc)" className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-base hover:border-blue-600 max-md:size-11">✕</Dialog.Close>
+          </div>
+          {p === undefined ? (
+            <p className="m-6 rounded-lg bg-red-50 p-4 text-red-800">No programme {name} on this board.</p>
+          ) : (
+            <div className="min-h-0 flex-1 overflow-auto px-5 py-3 max-md:px-4">
+              <ProgrammeNeed p={p} />
+              {p.error !== null && (
+                <div className="my-2 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2 py-1.5 text-[13px] text-red-900">
+                  {p.error}. Fix it with <code>braid check --plan pm/{p.slug}.md</code> on {p.branch}.
+                </div>
+              )}
+              {p.goal !== null && <DetailHead>Goal, in your words</DetailHead>}
+              {p.goal !== null && <p>“{p.goal}”</p>}
+              {p.rows.length > 0 && <DetailHead>Plan</DetailHead>}
+              {p.rows.map((r) => (
+                <button
+                  key={r.row}
+                  type="button"
+                  data-opens-details
+                  disabled={r.braid === null}
+                  onClick={() => {
+                    if (r.braid !== null) {
+                      go(r.braid, "brief", p.project);
+                    }
+                  }}
+                  className="flex w-full items-center gap-2 border-b border-slate-200 py-1.5 text-left text-[13.5px] enabled:cursor-pointer enabled:hover:underline max-md:min-h-11"
+                >
+                  <span className="w-8 flex-none text-xs text-slate-500">{r.row}</span>
+                  {r.lane !== null ? <LaneDot lane={r.lane} /> : <span aria-hidden className="size-2 flex-none rounded-full border border-dashed border-slate-400" />}
+                  {r.braid !== null && <b className="flex-none">{r.braid}</b>}
+                  <span className="min-w-0 flex-1">{r.title}</span>
+                  <span className={`flex-none text-xs ${ROW_TONE[r.state] ?? "text-slate-500"}`}>{r.state}</span>
+                </button>
+              ))}
+              {p.next !== null && <DetailHead>Next</DetailHead>}
+              {p.next !== null && <p>{p.next}</p>}
+              {p.handling.length > 0 && <DetailHead>The PM is handling</DetailHead>}
+              {p.handling.length > 0 && <p>{p.handling.join(" · ")}</p>}
+              {p.error === null && <DetailHead>Last digest · parallel limit · hold</DetailHead>}
+              {p.error === null && (
+                <p>
+                  {p.digest ?? "no digest yet"} · {p.limit === null ? "no limit recorded" : `limit ${p.limit}`}, {p.running} running · {p.hold === null ? "no hold" : `held since ${clock(p.hold.since)}${p.hold.words === "" ? "" : `: “${p.hold.words}”`}`}
+                </p>
+              )}
+              <p className="mt-3 inline-block rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-600">Plan file pm/{p.slug}.md on {p.branch}</p>
+            </div>
+          )}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+/** The 🧭 tag on a card of a braid a programme runs. */
+function ProgrammeTag({ slug }: { slug: string }) {
+  return (
+    <span title={`Run by the programme ${slug}`} className="inline-flex items-center gap-1 rounded-full border border-teal-600 bg-white px-1.5 text-[11px] text-teal-800">
+      <span aria-hidden>🧭</span>
+      {slug}
+    </span>
+  );
+}
+
+/**
+ * The address's filters: the projects shown (`?projects=`, every project without it) and the programme the lanes are
+ * narrowed to (`?programme=<project>/<slug>`), each rewritten in the address without a history entry when changed. A
+ * programme whose project isn't shown, or that the board doesn't know, is dropped from the address once the board is read.
+ */
+function useFilters(served: readonly string[], keys: readonly string[] | null): { selected: string[]; setSelected: (next: string[]) => void; programme: string | null; setProgramme: (key: string | null) => void } {
   const [search, setSearch] = useState(location.search);
   useEffect(() => {
     const onChange = () => setSearch(location.search);
     addEventListener("popstate", onChange);
     return () => removeEventListener("popstate", onChange);
   }, []);
+  const write = (query: string) => {
+    history.replaceState(null, "", `${location.pathname}${query}${location.hash}`);
+    setSearch(query);
+  };
   const selected = parseFilter(search, served);
-  return [
+  const programme = keys === null ? null : parseProgramme(search, keys, selected);
+  const asked = new URLSearchParams(search).get("programme");
+  useEffect(() => {
+    if (keys !== null && asked !== null && programme === null) {
+      write(programmeSearch(search, null));
+    } else if (programme !== null && asked !== programme) {
+      write(programmeSearch(search, programme)); // `?programme=<slug>` on a one-project board, written in full
+    }
+  });
+  return {
     selected,
-    (next) => {
-      const query = filterSearch(next, served);
-      history.replaceState(null, "", `${location.pathname}${query}${location.hash}`);
-      setSearch(query);
+    setSelected: (next) => {
+      const keep = programme !== null && next.includes(programme.slice(0, programme.indexOf("/"))) ? programme : null;
+      write(programmeSearch(filterSearch(next, served), keep));
     },
-  ];
+    programme,
+    setProgramme: (key) => write(programmeSearch(search, key)),
+  };
 }
 
 export function App() {
@@ -1478,7 +1940,8 @@ export function App() {
   const all = useAll(tick);
   const infos = all.state === "ready" ? all.data.projects : [];
   const served = infos.map((i) => i.name);
-  const [selected, setSelected] = useSelected(served);
+  const keys = all.state === "ready" ? all.data.programmes.map((p) => p.key) : null;
+  const { selected, setSelected, programme, setProgramme } = useFilters(served, keys);
   const several = infos.length > 1;
   severalProjects = several;
   const scope: Scope = {
@@ -1487,7 +1950,10 @@ export function App() {
     tagged: several && selected.length > 1,
   };
   const shown = infos.filter((i) => selected.includes(i.name));
-  const board = all.state === "ready" ? { lanes: all.data.lanes, braids: all.data.braids.filter((b) => selected.includes(b.project)) } : null;
+  const programmes = all.state === "ready" ? all.data.programmes.filter((p) => selected.includes(p.project)) : [];
+  const only = programmes.find((p) => p.key === programme) ?? null;
+  const board = all.state === "ready" ? { lanes: all.data.lanes, braids: all.data.braids.filter((b) => selected.includes(b.project) && (only === null || (b.project === only.project && only.braids.includes(b.id)))) } : null;
+  const panel = programmes.some((p) => p.section !== null) || only !== null;
   const inbox = mergeInbox(shown);
   // One project served keeps the page as it was: its notes in the header, its problems in a banner.
   const single = infos.length === 1 ? infos[0] : undefined;
@@ -1497,6 +1963,7 @@ export function App() {
   return (
     <RemoteContext value={all.state !== "ready" || all.data.remote}>
     <ScopeContext value={scope}>
+    <FilterContext value={{ key: programme, set: setProgramme }}>
     <Tooltip.Provider>
       <div className="min-h-screen bg-slate-100 text-sm text-slate-900">
         <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-white px-5 py-2.5">
@@ -1543,11 +2010,26 @@ export function App() {
         {route.inbox ? (
           <Status loaded={all}>{() => <InboxPage inbox={inbox} />}</Status>
         ) : (
-          <Status loaded={all}>{() => (board === null ? null : <Board data={board} details={details} />)}</Status>
+          <Status loaded={all}>
+            {() =>
+              board === null ? null : (
+                <div className="flex items-stretch">
+                  {panel && <ProgrammesPanel list={programmes} />}
+                  <div className="min-w-0 flex-1">
+                    {panel && <PhoneProgrammes list={programmes} />}
+                    {only !== null && <FilterBar p={only} count={board.braids.length} />}
+                    <Board data={board} details={details} />
+                  </div>
+                </div>
+              )
+            }
+          </Status>
         )}
+        {route.programme !== null && all.state === "ready" && <ProgrammeDetails name={route.programme} list={all.data.programmes} />}
         {route.id !== null && resolved !== null && all.state === "ready" && <DetailsPanel id={route.id} tab={route.tab} project={"name" in resolved ? resolved.name : ""} unknown={"unknown" in resolved ? resolved.unknown : null} tick={tick} />}
       </div>
     </Tooltip.Provider>
+    </FilterContext>
     </ScopeContext>
     </RemoteContext>
   );

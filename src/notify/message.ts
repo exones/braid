@@ -60,6 +60,21 @@ ${need.text}` : need.text,
   };
 }
 
+/** A programme's stall: `<repo> <slug>: Needs You`, high, ⏳, opening the PM thread. */
+function stallPush(repo: string, id: string, slug: string, need: Need): Push {
+  return {
+    key: needKey(id, "Waiting", need),
+    item: id,
+    kind: "need",
+    title: `${repo} ${slug}: ${LANE_LABEL.Waiting}`,
+    body: need.text,
+    tags: [TAGS.stalled],
+    priority: "high",
+    click: need.link == null ? null : t3codeUrl(need.link),
+    sequence: sequenceOf(repo, id),
+  };
+}
+
 export const doneKey = (id: string): string => `${id}|done`;
 
 function needPush(repo: string, id: string, title: string, lane: Lane, need: Need, thread: string | null): Push {
@@ -84,6 +99,14 @@ function needPush(repo: string, id: string, title: string, lane: Lane, need: Nee
  */
 export function pushesOf(board: BoardData): Push[] {
   const out: Push[] = [];
+  // A programme's own pushes: the PM's request on it, else its stall (high, ⏳, the PM thread). Done and stopped ones push nothing.
+  for (const p of board.programmes ?? []) {
+    if (p.section === null || p.need === null) {
+      continue;
+    }
+    const id = `pm/${p.slug}`;
+    out.push(p.need.kind === "stalled" ? stallPush(board.repo, id, p.slug, p.need) : pmAskPush(board.repo, id, p.title, p.need));
+  }
   for (const card of board.braids) {
     if (card.lane === "Done") {
       out.push({
@@ -93,7 +116,8 @@ export function pushesOf(board: BoardData): Push[] {
         title: `${board.repo} ${card.id}: ${LANE_LABEL.Done}`,
         body: card.pr === null ? card.title : `${card.title}\nPR #${card.pr.number} merged`,
         tags: [TAGS.done],
-        priority: "default",
+        // A braid a programme runs: the PM handles what follows, so its Done is news without a sound.
+        priority: card.programme == null ? "default" : "low",
         click: null,
         sequence: null,
       });

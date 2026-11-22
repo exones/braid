@@ -13,6 +13,8 @@ export interface Route {
   readonly tab: string;
   /** The project named in `#/p/<project>/...`, or null (the first one shown). */
   readonly project: string | null;
+  /** The programme whose details are open (`#/programme/<project>/<slug>`): its key `<project>/<slug>`, or null. */
+  readonly programme: string | null;
 }
 
 function decodeProject(name: string): string {
@@ -25,6 +27,10 @@ function decodeProject(name: string): string {
 
 export function parseHash(hash: string): Route {
   const [full = "", query = ""] = hash.replace(/^#\/?/, "").split("?");
+  const programme = /^programme\/([^/]+)\/([^/]+)$/.exec(full);
+  if (programme !== null) {
+    return { id: null, inbox: false, tab: "brief", project: null, programme: `${decodeProject(programme[1] ?? "")}/${decodeProject(programme[2] ?? "")}` };
+  }
   const scoped = /^p\/([^/]+)\/(.*)$/.exec(full);
   const path = scoped === null ? full : (scoped[2] ?? "");
   return {
@@ -32,7 +38,14 @@ export function parseHash(hash: string): Route {
     inbox: path === "inbox",
     tab: new URLSearchParams(query).get("tab") ?? "brief",
     project: scoped === null ? null : decodeProject(scoped[1] ?? ""),
+    programme: null,
   };
+}
+
+/** The hash that opens a programme's details: `#/programme/<project>/<slug>`. */
+export function programmeHash(key: string): string {
+  const at = key.indexOf("/");
+  return `#/programme/${encodeURIComponent(key.slice(0, at))}/${encodeURIComponent(key.slice(at + 1))}`;
 }
 
 /** The hash that opens an item's details (or the bare board for null); `project` puts the item's project in the path. */
@@ -46,7 +59,8 @@ export function hashFor(id: string | null, tab = "brief", project: string | null
 
 /** Opening details from the bare board adds a history entry (one Back closes them); inside open details it replaces, so moving between items and tabs adds none. */
 export function openMode(currentHash: string): "push" | "replace" {
-  return parseHash(currentHash).id === null ? "push" : "replace";
+  const now = parseHash(currentHash);
+  return now.id === null && now.programme === null ? "push" : "replace";
 }
 
 /** Closing goes Back when this page pushed the entry; for details that arrived with the page (a shared link) Back would leave the site, so it replaces with the board. */
@@ -56,5 +70,5 @@ export function closeMode(pushedOpen: boolean): "back" | "replace" {
 
 /** Whether the open details count as pushed after the route changed: reaching the bare board forgets it, so a later link opened on the board starts fresh. */
 export function pushedAfter(pushedOpen: boolean, next: Route): boolean {
-  return next.id === null ? false : pushedOpen;
+  return next.id === null && next.programme === null ? false : pushedOpen;
 }

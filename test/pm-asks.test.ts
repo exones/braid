@@ -14,6 +14,7 @@ const model: any = await load("../dist/board/model.js");
 const signals: any = await load("../dist/board/signals.js");
 const marks: any = await load("../dist/board/marks.js");
 const message: any = await load("../dist/notify/message.js");
+const plans: any = await load("../dist/board/plans.js");
 const { askCommand, answerCommand, forwardCommand, requestsCommand }: any = await load("../dist/commands/requests.js");
 const { loadRequests, openRequest, closeRequest }: any = await load("../dist/braids/requests.js");
 const { statusCommand }: any = await load("../dist/commands/coordinate.js");
@@ -157,12 +158,21 @@ test("braid ask pm/<slug> opens a programme request; an unknown slug is refused;
   assert.equal(read.requests.size, 0);
   assert.equal(read.asks.size, 0);
   assert.equal(read.programmes.length, 1);
-  const shown = model.toBoard("agento", [], gh(), t3(), { ...read, now: NOW });
-  const card = shown.braids.find((c: any) => c.id === "pm/working-product");
-  assert.equal(card.lane, "Waiting");
-  assert.equal(card.title, "Programme working-product");
-  assert.equal(card.need.text, "The PM asks you: A. keep the plan B. cut a strand");
-  assert.equal(card.thread, LINK);
+  // 0062/D: the programme request puts its programme in the panel's Needs you; no card in the lanes.
+  const planned = [plans.planOf("working-product", "pm/working-product", `---
+programme: working-product
+title: Working product
+goal: A working product
+thread: ${PM}
+state: running
+---
+`)];
+  const shown = model.toBoard("agento", [], gh(), t3(), { ...read, now: NOW, plans: planned });
+  assert.equal(shown.braids.length, 0, "no programme card in the lanes");
+  const [programme] = shown.programmes;
+  assert.equal(programme.section, "needs");
+  assert.equal(programme.need.text, "The PM asks you: A. keep the plan B. cut a strand");
+  assert.equal(programme.link, LINK);
   const pushes = message.pushesOf(shown);
   assert.equal(pushes.length, 1);
   assert.equal(pushes[0].title, "agento working-product: the PM asks");
@@ -172,7 +182,8 @@ test("braid ask pm/<slug> opens a programme request; an unknown slug is refused;
   // A programme action reads "to:"; one request per programme: the new one replaces the old.
   askCommand(root, ["pm/working-product", "protect main", "--kind", "action", "--thread", PM], opts);
   assert.equal(loadRequests(root).length, 1);
-  assert.equal(model.programmeCard(loadRequests(root)[0], NOW, t3(), { main: "main", expected: null }).need.text, "The PM asks you to: protect main");
+  const again = model.toBoard("agento", [], gh(), t3(), { ...signals.readSignals(root, gh(), NOW), now: NOW, plans: planned });
+  assert.equal(again.programmes[0].need.text, "The PM asks you to: protect main");
 });
 
 test("--by pm: the thread falls back to the brief's PM-run line; --kind action and --to need the right asker", () => {
