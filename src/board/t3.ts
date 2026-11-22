@@ -52,7 +52,7 @@ export interface T3 {
   readonly idleCoordinators?: ReadonlyMap<string, T3Coordinator>;
   /** Running threads on a branch `coordinator/idea-<idea id>` (or its `-2`, `-3`), by branch: coordinators planning an idea. */
   readonly ideaThreads?: ReadonlyMap<string, T3Coordinator>;
-  /** The status of every thread `thread list` named, by id (lower case; `archived` for an archived one). A thread absent from it is unknown to T3. */
+  /** The status of every thread `thread list` named, by id exactly as T3 gives it (ids are case-sensitive; `archived` for an archived one). A thread absent from it is unknown to T3. */
   readonly states?: ReadonlyMap<string, string>;
   /** The T3 link of every thread `thread list` named, by id: where a request addressed by a thread id (the PM's) opens. */
   readonly links?: ReadonlyMap<string, string>;

@@ -1,7 +1,7 @@
 ---
 id: '0062/G'
 title: "Sweep: 0062 review leftovers"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S", "sweep"]
 dependencies: []
 order: 55
@@ -31,11 +31,11 @@ Each leftover's text, source and link, as captured:
 
 ## Completion
 
-- [ ] `T3.states` keys and their documentation agree, and a PM-run line whose thread id matches T3's reads the PM thread as running; a test covers it
-- [ ] A need that has gone is cleared on the phone even when its item has another push in the same snapshot; a test covers it
-- [ ] A braid held by a plan with no hold words shows no empty quotes
-- [ ] `braid notify test` also sends and clears a push with a sequence ID; report.md says whether it was run live and what was seen
-- [ ] A screenshot of the PM lines on the demo board is in the item folder
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `T3.states` keys and their documentation agree, and a PM-run line whose thread id matches T3's reads the PM thread as running; a test covers it
+- [x] A need that has gone is cleared on the phone even when its item has another push in the same snapshot; a test covers it
+- [x] A braid held by a plan with no hold words shows no empty quotes
+- [x] `braid notify test` also sends and clears a push with a sequence ID; report.md says whether it was run live and what was seen
+- [x] A screenshot of the PM lines on the demo board is in the item folder
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

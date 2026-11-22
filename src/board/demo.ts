@@ -207,6 +207,8 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     request("0004/B", "question", "Which rounding rule should refunds use, half-up or banker's?", 35),
     request("0006", "decision", "Decide: which spike option to build (spike-direction)", 120, { key: "spike-direction" }),
     request("0007", "plan", "Approve the plan: 3 strands, A to C", 20),
+    // A question the PM answers first: the card keeps its lane and shows the teal "The PM is handling" line, with 🧭.
+    request("0009/A", "question", "Should the report totals include refunds?", 3, { to: "pm", pm: "demo-pm-1" }),
   ];
   const asks: Request[] = [request("0004/B", "action", "install the runner on the build machine", 8, { by: "pm" })];
   const programmes: Request[] = [request("pm/working-product", "decision", "Should the export ship before billing? A. Yes: export first, billing after B. No: billing first C. Both at once, with the limit raised to 3", 12, { by: "pm", thread: "demo-pm-1" })];
