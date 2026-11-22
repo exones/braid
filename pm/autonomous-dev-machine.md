@@ -89,7 +89,7 @@ Order: the user's priorities, then dependencies and overlap. A row starts when i
 | P12 | **Evidence before the work.** On big projects, an evidence stage before a worker starts: a stronger model collects what exists, where to look and what not to do, so the worker starts with context; evidence kept per item. Inbox: 2026-11-19-q6jw, 2026-11-19-ha6j, 2026-11-18-bvcs. | - | - | - | planned |
 | P13 | **Learnings and a review that learns.** Per-project learnings left by workers for future workers, one clear place for BRAID.md, AGENTS.md and learnings, and a review checklist that grows from past mistakes. Inbox: 2026-11-19-by68, 2026-11-19-co8u, 2026-11-20-gb5r, 2026-11-18-ndmt, 2026-11-18-pwb6, 2026-11-18-aske. The user: "we can define it better when we get to it". | - | - | P12 | planned |
 | P14 | **Board and CLI polish.** `braid list` and `view` show what the board shows; board dark theme; ideas drafted first and editable later. Inbox: 2026-11-18-1nfi, 2026-11-19-35gp, 2026-11-18-vumx. | - | - | P5 | planned |
-| P15 | **Sweep: 0040 leftovers and a flaky test.** Inbox: 2026-11-19-diq9, 2026-11-20-w5cd, 2026-11-20-gj9u, 2026-11-20-6ce8 (fails at midnight UTC). Its increment is for the team. | - | - | - | planned |
+| P15 | **Sweep: 0040 leftovers and a flaky test.** Inbox: 2026-11-19-diq9, 2026-11-20-w5cd, 2026-11-20-gj9u, 2026-11-20-6ce8 (fails at midnight UTC); leftover 2026-11-22-t7ap (`braid wait --once`, exit 1 when a short read already sees a failure). Its increment is for the team. | - | - | - | planned |
 | P16 | **Runs, checkpoints, resuming.** As 0010's outline, with inbox 2026-11-19-buqn (a RESUME HERE progress file). At the very end for now (the user). | 0010 | - | - | planned |
 
 Not in the programme: 0011 Reports and several agents (the user: "11 is aleady the case with PM, so I'm not sure we need it"); 0035 Delivery into main; T3 Issues (idea 2026-11-22-7zbv). Open with the user: inbox 2026-11-18-lpz8 (the whole ledger on its own branch).
@@ -115,6 +115,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P0 · 0068 handed over: PR #250 at 9c31f67, reviewed and green; PM live check launched (thread:delegated-task:command%3Amcp%3A18e3807a-f7a3-4cdf-a5d8-b3c099c402e3%3Adelegate-task%3Acc9840ae-9ace-4515-a67d-20d46eed85a8). Leftover 2026-11-22-t7ap (`braid wait --once`) to P15.
 - 2026-11-23 00:40Z: programme started by the user; P6 moved after P3 (depends on P1, P3; no longer on P5).
 - 2026-11-23 00:15Z: P7 · 0067 becomes the board as a Windows service and moves up after P2; s12b and cbe0 out of P5 and P12; "After each merge" added.
 - 2026-11-23 00:00Z: Q1 to Q3 answered; P16 · 0010 added at the end; routed inbox ideas dropped into their rows; lpz8 kept open for the user.
