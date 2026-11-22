@@ -1,7 +1,7 @@
 ---
 id: '0061/E'
 title: "Docs: Pause and resume braids on provider rate limits"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: ['0061/A', '0061/B', '0061/C', '0061/D']
 order: 50
