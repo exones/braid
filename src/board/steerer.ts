@@ -40,6 +40,8 @@ export interface SteererOptions {
   readonly caches?: string;
   /** Sends a limit push once per key, through a project's `notified.json`; absent: none. */
   readonly push?: (root: string, push: LimitPush) => void;
+  /** Sends again the limit pushes whose send failed; called at the start of each tick (each refresh). */
+  readonly retry?: () => void;
   /** Where the steerer reports what it couldn't do: the board's standard error. */
   readonly warn?: (line: string) => void;
 }
@@ -128,11 +130,18 @@ export function steerer(opts: SteererOptions): Steerer {
   /** 1. A steering thread that is still pausing: its line, a failed run, or the time limit. */
   const follow = async (seen: readonly Seen[], at: Date): Promise<void> => {
     const groups = new Map<string, Held[]>();
+    const orphans: Held[] = [];
     for (const h of boardRecords(seen)) {
       const s = h.pause.steering;
       if (s?.outcome === "pausing" && s.thread !== null) {
         groups.set(s.thread, [...(groups.get(s.thread) ?? []), h]);
+      } else if (s?.outcome === "pausing" && at.getTime() - Date.parse(s.started) >= STEER_LIMIT_MS) {
+        orphans.push(h); // claimed, but no steering thread was ever recorded (a board that stopped mid-start)
       }
+    }
+    if (orphans.length > 0) {
+      const done = patch(orphans, (p) => ({ ...p, steering: { ...(p.steering as Steering), outcome: "failed", reason: "never started: no steering thread was recorded" } }));
+      push(orphans[0]?.at.project.root ?? "", "failed", done, at);
     }
     for (const [thread, held] of groups) {
       const host = held[0]?.at.project;
@@ -282,40 +291,77 @@ export function steerer(opts: SteererOptions): Steerer {
       if (claimed.length === 0) {
         continue; // another board (or a race) holds them all
       }
-      const targets = [...new Map(claimed.flatMap((h) => h.pause.targets ?? []).map((t) => [t.thread, t])).values()];
-      const w = overWindow(host.reading);
-      const message = steeringMessage({ provider, window: w?.label ?? host.reading.pauseWindow ?? "window", usedPercent: w?.usedPercent ?? null, threshold: w?.threshold ?? null, resumeAt: host.reading.resumeAt ?? at.toISOString(), targets, now: at });
-      // The title goes through cmd.exe on Windows: no quote or shell character may reach it.
-      const title = steeringTitle(host.at.project.repo, `pause ${provider} ${w?.label ?? ""} ${w?.usedPercent ?? ""}%`).replace(/["%^&|<>!\s]+/g, " ").trim();
-      const start = async (line: ModelLine) => opts.t3(host.at.project.root, ["thread", "start", host.at.project.folder(), "-", "--provider", line.instanceId, ...(line.model === null ? [] : ["--model", line.model]), "--title", title, "--json"], message);
-      let used = pick.line;
-      let started = await start(used);
-      const fallback = lines.find((l) => l !== used);
-      if ((started.error !== undefined || started.status !== 0) && fallback !== undefined) {
-        warn(`the steering thread on ${used.instanceId} didn't start (${firstLine(started)}); trying ${fallback.instanceId}`, `start ${provider} ${at.toISOString()}`);
-        used = fallback;
-        started = await start(used);
-      }
-      if (started.error !== undefined || started.status !== 0) {
-        const done = patch(claimed, (p) => ({ ...p, steering: { ...(p.steering as Steering), outcome: "failed", reason: `could not start (${firstLine(started)})` } }));
+      // From here on every way out leaves the claimed records settled: a start that fails, gives no thread id or throws is a failed start
+      // (the fallback line is tried once), and anything else that throws marks the pause failed, so no record stays pausing with no thread.
+      const failStart = (why: string): void => {
+        const done = patch(claimed, (p) => ({ ...p, steering: { ...(p.steering as Steering), outcome: "failed", reason: `could not start (${why})` } }));
         push(host.at.project.root, "failed", done, at);
-        continue;
-      }
-      const out = jsonOf(started.stdout);
-      const thread = str(out?.["threadId"]) ?? str(out?.["id"]) ?? str(obj(out?.["thread"])?.["threadId"]);
-      const link = str(out?.["link"]) ?? str(obj(out?.["thread"])?.["link"]);
-      const done = patch(claimed, (p) => ({ ...p, thread: thread ?? "", steering: { ...(p.steering as Steering), thread, link, provider: used.instanceId, model: used.model, self: used.instanceId === provider, total: targets.length } }));
-      if (used.instanceId === provider) {
-        push(host.at.project.root, "nosteer", done, at, { click: link });
-      }
-      if (done.some(weeklyPause)) {
-        push(host.at.project.root, "weekly", done, at, { roles: [...new Set(host.reading.roles.map((r) => r.split(".")[0] ?? r))].filter((r) => r !== "steering") });
+      };
+      let used = pick.line;
+      let thread: string | null = null;
+      let link: string | null = null;
+      try {
+        const targets = [...new Map(claimed.flatMap((h) => h.pause.targets ?? []).map((t) => [t.thread, t])).values()];
+        const w = overWindow(host.reading);
+        const message = steeringMessage({ provider, window: w?.label ?? host.reading.pauseWindow ?? "window", usedPercent: w?.usedPercent ?? null, threshold: w?.threshold ?? null, resumeAt: host.reading.resumeAt ?? at.toISOString(), targets, now: at });
+        // The title goes through cmd.exe on Windows: no quote or shell character may reach it.
+        const title = steeringTitle(host.at.project.repo, `pause ${provider} ${w?.label ?? ""} ${w?.usedPercent ?? ""}%`).replace(/["%^&|<>!\s]+/g, " ").trim();
+        /** One start: the new thread's id and link, or why there is none. */
+        const start = async (line: ModelLine): Promise<{ thread: string; link: string | null } | { why: string }> => {
+          try {
+            const r = await opts.t3(host.at.project.root, ["thread", "start", host.at.project.folder(), "-", "--provider", line.instanceId, ...(line.model === null ? [] : ["--model", line.model]), "--title", title, "--json"], message);
+            if (r.error !== undefined || r.status !== 0) {
+              return { why: firstLine(r) };
+            }
+            const out = jsonOf(r.stdout);
+            const id = str(out?.["threadId"]) ?? str(out?.["id"]) ?? str(obj(out?.["thread"])?.["threadId"]);
+            return id === null ? { why: "t3 thread start gave no thread id" } : { thread: id, link: str(out?.["link"]) ?? str(obj(out?.["thread"])?.["link"]) };
+          } catch (error) {
+            return { why: error instanceof Error ? error.message : String(error) };
+          }
+        };
+        let started = await start(used);
+        const fallback = lines.find((l) => l !== used);
+        if ("why" in started && fallback !== undefined) {
+          warn(`the steering thread on ${used.instanceId} didn't start (${started.why}); trying ${fallback.instanceId}`, `start ${provider} ${at.toISOString()}`);
+          used = fallback;
+          started = await start(used);
+        }
+        if ("why" in started) {
+          failStart(started.why);
+          continue;
+        }
+        thread = started.thread;
+        link = started.link;
+        const id = thread;
+        const shown = link;
+        const self = used.instanceId === provider;
+        const steeredBy = used;
+        const done = patch(claimed, (p) => ({ ...p, thread: id, steering: { ...(p.steering as Steering), thread: id, link: shown, provider: steeredBy.instanceId, model: steeredBy.model, self, total: targets.length } }));
+        if (self) {
+          push(host.at.project.root, "nosteer", done, at, { click: shown });
+        }
+        if (done.some(weeklyPause)) {
+          push(host.at.project.root, "weekly", done, at, { roles: [...new Set(host.reading.roles.map((r) => r.split(".")[0] ?? r))].filter((r) => r !== "steering") });
+        }
+      } catch (error) {
+        const why = error instanceof Error ? error.message : String(error);
+        warn(`the pause of ${provider} failed after its records were written (${why})`, `claimed ${provider} ${at.toISOString()}`);
+        // A thread that did start is followed as usual once its id is on the records; otherwise the pause failed.
+        if (thread === null) {
+          failStart(why);
+        }
       }
     }
   };
 
   const tick = async (): Promise<void> => {
     pending = false;
+    try {
+      opts.retry?.();
+    } catch {
+      // a push never stops the pause
+    }
     const seen = [...latest.values()];
     const at = now();
     try {

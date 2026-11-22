@@ -1165,6 +1165,11 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
                 pushers.set(file, pusher);
                 pusher(p);
               },
+              retry: () => {
+                for (const pusher of pushers.values()) {
+                  pusher.retry();
+                }
+              },
             }
           : {}),
       })

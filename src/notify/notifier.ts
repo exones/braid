@@ -181,37 +181,59 @@ function limitKeyKept(key: string, sent: string, now: number = Date.now()): bool
 
 /**
  * The limit pusher of the board's pause (0064): sends each limit push once, keyed in the same `notified.json` (the key's value is
- * when it was sent). Like the need pushes, a key is stored only once its send succeeded, so a failed send is tried again when the
- * same event comes up at a later refresh; the settings are read at each push.
+ * when it was sent). A limit push is an event the board raises once, so a failed send stays pending in memory and `retry()` (called at
+ * each refresh) sends it again; its key is stored only once a send succeeded. The settings are read at each send.
  */
-export function limitPusher(opts: Omit<NotifierOptions, "clear">): ((push: LimitPush) => void) & { idle(): Promise<void> } {
+export function limitPusher(opts: Omit<NotifierOptions, "clear">): ((push: LimitPush) => void) & { retry(): void; idle(): Promise<void>; pending(): number } {
   const config = opts.config ?? (() => readConfig());
   const send = opts.send ?? ntfySender();
   const token = opts.token ?? (() => tokenOf());
   const warn = opts.warn ?? ((line: string) => void process.stderr.write(`${line}\n`));
   const flying = new Map<string, Promise<void>>();
+  const waiting = new Map<string, LimitPush>();
+  let failing = false;
   const pushOne = (push: LimitPush): void => {
-    const cfg = config();
-    if (cfg === null || !cfg.enabled || flying.has(push.key) || push.key in readSent(opts.file).keys) {
+    if (flying.has(push.key) || push.key in readSent(opts.file).keys) {
+      waiting.delete(push.key);
       return;
     }
+    const cfg = config();
+    if (cfg === null || !cfg.enabled) {
+      return;
+    }
+    waiting.set(push.key, push);
     const run = Promise.resolve()
       .then(() => send(cfg, { title: push.title, body: push.body, tags: push.tags, priority: push.priority, click: push.click, sequence: null }, token()))
       .then(
         () => {
+          waiting.delete(push.key);
+          if (failing) {
+            failing = false;
+            warn("braid notify: limit pushes sending again");
+          }
           try {
-            const keys = { ...readSent(opts.file).keys, [push.key]: new Date().toISOString() };
-            writeSent(opts.file, keys);
+            writeSent(opts.file, { ...readSent(opts.file).keys, [push.key]: new Date().toISOString() });
           } catch (e) {
             warn(`braid notify: can't write ${opts.file} (${e instanceof Error ? e.message : "failed"})`);
           }
         },
-        (e: unknown) => warn(`braid notify: a limit push failed (${e instanceof Error ? e.message : "failed"})`),
+        (e: unknown) => {
+          if (!failing) {
+            failing = true;
+            warn(`braid notify: a limit push failed (${e instanceof Error ? e.message : "failed"}); retrying at each refresh`);
+          }
+        },
       )
       .finally(() => flying.delete(push.key));
     flying.set(push.key, run);
   };
   return Object.assign(pushOne, {
+    retry: () => {
+      for (const push of [...waiting.values()]) {
+        pushOne(push);
+      }
+    },
+    pending: () => waiting.size,
     idle: async () => {
       while (flying.size > 0) {
         await Promise.allSettled([...flying.values()]);

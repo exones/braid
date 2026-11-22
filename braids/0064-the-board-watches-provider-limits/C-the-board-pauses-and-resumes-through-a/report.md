@@ -13,9 +13,9 @@ A running board now pauses every agent on a provider over its threshold through 
 - **`src/board/steerer.ts` (new):** one board-wide steerer that every served project's feed hands its good snapshot to (`Sources.act`). Ticks run one at a time:
   1. **Follow** each pausing steering thread with `t3 thread show --messages 3 --json`: its line, a `failed`/`interrupted` run, or 15 minutes with no line.
   2. **Resume** each `by: board` record whose `resumeAt` has passed, after a re-check. `ok`/`unknown`: one `t3 thread send` per thread, then a clear of the board's own limit record only. A failed send is retried for that thread alone and given up after 5 tries. `pause`: the record is kept with the new time.
-  3. **Pause** per provider over its threshold: claim the records, then start one thread in the first project that has a steering role, trying the fallback line once if the start fails.
+  3. **Pause** per provider over its threshold: claim the records, then start one thread in the first project that has a steering role, trying the fallback line once if the start fails. A start that exits non-zero, exits 0 with no thread id, or throws is a failed start, and anything that throws after the claim marks the pause failed. A claimed record that never got a thread (a board stopped mid-start) is failed by a later board after 15 minutes. No record stays `pausing` for good.
 - **Board (`src/commands/board.ts`):** `--no-pause`, and the start line `Limits: …` (on with the steering lines, or no `steering` role, `--no-pause`, demo).
-- **Pushes (`src/notify/notifier.ts`):** `limitPusher` sends each limit push once, keyed in `notified.json` (`pause:<provider>:<window>:<reset>:<event>`, kept 8 days). The need notifier keeps those keys. A `limit` need is not pushed again per braid.
+- **Pushes (`src/notify/notifier.ts`):** `limitPusher` sends each limit push once, keyed in `notified.json` (`pause:<provider>:<window>:<reset>:<event>`, kept 8 days). A failed send stays pending in memory, and the steerer retries it at each refresh; the key is stored only after a successful send. Pending pushes don't survive a board restart. The need notifier keeps those keys. A `limit` need is not pushed again per braid.
 - **Model and page:**
   - reason `limit` (⚖) in Needs You for a weekly window until its reset, and for a failed pause; derived from the record, with no request file;
   - card lines for pausing (pulsing icon), paused by the board with "n of m agents answered", didn't answer (amber), resume due, and failed;
@@ -28,18 +28,18 @@ A running board now pauses every agent on a provider over its threshold through 
 ## Validation
 
 - `npm run verify` passes.
-- New `test/board-steer.test.ts` (12 tests) with a fake T3 runner and cache files written per test:
+- New `test/board-steer.test.ts` (15 tests) with a fake T3 runner and cache files written per test:
   - the claim and one start, with codex's braid untouched; a later refresh and a second board start nothing;
   - the template's content;
   - partial and full outcomes, with children joining the targets;
   - the "pausing" push after a minute; a failed run and the 15-minute limit, as Needs You and not as a need push;
-  - fallback once, failed start, both providers over;
+  - fallback once, failed start, both providers over; a start with no thread id, a start that throws, and a claimed record that never got a thread;
   - no steering role;
   - still over then resumed, with the exact messages; a missed resume after a restart, with a send failure retried for one thread;
   - the weekly push and Needs You;
   - the hold rule (board and CLI);
   - the parser;
-  - limit keys kept by the need notifier.
+  - limit keys kept by the need notifier; a failed limit push retried at the next refresh and keyed only after it is sent.
 - **Live runs, 2026-11-22.** They used the real steerer and real `t3`, in a throwaway T3 project whose own BRAID.md had the steering role, with fixture caches (Claude_Everix at 98%, reset 5 min after the start, buffer 0). The target was a busy Claude haiku probe thread. The probe and steering threads are archived, and the project is deleted from T3.
   - **Claude steering** (codex also set over, so `first` steered in the margin and pushed "over, steering from it"):
     - steering thread started 19:43:49Z;

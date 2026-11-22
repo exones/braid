@@ -90,13 +90,19 @@ interface Call {
   input?: string;
 }
 /** A fake `t3`: start answers `steer-<n>` unless `failStart`, show answers `shown`, send fails for the ids in `failSend`. */
-function fakeT3(o: { failStart?: number; shown?: () => unknown; failSend?: Set<string> } = {}) {
+function fakeT3(o: { failStart?: number; shown?: () => unknown; failSend?: Set<string>; noId?: boolean; throwStart?: boolean } = {}) {
   const calls: Call[] = [];
   let starts = 0;
   const run = async (_root: string, args: string[], input?: string) => {
     calls.push({ args, ...(input === undefined ? {} : { input }) });
     if (args[1] === "start") {
       starts++;
+      if (o.throwStart === true) {
+        throw new Error("t3 crashed");
+      }
+      if (o.noId === true) {
+        return { status: 0, stdout: JSON.stringify({ ok: true }), stderr: "" };
+      }
       if (starts <= (o.failStart ?? 0)) {
         return { status: 1, stdout: "", stderr: "provider unavailable" };
       }
@@ -413,4 +419,76 @@ test("the need notifier keeps limit keys while the limit pusher sends each once"
   needs({ repo: "r", github: { state: "ok" }, t3: { state: "ok" }, braids: [], programmes: [] });
   await needs.idle();
   assert.ok("pause:claude:five_hour:x:paused" in JSON.parse(readFileSync(file, "utf8")).keys);
+});
+
+test("a start that exits 0 without a thread id is a failed start: the fallback once, then Pause failed", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 98, NOW);
+  cache(caches, "codex", 20, NOW);
+  const t3 = fakeT3({ noId: true });
+  const b = board(root, caches, t3, { now: NOW });
+  await b.tick();
+  assert.equal(t3.starts().length, 2);
+  const r = records(root)[0];
+  assert.deepEqual([r.steering.outcome, r.steering.thread, r.steering.reason], ["failed", null, "could not start (t3 thread start gave no thread id)"]);
+  assert.equal(b.pushes.at(-1)?.title, "claude: pause failed");
+  await b.tick();
+  assert.equal(t3.starts().length, 2, "not retried");
+});
+
+test("a start that throws after the claim is a failed start; a claimed record never given a thread fails after 15 min", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 98, NOW);
+  cache(caches, "codex", 20, NOW);
+  const t3 = fakeT3({ throwStart: true });
+  const b = board(root, caches, t3, { now: NOW });
+  await b.tick();
+  assert.equal(t3.starts().length, 2, "the fallback once");
+  assert.deepEqual([records(root)[0].steering.outcome, records(root)[0].steering.reason], ["failed", "could not start (t3 crashed)"]);
+
+  // A board that stopped between the claim and the start left a pausing record with no thread: a later board fails it.
+  const other = project();
+  cache(other.caches, "claude", 98, NOW);
+  cache(other.caches, "codex", 20, NOW);
+  const steering = { thread: null, link: null, provider: "codex", model: "gpt-6-luna", started: NOW.toISOString(), outcome: "pausing", answered: null, total: 1, children: [], noAnswer: [], reason: null, self: false };
+  setPause(other.root, { braid: "0070", reason: "limit", provider: "claude", window: "five_hour", label: "Session", usedPercent: 98, resetsAt: iso(50), resumeAt: iso(55), task: null, thread: "", by: "board", at: NOW.toISOString(), targets: [{ thread: "work-70", kind: "worker", item: "0070" }], steering });
+  const clock = { now: new Date(NOW.getTime() + 5 * MIN) };
+  const c = board(other.root, other.caches, fakeT3(), clock);
+  await c.tick();
+  assert.equal(records(other.root)[0].steering.outcome, "pausing", "not before the 15 minutes");
+  clock.now = new Date(NOW.getTime() + 15 * MIN);
+  await c.tick();
+  assert.deepEqual([records(other.root)[0].steering.outcome, records(other.root)[0].steering.reason], ["failed", "never started: no steering thread was recorded"]);
+  assert.equal(c.pushes.at(-1)?.title, "claude: pause failed");
+});
+
+test("a limit push whose send failed is sent again at the next refresh, and only then keyed", async () => {
+  const dir = mkdtempSync(join(scratch, "r-"));
+  git(dir, "init", "-q");
+  const file = join(dir, ".braid", "notified.json");
+  let down = true;
+  const sent: string[] = [];
+  const send = async (_c: unknown, p: { title: string }) => {
+    if (down) {
+      throw new Error("ntfy.example answered HTTP 502");
+    }
+    sent.push(p.title);
+  };
+  const warnings: string[] = [];
+  const push = limitPusher({ file, config: () => ({ enabled: true, server: "https://ntfy.example", topic: "t" }), send, token: () => null, warn: (l: string) => warnings.push(l) });
+  push({ key: "pause:claude:five_hour:x:resumed", title: "claude resumed", body: "", tags: [], priority: "default", click: null });
+  await push.idle();
+  assert.deepEqual([sent, push.pending()], [[], 1]);
+  assert.match(warnings[0] ?? "", /a limit push failed .*retrying at each refresh/);
+  push.retry();
+  await push.idle();
+  assert.equal(push.pending(), 1, "still down: still pending, no key");
+  down = false;
+  push.retry();
+  await push.idle();
+  assert.deepEqual([sent, push.pending()], [["claude resumed"], 0]);
+  assert.ok("pause:claude:five_hour:x:resumed" in JSON.parse(readFileSync(file, "utf8")).keys);
+  push.retry();
+  await push.idle();
+  assert.equal(sent.length, 1, "sent once");
 });
