@@ -1,7 +1,7 @@
 ---
 id: '0064'
 title: "The board watches provider limits"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ui", "ask:architecture", "ask:process"]
 dependencies: []
 related: ['0061', '0062', '0060']
