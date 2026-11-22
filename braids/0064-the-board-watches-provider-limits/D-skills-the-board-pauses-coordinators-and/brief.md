@@ -1,7 +1,7 @@
 ---
 id: '0064/D'
 title: "Skills: the board pauses, coordinators and PMs follow"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M", "ask:process"]
 dependencies: ['0064/A', '0064/C']
 order: 40
@@ -41,8 +41,12 @@ Expected size: about 150 lines of text in 4 files (0064/A's estimate).
 
 ## Completion
 
-- [ ] The skills have no limits check task, wait-timeout check or resume task of their own; the check before a launch stays
-- [ ] What a coordinator, a PM and a worker do on the board's pause and resume messages is stated once, matching 0064/C's messages
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The skills have no limits check task, wait-timeout check or resume task of their own; the check before a launch stays
+- [x] What a coordinator, a PM and a worker do on the board's pause and resume messages is stated once, matching 0064/C's messages
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Rewrite `references/limits.md` around the board; drop the check task, wait-timeout check and resume task and agents' `braid pause`/`braid resume` from limits.md, the braid skill and braid-pm; use C's messages verbatim; mention `models.steering`; fix the getting-started paragraph.

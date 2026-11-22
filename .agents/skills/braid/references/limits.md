@@ -1,68 +1,43 @@
 # Provider limits
 
-How a coordinator stops its braid's agents cleanly before a provider's usage limit, and starts them again after the reset. [The skill](../SKILL.md) points here from each launch. `braid limits`, `braid pause` and `braid resume` are in the project's CLI docs (`docs/cli.md`). Under a PM, read "Under a PM" first.
+How a braid's agents stop cleanly before a provider's usage limit and start again after the reset. [The skill](../SKILL.md) points here from each launch. `braid limits` and `braid resume --limit` are in the project's CLI docs (`docs/cli.md`); the board's side is in `docs/board.md`, "Provider limits".
 
-**On exit 3**, at every check point below (before a launch, a wait timeout, the check task): a coordinator the user runs pauses its braid ("Pause"). A PM-run coordinator ("Launched by a PM" in the skill) never does: it follows "Under a PM", "Over a threshold" (tell the PM, launch nothing, schedule no resume, run no `braid pause`); the PM pauses.
-
-Only agents on the provider over its threshold stop. Launches and agents on other providers go on, for example a Codex worker while Claude is paused. Hard stops (a limit already hit mid-turn) are not handled here, and threads are never snoozed.
+**The running board pauses and resumes.** When a provider is over its threshold, the board claims a `by: board` pause record per braid, starts one 🚦 steering thread (the `models.steering` role in `BRAID.md`: a `first` line and a `fallback` line) and has it message every agent of those braids on that provider. After the reset plus the buffer it re-checks and sends each paused thread its resume message. Coordinators and PMs keep no limits check task, schedule no resume and run no `braid pause` for a limit. Only agents on the provider over its threshold stop; launches and agents on other providers go on. Hard stops (a limit already hit mid-turn) aren't handled here, and threads are never snoozed.
 
 ## Check before launch
 
-Before launching a worker, reviewer, researcher or spike, run `braid limits --role <role> --kind <kind>` (or `--tier <S|M|L>`) for the model that agent will use, as "Project facts" resolves it.
+Before launching a worker, reviewer, researcher, spike or coordinator, run `braid limits --role <role> --kind <kind>` (or `--tier <S|M|L>`) for the model that agent will use, as "Project facts" resolves it.
 
 - Exit 0, `ok`: launch.
 - Exit 0, `unknown` (stale cache, no numbers, an `unsupported` provider such as `cursor`): launch, and say so in one line. Unknown never pauses.
-- Exit 3, `pause`: don't launch; "On exit 3" (above), with the provider, window and resume time it prints.
+- Exit 3, `pause`: launch nothing on that provider. Say so once, with the provider, window and resume time it prints, and end the turn. The board's pause and resume messages take it from there; a PM-run coordinator also tells its PM ("Under a PM"). Don't poll, schedule a check or schedule a resume.
 
-## Check while agents run
+## The board's pause message
 
-While any agent of the braid runs, keep one check task in your own thread: `schedule_task` with `{type:"interval", everyMs:900000}` (15 min), bound to this thread (the default), title `braid <number> limits check`, and this prompt:
+The board's steering thread sends each message with `t3_thread_send` `mode:"auto"` and tells you where to reply (`<steering thread id>`).
 
-```text
-braid <number> limits check. Run `braid limits <instanceId>` for each provider the braid's running agents use. Exit 3 on any: act as "On exit 3" in the braid skill's references/limits.md says. Otherwise end the turn at once, with no message to the user.
-```
+- **A worker, reviewer or researcher** gets `Pause for <provider> <window> until <resume time>. Finish or undo your current step; never stop mid-commit. A running command may already have moved to the background: let it finish. Commit and push your WIP, log a checkpoint (`braid log --checkpoint`), send `Paused: <id> at <sha>` to <steering thread id>, end your turn. Start no new work until a resume message; …`. `<id>` is the item id (`0064/D`), never a thread id. Start no new work until `Resume:`; if something wakes you meanwhile, note it, reply briefly only with your item's CI result if that is what woke you, and end your turn again.
+- **A coordinator** gets `Pause for <provider> <window> until <resume time>: the board is pausing braid <number>'s agents on <provider> and has messaged them directly. Launch nothing on <provider>, schedule no resume and run no braid pause: …`. Message no worker yourself. Reply `Paused: <number>` to the steering thread and end your turn.
+- **A PM** gets `Braids <numbers> are paused by the board for <provider> <window> until <resume time>; launch nothing on <provider> until the board's resume message. Reply Paused: pm to <steering thread id> and end your turn.` Launch no coordinator or other agent on that provider; reply `Paused: pm` and end the turn.
 
-A scheduled run only queues while your turn is active, so the task covers the times your turn has ended (a worker on its PR watch, a reviewer `delegate_task` running, waiting for the user): a queued run starts at once. While you block in a wait, check yourself: wait on a worker with `t3_thread_wait` `timeoutMs: 600000` (10 min), and on each timeout run the same `braid limits` check before waiting again; exit 3: "On exit 3" (above), otherwise wait again. A PM-run coordinator checks on its wait timeouts too.
+A wake meanwhile (a late reply, a PR watch) is noted, answered only as the pause text says, and the turn ends again.
 
-Create the task when you launch the first agent. Delete it (`delete_scheduled_task`; `list_scheduled_tasks` finds it by title) when no agent of the braid runs, when you pause (the resume task takes over), and at "Finish". Under a PM, the PM keeps this check for all its braids instead; don't create one.
+## The board's resume message
 
-## Pause
+- **A worker or reviewer:** `Resume: continue <id> from your checkpoint`. Read your last checkpoint (`braid view <id>` and your log) and go on from there.
+- **A coordinator:** `Resume: <number> was paused by the board for <provider>; go on where you left off`. Check the state first (branches, worktrees, worker threads, `braid next`), then go on. The board sent your agents their own resume messages and cleared its record: run no `braid resume`.
+- **A PM:** `Resume: <numbers> were paused by the board for <provider>; go on where you left off`. Check the plan file and `braid status`, then go on with "Running". Run no `braid resume`.
 
-1. **Tell the agents.** Send each running or idle agent of this braid on that provider (worker threads, and a running `delegate_task` child such as a reviewer or researcher, by its child thread id) this message with `t3_thread_send` `mode:"auto"`. Never `queue`: it arrives only after the whole turn.
+If a coordinator's or a PM's agents didn't get a resume (the board lists them under no answer), read their threads and send `Resume: continue <id> from your checkpoint` yourself.
 
-   ```text
-   Pause for <provider> <window> until <resume time>. Finish or undo your current step; never stop mid-commit. A running command may already have moved to the background: let it finish. Commit and push your WIP, log a checkpoint (`braid log --checkpoint`), send `Paused: <id> at <sha>` to <your thread id>, end your turn. Start no new work until a resume message; if something wakes you meanwhile (a background command, a PR watch), note it, include your item's CI result in a short reply if that is what woke you, and end your turn again.
-   ```
-2. **Wait for the clean point.** `t3_thread_wait` each paused thread, then read its last message for the `Paused:` line. A wait cut short by an incoming message is re-checked, not taken as the result. An agent that never answers (its thread ended, its session died): read its last message and its branch, record what is known in the braid log, and pause anyway.
-3. **Schedule the resume** in your own thread: `schedule_task` with `{type:"interval", everyMs: max(60000, resumeAt − now)}` (`resumeAt` from `braid limits --json`, already reset plus buffer), bound to this thread, title `braid <number> resume <provider>`, and the prompt below. Never `fixed_time`: T3 skips a run more than 10 minutes late. If the `schedule_task` schema offers a one-shot `once` schedule, use it instead.
+## Without a running board
 
-   ```text
-   braid <number> resume <provider>. First delete this task: `delete_scheduled_task` with id <task id> (if unknown, find it by title with `list_scheduled_tasks`). Then follow "Resume" in the braid skill's references/limits.md.
-   ```
-
-   Fill in the task id with a second `schedule_task` call (`scheduledTaskId` and the new `prompt`) once the first returns it. Delete the limits check task.
-4. **Record it:** `braid pause <number> --provider <instanceId> --thread <your thread id> --task <resume task id>`, so the board and `braid status` show the pause. Then end the turn with `⏳ Paused for <provider> <window>; resumes at <time>`.
-
-## Resume
-
-The scheduled run wakes your thread and its prompt deletes the task first. Then:
-
-- **Not paused any more** (`braid status <number>` shows no `Paused:` line: the user resumed by hand, or a deleted task's run was already queued): end the turn.
-- **`braid limits <instanceId>` exits 0** (`ok`, or `unknown`: a stale cache or a past `resetsAt` reads as go): send `Resume: continue <id> from your checkpoint` (`mode:"auto"`) to each paused thread, run `braid resume <number>`, create the limits check task again while agents run, and go on with the braid where it left off.
-- **Exit 3** (still over): never resume into a limit. Schedule a new resume at the new resume time as in "Pause" step 3, and run `braid pause` again with the new `--task`.
+Nothing pauses and nothing resumes: no board, `--no-pause`, or no `steering` role in `BRAID.md`. The check before a launch still stops a launch on exit 3. An agent that runs on may hit the limit; the user decides. When the user says go on, or the reset has passed, `braid limits <instanceId>` exits 0: launch and continue. If a pause record is still there, `braid resume <number> --limit` clears the limit pause (a hold stays; plain `braid resume` lifts a hold and is the user's). When the user asks for a pause for a limit by hand ("pause, limit close"), send the worker pause text above to each agent on that provider, wait for the `Paused:` lines and end the turn; the user's go lifts it. A plain "hold" or "pause" with no limit in it is a hold ([autonomy](autonomy.md), "Hold").
 
 ## Weekly windows
 
-Over a weekly threshold, pause and schedule as above, and also `braid ask <number> "<what is needed>" --kind decision` with the options *Wait for the reset* (recommended when it is near) and *Move <role> to another provider* (the user edits `BRAID.md` `models`). Never switch providers yourself. If the user moves the role, resume the braid by hand (`braid resume <number>`, delete the resume task) and launch on the new provider.
-
-## The user asks for a pause
-
-"Pause, limit close": the same steps. When `braid limits` doesn't say `pause` yet, take the resume time from its session window (`resetsAt` plus the buffer) and record it with `braid pause <number> --provider <instanceId> --thread <your thread id> --task <id> --until <that time>`. A plain "hold" or "pause" with no limit in it is a hold ([autonomy](autonomy.md), "Hold").
+Over a weekly threshold the board pauses the same way and shows the braid in Needs You (reason `limit`) until the reset. The coordinator or PM asks nothing and never switches providers itself. To change providers, the user edits the role in `BRAID.md` `models`, then says go: `braid resume <number> --limit` clears the pause and launches use the new provider.
 
 ## Under a PM
 
-A PM-run coordinator ("Launched by a PM") neither keeps a limits check task nor schedules its own resume; the PM does both for all its braids.
-
-- **Over a threshold** (exit 3 at any check point: before a launch or a wait timeout): launch nothing, schedule no resume and run no `braid pause`. Send the PM `<number>: <provider> <window> over its threshold, resumes <time>; launching nothing` once (not again on later timeouts of the same window), and end the turn. The PM pauses.
-- **The PM's pause message:** do "Pause" steps 1 and 2 for your agents on that provider, then reply `Paused: <number>` to the PM and end the turn. The `braid pause --by pm` record is the PM's.
-- **The PM's resume message:** send `Resume: continue <id> from your checkpoint` (`mode:"auto"`) to each paused thread and go on where you left off. `braid resume` is the PM's.
+A PM-run coordinator ("Launched by a PM") keeps no limits check task and schedules no resume; it follows the board's messages as above. At the check before a launch with exit 3 it also sends the PM `<number>: <provider> <window> over its threshold, resumes <time>; launching nothing` once (not again for the same window) and ends the turn.
