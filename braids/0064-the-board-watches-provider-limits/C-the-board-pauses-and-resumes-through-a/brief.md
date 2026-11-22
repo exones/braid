@@ -1,7 +1,7 @@
 ---
 id: '0064/C'
 title: "The board pauses and resumes through a steering thread"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: ['0064/A', '0064/B']
 order: 30
@@ -33,6 +33,7 @@ Expected size: about 750 lines in 12 files (0064/A's estimate). If it heads past
 - **Pushes:** the mockups' screen 6 events, with their keys in `notified.json`. There is no "Pause started" push when the pause completes within a minute.
 - **Cards:** the pausing, paused, didn't-answer and failed lines of screens 2 to 4, and the steering line in the limits panel.
 - **`braid board --no-pause`** turns the exception off for one run (limits still show); the start line says which mode is on. `--demo` never acts.
+- **A hold outlives a limit pause** (leftover `2026-11-22-7kqa`, added in the sweep, 2026-11-22): neither the board nor `braid pause --provider`/`braid resume` replaces or clears a hold. The board doesn't target a held braid and clears only its own limit record; `braid pause --provider` refuses a held braid; `braid resume --limit` clears a limit pause and leaves a hold.
 - **One live Codex probe:** a `🧪 braid 0064/C probe:` steering thread on `codex` / `gpt-6-luna` steering a busy Claude probe thread. Report it; if it fails, say so and keep Claude-only steering working.
 
 ## Already decided
@@ -42,17 +43,27 @@ Expected size: about 750 lines in 12 files (0064/A's estimate). If it heads past
 - Starts after 0062 merges into `main`; merge `main` into the braid branch first.
 - Live runs: only tiny probe threads titled `🧪 braid 0064/C probe:`, archived afterwards; never message real threads of other braids.
 
+## Plan
+
+1. `src/braids/pauses.ts`: `by: board` in `PAUSERS`; optional `targets` (thread id, kind, item) and `steering` (thread, provider, model, started, outcome, answered/total, children, no answer, reason) on a record; `claimPauses` adds records for braids without one in one `locked()` call and returns those it added; `patchPauses` updates them under the lock.
+2. `src/board/steer.ts` (new): the `steering` model lines and their pick; the targets per braid from the snapshot (coordinator, workers, reviewers, PM threads on the provider; children come from the steering thread); the first-message template; the `Steering:` line parser; the resume messages; the limit pushes and their keys.
+3. `src/board/steerer.ts` (new): one board-wide `Steerer` that every project's feed hands its good snapshot to. Per tick, serialised: follow running steering threads (`t3 thread show --messages 1 --json`: done, failed, 15-minute timeout), resume due `by: board` records after a re-check (`ok`/`unknown`: `t3 thread send` each target, clear; `pause`: new resume time), then pause providers over their threshold (claim records in each project, start one thread per provider in the first project with a `steering` role, fallback line once when the start fails). Pushes go through a limit pusher that keeps `pause:` keys in `notified.json`.
+4. Board: `braid board --no-pause`; the start line names the mode (`pauses through a 🚦 steering thread`, `--no-pause`, no `steering` role, demo). `--demo` gets no steerer.
+5. Model and page: reason `limit` (weekly window, failed pause) in Needs You, not pushed as a need; pause lines for pausing (spinner), paused by the board with answered counts, didn't answer (amber), failed; the chip's `pausing…` note and the panel's steering line.
+6. Tests: `test/board-steer.test.ts` with a fake T3 runner, fixture caches and temp repos; then docs (`docs/board.md`, `docs/cli.md`, CLI help, `docs/decisions.md` for the click-only exception), the live Claude run and the Codex probe.
+
 ## Out of scope
 
 - Skill changes (D). A "Pause now" chip button and archiving older settled steering threads (later ideas from the spike).
 
 ## Completion
 
-- [ ] Over a threshold the board writes one `by: board` record per braid under the lock, starts one steering thread per provider and pause, and stores its outcome; braids on other providers are untouched, and a second board or a later refresh starts nothing
-- [ ] The board resumes at the reset plus the buffer after a re-check, keeps the record with a new resume time when the provider is still over, and resumes after a start a pause it missed
-- [ ] A weekly window and a failed pause read Needs You; the pushes of the mockups' screen 6 are sent once each with their keys
-- [ ] `--no-pause` turns the exception off; `--demo` never acts
-- [ ] Tests cover the decisions with a fake T3 and fake limits; a live Claude run and the Codex probe are reported with times
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Over a threshold the board writes one `by: board` record per braid under the lock, starts one steering thread per provider and pause, and stores its outcome; braids on other providers are untouched, and a second board or a later refresh starts nothing
+- [x] The board resumes at the reset plus the buffer after a re-check, keeps the record with a new resume time when the provider is still over, and resumes after a start a pause it missed
+- [x] A weekly window and a failed pause read Needs You; the pushes of the mockups' screen 6 are sent once each with their keys
+- [x] A hold outlives a limit pause: neither the board nor braid pause/resume replaces or clears it; tests cover it
+- [x] `--no-pause` turns the exception off; `--demo` never acts
+- [x] Tests cover the decisions with a fake T3 and fake limits; a live Claude run and the Codex probe are reported with times
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

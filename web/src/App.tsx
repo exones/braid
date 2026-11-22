@@ -112,6 +112,9 @@ function ReasonMark({ kind, tooltip }: { kind: string; tooltip: string }) {
       </Icon>
     );
   }
+  if (kind === "limit") {
+    return <Icon tip={tooltip} className="text-amber-500">⚖</Icon>;
+  }
   if (kind === "plan") {
     return (
       <Icon tip={tooltip} className="text-amber-500">
@@ -181,6 +184,7 @@ const NEED_TONE = {
 /** A paused braid: sky while it waits for its resume, amber once the resume is overdue. */
 const PAUSE_TONE = {
   paused: { icon: "text-sky-600", box: "border-sky-600 bg-sky-50 text-sky-900" },
+  pausing: { icon: "animate-pulse text-sky-600", box: "border-sky-600 bg-sky-50 text-sky-900" },
   due: { icon: "text-amber-600", box: "border-amber-500 bg-amber-50 text-amber-900" },
 } as const;
 
@@ -204,7 +208,7 @@ function PmLine({ pm }: { pm: PmHandling }) {
   );
 }
 
-const toneOf = (need: Need): string => NEED_TONE[need.kind === "review" ? "review" : need.kind === "checks failed" || need.kind === "stalled" ? "bad" : "wait"];
+const toneOf = (need: Need): string => NEED_TONE[need.kind === "review" ? "review" : need.kind === "checks failed" || need.kind === "stalled" || (need.kind === "limit" && need.text.startsWith("Pause failed")) ? "bad" : "wait"];
 
 /** One line saying what the user needs to do, with its age; on a braid card also which strand it comes from. */
 function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?: boolean; className?: string }) {

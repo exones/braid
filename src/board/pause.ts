@@ -40,7 +40,8 @@ function span(ms: number): string {
 }
 
 const at = (iso: string | null, now: Date): string => (iso === null ? "" : clock(iso, now));
-const who = (p: Pause): string => (p.by === "pm" ? "the PM" : "the coordinator");
+const who = (p: Pause): string => (p.by === "pm" ? "the PM" : p.by === "board" ? "the board" : "the coordinator");
+const agentsWord = (n: number): string => `${n} agent${n === 1 ? "" : "s"}`;
 
 /** `Claude_Everix Session 97%`: the provider, the window's label and its usage, as far as they are known. */
 export function usage(p: Pause): string {
@@ -49,8 +50,8 @@ export function usage(p: Pause): string {
 
 /** What a card, a strand row and `braid status` show of a pause. */
 export interface PauseView {
-  /** `paused`: sky; `due` (also once `over`): amber. */
-  readonly state: "paused" | "due";
+  /** `paused`: sky; `pausing`: sky, while the board's steering thread runs; `due` (also once `over`, or an agent that didn't answer): amber. */
+  readonly state: "paused" | "pausing" | "due";
   readonly phase: PausePhase;
   /** `Paused: Claude_Everix Session 97%, resumes 21:05`, or `…; resume was due at 20:27`. */
   readonly text: string;
@@ -67,8 +68,26 @@ export function pauseView(p: Pause, now: Date): PauseView {
   if (reasonOf(p) === "hold") {
     return { state: "paused", phase, text: heldText(p), note: `held by ${who(p)} since ${clock(p.at, now)}`, record: p };
   }
+  const s = p.steering;
+  if (phase === "paused" && s !== undefined) {
+    // The board's pause (0064): the steering thread's progress and outcome.
+    const ago = `paused by the board ${span(now.getTime() - Date.parse(p.at))} ago`;
+    if (s.outcome === "pausing") {
+      return { state: "pausing", phase, text: `Pausing for ${usage(p)}: ${agentsWord(p.targets?.length ?? 0)} asked to pause`, note: `🚦 steering thread started ${span(now.getTime() - Date.parse(s.started))} ago`, record: p };
+    }
+    if (s.outcome === "partial") {
+      return { state: "due", phase, text: `Paused: ${usage(p)}; ${agentsWord(s.noAnswer.length)} didn’t answer`, note: `${ago} · ${s.noAnswer.join(", ")}: no answer in 10 min; check its thread`, record: p };
+    }
+    if (s.outcome === "failed") {
+      return { state: "due", phase, text: `Pause failed: the 🚦 steering thread ${s.reason ?? "failed"}`, note: `${ago} · agents may still be running on ${p.provider ?? "the provider"}`, record: p };
+    }
+    return { state: "paused", phase, text: `Paused: ${usage(p)}, resumes ${at(p.resumeAt, now)}`, note: `${ago} · ${s.answered ?? s.total} of ${agentsWord(s.total)} answered`, record: p };
+  }
   if (phase === "paused") {
     return { state: "paused", phase, text: `Paused: ${usage(p)}, resumes ${at(p.resumeAt, now)}`, note: `paused by ${who(p)} ${span(now.getTime() - Date.parse(p.at))} ago`, record: p };
+  }
+  if (p.by === "board") {
+    return { state: "due", phase, text: `Paused: ${usage(p)}; resume was due at ${at(p.resumeAt, now)}`, note: "no board was running then · resumes at the next refresh after a re-check", record: p };
   }
   const stall = clock(stalledSince(p), now);
   return {
@@ -78,6 +97,25 @@ export function pauseView(p: Pause, now: Date): PauseView {
     note: phase === "due" ? `reads Stalled at ${stall} unless it resumes` : `nobody resumed it; Stalled since ${stall} if nobody works`,
     record: p,
   };
+}
+
+/**
+ * What a board pause asks of the user (0064, reason `limit`): a weekly window until its reset (wait, or move the roles), or a pause
+ * that failed. Null for any other pause. Derived from the record: no request file.
+ */
+export function limitNeed(p: Pause, now: Date): { readonly text: string; readonly since: string } | null {
+  if (p.by !== "board" || reasonOf(p) !== "limit") {
+    return null;
+  }
+  if (p.steering?.outcome === "failed") {
+    return { text: `Pause failed: the 🚦 steering thread ${p.steering.reason ?? "failed"}; agents may still be running on ${p.provider ?? "the provider"}. Open the steering thread, or pause by hand`, since: p.steering.started };
+  }
+  const weekly = /seven_day|week/i.test(`${p.window ?? ""} ${p.label ?? ""}`);
+  if (weekly && (p.resumeAt === null || Date.parse(p.resumeAt) > now.getTime())) {
+    const until = p.resetsAt ?? p.resumeAt;
+    return { text: `Weekly limit: ${usage(p)} until ${until === null ? "the reset" : clock(until, now)}. Wait for the reset, or move its roles to another provider in BRAID.md models`, since: p.at };
+  }
+  return null;
 }
 
 /** The stalled text of a paused item whose resume never came. */
@@ -94,6 +132,16 @@ export function pauseBox(view: PauseView, now: Date): { readonly head: string; r
   }
   const window = p.label === null ? (p.provider ?? "") : `${p.provider} ${p.label} window${p.usedPercent === null ? "" : ` at ${p.usedPercent}%`}`;
   const command = `braid resume ${p.braid}`;
+  if (p.by === "board") {
+    const s = p.steering;
+    const steer = s === undefined ? "" : ` through the 🚦 steering thread${s.thread === null ? "" : ` ${s.thread.slice(0, 8)}`} on ${s.provider}${s.model === null ? "" : ` / ${s.model}`}`;
+    const reset = p.resetsAt === null ? "" : ` (resets ${clock(p.resetsAt, now)})`;
+    return {
+      head: view.state === "due" && view.phase !== "paused" ? `Paused · resume was due at ${at(p.resumeAt, now)}` : `Paused · since ${clock(p.at, now)}`,
+      text: `${window}${reset}. ${view.text}.`,
+      foot: `Paused by the board${steer}. The board re-checks the limit at ${at(p.resumeAt, now)} and resumes every paused agent; ${command} clears the record by hand (it sends no resume message).`,
+    };
+  }
   if (view.state === "paused") {
     const buffer = p.resetsAt === null ? null : Math.round((dueAt(p) - Date.parse(p.resetsAt)) / 60_000);
     const reset = p.resetsAt === null ? "" : ` (resets ${clock(p.resetsAt, now)})`;
@@ -114,7 +162,7 @@ export function pauseBox(view: PauseView, now: Date): { readonly head: string; r
 /** The line `braid status` prints under a paused braid. */
 export function statusLine(view: PauseView, now: Date): string {
   const p = view.record;
-  const by = `by ${p.by === "pm" ? "PM" : "coordinator"} ${p.thread.slice(0, 8)}`;
+  const by = p.by === "board" ? `by the board${p.thread === "" ? "" : ` (steering ${p.thread.slice(0, 8)})`}` : `by ${p.by === "pm" ? "PM" : "coordinator"} ${p.thread.slice(0, 8)}`;
   const task = p.task === null ? "" : `, task ${p.task}`;
   if (reasonOf(p) === "hold") {
     return `${view.text} (${by} at ${clock(p.at, now)})`;
