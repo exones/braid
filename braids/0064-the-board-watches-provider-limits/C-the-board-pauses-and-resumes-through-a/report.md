@@ -45,14 +45,14 @@ A running board now pauses every agent on a provider over its threshold through 
     - steering thread started 19:43:49Z;
     - its `Steering: Claude_Everix paused 1/1` line was read 19:47:46Z;
     - resumed and cleared 19:48:34Z, right after resumeAt 19:48:21Z.
-    
+
     The 4 minutes are the probe finishing its 240 s command, as the pause text lets it.
   - **Codex probe** (`codex / gpt-6-luna`):
     - started 19:49:19.8Z;
     - `t3_thread_list` with `includeSubagents` at +7 s, `mode:"auto"` send at +13 s, then `t3_thread_wait`;
     - the probe's `Paused:` came 19:50:37Z (after its 90 s command); line and settle 19:50:41Z; settled itself (`settled: true`);
     - the board read `paused 1/1` 19:50:45Z, then resumed and cleared at 19:54:08Z.
-    
+
     **Codex steering works.**
   - **A first Codex run found a template gap:** it sent and settled without waiting and reported `0/1` after 30 s. The late `Paused:` then woke it into an empty turn, which is correct. The template now names `t3_thread_wait` and forbids ending before all replies or 10 minutes; the rerun above waited.
   - **Real start:** `braid board --no-open --no-pause` against the listed projects printed `Limits: shown only (--no-pause: the board pauses and resumes nothing)`.
