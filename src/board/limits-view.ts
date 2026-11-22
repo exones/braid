@@ -39,8 +39,11 @@ export function chipNote(p: ProviderView, now: Date): string {
     case "unknown":
       return p.checkedAt === null ? "no reading yet" : `no reading for ${agoText(p.checkedAt, now)}`;
     case "over":
-      return "over";
+      return p.steering?.outcome === "pausing" ? "pausing…" : "over";
     case "paused": {
+      if (p.steering?.outcome === "pausing") {
+        return "pausing…";
+      }
       return `${isWeekly(p) ? "weekly · " : "paused · "}resumes ${p.resumeAt === null ? "?" : whenText(p.resumeAt, now)}`;
     }
     default:
@@ -75,4 +78,21 @@ export function agentsText(p: ProviderView): { readonly paused: string; readonly
     return items.length === 0 ? "none" : items.join(", ");
   };
   return { paused: list("paused"), running: list("running") };
+}
+
+/** The panel's steering line (mockup 3): where the 🚦 thread ran, when, and what came of it; null without one. */
+export function steeringText(p: ProviderView, now: Date): string | null {
+  const s = p.steering;
+  if (s === null) {
+    return null;
+  }
+  const on = `${s.provider}${s.model === null ? "" : ` / ${s.model}`}${s.self ? " (in the margin of the provider it pauses)" : ""}`;
+  const started = `started ${whenText(s.started, now)}`;
+  const what =
+    s.outcome === "pausing"
+      ? `pausing ${s.total} agent${s.total === 1 ? "" : "s"}`
+      : s.outcome === "failed"
+        ? `failed: ${s.reason ?? "no reason given"}`
+        : `${s.answered ?? 0} of ${s.total} agents answered Paused:${s.noAnswer.length === 0 ? "" : `; no answer: ${s.noAnswer.join(", ")}`}`;
+  return `🚦 Steering thread on ${on}, ${started}: ${what}.`;
 }

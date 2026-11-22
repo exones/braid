@@ -33,6 +33,7 @@ Expected size: about 750 lines in 12 files (0064/A's estimate). If it heads past
 - **Pushes:** the mockups' screen 6 events, with their keys in `notified.json`. There is no "Pause started" push when the pause completes within a minute.
 - **Cards:** the pausing, paused, didn't-answer and failed lines of screens 2 to 4, and the steering line in the limits panel.
 - **`braid board --no-pause`** turns the exception off for one run (limits still show); the start line says which mode is on. `--demo` never acts.
+- **A hold outlives a limit pause** (leftover `2026-11-22-7kqa`, added in the sweep, 2026-11-22): neither the board nor `braid pause --provider`/`braid resume` replaces or clears a hold. The board doesn't target a held braid and clears only its own limit record; `braid pause --provider` refuses a held braid; `braid resume --limit` clears a limit pause and leaves a hold.
 - **One live Codex probe:** a `🧪 braid 0064/C probe:` steering thread on `codex` / `gpt-6-luna` steering a busy Claude probe thread. Report it; if it fails, say so and keep Claude-only steering working.
 
 ## Already decided
@@ -60,6 +61,7 @@ Expected size: about 750 lines in 12 files (0064/A's estimate). If it heads past
 - [ ] Over a threshold the board writes one `by: board` record per braid under the lock, starts one steering thread per provider and pause, and stores its outcome; braids on other providers are untouched, and a second board or a later refresh starts nothing
 - [ ] The board resumes at the reset plus the buffer after a re-check, keeps the record with a new resume time when the provider is still over, and resumes after a start a pause it missed
 - [ ] A weekly window and a failed pause read Needs You; the pushes of the mockups' screen 6 are sent once each with their keys
+- [ ] A hold outlives a limit pause: neither the board nor braid pause/resume replaces or clears it; tests cover it
 - [ ] `--no-pause` turns the exception off; `--demo` never acts
 - [ ] Tests cover the decisions with a fake T3 and fake limits; a live Claude run and the Codex probe are reported with times
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected

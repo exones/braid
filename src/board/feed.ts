@@ -164,6 +164,11 @@ export function feed(src: Sources, options: FeedOptions): Feed {
         } catch {
           // Notifications never stop the board.
         }
+        try {
+          src.act?.(snap);
+        } catch {
+          // The limits pause never stops the board.
+        }
       } else {
         failure = message(snap.error);
         error = snap.error;

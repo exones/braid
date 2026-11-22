@@ -6,7 +6,7 @@ import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
 import { age, type Request } from "../braids/requests.js";
 import type { Pause } from "../braids/pauses.js";
-import { pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
+import { limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
 import { pmLine, routeOf, viaNote, type PmLine, type Routed, type Via } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import { programmeOfBraid, toProgrammes, type Programme } from "./programme.js";
@@ -17,7 +17,7 @@ export const LANES = ["Waiting", "In Review", "In Progress", "To Do", "Done"] as
 export type Lane = (typeof LANES)[number];
 
 /** What an item shows as the reason it is on the user's side: a request's kind, or a broke alarm. */
-export type Reason = "question" | "decision" | "plan" | "action" | "checks failed" | "stalled";
+export type Reason = "question" | "decision" | "plan" | "action" | "checks failed" | "stalled" | "limit";
 /** A broke alarm: shown only after its condition has held for ten minutes. */
 export type BrokeReason = "checks failed" | "stalled";
 /** What is going on in Working: a worker agent, a reviewer, or only CI. */
@@ -368,6 +368,11 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   if (paused !== null && pausedStall !== null) {
     return out("Waiting", "stalled", { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(pausedStall, sig.now), since: pausedStall });
   }
+  // A board pause that needs the user (a weekly window, a failed pause) is the braid's own: a strand doesn't repeat it.
+  const limit = paused === null || key.includes("/") ? null : limitNeed(paused, sig.now);
+  if (limit !== null) {
+    return out("Waiting", "limit", { ...plain, kind: "limit", text: limit.text, verb: "for", age: age(limit.since, sig.now), since: limit.since });
+  }
   const started = stored === "In Progress" || agents.length > 0 || pr?.state === "open";
   return out(started ? "In Progress" : laneOfStatus(stored), null, null);
 }
@@ -557,6 +562,10 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: "Stalled: the coordinator stopped and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled } };
   } else if (paused !== null && pausedStall !== null) {
     own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(pausedStall, sig.now), since: pausedStall } };
+  }
+  const limit = paused === null || own?.lane === "Waiting" ? null : limitNeed(paused, sig.now);
+  if (limit !== null) {
+    own = { lane: "Waiting", reason: "limit", need: { ...plain, kind: "limit", text: limit.text, verb: "for", age: age(limit.since, sig.now), since: limit.since } };
   }
   const candidates = [
     ...(own?.need == null ? [] : [{ lane: own.lane, reason: own.reason, need: own.need, who: null as string | null }]),

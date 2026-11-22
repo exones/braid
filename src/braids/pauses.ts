@@ -1,15 +1,46 @@
 // Pauses: braids held back for a provider's usage limit, kept in `.braid/pauses.json` of the main checkout
-// (found from any worktree), one record per braid. Only `braid pause` and `braid resume` write it; the board
-// and `braid status` read it. A missing file is no pauses; a damaged one also reads as no pauses, with a note.
+// (found from any worktree), one record per braid. `braid pause` and `braid resume` write it, and the running board
+// for provider limits (`by: board`, 0064: `claimPauses`, `patchPauses`, `clearPause`); the board and `braid status` read it. A missing file is no pauses; a damaged one also reads as no pauses, with a note.
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { locked, mainCheckout } from "./requests.js";
 
-export const PAUSERS = ["coordinator", "pm"] as const;
+export const PAUSERS = ["coordinator", "pm", "board"] as const;
 export type Pauser = (typeof PAUSERS)[number];
 
 export const REASONS = ["limit", "hold"] as const;
 export type Reason = (typeof REASONS)[number];
+
+/** A thread the board's pause reached: a coordinator, worker, reviewer or PM thread from the snapshot, or a child the steering thread found. */
+export interface PauseTarget {
+  readonly thread: string;
+  readonly kind: "coordinator" | "worker" | "reviewer" | "pm" | "child";
+  /** The item (`0064/C`) of a worker or reviewer, the braid of a coordinator, the braids (`0064,0065`) of a PM; a child's parent item. */
+  readonly item: string;
+  /** The project (T3's folder) the thread is in, for `t3 thread send`. */
+  readonly project?: string;
+}
+
+/** What became of the board's 🚦 steering thread for a pause. */
+export interface Steering {
+  /** The steering thread; null until `t3 thread start` returned one (or when it failed). */
+  readonly thread: string | null;
+  readonly link: string | null;
+  readonly provider: string;
+  readonly model: string | null;
+  /** When it was started (ISO). */
+  readonly started: string;
+  /** `pausing` until its `Steering:` line came; `paused` (every target answered), `partial` (some didn't) or `failed`. */
+  readonly outcome: "pausing" | "paused" | "partial" | "failed";
+  readonly answered: number | null;
+  readonly total: number;
+  readonly children: readonly string[];
+  readonly noAnswer: readonly string[];
+  /** Why it failed; null otherwise. */
+  readonly reason: string | null;
+  /** The steering ran on the provider it pauses: every steering line was over its threshold. */
+  readonly self: boolean;
+}
 
 export interface Pause {
   /** The braid number: `0061`. */
@@ -36,6 +67,12 @@ export interface Pause {
   readonly by: Pauser;
   /** When it was paused (ISO). */
   readonly at: string;
+  /** `by: board`: the threads it paused (resume sends to each, then to the steering thread's children). */
+  readonly targets?: readonly PauseTarget[];
+  /** `by: board`: the steering thread and its outcome. */
+  readonly steering?: Steering;
+  /** `by: board`: the threads already sent their resume message (a failed send is retried for the others only). */
+  readonly resumed?: readonly string[];
 }
 
 export interface PausesRead {
@@ -71,7 +108,9 @@ function valid(v: unknown): v is Pause {
     strOrNull(p.task) &&
     typeof p.thread === "string" &&
     (PAUSERS as readonly unknown[]).includes(p.by) &&
-    isIso(p.at)
+    isIso(p.at) &&
+    (p.targets === undefined || (Array.isArray(p.targets) && p.targets.every((t: unknown) => typeof t === "object" && t !== null && typeof (t as PauseTarget).thread === "string" && typeof (t as PauseTarget).item === "string"))) &&
+    (p.steering === undefined || (typeof p.steering === "object" && p.steering !== null && typeof (p.steering as Steering).outcome === "string" && isIso((p.steering as Steering).started)))
   );
 }
 
@@ -133,17 +172,69 @@ export function setPause(root: string, pause: Pause): "recorded" | "updated" | "
   );
 }
 
-/** Clears a braid's pause; returns the record cleared, or null when it wasn't paused (nothing is written). */
-export function clearPause(root: string, braid: string): Pause | null {
+/**
+ * The board's claim (0064): adds each record whose braid has none yet, in one `locked()` call, and returns those it added. A braid
+ * with any record (a hold, another board's or a coordinator's pause) is left alone, so a second board or a later refresh adds nothing.
+ */
+export function claimPauses(root: string, records: readonly Pause[]): Pause[] {
+  if (records.length === 0) {
+    return [];
+  }
   const file = pausesFile(root);
-  if (!readPausesFile(file).pauses.some((p) => p.braid === braid)) {
+  return locked(
+    file,
+    () => {
+      const list = readPausesFile(file).pauses;
+      const added = records.filter((r) => !list.some((p) => p.braid === r.braid));
+      if (added.length > 0) {
+        writePauses(file, [...list, ...added]);
+      }
+      return added;
+    },
+    "the pauses store",
+  );
+}
+
+/** Changes the board's records of these braids under the lock (`change` gets each and returns the new one); records of others, or not `by: board`, stay. Returns the new records. */
+export function patchPauses(root: string, braids: readonly string[], change: (p: Pause) => Pause): Pause[] {
+  const file = pausesFile(root);
+  return locked(
+    file,
+    () => {
+      const list = readPausesFile(file).pauses;
+      const out: Pause[] = [];
+      const next = list.map((p) => {
+        if (p.by !== "board" || !braids.includes(p.braid)) {
+          return p;
+        }
+        const n = change(p);
+        out.push(n);
+        return n;
+      });
+      if (out.length > 0) {
+        writePauses(file, next);
+      }
+      return out;
+    },
+    "the pauses store",
+  );
+}
+
+/**
+ * Clears a braid's pause; returns the record cleared, or null when it wasn't paused (nothing is written). With `only`, a record
+ * it rejects is left alone and null returned: the board and `braid resume --limit` clear a limit pause only, never a hold.
+ */
+export function clearPause(root: string, braid: string, only: (p: Pause) => boolean = () => true): Pause | null {
+  const file = pausesFile(root);
+  if (!readPausesFile(file).pauses.some((p) => p.braid === braid && only(p))) {
     return null;
   }
   return locked(
     file,
     () => {
       const list = readPausesFile(file).pauses;
-      const old = list.find((p) => p.braid === braid) ?? null;
+      const found = list.find((p) => p.braid === braid) ?? null;
+      const old = found !== null && only(found) ? found : null;
       if (old !== null) {
         writePauses(file, list.filter((p) => p.braid !== braid));
       }

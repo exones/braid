@@ -10,7 +10,12 @@ import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree } from "../braids/store.js";
 import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
-import { feed, READ_TIMEOUT_MS, type Feed } from "../board/feed.js";
+import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
+import { steerer, type Steerer } from "../board/steerer.js";
+import { steeringLines } from "../board/steer.js";
+import { LimitsError, readModelLines } from "../braids/limits.js";
+import { STEERING_EMOJI } from "../braids/roles.js";
+import { limitPusher } from "../notify/notifier.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
@@ -81,6 +86,8 @@ export interface Sources {
   action(name: string): Action | undefined;
   /** Hands each complete snapshot to the notifier (docs/board.md, "Notifications"); returns at once. Absent: no pushes (the demo). */
   readonly notify?: (board: BoardData) => void;
+  /** Hands each complete snapshot to the board's limits pause (docs/board.md, "Provider limits"); returns at once. Absent: the board pauses nothing (`--no-pause`, the demo, tests). */
+  readonly act?: (good: Good) => void;
 }
 
 /** What an action does with the JSON body of its request; its result is the JSON reply. */
@@ -491,6 +498,34 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
 }
 
 /** The notifier of a repository's board, with the per-user settings; a no-op when the main checkout can't be found. Only `runBoard` adds it, so tests of the board never read `~/.braid`. */
+/** The board's limits pause of one project: its snapshots go to the board-wide steerer. */
+function acting(name: string, root: string, own: Sources, steer: Steerer): Sources {
+  return { ...own, act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
+}
+
+/** The start line of the limits pause: which mode is on, and the steering lines (or why there are none). */
+export function limitsLine(mode: "demo" | "off" | "on", projects: readonly { readonly name: string; readonly root: string }[]): string {
+  if (mode === "demo") {
+    return "Limits: shown only (demo: nothing is paused)";
+  }
+  if (mode === "off") {
+    return "Limits: shown only (--no-pause: the board pauses and resumes nothing)";
+  }
+  const parts = projects.map((p) => {
+    let lines: ReturnType<typeof steeringLines> = null;
+    try {
+      lines = steeringLines(readModelLines(p.root));
+    } catch (error) {
+      if (!(error instanceof LimitsError)) {
+        throw error;
+      }
+    }
+    const who = projects.length > 1 ? `${p.name}: ` : "";
+    return lines === null ? `${who}BRAID.md has no models.steering, so nothing is paused` : `${who}steering ${lines.map((l) => `${l.instanceId} / ${l.model ?? "default"}`).join(", then ")}`;
+  });
+  return `Limits: pauses agents over a threshold through a ${STEERING_EMOJI} steering thread and resumes them after the reset (--no-pause turns this off); ${parts.join("; ")}`;
+}
+
 export function boardNotifier(root: string): (board: BoardData) => void {
   try {
     return notifier({ file: join(mainCheckout(root), ".braid", "notified.json") });
@@ -1079,7 +1114,7 @@ function valueFlag(args: readonly string[], flag: string, need: string): { value
 }
 
 export async function runBoard(root: string, args: readonly string[], tailscale: TailscaleRunner = runTailscale, run: Runners = {}): Promise<Started> {
-  const flags = ["--no-open", "--demo", "--demo-t3-down", "--demo-not-ready"];
+  const flags = ["--no-open", "--no-pause", "--demo", "--demo-t3-down", "--demo-not-ready"];
   const { value: host, rest: afterHost } = valueFlag(args, "--host", "an address: tailscale, this machine's Tailscale IP or its MagicDNS name");
   const pat = afterHost.indexOf("--port");
   const portArg = pat === -1 ? undefined : afterHost[pat + 1];
@@ -1116,6 +1151,25 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const gh = run.gh ?? runGhAsync;
   const t3 = run.t3 ?? runT3;
   const notifierOf = run.notifier ?? boardNotifier;
+  // The limits pause (the click-only rule's one exception): never in the demo, off with --no-pause. Its pushes go through each project's notified.json.
+  const pausing = !demo && !args.includes("--no-pause");
+  const pushers = new Map<string, ReturnType<typeof limitPusher>>();
+  const steer = pausing
+    ? steerer({
+        t3,
+        ...(run.notifier === undefined
+          ? {
+              push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => {
+                const file = join(mainCheckout(root), ".braid", "notified.json");
+                const pusher = pushers.get(file) ?? limitPusher({ file });
+                pushers.set(file, pusher);
+                pusher(p);
+              },
+            }
+          : {}),
+      })
+    : null;
+  const act = (name: string, root: string, own: Sources): Sources => (steer === null ? own : acting(name, root, own, steer));
   // The problems printed at startup are each first snapshot's own: no second read of GitHub.
   const firsts: { name: string; problems: Promise<Problem[]> }[] = [];
   const printing = (name: string, own: Sources): Sources => {
@@ -1129,7 +1183,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   };
   let served: Sources | Roster;
   if (!several) {
-    served = printing("", { ...repoSources(root, gh, t3), notify: notifierOf(root) });
+    served = printing("", act(titleRepoName(root), root, { ...repoSources(root, gh, t3), notify: notifierOf(root) }));
   } else if (demo) {
     const members = demoMembers(t3Down, notReady).filter((m) => only === undefined || m.name === only).map((m) => ({ ...m, src: printing(m.name, m.src) }));
     served = () => members;
@@ -1159,7 +1213,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
         .filter((p) => only === undefined || p.name === only)
         .map((p) => {
           const key = `${p.name}\0${p.path}`;
-          const member = cache.get(key) ?? { name: p.name, src: ((s: Sources) => (first ? printing(p.name, s) : s))(withNotify(p, repoSources(p.path, gh, t3))) };
+          const member = cache.get(key) ?? { name: p.name, src: ((s: Sources) => (first ? printing(p.name, s) : s))(act(p.name, p.path, withNotify(p, repoSources(p.path, gh, t3)))) };
           next.set(key, member);
           return member;
         });
@@ -1192,6 +1246,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
     process.stdout.write(`On Tailscale: ${started.tailnet.url}\nOnly ${tailnet.owner}'s own devices (no tagged nodes) may open it; Open thread there uses the T3 app on the phone.\n`);
   }
   process.stdout.write(demo ? "Notifications: none in the demo\n" : `${notifyLine(readConfig())}\n`);
+  process.stdout.write(`${limitsLine(demo ? "demo" : pausing ? "on" : "off", several ? list.filter((p) => only === undefined || p.name === only).map((p) => ({ name: p.name, root: p.path })) : [{ name: "", root }])}\n`);
   process.stdout.write("Press Ctrl+C to stop.\n");
   if (!args.includes("--no-open")) {
     openBrowser(url);

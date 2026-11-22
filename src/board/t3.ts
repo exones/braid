@@ -58,6 +58,8 @@ export interface T3 {
   readonly states?: ReadonlyMap<string, string>;
   /** The T3 link of every thread `thread list` named, by id: where a request addressed by a thread id (the PM's) opens. */
   readonly links?: ReadonlyMap<string, string>;
+  /** The provider instance of every thread `thread list` named that says one, by id: the steering targets read a PM thread's here (0064). */
+  readonly providers?: ReadonlyMap<string, string>;
   /** What each running PM checker thread of this repository checks: the text after `🧭 <repo> pm check: `. A programme whose checker runs is running. */
   readonly pmChecks?: readonly string[];
 }
@@ -228,6 +230,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   const named = (Array.isArray(all) ? all : []).map(obj).filter((t): t is Json => t !== null);
   const states = new Map<string, string>();
   const links = new Map<string, string>();
+  const providers = new Map<string, string>();
   for (const t of named) {
     const id = str(t["threadId"]) ?? str(t["id"]);
     if (id !== null) {
@@ -236,6 +239,10 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
         links.set(id, link);
       }
       states.set(id, archived(t) ? "archived" : (str(t["status"]) ?? "unknown").toLowerCase());
+      const provider = str(t["providerInstanceId"]);
+      if (provider !== null) {
+        providers.set(id, provider);
+      }
     }
   }
   const wanted = named
@@ -305,7 +312,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) pm check: (.*)$/.exec(str(t["title"]) ?? "");
     return running && m !== null && repos.has(m[1] ?? "") ? [m[2] ?? ""] : [];
   });
-  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, pmChecks };
+  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, providers, pmChecks };
 }
 
 /** Forgets what was read, for tests. */

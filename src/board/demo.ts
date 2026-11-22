@@ -191,11 +191,20 @@ export function demoT3(down = false): T3 {
 
 const MIN = 60_000;
 
-/** The demo's pauses: 0025 resumes in 18 min, 0026's resume was due 20 min ago, 0027's 42 min ago (stalled for 17 min). */
+/** The demo's pauses: 0025 paused by the board, resuming in 18 min; 0026's resume was due 20 min ago, 0027's 42 min ago (stalled for 17 min). */
 export function demoPauses(now: Date = new Date()): Pause[] {
   const at = (minutes: number): string => new Date(now.getTime() + minutes * MIN).toISOString();
   const pause = (braid: string, resume: number, task: string): Pause => ({ braid, provider: "Claude_Everix", window: "five_hour", label: "Session", usedPercent: 97, resetsAt: at(resume - 5), resumeAt: at(resume), task, thread: "demo-coordinator-thread", by: "coordinator", at: at(-36) });
-  return [pause("0025", 18, "demo-task-1"), pause("0026", -20, "demo-task-2"), pause("0027", -42, "demo-task-3")];
+  // 0025: the board's pause (0064), through a steering thread on codex that every agent answered.
+  const board: Pause = {
+    ...pause("0025", 18, ""),
+    task: null,
+    thread: "demo-steering-thread",
+    by: "board",
+    targets: [{ thread: "demo-coordinator-thread", kind: "coordinator", item: "0025" }, { thread: "demo-worker-thread", kind: "worker", item: "0025/C" }],
+    steering: { thread: "demo-steering-thread", link: null, provider: "codex", model: "gpt-6-luna", started: at(-36), outcome: "paused", answered: 2, total: 2, children: [], noAnswer: [], reason: null, self: false },
+  };
+  return [board, pause("0026", -20, "demo-task-2"), pause("0027", -42, "demo-task-3")];
 }
 
 /**
