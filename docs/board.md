@@ -25,8 +25,8 @@ The labels live in one place, `LANE_LABEL` in `src/board/marks.ts`. Stored statu
 For each braid and strand, the first rule that matches wins (`derive` in `src/board/model.ts`):
 
 1. **Done:** a merged PR, or stored status `Done` with no open PR. An open PR wins over a stored `Done` (rule 4): `braid accept` stamps a story or a braid's final PR `Done` on its branch before the user's merge (D43). A PR closed without merging never makes Done: a stored `Done` next to one reads as To Do (the state before `Done` isn't known), and the closed PR still shows on the card.
-2. **To Review:** an open `review` request (from `braid handover`).
-3. **Needs You, with the request's text:** any other open request (`question`, `decision`, `plan`, from `braid ask`), or a running agent's pending question (reason `question`).
+2. **To Review:** an open `review` request (from `braid handover`) that is yours: not addressed to the PM, or addressed to it and escalated or forwarded ([Requests](#requests)).
+3. **Needs You, with the request's text:** any other open request that is yours (`question`, `decision`, `plan`, from `braid ask`; a request to the PM only once escalated or forwarded), any request the PM asks you itself (`--by pm`, also `action`, and it wins over a coordinator's handover on the same card), or a running agent's pending question (reason `question`). A request the PM is still handling skips rules 2 and 3: the item takes the lane its other state gives, with the PM's line.
 4. **To Review, "Merge PR #N":** a stored `Done` next to an open PR, which waits for your merge.
 5. **Needs You, broke:** one of two alarms, shown only after its condition has held for 10 minutes (below).
 6. **Working:** started, which is stored `In Progress`, an agent of the item running, or an open PR. An open PR without a review request is Working: the agents still have it.
@@ -37,7 +37,7 @@ An `ask:<key>` label set when planning doesn't move the lane: it marks a decisio
 
 ### Requests
 
-A request is a small record kept by `braid handover` and `braid ask` in `.braid/requests.json` of the main checkout (see [the format](braids-format.md#commands)). The board reads it through `src/braids/requests.ts` only (`loadRequests`, the pure `filterLive`, `age`) and never writes it. A request says whom it is for: `to` is `user` (a record without it reads so) or `pm`, with `pm` the PM's thread id, set by `--to pm` on `braid ask` and `braid handover` from the brief's `PM-run (thread <id>)` line.
+A request is a small record kept by `braid handover` and `braid ask` in `.braid/requests.json` of the main checkout (see [the format](braids-format.md#commands)). The board reads it through `src/braids/requests.ts` only (`loadRequests`, the pure `filterLive`, `age`) and never writes it. A request says whom it is for: `to` is `user` (a record without it reads so) or `pm`, with `pm` the PM's thread id, set by `--to pm` on `braid ask` and `braid handover` from the brief's `PM-run (thread <id>)` line. Why requests are routed this way: decision D89.
 
 - **A request to the PM** leaves the item's lane alone: it stays where its other state puts it, with the teal line "The PM is handling: <text>" (a handover: "The PM is checking: PR #n, its live check runs") and the 🧭 mark, and sends no push. It also counts as asked, so the item doesn't read `stalled` meanwhile, and Merge on request is off for it.
 - **It reaches your side** (Needs You; a handover: To Review) with "Escalated: <text> (the PM hasn't answered for 21 min)" or "(the PM thread is gone)", or "Forwarded by the PM: <text> — <note>", when: 20 minutes passed (60 for a handover), the PM's thread is archived, failed or unknown to T3 (a running or idle one is there; unreadable T3 tells nothing), or the PM ran `braid forward`. All of it is derived at each read from the request's `at` and T3, like the broke alarms; the board writes nothing. While the braid is paused or held, a request to the PM doesn't escalate by time, by a gone thread or by a forward: it keeps the PM line until `braid resume`, then escalates. Your own answer always wins. Why 20 and 60: in the dctl-studio run the PM answered in 6 to 55 s and its live check took up to 19 minutes.
@@ -88,7 +88,7 @@ A programme is the goal a programme manager (PM, the `braid-pm` agent) runs as s
 
 Each card has **🧭 PM thread** (opens the PM's thread in T3; on the phone the app link), **◎ Only these** and **≡ Plan**. With no programme to show, the panel isn't drawn, so a project without a PM sees the board as before.
 
-**Working and stalled.** A programme is Working while its PM thread runs, or while one of its braids runs: an agent thread of it runs (a coordinator, worker or reviewer, as D46 counts them), the PM's checker thread for it runs (`🧭 <repo> pm check: …`; the title has no slug, so a checker counts for the programme whose slug or braid number it names, or for any programme while that is the project's only running or held one), or a PR of it has checks pending. Otherwise, after ten minutes on its own clock (`<repo>/<slug> pm` in `.braid/broke.json`, apart from the braids' keys), it reads Needs you `stalled`: "⏳ Stalled: the PM stopped and none of its braids is running", with what the board saw ("PM thread idle · no braid running: no agent thread, no check, no PR checks pending"; "the PM thread is gone" when T3 doesn't know it). An idle, failed or archived PM thread counts as not running. The stall is pushed once at high priority and clears as soon as the PM or a braid runs again. As with the braid alarms, it is told only after T3 and GitHub were read: an unread source neither starts nor stops the clock. Never stalled: a `done` or `stopped` programme; a held one (the plan's `state: held` or `hold`, or every braid of it that isn't Done paused for a limit or a hold); and one with an open programme request, which shows the request instead.
+**Working and stalled.** A programme is Working while its PM thread runs, or while one of its braids runs: its coordinator thread runs, an agent of it runs (a worker or reviewer, as D46 counts agents; D46 never counts the coordinator as an agent, so the coordinator is named here on its own), the PM's checker thread for it runs (`🧭 <repo> pm check: …`; the title has no slug, so a checker counts for the programme whose slug or braid number it names, or for any programme while that is the project's only running or held one), or a PR of it has checks pending. Otherwise, after ten minutes on its own clock (`<repo>/<slug> pm` in `.braid/broke.json`, apart from the braids' keys), it reads Needs you `stalled`: "⏳ Stalled: the PM stopped and none of its braids is running", with what the board saw ("PM thread idle · no braid running: no agent thread, no check, no PR checks pending"; "the PM thread is gone" when T3 doesn't know it). An idle, failed or archived PM thread counts as not running. The stall is pushed once at high priority and clears as soon as the PM or a braid runs again. As with the braid alarms, it is told only after T3 and GitHub were read: an unread source neither starts nor stops the clock. Never stalled: a `done` or `stopped` programme; a held one (the plan's `state: held` or `hold`, or every braid of it that isn't Done paused for a limit or a hold); and one with an open programme request, which shows the request instead.
 
 **Held.** A plan with `hold` (or `state: held`) shows your words on its card (with `state: held` and no `hold`: "On hold: the plan says held") and stays in Working. Its braids show 0061's sky pause mark with "Held: “…”" ("Held: the plan says held" when the plan gave no words) and are not stalled: a braid of a held plan without a pause record of its own reads as held by the PM (`braid pause --hold` records it per braid; the plan's hold also covers a braid the PM didn't record).
 
@@ -342,6 +342,47 @@ The running board sends a push to your phone over [ntfy](https://ntfy.sh) when a
 **Sending.** One JSON publish per push (`POST <server>` with `topic`, `title`, `message`, `tags`, `priority`, `click` and `sequence_id`, the repository and item: `braid-<repo>-<id>`), so a newer push of an item replaces its older one. When a need is gone (its request answered or closed) the board clears its push by its own sequence ID, with `PUT <server>/<topic>/<sequence id>/clear`, unless a current push carries that same ID (it replaced the old one), best effort and once (Android and the ntfy web app only; a failure is printed, not retried). Both use Node's `fetch` with a 10 s timeout. The board never waits for it: a send runs on its own, a key in flight isn't sent twice, and a key is stored only after its send succeeded. A failed send (no network, an HTTP error, a timeout) is retried at the next refresh and printed once per outage to the board's standard error (`braid notify: a push failed (<server> answered HTTP 403 …); retrying at each refresh`, then `braid notify: sending again`); it names the server, never the topic or the token. The settings are read at each refresh, so `braid notify off` stops the pushes without a restart. Two boards on one repository share `notified.json`: a duplicate push can happen, a lost or broken file can't (each write re-reads it first; an unreadable file starts empty).
 
 **Privacy.** A topic on `ntfy.sh` is public to anyone who knows its name, so setup makes one nobody can guess, and braid shows it in full only in the output of `braid notify setup`; elsewhere it shows the first 10 characters. The pushes carry no more than listed above. For more privacy, run your own ntfy server with access control: `braid notify setup --server https://ntfy.example.com`, and give the board an access token in `BRAID_NTFY_TOKEN` (sent as `Authorization: Bearer`; read only from the environment, never written to a file or printed). `braid notify test` checks the whole path: a plain test push, then a second push with a sequence ID that it clears at once, so you can see the clear work (it leaves the device on Android and the web app).
+
+## Run the board at login
+
+Pushes come only from a running board ([Notifications](#notifications)), and so are a request's escalation and a programme's stall. To have them without keeping a terminal open, start the board when you log in, with `--no-open` (no browser tab) and a fixed `--port` (so a bookmark keeps working). With a [project list](#several-projects) one board covers every project, so it doesn't matter which folder it starts in; without one, start it in your main checkout. Only one board should run per project: stop the one at login before you start another by hand, or two boards may send the same push twice.
+
+The board needs what it needs from a terminal: `braid`, `node`, `git`, `gh` (logged in) and `t3` on `PATH`, and `BRAID_NTFY_TOKEN` in your user environment if your ntfy server needs it. Add `--host tailscale` to also serve it to your phone.
+
+**Windows: a scheduled task at logon.** In PowerShell 7, as yourself (no administrator needed):
+
+```powershell
+$folder   = 'C:\code\my-project'   # your main checkout (any folder with a project list)
+$action   = New-ScheduledTaskAction -Execute 'pwsh.exe' -WorkingDirectory $folder `
+              -Argument '-NoProfile -WindowStyle Hidden -Command "braid board --no-open --port 8765"'
+$trigger  = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries `
+              -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+Register-ScheduledTask -TaskName 'braid board' -Action $action -Trigger $trigger -Settings $settings
+Start-ScheduledTask -TaskName 'braid board'   # start it now, without logging off
+```
+
+`-ExecutionTimeLimit 0` keeps Windows from stopping it after three days; the restart settings start it again if it fails. It runs only while you are logged in, in a hidden window. `Get-ScheduledTask 'braid board' | Get-ScheduledTaskInfo` shows its last result. `Stop-ScheduledTask` ends only the `pwsh` it started, not the board's `node` process under it, so stop the board by its port: `Stop-Process -Id (Get-NetTCPConnection -LocalPort 8765 -State Listen).OwningProcess`. `Unregister-ScheduledTask 'braid board' -Confirm:$false` removes the task. The page is at `http://127.0.0.1:8765/`; actions need the token of the run, which only its printed address carries, so for Start, Merge and Open thread open the board you started by hand, or use the Tailscale address.
+
+**Linux: a systemd user service.** Save as `~/.config/systemd/user/braid-board.service`:
+
+```ini
+[Unit]
+Description=braid board
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/code/my-project
+# A login shell, so PATH has node, braid, gh and t3 as in your terminal.
+ExecStart=/bin/bash -lc 'exec braid board --no-open --port 8765'
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target
+```
+
+Then `systemctl --user daemon-reload` and `systemctl --user enable --now braid-board`. It starts when you log in and stops when your last session ends; `loginctl enable-linger $USER` keeps it running after you log out. `systemctl --user status braid-board` shows it and `journalctl --user -u braid-board` its output (the address, `Notifications: on …` and any failed push). `BRAID_NTFY_TOKEN` goes in an `Environment=` line, or better an `EnvironmentFile=` only you can read. `systemctl --user disable --now braid-board` removes it from login.
 
 ## Demo
 

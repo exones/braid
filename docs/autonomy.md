@@ -45,6 +45,8 @@ The table is guidance for the agents, in your words. braid checks its shape (all
 
 A braid's exceptions go in its brief's `## Autonomy` section, in a line or two of free text ("architecture: ask for everything in 0031/B"). braid prints that section and doesn't parse it.
 
+A braid a [programme manager](getting-started.md#the-skills) runs has the `PM-run (thread <id>)` line there. braid reads one thing from it, the PM's thread: the coordinator's "ask" cases then go to the PM with `braid ask --to pm` (and its handovers with `braid handover --to pm`), and reach you only when the PM forwards them or doesn't answer in time ([Requests](board.md#requests)).
+
 A braid's preset is set only at your request, in the plan you approve or later in chat.
 
 ## Where the text comes from
@@ -119,7 +121,7 @@ Print any of them in full with `braid autonomy <number>` on a braid that runs on
 
 ## Pausing for a provider limit
 
-A pause for a provider's usage limit is not part of a preset: every preset pauses and resumes by itself, since it needs no decision. The coordinator runs `braid limits` before each launch and on a 15-minute check, pauses its agents when a window is over its threshold, and resumes them at the reset plus a buffer. In a braid run by a PM the PM pauses every braid on that provider and schedules the one resume; the coordinators launch nothing and tell the PM once. A weekly window is the exception: the agent asks you (`braid ask --kind decision`) whether to wait for the reset or move the role to another provider, whatever the preset. A "hold" is separate: it is your request, and a limit pause neither sets nor clears it. See [the CLI](cli.md#provider-limits) and [decision D87](decisions.md).
+A pause for a provider's usage limit is not part of a preset: every preset pauses and resumes by itself, since it needs no decision. The coordinator runs `braid limits` before each launch and on a 15-minute check, pauses its agents when a window is over its threshold, and resumes them at the reset plus a buffer. In a braid run by a PM the PM pauses every braid on that provider and schedules the one resume; the coordinators launch nothing and tell the PM once. A weekly window is the exception: the agent asks you (`braid ask --kind decision`) whether to wait for the reset or move the role to another provider, whatever the preset. A "hold" is separate: it is your request, recorded with `braid pause <number> --hold "<words>"` and cleared by `braid resume`, and a resume after a limit is no go for held work. A braid has one pause record, so a limit pause recorded on a held braid replaces its hold. See [the CLI](cli.md#provider-limits) and [decision D87](decisions.md).
 
 ## What the CLI enforces
 

@@ -12,3 +12,4 @@ As [D01](decisions.md) says, built with the Backlog.md-based flow, and now done.
 - states derived from GitHub, T3 and labels, not stored in task files: built as the attention board's lanes To Do, Working, To Review, Needs You, Done (D32);
 - actions: Start, Merge on request, Open thread (built, see [the board](board.md)).
 - pausing for provider usage limits (braid 0061, built): `braid limits`, `braid pause` and `braid resume`, the paused state on the board and in `braid status`, and the pause and resume steps in the skills (D86, D87).
+- programmes (braid 0062, built): the programme manager's programmes in a panel on the board with their stall, requests addressed to the PM with escalation and `braid forward`, the PM's own requests pushed to the phone, and holds (D88, D89).
