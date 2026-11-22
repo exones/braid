@@ -1,7 +1,7 @@
 ---
 id: '0068'
 title: "Coordinators stop waiting in the foreground"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: []
 related: ['0064', '0060']
