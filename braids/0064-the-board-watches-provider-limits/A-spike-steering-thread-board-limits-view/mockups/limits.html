@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>0064/A: provider limits on the board, and the pushes</title>
+<style>
+:root{--slate50:#f8fafc;--slate100:#f1f5f9;--slate200:#e2e8f0;--slate300:#cbd5e1;--slate400:#94a3b8;--slate500:#64748b;--slate600:#475569;--slate700:#334155;--slate900:#0f172a;
+--sky:#0284c7;--skybg:#f0f9ff;--skyfg:#0c4a6e;--amb:#d97706;--ambbg:#fffbeb;--ambfg:#78350f;--red:#dc2626;--redbg:#fef2f2;--redfg:#7f1d1d;--blue:#2563eb;--green:#16a34a;--vio:#7c3aed}
+*{box-sizing:border-box}body{margin:0;background:#fff;font:14px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--slate900)}
+.screen{margin:0 0 34px}.cap{font:600 13px system-ui;color:var(--slate700);margin:0 0 8px;padding:6px 10px;background:#eef2ff;border-radius:6px}
+.cap small{font-weight:400;color:var(--slate500)}
+header.bar{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--slate200);background:#fff;flex-wrap:wrap}
+.brand{font-weight:700;font-size:17px}.sub{color:var(--slate500);font-size:13px}.grow{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--slate200);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--slate700);background:#fff;white-space:nowrap}
+.btn{border:1px solid var(--slate200);border-radius:6px;padding:2px 10px;font-size:12px;background:#fff}
+.chk{font-size:12px;color:var(--slate700)}
+/* limits chips */
+.limits{display:inline-flex;align-items:center;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--slate200);border-radius:8px;padding:3px 8px;font-size:12px;background:#fff;white-space:nowrap;cursor:pointer}
+.chip .nm{font-weight:600}
+.meter{display:inline-flex;flex-direction:column;gap:2px;width:54px}
+.mrow{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--slate500)}
+.track{position:relative;flex:1;height:5px;background:var(--slate200);border-radius:3px;overflow:visible}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--slate400)}
+.tick{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--slate700);border-radius:1px}
+.pct{font-variant-numeric:tabular-nums;min-width:26px;text-align:right}
+.chip.near{border-color:#fcd34d;background:var(--ambbg)}.chip.near .fill.hot{background:var(--amb)}
+.chip.over{border-color:#fca5a5;background:var(--redbg);color:var(--redfg)}.chip.over .fill.hot{background:var(--red)}
+.chip.paused{border-color:#7dd3fc;background:var(--skybg);color:var(--skyfg)}.chip.paused .fill.hot{background:var(--sky)}
+.chip.unk{color:var(--slate500);border-style:dashed}
+.state{font-size:11px}
+/* lanes */
+.lanes{display:grid;grid-template-columns:repeat(4,300px);gap:12px;padding:12px;background:var(--slate100);align-items:start}
+.lane{background:var(--slate200);border-radius:12px;padding:10px}
+.lh{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.05em;color:var(--slate600);margin:2px 4px 10px;text-transform:uppercase}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.card{margin-bottom:8px;border:1px solid var(--slate200);border-radius:8px;background:#fff;padding:10px;box-shadow:0 1px 2px #0000000f}
+.ch{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.id{font-size:12px;color:var(--slate500)}.id b{color:var(--slate900)}
+.tier{border-radius:999px;padding:0 8px;font-size:11px;background:var(--slate200);color:var(--slate700)}
+.ttl{font-weight:600;margin:4px 0}
+.prog{display:flex;align-items:center;gap:6px}.pt{flex:1;height:6px;border-radius:3px;background:var(--slate200);overflow:hidden}.pf{height:100%;background:var(--green)}.pn{font-size:12px;color:var(--slate500)}
+.ln{margin-top:6px;border-left:3px solid;border-radius:6px;padding:4px 6px;font-size:12.5px;line-height:1.35}
+.ln small{display:block;margin-top:1px;font-size:11px;color:var(--slate500)}
+.sky{border-color:var(--sky);background:var(--skybg);color:var(--skyfg)}.amb{border-color:#f59e0b;background:var(--ambbg);color:var(--ambfg)}.red{border-color:var(--red);background:var(--redbg);color:var(--redfg)}
+.ic{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center}
+.foot{margin-top:8px;display:flex;justify-content:flex-end;gap:6px;min-height:24px}
+.ob{display:flex;width:24px;height:24px;align-items:center;justify-content:center;border:1px solid var(--blue);border-radius:6px;font-size:13px;background:#fff}
+/* panel */
+.panel{width:520px;border:1px solid var(--slate200);border-radius:12px;background:#fff;box-shadow:0 10px 25px #0000001f;padding:14px 16px}
+.panel h3{margin:0 0 2px;font-size:15px}.panel .hint{color:var(--slate500);font-size:12px;margin:0 0 10px}
+.prov{border-top:1px solid var(--slate100);padding:10px 0}
+.prov:first-of-type{border-top:0}
+.ph{display:flex;align-items:center;gap:8px}.ph .nm{font-weight:600}.ph .roles{font-size:12px;color:var(--slate500)}
+.badge{border-radius:999px;padding:0 8px;font-size:11px;font-weight:600}
+.b-ok{background:#dcfce7;color:#166534}.b-near{background:#fef3c7;color:#92400e}.b-over{background:#fee2e2;color:#991b1b}.b-paused{background:#e0f2fe;color:#075985}.b-unk{background:var(--slate100);color:var(--slate500)}
+.win{display:grid;grid-template-columns:92px 1fr 40px 150px;gap:8px;align-items:center;font-size:12px;margin-top:6px}
+.win .track{height:7px}
+.win .when{color:var(--slate500)}
+.agents{margin-top:6px;font-size:12px;color:var(--slate600)}
+.steer{margin-top:8px;border-left:3px solid var(--sky);background:var(--skybg);color:var(--skyfg);border-radius:6px;padding:6px 8px;font-size:12px}
+.steer.redb{border-color:var(--red);background:var(--redbg);color:var(--redfg)}
+.steer code{font-size:11px}
+.cols{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;padding:12px;background:var(--slate100)}
+/* phone */
+.phone{width:380px;border:10px solid #111827;border-radius:34px;background:#fff;overflow:hidden}
+.phone header.bar{padding:10px 14px}
+.tabs{display:flex;border-bottom:1px solid var(--slate200);font-size:12px}.tabs span{flex:1;text-align:center;padding:8px 0;color:var(--slate500)}.tabs .on{color:var(--slate900);font-weight:600;border-bottom:2px solid var(--blue)}
+.lstrip{display:flex;gap:6px;padding:8px 12px;background:var(--slate50);border-bottom:1px solid var(--slate200);overflow-x:auto}
+/* pushes */
+.lock{width:380px;border-radius:28px;padding:18px 12px;background:linear-gradient(160deg,#1e293b,#334155)}
+.nt{background:#ffffffeb;border-radius:16px;padding:10px 12px;margin-bottom:8px;font-size:13px}
+.nt .app{display:flex;justify-content:space-between;font-size:11px;color:var(--slate500);margin-bottom:2px}
+.nt b{display:block}
+.nt .prio{font-size:10px;font-weight:700;color:var(--red);margin-left:6px}
+table.push{border-collapse:collapse;font-size:12px;width:100%;max-width:1100px}
+table.push th,table.push td{border:1px solid var(--slate200);padding:6px 8px;text-align:left;vertical-align:top}
+table.push th{background:var(--slate50)}
+code{font:11.5px ui-monospace,Consolas,monospace;background:#eef0f5;border-radius:4px;padding:0 3px}
+.note{font-size:12px;color:var(--slate600);max-width:1100px;margin:6px 0 0}
+</style></head><body>
+<div id="out" style="padding:14px"></div>
+<script>
+// Demo data: the four sample projects of `braid board --demo`, extended with provider readings.
+// Times are local, the board's own clock reads 12:58 in every screen.
+const P='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>';
+const SPIN='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>';
+const ic=(svg,c)=>`<span class="ic" style="color:${c}">${svg}</span>`;
+const mrow=(lab,pct,thr,hot)=>`<div class="mrow">${lab}<div class="track"><div class="fill ${hot?'hot':''}" style="width:${pct}%"></div><div class="tick" style="left:${thr}%"></div></div><span class="pct">${pct}%</span></div>`;
+// chip: provider, [session, weekly] readings, state
+function chip(nm,s,w,cls='',state=''){
+  if(cls==='unk') return `<span class="chip unk"><span class="nm">${nm}</span><span class="state">${state}</span></span>`;
+  return `<span class="chip ${cls}" title="${nm}: Session ${s[0]}% of ${s[1]}%, Weekly ${w[0]}% of ${w[1]}%"><span class="nm">${nm}</span><span class="meter">${mrow('S',s[0],s[1],s[2])}${mrow('W',w[0],w[1],w[2])}</span>${state?`<span class="state">${state}</span>`:''}</span>`;
+}
+const head=(limits,extra='')=>`<header class="bar"><span class="brand">braid · attention board</span><span class="sub">demo · braids/</span><span class="grow"></span><span class="limits">${limits}</span><span class="pill">Inbox 4 · 3 ideas</span><label class="chk"><input type="checkbox" checked> Details</label><span class="sub" style="font-size:12px">refreshes every 30 s</span><span class="btn">Refresh</span>${extra}</header>`;
+const OK=chip('Claude_Everix',[46,97],[55,95])+chip('codex',[14,97],[60,95])+chip('cursor',null,null,'unk','not measured');
+const NEAR=chip('Claude_Everix',[91,97,1],[72,95],'near')+chip('codex',[14,97],[60,95])+chip('cursor',null,null,'unk','not measured');
+const PAUSING=chip('Claude_Everix',[97,97,1],[72,95],'over','pausing… 2 of 3')+chip('codex',[16,97],[60,95])+chip('cursor',null,null,'unk','not measured');
+const PAUSED=chip('Claude_Everix',[98,97,1],[72,95],'paused','paused · resumes 13:55')+chip('codex',[18,97],[60,95])+chip('cursor',null,null,'unk','not measured');
+const STALE=chip('Claude_Everix',null,null,'unk','no reading for 14 min')+chip('codex',[14,97],[60,95])+chip('cursor',null,null,'unk','not measured');
+const WEEKLY=chip('Claude_Everix',[40,97],[96,95,1],'paused','weekly · resumes Thu 07:05')+chip('codex',[18,97],[60,95])+chip('cursor',null,null,'unk','not measured');
+
+const tier=t=>`<span class="tier">${t}</span>`;
+const id=(z,d,r='')=>`<span class="id">${z}<b>${d}</b>${r}</span>`;
+const ln=(tone,main,small)=>`<div class="ln ${tone}">${main}${small?`<small>${small}</small>`:''}</div>`;
+function card({z='00',n,title,t='tier:M',marks='',done=0,total=1,line='',btn='🧠'}){
+ return `<div class="card"><div class="ch">${id(z,n)}${tier(t)}${marks}<span class="grow"></span><span class="id">▸ strands</span></div><div class="ttl">${title}</div><div class="prog"><div class="pt"><div class="pf" style="width:${done/total*100}%"></div></div><span class="pn">${done}/${total}</span></div>${line}<div class="foot">${btn?`<span class="ob">${btn}</span>`:''}</div></div>`;}
+const lane=(name,color,n,cards)=>`<div class="lane"><div class="lh"><span class="dot" style="background:${color}"></span>${name}<span class="grow"></span>${n}</div>${cards}</div>`;
+const NEED=card({n:'3',title:'Sample export',line:ln('amb','An agent asked a question: answer it in its thread','strand 0003/A · asked 4 min ago'),btn:''});
+const todo=card({n:'12',title:'Sample CSV import',btn:'▶'});
+const work=(m)=>m;
+
+const S=[];
+const screen=(cap,small,html)=>S.push(`<div class="screen"><div class="cap">${cap} <small>${small}</small></div>${html}</div>`);
+
+// 1. header strip
+screen('1. The header strip: one chip per provider','Each chip: Session (S) and Weekly (W) used, with the threshold as a tick. Providers: every instance in BRAID.md models of the listed projects plus any a running thread uses. Hover shows the numbers in words; a click opens the limits panel (screen 3).',
+ `<div style="border:1px solid var(--slate200);border-radius:8px;overflow:hidden">
+ ${head(OK)}<div style="padding:6px 20px;font-size:12px;color:var(--slate500)">a. all under their thresholds (grey). cursor is <i>not measured</i> (T3 reports it unsupported): never paused.</div>
+ ${head(NEAR)}<div style="padding:6px 20px;font-size:12px;color:var(--slate500)">b. near: within 10 points of the threshold, amber. Nothing happens yet.</div>
+ ${head(PAUSING)}<div style="padding:6px 20px;font-size:12px;color:var(--slate500)">c. over: red. The board started a 🚦 steering thread; 2 of 3 agents have answered <code>Paused:</code>.</div>
+ ${head(PAUSED)}<div style="padding:6px 20px;font-size:12px;color:var(--slate500)">d. paused: sky. Every agent on Claude_Everix answered; the board resumes them at 13:55 (reset 13:50 + 5 min buffer) after a re-check.</div>
+ ${head(WEEKLY)}<div style="padding:6px 20px;font-size:12px;color:var(--slate500)">e. a weekly window: paused until Thursday, and a request in Needs You (screen 4).</div>
+ ${head(STALE)}<div style="padding:6px 20px;font-size:12px;color:var(--slate500)">f. unknown: T3's cache for Claude_Everix is older than 10 min (stale). Unknown never pauses; the chip says why.</div>
+ </div>`);
+
+// 2. board while pausing and paused
+const cPausing=card({n:'25',title:'Sample uploads',done:1,total:3,marks:ic(SPIN,'#0284c7'),line:ln('sky','Pausing for Claude_Everix Session 97%: 1 of 2 agents answered','🚦 steering thread started 40 s ago · 0025/B hasn’t answered yet')});
+const cPausing2=card({n:'26',title:'Sample webhooks',t:'tier:S',total:1,marks:ic(SPIN,'#0284c7'),line:ln('sky','Pausing for Claude_Everix Session 97%: 1 of 1 agent answered','🚦 steering thread started 40 s ago')});
+const cCodex=card({n:'5',title:'Sample themes (worker on codex)',t:'tier:S',total:2,marks:ic(SPIN,'#2563eb'),line:ln('sky','Runs on codex: not paused','',)}).replace('class="ln sky"','class="ln" style="border-color:#cbd5e1;background:#f8fafc;color:#475569"');
+screen('2. The board while it pauses','Over a threshold the cards of braids with agents on that provider carry a spinner and a sky line until every agent answered. A braid whose agents run on another provider keeps going.',
+ `<div style="border:1px solid var(--slate200);border-radius:8px;overflow:hidden">${head(PAUSING)}<div class="lanes">${lane('Needs You','#f59e0b',1,NEED)}${lane('To Review','#7c3aed',0,'')}${lane('Working','#2563eb',3,cPausing+cPausing2+cCodex)}${lane('To Do','#cbd5e1',1,todo)}</div></div>`);
+
+const cPaused=card({n:'25',title:'Sample uploads',done:1,total:3,marks:ic(P,'#0284c7'),line:ln('sky','Paused: Claude_Everix Session 98%, resumes 13:55','paused by the board 6 min ago · 2 of 2 agents answered')});
+const cPaused2=card({n:'26',title:'Sample webhooks',t:'tier:S',total:1,marks:ic(P,'#d97706'),line:ln('amb','Paused: Claude_Everix Session 98%; 1 agent didn’t answer','paused by the board 6 min ago · 0026/A: no answer in 10 min; check its thread')});
+const cDue=card({n:'27',title:'Sample quotas',t:'tier:S',total:1,marks:ic(P,'#d97706'),line:ln('amb','Paused: Claude_Everix Session 97%; resume was due at 12:40','no board was running then · resumes at the next refresh after a re-check')});
+screen('3. Paused by the board, and the limits panel','Paused cards say “paused by the board” and how many agents answered. One that never answered is amber with the strand. The panel opens from a chip or from Details.',
+ `<div style="border:1px solid var(--slate200);border-radius:8px;overflow:hidden">${head(PAUSED)}<div class="cols"><div style="display:grid;grid-template-columns:300px;gap:0" class="lane"><div class="lh"><span class="dot" style="background:#2563eb"></span>Working<span class="grow"></span>3</div>${cPaused+cPaused2+cDue}</div>
+ <div class="panel"><h3>Provider limits</h3><p class="hint">From <code>braid limits</code> at each refresh (read 20 s ago). Thresholds: session 97%, weekly 95%, buffer 5 min (BRAID.md <code>limits</code>).</p>
+  <div class="prov"><div class="ph"><span class="nm">Claude_Everix</span><span class="badge b-paused">paused · resumes 13:55</span><span class="grow"></span><span class="roles">coordinator, worker, researcher</span></div>
+   <div class="win"><span>Session</span><div class="track"><div class="fill" style="width:98%;background:var(--sky)"></div><div class="tick" style="left:97%"></div></div><span class="pct">98%</span><span class="when">resets 13:50 (in 52 min)</span></div>
+   <div class="win"><span>Weekly</span><div class="track"><div class="fill" style="width:72%"></div><div class="tick" style="left:95%"></div></div><span class="pct">72%</span><span class="when">resets Thu 07:00</span></div>
+   <div class="win"><span>Weekly · Fable</span><div class="track"><div class="fill" style="width:8%"></div><div class="tick" style="left:95%"></div></div><span class="pct">8%</span><span class="when">counts only for fable models</span></div>
+   <div class="agents">Paused: 0025 (coordinator, 0025/B), 0026 (coordinator, 0026/A: no answer), 0027 (due 12:40). Running on it: none.</div>
+   <div class="steer">🚦 Steering thread on codex / gpt-6-luna, started 12:52, settled 12:53: 4 of 5 agents answered <code>Paused:</code>; 0026/A no answer. <u>Open thread</u></div></div>
+  <div class="prov"><div class="ph"><span class="nm">codex</span><span class="badge b-ok">ok</span><span class="grow"></span><span class="roles">worker.task, steering (fallback)</span></div>
+   <div class="win"><span>Session</span><div class="track"><div class="fill" style="width:18%"></div><div class="tick" style="left:97%"></div></div><span class="pct">18%</span><span class="when">resets 15:22</span></div>
+   <div class="win"><span>Weekly</span><div class="track"><div class="fill" style="width:60%"></div><div class="tick" style="left:95%"></div></div><span class="pct">60%</span><span class="when">resets 14:03</span></div>
+   <div class="agents">Running on it: 0005/A (worker).</div></div>
+  <div class="prov"><div class="ph"><span class="nm">cursor</span><span class="badge b-unk">not measured</span><span class="grow"></span><span class="roles">reviewer</span></div>
+   <div class="agents">T3 can’t read this provider’s usage (unsupported); its agents are never paused for it.</div></div>
+ </div></div></div>`);
+
+// 4. weekly request and failed steering
+const cWeekly=card({n:'25',title:'Sample uploads',done:1,total:3,marks:ic(P,'#0284c7')+'<span class="ic" style="color:#f59e0b">⚖</span>',line:ln('amb','Weekly limit: Claude_Everix Weekly 96% until Thu 07:00. Wait for the reset, or move coordinator, worker to another provider in BRAID.md models','paused by the board 2 min ago · resumes Thu 07:05 if you wait'),btn:'🧠'});
+const cFail=card({n:'26',title:'Sample webhooks',t:'tier:S',total:1,marks:'<span class="ic" style="color:#dc2626">✕</span>',line:ln('red','Pause failed: the 🚦 steering thread stopped (provider error) before every agent answered','0026/A may still be running on Claude_Everix · open the steering thread, or pause by hand'),btn:'🚦'});
+screen('4. What lands in Needs You','Only two limit states need the user: a weekly window (wait or move a role; derived from the pause record, no file) and a pause that failed. Both are pushed at high priority.',
+ `<div class="lanes" style="grid-template-columns:300px 300px">${lane('Needs You','#f59e0b',2,cWeekly+cFail)}${lane('Working','#2563eb',0,'')}</div>`);
+
+// 5. phone
+const phone=(strip,body)=>`<div class="phone"><header class="bar"><span class="brand">braid</span><span class="grow"></span><span class="btn">Refresh</span></header><div class="lstrip">${strip}</div><div class="tabs"><span>Needs 1</span><span>Review 0</span><span class="on">Working 3</span><span>To Do 1</span><span>Done</span></div><div style="padding:10px;background:var(--slate100)">${body}</div></div>`;
+screen('5. On the phone','The chips move into a strip under the header, scrolling sideways; a tap opens the panel full-screen like the item details.',
+ `<div style="display:flex;gap:24px;flex-wrap:wrap">${phone(OK,card({n:'25',title:'Sample uploads',done:1,total:3}))}${phone(PAUSED,cPaused)}</div>`);
+
+// 6. pushes
+const nt=(title,body,tag,high=false)=>`<div class="nt"><div class="app"><span>ntfy · braid${high?'<span class="prio">HIGH</span>':''}</span><span>now</span></div><b>${tag} ${title}</b>${body.replace(/\n/g,'<br>')}</div>`;
+const pushes=[
+ ['Pause started','<code>pause:Claude_Everix:five_hour:&lt;resetsAt&gt;</code>','Claude_Everix: pausing','Session 97% (threshold 97%). Pausing 0025, 0026, 0027 (5 agents) until 13:55.','⏸️','double_vertical_bar','default','the steering thread'],
+ ['Paused (all answered)','<code>…:paused</code>','Claude_Everix paused until 13:55','0025, 0026, 0027: 5 of 5 agents paused.\nResumes at 13:55 after a re-check.','⏸️','double_vertical_bar','low','none'],
+ ['Paused, someone didn’t answer','<code>…:paused</code>','Claude_Everix paused; 1 agent didn’t answer','4 of 5 agents paused. 0026/A didn’t answer in 10 min: it may still be using Claude_Everix.','⚠️','warning','high','that agent’s thread'],
+ ['Pause failed','<code>…:failed</code>','Claude_Everix: pause failed','The steering thread stopped (provider error) before every agent answered. Still running: 0026/A.','❌','x','high','the steering thread'],
+ ['Resumed','<code>…:resumed</code>','Claude_Everix resumed','Session at 4% after the reset. 0025, 0026, 0027 go on.','▶️','arrow_forward','default','none'],
+ ['Still over at the resume time','<code>…:extended:&lt;new resetsAt&gt;</code>','Claude_Everix still over: resumes 18:55','Session 98% at 13:55 (the reset didn’t come). 0025, 0026, 0027 stay paused.','⏸️','double_vertical_bar','default','none'],
+ ['Resume missed while the board was down','<code>…:resumed</code>','Claude_Everix resumed (was due 12:40)','No board ran at 12:40. Re-checked at start: Session at 3%. 0027 goes on.','▶️','arrow_forward','default','none'],
+ ['Weekly window (a request)','<code>…:seven_day:&lt;resetsAt&gt;:weekly</code>','Claude_Everix weekly limit: needs you','Weekly 96% until Thu 07:00. 0025, 0026 paused.\nWait for the reset, or move coordinator, worker to another provider in BRAID.md models.','⚖️','scales','high','the first braid’s coordinator'],
+ ['No provider to steer from','<code>…:nosteer</code>','Claude_Everix over, steering from it','Every steering provider is over its threshold; the 🚦 thread runs on Claude_Everix / claude-haiku-5-5 in the 3% margin.','⚠️','warning','default','the steering thread'],
+];
+const rows=pushes.map(p=>`<tr><td>${p[0]}</td><td><b>${p[2]}</b></td><td>${p[3].replace(/\n/g,'<br>')}</td><td>${p[4]} <code>${p[5]}</code></td><td>${p[6]}</td><td>${p[7]}</td><td>${p[1]}</td></tr>`).join('');
+screen('6. The pushes','One push per event and provider, never one per braid. Titles name the provider (it spans repos when the board lists several projects); bodies name braids and strands, nothing else from the repository. Keys go in .braid/notified.json like the need keys.',
+ `<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start"><div class="lock">${nt(pushes[0][2],pushes[0][3],pushes[0][4])}${nt(pushes[1][2],pushes[1][3],pushes[1][4])}${nt(pushes[2][2],pushes[2][3],pushes[2][4],true)}${nt(pushes[4][2],pushes[4][3],pushes[4][4])}${nt(pushes[7][2],pushes[7][3],pushes[7][4],true)}</div>
+ <table class="push"><tr><th>Event</th><th>Title</th><th>Body</th><th>Tag</th><th>Priority</th><th>Click</th><th>Key (dedupe)</th></tr>${rows}</table></div>
+ <p class="note">Recommended trim, for the user to choose: send “Pause started” only when the pause doesn’t complete within a minute (then “Paused” alone covers the normal case), so a normal pause and resume is two quiet pushes (low and default) and only the failures, the missing answer and the weekly window are high.</p>`);
+
+document.getElementById('out').innerHTML=S.join('');
+</script></body></html>

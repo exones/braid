@@ -1,7 +1,7 @@
 ---
 id: '0064/A'
 title: "Spike: steering thread, board limits view and pushes"
-status: To Do
+status: In Progress
 labels: ["kind:spike", "tier:M", "ui"]
 dependencies: []
 order: 10
@@ -44,12 +44,19 @@ Then propose B to D: their scope, sizes and any change to the plan.
 
 - Building any of it; changing T3.
 
+## Plan
+
+1. Read 0061/A, limits.md, the board's pause, T3 and notify code, and `t3` help at 0.1.6.
+2. Live: start haiku probes on Claude_Everix (a busy worker, a coordinator in `t3_thread_wait` on a `delegate_task` child), then a CLI-started haiku steering thread that finds children itself and steers all three; time each step. Then a CLI resume to the idle targets, and how the steering thread ends (archive vs settle). Archive every probe.
+3. Settle Q2 to Q5 from the runs and the code; mockups of the limits view, the pausing and paused states, the phone and the pushes on demo data, rendered to PNG.
+4. `report.md` (researcher shape plus B to D), `sources.md`, gate, PR.
+
 ## Completion
 
-- [ ] `report.md` answers questions 1 to 6 with confidence and evidence, and proposes B to D
-- [ ] The steering thread's reach measured live on a busy worker, a coordinator in `t3_thread_wait` and a `delegate_task` child, with times
-- [ ] Mockups of the board's limits view and the push texts, from demo data, in the item folder
-- [ ] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `report.md` answers questions 1 to 6 with confidence and evidence, and proposes B to D
+- [x] The steering thread's reach measured live on a busy worker, a coordinator in `t3_thread_wait` and a `delegate_task` child, with times
+- [x] Mockups of the board's limits view and the push texts, from demo data, in the item folder
+- [x] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
