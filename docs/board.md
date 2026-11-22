@@ -104,7 +104,7 @@ This is the one exception to the rule that the board acts only on your click ([R
 - **A weekly window** pauses the same way and reads Needs You (reason `limit`, the ⚖ mark) until the reset: "Weekly limit: Claude_Everix Weekly 96% until Thu 07:00. Wait for the reset, or move its roles to another provider in BRAID.md models". It is derived from the record; no request is written. Waiting is doing nothing: the board resumes at the reset.
 - **The limits panel** shows the last steering thread per provider: "🚦 Steering thread on codex / gpt-6-luna, started 12:52: 4 of 5 agents answered Paused:; no answer: 0026/A", with Open thread.
 
-No board running means nothing pauses and nothing resumes; the skills' own checks are 0064/D's.
+No board running means nothing pauses and nothing resumes. Coordinators and PMs keep only the check before a launch (on exit 3 they launch nothing on that provider and say so once), and they act on the board's pause and resume messages when a board runs; see the braid skill's `references/limits.md`.
 
 ## Programmes
 
