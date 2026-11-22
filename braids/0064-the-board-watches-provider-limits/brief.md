@@ -55,10 +55,10 @@ Expected size: about 1,000 lines in 20 files across the strands; the spike's rep
 
 ## Completion
 
-- [ ] The board shows each provider's usage against its threshold, from `braid limits`, at each refresh
-- [ ] Over a threshold, the board pauses every running agent on that provider through a steering thread, and records the pause; agents on other providers keep running
-- [ ] The board resumes paused braids after the reset plus the buffer, after re-checking, also after a restart that missed the resume time
-- [ ] Pauses, resumes and weekly windows are pushed over ntfy; a weekly window reads Needs You until the reset
-- [ ] Coordinators and PMs keep no limits check task or resume task, and act on the board's pause and resume messages
-- [ ] The docs from BRAID.md `docs` describe the board-driven pause, and `docs/decisions.md` records the change from D87
-- [ ] The gate command from BRAID.md passes
+- [x] The board shows each provider's usage against its threshold, from `braid limits`, at each refresh
+- [x] Over a threshold, the board pauses every running agent on that provider through a steering thread, and records the pause; agents on other providers keep running
+- [x] The board resumes paused braids after the reset plus the buffer, after re-checking, also after a restart that missed the resume time
+- [x] Pauses, resumes and weekly windows are pushed over ntfy; a weekly window reads Needs You until the reset
+- [x] Coordinators and PMs keep no limits check task or resume task, and act on the board's pause and resume messages
+- [x] The docs from BRAID.md `docs` describe the board-driven pause, and `docs/decisions.md` records the change from D87
+- [x] The gate command from BRAID.md passes
