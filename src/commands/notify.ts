@@ -107,7 +107,7 @@ export async function notifyCommand(args: readonly string[], deps: NotifyDeps = 
   }
   const send = deps.send ?? ntfySender();
   try {
-    await send(config, { title: "braid: test", body: "Notifications from braid board reach this device.", tags: ["white_check_mark"], priority: "default", click: null }, tokenOf(env));
+    await send(config, { title: "braid: test", body: "Notifications from braid board reach this device.", tags: ["white_check_mark"], priority: "default", click: null, sequence: null }, tokenOf(env));
   } catch (e) {
     throw new UsageError(`the test push failed: ${e instanceof Error ? e.message : String(e)}`);
   }

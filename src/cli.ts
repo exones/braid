@@ -19,7 +19,7 @@ import { startCommand } from "./commands/start.js";
 import { acceptCommand } from "./commands/done.js";
 import { waitCommand } from "./commands/wait.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
-import { answerCommand, askCommand, handoverCommand, requestsCommand, reviewCommand } from "./commands/requests.js";
+import { answerCommand, askCommand, forwardCommand, handoverCommand, requestsCommand, reviewCommand } from "./commands/requests.js";
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
 import { autonomyCommand } from "./commands/autonomy.js";
 import { limitsCommand } from "./commands/limits.js";
@@ -57,6 +57,7 @@ export function helpText(version: string): string {
     "  autonomy <number>           Print the autonomy preset a braid runs on, where its name and text come from, and the brief's ## Autonomy section (--list: the presets available here)",
     "  limits [<instance>]         Whether an agent may be launched on each provider in BRAID.md models, from T3's usage caches: windows, usage, verdict ok|pause|unknown, for pause the resume time (--role <role> [--tier <T>] [--kind <k>] narrows, e.g. --role worker --kind story; --json; exit 3 on pause)",
     "  pause <number> --provider <instance> --thread <id>  Record that a braid waits for a provider's usage window in .braid/pauses.json: window, usage and resume time from braid limits (refused unless its verdict is pause; --window <id> picks the window, --until <iso> sets the resume time and pauses anyway), --task <id> the scheduled resume task, --by coordinator|pm. The board and status show it",
+    "  pause <number> --hold \"<words>\" --thread <id>  Record a deliberate hold (yours or the PM's): no provider, no resume time, never stalled; shows paused with your words until braid resume (--by coordinator|pm)",
     "  resume <number>             Clear a braid's pause and print what was cleared",
     "  brief <id> <section>       Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
@@ -72,8 +73,9 @@ export function helpText(version: string): string {
     "  wait <number> [--timeout <minutes>]  Wait for the braid branch's CI on its newest commit outside braids/ and epics/ (reads only): exit 0 green, 1 a ci check failed, 2 no run within 5 minutes or an error, 3 still running when --timeout (minutes, default 30) is up: call again",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case",
     "  recap <id>                  A draft recap and braid log line from report.md, the PR (head, checks) and the facts, to edit",
-    "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints the recap draft (--thread)",
-    "  ask <id> <text>             Open a request for what the coordinator needs from you (--kind question|decision|plan, --key <stop case>, --thread, --file -)",
+    "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints the recap draft (--thread, --to pm)",
+    "  ask <id> <text>             Open a request for what the coordinator needs from you (--kind question|decision|plan, --key <stop case>, --thread, --file -; --to pm: the PM answers first, from the braid's PM-run line)",
+    "  forward <id>                The PM hands a request addressed to it on to you: it reaches Needs You at once and is pushed (--note <text>)",
     "  answer <id>                 Close the item's request (--log <file>|- adds your decision to the braid log; --thread)",
     "  requests                    List the open requests: item, kind, age, text",
     "  note <text> --from <source>  Capture a leftover on the braid-inbox branch and push it (source: 0012/A, review 0012/A, PR #12 or user; --ref <url> repeats; --file -)",
@@ -113,7 +115,7 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
+const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "forward", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
@@ -135,6 +137,8 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
       return askCommand(root, args);
     case "answer":
       return answerCommand(root, cwd, args);
+    case "forward":
+      return forwardCommand(root, args);
     case "requests":
       return requestsCommand(root, args);
     case "check": {

@@ -8,11 +8,18 @@ import { locked, mainCheckout } from "./requests.js";
 export const PAUSERS = ["coordinator", "pm"] as const;
 export type Pauser = (typeof PAUSERS)[number];
 
+export const REASONS = ["limit", "hold"] as const;
+export type Reason = (typeof REASONS)[number];
+
 export interface Pause {
   /** The braid number: `0061`. */
   readonly braid: string;
-  /** The provider instance (`Claude_Everix`), as `BRAID.md` `models` and T3's caches name it. */
-  readonly provider: string;
+  /** `limit`: a provider's usage window (0061); `hold`: the user's or the PM's deliberate pause. A record without it is a limit. */
+  readonly reason?: Reason;
+  /** A hold's words (the user's own); null or absent for a limit. */
+  readonly words?: string | null;
+  /** The provider instance (`Claude_Everix`), as `BRAID.md` `models` and T3's caches name it; null for a hold. */
+  readonly provider: string | null;
   /** The window over its threshold (`five_hour`) and its label (`Session`); null when not known (`--until` without a reading). */
   readonly window: string | null;
   readonly label: string | null;
@@ -21,7 +28,7 @@ export interface Pause {
   /** When the window resets (ISO); null when not known. */
   readonly resetsAt: string | null;
   /** When work resumes (ISO): the reset plus the buffer, or `--until`. */
-  readonly resumeAt: string;
+  readonly resumeAt: string | null;
   /** The scheduled resume task's id (T3 `schedule_task`); null when none was given. */
   readonly task: string | null;
   /** The pausing thread: the coordinator's or the PM's, which the resume task wakes. */
@@ -41,6 +48,9 @@ export function pausesFile(root: string): string {
   return join(mainCheckout(root), ".braid", "pauses.json");
 }
 
+/** A pause's reason; a record without one is a limit. */
+export const reasonOf = (p: Pick<Pause, "reason">): Reason => p.reason ?? "limit";
+
 const isIso = (v: unknown): v is string => typeof v === "string" && !Number.isNaN(Date.parse(v));
 const strOrNull = (v: unknown): v is string | null => v === null || typeof v === "string";
 
@@ -52,13 +62,12 @@ function valid(v: unknown): v is Pause {
   return (
     typeof p.braid === "string" &&
     /^\d{4}$/.test(p.braid) &&
-    typeof p.provider === "string" &&
-    p.provider !== "" &&
+    (p.reason === undefined || (REASONS as readonly unknown[]).includes(p.reason)) &&
+    (p.reason === "hold" ? p.provider === null && p.resumeAt === null && typeof p.words === "string" && p.words !== "" : typeof p.provider === "string" && p.provider !== "" && isIso(p.resumeAt)) &&
     strOrNull(p.window) &&
     strOrNull(p.label) &&
     (p.usedPercent === null || typeof p.usedPercent === "number") &&
     (p.resetsAt === null || isIso(p.resetsAt)) &&
-    isIso(p.resumeAt) &&
     strOrNull(p.task) &&
     typeof p.thread === "string" &&
     (PAUSERS as readonly unknown[]).includes(p.by) &&

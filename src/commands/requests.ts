@@ -2,7 +2,7 @@
 // needs the user (a request), and closes it again. The store is src/braids/requests.ts.
 import { threadShort } from "../braids/logs.js";
 import { loadKnownBraids } from "../braids/branches.js";
-import { age, closeRequest, KINDS, liveRequests, openRequest, type Kind, type PrNow, type Request } from "../braids/requests.js";
+import { age, closeRequest, forwardRequest, KINDS, liveRequests, loadRequests, openRequest, type Kind, type PrNow, type Request } from "../braids/requests.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
 import { UsageError } from "./braids.js";
@@ -25,6 +25,27 @@ function threadOf(values: Parameters<typeof str>[0]): string | null {
     throw new UsageError(`--thread needs an id with at least 8 letters or digits; got: ${thread ?? ""}`);
   }
   return thread ?? null;
+}
+
+/** The braid's exception line names its PM: `PM-run (thread <id>)`. */
+const PM_RUN = /PM-run \(thread ([A-Za-z0-9_-]{8,})\)/;
+
+/** `--to user|pm`: whom the request is for; `pm` needs the PM's thread from the braid's `PM-run (thread <id>)` line, and fails (opening nothing) without it. */
+function addressee(root: string, values: Parameters<typeof str>[0], id: string): { to?: "pm"; pm?: string } {
+  const to = str(values, "to");
+  if (to === undefined || to === "user") {
+    return {};
+  }
+  if (to !== "pm") {
+    throw new UsageError(`--to is user or pm; got: ${to}`);
+  }
+  const number = id.slice(0, 4);
+  const braid = loadKnownBraids(root, number).find((b) => b.number === number);
+  const pm = braid === undefined ? null : (PM_RUN.exec(braid.brief.body)?.[1] ?? null);
+  if (pm === null) {
+    throw new UsageError(`${id} not opened: --to pm needs braid ${number}'s brief to have a "PM-run (thread <id>)" line, and it has none; nothing changed`);
+  }
+  return { to: "pm", pm };
 }
 
 /** The item's id (`0015` or `0015/C`), checked against the braids `braid view` finds: this checkout's and those that live only on their branch. */
@@ -58,16 +79,17 @@ export async function reviewCommand(root: string, args: readonly string[], opts:
 }
 
 export async function handoverCommand(root: string, args: readonly string[], opts: RequestOptions = {}): Promise<string> {
-  const { positionals, values } = parse("braid handover", args, { head: { type: "string" }, thread: { type: "string" } });
+  const { positionals, values } = parse("braid handover", args, { head: { type: "string" }, thread: { type: "string" }, to: { type: "string" } });
   const head = str(values, "head");
   if (positionals.length !== 1 || head === undefined) {
-    throw new UsageError("usage: braid handover <id> --head <sha> [--thread <id>]");
+    throw new UsageError("usage: braid handover <id> --head <sha> [--thread <id>] [--to user|pm]");
   }
   if (!/^[0-9a-fA-F]{7,40}$/.test(head)) {
     throw new UsageError(`--head needs a commit sha (7 to 40 hex digits); got: ${head}`);
   }
   const thread = threadOf(values);
   const id = itemId(root, positionals[0], "braid handover");
+  const route = addressee(root, values, id);
   const run = opts.gh ?? runGh;
   const github = readGithub(root, run, 0);
   if (github.status.state !== "ok") {
@@ -93,20 +115,20 @@ export async function handoverCommand(root: string, args: readonly string[], opt
     fail(checks.why);
   }
   const at = (opts.now ?? (() => new Date()))();
-  openRequest(root, { id, kind: "review", text: `review PR #${pr.number} at ${pr.headRefOid.slice(0, 7)}`, at: at.toISOString(), thread, pr: pr.number, head: pr.headRefOid });
+  openRequest(root, { id, kind: "review", text: `review PR #${pr.number} at ${pr.headRefOid.slice(0, 7)}`, at: at.toISOString(), thread, pr: pr.number, head: pr.headRefOid, ...route });
   const recap = await recapCommand(root, [id], { gh: run });
-  return `${notes.map((n) => `${n}\n`).join("")}${id}: review request opened for PR #${pr.number} at ${pr.headRefOid}\n\n${recap}`;
+  return `${notes.map((n) => `${n}\n`).join("")}${id}: review request ${route.to === "pm" ? "to the PM " : ""}opened for PR #${pr.number} at ${pr.headRefOid}\n\n${recap}`;
 }
 
 export function askCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
-  const { positionals, values } = parse("braid ask", args, { kind: { type: "string" }, key: { type: "string" }, thread: { type: "string" }, file: { type: "string" } });
+  const { positionals, values } = parse("braid ask", args, { kind: { type: "string" }, key: { type: "string" }, thread: { type: "string" }, file: { type: "string" }, to: { type: "string" } });
   const kind = str(values, "kind") ?? "question";
   if (!KINDS.includes(kind as Kind) || kind === "review") {
     throw new UsageError(`--kind is question, decision or plan (a review comes from braid handover); got: ${kind}`);
   }
   const file = str(values, "file");
   if (positionals.length !== (file === undefined ? 2 : 1)) {
-    throw new UsageError('usage: braid ask <id> "<what is needed>" [--kind question|decision|plan] [--key <stop case>] [--thread <id>]  (or the text from --file -)');
+    throw new UsageError('usage: braid ask <id> "<what is needed>" [--kind question|decision|plan] [--key <stop case>] [--thread <id>] [--to user|pm]  (or the text from --file -)');
   }
   const thread = threadOf(values);
   const id = itemId(root, positionals[0], "braid ask");
@@ -115,9 +137,30 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
     throw new UsageError("braid ask: the text of what is needed must not be empty");
   }
   const key = str(values, "key");
+  const route = addressee(root, values, id);
   const at = (opts.now ?? (() => new Date()))();
-  openRequest(root, { id, kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread });
-  return `${id}: ${kind} request opened: ${text}\n`;
+  openRequest(root, { id, kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread, ...route });
+  return `${id}: ${kind} request ${route.to === "pm" ? "to the PM " : ""}opened: ${text}\n`;
+}
+
+/** `braid forward <id> [--note <text>]`: the PM hands a request on to the user; it reaches Needs You (a handover: To Review) at once and is pushed. */
+export function forwardCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
+  const { positionals, values } = parse("braid forward", args, { note: { type: "string" } });
+  if (positionals.length !== 1) {
+    throw new UsageError("usage: braid forward <id> [--note <text>]");
+  }
+  const id = itemId(root, positionals[0], "braid forward");
+  const note = str(values, "note")?.replace(/\s+/g, " ").trim();
+  const open = loadRequests(root).find((r) => r.id === id);
+  if (open === undefined) {
+    throw new UsageError(`${id}: no open request to forward`);
+  }
+  if (open.to !== "pm" || open.forwarded !== undefined) {
+    return `${id}: the ${open.kind} request is already the user's${open.forwarded === undefined ? "" : " (forwarded)"}; nothing changed\n`;
+  }
+  const given = note === undefined || note === "" ? undefined : note;
+  forwardRequest(root, id, (opts.now ?? (() => new Date()))().toISOString(), given);
+  return `${id}: ${open.kind} request forwarded to the user${given === undefined ? "" : `: ${given}`}\n`;
 }
 
 export function answerCommand(root: string, cwd: string, args: readonly string[]): string {
@@ -154,5 +197,5 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
     return "no open requests\n";
   }
   const now = (opts.now ?? (() => new Date()))();
-  return `${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.id}  ${r.kind}  ${age(r.at, now)}  ${r.text}`).join("\n")}\n`;
+  return `${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.id}  ${r.kind}  ${age(r.at, now)}  ${r.forwarded !== undefined ? "forwarded by the PM  " : r.to === "pm" ? "to the PM  " : ""}${r.text}`).join("\n")}\n`;
 }

@@ -22,6 +22,14 @@ export interface Request {
   /** A review request: the PR and the head commit handed over. */
   readonly pr?: number;
   readonly head?: string;
+  /** Whom it is for: `pm` (the programme manager answers first) or `user`. A record without it is the user's. */
+  readonly to?: "user" | "pm";
+  /** The PM's thread (id) of a request to the PM, from the brief's `PM-run (thread <id>)` line. */
+  readonly pm?: string;
+  /** When the PM forwarded it to the user (`braid forward`), ISO. */
+  readonly forwarded?: string;
+  /** The PM's note with the forward. */
+  readonly note?: string;
 }
 
 /** What `gh pr view --json state,headRefOid` says of a PR; `headRefOid` is the full commit sha, as stored in a review request's `head`. null: GitHub couldn't be read. */
@@ -178,6 +186,20 @@ export function closeRequest(root: string, id: string): boolean {
     return found ? list.filter((r) => r.id !== id) : null;
   });
   return found;
+}
+
+/** Hands the item's request to the user (`braid forward`): `to: user`, `forwarded` now, the note kept. Null when there is no open request. */
+export function forwardRequest(root: string, id: string, at: string, note: string | undefined): Request | null {
+  let out: Request | null = null;
+  update(requestsFile(root), (list) => {
+    const old = list.find((r) => r.id === id);
+    if (old === undefined) {
+      return null;
+    }
+    out = { ...old, to: "user", forwarded: at, ...(note === undefined ? {} : { note }) };
+    return list.map((r) => (r === old ? out : r)) as Request[];
+  });
+  return out;
 }
 
 /** A review request is void when its PR is no longer open (in any letter case) or is at another head (the full sha). A PR that can't be read (null) leaves it. */
