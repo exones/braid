@@ -9,7 +9,7 @@ hold:
 next: P2 Precise notifications, when P0 finishes; its code strands after P1 · 0064 merges
 digest:
 rows:
-  - P0 | - | Coordinators stop waiting in the foreground | running
+  - P0 | 0068 | Coordinators stop waiting in the foreground | running
   - P1 | 0064 | The board watches provider limits | running
   - P2 | - | Precise notifications | planned
   - P3 | - | Questions on record | planned
@@ -49,6 +49,7 @@ The user's decisions, quoted and dated, then the PM's own.
 - 2026-11-22, user, priorities: 0 foreground waits; 1 precise notifications; 2 explicit questions; 2.x aeli promoted to a braid; 2.4 lanes, Held, Hold; 2.5 stall nudges; 3 headless board; 4 better output and reports (written "#5"); 5 evidence; 6 learnings.
 - 2026-11-22, user, on P0: "very annoying thing to fix almost immediately: now coordinator waits for subordinate threads in foreground. remove it, it puts arriving messages in the queue"; "yes" to running it now; "now we have workers wake the coordinator + board detects stale coordinator so we are covered".
 - 2026-11-22, user, on P3: "I don't want to answer from board now, will be enough that I can see the question, navigate to the thread, refer to it by some code, ask question about this question etc."; "if they need some info, it should go not only via chat, but via braid cli"; "coordinator can ask question to PM, and it can answer as I would. And coordinator would record it as answer".
+- 2026-11-22, PM for P0 · 0068: plan approved as proposed (one tier L story; braid-branch CI read with short `braid wait --timeout 0.25` calls before the next strand's review or merge and before the final PR; no board CI view), because it meets the goal without a blocking wait and is cheap to reverse; leftover 2026-11-22-zmry passed there, routed to P2.
 - 2026-11-22, PM: 2026-11-22-n46f (pushes only for what needs the user under a PM) is P2, as the user said ("basically what I told about more precise notifications").
 - 2026-11-22, PM: the headless board (2026-11-21-mbb2) goes into P7 · 0067: `braid board --no-open` and the login recipes already exist (docs/board.md "Run the board at login"); what is missing is the page being able to act (0067's token address) and, if the coordinator finds it worth it, a command that installs the login task.
 
@@ -58,7 +59,7 @@ Order: the user's priorities, then dependencies and overlap. A row starts when i
 
 | Row | Sketch | Braid | Coordinator thread | Depends on | State |
 | --- | --- | --- | --- | --- | --- |
-| P0 | **Coordinators stop waiting in the foreground.** The coordinator ends its turn and is woken by events (the worker's report, a `delegate_task` result, a PR watch), so the user's and the PM's messages no longer queue behind `t3_thread_wait` and `braid wait`. Try: write to a coordinator while its worker runs; it answers at once. | - | mcp:launch:c419718a1a923226aae4fd04259b64cecbd21c5cd9e70288b871e599f7a7e9bc | - | running |
+| P0 | **Coordinators stop waiting in the foreground.** The coordinator ends its turn and is woken by events (the worker's report, a `delegate_task` result, a PR watch), so the user's and the PM's messages no longer queue behind `t3_thread_wait` and `braid wait`. Try: write to a coordinator while its worker runs; it answers at once. | 0068 | mcp:launch:c419718a1a923226aae4fd04259b64cecbd21c5cd9e70288b871e599f7a7e9bc | - | running |
 | P1 | **The board watches provider limits.** Runs under its own coordinator (not PM-launched); D and E left. | 0064 | its own | - | running |
 | P2 | **Precise notifications.** A push only when someone explicitly asked the user: a request addressed to the user, a PM forward or escalation, the PM's own request, a merge into `main` the user keeps. A lane moving (To Review for a strand PR the coordinator merges itself, a braid Done under a PM) never pushes. The PM can push the digest and "nothing can run until you act" directly. A `mode` per machine (`all` or `escalations`). Looks at muting T3's own notifications for coordinator, worker and checker threads. Inbox: 2026-11-22-n46f; leftover 2026-11-22-zmry (a failed one-shot limit push lost on a multi-project board). Try: run a braid under a PM and get no push until the PM asks you. | - | - | P1's code merged (both change `src/notify/`); may plan before | planned |
 | P3 | **Questions on record.** Every question an agent needs answered is a `braid ask` record first and a chat message second (braid, braid-pm, and the roles that ask through their coordinator). The record keeps its history: who asked, for whom, state (open, answered, withdrawn with a reason), the answer, **who answered (the user or the PM)**, the PM's reason, the times. Each question has a short code shown on the board, in the push and in chat; `braid` shows a question by its code, so the user can refer to it from any thread. A question no longer needed is marked withdrawn, never vanishes; its push is cleared. No Answer button on the board yet; the card links to the asking thread. Also: requests on a story whose branch is gone after its merge (from 0036). Inbox: 2026-11-18-lpz8 (ledger on its own branch) as input for where the record lives. Try: ask, go away, come back: the question is on the board with its code, and after the answer it is listed with who answered. | - | - | P2 | planned |
@@ -85,6 +86,7 @@ P2 Precise notifications, when P0 finishes: its coordinator plans now and starts
 
 ## Change log
 
+- 2026-11-22 23:45Z: P0 is 0068; the PM approved its plan.
 - 2026-11-22 23:35Z: programme formed from the notes: P2 to P15 added in the user's priority order; n46f into P2, mbb2 into P7 · 0067, aeli and t7b8 into P4, 0036's parts routed to P3 and P9.
 - 2026-11-22 23:20Z: P0 launched at the user's request ahead of the rest of the planning; plan running.
 - 2026-11-22 22:00Z: plan started as a draft, held while planning; notes file added.
