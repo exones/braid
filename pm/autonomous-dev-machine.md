@@ -7,7 +7,7 @@ limit: 2
 state: running
 hold:
 next: "P6 · 0071 and P20 · 0073 (fewer CI runs first) run; then P4 · 0072, P5"
-digest: "23 Nov · 5 done · 2 running · 11 PM decisions"
+digest: "24 Nov · 5 done · 2 running · 13 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | done
@@ -142,6 +142,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-24: P20 · 0073/C merged into its braid branch (#283, 8af05a8): ci: all (2-minute grace, D101) and the puxp fix in braid clean. PM (q-l7z6): 0073/D starts now beside 0071/D (#282), because they edit different lines of braid/SKILL.md and the second braid into main merges main first, instead of holding D.
 - 2026-11-24: user, field observation: questions asked on the board but not in chat, so the board's short text has no fuller version ("it has to be duplicated in chat with more context why it's asked and what the answer will unblock"). The skill on main already says to ask in chat (Talking to the user), but the step lines say only `braid ask`; sent to 0071/D: one explicit sentence that a request never replaces the chat message, with why now and what the answer unblocks. P4 · 0072 makes "what it unblocks" structural.
 - 2026-11-23: P6 · 0071/C merged into its braid branch (#281, 27f247f): one nudge, then "Stalled after a nudge" and one PM message; 1oq8, dy2k in. 2h98: T3 hides subagent threads, so the PM records its live checker with `braid review pm/<slug> --thread <child id>` (skill line in 0071/D); leftover ozjp (records never dropped) kept in 0071. 0071/D (skills) running.
 - 2026-11-23: user: "for project colors don't use red palette colors: looks like errors and attracts too much attention": into 0073/E (TAG_COLOURS in web/src/App.tsx has pink-700 and orange-600; no red, pink, rose, orange or amber for projects).
