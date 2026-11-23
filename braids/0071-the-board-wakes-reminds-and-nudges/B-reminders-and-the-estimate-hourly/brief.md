@@ -15,6 +15,15 @@ This is a `ui` item: start with mockups of the card states on realistic test dat
 
 Expected size: about 450 lines in 10 files.
 
+## Plan
+
+0. Mockups (`mockups/reminders.html`, `reminders-full.png`): the card states A-G, the Requests tab history, the CLI, the messages, 0071/C's nudged card. Stop for approval.
+1. `src/braids/requests.ts`: events `reminded` and `escalated` (by `board`); `setEta(root, code, at, why, by)` (refuses a closed request); a duration/time parser.
+2. `src/commands/requests.ts`, `src/cli.ts`: `braid eta <code> <duration|time> ["<why>"]`; `eta`, `reminded`, `escalated` in `braid requests <code>`, "expected by" in the open list.
+3. `src/board/remind.ts` (new), run by the steerer's tick after the wake: per open wait or request to the PM whose asker and addressee braid are not held or paused: due when an hour has passed since opened or last reminded and the estimate (if any) has passed or is unset; addressee thread from `t3.coordinators` (else the PM when PM-run, else gone); send, then record `reminded`. A missed estimate or a gone addressee, not yet escalated since the last `eta`: send the PM one message (PM-run) and record `escalated`.
+4. `src/board/model.ts`, `signals.ts`, `web/src/App.tsx`: an open wait clears the stall; the wait row carries eta, last reminded, missed/gone; an escalated wait is the stall need with its reason.
+5. Tests (`test/board-remind.test.ts`, `test/requests-record.test.ts`, `test/lanes.test.ts`), docs (`docs/board.md`, `docs/cli.md`, `docs/braids-format.md`), gate.
+
 ## Start here
 
 - The braid's brief (`braid view 0071`): "Already decided" binds this strand (addressees, gone, escalation, held or paused).
