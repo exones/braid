@@ -23,6 +23,8 @@ Expected size: about 300 lines in 6 files, with tests.
 
 - Mockups first, on realistic test data from the board's demo data (`src/board/demo.ts`): a card with an open question (code, text, who it is for, a link to the asking thread), and where answered and withdrawn questions are listed (who answered, the answer, the PM's reason, the time). Stop and report them; build only after the verdict.
 - Then build: the code on every open request the board shows; the asking thread as the link; the closed requests, recent first, with state and who answered; the push text with the code; a withdrawn or met request clears its push.
+- From 0070/B: requests addressed to another braid are kept off the user's board lists and pushes since 0070/B; show them on the asking braid's card, with the "done when" (`closing` and `answeredRows` exist for it).
+- From 0070/B's review (https://github.com/exones/braid/pull/269#issuecomment-7102957695): the new `filterLive` test asserts only the count, not which request stays; and a `pr:` wait whose PR closes unmerged (`voidEnding`, withdrawn) has no test. Add both.
 - Tests: the model and the push rule with codes, an answered request listed with who answered, a withdrawn and a met request clearing their push.
 
 ## Already decided

@@ -21,6 +21,8 @@ Expected size: about 150 lines in 6 files.
 
 - Bring the docs from `docs` in `BRAID.md` up to date as a whole: README and getting started, `docs/cli.md`, `docs/board.md`, `docs/autonomy.md`, `docs/braids-format.md` (the record's form), `docs/decisions.md` (the record on its own branch, codes, states, answers off the braid branch, no question tool, the end markers, and why), `docs/roadmap.md` status, and the CLI's help text.
 
+- From 0070/B's review (https://github.com/exones/braid/pull/269#issuecomment-7102957695): the `recap` help line in `src/cli.ts` still says the draft comes from `report.md`, the PR and the facts; `docs/braids-format.md` and `docs/autonomy.md` ("What the CLI enforces") still describe `braid decisions` and `braid recap` as reading only `Decided:` log entries, not the answered requests.
+
 ## Already decided
 
 - The decisions record names the user's words from the braid's "Already decided" for each user decision.
