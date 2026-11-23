@@ -1,0 +1,19 @@
+{
+  "code": "q-7qq3",
+  "item": "0073",
+  "kind": "plan",
+  "text": "Approve the plan for 0073 (strands A-D; 0073/A first and into main early)",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-23T20:36:28.166Z",
+      "by": "coordinator"
+    }
+  ]
+}
