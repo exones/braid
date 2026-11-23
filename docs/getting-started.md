@@ -40,7 +40,9 @@ A target repository needs a `BRAID.md` at its root with the facts the skills rea
 
 - the `gate` command, run before every PR;
 - the `main` branch;
-- the required `ci` checks (`none` if it has no hosted CI);
+- the required `ci` checks: a list of names, `all` for every check reported on the commit (checks that vary with the paths a PR changes), or `none` if it has no hosted CI;
+- optional `merge-gate` and `merge-gate-on`: a command `braid accept --merge` runs before the merges it makes, which refuses the merge unless it exits 0, and which merges run it (strands into the braid branch, PRs into `main`, or both, the default);
+- optional `review-bots` and `reviewer-with-bots`: the bots that review PRs (by check name or comment author), whose comments the worker answers and resolves, and whether the braid reviewer still reviews (`always`, the default) or only tier L items (`L-only`);
 - optional `autonomy`: the [autonomy preset](autonomy.md) braids run on unless a braid names its own (`careful` if absent);
 - optional `shell`, `setup` and `test` commands, and how to `run` the app;
 - optional `docs`: the project's docs in two lists, `public` (for its users: README, guides, help text) and `internal` (for its developers: development notes, the decisions record, format references), and `update`, when braid keeps them true (below). Without the lists, agents take `README.md` and `docs/`;
@@ -57,6 +59,33 @@ A target repository needs a `BRAID.md` at its root with the facts the skills rea
 Docs that need your go (`AGENTS.md`, `CLAUDE.md`, `BRAID.md`, the skills) are proposed in the report, not edited, unless the brief allows it.
 
 Start from the [`braid` template](../.agents/skills/braid/assets/braid-md.md). This repository's own [BRAID.md](../BRAID.md) is an example. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
+
+## braid on a large repo
+
+A large polyglot monorepo, where a merge into `main` builds everything and deploys shared environments, needs a few more lines. Only the merge gate and `ci: all` are code; the rest are lines in `BRAID.md` and `AGENTS.md` that the agents read. An example:
+
+```yaml
+gate: pwsh -File build/gate.ps1 -local
+ci: all
+review-bots: [coderabbitai]
+reviewer-with-bots: always
+merge-gate: python -I ci/gate.py --pr <pr> --sha <sha>
+merge-gate-on: [main]
+setup: "git submodule update --init; set NUGET_PACKAGES to a folder in the worktree (shared caches are cleaned by other builds); pnpm install --frozen-lockfile"
+```
+
+- **CI that differs per PR.** When the checks a PR gets depend on its paths, `ci: all` makes `braid wait`, `braid accept`, `braid handover` and `braid recap` require every check reported on the commit, after a 2-minute start grace for checks that start late. A list of names would wait for a check that never runs or miss one that did.
+- **Partial CI on braid branches.** When the full build runs only for PRs into `main`, say so in the body of `BRAID.md`: "Strand PRs into a `braid/*` branch get only the path checks and the review bots; the full build runs on the final PR into `main`." The worker's local gate is then a strand's full evidence, and its report gives the gate's output summary and duration. The final PR's CI covers everything before it reaches `main`.
+- **Review bots.** With `review-bots`, the worker waits after green CI for the bots' reviews, then for each comment fixes it, answers why not, or marks it a nit; it pushes the round's fixes in one push, replies on each comment, resolves each thread itself, and lists them in its report. With `ci: all` the bots' own checks count like any other; list names in `ci` to leave them out. `reviewer-with-bots: always` keeps the braid reviewer, which also reads the bots' threads and the worker's replies; `L-only` gives tier S and M items the bots reviewed no braid reviewer, and the bots' resolved review counts as the independent review for a merge under a preset.
+- **A merge gate for `main`.** `merge-gate` names one command whose exit code decides: 0 merges, anything else refuses with its output and changes nothing, under every preset and when you ask for the merge. It holds the rules braid can't know: a minimum test count, no merge while a run uses the shared staging environment, a required run for a risky path. A script that reports failure only in its output and exits 0 needs a wrapper or an exit-code flag. `merge-gate-on: [main]` runs it only on PRs into `main`, for a gate that reads the full build only those PRs get. `braid facts <pr>` names the gate and whether it runs on that PR's merge.
+- **Path stops.** A rule for certain paths goes in `AGENTS.md`, where every agent reads it:
+
+  ```markdown
+  - `billing/**`: a change that can move prices needs the non-regression run first; ask before merging.
+  ```
+
+  The coordinator treats such a change as a stop case, and the merge gate can refuse a PR into `main` that touches those paths without the run. Path-scoped gates, narrower checks for a PR that touches only docs or the frontend, belong in the project's gate script, which picks the checks from the changed paths; `BRAID.md` lists them for the worker.
+- **Caches and disk.** A shared cache that other builds clean (NuGet, Gradle, a package store) breaks a worktree's build halfway; give each worktree its own folder in `setup`. A large repository's worktrees fill a disk quickly: `braid clean` removes the worktrees of merged items.
 
 ## Set up a repository
 
@@ -77,7 +106,7 @@ A preset is a short Markdown file that says what the coordinator merges by itsel
 - `steady`: it merges strands into the braid branch, starts the next one and decides the small cases; the big decisions and the final PR into `main` are yours.
 - `free`: it merges everything, `main` included, and decides every case, logging each.
 
-Whatever the preset, a merge by the coordinator needs green CI (`ci` a list or `all`, not `none`), an independent review with nothing blocking and the reviewed head commit. Each decision it makes is logged as `Decided: <what>, because <why>, instead of <alternative>`; your answers, and the PM's with its reason, are on the request record (below). You read them together in the recap (`braid decisions <number>` lists them).
+Whatever the preset, a merge by the coordinator needs green CI (`ci` a list or `all`, not `none`), an independent review with nothing blocking (with `reviewer-with-bots: L-only`, the review bots' resolved review for tier S and M) and the reviewed head commit. Each decision it makes is logged as `Decided: <what>, because <why>, instead of <alternative>`; your answers, and the PM's with its reason, are on the request record (below). You read them together in the recap (`braid decisions <number>` lists them).
 
 **For a project,** set `autonomy: <name>` in `BRAID.md`. Every braid without its own preset runs on it.
 

@@ -13,7 +13,7 @@ Merge a PR yourself only when its kind is in `merge` (`strands`: a strand's PR i
 
 1. The worker reported green.
 2. On the PR branch every Completion box is ticked and `report.md` is present.
-3. An independent `braid-reviewer` review found nothing blocking (tier S too), and for tier L any re-check is finished.
+3. An independent `braid-reviewer` review found nothing blocking (tier S too; under `reviewer-with-bots: L-only`, the review bots' review with every thread resolved for S and M), and for tier L any re-check is finished.
 4. `gh pr checks` is green on the head commit for the `ci` names.
 5. The PR is mergeable into its base.
 6. Nothing the preset says to ask about is open: every stop case from the four sources ("Deciding") is decided and logged, or kept for the final PR.
