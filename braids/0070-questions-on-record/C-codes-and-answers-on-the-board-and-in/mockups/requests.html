@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>0070/C mockups: codes and answers on the board</title>
+<style>
+body{background:#fff;margin:0;font-family:system-ui,"Segoe UI",sans-serif;color:#0f172a}
+.screen{margin:0 0 30px}.cap{font:600 13px system-ui;color:#334155;margin:0 0 8px;padding:6px 10px;background:#eef2ff;border-radius:6px}
+.cap small{font-weight:400;color:#64748b}
+.lanes{display:grid;grid-template-columns:repeat(4,304px);gap:12px;padding:12px;background:#f1f5f9;align-items:start}
+.lane{background:#e2e8f0;border-radius:12px;padding:10px}
+.lh{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.05em;color:#475569;margin:2px 4px 10px;text-transform:uppercase}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.card{margin-bottom:8px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:10px;box-shadow:0 1px 2px #0001}
+.id{font-size:12px;color:#64748b}.id b{color:#0f172a}
+.badge{border-radius:99px;padding:1px 8px;font-size:11px;background:#e2e8f0;color:#334155}
+.title{margin:4px 0;font-weight:600}
+.ln{margin-top:6px;border-left:3px solid;border-radius:6px;padding:4px 6px;font-size:12.5px;line-height:1.35}
+.ln small{display:block;margin-top:1px;font-size:11px;color:#64748b}
+.amb{border-color:#f59e0b;background:#fffbeb;color:#78350f}
+.quiet{border-color:#cbd5e1;background:#f8fafc;color:#475569}
+.teal{border-color:#0d9488;background:#f0fdfa;color:#134e4a}
+.code{font:600 11.5px ui-monospace,Consolas,monospace;background:#0f172a;color:#fde68a;border-radius:4px;padding:0 5px;white-space:nowrap}
+.lnk{font-size:11.5px;color:#2563eb;border:1px solid #bfdbfe;border-radius:5px;padding:0 6px;background:#fff;white-space:nowrap}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.bar{height:6px;flex:1;border-radius:4px;background:#e2e8f0;overflow:hidden}.bar i{display:block;height:100%;background:#16a34a}
+.panel{display:flex;border:1px solid #e2e8f0;width:1000px;background:#fff}
+.rail{width:250px;flex:none;border-right:1px solid #e2e8f0;background:#f8fafc;padding:14px;font-size:13px}
+.main{flex:1;padding:20px 28px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid #e2e8f0;color:#64748b;margin-top:14px}.tabs span{padding:8px 14px}.tabs .on{color:#0f172a;font-weight:600;border-bottom:2px solid #2563eb}
+.tabs em{font-style:normal;font-size:11px;background:#e2e8f0;border-radius:99px;padding:0 6px;margin-left:4px}
+.box{margin:12px 0;border-left:3px solid;border-radius:8px;padding:10px 14px;max-width:75ch;font-size:14px}
+.box h4{margin:0 0 3px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+.sub{font-size:11.5px;color:#64748b}
+.req{border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;margin:8px 0;max-width:75ch;font-size:13.5px}
+.req .meta{font-size:11.5px;color:#64748b;margin-top:3px}
+.st{font-size:11px;font-weight:600;border-radius:99px;padding:1px 8px}
+.st.ans{background:#dcfce7;color:#166534}.st.wd{background:#f1f5f9;color:#475569}.st.met{background:#ede9fe;color:#5b21b6}.st.open{background:#fef3c7;color:#92400e}
+.ans-t{margin-top:5px;padding:5px 9px;background:#f8fafc;border-left:3px solid #16a34a;border-radius:4px;font-size:13px}
+.why{margin-top:5px;padding:5px 9px;background:#f8fafc;border-left:3px solid #94a3b8;border-radius:4px;font-size:13px;color:#334155}
+h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:18px 0 4px}
+.push{width:300px;border-radius:16px;background:#1e293b;color:#fff;padding:10px 14px;font-size:13px;box-shadow:0 4px 12px #0003}
+.push b.t{display:block;font-size:13px}.push small{color:#94a3b8;font-size:11px;display:block}.push pre{margin:4px 0 0;font:inherit;white-space:pre-wrap}
+.push.gone{opacity:.45;border:2px dashed #94a3b8;background:#475569}
+</style></head><body><div id="out"></div>
+<script>
+const id=(z,d,r='')=>`<span class="id">${z}<b>${d}</b>${r}</span>`;
+const code=c=>`<span class="code">${c}</span>`;
+const lnk=t=>`<span class="lnk">↗ ${t}</span>`;
+const lane=(name,color,n,cards)=>`<div class="lane"><div class="lh"><span class="dot" style="background:${color}"></span>${name}<span style="flex:1"></span>${n}</div>${cards}</div>`;
+const card=({z='00',n,title,tier='tier:M',done,total,line=''})=>`<div class="card"><div class="row">${id(z,n)}<span class="badge">${tier}</span></div><div class="title">${title}</div><div class="row"><div class="bar"><i style="width:${done/total*100}%"></i></div><span class="id">${done}/${total}</span></div>${line}</div>`;
+const need=(c,text,sub)=>`<div class="ln amb"><div class="row">${code(c)}<span style="flex:1">${text}</span></div><div class="row" style="margin-top:3px">${lnk('Open asking thread')}<small style="margin:0">${sub}</small></div></div>`;
+
+const c04=card({z:'000',n:'4',title:'Sample billing',tier:'tier:S',done:0,total:2,line:need('q-7f3k',"Which rounding rule should refunds use, half-up or banker's?",'strand 0004/B · asked 35 min ago')});
+const c03=card({z:'000',n:'3',title:'Sample PDF export',done:1,total:3,line:need('q-2m9a','Forwarded by the PM: Decide: approve the PDF layout (approve-layout)','strand 0003/B · asked 1h ago')});
+const c09=card({z:'000',n:'9',title:'Sample reports',done:1,total:3,line:`<div class="ln quiet">Waiting on braid 0002: ${code('q-8d1c')} can search ship before reports?<small>done when 0002 is merged into main · the 0009 coordinator asked 2h ago · <span class="lnk">↗ thread</span></small></div>`});
+const c05=card({z:'000',n:'5',title:'Sample themes',tier:'tier:S',done:0,total:2});
+const board=`<div class="lanes">${lane('Needs You','#f59e0b',2,c04+c03)}${lane('To Review','#7c3aed',0,'')}${lane('Working','#2563eb',2,c09+c05)}${lane('To Do','#cbd5e1',0,'')}</div>`;
+
+const reqs=`
+<h3 class="sec">Open · 1</h3>
+<div class="req"><div class="row">${code('q-7f3k')}<span class="st open">open</span><span class="badge">question</span><span style="flex:1"></span>${lnk('Open asking thread')}</div>
+ <div style="margin-top:4px">Which rounding rule should refunds use, half-up or banker's?</div>
+ <div class="meta">for you · asked by the 0004/B coordinator · 35 min ago · done when answered</div></div>
+<h3 class="sec">Waiting on others · 1</h3>
+<div class="req"><div class="row">${code('q-8d1c')}<span class="st open">open</span><span class="badge">question</span><span class="badge">to braid 0002</span><span style="flex:1"></span>${lnk('Open asking thread')}</div>
+ <div style="margin-top:4px">Can search ship before reports?</div>
+ <div class="meta">done when braid 0002 is merged into main · 2h ago</div></div>
+<h3 class="sec">Closed · 4 <small style="text-transform:none;letter-spacing:0;font-weight:400">newest first</small></h3>
+<div class="req"><div class="row">${code('q-5b2e')}<span class="st ans">answered by you</span><span class="badge">decision</span><span style="flex:1"></span><span class="id">11:42</span></div>
+ <div style="margin-top:4px">Decide: which tax table to load (tax-source)</div><div class="ans-t">B — the 2026 table.</div><div class="meta">asked 11:20 · answered in 22 min</div></div>
+<div class="req"><div class="row">${code('q-4k0x')}<span class="st ans">answered by the PM</span><span class="badge">question</span><span style="flex:1"></span><span class="id">10:58</span></div>
+ <div style="margin-top:4px">Should totals include refunds?</div><div class="ans-t">Yes, net of refunds.</div><div class="why"><b>PM's reason:</b> the goal says "totals as the customer sees them"; you decided the same for 0003.</div><div class="meta">asked 10:55 · answered in 3 min</div></div>
+<div class="req"><div class="row">${code('q-9t6w')}<span class="st wd">withdrawn</span><span class="badge">question</span><span style="flex:1"></span><span class="id">10:12</span></div>
+ <div style="margin-top:4px">Which locale for the invoice dates?</div><div class="why"><b>Withdrawn by the coordinator:</b> the brief already says en-GB.</div><div class="meta">asked 09:50</div></div>
+<div class="req"><div class="row">${code('q-1h8n')}<span class="st met">met</span><span class="badge">question</span><span class="badge">to braid 0002</span><span style="flex:1"></span><span class="id">yesterday</span></div>
+ <div style="margin-top:4px">Wait for the search index before the export</div><div class="why"><b>Done when</b> PR #31 merged — it did, 16:04.</div><div class="meta">asked 14:30</div></div>`;
+const rail=`<nav class="rail"><div style="font-size:15px;font-weight:600">${id('000','4')} Sample billing</div><div class="id" style="margin:4px 0 10px"><span class="dot" style="background:#f59e0b"></span> Needs You</div><div style="padding:6px 8px;background:#e0e7ff;border-radius:6px;font-weight:600">Braid brief</div><div style="padding:6px 8px 6px 20px">${id('000','4','/A')} · Tax rules ✓</div><div style="padding:6px 8px 6px 20px">${id('000','4','/B')} · Refund rounding</div></nav>`;
+const panel=`<div class="panel">${rail}<div class="main"><div>${id('000','4','/B')}</div><div style="font-size:20px;font-weight:600;margin:3px 0 6px">Refund rounding</div>
+<div class="row"><span class="dot" style="background:#f59e0b"></span><span class="badge">Needs You</span></div>
+<div class="box amb"><h4>Needs you · asked 35 min ago</h4><div class="row" style="gap:8px">${code('q-7f3k')}<span>Which rounding rule should refunds use, half-up or banker's?</span></div>
+ <div class="row" style="margin-top:8px">${lnk('Open asking thread')}<span class="sub">Answer in that thread. Say <b>q-7f3k</b> in any thread to refer to it.</span></div></div>
+<div class="tabs"><span>Brief</span><span>Report</span><span>Log</span><span class="on">Requests<em>6</em></span></div>${reqs}</div></div>`;
+
+const header=`<div class="row" style="border-bottom:1px solid #e2e8f0;padding:10px 20px;background:#fff"><b style="font-size:16px">braid · attention board</b><span style="color:#64748b;margin-left:12px">agento · braids</span><span style="flex:1"></span><span class="lnk" style="border-color:#f59e0b;background:#fffbeb;color:#78350f">Questions · 2 open</span></div>`;
+const list=`<div class="panel" style="width:760px;flex-direction:column;padding:16px 22px">
+<div class="row"><b style="font-size:16px">Questions</b><span class="id">all braids</span><span style="flex:1"></span><span class="badge">Open 2</span><span class="badge" style="background:#e0e7ff">Closed 14</span></div>
+<h3 class="sec">Open</h3>
+<div class="req"><div class="row">${code('q-7f3k')}${id('000','4','/B')}<span class="badge">for you</span><span style="flex:1"></span>${lnk('Open thread')}</div><div style="margin-top:4px">Which rounding rule should refunds use, half-up or banker's?</div><div class="meta">35 min ago</div></div>
+<div class="req"><div class="row">${code('q-2m9a')}${id('000','3','/B')}<span class="badge">for you · forwarded by the PM</span><span style="flex:1"></span>${lnk('Open thread')}</div><div style="margin-top:4px">Decide: approve the PDF layout</div><div class="meta">1h ago</div></div>
+<h3 class="sec">Closed · newest first</h3>
+<div class="req"><div class="row">${code('q-5b2e')}${id('000','4','/A')}<span class="st ans">answered by you</span><span style="flex:1"></span><span class="id">11:42</span></div><div style="margin-top:4px">Decide: which tax table to load</div><div class="ans-t">B — the 2026 table.</div></div>
+<div class="req"><div class="row">${code('q-4k0x')}${id('000','9')}<span class="st ans">answered by the PM</span><span style="flex:1"></span><span class="id">10:58</span></div><div style="margin-top:4px">Should totals include refunds?</div><div class="ans-t">Yes, net of refunds. <span class="sub">· reason: matches the goal's wording</span></div></div>
+<div class="req"><div class="row">${code('q-9t6w')}${id('000','4','/B')}<span class="st wd">withdrawn</span><span style="flex:1"></span><span class="id">10:12</span></div><div style="margin-top:4px">Which locale for the invoice dates?</div><div class="why">the brief already says en-GB</div></div>
+<div class="id" style="margin-top:6px">… Show more (11)</div></div>`;
+
+const push=(t,b,s,cls='',label='')=>`<div><div class="id" style="margin-bottom:4px;max-width:300px">${label}</div><div class="push ${cls}"><small>ntfy · agento</small><b class="t">${t}</b><pre>${b}</pre><small>${s}</small></div></div>`;
+const pushes=`<div style="display:flex;gap:18px;flex-wrap:wrap;padding:14px;background:#cbd5e1;align-items:flex-start">
+${push('agento 0004/B: Needs You',"Sample billing\nWhich rounding rule should refunds use, half-up or banker's?",'tap: opens the coordinator thread','','Today')}
+${push('agento 0004/B: Needs You',"q-7f3k · Sample billing\nWhich rounding rule should refunds use, half-up or banker's?",'tap: opens the asking thread','','New: the code leads the body')}
+${push('agento 0003/B: the PM asks','q-2m9a · Sample PDF export\nThe PM asks you: Decide: approve the PDF layout','tap: opens the PM thread','','New: a request the PM forwarded')}
+${push('agento 0004/B: Needs You','q-9t6w · Sample billing\nWhich locale for the invoice dates?','removed from the phone','gone','Withdrawn or met: the push is cleared, as an answered one is today')}</div>`;
+
+document.getElementById('out').innerHTML=`
+<div class="screen"><div class="cap">1 · Board <small>— the need line gains the code (dark chip) and "Open asking thread". A request to ANOTHER braid shows on the asking braid's card, quiet (grey, not Needs You), with its "done when" and the other braid's number. Nothing else on the card changes.</small></div>${board}</div>
+<div class="screen"><div class="cap">2 · Details panel with a new "Requests" tab (option A, recommended) <small>— the Needs-you box gets the code and the thread link. The tab lists the item's open, waiting-on-others and closed requests; closed ones newest first, each with state, who answered, the answer, the PM's reason and the time.</small></div>${panel}</div>
+<div class="screen"><div class="cap">3 · Questions list (option B, extra: board-wide, from a header button) <small>— one place for "the question I was asked last week" without opening an item. Costs a header button and a panel; A alone covers the brief.</small></div>${header}<div style="padding:16px;background:#f1f5f9">${list}</div></div>
+<div class="screen"><div class="cap">4 · Pushes <small>— the code leads the body so you can say "q-7f3k" in any thread; a withdrawn or met request clears its push like an answered one.</small></div>${pushes}</div>`;
+</script></body></html>
