@@ -215,10 +215,26 @@ test("with a question and a wait open on one item, answer and withdraw by id ref
   const both = (e: Error) => e.message === `0001 has 2 open requests: ${question} (the coordinator's), ${wait} (the coordinator's, waiting on braid 0002); give the code; nothing changed`;
   assert.throws(() => Cmd.answerCommand(w.root, w.root, ["0001"]), both);
   assert.throws(() => Cmd.withdrawCommand(w.root, ["0001", "--why", "not needed"]), both);
+  // `--by coordinator` can't tell them apart: both are the coordinator's.
+  assert.throws(() => Cmd.answerCommand(w.root, w.root, ["0001", "--by", "coordinator"]), both);
+  assert.throws(() => Cmd.withdrawCommand(w.root, ["0001", "--why", "not needed", "--by", "coordinator"]), both);
   assert.deepEqual([recordOf(w.root, question).state, recordOf(w.root, wait).state], ["open", "open"], "nothing changed");
   assert.match(Cmd.forwardCommand(w.root, ["0001", "--note", "your call"]), /^0001: question request forwarded to the user: your call/);
   assert.deepEqual([recordOf(w.root, question).forwarded !== undefined, recordOf(w.root, wait).forwarded], [true, undefined], "the question is forwarded, the wait isn't");
   // By code, each one closes alone.
   assert.match(Cmd.withdrawCommand(w.root, [wait, "--why", "0002 is late"]), new RegExp(`^${wait} 0001: withdrawn`));
   assert.equal(recordOf(w.root, question).state, "open");
+});
+
+test("braid forward <id> with only a wait open changes nothing and says it is for that braid's coordinator", () => {
+  const w = world();
+  writeFileSync(join(w.root, "braids", "0001-alpha", "brief.md"), brief("0001", "In Progress", `
+## Autonomy
+
+PM-run (thread ${ASKER}): security always ask.
+`));
+  const wait = codeOf(Cmd.askCommand(w.root, ["0001", "Go on after 0002", "--thread", ASKER, "--to", "0002", "--done-when", "braid:0002"]));
+  const before = JSON.stringify(recordOf(w.root, wait));
+  assert.equal(Cmd.forwardCommand(w.root, ["0001", "--note", "your call"]), "0001: the question request is for braid 0002's coordinator; nothing changed\n");
+  assert.equal(JSON.stringify(recordOf(w.root, wait)), before, "the wait is as it was");
 });
