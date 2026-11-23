@@ -70,6 +70,7 @@ The user's decisions, quoted and dated, then the PM's own.
 - 2026-11-23, user, on waits: "it can hourly send a message to the thread it passively waits smth like \"Gentle hourly reminder: I'm still waiting for you\"" (P6).
 - 2026-11-23, user, on waits: "Yes it's kinda registering wait indeed, it's needed. Also this is a passive wait: so it also can sometimes never happen (imageine pm forgot about this thread)" (P6).
 - 2026-11-23, user: "I agree with the exception for 69. Start when you see fit": 0069's code strands start as soon as 0064 is on main, without a further go.
+- 2026-11-23, PM for P7 · 0067/B: the logon, real-update and Start-from-page boxes move to the braid's final PR (the user tries on this PC before the merge into main; the real update is checked after it), because they need the user's PC and the braid box keeps them, instead of the user trying the strand branch; the conhost launcher deviation and 903 lines accepted.
 - 2026-11-23, PM for P7 · 0067: plan approved as a goal with strands A (address file, `braid board --url`, PM naming) and B (`braid board service install|remove|restart|status`, Outline until the user picks the service kind), because the widened goal needs two PRs and B waits on the user; the service kind forwarded to the user with the PM's recommendation (a logon task).
 - 2026-11-23, PM for P2 · 0069: plan approved (strands A leftovers brb2 and zmry, B one push rule from the request record, C one updated push for merges waiting under a PM, D `braid notify send` for the PM, E docs; no mode setting, no new lane), with the programme stall still pushed, because a dead PM thread has no one else to ask, instead of no derived push at all; the braid-pm skill line kept, since the user asked for PM direct pushes.
 - 2026-11-23, user, P7 · 0067/A security: "A" (accept the token-checked GET /api/session for `braid board --url`, and the systemd recipe's stdout to null).
@@ -132,6 +133,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P7 · 0067/B reviewed (PR #257); PM moved its on-PC try to the final PR.
 - 2026-11-23: P2 · 0069/B merged into its braid branch (PR #256): one push rule (forUser); forwarded questions and decisions show as "The PM asks you", cards keep their lanes; forwarded merge handovers move to 0069/C with the merge group. 0069/C started.
 - 2026-11-23: P2 · 0069/A merged into its braid branch (PR #255): the board's PR lookup missed a Done-stamped story's PR and dropped its open review request (the cause of 0068's missed merge notification); also the lost one-shot limit push, the weekly-limit hint and the typo. 0069/B started.
 - 2026-11-23: P7 · 0067/A merged into its braid branch (address file, `braid board --url`, PM naming, D92); 0067/B started. No sweep into 0067; leftovers 7ija and yd2t routed to P5 (with qap7), t7ap and 5vky stay with P15.
