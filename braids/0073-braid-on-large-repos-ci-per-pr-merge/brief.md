@@ -11,7 +11,7 @@ autonomy: free
 
 ## Goal
 
-Programme pm/autonomous-dev-machine, row P20, from the Everix field report (a large polyglot monorepo where a merge into main deploys shared environments; 2026-11-23). braid works on such a repo: fewer CI runs per strand, a project merge gate no preset skips, `ci: all` for CI that differs per PR, and the rest as documented lines. Scope settled with the user: enforce in code only what is expensive to get wrong and what an agent could skip; everything else is a line in BRAID.md, AGENTS.md or a skill (the user: "ok, good, so no major overengineering"). Inbox 2026-11-23-n1xv, 60mj, bbd3, odxc.
+Programme pm/autonomous-dev-machine, row P20, from the Everix field report (a large polyglot monorepo where a merge into main deploys shared environments; 2026-11-23). braid works on such a repo: fewer CI runs per strand, a project merge gate no preset skips, `ci: all` for CI that differs per PR, and the rest as documented lines. The user added one small board change at the end: a request code on the board copies itself on click. Scope settled with the user: enforce in code only what is expensive to get wrong and what an agent could skip; everything else is a line in BRAID.md, AGENTS.md or a skill (the user: "ok, good, so no major overengineering"). Inbox 2026-11-23-n1xv, 60mj, bbd3, odxc.
 
 ## Strands
 
@@ -19,6 +19,7 @@ Programme pm/autonomous-dev-machine, row P20, from the Everix field report (a la
 - 0073/B Merge gate: `merge-gate:` in BRAID.md, run by `braid accept --merge` before any merge into `main`.
 - 0073/C `ci: all`: wait for every check reported on the commit, with a start grace.
 - 0073/D Large-repo lines (partial CI on braid branches, review bots, path stops, caches) and the docs as a whole.
+- 0073/E Board: click a request code to copy it (the user's addition, 2026-11-23).
 
 ## Already decided
 
@@ -47,6 +48,7 @@ PM-run (thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b): security, data and outward
 - [ ] With `ci: all`, `braid wait`, `braid accept`, `braid handover` and `braid facts` require every check reported on the commit, after a start grace
 - [ ] BRAID.md template and docs show, with examples, partial CI on braid branches, review bots, path stops and caches; the worker answers and resolves the review bots' comments
 - [ ] Skills touched are the same size or shorter
+- [ ] Every request code chip on the board copies its code on click, also over plain http and on a phone
 - [ ] The docs from BRAID.md `docs` are true for everything the braid changed
 
 ## Working at the end
