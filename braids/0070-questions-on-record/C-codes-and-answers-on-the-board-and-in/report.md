@@ -25,3 +25,5 @@ For later items:
 - 0070/D and 0070/E: nothing new from this item.
 
 Needs the user: none
+
+CI fix: the refusal naming two open requests listed their codes in random file order; a test of 0070/B failed on Ubuntu half the time. The coordinator's code now comes first.
