@@ -13,6 +13,12 @@
       "event": "opened",
       "at": "2026-11-23T18:56:28.093Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-23T19:02:08.704Z",
+      "by": "user",
+      "text": "looks great, go P6"
     }
   ]
 }
