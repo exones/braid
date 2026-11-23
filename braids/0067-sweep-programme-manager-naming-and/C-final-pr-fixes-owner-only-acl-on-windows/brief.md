@@ -1,7 +1,7 @@
 ---
 id: '0067/C'
 title: "Final PR fixes: owner-only ACL on Windows, install on a held port"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L", "ask:security"]
 dependencies: []
 order: 30
