@@ -66,9 +66,15 @@ export function reminder(t3: T3Runner): Waker {
       }
       const pm = pmThreadOf(braidOfId(r.id) ?? "", plans);
       const live = pm !== null && good.t3.states?.has(pm) === true && good.t3.states.get(pm) !== "archived" ? pm : null;
-      for (const s of remindersOf(r, addresseeOf(r, good.t3, plans), live, at)) {
+      const addressee = addresseeOf(r, good.t3, plans);
+      for (const s of remindersOf(r, addressee, live, at)) {
         const key = `${r.code} ${s.event.text ?? ""} ${s.event.reason ?? ""}`;
         if (!sent.has(key)) {
+          // Right before the send, the record is read again: a second board of the project may have sent it a moment ago.
+          const now = loadRecord(root).requests.find((x) => x.code === r.code);
+          if (now === undefined || !remindersOf(now, addressee, live, at).some((x) => x.event.text === s.event.text && x.event.reason === s.event.reason)) {
+            continue;
+          }
           const out = await t3(root, ["thread", "send", s.thread, s.message]);
           if (out.error !== undefined || out.status !== 0) {
             const why = (out.stderr.trim().split("\n")[0] ?? "") || out.error?.message || "t3 failed";

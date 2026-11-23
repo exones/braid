@@ -10,7 +10,8 @@
 // The one gap left is a board that dies between the send and the local commit: that wake may come twice.
 import { braidAt } from "../braids/branches.js";
 import { gitAsync } from "../braids/gitio.js";
-import { conditionEnding, endRequest, loadRecord, type Ending, type Request } from "../braids/requests.js";
+import { conditionEnding, endRequest, loadRecord, programmeOf, type Ending, type Request } from "../braids/requests.js";
+import type { PlanRead } from "./plans.js";
 import type { Good } from "./feed.js";
 import { prOf } from "./signals.js";
 import type { T3Runner } from "./t3.js";
@@ -39,6 +40,17 @@ export function wakeMessage(r: Pick<Request, "code" | "text">, e: Ending): strin
   return `Wake: ${r.code} is met (${e.text ?? "its condition holds"}): ${text}. Go on where you left off.`;
 }
 
+/** Whether a request on a programme item (`pm/<slug>`) belongs to a held or paused programme: the plan is held, or every braid of it still open is held or paused. */
+export function programmeHeld(r: Pick<Request, "id">, plans: readonly PlanRead[] | undefined, held: ReadonlyMap<string, unknown>): boolean {
+  const slug = programmeOf(r.id);
+  const plan = slug === null ? undefined : plans?.find((p) => p.slug === slug)?.plan;
+  if (plan === undefined || plan === null) {
+    return false;
+  }
+  const open = plan.rows.filter((row) => row.braid !== null && row.state !== "done" && row.state !== "dropped");
+  return plan.state === "held" || plan.hold !== null || (open.length > 0 && open.every((row) => held.has(row.braid ?? "")));
+}
+
 export interface WakeProject {
   readonly root: string;
   readonly good: Good;
@@ -65,7 +77,7 @@ export function waker(t3: T3Runner): Waker {
   const sent = new Set<string>();
   return async ({ root, good }, at, warn) => {
     const held = good.sig.pauses ?? new Map();
-    const open = loadRecord(root).requests.filter((r) => r.state === "open" && !held.has(askingBraid(r) ?? ""));
+    const open = loadRecord(root).requests.filter((r) => r.state === "open" && !held.has(askingBraid(r) ?? "") && !programmeHeld(r, good.sig.plans, held));
     if (open.length === 0) {
       return;
     }
@@ -82,6 +94,10 @@ export function waker(t3: T3Runner): Waker {
       }
       const archived = r.thread !== null && good.t3.states?.get(r.thread) === "archived";
       if (e.state === "met" && r.thread !== null && !archived && !sent.has(r.code)) {
+        // Right before the send, the record is read again: a second board of the project may have woken it a moment ago.
+        if (loadRecord(root).requests.find((x) => x.code === r.code)?.state !== "open") {
+          continue;
+        }
         const out = await t3(root, ["thread", "send", r.thread, wakeMessage(r, e)]);
         if (out.error !== undefined || out.status !== 0) {
           const why = (out.stderr.trim().split("\n")[0] ?? "") || out.error?.message || "t3 failed";

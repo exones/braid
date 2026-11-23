@@ -1,7 +1,7 @@
 ---
 id: '0071/C'
 title: "One nudge for a real stall, and the PM check seen by the board"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0071/B']
 order: 30
@@ -32,6 +32,15 @@ Expected size: about 320 lines in 8 files.
 - Leftover 2026-11-23-1oq8 (from 0071/A): a request on a programme item (`pm/<slug>`) is still checked and woken by `src/board/wake.ts` while that plan is held; skip it while the programme is held or paused, like a held braid. A test covers it.
 - Leftover 2026-11-23-dy2k (from 0071/A): two boards serving one project (a service and a hand-started run) each send the same wake, reminder or nudge, since each sends before either records. Make only one board act per project, or re-read the record right before each send so a second board skips what the first recorded; use existing state (the board's address file, the record), no new file. Log which, and test two boards on one record.
 
+## Plan
+
+1. The alarm clock (`brokeClock`) gets a nudgeable stall: after ten minutes it reports a due nudge instead of an alarm; after the nudge and ten more minutes it gives the alarm. `<id> stalled nudged` and `<id> stalled escalated` sit beside the first-seen time in `.braid/broke.json` and go with it.
+2. `src/board/nudge.ts`: the step sends the nudge to an idle coordinator thread or the PM thread, and the escalation to the PM of a PM-run braid; it re-reads the file before each send.
+3. The cards: item, braid-level and programme stalls pass their nudge target; the text after a nudge is the settled one-line text. No new card line for the nudge itself.
+4. 2h98: T3 lists no subagents and `thread show` of the PM thread lists no children, so the PM records its checker with `braid review pm/<slug> --thread <id>`; the board counts it while it runs.
+5. Leftovers: the `requests.ts` comment, held programme requests in the wake (1oq8), re-read before each send in the wake and reminders (dy2k).
+6. Tests, docs (`docs/board.md`, `docs/cli.md`), gate.
+
 ## Already decided
 
 - Everything in the braid's "Already decided".
@@ -45,10 +54,10 @@ Expected size: about 320 lines in 8 files.
 
 ## Completion
 
-- [ ] A coordinator stall sends one nudge to its thread, shows it on the card, and raises the stall only if it still holds after the nudge; a stall that ends and comes back gets a new nudge; tests cover it.
-- [ ] A programme stall nudges the PM once, then escalates; tests cover it.
-- [ ] A held or paused braid or programme is never nudged; a test covers it.
-- [ ] A running delegated PM check keeps the programme from reading as stalled; a test covers it, and report.md says how the board sees it.
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A coordinator stall sends one nudge to its thread, shows it on the card (per the verdict: it shows nothing for the nudge), and raises the stall only if it still holds after the nudge; a stall that ends and comes back gets a new nudge; tests cover it.
+- [x] A programme stall nudges the PM once, then escalates; tests cover it.
+- [x] A held or paused braid or programme is never nudged; a test covers it.
+- [x] A running delegated PM check keeps the programme from reading as stalled; a test covers it, and report.md says how the board sees it.
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
