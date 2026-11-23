@@ -47,5 +47,5 @@ Expected size: about 60 lines in 3 to 5 files.
 - [x] `status` doesn't show a previous run's result as if the running task had failed; 0x800710E0 reads in words; tested
 - [x] 0067's `braids/` reports name D94 and D95 where they mean 0067's decisions
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
