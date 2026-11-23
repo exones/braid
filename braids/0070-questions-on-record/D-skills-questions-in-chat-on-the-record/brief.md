@@ -46,10 +46,19 @@ Expected size: about 60 changed lines in 6 files, net shorter.
 
 ## Completion
 
-- [ ] No file under `.agents/skills/` tells an agent to use a question tool (AskUserQuestion or a pending request)
-- [ ] The braid and braid-pm skills ask in chat after `braid ask` with the code and lettered options, record answers with `braid answer <code>` and who answered, and withdraw requests no longer needed
-- [ ] The braid and braid-pm skills end every message to the user with ✋, ⏳ or 🟢 as defined in the Goal
-- [ ] report.md and the PR body give each changed skill file's word count before and after, and the total is not higher
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] No file under `.agents/skills/` tells an agent to use a question tool (AskUserQuestion or a pending request)
+- [x] The braid and braid-pm skills ask in chat after `braid ask` with the code and lettered options, record answers with `braid answer <code>` and who answered, and withdraw requests no longer needed
+- [x] The braid and braid-pm skills end every message to the user with ✋, ⏳ or 🟢 as defined in the Goal
+- [x] report.md and the PR body give each changed skill file's word count before and after, and the total is not higher
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `braid/SKILL.md` "Talking to the user": replace the question-tool and options bullets with one "Ask in chat" bullet (after `braid ask`, in the turn's final message after the last tool call: code, context line, lettered options, recommendation); the reply bullet records with `braid answer <code> --file -` (`--from pm --reason` for the PM), withdraws with `braid withdraw <code> --why`, and notes that a new ask replaces the open one; "Hourglass" becomes "End markers" (✋, ⏳, 🟢). Plan step 7 and "Launched by a PM" use the code form; the question-tool sentence and the `--by` caveat go.
+- `references/autonomy.md`: "Merging" step 3 and "Stopping" lose their question-tool clauses.
+- `braid-pm/SKILL.md`: answers recorded with `braid answer <code>`, coordinators record the PM's with `--from pm`; the question-tool paragraph becomes the chat rule with the final-message sentence and the markers.
+- `assets/brief.md`: the report's Decisions come from `braid decisions`, not the log.
+- `limits.md`, `stop-cases.md`, worker and reviewer: checked; nothing says otherwise today, so no change.
+- Word counts before and after in report.md and the PR body.
