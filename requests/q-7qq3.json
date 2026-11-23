@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-23T20:36:28.166Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-23T20:37:10.805Z",
+      "by": "pm",
+      "text": "A. Approve; questions 1–3 open with the user (q-gbni)",
+      "reason": "plan follows the scope settled with the user, CI saving first; the braid wait rule is internal and needed, because without it every coordinator's CI read would become an ask, instead of asking the user"
     }
   ]
 }
