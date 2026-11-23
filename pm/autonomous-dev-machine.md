@@ -134,6 +134,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P7 · 0067: main merged into the braid branch (15c07a9; decisions renumbered D94/D95). Fix strand 0067/D (security): system tools by their System32 path (Git Bash whoami broke the owner-only ACL), status no longer shows the previous run's result as a failure. User's try "ok, I see it's working (the panel)" counts for its boxes.
 - 2026-11-23: user merged #263 (0069) into main (3fd62ca); #259 conflicts, its coordinator merges main in. User: "Let's install when both are merged": one install after #259 merges; the 0067 try runs on the board already installed from ba55c23.
 - 2026-11-23: P2 · 0069 ready to merge: PR #263 at 05b64d8 (0069/F read by the PM, main unchanged); forwarded to the user; one programme request asks for the merge and the 0067 try.
 - 2026-11-23: 0069/F (every push links its thread) started; leftovers cbe9, cft5, mchu to P15.
