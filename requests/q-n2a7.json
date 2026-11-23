@@ -20,6 +20,13 @@
       "at": "2026-11-23T21:32:54.942Z",
       "by": "pm",
       "text": "PM check passed · merge PR #279 at f293edf (0073/A early: fewer CI runs)"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-23T21:35:34.041Z",
+      "by": "pm",
+      "text": "The user asks: merge #279 at f293edf. The user's words: \"Merge\" (on PR #279).",
+      "reason": "relayed the user's merge request for #279"
     }
   ]
 }
