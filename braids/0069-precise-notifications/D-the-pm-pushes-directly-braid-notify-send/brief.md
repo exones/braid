@@ -1,7 +1,7 @@
 ---
 id: '0069/D'
 title: "The PM pushes directly: braid notify send"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: ['0069/B']
 order: 40
