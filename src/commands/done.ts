@@ -437,7 +437,7 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
       }
       onBraidBranch(root, t);
       const skipped = ready(root, run, w, t, pr, head);
-      runMergeGate(root, "strand", pr.number, pr.headRefOid, opts.gateMs);
+      await runMergeGate(root, "strand", pr.number, pr.headRefOid, opts.gateMs);
       gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
       const a = accepted(pr.headRefOid);
       return `${skipped}merged PR #${pr.number} at ${pr.headRefOid}\n${stampStrand(root, t, number, withAccepted(log, a), pr.number)}${comment(run, root, pr.number, a)}`;
@@ -473,17 +473,20 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
     }
     const waited = await waitGreen(root, run, t, pr.number, pr.headRefOid, opts);
     const skipped = ready(root, run, w, t, view(run, root, pr.number), head);
-    runMergeGate(root, "main", pr.number, pr.headRefOid, opts.gateMs);
+    await runMergeGate(root, "main", pr.number, pr.headRefOid, opts.gateMs);
     gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
     return `${waited}${skipped}${t.id} is already Done at ${pr.headRefOid}\nmerged PR #${pr.number} at ${pr.headRefOid}\n`;
   }
   const skipped = ready(root, run, w, t, pr, head);
+  // Before the stamp: a refusal changes nothing, and the gate sees the reviewed head, which has the PR's CI runs.
+  if (merge) {
+    await runMergeGate(root, "main", pr.number, pr.headRefOid, opts.gateMs);
+  }
   const a = accepted(pr.headRefOid);
   const commit = stampBranch(root, t, number, withAccepted(log, a), pr);
   let out = `${skipped}${t.id} done: Done on ${pr.headRefName} in ${commit}\nhead ${commit}\n${comment(run, root, pr.number, a)}`;
   if (merge) {
     out += await waitGreen(root, run, t, pr.number, commit, opts);
-    runMergeGate(root, "main", pr.number, commit, opts.gateMs);
     gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", commit], `${t.id} is Done in ${commit.slice(0, 7)}, but PR #${pr.number} not merged`);
     out += `merged PR #${pr.number} at ${commit}\n`;
   }

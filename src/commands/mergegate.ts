@@ -1,6 +1,6 @@
 // The merge gate (decision D-merge-gate, 0073/B): one command named by BRAID.md `merge-gate:` that
 // `braid accept --merge` runs before the merges it makes. Its exit code is the whole contract.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { UsageError } from "./braids.js";
@@ -39,22 +39,72 @@ export function readMergeGate(root: string): MergeGate | null {
   return { command, on: on as GateScope[] };
 }
 
-/** Runs the gate for a merge of PR `pr` at `sha`, when it names this kind of merge; refuses (throws) unless it exits 0. */
-export function runMergeGate(root: string, scope: GateScope, pr: number, sha: string, limitMs: number = GATE_MS): void {
+/** Ends the gate's process and everything it started: a taskkill of the tree on Windows, a signal to the process group elsewhere. */
+function killTree(pid: number): void {
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { stdio: "ignore" });
+    return;
+  }
+  try {
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    // already gone
+  }
+}
+
+interface GateResult {
+  readonly status: number | null;
+  readonly signal: string | null;
+  readonly output: string;
+  readonly timedOut: boolean;
+  readonly error: Error | null;
+}
+
+function execGate(command: string, cwd: string, limitMs: number): Promise<GateResult> {
+  return new Promise((resolve) => {
+    let output = "";
+    let done = false;
+    const finish = (r: Omit<GateResult, "output">) => {
+      if (!done) {
+        done = true;
+        clearTimeout(timer);
+        resolve({ ...r, output });
+      }
+    };
+    // A POSIX child gets its own process group, so the timeout can end it and its descendants together.
+    const child = spawn(command, { cwd, shell: true, detached: process.platform !== "win32", stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+    const keep = (d: Buffer) => {
+      output = (output + d.toString("utf8")).slice(-64 * 1024);
+    };
+    child.stdout.on("data", keep);
+    child.stderr.on("data", keep);
+    child.on("error", (error) => finish({ status: null, signal: null, timedOut: false, error }));
+    child.on("close", (status, signal) => finish({ status, signal, timedOut: false, error: null }));
+    const timer = setTimeout(() => {
+      if (child.pid !== undefined) {
+        killTree(child.pid);
+      }
+      finish({ status: null, signal: null, timedOut: true, error: null });
+    }, limitMs);
+  });
+}
+
+/** Runs the gate for a merge of PR `pr` at `sha` (the reviewed head), when it names this kind of merge; refuses (throws) unless it exits 0. */
+export async function runMergeGate(root: string, scope: GateScope, pr: number, sha: string, limitMs: number = GATE_MS): Promise<void> {
   const gate = readMergeGate(root);
   if (gate === null || !gate.on.includes(scope)) {
     return;
   }
   const command = gate.command.replaceAll("<pr>", String(pr)).replaceAll("<sha>", sha);
-  const r = spawnSync(command, { cwd: root, shell: true, encoding: "utf8", timeout: limitMs, maxBuffer: 64 * 1024 * 1024 });
-  const timedOut = (r.error as NodeJS.ErrnoException | undefined)?.code === "ETIMEDOUT";
-  if (!timedOut && r.error === undefined && r.status === 0) {
+  const r = await execGate(command, root, limitMs);
+  if (!r.timedOut && r.error === null && r.status === 0) {
     return;
   }
-  const tail = `${r.stdout ?? ""}${r.stderr ?? ""}`.trimEnd().split(/\r?\n/).slice(-40).join("\n");
-  if (timedOut) {
-    throw new UsageError(`PR #${pr} not merged: the merge gate didn't finish in ${Math.round(limitMs / 60_000)} minutes; run braid accept again\ngate: ${command}${tail === "" ? "" : `\n${tail}`}`);
+  const tail = r.output.trimEnd().split(/\r?\n/).slice(-40).join("\n");
+  const shown = `gate: ${command}${tail === "" ? "" : `\n${tail}`}`;
+  if (r.timedOut) {
+    throw new UsageError(`PR #${pr} not merged: the merge gate didn't finish in ${Math.round(limitMs / 60_000)} minutes (it was stopped); run braid accept again\n${shown}`);
   }
-  const how = r.error !== undefined ? `could not run (${r.error.message})` : `exit code ${r.status ?? `signal ${r.signal ?? "?"}`}`;
-  throw new UsageError(`PR #${pr} not merged: the merge gate failed (${how}); nothing merged\ngate: ${command}${tail === "" ? "" : `\n${tail}`}`);
+  const how = r.error !== null ? `could not run (${r.error.message})` : `exit code ${r.status ?? `signal ${r.signal ?? "?"}`}`;
+  throw new UsageError(`PR #${pr} not merged: the merge gate failed (${how}); nothing merged\n${shown}`);
 }

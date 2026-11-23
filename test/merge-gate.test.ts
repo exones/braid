@@ -11,7 +11,7 @@ function gated(preset: string, code: number, on = "") {
   const w = world(preset);
   const script = join(w.root, "..", "gate.mjs");
   const calls = join(w.root, "..", "calls.txt");
-  writeFileSync(script, `import { appendFileSync } from "node:fs";\nappendFileSync(${JSON.stringify(calls)}, process.argv.slice(2, 4).join(" ") + String.fromCharCode(10));\nif (process.argv[4] === "sleep") { await new Promise((r) => setTimeout(r, 20000)); }\nconsole.log("gate output line");\nconsole.error("gate says " + (process.argv[4] === "0" ? "yes" : "no"));\nprocess.exit(Number(process.argv[4]) || 0);\n`);
+  writeFileSync(script, `import { appendFileSync } from "node:fs";\nappendFileSync(${JSON.stringify(calls)}, process.argv.slice(2, 4).join(" ") + String.fromCharCode(10));\nif (process.argv[4] === "child") { const { spawn } = await import("node:child_process"); const c = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore" }); appendFileSync(${JSON.stringify(calls + '.pid')}, String(c.pid)); await new Promise((r) => setTimeout(r, 60000)); }\nif (process.argv[4] === "sleep") { await new Promise((r) => setTimeout(r, 20000)); }\nconsole.log("gate output line");\nconsole.error("gate says " + (process.argv[4] === "0" ? "yes" : "no"));\nprocess.exit(Number(process.argv[4]) || 0);\n`);
   const front = ["---", "main: main", "ci: [verify]", ...(preset === "" ? [] : [`autonomy: ${preset}`]), `merge-gate: node "${script}" <pr> <sha> ${code}`, ...(on === "" ? [] : [`merge-gate-on: ${on}`]), "---", ""].join("\n");
   writeFileSync(join(w.root, "BRAID.md"), front);
   git(w.root, "commit", "-q", "-am", "gate");
@@ -51,7 +51,7 @@ test("a gate that outlives its time limit refuses the merge and says to run brai
   git(w.root, "commit", "-q", "-am", "slow gate");
   git(w.root, "push", "-q", "origin", "HEAD:refs/heads/braid/0001-alpha");
   const head = w.headOf("braid/0001/A-first");
-  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--merge"], { ...w.opts, gateMs: 400 }), /the merge gate didn't finish in 0 minutes; run braid accept again/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--merge"], { ...w.opts, gateMs: 400 }), /the merge gate didn't finish in 0 minutes \(it was stopped\); run braid accept again/);
   assert.equal(w.merges.length, 0);
 });
 
@@ -88,4 +88,45 @@ test("merge-gate-on with an unknown scope is refused", async () => {
   const { w } = gated("", 0, "[strand, everything]");
   await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", w.headOf("braid/0001/A-first"), "--merge"], w.opts), /merge-gate-on must list strand and\/or main/);
   assert.equal(w.merges.length, 0);
+});
+
+const alive = (pid: number) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+test("a timed-out gate is stopped together with the processes it started", async () => {
+  const { w } = gated("", 0);
+  const pidFile = join(w.root, "..", "calls.txt.pid");
+  writeFileSync(join(w.root, "BRAID.md"), readFileSync(join(w.root, "BRAID.md"), "utf8").replace(/ 0\n/, " child\n"));
+  git(w.root, "commit", "-q", "-am", "child gate");
+  git(w.root, "push", "-q", "origin", "HEAD:refs/heads/braid/0001-alpha");
+  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", w.headOf("braid/0001/A-first"), "--merge"], { ...w.opts, gateMs: 3000 }), /didn't finish/);
+  const pid = Number(readFileSync(pidFile, "utf8"));
+  assert.ok(pid > 0);
+  for (let i = 0; i < 50 && alive(pid); i++) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  assert.equal(alive(pid), false, "the gate's child process is still running");
+  assert.equal(w.merges.length, 0);
+});
+
+test("a refused fresh story has no Done stamp and no Accepted comment, and running braid accept again with the same --head works", async () => {
+  const { w, calls } = gated("free", 3);
+  const head = w.headOf("braid/0002-story");
+  await assert.rejects(acceptCommand(w.root, ["0002", "--head", head, "--merge", "--preset"], w.opts), /merge gate failed \(exit code 3\)/);
+  assert.equal(w.headOf("braid/0002-story"), head);
+  assert.doesNotMatch(w.show("braid/0002-story", "braids/0002-story/brief.md"), /^status: Done$/m);
+  assert.deepEqual(w.comments, []);
+  assert.equal(w.merges.length, 0);
+  assert.equal(calls()[0], `6 ${head}`);
+  writeFileSync(join(w.root, "BRAID.md"), readFileSync(join(w.root, "BRAID.md"), "utf8").replace(/ 3\n/, " 0\n"));
+  git(w.root, "commit", "-q", "-am", "gate passes now");
+  const out = await acceptCommand(w.root, ["0002", "--head", head, "--merge", "--preset"], w.opts);
+  assert.match(out, /merged PR #6 at /);
+  assert.equal(calls()[1], `6 ${head}`);
 });
