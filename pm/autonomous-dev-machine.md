@@ -142,6 +142,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: user: "for project colors don't use red palette colors: looks like errors and attracts too much attention": into 0073/E (TAG_COLOURS in web/src/App.tsx has pink-700 and orange-600; no red, pink, rose, orange or amber for projects).
 - 2026-11-23: P20 · 0073/B merged into its braid branch (#280, 521615f): merge-gate and merge-gate-on, run by braid accept --merge under every preset, 9-minute limit. Leftover puxp (after the early PR, braid clean reads the live 0073 branch as merged) fixed inside 0073; until installed, 0071's coordinator runs no unattended braid clean (it agreed). avsv into 0073/D. 0073/C running; 0071/C (#281) in review.
 - 2026-11-23: user: "Merge" #279; 0073/A merged into main (d130b6b), ci green; installed from main, board restarted (running = installed, page 200). Braid branches have no push CI from now on.
 - 2026-11-23: P20 · 0073/A (fewer CI runs) ready for the user's merge as an early PR into main: #279 at f293edf. PM check: diff read (push CI on main only; braid wait falls back to a merge commit's second parent), test/wait.test.ts 23/23, built `braid wait 0073` on the real braid branch read green through the merge commit 09f6cff (no push run of its own). Forwarded (q-n2a7).
