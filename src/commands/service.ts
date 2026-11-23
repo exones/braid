@@ -12,6 +12,7 @@ import { liveAddresses, SESSION_PATH, type Address } from "../board/address.js";
 import { mainCheckout } from "../board/t3.js";
 import { findRoot } from "../braids/store.js";
 import { braidHome } from "../notify/config.js";
+import { system32 } from "../system32.js";
 import { readVersion } from "../version.js";
 import { UsageError } from "./braids.js";
 
@@ -27,10 +28,10 @@ export interface Ran {
   readonly stdout: string;
   readonly stderr: string;
 }
-/** Runs `schtasks` with these arguments (a test seam). */
+/** Runs `schtasks` from System32 with these arguments (a test seam). */
 export type Schtasks = (args: readonly string[]) => Ran;
 export const runSchtasks: Schtasks = (args) => {
-  const r = spawnSync("schtasks.exe", args, { encoding: "utf8", windowsHide: true });
+  const r = spawnSync(system32("schtasks.exe"), args, { encoding: "utf8", windowsHide: true });
   return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? (r.error?.message ?? "") };
 };
 
@@ -202,14 +203,33 @@ export function csvFields(line: string): string[] {
  */
 export function resultText(code: string): string {
   const n = Number(code);
+  // schtasks prints an HRESULT signed (0x800710E0 as -2147020576); the table is by the unsigned value.
   const known: Record<number, string> = {
     0: "ended (the board's own exit code isn't kept; see the log)",
     267009: "running",
     267011: "not run yet",
     267014: "stopped",
-    3221225786: "stopped (its console closed)",
+    0x800710e0: "ended by a logoff or a stop (0x800710e0)",
+    0xc000013a: "stopped (its console closed)",
   };
-  return Number.isFinite(n) ? (known[n] ?? `exited ${n} (0x${(n >>> 0).toString(16)})`) : code;
+  return Number.isInteger(n) ? (known[n >>> 0] ?? `exited ${n} (0x${(n >>> 0).toString(16)})`) : code;
+}
+
+/**
+ * The task line's state: while the task runs, its last result is the previous run's (a logoff that ended it, say), so
+ * it is named that and never reads as the running task failing. Running is the status column's "Running" (English
+ * Windows) or a last result of 267009 (the current run, which then has no previous result to show).
+ */
+export function taskStateText(state: { status: string; result: string }): string {
+  if (Number(state.result) === 267009) {
+    return state.status;
+  }
+  return `${state.status}, ${taskRunning(state) ? "previous run" : "last result"}: ${resultText(state.result)}`;
+}
+
+/** Whether the task runs now, by its status column or its last result (see `taskStateText`). */
+function taskRunning(state: { status: string; result: string } | null): boolean {
+  return state !== null && (Number(state.result) === 267009 || /^running$/i.test(state.status.trim()));
 }
 
 /** The task's status and last result: columns 4 and 7 of `schtasks /query /v /fo csv /nh`, by position (the headers are localised). */
@@ -406,10 +426,10 @@ export async function serviceCommand(args: readonly string[], deps: ServiceDeps 
   const address = await answering(ctx, task.port);
   const running = address === undefined ? null : await ctx.runningVersion(address.url);
   const lines = [
-    `Task: ${TASK_NAME}, ${state === null ? "state unknown" : `${state.status}, last result: ${resultText(state.result)}`}`,
+    `Task: ${TASK_NAME}, ${state === null ? "state unknown" : taskStateText(state)}`,
     `Port: ${task.port}${task.host === undefined ? "" : ` (also on Tailscale: --host ${task.host})`}`,
     `Folder: ${task.folder ?? "unknown"}`,
-    `Address: ${address === undefined ? `no board answers on port ${task.port}${state !== null && Number(state.result) !== 267009 ? " (the task's board isn't running; see the log)" : ""}` : address.url}`,
+    `Address: ${address === undefined ? `no board answers on port ${task.port}${state !== null && !taskRunning(state) ? " (the task's board isn't running; see the log)" : ""}` : address.url}`,
     `Version: ${running === null ? "the running board's is unknown" : `running ${running}`}, installed ${version}${running !== null && running !== version ? ": the board runs older code; braid board service restart starts the installed one" : ""}`,
     `Log: ${logFile(task.port, ctx.home)}`,
   ];

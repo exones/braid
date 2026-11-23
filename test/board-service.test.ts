@@ -176,7 +176,7 @@ test("status: state and last result by column, port, folder, the live address, t
   assert.equal(
     out.stdout,
     [
-      "Task: braid board, Running, last result: running",
+      "Task: braid board, Running",
       "Port: 8765 (also on Tailscale: --host tailscale)",
       `Folder: ${spec.folder}`,
       `Address: http://127.0.0.1:8765/#token=${TOKEN}`,
@@ -201,6 +201,18 @@ test("status shows a stale board after an install, and a task whose board isn't 
   assert.match(out.stdout, /Version: the running board's is unknown, installed 0\.2\.0/);
 });
 
+test("status: while the task runs, its last result is named the previous run's, never a failure of the running task", async () => {
+  // The user's try: the task Running, its last result the previous run's 0x800710E0 (ended by a logoff).
+  const fake = fakeSchtasks({ installed: svc.taskXml(spec), csv: '"PC","\\braid board","N/A","Running","Interactive only","23/11/2026 03:00:00","-2147020576","PC\\\\Jane"' });
+  fake.calls.push({ args: ["/run"] });
+  const out = await svc.serviceCommand(["status"], deps(fake));
+  assert.equal(out.code, 0);
+  assert.match(out.stdout, /^Task: braid board, Running, previous run: ended by a logoff or a stop \(0x800710e0\)$/m);
+  assert.doesNotMatch(out.stdout, /last result|exited/);
+  assert.equal(svc.taskStateText({ status: "Ready", result: "-2147020576" }), "Ready, last result: ended by a logoff or a stop (0x800710e0)");
+  assert.equal(svc.taskStateText({ status: "Wird ausgeführt", result: "267009" }), "Wird ausgeführt", "the current run, in any language");
+});
+
 test("on another platform every subcommand is Windows-only and points to the systemd recipe; restart --if-installed is silent", async () => {
   for (const sub of ["install", "remove", "restart", "status"]) {
     const fake = fakeSchtasks();
@@ -216,6 +228,9 @@ test("the last result in words and the CSV fields", () => {
   assert.equal(svc.resultText("0"), "ended (the board's own exit code isn't kept; see the log)", "conhost exits 0 even for a killed board: never a clean exit");
   assert.equal(svc.resultText("267011"), "not run yet");
   assert.equal(svc.resultText("3221225786"), "stopped (its console closed)");
+  assert.equal(svc.resultText("-1073741510"), "stopped (its console closed)", "signed as schtasks may print it");
+  assert.equal(svc.resultText("-2147020576"), "ended by a logoff or a stop (0x800710e0)");
+  assert.equal(svc.resultText("1"), "exited 1 (0x1)");
   assert.deepEqual(svc.csvFields('"a","b ""c""",,"d,e"'), ["a", 'b "c"', "", "d,e"]);
 });
 

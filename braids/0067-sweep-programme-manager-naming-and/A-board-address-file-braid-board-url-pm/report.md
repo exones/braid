@@ -26,7 +26,7 @@ A board started at login (or 0067/B's service) has no console, so its printed to
 
 - `docs/board.md`: new "The address file" section; the token notes and the 403 texts; "Run the board at login" (Windows: open `braid board --url`'s address, `Stop-Process` leaves a stale file; Linux: `StandardOutput=null` keeps the tokened start lines out of the journal, `braid board --url`, `systemctl --user stop` removes the file).
 - `docs/cli.md`: `braid board` and a `braid board --url` row, and the example list.
-- `docs/decisions.md`: D92 (dated 2026-11-23), after D91 (the table runs by number; it names D50).
+- `docs/decisions.md`: D94 (dated 2026-11-23), after D93 (the table runs by number; it names D50).
 - `docs/autonomy.md`, braid-pm's `openai.yaml`: as above. The CLI's help text.
 
 ## Open

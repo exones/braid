@@ -7,6 +7,7 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { braidHome } from "../notify/config.js";
+import { system32 } from "../system32.js";
 
 const NAME = /^board-(\d{1,5})\.url$/;
 
@@ -17,17 +18,17 @@ export function addressFile(port: number, home: string = braidHome()): string {
 
 /**
  * Makes `file` owner-only on Windows: its inherited entries removed and the current user (by SID) granted full control,
- * nothing else. A file under `~/.braid` otherwise inherits the folder's ACL, which can grant other accounts read access
+ * nothing else, by whoami and icacls from System32 (never by bare name). A file under `~/.braid` otherwise inherits the folder's ACL, which can grant other accounts read access
  * (a sandbox group, for one). Throws when it can't be done. A test seam; POSIX has mode 0600 instead.
  */
 export type OwnerOnly = (file: string) => void;
 export const ownerOnlyAcl: OwnerOnly = (file) => {
-  const who = spawnSync("whoami", ["/user", "/fo", "csv", "/nh"], { encoding: "utf8", windowsHide: true });
+  const who = spawnSync(system32("whoami.exe"), ["/user", "/fo", "csv", "/nh"], { encoding: "utf8", windowsHide: true });
   const sid = /"(S-1-[\d-]+)"/.exec(who.stdout ?? "")?.[1];
   if (sid === undefined) {
     throw new Error(`can't find the current user's SID (whoami /user: ${(who.stderr || who.error?.message || who.stdout || "no output").trim()})`);
   }
-  const r = spawnSync("icacls", [file, "/inheritance:r", "/grant:r", `*${sid}:F`], { encoding: "utf8", windowsHide: true });
+  const r = spawnSync(system32("icacls.exe"), [file, "/inheritance:r", "/grant:r", `*${sid}:F`], { encoding: "utf8", windowsHide: true });
   if (r.status !== 0) {
     throw new Error(`icacls couldn't make it owner-only: ${(r.stderr || r.error?.message || r.stdout || `exit ${r.status}`).trim()}`);
   }
