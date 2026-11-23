@@ -1,7 +1,7 @@
 ---
 id: '0067/D'
 title: "Final PR fixes: Windows tools by full path, status last result while running"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L", "ask:security"]
 dependencies: []
 order: 40
