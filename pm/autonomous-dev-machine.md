@@ -6,13 +6,13 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 2
 state: running
 hold:
-next: P2 · 0069 and P7 · 0067 run; then P3 when a slot frees, on the user's go after the look
-digest: "23 Nov · 3 done · 0 running · 1 ready to merge (#259) · 7 PM decisions"
+next: "the user looks at 0069 + 0067 on the board; P3 on the user's go"
+digest: "23 Nov · 4 done · 0 running · 7 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | done
   - P2 | 0069 | Precise notifications | done
-  - P7 | 0067 | Board as a Windows service, fully usable; PM naming | ready to merge
+  - P7 | 0067 | Board as a Windows service, fully usable; PM naming | done
   - P3 | - | Questions on record | planned
   - P6 | - | The board wakes, reminds and nudges | planned
   - P4 | - | Questions say what they unblock | planned
@@ -134,6 +134,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P7 · 0067 merged into main (699fc3a), ci green; installed 0069 + 0067 from main; the checkout's old Install-Skills.ps1 has no restart step, so the PM ran braid board service restart (running 0.2.0 = installed, page 200). Waiting for the user's look and go for P3.
 - 2026-11-23: user: no more blocking question tool from coordinator or PM, chat only; added to P3.
 - 2026-11-23: user: "Merge 259", relayed to 0067's coordinator. "Ideas can't be amended" added to P14 (it already had "editable later").
 - 2026-11-23: P7 · 0067 ready to merge: PR #259 at fde0339 (main and 0067/D in, boxes ticked from the user's try); PM check on the head: board-address tests pass from Git Bash (10/10), status words the previous run; forwarded to the user. Leftovers th6n, 14vt.
