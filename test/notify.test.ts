@@ -55,12 +55,15 @@ const config = (await load("../dist/notify/config.js")) as {
   configFile(home: string): string;
 };
 const message = (await load("../dist/notify/message.js")) as { pushesOf(board: Board): Push[] };
-const sender = (await load("../dist/notify/sender.js")) as { ntfySender(fetcher: typeof fetch, timeoutMs?: number): Sender };
+const sender = (await load("../dist/notify/sender.js")) as { ntfySender(fetcher: typeof fetch, timeoutMs?: number): Sender; ntfyBody(c: Config, push: PushIn): Record<string, unknown> };
 const notifierMod = (await load("../dist/notify/notifier.js")) as {
   notifier(opts: { file: string; config?: () => Config | null; send?: Sender; token?: () => string | null; warn?: (line: string) => void; timeoutMs?: number }): Notifier;
 };
 const command = (await load("../dist/commands/notify.js")) as {
-  notifyCommand(args: readonly string[], deps?: { home?: string; env?: Record<string, string | undefined>; send?: Sender; clear?: (c: Config, sequence: string, token: string | null) => Promise<void> }): Promise<string>;
+  notifyCommand(
+    args: readonly string[],
+    deps?: { home?: string; env?: Record<string, string | undefined>; send?: Sender; clear?: (c: Config, sequence: string, token: string | null) => Promise<void>; root?: string; t3?: (root: string, args: readonly string[]) => Promise<{ status: number; stdout: string; stderr: string }> },
+  ): Promise<string>;
 };
 const boardMod = (await load("../dist/commands/board.js")) as {
   demoSources(): Record<string, unknown>;
@@ -228,6 +231,58 @@ test("braid notify test sends one push with the token from the environment, and 
   assert.deepEqual(cleared, ["braid-notify-test"]);
   f.set("fail");
   await assert.rejects(command.notifyCommand(["test"], { home, env: {}, send: f.send, clear }), /test push failed: can't reach/);
+});
+
+test("braid notify send pushes the PM's line opening its thread, and never prints the topic or the token", async () => {
+  const home = dir();
+  const root = join(dir(), "agento");
+  mkdirSync(root);
+  const pm = "9b3a8157-f696-45de-ac39-f35a4a90cf9b";
+  const asked: string[][] = [];
+  const t3 = async (_root: string, args: readonly string[]) => {
+    asked.push([...args]);
+    const known = args[2] === pm;
+    return { status: known ? 0 : 1, stdout: known ? JSON.stringify({ thread: { threadId: pm, link: `http://127.0.0.1:3773/env-1/${pm}` } }) : "", stderr: "" };
+  };
+  const send = (args: string[], f = fakeSender()) => command.notifyCommand(["send", ...args], { home, root, env: { BRAID_NTFY_TOKEN: "secret-tk" }, send: f.send, t3 }).then((out) => ({ out, f }));
+
+  const unset = await send(["Nothing can run until you act", "--thread", pm]);
+  assert.match(unset.out, /^Not sent: notifications are not set up/);
+  assert.equal(unset.f.sent.length, 0);
+  config.writeConfig({ ...CFG, enabled: false }, home);
+  const off = await send(["Nothing can run until you act", "--thread", pm]);
+  assert.match(off.out, /^Not sent: notifications are off/);
+  assert.equal(off.f.sent.length, 0);
+
+  config.writeConfig(CFG, home);
+  const ok = await send(["Digest: 2 done, 1 running; 3 merges wait for you", "--thread", pm, "--programme", "dev-machine"]);
+  assert.equal(ok.out, "Sent to ntfy.example.\n");
+  assert.deepEqual(asked[0], ["thread", "show", pm, "--json"]);
+  assert.equal(ok.f.sent[0]?.token, "secret-tk");
+  const push = ok.f.sent[0]?.push as PushIn;
+  assert.deepEqual(push, { title: "agento pm/dev-machine: the PM", body: "Digest: 2 done, 1 running; 3 merges wait for you", tags: ["compass"], priority: "high", click: `t3code://threads/env-1/${pm}`, sequence: "braid-agento-pm-dev-machine-send" });
+  assert.deepEqual(sender.ntfyBody(CFG, push), { topic: CFG.topic, title: push.title, message: push.body, tags: ["compass"], priority: 4, click: push.click, sequence_id: "braid-agento-pm-dev-machine-send" });
+
+  const plain = await send(["x".repeat(250), "--thread", "unknown-thread"]);
+  const p2 = plain.f.sent[0]?.push as PushIn;
+  assert.equal(p2.title, "agento: the PM");
+  assert.equal(p2.click, null);
+  assert.equal(p2.body, `${"x".repeat(199)}…\nOpen the board`, "cut at 200 characters; no link: open the board");
+  assert.equal(p2.sequence, "braid-agento-pm---send");
+  assert.match(plain.out, /no link/);
+
+  const failing = fakeSender();
+  failing.set("fail");
+  const failed = await send(["Nothing can run until you act", "--thread", pm], failing);
+  assert.equal(failed.out, "Not sent: can't reach ntfy.example.\n", "a failed send says why and doesn't throw");
+
+  for (const out of [unset.out, off.out, ok.out, plain.out, failed.out]) {
+    assert.ok(!out.includes(CFG.topic) && !out.includes("secret-tk"), out);
+  }
+  await assert.rejects(command.notifyCommand(["send", "--thread", pm], { home, root }), /usage: braid notify send/);
+  await assert.rejects(command.notifyCommand(["send", "a", "b", "--thread", pm], { home, root }), /usage: braid notify send/);
+  await assert.rejects(command.notifyCommand(["send", "a"], { home, root }), /usage: braid notify send/);
+  assert.equal(runCli(home, ["send", "Nothing can run", "--thread", pm]).code, 0, "off or not set up exits 0 from the CLI too");
 });
 
 // ---- the pushes ----
