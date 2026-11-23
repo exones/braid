@@ -21,7 +21,7 @@ import { startCommand } from "./commands/start.js";
 import { acceptCommand } from "./commands/done.js";
 import { waitCommand } from "./commands/wait.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
-import { answerCommand, askCommand, forwardCommand, handoverCommand, requestsCommand, reviewCommand } from "./commands/requests.js";
+import { answerCommand, askCommand, forwardCommand, handoverCommand, requestsCommand, reviewCommand, withdrawCommand } from "./commands/requests.js";
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
 import { autonomyCommand } from "./commands/autonomy.js";
 import { limitsCommand } from "./commands/limits.js";
@@ -59,16 +59,17 @@ export function helpText(version: string): string {
     "  next <number>               The next strand to run, or why none is ready",
     "  start <id> [--force]        Create the strand branch from its braid branch, push it, add a worktree (--force: skip the ready check)",
     "  review <id> --thread <id>   Record a reviewer subagent's thread with the folder and branch T3 gives for it: the board and status show the review while it runs, clean removes that checkout after the merge",
-    "  decisions <number> [--since <date or sha>]  List the Decided: log entries of a braid and its strands, oldest first",
+    "  decisions <number> [--since <date or sha>]  List the Decided: log entries of a braid and its strands and their requests answered by you or the PM (from braid-requests), oldest first",
     "  accept <id> [--head <sha>] [--merge [--preset]]  Accept an item and mark it Done after checks: a strand on the braid branch after its merge (--merge merges the reviewed head first; --preset makes it a merge under the braid's autonomy preset, refused unless the preset's merge value allows this PR), a story or final PR on its branch (--log adds a braid log entry, --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
     "  wait <number> [--timeout <minutes>]  Wait for the braid branch's CI (reads only): each check is answered by the newest commit from the tip down to the newest one outside braids/ and epics/ that has a run for it, and a cancelled run stays pending while a newer commit may still run it: exit 0 green, 1 a ci check failed, 2 no run within 5 minutes or an error, 3 still running when --timeout (minutes, default 30) is up: call again",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case",
     "  recap <id>                  A draft recap and braid log line from report.md, the PR (head, checks) and the facts, to edit",
-    "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints the recap draft (--thread, --to pm)",
-    "  ask <id> <text>             Open a request for what the coordinator needs from you (--kind question|decision|plan, --key <stop case>, --thread, --file -; --to pm: the PM answers first, from the braid's PM-run line). The PM's own: --by pm on a braid, or ask pm/<slug> for the programme (--kind action: something only you can do); a PM request shows in Needs You, is pushed and opens the PM thread",
+    "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints its code and the recap draft (--thread, --to pm)",
+    "  ask <id> <text>             Open a request for what the coordinator needs from you and print its code (q-7f3k) (--kind question|decision|plan, --key <stop case>, --thread, --file -; --to pm: the PM answers first, from the braid's PM-run line; --to <braid number>: another braid's coordinator, stored only; --done-when answered|pr:<n>|braid:<number>|time:<iso>: pr:<n> closes it as met when that PR merges, braid: and time: are stored and shown). Finds the item on any branch, on origin/<main> or in the record. The PM's own: --by pm on a braid, or ask pm/<slug> for the programme (--kind action: something only you can do); a PM request shows in Needs You, is pushed and opens the PM thread",
     "  forward <id>                The PM hands a request addressed to it on to you: it reaches you as the PM's ask (the programme's Needs you; a braid with no programme: its card's Needs You, a handover To Review) and is pushed, opening the PM's thread (the merges one PM forwards are one push listing them), at once or, while the braid is paused or held, after braid resume (--note <text>)",
-    "  answer <id>                 Close the item's request, recorded answered (--by pm: the PM's, also for pm/<slug>; --log <file>|- adds your decision to the braid log; --thread)",
-    "  requests                    List the open requests on braid-requests: code, item, kind, age, who asks (the PM) and text",
+    "  answer <code>|<id>          Record the answer on braid-requests, never on a braid branch: the text from --file <file>|- (--log is the same), who answered (--from user, the default, or --from pm --reason <why>); an id with both askers' requests open needs the code or --by coordinator|pm (pm/<slug>: the PM's). An already closed request is refused",
+    "  withdraw <code>|<id> --why <reason>  Withdraw a request no longer needed; it stays on the record as withdrawn with the reason (--by coordinator|pm for an id)",
+    "  requests [<code>]           List the open requests on braid-requests: code, item, kind, age, who asks or whom it is for, done when, text; with a code: that request's whole history (each event's time, who and text); --closed [--since <YYYY-MM-DD>]: the closed ones, newest first, with state, who closed them and the answer",
     "  note <text> --from <source>  Capture a leftover on the braid-inbox branch and push it (source: 0012/A, review 0012/A, PR #12 or user; --ref <url> repeats; --file -)",
     "  note --idea <text>          Capture an idea on the braid-inbox branch and push it (from: user unless --from; --file -)",
     "  inbox                       List the open inbox entries: kind, id, age, source, passed, title (--leftovers, --ideas, --all adds taken and dropped, --no-fetch)",
@@ -108,7 +109,7 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "forward", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
+const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "withdraw", "forward", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
@@ -130,6 +131,8 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
       return askCommand(root, args);
     case "answer":
       return answerCommand(root, cwd, args);
+    case "withdraw":
+      return withdrawCommand(root, args);
     case "forward":
       return forwardCommand(root, args);
     case "requests":

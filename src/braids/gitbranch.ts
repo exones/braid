@@ -186,9 +186,18 @@ export function currentFiles(root: string, b: BranchSpec, at: { readonly local: 
   const files = filesAt(root, b, r.commit);
   if ("ours" in r) {
     const mine = filesAt(root, b, r.ours);
+    // A file the remote changed too is merged as the next write's replay merges it, so a read shows both sides.
+    const mb = b.merge === undefined ? null : git(root, ["merge-base", r.ours, r.commit]);
+    const old = mb !== null && mb.status === 0 ? filesAt(root, b, mb.stdout.trim()) : new Map<string, string>();
     for (const path of r.pending) {
       const blob = mine.get(path);
-      if (blob !== undefined) {
+      if (blob === undefined) {
+        continue;
+      }
+      const other = files.get(path);
+      if (b.merge !== undefined && other !== undefined && other !== blob && other !== old.get(path)) {
+        files.set(path, hash(root, b.merge(path, must(root, ["cat-file", "blob", blob]), must(root, ["cat-file", "blob", other]))));
+      } else {
         files.set(path, blob);
       }
     }

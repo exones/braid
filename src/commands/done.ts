@@ -368,9 +368,12 @@ export async function acceptCommand(root: string, args: readonly string[], opts:
   const m = id.exec(args.find((a) => id.test(a)) ?? "");
   if (m !== null) {
     // A review request is met by the accept; anything else still open is withdrawn.
-    closeRequest(root, `${(m[1] ?? "").padStart(4, "0")}${m[2] === undefined ? "" : `/${m[2]}`}`, undefined, (r) =>
+    const closed = closeRequest(root, `${(m[1] ?? "").padStart(4, "0")}${m[2] === undefined ? "" : `/${m[2]}`}`, undefined, (r) =>
       r.kind === "review" ? { state: "met", who: "coordinator", text: "accepted" } : { state: "withdrawn", who: "coordinator", text: "the item is Done" },
     );
+    if (closed.warning !== null) {
+      return `${out}warning: ${closed.warning}\n`;
+    }
   }
   return out;
 }

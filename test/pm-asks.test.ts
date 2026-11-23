@@ -78,11 +78,11 @@ test("the store keys by item and asker: both open, each replaced and closed on i
   openRequest(root, { ...old, text: "newer coordinator" });
   const open = loadRequests(root);
   assert.deepEqual(open.map((r: any) => [r.by ?? "coordinator", r.kind, r.text]).sort(), [["coordinator", "question", "newer coordinator"], ["pm", "plan", "a plan text"]]);
-  assert.equal(closeRequest(root, "0001", "pm", { state: "answered", who: "pm" }), true);
-  assert.equal(closeRequest(root, "0001", "pm", { state: "answered", who: "pm" }), false);
+  assert.equal(closeRequest(root, "0001", "pm", { state: "answered", who: "pm" }).found, true);
+  assert.equal(closeRequest(root, "0001", "pm", { state: "answered", who: "pm" }).found, false);
   assert.equal(loadRequests(root).length, 1);
   openRequest(root, ask("0001", "plan", 3));
-  assert.equal(closeRequest(root, "0001", undefined, { state: "withdrawn", who: "coordinator" }), true, "without an asker both close (start and accept)");
+  assert.equal(closeRequest(root, "0001", undefined, { state: "withdrawn", who: "coordinator" }).found, true, "without an asker both close (start and accept)");
   assert.equal(loadRequests(root).length, 0);
 });
 
@@ -207,12 +207,15 @@ test("braid requests and braid answer name which request; a forward touches only
   assert.match(list, /^q-[a-z0-9]{4} {2}pm\/working-product {2}question {2}0m {2}from the PM {2}programme asks$/m);
   assert.match(forwardCommand(root, ["0001/A"], opts), /question request forwarded to the user/);
   assert.equal(loadRequests(root).find((r: any) => r.by === "pm" && r.id === "0001/A").to, undefined);
-  assert.match(answerCommand(root, root, ["0001/A", "--by", "pm"]), /^0001\/A: the PM's request closed/);
+  assert.match(answerCommand(root, root, ["0001/A", "--by", "pm"]), /^q-[a-z0-9]{4} 0001\/A: answered by the user/);
   assert.equal(loadRequests(root).length, 2);
   assert.match(answerCommand(root, root, ["0001/A", "--by", "pm"]), /no open PM request/);
-  assert.match(answerCommand(root, root, ["pm/working-product"]), /^pm\/working-product: the PM's request closed/);
+  assert.match(answerCommand(root, root, ["pm/working-product"]), /^q-[a-z0-9]{4} pm\/working-product: answered by the user/);
   askCommand(root, ["0001/A", "again", "--by", "pm", "--thread", PM], opts);
-  assert.match(answerCommand(root, root, ["0001/A"]), /request closed/);
+  // Both askers have one open: the id alone names both codes and changes nothing.
+  assert.throws(() => answerCommand(root, root, ["0001/A"]), /0001\/A has 2 open requests: q-[a-z0-9]{4} \(the coordinator's\), q-[a-z0-9]{4} \(the PM's\); give the code, or --by coordinator\|pm; nothing changed/);
+  assert.equal(loadRequests(root).length, 2);
+  assert.match(answerCommand(root, root, ["0001/A", "--by", "coordinator"]), /answered by the user/);
   assert.equal(loadRequests(root).length, 1, "the PM's stays open when the coordinator's is answered");
-  assert.match(answerCommand(root, root, ["0001/A"]), /no open request \(the PM's is open: --by pm\)/);
+  assert.match(answerCommand(root, root, ["0001/A", "--by", "coordinator"]), /no open request \(the PM's is open: q-[a-z0-9]{4}\)/);
 });

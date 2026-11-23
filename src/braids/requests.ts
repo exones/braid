@@ -18,6 +18,12 @@ export type Kind = (typeof KINDS)[number];
 /** Who opened a request: the braid's coordinator, or the programme manager asking the user itself. */
 export type Asker = "coordinator" | "pm";
 
+/** Whom a request is for: the user, the PM, or another braid's coordinator by its four-digit number. */
+export type To = "user" | "pm" | (string & {});
+
+/** A braid number as an addressee. */
+export const BRAID_TO = /^\d{4}$/;
+
 /** Who did something to a request. */
 export type Who = "user" | "pm" | "coordinator" | "board";
 
@@ -64,8 +70,8 @@ export interface Request {
   /** A review request: the PR and the head commit handed over. */
   readonly pr?: number;
   readonly head?: string;
-  /** Whom it is for: `pm` (the programme manager answers first) or `user`; `user` once forwarded. Without it, the user's. */
-  readonly to?: "user" | "pm";
+  /** Whom it is for: `pm` (the programme manager answers first), `user`, or another braid's coordinator by its number (`0042`); `user` once forwarded. Without it, the user's. */
+  readonly to?: To;
   /** The PM's thread (id) of a request to the PM, from the brief's `PM-run (thread <id>)` line. */
   readonly pm?: string;
   /** When the PM forwarded it to the user (`braid forward`), ISO: the `forwarded` event. */
@@ -166,7 +172,7 @@ export function parseRecord(file: string, text: string): Request | RecordProblem
   const final = list.findLast((e) => FINAL[e.event] !== undefined);
   const by = v["by"] === "pm" ? "pm" : "coordinator";
   // Without `to`, the request is the user's, as before the record.
-  const to = forward !== undefined ? "user" : v["to"] === "pm" ? "pm" : undefined;
+  const to = forward !== undefined ? "user" : v["to"] === "pm" || (typeof v["to"] === "string" && BRAID_TO.test(v["to"])) ? (v["to"] as string) : undefined;
   return {
     code,
     id: v["item"],
@@ -420,35 +426,65 @@ export interface Ending {
   readonly state: "answered" | "withdrawn" | "met";
   readonly who: Who;
   readonly text?: string;
+  /** The PM's reason, when the PM answered for the user. */
+  readonly reason?: string;
   readonly at?: string;
 }
+
+/** The event an ending appends. */
+const endEvent = (e: Ending, at: string): RequestEvent => ({ event: e.state, at: e.at ?? at, by: e.who, ...(e.text === undefined ? {} : { text: e.text }), ...(e.reason === undefined ? {} : { reason: e.reason }) });
 
 /**
  * Closes the item's open request of this asker (without `by`: of both) with an event, never a delete; true
  * when there was one. `end` may depend on the request (a review is met, a question withdrawn).
  */
-export function closeRequest(root: string, id: string, by: Asker | undefined, end: Ending | ((r: Request) => Ending)): boolean {
+export function closeRequest(root: string, id: string, by: Asker | undefined, end: Ending | ((r: Request) => Ending)): { readonly found: boolean; readonly warning: string | null } {
   // Nothing to close: no lock, no write (start and accept call this on every item).
   if (!loadRequests(root).some((r) => same(r, id, by))) {
-    return false;
+    return { found: false, warning: null };
   }
-  let found = false;
-  writeRecord(root, (view) => {
+  const at = new Date().toISOString();
+  const result = writeRecord(root, (view) => {
     const files = new Map<string, string>();
     for (const r of viewAll(view).requests.filter((x) => x.state === "open" && same(x, id, by))) {
-      const e = typeof end === "function" ? end(r) : end;
-      files.set(pathOf(r.code), serialise(withEvent(r, { event: e.state, at: e.at ?? new Date().toISOString(), by: e.who, ...(e.text === undefined ? {} : { text: e.text }) })));
+      files.set(pathOf(r.code), serialise(withEvent(r, endEvent(typeof end === "function" ? end(r) : end, at))));
     }
-    found = files.size > 0;
     return { files, message: `docs(requests): ${id} closed` };
   });
-  return found;
+  return { found: result.commit !== null, warning: result.warning };
 }
 
+/**
+ * Ends one request by its code. Inside the write it is checked again: a request already closed (by
+ * someone else meanwhile, too) is left as it is and returned with `ended: false`. Null: no such code.
+ */
+export function endRequest(root: string, code: string, end: Ending | ((r: Request) => Ending)): { readonly request: Request; readonly ended: boolean; readonly warning: string | null } | null {
+  let found: Request | null = null;
+  let ended = false;
+  const result = writeRecord(root, (view) => {
+    const text = view.read(pathOf(code));
+    const r = text === null ? null : parseRecord(pathOf(code), text);
+    found = r === null || isRecordProblem(r) ? null : r;
+    ended = found !== null && found.state === "open";
+    if (found === null || !ended) {
+      return { files: new Map(), message: "" };
+    }
+    const e = typeof end === "function" ? end(found) : end;
+    const next = serialise(withEvent(found, endEvent(e, new Date().toISOString())));
+    found = parseRecord(pathOf(code), next) as Request;
+    return { files: new Map([[pathOf(code), next]]), message: `docs(requests): ${found.id} ${code} ${e.state}` };
+  });
+  const request: Request | null = found;
+  return request === null ? null : { request, ended, warning: result.warning };
+}
+
+/** The event that closed a request, or null while it is open. */
+export const closing = (r: Pick<Request, "events">): RequestEvent | null => r.events.findLast((e) => FINAL[e.event] !== undefined) ?? null;
+
 /** Hands the item's request to the user (`braid forward`): a `forwarded` event with the note. Null when there is no open request. */
-export function forwardRequest(root: string, id: string, at: string, note: string | undefined): Request | null {
+export function forwardRequest(root: string, id: string, at: string, note: string | undefined): { readonly request: Request | null; readonly warning: string | null } {
   let out: Request | null = null;
-  writeRecord(root, (view) => {
+  const result = writeRecord(root, (view) => {
     const old = viewAll(view).requests.find((r) => r.state === "open" && same(r, id, "coordinator"));
     if (old === undefined) {
       out = null;
@@ -458,29 +494,48 @@ export function forwardRequest(root: string, id: string, at: string, note: strin
     out = { ...next, to: "user", forwarded: at, ...(note === undefined ? {} : { note }) };
     return { files: new Map([[pathOf(old.code), serialise(next)]]), message: `docs(requests): ${id} ${old.code} forwarded` };
   });
-  return out;
+  return { request: out, warning: result.warning };
 }
 
-/** A review request is void when its PR is no longer open (in any letter case) or is at another head (the full sha). A PR that can't be read (null) leaves it. */
-export function voided(request: Pick<Request, "kind" | "head">, pr: PrNow): boolean {
-  return request.kind === "review" && pr !== null && (pr.state.toUpperCase() !== "OPEN" || (request.head !== undefined && pr.headRefOid !== request.head));
+/** The fields the PR checks read. */
+type PrFields = Pick<Request, "kind" | "head" | "pr"> & { readonly doneWhen?: string };
+
+/** The PR a request waits on: a `pr:<n>` "done when", else a review's PR. */
+export function conditionPr(request: PrFields): number | undefined {
+  const m = /^pr:(\d+)$/.exec(request.doneWhen ?? "");
+  return m === null ? request.pr : Number(m[1]);
 }
 
-/** How a void review request ends: met when its PR merged, withdrawn when it closed or its head moved. */
-export function voidEnding(request: Pick<Request, "pr" | "head">, pr: NonNullable<PrNow>): Ending {
+/**
+ * A request waiting on a PR is void when the PR is no longer open (in any letter case); a review request
+ * also when the PR is at another head (the full sha). A PR that can't be read (null) leaves it.
+ */
+export function voided(request: PrFields, pr: PrNow): boolean {
+  if (pr === null || (request.kind !== "review" && !/^pr:/.test(request.doneWhen ?? ""))) {
+    return false;
+  }
+  return pr.state.toUpperCase() !== "OPEN" || (request.kind === "review" && request.head !== undefined && pr.headRefOid !== request.head);
+}
+
+/** How a void request ends: met when its PR merged, withdrawn when it closed or (a review's) its head moved. */
+export function voidEnding(request: PrFields, pr: NonNullable<PrNow>): Ending {
   const state = pr.state.toUpperCase();
+  const n = conditionPr(request) ?? "";
   if (state === "MERGED") {
-    return { state: "met", who: "board", text: `PR #${request.pr ?? ""} merged` };
+    return { state: "met", who: "board", text: `PR #${n} merged` };
   }
   if (state !== "OPEN") {
-    return { state: "withdrawn", who: "board", text: `PR #${request.pr ?? ""} ${state.toLowerCase()}` };
+    return { state: "withdrawn", who: "board", text: `PR #${n} ${state.toLowerCase()}` };
   }
-  return { state: "withdrawn", who: "board", text: `PR #${request.pr ?? ""} head moved to ${pr.headRefOid.slice(0, 7)}` };
+  return { state: "withdrawn", who: "board", text: `PR #${n} head moved to ${pr.headRefOid.slice(0, 7)}` };
 }
 
-/** The requests still open, given what each review request's PR is now. Pure: it writes nothing, so a board can derive lanes from it. */
-export function filterLive<T extends Pick<Request, "kind" | "head" | "pr">>(requests: readonly T[], prOf: (number: number) => PrNow): T[] {
-  return requests.filter((r) => !(r.pr !== undefined && voided(r, prOf(r.pr))));
+/** The requests still open, given what the PR each one waits on is now. Pure: it writes nothing, so a board can derive lanes from it. */
+export function filterLive<T extends PrFields>(requests: readonly T[], prOf: (number: number) => PrNow): T[] {
+  return requests.filter((r) => {
+    const n = conditionPr(r);
+    return !(n !== undefined && voided(r, prOf(n)));
+  });
 }
 
 /**
@@ -491,7 +546,8 @@ export function liveRequests(root: string, prOf: (number: number) => PrNow): Req
   const seen = loadRequests(root);
   const ends = new Map<string, Ending>();
   for (const r of seen) {
-    const pr = r.pr === undefined ? null : prOf(r.pr);
+    const n = conditionPr(r);
+    const pr = n === undefined ? null : prOf(n);
     if (pr !== null && voided(r, pr)) {
       ends.set(r.code, voidEnding(r, pr));
     }
@@ -505,13 +561,30 @@ export function liveRequests(root: string, prOf: (number: number) => PrNow): Req
     for (const r of viewAll(view).requests.filter((x) => x.state === "open")) {
       const e = ends.get(r.code);
       if (e !== undefined) {
-        files.set(pathOf(r.code), serialise(withEvent(r, { event: e.state, at, by: e.who, ...(e.text === undefined ? {} : { text: e.text }) })));
+        files.set(pathOf(r.code), serialise(withEvent(r, endEvent(e, at))));
       }
     }
-    return { files, message: `docs(requests): ${files.size} review ${files.size === 1 ? "request" : "requests"} ended by their PR` };
+    return { files, message: `docs(requests): ${files.size} ${files.size === 1 ? "request" : "requests"} ended by their PR` };
   });
   // Read again: another writer may have opened or closed one meanwhile.
   return loadRequests(root);
+}
+
+/**
+ * The requests of the items `match` keeps that the user or the PM answered, as decision rows: the answer's
+ * time (`YYYY-MM-DD HH:MM`, as log entries have it), the item, and the request with its answer and the PM's
+ * reason. Read for `braid decisions` and the recap draft, next to the `Decided:` log entries.
+ */
+export function answeredRows(requests: readonly Request[], match: (id: string) => boolean): { at: string; id: string; text: string }[] {
+  return requests.flatMap((r) => {
+    const e = r.state === "answered" ? closing(r) : null;
+    if (e === null || (e.by !== "user" && e.by !== "pm") || !match(r.id)) {
+      return [];
+    }
+    const said = e.text === undefined ? "" : ` -> ${e.text.replace(/\s+/g, " ").trim()}`;
+    const reason = e.reason === undefined ? "" : ` (reason: ${e.reason})`;
+    return [{ at: e.at.slice(0, 16).replace("T", " "), id: r.id, text: `${r.code} answered by ${e.by === "pm" ? "the PM" : "the user"}: ${r.text}${said}${reason}` }];
+  });
 }
 
 /** `5m`, `2h`, `3d`: the age of a request. */

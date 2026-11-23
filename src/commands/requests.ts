@@ -1,17 +1,18 @@
-// `braid handover`, `braid ask`, `braid answer` and `braid requests`: the coordinator records that it
-// needs the user (a request), and closes it again. The record is src/braids/requests.ts.
+// `braid handover`, `braid ask`, `braid answer`, `braid withdraw` and `braid requests`: the coordinator
+// records that it needs someone (a request), and closes it again. The record is src/braids/requests.ts.
 import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
-import { loadKnownBraids } from "../braids/branches.js";
+import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch } from "../braids/gitbranch.js";
-import { age, askerOf, closeRequest, forwardRequest, KINDS, liveRequests, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Kind, type PrNow, type Request } from "../braids/requests.js";
+import { age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, KINDS, liveRequests, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
-import { UsageError } from "./braids.js";
+import { normaliseId, UsageError } from "./braids.js";
 import { ciChecks } from "./coordinate.js";
 import { checksProblem, view } from "./done.js";
 import { find, parse, readText, str } from "./edit.js";
-import { logEntry } from "./logs.js";
+import { mainBranch } from "./start.js";
 import { recordReview } from "../braids/reviews.js";
 import { recapCommand } from "./facts.js";
 
@@ -35,36 +36,84 @@ function threadOf(values: Parameters<typeof str>[0]): string | null {
 /** The braid's exception line names its PM: `PM-run (thread <id>)`. */
 const PM_RUN = /PM-run \(thread ([^\s)]+)\)/;
 
+/**
+ * Braid `number` wherever braid can see it: this checkout, its braid and plan branches (as `braid view`),
+ * then `origin/<main>`, where a merged story is after its branch is gone and before this checkout pulls it.
+ */
+function braidOf(root: string, number: string): Braid | undefined {
+  return loadKnownBraids(root, number).find((b) => b.number === number) ?? braidAt(root, `origin/${mainBranch(root)}`, number) ?? undefined;
+}
+
 /** The PM's thread named by the braid's brief (`PM-run (thread <id>)`), or null. */
 function pmOfBraid(root: string, id: string): string | null {
-  const number = id.slice(0, 4);
-  const braid = loadKnownBraids(root, number).find((b) => b.number === number);
+  const braid = braidOf(root, id.slice(0, 4));
   return braid === undefined ? null : (PM_RUN.exec(braid.brief.body)?.[1] ?? null);
 }
 
-/** `--to user|pm`: whom the request is for; `pm` needs the PM's thread from the braid's `PM-run (thread <id>)` line, and fails (opening nothing) without it. */
-function addressee(root: string, values: Parameters<typeof str>[0], id: string): { to?: "pm"; pm?: string } {
+/**
+ * `--to user|pm|<braid number>`: whom the request is for. `pm` needs the PM's thread from the braid's
+ * `PM-run (thread <id>)` line, and fails (opening nothing) without it. A braid number is another braid's
+ * coordinator, stored as the number; nothing routes it yet.
+ */
+function addressee(root: string, values: Parameters<typeof str>[0], id: string): { to?: string; pm?: string } {
   const to = str(values, "to");
   if (to === undefined || to === "user") {
     return {};
   }
-  if (to !== "pm") {
-    throw new UsageError(`--to is user or pm; got: ${to}`);
+  if (/^\d{1,4}$/.test(to)) {
+    const number = to.padStart(4, "0");
+    if (braidOf(root, number) === undefined) {
+      throw new UsageError(`${id} not opened: --to ${to}: no braid ${number}; nothing changed`);
+    }
+    return { to: number };
   }
-  const number = id.slice(0, 4);
-  const braid = loadKnownBraids(root, number).find((b) => b.number === number);
-  const pm = braid === undefined ? null : (PM_RUN.exec(braid.brief.body)?.[1] ?? null);
+  if (to !== "pm") {
+    throw new UsageError(`--to is user, pm or a braid number; got: ${to}`);
+  }
+  const pm = pmOfBraid(root, id);
   if (pm === null) {
-    throw new UsageError(`${id} not opened: --to pm needs braid ${number}'s brief to have a "PM-run (thread <id>)" line, and it has none; nothing changed`);
+    throw new UsageError(`${id} not opened: --to pm needs braid ${id.slice(0, 4)}'s brief to have a "PM-run (thread <id>)" line, and it has none; nothing changed`);
   }
   return { to: "pm", pm };
 }
 
-/** The item's id (`0015` or `0015/C`), checked against the braids `braid view` finds: this checkout's and those that live only on their branch. */
+/** `--done-when answered|pr:<n>|braid:<number>|time:<iso>`, normalised; `answered` when not given. */
+function doneWhenFlag(values: Parameters<typeof str>[0]): string {
+  const raw = str(values, "done-when");
+  if (raw === undefined || raw === "answered") {
+    return "answered";
+  }
+  const pr = /^pr:#?(\d+)$/.exec(raw);
+  if (pr !== null) {
+    return `pr:${Number(pr[1])}`;
+  }
+  const braid = /^braid:(\d{1,4})$/.exec(raw);
+  if (braid !== null) {
+    return `braid:${(braid[1] ?? "").padStart(4, "0")}`;
+  }
+  const time = /^time:(.+)$/.exec(raw)?.[1];
+  if (time !== undefined && /^\d{4}-\d{2}-\d{2}/.test(time) && !Number.isNaN(Date.parse(time))) {
+    return `time:${new Date(time).toISOString()}`;
+  }
+  throw new UsageError(`--done-when is answered, pr:<n>, braid:<number> or time:<iso>; got: ${raw}`);
+}
+
+/**
+ * The item's id (`0015` or `0015/C`), checked against the braids braid can see (`braidOf`); an id the
+ * record already has requests for is known too, though its braid is out of sight here.
+ */
 function itemId(root: string, raw: string | undefined, command: string): string {
   const number = raw === undefined ? undefined : /^(\d{1,4})(?:\/|$)/.exec(raw)?.[1]?.padStart(4, "0");
-  const { item } = find(loadKnownBraids(root, number), raw, command);
-  return item.brief.id;
+  const braid = number === undefined ? undefined : braidOf(root, number);
+  try {
+    return find(braid === undefined ? [] : [braid], raw, command).item.brief.id;
+  } catch (error) {
+    const id = raw !== undefined && /^\d{1,4}(?:\/[A-Za-z])?$/.test(raw) ? normaliseId(raw) : null;
+    if (id !== null && loadRecord(root).requests.some((r) => r.id === id)) {
+      return id;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -150,16 +199,17 @@ function askerFlag(values: Parameters<typeof str>[0], programme: boolean): Asker
 }
 
 export function askCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
-  const { positionals, values } = parse("braid ask", args, { kind: { type: "string" }, key: { type: "string" }, thread: { type: "string" }, file: { type: "string" }, to: { type: "string" }, by: { type: "string" } });
+  const { positionals, values } = parse("braid ask", args, { kind: { type: "string" }, key: { type: "string" }, thread: { type: "string" }, file: { type: "string" }, to: { type: "string" }, by: { type: "string" }, "done-when": { type: "string" } });
   const kind = str(values, "kind") ?? "question";
   if (!KINDS.includes(kind as Kind) || kind === "review") {
     throw new UsageError(`--kind is question, decision, plan or action (a review comes from braid handover); got: ${kind}`);
   }
   const file = str(values, "file");
   if (positionals.length !== (file === undefined ? 2 : 1)) {
-    throw new UsageError('usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action] [--key <stop case>] [--thread <id>] [--to user|pm] [--by coordinator|pm]  (or the text from --file -)');
+    throw new UsageError(`${ASK_USAGE}  (or the text from --file -)`);
   }
   const thread = threadOf(values);
+  const doneWhen = doneWhenFlag(values);
   const slug = programmeOf(positionals[0] ?? "");
   const by = askerFlag(values, slug !== null);
   if (kind === "action" && by !== "pm") {
@@ -181,9 +231,12 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   // A PM request is answered in the PM's thread: --thread, else the PM-run line of the braid's brief.
   const pmThread = by === "pm" ? (thread ?? (slug === null ? pmOfBraid(root, id) : null)) : thread;
   const at = (opts.now ?? (() => new Date()))();
-  const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route });
-  return `${opened.code} ${id}: ${kind} request ${by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : ""}opened: ${text}\n${warned(opened.warning)}`;
+  const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route, doneWhen });
+  const whom = by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : route.to !== undefined ? `to braid ${route.to} ` : "";
+  return `${opened.code} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${warned(opened.warning)}`;
 }
+
+const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]';
 
 /** `braid forward <id> [--note <text>]`: the PM hands a request on to the user; it reaches the user (on the braid's card, or for a braid a programme runs as the PM asking in the programme's Needs you) and is pushed, at once or, while the braid is paused or held, after `braid resume`. */
 export function forwardCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
@@ -198,42 +251,190 @@ export function forwardCommand(root: string, args: readonly string[], opts: Requ
     throw new UsageError(`${id}: no open request to forward`);
   }
   if (open.to !== "pm" || open.forwarded !== undefined) {
-    return `${id}: the ${open.kind} request is already the user's${open.forwarded === undefined ? "" : " (forwarded)"}; nothing changed\n`;
+    const whose = open.to !== undefined && BRAID_TO.test(open.to) ? `for braid ${open.to}'s coordinator` : `already the user's${open.forwarded === undefined ? "" : " (forwarded)"}`;
+    return `${id}: the ${open.kind} request is ${whose}; nothing changed\n`;
   }
   const given = note === undefined || note === "" ? undefined : note;
-  forwardRequest(root, id, (opts.now ?? (() => new Date()))().toISOString(), given);
-  return `${id}: ${open.kind} request forwarded to the user${given === undefined ? "" : `: ${given}`}\n`;
+  const done = forwardRequest(root, id, (opts.now ?? (() => new Date()))().toISOString(), given);
+  return `${id}: ${open.kind} request forwarded to the user${given === undefined ? "" : `: ${given}`}\n${warned(done.warning)}`;
 }
 
-export function answerCommand(root: string, cwd: string, args: readonly string[]): string {
-  const { positionals, values } = parse("braid answer", args, { log: { type: "string" }, thread: { type: "string" }, by: { type: "string" } });
+/** `user`, `pm`, `coordinator`, `board` as the words a line says. */
+const WHO: Readonly<Record<Who, string>> = { user: "the user", pm: "the PM", coordinator: "the coordinator", board: "the board" };
+
+/** The code of the one open request a code or an id names; the id form without `--by` refuses when two askers have one open. */
+function target(root: string, raw: string, values: Parameters<typeof str>[0], command: string): { code: string; id: string } | { none: string } {
+  if (CODE.test(raw)) {
+    if (str(values, "by") !== undefined) {
+      throw new UsageError(`${command}: --by is for an id; the code ${raw} names one request`);
+    }
+    return { code: raw, id: "" };
+  }
+  const slug = programmeOf(raw);
+  const by = str(values, "by") === undefined && slug === null ? undefined : askerFlag(values, slug !== null);
+  const id = slug === null ? (/^\d{1,4}(?:\/[A-Za-z])?$/.test(raw) ? normaliseId(raw) : itemId(root, raw, command)) : `pm/${slug}`;
+  // Someone else may have opened or closed one: read the record as it is on origin.
+  fetchBranch(root, REQUESTS);
+  const open = loadRequests(root).filter((r) => r.id === id && (by === undefined || askerOf(r) === by));
+  if (open.length > 1) {
+    throw new UsageError(`${id} has ${open.length} open requests: ${open.map((r) => `${r.code} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"})`).join(", ")}; give the code, or --by coordinator|pm; nothing changed`);
+  }
+  const [one] = open;
+  if (one !== undefined) {
+    return { code: one.code, id };
+  }
+  if (slug === null) {
+    itemId(root, id, command);
+  }
+  const other = by === undefined ? undefined : loadRequests(root).find((r) => r.id === id && askerOf(r) !== by);
+  const hint = other === undefined ? "" : ` (the ${askerOf(other) === "pm" ? "PM's" : "coordinator's"} is open: ${other.code})`;
+  return { none: `${id}: no open ${by === "pm" ? "PM " : ""}request${hint}\n` };
+}
+
+/** Closes the request `target` found; a request already closed is refused, naming its state and who closed it. */
+function end(root: string, found: { code: string; id: string }, command: string, ending: Ending | ((r: Request) => Ending)): { request: Request; warning: string | null } {
+  const done = endRequest(root, found.code, ending);
+  if (done === null) {
+    throw new UsageError(`${command}: no request ${found.code} on ${REQUESTS.branch}; nothing changed`);
+  }
+  if (!done.ended) {
+    const last = closing(done.request);
+    throw new UsageError(`${command}: ${found.code} (${done.request.id}) is already ${done.request.state}${last === null ? "" : ` by ${WHO[last.by] ?? last.by} at ${stamp(last.at)}`}; nothing changed`);
+  }
+  return done;
+}
+
+/** `2026-11-23 12:05Z`. */
+const stamp = (iso: string): string => `${iso.slice(0, 10)} ${iso.slice(11, 16)}Z`;
+
+/** The text of `--file` or `--log` (the same: a file, or `-` for standard input); undefined without either. */
+function answerText(values: Parameters<typeof str>[0]): string | undefined {
+  const file = str(values, "file");
+  const log = str(values, "log");
+  if (file !== undefined && log !== undefined) {
+    throw new UsageError("braid answer: --log is the same as --file; give one");
+  }
+  const from = file ?? log;
+  if (from === undefined) {
+    return undefined;
+  }
+  const text = readText({ file: from }).trim();
+  return text === "" ? undefined : text;
+}
+
+const ANSWER_USAGE = "usage: braid answer <code>|<id>|pm/<slug> [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]";
+
+/**
+ * `braid answer`: records the answer on the request record, with who answered (`--from`, the user by
+ * default) and the PM's reason. It writes only to braid-requests, never to a braid branch, so a PR head stays
+ * where it was. `--log` is the old name of `--file`.
+ */
+export function answerCommand(root: string, _cwd: string, args: readonly string[]): string {
+  const { positionals, values } = parse("braid answer", args, { log: { type: "string" }, file: { type: "string" }, thread: { type: "string" }, by: { type: "string" }, from: { type: "string" }, reason: { type: "string" } });
   if (positionals.length !== 1) {
-    throw new UsageError("usage: braid answer <id>|pm/<slug> [--by coordinator|pm] [--log <file>|-] [--thread <id>]");
+    throw new UsageError(ANSWER_USAGE);
   }
   threadOf(values);
-  const slug = programmeOf(positionals[0] ?? "");
-  const by = askerFlag(values, slug !== null);
-  // A programme has no brief to log on.
-  if (slug !== null && str(values, "log") !== undefined) {
-    throw new UsageError("a programme request has no braid log: drop --log");
+  const from = str(values, "from") ?? "user";
+  if (from !== "user" && from !== "pm") {
+    throw new UsageError(`--from is user or pm; got: ${from}`);
   }
-  const id = slug === null ? itemId(root, positionals[0], "braid answer") : `pm/${slug}`;
-  const logFile = str(values, "log");
-  const thread = str(values, "thread");
-  // The log entry first: a refused one leaves the request open.
-  const logged = logFile === undefined ? "" : logEntry(root, cwd, [id, "--file", logFile, ...(thread === undefined ? [] : ["--thread", thread])]);
-  const closed = closeRequest(root, id, by, { state: "answered", who: by });
-  const other = loadRequests(root).find((r) => r.id === id && askerOf(r) !== by);
-  const hint = closed || other === undefined ? "" : ` (the ${askerOf(other) === "pm" ? "PM's" : "coordinator's"} is open: --by ${askerOf(other)})`;
-  return `${closed ? `${id}: ${by === "pm" ? "the PM's " : ""}request closed` : `${id}: no open ${by === "pm" ? "PM " : ""}request${hint}`}\n${logged}`;
+  const reason = str(values, "reason")?.replace(/\s+/g, " ").trim();
+  if (from === "pm" && (reason === undefined || reason === "")) {
+    throw new UsageError("--from pm needs --reason <text>: why the PM answered so");
+  }
+  if (from === "user" && reason !== undefined) {
+    throw new UsageError("--reason is the PM's: add --from pm");
+  }
+  const text = answerText(values);
+  const found = target(root, positionals[0] ?? "", values, "braid answer");
+  if ("none" in found) {
+    return found.none;
+  }
+  const done = end(root, found, "braid answer", { state: "answered", who: from, ...(text === undefined ? {} : { text }), ...(reason === undefined ? {} : { reason }) });
+  return `${found.code} ${done.request.id}: answered by ${WHO[from]}${text === undefined ? "" : `: ${oneLine(text)}`}\n${warned(done.warning)}`;
 }
 
+/** `braid withdraw <code>|<id> --why <reason>`: the asker no longer needs it; it stays on the record as withdrawn. */
+export function withdrawCommand(root: string, args: readonly string[]): string {
+  const { positionals, values } = parse("braid withdraw", args, { why: { type: "string" }, by: { type: "string" } });
+  const why = str(values, "why")?.replace(/\s+/g, " ").trim();
+  if (positionals.length !== 1 || why === undefined || why === "") {
+    throw new UsageError("usage: braid withdraw <code>|<id>|pm/<slug> --why <reason> [--by coordinator|pm]");
+  }
+  const found = target(root, positionals[0] ?? "", values, "braid withdraw");
+  if ("none" in found) {
+    return found.none;
+  }
+  const done = end(root, found, "braid withdraw", (r) => ({ state: "withdrawn", who: askerOf(r), text: why }));
+  return `${found.code} ${done.request.id}: withdrawn: ${why}\n${warned(done.warning)}`;
+}
+
+const oneLine = (text: string): string => text.replace(/\s+/g, " ").trim();
+
+/** Whom a request is for, as `braid requests` says it. */
+function whomOf(r: Request): string {
+  return askerOf(r) === "pm" ? "from the PM  " : r.forwarded !== undefined ? "forwarded by the PM  " : r.to === "pm" ? "to the PM  " : r.to !== undefined && BRAID_TO.test(r.to) ? `to braid ${r.to}  ` : "";
+}
+
+/** One request with every event: `braid requests <code>`. */
+function history(r: Request): string {
+  const facts = [
+    `asked by ${WHO[askerOf(r)]}`,
+    `for ${r.to === undefined || r.to === "user" ? "the user" : r.to === "pm" ? "the PM" : `braid ${r.to}`}`,
+    `done when ${r.doneWhen}`,
+    ...(r.key === undefined ? [] : [`stop case ${r.key}`]),
+    ...(r.pr === undefined ? [] : [`PR #${r.pr}${r.head === undefined ? "" : ` at ${r.head.slice(0, 7)}`}`]),
+    ...(r.thread === null ? [] : [`thread ${r.thread}`]),
+    ...(r.eta === null ? [] : [`eta ${r.eta}`]),
+  ];
+  const events = r.events.map((e) => `${stamp(e.at)}  ${e.event.padEnd(9)}  ${WHO[e.by] ?? e.by}${e.text === undefined ? "" : `: ${oneLine(e.text)}`}${e.reason === undefined ? "" : ` (reason: ${e.reason})`}`);
+  return `${r.code}  ${r.id}  ${r.kind}  ${r.state}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
+}
+
+/** One closed request on a line: code, item, kind, state, when, who, the request, and the answer or reason. */
+function closedLine(r: Request): string {
+  const last = closing(r);
+  const said = last?.text === undefined ? "" : ` -> ${oneLine(last.text)}`;
+  const reason = last?.reason === undefined ? "" : ` (reason: ${last.reason})`;
+  return `${r.code}  ${r.id}  ${r.kind}  ${r.state}  ${last === null ? "" : `${stamp(last.at)}  by ${WHO[last.by] ?? last.by}`}  ${r.text}${said}${reason}`;
+}
+
+const REQUESTS_USAGE = "usage: braid requests [<code>] [--closed [--since <YYYY-MM-DD>]]";
+
 export function requestsCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
-  if (args.length > 0) {
-    throw new UsageError(`braid requests takes no arguments; got: ${args.join(" ")}`);
+  const { positionals, values } = parse("braid requests", args, { closed: { type: "boolean" }, since: { type: "string" } });
+  const code = positionals[0];
+  const closed = values["closed"] === true;
+  const since = str(values, "since");
+  if (positionals.length > 1 || (code !== undefined && (!CODE.test(code) || closed)) || (since !== undefined && !closed)) {
+    throw new UsageError(code !== undefined && !CODE.test(code) ? `braid requests: ${code} is not a request code (q- and four letters or digits)` : REQUESTS_USAGE);
+  }
+  if (since !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(since)) {
+    throw new UsageError(`--since needs a date (YYYY-MM-DD); got: ${since}`);
+  }
+  // Fetched first, outside any lock, as `braid inbox` does; offline, the local copy is listed.
+  const fetched = fetchBranch(root, REQUESTS);
+  const offline = fetched.state === "offline" ? `warning: can't fetch ${REQUESTS.branch} from origin (${fetched.why}); listing the local copy\n` : "";
+  const skipped = () =>
+    loadRecord(root)
+      .problems.map((p) => `warning: skipped ${p.file}: ${p.message}\n`)
+      .join("");
+  if (code !== undefined) {
+    const r = loadRecord(root).requests.find((x) => x.code === code);
+    if (r === undefined) {
+      throw new UsageError(`no request ${code} on ${REQUESTS.branch}`);
+    }
+    return `${offline}${history(r)}`;
+  }
+  if (closed) {
+    const done = loadRecord(root)
+      .requests.filter((r) => r.state !== "open" && (since === undefined || (closing(r)?.at.slice(0, 10) ?? "") >= since))
+      .sort((a, b) => (closing(b)?.at ?? "").localeCompare(closing(a)?.at ?? ""));
+    return `${offline}${skipped()}${done.length === 0 ? `no closed requests${since === undefined ? "" : ` since ${since}`}\n` : `${done.map(closedLine).join("\n")}\n`}`;
   }
   const run = opts.gh ?? runGh;
-  // Only a review request needs GitHub, and only when there is one.
+  // Only a request waiting on a PR needs GitHub, and only when there is one.
   const prOf = (number: number): PrNow => {
     try {
       const pr = view(run, root, number);
@@ -242,16 +443,11 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
       return null;
     }
   };
-  // Fetched first, outside any lock, as `braid inbox` does; offline, the local copy is listed.
-  const fetched = fetchBranch(root, REQUESTS);
-  const offline = fetched.state === "offline" ? `warning: can't fetch ${REQUESTS.branch} from origin (${fetched.why}); listing the local copy\n` : "";
   const list: Request[] = liveRequests(root, prOf);
-  const skipped = loadRecord(root)
-    .problems.map((p) => `warning: skipped ${p.file}: ${p.message}\n`)
-    .join("");
   if (list.length === 0) {
-    return `${offline}${skipped}no open requests\n`;
+    return `${offline}${skipped()}no open requests\n`;
   }
   const now = (opts.now ?? (() => new Date()))();
-  return `${offline}${skipped}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${r.kind}  ${age(r.at, now)}  ${askerOf(r) === "pm" ? "from the PM  " : ""}${r.forwarded !== undefined ? "forwarded by the PM  " : r.to === "pm" ? "to the PM  " : ""}${r.text}`).join("\n")}\n`;
+  const when = (r: Request): string => (r.doneWhen === "answered" || r.kind === "review" ? "" : `done when ${r.doneWhen}  `);
+  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${r.kind}  ${age(r.at, now)}  ${whomOf(r)}${when(r)}${r.text}`).join("\n")}\n`;
 }

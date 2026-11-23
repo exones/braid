@@ -295,7 +295,7 @@ test("braid ask --to pm stores the PM thread from the brief's PM-run line, and f
   assert.equal(r.to, "pm");
   assert.equal(r.pm, PM);
   assert.throws(() => askCommand(root, ["0002", "x", "--to", "pm"]), /needs braid 0002's brief to have a "PM-run \(thread <id>\)" line/);
-  assert.throws(() => askCommand(root, ["0001", "x", "--to", "nobody"]), /--to is user or pm/);
+  assert.throws(() => askCommand(root, ["0001", "x", "--to", "nobody"]), /--to is user, pm or a braid number/);
   assert.equal(loadRequests(root).length, 1, "the refused ask opened nothing");
   askCommand(root, ["0001", "for you", "--to", "user"], { now: () => NOW });
   assert.equal(loadRequests(root).find((x: { id: string }) => x.id === "0001").to, undefined);
