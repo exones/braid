@@ -7,7 +7,8 @@
 // for the 5-minute start limit, since the newer commit may still start its run; after that, or when nothing is newer,
 // it fails. The exit code is the answer:
 // 0 green, 1 a `ci` check failed, 2 no answer (no run within 5 minutes, or an error), 3 still running when the
-// time is up (call again; the coordinator waits in foreground calls under 10 minutes and repeats).
+// time is up (call again). The coordinator calls it in one short read (--timeout 0.25) before the next strand's
+// review or merge and before the final PR, and never waits on it in the foreground (decision D91).
 import { braidBranches } from "../braids/branches.js";
 import { loadBraids } from "../braids/store.js";
 import { runGh, type GhRunner } from "../board/github.js";
@@ -193,7 +194,7 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
         of("missing").length > 0 ? `not started: ${of("missing").join(", ")}` : "",
         unread ? "GitHub could not be read at the last poll" : "",
       ].filter((p) => p !== "");
-      return { code: 3, stdout: `${head}still running after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}; call braid wait ${number} again to continue on ${short}\n` };
+      return { code: 3, stdout: `${head}still running after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}\n` };
     }
     await sleep(POLL_MS);
   }

@@ -6,6 +6,7 @@ import type { InboxData } from "./inbox.js";
 import { LANES, type BoardData, type BraidCard, type Lane } from "./model.js";
 import type { T3 } from "./t3.js";
 import type { Programme } from "./programme.js";
+import { mergeLimits, type LimitsView } from "./limits.js";
 
 /** What the board knows about one served project, besides its cards. */
 export interface ProjectInfo {
@@ -51,6 +52,8 @@ export interface AllBoard {
   readonly programmes: readonly TaggedProgramme[];
   /** Names asked for with `?projects=` that aren't served (a project removed from the list). */
   readonly missing: readonly string[];
+  /** The providers' limits of those projects as one list (a provider spans projects); null when none was read. */
+  readonly limits: LimitsView | null;
 }
 
 /** One project as the server holds it: its name, its last good board (or none) and how its reads went. */
@@ -93,6 +96,7 @@ export function combine(held: readonly Held[], remote: boolean, missing: readonl
     braids: held.flatMap((h) => (h.board?.braids ?? []).map((card) => ({ ...card, project: h.name }))),
     programmes: held.flatMap((h) => tagProgrammes(h.name, h.board?.programmes ?? [])),
     missing,
+    limits: mergeLimits(held.map((h) => ({ project: h.name, view: h.board?.limits ?? null }))),
   };
 }
 
