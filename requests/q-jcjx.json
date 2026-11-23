@@ -1,0 +1,19 @@
+{
+  "code": "q-jcjx",
+  "item": "0071",
+  "kind": "plan",
+  "text": "Approve the plan",
+  "by": "coordinator",
+  "thread": "mcp:launch:f3ded457bc2c4f65d211a846066216bed62134d0108c48673cbeab472db55819",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-23T19:09:25.350Z",
+      "by": "coordinator"
+    }
+  ]
+}
