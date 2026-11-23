@@ -23,6 +23,8 @@ Expected size: about 150 lines in 6 files.
 
 - From 0070/B's review (https://github.com/exones/braid/pull/269#issuecomment-7102957695): the `recap` help line in `src/cli.ts` still says the draft comes from `report.md`, the PR and the facts; `docs/braids-format.md` and `docs/autonomy.md` ("What the CLI enforces") still describe `braid decisions` and `braid recap` as reading only `Decided:` log entries, not the answered requests.
 
+- The upgrade path (the PM): requests opened with a pre-0070 `braid` sit in `.braid/requests.json` and are carried over once by 0070/A's migration. Say so where the docs describe installing or updating, and check it once by hand: put an open request in a temporary clone's `.braid/requests.json`, run `braid requests` with the built CLI, and note the result in `report.md`.
+
 ## Already decided
 
 - The decisions record names the user's words from the braid's "Already decided" for each user decision.
