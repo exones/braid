@@ -1,7 +1,7 @@
 ---
 id: '0073/B'
 title: "Merge gate: braid accept --merge runs the project command"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 20
