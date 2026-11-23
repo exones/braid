@@ -33,11 +33,12 @@ Expected size: about 40 lines of skill and template text changed (net zero or fe
 - braid-worker skill: when BRAID.md says CI on the braid branch is partial or none, the report gives the gate's output summary and duration; when BRAID.md names review bots, after CI is green the worker waits for their reviews, triages each comment (fix it, answer why not, or mark a nit), pushes the round's fixes in one push, replies on each comment, and resolves the thread itself, and the report lists them.
 - BRAID.md keys, read by the agents (no code): `review-bots: [<check name or comment author>, ...]` and `reviewer-with-bots: always` (the default: the braid reviewer still reviews and reads the bots' comments and the worker's replies) or `L-only` (tier S and M items the bots reviewed get no braid reviewer). The braid-reviewer skill reads the bots' comments and replies; the line that skips the reviewer for `L-only` goes where the coordinator picks the review by tier, and autonomy's merge condition 3 says the bots' review stands in for it there.
 - A "braid on a large repo" section in `docs/getting-started.md` (or a new doc it links) with the Everix-like examples, all generic (no client or product names beyond "a large polyglot monorepo").
+- `braid facts <pr>` (`src/commands/facts.ts`): one line naming the merge gate when BRAID.md has `merge-gate`, and whether `merge-gate-on` covers this PR's merge, e.g. `merge gate: <command> (runs on this merge)` (leftover 2026-11-23-avsv), with a test. The one code change in this strand.
 - The docs as a whole for everything 0073 changed: README, getting started, `docs/cli.md`, `docs/braids-format.md`, `docs/autonomy.md`, roadmap status, decisions; `report.md` lists each doc from BRAID.md `docs` as updated or unchanged.
 
 ## Already decided
 
-- No new code or BRAID.md fields here; `review-bots`, partial CI and path stops are lines.
+- No new code here beyond the `braid facts` line, and no new BRAID.md fields beyond those named; `review-bots`, partial CI and path stops are lines.
 - Skill text gets shorter or stays the same size: `wc -w` per touched skill before and after, in `report.md`. Find words to cut in the same skills to make room.
 - The braid-pm skill is not touched; the braid skill only for the `L-only` sentence above and its template under `assets/`.
 - The user (q-gbni): the merge gate's scope is configurable, default strand and main (0073/B, `merge-gate-on`); the Everix-style example sets `merge-gate-on: [main]`. The braid reviewer with bots is configurable ("Configurable."); the default `always` is the PM's (cheap to reverse). The worker replies to each bot comment and resolves the thread itself ("A").
@@ -52,6 +53,7 @@ Expected size: about 40 lines of skill and template text changed (net zero or fe
 
 - [ ] The template shows, each with an example: partial CI on braid branches, `review-bots` and `reviewer-with-bots`, caches in `setup`, `merge-gate` and `merge-gate-on` (an Everix-style example with `[main]`), `ci: all`
 - [ ] The braid-worker skill covers the bots' comments (triage, one push, reply, resolve as decided) and the gate evidence for partial CI; the braid-reviewer skill reads the bots' comments and replies; `reviewer-with-bots: L-only` is honoured where the review is picked
+- [ ] `braid facts` names the merge gate and whether it runs on this PR's merge, with a test
 - [ ] `wc -w` of each touched skill is not higher than before (numbers in report.md)
 - [ ] The docs from BRAID.md `docs` are true for everything 0073 changed; report.md lists each as updated or unchanged
 - [ ] The gate command from BRAID.md passes
