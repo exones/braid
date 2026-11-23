@@ -1,8 +1,15 @@
-// Requests: what the coordinator needs from the user, kept in one local file under `.braid/` of the
-// main checkout (found from any worktree). Only braid commands write it; it is never committed.
-import { spawnSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+// Requests: what a coordinator or the PM needs from someone, on the record. Each request is one JSON file,
+// `requests/<code>.json`, on the branch `braid-requests`, written only by braid commands through the shared
+// data branch code (src/braids/gitbranch.ts). Its fields are fixed when it opens; every later change is an
+// event appended to `events`, and its state is read from them. Nothing is ever deleted.
+import { randomBytes } from "node:crypto";
+import { existsSync, readFileSync, renameSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { catBatchSync } from "./gitio.js";
+import { currentFiles, lockedBranch, tips, writeBranchUnlocked, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
+import { mainCheckout } from "./state.js";
+
+export { ensureStateDir, LockError, locked, mainCheckout, takeOverStale } from "./state.js";
 
 /** `action` is something only the user can do (an install, a login); only the PM opens one. */
 export const KINDS = ["review", "question", "decision", "plan", "action"] as const;
@@ -11,164 +18,207 @@ export type Kind = (typeof KINDS)[number];
 /** Who opened a request: the braid's coordinator, or the programme manager asking the user itself. */
 export type Asker = "coordinator" | "pm";
 
+/** Whom a request is for: the user, the PM, or another braid's coordinator by its four-digit number. */
+export type To = "user" | "pm" | (string & {});
+
+/** A braid number as an addressee. */
+export const BRAID_TO = /^\d{4}$/;
+
+/** Who did something to a request. */
+export type Who = "user" | "pm" | "coordinator" | "board";
+
+export const STATES = ["open", "answered", "withdrawn", "met"] as const;
+/** `answered`, `withdrawn` (with a reason) and `met` (its "done when" held) are final. */
+export type State = (typeof STATES)[number];
+
+export const EVENTS = ["opened", "forwarded", "answered", "withdrawn", "met", "eta"] as const;
+export type EventKind = (typeof EVENTS)[number];
+
+export interface RequestEvent {
+  readonly event: EventKind;
+  /** ISO time. */
+  readonly at: string;
+  readonly by: Who;
+  /** The answer, the forward's note, the reason it was withdrawn or met, the estimate. */
+  readonly text?: string;
+  /** The PM's reason, when the PM answered for the user (filled by 0070/B). */
+  readonly reason?: string;
+}
+
+/** The record's branch. */
+export const REQUESTS_BRANCH = "braid-requests";
+const FOLDER = "requests";
+/** `q-` and four lowercase letters or digits. */
+export const CODE = /^q-[a-z0-9]{4,}$/;
+
 export interface Request {
+  /** `q-7f3k`: the file name without `.json`. */
+  readonly code: string;
   /** The item: `0015` or `0015/C`; for a programme request `pm/<slug>`. */
   readonly id: string;
-  /** Who asks: a record without it is the coordinator's. A braid has at most one open request per asker. */
+  /** Who asks: a record without it is the coordinator's. An item has at most one open request per asker. */
   readonly by?: Asker;
   readonly kind: Kind;
-  /** One line: what is needed from the user. */
+  /** One line: what is needed. */
   readonly text: string;
   /** The stop case the request comes from (`ask --key`), when given. */
   readonly key?: string;
-  /** When it was opened, ISO. */
+  /** When it was opened, ISO (the `opened` event's time). */
   readonly at: string;
   /** The asking thread (its id), when given. */
   readonly thread: string | null;
   /** A review request: the PR and the head commit handed over. */
   readonly pr?: number;
   readonly head?: string;
-  /** Whom it is for: `pm` (the programme manager answers first) or `user`. A record without it is the user's. */
-  readonly to?: "user" | "pm";
+  /** Whom it is for: `pm` (the programme manager answers first), `user`, or another braid's coordinator by its number (`0042`); `user` once forwarded. Without it, the user's. */
+  readonly to?: To;
   /** The PM's thread (id) of a request to the PM, from the brief's `PM-run (thread <id>)` line. */
   readonly pm?: string;
-  /** When the PM forwarded it to the user (`braid forward`), ISO. */
+  /** When the PM forwarded it to the user (`braid forward`), ISO: the `forwarded` event. */
   readonly forwarded?: string;
   /** The PM's note with the forward. */
   readonly note?: string;
+  /** When it is done: `answered` (the default), `pr:<n>` merged, `braid:<number>` merged into main, `time:<iso>`. */
+  readonly doneWhen: string;
+  /** The estimate (P6); null until set. */
+  readonly eta: string | null;
+  readonly state: State;
+  readonly events: readonly RequestEvent[];
+}
+
+/** What a caller gives to open a request; the rest comes from the record. */
+export type NewRequest = Omit<Request, "code" | "forwarded" | "note" | "doneWhen" | "eta" | "state" | "events"> & { readonly doneWhen?: string };
+
+/** A request file that can't be read: reported and skipped. */
+export interface RecordProblem {
+  readonly file: string;
+  readonly message: string;
 }
 
 /** What `gh pr view --json state,headRefOid` says of a PR; `headRefOid` is the full commit sha, as stored in a review request's `head`. null: GitHub couldn't be read. */
 export type PrNow = { readonly state: string; readonly headRefOid: string } | null;
 
-/** The main checkout's folder, also from inside a worktree. */
-export function mainCheckout(root: string): string {
-  const r = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" });
-  if (r.status !== 0) {
-    throw new Error(`can't read the repository: ${(r.stderr || "").trim()}`);
-  }
-  const dir = resolve(root, r.stdout.trim());
-  return basename(dir) === ".git" ? dirname(dir) : dir;
+/** The JSON on the branch: the fields fixed at opening, then the events. */
+interface RecordFile {
+  readonly code: string;
+  readonly item: string;
+  readonly kind: Kind;
+  readonly text: string;
+  readonly key?: string;
+  readonly by: Asker;
+  readonly thread: string | null;
+  readonly to: string;
+  readonly pm?: string;
+  readonly doneWhen: string;
+  readonly pr?: number;
+  readonly head?: string;
+  readonly eta: string | null;
+  readonly events: readonly RequestEvent[];
 }
 
-/** The folder of braid's local state in the main checkout, created with a `.gitignore` of its own so it never shows as untracked, whether or not the project ignores it. */
-export function ensureStateDir(dir: string): void {
-  mkdirSync(dir, { recursive: true });
-  const ignore = join(dir, ".gitignore");
-  if (!existsSync(ignore)) {
-    writeFileSync(ignore, "*\n");
-  }
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const FINAL: Readonly<Partial<Record<EventKind, State>>> = { answered: "answered", withdrawn: "withdrawn", met: "met" };
+
+function toFile(r: Request): RecordFile {
+  return {
+    code: r.code,
+    item: r.id,
+    kind: r.kind,
+    text: r.text,
+    ...(r.key === undefined ? {} : { key: r.key }),
+    by: askerOf(r),
+    thread: r.thread,
+    to: r.events.some((e) => e.event === "forwarded") ? "pm" : (r.to ?? "user"),
+    ...(r.pm === undefined ? {} : { pm: r.pm }),
+    doneWhen: r.doneWhen,
+    ...(r.pr === undefined ? {} : { pr: r.pr }),
+    ...(r.head === undefined ? {} : { head: r.head }),
+    eta: r.eta,
+    events: r.events,
+  };
 }
 
-/** The store file; the one place that asks Git where the main checkout is. */
-export function requestsFile(root: string): string {
-  return join(mainCheckout(root), ".braid", "requests.json");
-}
+const serialise = (r: Request): string => `${JSON.stringify(toFile(r), null, 2)}\n`;
 
-function readFile(file: string): Request[] {
+/** The request a file holds, its state and the fields its events set; a problem when it doesn't parse. */
+export function parseRecord(file: string, text: string): Request | RecordProblem {
+  const bad = (message: string): RecordProblem => ({ file, message });
+  let v: unknown;
   try {
-    const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
-    return Array.isArray(parsed) ? (parsed as Request[]) : [];
-  } catch {
-    return [];
+    v = JSON.parse(text);
+  } catch (error) {
+    return bad(`not JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
+  if (!isObj(v)) {
+    return bad("not a JSON object");
+  }
+  const code = v["code"];
+  if (typeof code !== "string" || !CODE.test(code) || file !== `${FOLDER}/${code}.json`) {
+    return bad(`code ${JSON.stringify(code)} doesn't match the file name`);
+  }
+  if (typeof v["item"] !== "string" || typeof v["text"] !== "string" || !KINDS.includes(v["kind"] as Kind)) {
+    return bad("needs item, kind and text");
+  }
+  const events = Array.isArray(v["events"]) ? v["events"] : [];
+  if (!events.every((e) => isObj(e) && EVENTS.includes(e["event"] as EventKind) && typeof e["at"] === "string" && typeof e["by"] === "string")) {
+    return bad("an event needs event, at and by");
+  }
+  const list = events as RequestEvent[];
+  const opened = list.find((e) => e.event === "opened");
+  if (opened === undefined) {
+    return bad("no opened event");
+  }
+  const forward = list.findLast((e) => e.event === "forwarded");
+  const final = list.findLast((e) => FINAL[e.event] !== undefined);
+  const by = v["by"] === "pm" ? "pm" : "coordinator";
+  // Without `to`, the request is the user's, as before the record.
+  const to = forward !== undefined ? "user" : v["to"] === "pm" || (typeof v["to"] === "string" && BRAID_TO.test(v["to"])) ? (v["to"] as string) : undefined;
+  return {
+    code,
+    id: v["item"],
+    ...(by === "pm" ? { by } : {}),
+    kind: v["kind"] as Kind,
+    text: v["text"],
+    ...(typeof v["key"] === "string" ? { key: v["key"] } : {}),
+    at: opened.at,
+    thread: typeof v["thread"] === "string" ? v["thread"] : null,
+    ...(typeof v["pr"] === "number" ? { pr: v["pr"] } : {}),
+    ...(typeof v["head"] === "string" ? { head: v["head"] } : {}),
+    ...(to === undefined ? {} : { to }),
+    ...(typeof v["pm"] === "string" ? { pm: v["pm"] } : {}),
+    ...(forward === undefined ? {} : { forwarded: forward.at, ...(forward.text === undefined ? {} : { note: forward.text }) }),
+    doneWhen: typeof v["doneWhen"] === "string" ? v["doneWhen"] : "answered",
+    eta: typeof v["eta"] === "string" ? v["eta"] : null,
+    state: final === undefined ? "open" : (FINAL[final.event] ?? "open"),
+    events: list,
+  };
 }
 
-/** Writes the whole list to a temporary file next to the store, then renames it over the store. */
-function writeFile(file: string, list: readonly Request[]): void {
-  const tmp = `${file}.${process.pid}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify(list, null, 2)}\n`);
-  renameSync(tmp, file);
-}
-
-/** Waiting for a lock gave up. */
-export class LockError extends Error {}
-
-const LOCK_STALE_MS = 30_000;
-const LOCK_WAIT_MS = 10_000;
+export const isRecordProblem = (r: Request | RecordProblem): r is RecordProblem => "message" in r;
 
 /**
- * Removes the lock when it is older than `staleMs`, for one waiter at a time: the check and the removal
- * happen under a short guard file, so a second waiter that also found the lock stale looks again and
- * leaves the first one's new lock alone. Returns whether this call removed it.
+ * Two versions of one request file, when an offline commit is replayed over a remote change: the remote's
+ * fields with both event lists, each event once, in time order. No event is lost.
  */
-export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): boolean {
-  const guard = `${lock}.takeover`;
-  try {
-    closeSync(openSync(guard, "wx"));
-  } catch {
-    try {
-      // a guard left by a process that died mid-takeover
-      if (Date.now() - statSync(guard).mtimeMs > staleMs) {
-        unlinkSync(guard);
-      }
-    } catch {
-      // gone already
-    }
-    return false;
+export function mergeRecord(path: string, ours: string, theirs: string): string {
+  const a = parseRecord(path, ours);
+  const b = parseRecord(path, theirs);
+  if (isRecordProblem(b)) {
+    return ours;
   }
-  try {
-    if (Date.now() - statSync(lock).mtimeMs > staleMs) {
-      unlinkSync(lock);
-      return true;
-    }
-  } catch {
-    // the holder just released it
-  } finally {
-    try {
-      unlinkSync(guard);
-    } catch {
-      // nothing to release
-    }
+  if (isRecordProblem(a)) {
+    return theirs;
   }
-  return false;
-}
-
-/**
- * Runs `fn` holding the lock of `file`: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up after 10 s. Never call GitHub inside `fn`.
- * `makeDir` prepares the file's folder (default: a repository's `.braid/`, ignored by Git).
- */
-export function locked<T>(file: string, fn: () => T, what = "the requests store", makeDir: (dir: string) => void = ensureStateDir): T {
-  makeDir(dirname(file));
-  const lock = `${file}.lock`;
-  const give = Date.now() + LOCK_WAIT_MS;
-  for (;;) {
-    try {
-      closeSync(openSync(lock, "wx"));
-      break;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST" && (error as NodeJS.ErrnoException).code !== "EPERM") {
-        throw error;
-      }
-      if (takeOverStale(lock)) {
-        continue;
-      }
-      if (Date.now() > give) {
-        throw new LockError(`${what} is locked (${lock}); remove it if no braid command is running`);
-      }
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
-    }
-  }
-  try {
-    return fn();
-  } finally {
-    try {
-      unlinkSync(lock);
-    } catch {
-      // already taken over as stale
-    }
-  }
-}
-
-/** A short locked read-modify-write of the store; `change` returning null leaves the file alone. */
-function update(file: string, change: (list: Request[]) => Request[] | null): void {
-  locked(file, () => {
-    const next = change(readFile(file));
-    if (next !== null) {
-      writeFile(file, next);
-    }
+  const seen = new Set<string>();
+  const events = [...b.events, ...a.events].filter((e) => {
+    const k = JSON.stringify([e.event, e.at, e.by, e.text ?? "", e.reason ?? ""]);
+    return seen.has(k) ? false : (seen.add(k), true);
   });
+  events.sort((x, y) => x.at.localeCompare(y.at));
+  return serialise({ ...b, events });
 }
+
+export const REQUESTS: BranchSpec = { branch: REQUESTS_BRANCH, folders: [FOLDER], lock: "requests", what: "the requests record", noun: "request", merge: mergeRecord };
 
 /** Who asked; an old record without `by` is the coordinator's. */
 export const askerOf = (r: Pick<Request, "by">): Asker => r.by ?? "coordinator";
@@ -178,72 +228,363 @@ export const programmeOf = (id: string): string | null => /^pm\/(.+)$/.exec(id)?
 
 const same = (r: Request, id: string, by: Asker | undefined): boolean => r.id === id && (by === undefined || askerOf(r) === by);
 
-export function loadRequests(root: string): Request[] {
-  return readFile(requestsFile(root));
-}
-
-/** Opens a request; an earlier one on the same item from the same asker is replaced, the other asker's stays. */
-export function openRequest(root: string, request: Request): void {
-  update(requestsFile(root), (list) => [...list.filter((r) => !same(r, request.id, askerOf(request))), request]);
-}
-
-/** Closes the item's request of this asker (without `by`: of both); true when there was one. */
-export function closeRequest(root: string, id: string, by?: Asker): boolean {
-  const file = requestsFile(root);
-  // Nothing to close: no lock, no write (start and done call this on every item).
-  if (!readFile(file).some((r) => same(r, id, by))) {
-    return false;
-  }
-  let found = false;
-  update(file, (list) => {
-    found = list.some((r) => same(r, id, by));
-    return found ? list.filter((r) => !same(r, id, by)) : null;
-  });
-  return found;
-}
-
-/** Hands the item's request to the user (`braid forward`): `to: user`, `forwarded` now, the note kept. Null when there is no open request. */
-export function forwardRequest(root: string, id: string, at: string, note: string | undefined): Request | null {
-  let out: Request | null = null;
-  update(requestsFile(root), (list) => {
-    const old = list.find((r) => same(r, id, "coordinator"));
-    if (old === undefined) {
-      return null;
+/** Every request and the files that can't be read, from texts by path. */
+function parseAll(texts: ReadonlyMap<string, string>): { requests: Request[]; problems: RecordProblem[] } {
+  const requests: Request[] = [];
+  const problems: RecordProblem[] = [];
+  for (const [path, text] of texts) {
+    const r = parseRecord(path, text);
+    if (isRecordProblem(r)) {
+      problems.push(r);
+    } else {
+      requests.push(r);
     }
-    out = { ...old, to: "user", forwarded: at, ...(note === undefined ? {} : { note }) };
-    return list.map((r) => (r === old ? out : r)) as Request[];
+  }
+  requests.sort((a, b) => a.at.localeCompare(b.at) || a.code.localeCompare(b.code));
+  return { requests, problems };
+}
+
+/** Every file in a write's view of the branch, read with one `git cat-file --batch`. */
+function viewAll(view: BranchView): { requests: Request[]; problems: RecordProblem[] } {
+  const paths = view.paths();
+  const texts = view.readMany(paths);
+  return parseAll(new Map(paths.flatMap((p, i) => (texts[i] === null || texts[i] === undefined ? [] : [[p, texts[i]] as const]))));
+}
+
+/** The old local store, carried over once. */
+export function legacyFile(root: string): string {
+  let main = mains.get(root);
+  if (main === undefined) {
+    main = mainCheckout(root);
+    mains.set(root, main);
+  }
+  return join(main, ".braid", "requests.json");
+}
+
+/** The main checkout of each root asked for: it doesn't change, and the board asks on every read. */
+const mains = new Map<string, string>();
+
+/** The name the old store keeps after it was carried over. */
+export const MIGRATED = "requests.migrated.json";
+
+function readLegacy(file: string): Record<string, unknown>[] {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
+    return Array.isArray(parsed) ? parsed.filter(isObj) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** A new code, unused on the branch. */
+function newCode(taken: (code: string) => boolean): string {
+  for (let size = 4; ; size++) {
+    for (let tries = 0; tries < 20; tries++) {
+      const code = `q-${[...randomBytes(size)].map((b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("")}`;
+      if (!taken(code)) {
+        return code;
+      }
+    }
+  }
+}
+
+const pathOf = (code: string): string => `${FOLDER}/${code}.json`;
+
+/**
+ * Carries the open requests of an old `.braid/requests.json` onto the branch, once: each one opened with a
+ * code and its original times, in one commit; then the file is renamed `requests.migrated.json`. A record
+ * already on the branch (same item, asker and opening time, as a run that died before the rename left it)
+ * isn't added again. With `push: false` (the board's read) the commit stays local until the next write.
+ * Returns how many it carried over.
+ */
+export function migrate(root: string, options: { push?: boolean } = {}): number {
+  const file = legacyFile(root);
+  if (!existsSync(file)) {
+    return 0;
+  }
+  return lockedBranch(root, REQUESTS, () => {
+    if (!existsSync(file)) {
+      return 0;
+    }
+    const old = readLegacy(file);
+    let carried = 0;
+    if (old.length > 0) {
+      writeBranchUnlocked(
+        root,
+        REQUESTS,
+        (view) => {
+          const known = new Set(viewAll(view).requests.map((r) => `${r.id} ${askerOf(r)} ${r.at}`));
+          const files = new Map<string, string>();
+          for (const o of old) {
+            const id = o["id"];
+            const at = o["at"];
+            const by: Asker = o["by"] === "pm" ? "pm" : "coordinator";
+            if (typeof id !== "string" || typeof at !== "string" || known.has(`${id} ${by} ${at}`)) {
+              continue;
+            }
+            known.add(`${id} ${by} ${at}`);
+            const code = newCode((c) => view.has(pathOf(c)) || files.has(pathOf(c)));
+            const forwarded = typeof o["forwarded"] === "string" ? o["forwarded"] : undefined;
+            const note = typeof o["note"] === "string" ? o["note"] : undefined;
+            const kind = KINDS.includes(o["kind"] as Kind) ? (o["kind"] as Kind) : "question";
+            const pr = typeof o["pr"] === "number" ? o["pr"] : undefined;
+            const r: Request = {
+              code,
+              id,
+              ...(by === "pm" ? { by } : {}),
+              kind,
+              text: typeof o["text"] === "string" ? o["text"] : "",
+              ...(typeof o["key"] === "string" ? { key: o["key"] } : {}),
+              at,
+              thread: typeof o["thread"] === "string" ? o["thread"] : null,
+              ...(pr === undefined ? {} : { pr }),
+              ...(typeof o["head"] === "string" ? { head: o["head"] } : {}),
+              ...(o["to"] === "pm" ? { to: "pm" as const } : {}),
+              ...(typeof o["pm"] === "string" ? { pm: o["pm"] } : {}),
+              doneWhen: pr === undefined ? "answered" : `pr:${pr}`,
+              eta: null,
+              state: "open",
+              events: [
+                { event: "opened", at, by },
+                ...(forwarded === undefined ? [] : [{ event: "forwarded" as const, at: forwarded, by: "pm" as const, ...(note === undefined ? {} : { text: note }) }]),
+              ],
+            };
+            files.set(pathOf(code), serialise(r));
+          }
+          carried = files.size;
+          return { files, message: `docs(requests): carry over ${files.size} from .braid/requests.json` };
+        },
+        options,
+      );
+    }
+    renameSync(file, join(dirname(file), MIGRATED));
+    return carried;
   });
-  return out;
 }
 
-/** A review request is void when its PR is no longer open (in any letter case) or is at another head (the full sha). A PR that can't be read (null) leaves it. */
-export function voided(request: Request, pr: PrNow): boolean {
-  return request.kind === "review" && pr !== null && (pr.state.toUpperCase() !== "OPEN" || (request.head !== undefined && pr.headRefOid !== request.head));
+/** The whole record from the local refs (no fetch): every request, open or closed, and the files that can't be read. */
+export function loadRecord(root: string, options: { push?: boolean } = {}): { requests: Request[]; problems: RecordProblem[] } {
+  migrate(root, { push: options.push ?? false });
+  // The refs are one process; the files are read again only when a tip moved.
+  const at = tips(root, REQUESTS);
+  const key = `${at.local ?? "-"} ${at.remote ?? "-"}`;
+  const cached = records.get(root);
+  if (cached !== undefined && cached.key === key) {
+    return cached.record;
+  }
+  const files = [...currentFiles(root, REQUESTS, at)];
+  const texts = catBatchSync(root, files.map(([, blob]) => blob));
+  const record = parseAll(new Map(files.flatMap(([path], i) => (texts[i] === null || texts[i] === undefined ? [] : [[path, texts[i]] as const]))));
+  records.set(root, { key, record });
+  return record;
 }
 
-/** The requests still open, given what each review request's PR is now. Pure: it writes nothing, so a board can derive lanes from it. */
-export function filterLive(requests: readonly Request[], prOf: (number: number) => PrNow): Request[] {
-  return requests.filter((r) => !(r.pr !== undefined && voided(r, prOf(r.pr))));
+/** The last record read per root, with the tips it was read at. */
+const records = new Map<string, { key: string; record: { requests: Request[]; problems: RecordProblem[] } }>();
+
+/** The open requests, from the local refs. */
+export function loadRequests(root: string): Request[] {
+  return loadRecord(root).requests.filter((r) => r.state === "open");
+}
+
+/** One write to the record, holding its lock; an old local store is carried over first. */
+function writeRecord(root: string, change: (view: BranchView) => { files: Map<string, string>; message: string }): WriteResult {
+  migrate(root);
+  return lockedBranch(root, REQUESTS, () => writeBranchUnlocked(root, REQUESTS, change));
+}
+
+/** An open request with its `opened` event, as `openRequest` writes it; `code` given or empty. Also for demos and tests. */
+export function newRecord(request: NewRequest & { readonly code?: string }): Request {
+  const { doneWhen, code, ...fields } = request;
+  return { ...fields, code: code ?? "", doneWhen: doneWhen ?? (request.pr === undefined ? "answered" : `pr:${request.pr}`), eta: null, state: "open", events: [{ event: "opened", at: request.at, by: askerOf(request) }] };
+}
+
+const withEvent = (r: Request, e: RequestEvent): Request => ({ ...r, events: [...r.events, e] });
+
+/**
+ * Opens a request and returns its code. The open one on the same item from the same asker is withdrawn,
+ * "replaced by q-…"; the other asker's stays.
+ */
+export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly warning: string | null } {
+  let code = "";
+  const result = writeRecord(root, (view) => {
+    const all = viewAll(view).requests;
+    code = newCode((c) => view.has(pathOf(c)));
+    const by = askerOf(request);
+    const files = new Map<string, string>();
+    for (const old of all.filter((r) => r.state === "open" && same(r, request.id, by))) {
+      files.set(pathOf(old.code), serialise(withEvent(old, { event: "withdrawn", at: request.at, by, text: `replaced by ${code}` })));
+    }
+    files.set(pathOf(code), serialise(newRecord({ ...request, code })));
+    return { files, message: `docs(requests): ${request.id} ${request.kind} ${code}` };
+  });
+  return { code, warning: result.warning };
+}
+
+/** How a request ends: its final state, who ended it, and why or the answer. */
+export interface Ending {
+  readonly state: "answered" | "withdrawn" | "met";
+  readonly who: Who;
+  readonly text?: string;
+  /** The PM's reason, when the PM answered for the user. */
+  readonly reason?: string;
+  readonly at?: string;
+}
+
+/** The event an ending appends. */
+const endEvent = (e: Ending, at: string): RequestEvent => ({ event: e.state, at: e.at ?? at, by: e.who, ...(e.text === undefined ? {} : { text: e.text }), ...(e.reason === undefined ? {} : { reason: e.reason }) });
+
+/**
+ * Closes the item's open request of this asker (without `by`: of both) with an event, never a delete; true
+ * when there was one. `end` may depend on the request (a review is met, a question withdrawn).
+ */
+export function closeRequest(root: string, id: string, by: Asker | undefined, end: Ending | ((r: Request) => Ending)): { readonly found: boolean; readonly warning: string | null } {
+  // Nothing to close: no lock, no write (start and accept call this on every item).
+  if (!loadRequests(root).some((r) => same(r, id, by))) {
+    return { found: false, warning: null };
+  }
+  const at = new Date().toISOString();
+  const result = writeRecord(root, (view) => {
+    const files = new Map<string, string>();
+    for (const r of viewAll(view).requests.filter((x) => x.state === "open" && same(x, id, by))) {
+      files.set(pathOf(r.code), serialise(withEvent(r, endEvent(typeof end === "function" ? end(r) : end, at))));
+    }
+    return { files, message: `docs(requests): ${id} closed` };
+  });
+  return { found: result.commit !== null, warning: result.warning };
 }
 
 /**
- * The open requests, with the void review requests dropped from the store. GitHub is asked without the lock;
- * then, under it, the file is read again and only the requests that were found void (same item and time) go.
+ * Ends one request by its code. Inside the write it is checked again: a request already closed (by
+ * someone else meanwhile, too) is left as it is and returned with `ended: false`. Null: no such code.
+ */
+export function endRequest(root: string, code: string, end: Ending | ((r: Request) => Ending)): { readonly request: Request; readonly ended: boolean; readonly warning: string | null } | null {
+  let found: Request | null = null;
+  let ended = false;
+  const result = writeRecord(root, (view) => {
+    const text = view.read(pathOf(code));
+    const r = text === null ? null : parseRecord(pathOf(code), text);
+    found = r === null || isRecordProblem(r) ? null : r;
+    ended = found !== null && found.state === "open";
+    if (found === null || !ended) {
+      return { files: new Map(), message: "" };
+    }
+    const e = typeof end === "function" ? end(found) : end;
+    const next = serialise(withEvent(found, endEvent(e, new Date().toISOString())));
+    found = parseRecord(pathOf(code), next) as Request;
+    return { files: new Map([[pathOf(code), next]]), message: `docs(requests): ${found.id} ${code} ${e.state}` };
+  });
+  const request: Request | null = found;
+  return request === null ? null : { request, ended, warning: result.warning };
+}
+
+/** The event that closed a request, or null while it is open. */
+export const closing = (r: Pick<Request, "events">): RequestEvent | null => r.events.findLast((e) => FINAL[e.event] !== undefined) ?? null;
+
+/** Hands the item's request to the user (`braid forward`): a `forwarded` event with the note. Null when there is no open request. */
+export function forwardRequest(root: string, id: string, at: string, note: string | undefined): { readonly request: Request | null; readonly warning: string | null } {
+  let out: Request | null = null;
+  const result = writeRecord(root, (view) => {
+    const old = viewAll(view).requests.find((r) => r.state === "open" && same(r, id, "coordinator"));
+    if (old === undefined) {
+      out = null;
+      return { files: new Map(), message: "" };
+    }
+    const next = withEvent(old, { event: "forwarded", at, by: "pm", ...(note === undefined ? {} : { text: note }) });
+    out = { ...next, to: "user", forwarded: at, ...(note === undefined ? {} : { note }) };
+    return { files: new Map([[pathOf(old.code), serialise(next)]]), message: `docs(requests): ${id} ${old.code} forwarded` };
+  });
+  return { request: out, warning: result.warning };
+}
+
+/** The fields the PR checks read. */
+type PrFields = Pick<Request, "kind" | "head" | "pr"> & { readonly doneWhen?: string };
+
+/** The PR a request waits on: a `pr:<n>` "done when", else a review's PR. */
+export function conditionPr(request: PrFields): number | undefined {
+  const m = /^pr:(\d+)$/.exec(request.doneWhen ?? "");
+  return m === null ? request.pr : Number(m[1]);
+}
+
+/**
+ * A request waiting on a PR is void when the PR is no longer open (in any letter case); a review request
+ * also when the PR is at another head (the full sha). A PR that can't be read (null) leaves it.
+ */
+export function voided(request: PrFields, pr: PrNow): boolean {
+  if (pr === null || (request.kind !== "review" && !/^pr:/.test(request.doneWhen ?? ""))) {
+    return false;
+  }
+  return pr.state.toUpperCase() !== "OPEN" || (request.kind === "review" && request.head !== undefined && pr.headRefOid !== request.head);
+}
+
+/** How a void request ends: met when its PR merged, withdrawn when it closed or (a review's) its head moved. */
+export function voidEnding(request: PrFields, pr: NonNullable<PrNow>): Ending {
+  const state = pr.state.toUpperCase();
+  const n = conditionPr(request) ?? "";
+  if (state === "MERGED") {
+    return { state: "met", who: "board", text: `PR #${n} merged` };
+  }
+  if (state !== "OPEN") {
+    return { state: "withdrawn", who: "board", text: `PR #${n} ${state.toLowerCase()}` };
+  }
+  return { state: "withdrawn", who: "board", text: `PR #${n} head moved to ${pr.headRefOid.slice(0, 7)}` };
+}
+
+/** The requests still open, given what the PR each one waits on is now. Pure: it writes nothing, so a board can derive lanes from it. */
+export function filterLive<T extends PrFields>(requests: readonly T[], prOf: (number: number) => PrNow): T[] {
+  return requests.filter((r) => {
+    const n = conditionPr(r);
+    return !(n !== undefined && voided(r, prOf(n)));
+  });
+}
+
+/**
+ * The open requests, with each void review request recorded as met (its PR merged) or withdrawn (closed, or
+ * its head moved). GitHub is asked without the lock; the write then ends only the requests still open.
  */
 export function liveRequests(root: string, prOf: (number: number) => PrNow): Request[] {
-  const file = requestsFile(root);
-  const seen = readFile(file);
-  const live = filterLive(seen, prOf);
-  if (live.length === seen.length) {
-    return live;
+  const seen = loadRequests(root);
+  const ends = new Map<string, Ending>();
+  for (const r of seen) {
+    const n = conditionPr(r);
+    const pr = n === undefined ? null : prOf(n);
+    if (pr !== null && voided(r, pr)) {
+      ends.set(r.code, voidEnding(r, pr));
+    }
   }
-  const dropped = seen.filter((r) => !live.includes(r));
-  let now: Request[] = [];
-  update(file, (list) => {
-    now = list.filter((r) => !dropped.some((d) => d.id === r.id && d.at === r.at));
-    return now;
+  if (ends.size === 0) {
+    return seen;
+  }
+  const at = new Date().toISOString();
+  writeRecord(root, (view) => {
+    const files = new Map<string, string>();
+    for (const r of viewAll(view).requests.filter((x) => x.state === "open")) {
+      const e = ends.get(r.code);
+      if (e !== undefined) {
+        files.set(pathOf(r.code), serialise(withEvent(r, endEvent(e, at))));
+      }
+    }
+    return { files, message: `docs(requests): ${files.size} ${files.size === 1 ? "request" : "requests"} ended by their PR` };
   });
-  return now;
+  // Read again: another writer may have opened or closed one meanwhile.
+  return loadRequests(root);
+}
+
+/**
+ * The requests of the items `match` keeps that the user or the PM answered, as decision rows: the answer's
+ * time (`YYYY-MM-DD HH:MM`, as log entries have it), the item, and the request with its answer and the PM's
+ * reason. Read for `braid decisions` and the recap draft, next to the `Decided:` log entries.
+ */
+export function answeredRows(requests: readonly Request[], match: (id: string) => boolean): { at: string; id: string; text: string }[] {
+  return requests.flatMap((r) => {
+    const e = r.state === "answered" ? closing(r) : null;
+    if (e === null || (e.by !== "user" && e.by !== "pm") || !match(r.id)) {
+      return [];
+    }
+    const said = e.text === undefined ? "" : ` -> ${e.text.replace(/\s+/g, " ").trim()}`;
+    const reason = e.reason === undefined ? "" : ` (reason: ${e.reason})`;
+    return [{ at: e.at.slice(0, 16).replace("T", " "), id: r.id, text: `${r.code} answered by ${e.by === "pm" ? "the PM" : "the user"}: ${r.text}${said}${reason}` }];
+  });
 }
 
 /** `5m`, `2h`, `3d`: the age of a request. */

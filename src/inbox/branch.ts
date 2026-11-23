@@ -1,85 +1,19 @@
-// The `braid-inbox` branch: read without a checkout, and written with Git's low-level commands
-// (hash-object, a temporary index, commit-tree, update-ref), so no checkout, index or current branch
-// ever changes. Writes push at once as a fast-forward and never force; a refused push is fetched and
-// redone on top. Offline, the commit stays on the local branch and the next write pushes it.
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+// The `braid-inbox` branch: its entries read from the refs, and its writes, through the shared data
+// branch code (src/braids/gitbranch.ts): no checkout, pushed at once, a refused push fetched and redone,
+// offline kept local until the next write.
 import { GitError } from "../braids/numbers.js";
 import { catBatch, gitAsync } from "../braids/gitio.js";
-import { locked, mainCheckout } from "../braids/requests.js";
+import { fetchBranch, fetchBranchAsync, filesAt, must, parseTree, reading, tips, tipsAsync, writeBranch, type BranchChange, type BranchSpec, type BranchView, type FetchResult, type WriteResult as BranchWrite } from "../braids/gitbranch.js";
 import { isProblem, parseEntry, type Entry, type Problem } from "./entries.js";
 
+export { REMOTE, type FetchResult } from "../braids/gitbranch.js";
 export const INBOX_BRANCH = "braid-inbox";
-export const REMOTE = "origin";
-const LOCAL = `refs/heads/${INBOX_BRANCH}`;
-const TRACKING = `refs/remotes/${REMOTE}/${INBOX_BRANCH}`;
 const FOLDERS = ["leftovers", "ideas"];
-/** How many times a refused push is fetched and redone. */
-const TRIES = 5;
-
-function git(root: string, args: readonly string[], options: { input?: string; env?: NodeJS.ProcessEnv } = {}) {
-  return spawnSync("git", ["-c", "core.quotePath=false", ...args], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-    ...(options.input === undefined ? {} : { input: options.input }),
-    ...(options.env === undefined ? {} : { env: { ...process.env, ...options.env } }),
-  });
-}
-
-function must(root: string, args: readonly string[], options: { input?: string; env?: NodeJS.ProcessEnv } = {}): string {
-  const r = git(root, args, options);
-  if (r.status !== 0) {
-    throw new GitError(`git ${args[0] ?? ""} failed: ${(r.stderr || r.stdout || String(r.error ?? "")).trim()}`);
-  }
-  return r.stdout.trim();
-}
-
-function refCommit(root: string, ref: string): string | null {
-  const r = git(root, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
-  return r.status === 0 ? r.stdout.trim() : null;
-}
-
-function isAncestor(root: string, a: string, b: string): boolean {
-  return git(root, ["merge-base", "--is-ancestor", a, b]).status === 0;
-}
-
-function firstLine(text: string): string {
-  return text.split(/\r?\n/).find((line) => line.trim() !== "")?.trim() ?? "";
-}
-
-/** What a fetch found: the remote has the branch (`present`), has none (`absent`), or couldn't be reached. */
-export type FetchResult = { readonly state: "present" | "absent" } | { readonly state: "offline"; readonly why: string };
+const SPEC: BranchSpec = { branch: INBOX_BRANCH, folders: FOLDERS, lock: "inbox", what: "the inbox", noun: "entry" };
 
 /** Fetches `braid-inbox` from origin into its remote-tracking ref. */
 export function fetchInbox(root: string): FetchResult {
-  if (git(root, ["remote", "get-url", REMOTE]).status !== 0) {
-    return { state: "offline", why: `no remote ${REMOTE}` };
-  }
-  const ls = git(root, ["ls-remote", "--exit-code", REMOTE, LOCAL]);
-  if (ls.status === 2) {
-    return { state: "absent" };
-  }
-  if (ls.status !== 0) {
-    return { state: "offline", why: firstLine(ls.stderr || String(ls.error ?? "")) };
-  }
-  const f = git(root, ["fetch", "--quiet", "--no-tags", REMOTE, `+${LOCAL}:${TRACKING}`]);
-  return f.status === 0 ? { state: "present" } : { state: "offline", why: firstLine(f.stderr) };
-}
-
-/** The entry files at a commit: path to blob. */
-function files(root: string, commit: string): Map<string, string> {
-  const out = must(root, ["ls-tree", "-r", "-z", commit, "--", ...FOLDERS]);
-  const map = new Map<string, string>();
-  for (const record of out.split("\0")) {
-    const m = /^\d+ blob (\w+)\t(.+)$/s.exec(record);
-    if (m !== null) {
-      map.set(m[2] ?? "", m[1] ?? "");
-    }
-  }
-  return map;
+  return fetchBranch(root, SPEC);
 }
 
 /** When each file was first added (author time), from one `git log`. */
@@ -117,7 +51,7 @@ export function readInboxAt(root: string, commit: string | null): Inbox {
   const times = created(root, commit);
   const entries: Entry[] = [];
   const problems: Problem[] = [];
-  for (const [path, blob] of files(root, commit)) {
+  for (const [path, blob] of filesAt(root, SPEC, commit)) {
     const parsed = parseEntry(path, must(root, ["cat-file", "blob", blob]), times.get(path) ?? null);
     if (isProblem(parsed)) {
       problems.push(parsed);
@@ -129,11 +63,6 @@ export function readInboxAt(root: string, commit: string | null): Inbox {
   return { commit, entries, problems };
 }
 
-/** The commits on `local` that `remote` lacks, oldest first. */
-function pendingCommits(root: string, local: string, remote: string): string[] {
-  return must(root, ["rev-list", "--reverse", local, `^${remote}`]).split(/\s+/).filter((c) => c !== "");
-}
-
 /**
  * The inbox from the refs, local `braid-inbox` and `origin/braid-inbox`: the descendant when one
  * contains the other. When they have diverged (a local commit not pushed yet, and newer remote
@@ -143,38 +72,17 @@ function pendingCommits(root: string, local: string, remote: string): string[] {
  */
 export function readInbox(root: string, options: { fetch?: boolean } = {}): Inbox & { readonly fetched: FetchResult | null } {
   const fetched = options.fetch === true ? fetchInbox(root) : null;
-  const local = refCommit(root, LOCAL);
-  const remote = refCommit(root, TRACKING);
-  if (local === null || remote === null || local === remote || isAncestor(root, local, remote)) {
-    return { ...readInboxAt(root, remote ?? local), fetched };
+  const r = reading(root, SPEC, tips(root, SPEC));
+  if (!("ours" in r)) {
+    return { ...readInboxAt(root, r.commit), fetched };
   }
-  if (isAncestor(root, remote, local)) {
-    return { ...readInboxAt(root, local), fetched };
-  }
-  const pending = new Set(pendingCommits(root, local, remote).flatMap((c) => [...changesOf(root, c).keys()]));
-  const ours = readInboxAt(root, local);
-  const theirs = readInboxAt(root, remote);
+  const { pending } = r;
+  const ours = readInboxAt(root, r.ours);
+  const theirs = readInboxAt(root, r.commit);
   const entries = [...theirs.entries.filter((e) => !pending.has(e.file)), ...ours.entries.filter((e) => pending.has(e.file))];
   entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const problems = [...theirs.problems.filter((p) => !pending.has(p.file)), ...ours.problems.filter((p) => pending.has(p.file))];
-  return { commit: remote, entries, problems, fetched };
-}
-
-const firstOf = (r: { stdout: string; stderr: string }): string => firstLine(r.stderr || r.stdout);
-
-async function fetchInboxAsync(root: string): Promise<FetchResult> {
-  if ((await gitAsync(root, ["remote", "get-url", REMOTE])).status !== 0) {
-    return { state: "offline", why: `no remote ${REMOTE}` };
-  }
-  const ls = await gitAsync(root, ["ls-remote", "--exit-code", REMOTE, LOCAL]);
-  if (ls.status === 2) {
-    return { state: "absent" };
-  }
-  if (ls.status !== 0) {
-    return { state: "offline", why: firstOf(ls) };
-  }
-  const f = await gitAsync(root, ["fetch", "--quiet", "--no-tags", REMOTE, `+${LOCAL}:${TRACKING}`]);
-  return f.status === 0 ? { state: "present" } : { state: "offline", why: firstLine(f.stderr) };
+  return { commit: r.commit, entries, problems, fetched };
 }
 
 async function readInboxAtAsync(root: string, commit: string | null): Promise<Inbox> {
@@ -186,13 +94,7 @@ async function readInboxAtAsync(root: string, commit: string | null): Promise<In
     throw new GitError(`git ${listing.status !== 0 ? "ls-tree" : "log"} failed: ${(listing.status !== 0 ? listing : log).stderr.trim()}`);
   }
   const times = parseCreated(log.stdout);
-  const found: { path: string; blob: string }[] = [];
-  for (const record of listing.stdout.split("\0")) {
-    const m = /^\d+ blob (\w+)	(.+)$/s.exec(record);
-    if (m !== null) {
-      found.push({ path: m[2] ?? "", blob: m[1] ?? "" });
-    }
-  }
+  const found = [...parseTree(listing.stdout)].map(([path, blob]) => ({ path, blob }));
   // One `git cat-file --batch` for all entries, not a process each.
   const texts = await catBatch(root, found.map((f) => f.blob));
   const entries: Entry[] = [];
@@ -218,12 +120,8 @@ async function readInboxAtAsync(root: string, commit: string | null): Promise<In
  * instead of a process per entry. Branches that have diverged (rare) are read by the synchronous version.
  */
 export async function readInboxAsync(root: string, options: { fetch?: boolean } = {}): Promise<Inbox & { readonly fetched: FetchResult | null }> {
-  const fetched = options.fetch === true ? await fetchInboxAsync(root) : null;
-  const ref = async (name: string): Promise<string | null> => {
-    const r = await gitAsync(root, ["rev-parse", "--verify", "--quiet", `${name}^{commit}`]);
-    return r.status === 0 ? r.stdout.trim() : null;
-  };
-  const [local, remote] = await Promise.all([ref(LOCAL), ref(TRACKING)]);
+  const fetched = options.fetch === true ? await fetchBranchAsync(root, SPEC) : null;
+  const { local, remote } = await tipsAsync(root, SPEC);
   if (local === null || remote === null || local === remote || (await gitAsync(root, ["merge-base", "--is-ancestor", local, remote])).status === 0) {
     return { ...(await readInboxAtAsync(root, remote ?? local)), fetched };
   }
@@ -234,90 +132,13 @@ export async function readInboxAsync(root: string, options: { fetch?: boolean } 
 }
 
 /** What a write sees of the branch before it changes it. */
-export interface InboxView {
-  has(path: string): boolean;
-  read(path: string): string | null;
-}
+export type InboxView = BranchView;
 
 /** A write: files to add or replace (path on the branch to text), and the commit message. */
-export interface InboxChange {
-  readonly files: ReadonlyMap<string, string>;
-  readonly message: string;
-}
+export type InboxChange = BranchChange;
 
-export interface WriteResult {
+export interface WriteResult extends BranchWrite {
   readonly commit: string;
-  readonly pushed: boolean;
-  /** Why the commit stays local, when it does. */
-  readonly warning: string | null;
-}
-
-function view(root: string, commit: string | null): InboxView {
-  const map = commit === null ? new Map<string, string>() : files(root, commit);
-  return {
-    has: (path) => map.has(path),
-    read: (path) => {
-      const blob = map.get(path);
-      return blob === undefined ? null : must(root, ["cat-file", "blob", blob]);
-    },
-  };
-}
-
-/** A new commit on `parent` with `changes` (path to blob) applied, built in a temporary index. */
-function commitOn(root: string, parent: string | null, changes: ReadonlyMap<string, string>, message: string, env: NodeJS.ProcessEnv = {}): string {
-  const dir = mkdtempSync(join(tmpdir(), "braid-inbox-"));
-  try {
-    const index = { ...env, GIT_INDEX_FILE: join(dir, "index") };
-    must(root, parent === null ? ["read-tree", "--empty"] : ["read-tree", parent], { env: index });
-    for (const [path, blob] of changes) {
-      must(root, ["update-index", "--add", "--cacheinfo", `100644,${blob},${path}`], { env: index });
-    }
-    const tree = must(root, ["write-tree"], { env: index });
-    return must(root, ["commit-tree", tree, ...(parent === null ? [] : ["-p", parent]), "-m", message], { env: index });
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-/** The entry files a commit adds or changes: path to blob. */
-function changesOf(root: string, commit: string): Map<string, string> {
-  const out = must(root, ["diff-tree", "-r", "-z", "--no-commit-id", "--root", commit, "--", ...FOLDERS]);
-  const parts = out.split("\0");
-  const map = new Map<string, string>();
-  for (let i = 0; i + 1 < parts.length; i += 2) {
-    const m = /^:\d+ (\d+) \w+ (\w+) [AMT]/.exec(parts[i] ?? "");
-    if (m !== null && m[1] !== "000000") {
-      map.set(parts[i + 1] ?? "", m[2] ?? "");
-    }
-  }
-  return map;
-}
-
-/**
- * The base for a new commit: the remote tip with the local commits it lacks replayed on top (their
- * entry files and messages, author kept). Distinct file names mean replays never conflict.
- */
-function rebase(root: string, local: string | null, remote: string | null): string | null {
-  if (local === null || remote === null || local === remote) {
-    return remote ?? local;
-  }
-  if (isAncestor(root, remote, local)) {
-    return local;
-  }
-  let base = remote;
-  for (const commit of pendingCommits(root, local, remote)) {
-    const [name = "", email = "", date = "", ...message] = must(root, ["log", "-1", "--format=%an%x00%ae%x00%aI%x00%B", commit]).split("\0");
-    base = commitOn(root, base, changesOf(root, commit), message.join("\0").trim(), {
-      GIT_AUTHOR_NAME: name,
-      GIT_AUTHOR_EMAIL: email,
-      GIT_AUTHOR_DATE: date,
-    });
-  }
-  return base;
-}
-
-function moveLocal(root: string, commit: string, old: string | null): void {
-  must(root, ["update-ref", "-m", "braid inbox", LOCAL, commit, old ?? "0".repeat(40)]);
 }
 
 /**
@@ -326,56 +147,9 @@ function moveLocal(root: string, commit: string, old: string | null): void {
  * checkout's `.braid/`, so writers on one machine take turns.
  */
 export function writeInbox(root: string, change: (current: InboxView) => InboxChange): WriteResult {
-  const lock = join(mainCheckout(root), ".braid", "inbox");
-  return locked(lock, () => write(root, change), "the inbox");
-}
-
-/** Refuses a write while a worktree has `braid-inbox` checked out: moving the branch would leave it showing newer entries as staged deletions. */
-function refuseCheckedOut(root: string): void {
-  const r = git(root, ["worktree", "list", "--porcelain"]);
-  if (r.status !== 0) {
-    return;
-  }
-  for (const block of r.stdout.split(/\r?\n\r?\n/)) {
-    const lines = block.split(/\r?\n/);
-    const path = lines.find((l) => l.startsWith("worktree "))?.slice("worktree ".length);
-    if (path !== undefined && lines.includes(`branch ${LOCAL}`)) {
-      throw new GitError(
-        `${INBOX_BRANCH} is checked out in the worktree ${path}; a write would move it under that worktree and leave newer entries staged for deletion. ` +
-          `Leave it first (in that worktree: git switch --detach, or remove it with git worktree remove), then run the command again. Nothing was changed.`,
-      );
-    }
-  }
-}
-
-function write(root: string, change: (current: InboxView) => InboxChange): WriteResult {
-  refuseCheckedOut(root);
-  for (let attempt = 1; ; attempt++) {
-    const fetched = fetchInbox(root);
-    const local = refCommit(root, LOCAL);
-    // A branch deleted on the remote is pushed again from the local copy, or the last fetched one.
-    const remote = fetched.state === "absent" ? null : refCommit(root, TRACKING);
-    const base = rebase(root, local ?? (fetched.state === "absent" ? refCommit(root, TRACKING) : null), remote);
-    const next = change(view(root, base));
-    const blobs = new Map([...next.files].map(([path, text]) => [path, must(root, ["hash-object", "-w", "--stdin"], { input: text })]));
-    const commit = commitOn(root, base, blobs, next.message);
-    if (fetched.state === "offline") {
-      moveLocal(root, commit, local);
-      return { commit, pushed: false, warning: `can't reach ${REMOTE} (${fetched.why}); the entry is on the local ${INBOX_BRANCH} branch and the next write pushes it` };
-    }
-    const push = git(root, ["push", "--porcelain", REMOTE, `${commit}:${LOCAL}`]);
-    if (push.status === 0) {
-      moveLocal(root, commit, local);
-      git(root, ["update-ref", TRACKING, commit]);
-      return { commit, pushed: true, warning: null };
-    }
-    const rejected = push.stdout.split(/\r?\n/).some((line) => line.startsWith("!") && line.includes(LOCAL));
-    if (!rejected || attempt >= TRIES) {
-      moveLocal(root, commit, local);
-      const why = rejected ? `the push was refused ${TRIES} times` : `the push failed: ${firstLine(push.stderr || push.stdout)}`;
-      return { commit, pushed: false, warning: `${why}; the entry is on the local ${INBOX_BRANCH} branch and the next write pushes it` };
-    }
-  }
+  const result = writeBranch(root, SPEC, change);
+  // Every inbox change writes at least one entry, so there is always a commit.
+  return { ...result, commit: result.commit ?? "" };
 }
 
 /** Open entries per kind, from the local refs without fetching; zeros when there is no inbox or it cannot be read. */

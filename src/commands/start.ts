@@ -5,11 +5,17 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import type { BranchRef } from "../braids/branches.js";
-import { closeRequest } from "../braids/requests.js";
+import { closeRequest, type Ending } from "../braids/requests.js";
 import { normPath, repoNameOf, workFolder, worktreesDir } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
 import { UsageError } from "./braids.js";
 import { notReady, read, type Sources, type World } from "./coordinate.js";
+
+/** Starting an item answers what it waited for. */
+const STARTED: Ending = { state: "answered", who: "coordinator", text: "started" };
+
+/** A write to the request record that couldn't push: the line the command adds. */
+const warned = (warning: string | null): string => (warning === null ? "" : `warning: ${warning}\n`);
 
 export { worktreesDir };
 
@@ -128,8 +134,8 @@ export async function startCommand(root: string, args: readonly string[], src: S
 
   must(root, ["push", REMOTE, `${commit}:refs/heads/${t.branch}`], `can't push ${t.branch} to ${REMOTE}; nothing was created`);
   must(root, ["worktree", "add", "--track", "-b", t.branch, folder, `${REMOTE}/${t.branch}`], `${t.branch} is pushed but the worktree failed`);
-  closeRequest(root, id);
-  return `branch ${t.branch}\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n`;
+  const closed = closeRequest(root, id, undefined, STARTED);
+  return `branch ${t.branch}\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n${warned(closed.warning)}`;
 }
 
 /** A planned story: its worktree on the branch that already exists, tracking `origin/` when only the remote has it. */
@@ -147,9 +153,9 @@ function startOnExisting(root: string, id: string, ref: BranchRef, folder: strin
   } else {
     must(root, ["worktree", "add", "--track", "-b", name, folder, ref.branch], `can't make the worktree on ${ref.branch}`);
   }
-  closeRequest(root, id);
+  const closed = closeRequest(root, id, undefined, STARTED);
   const commit = must(folder, ["rev-parse", "HEAD"], "can't read the new worktree");
-  return `branch ${name} (existing)\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n`;
+  return `branch ${name} (existing)\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n${warned(closed.warning)}`;
 }
 
 /** The worktrees git knows: folder, checked-out branch (without `refs/heads/`) and HEAD. */

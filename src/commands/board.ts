@@ -23,6 +23,8 @@ import { t3codeUrl } from "../board/marks.js";
 import { problemLine, readiness, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
+import { fetchBranchAsync } from "../braids/gitbranch.js";
+import { REQUESTS } from "../braids/requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
 import type { Pause } from "../braids/pauses.js";
 import { readPlans, type PlanRead } from "../board/plans.js";
@@ -70,6 +72,8 @@ export interface Sources {
   github(fresh: boolean): Github | Promise<Github>;
   t3(fresh: boolean): Promise<T3>;
   signals(github: Github): ReadSignals;
+  /** Fetches `braid-requests` from origin; the board calls it only on a fresh read (the Refresh button), alongside GitHub and T3, and reads the local refs otherwise. Absent: never fetched. */
+  fetchRequests?(): Promise<unknown>;
   /** The plans of the project's programmes (`pm/*` branches); absent: none. A failed read gives none. */
   plans?(): Promise<PlanRead[]>;
   tree(item: Item): Tree;
@@ -486,6 +490,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     github: (fresh) => readGithubAsync(root, gh, fresh ? 0 : undefined),
     t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
     signals: (github) => readSignals(root, github),
+    fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
     limits: (threads, pauses) => readLimitsView(root, threads, pauses),
     tree: (item) => treeOf(root, item),

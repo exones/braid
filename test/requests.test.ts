@@ -21,10 +21,11 @@ const { startCommand } = (await load("../dist/commands/start.js")) as { startCom
 const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
 const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
-const { loadRequests, requestsFile, openRequest, liveRequests, filterLive, age } = (await load("../dist/braids/requests.js")) as {
+const { loadRequests, loadRecord, legacyFile, openRequest, liveRequests, filterLive, age } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
-  requestsFile: (root: string) => string;
-  openRequest: (root: string, request: object) => void;
+  loadRecord: (root: string) => { requests: { code: string; id: string; state: string; events: { event: string; at: string; by: string; text?: string }[] }[] };
+  legacyFile: (root: string) => string;
+  openRequest: (root: string, request: object) => { code: string };
   liveRequests: (root: string, prOf: (n: number) => { state: string; headRefOid: string } | null) => { id: string }[];
   filterLive: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => object[];
   age: (at: string, now: Date) => string;
@@ -49,6 +50,9 @@ interface Pr {
   checks: string;
   head: string;
 }
+
+/** The lock file the record's writers take turns with, in the main checkout's `.braid/`. */
+const lockOf = (root: string) => join(dirname(legacyFile(root)), "requests.lock");
 
 /** A repository with braid 0001 (strand A, PR #5 on its branch), a bare remote, and a second worktree of it. */
 function world() {
@@ -100,18 +104,25 @@ function world() {
 test("ask opens a request that every worktree shares; a new ask replaces it; answer closes it", async () => {
   const w = world();
   const asked = askCommand(w.root, ["0001/A", "Which   name\nshould it have?", "--kind", "decision", "--key", "scope", "--thread", THREAD], { now: w.clock }) as string;
-  assert.match(asked, /0001\/A: decision request opened: Which name should it have\?/);
-  assert.equal(existsSync(join(w.root, ".braid", "requests.json")), true);
-  assert.equal(existsSync(join(w.other, ".braid")), false, "the store is in the main checkout only");
-  assert.equal(realpathSync.native(requestsFile(w.other)), realpathSync.native(requestsFile(w.root)));
+  assert.match(asked, /^q-[a-z0-9]{4} 0001\/A: decision request opened: Which name should it have\?/);
+  const code = asked.slice(0, 6);
+  assert.ok(git(w.root, "ls-tree", "-r", "--name-only", "origin/braid-requests").split("\n").includes(`requests/${code}.json`), "pushed to the record's branch");
+  assert.equal(existsSync(join(w.other, ".braid")), false, "nothing is kept in the worktree");
+  assert.equal(realpathSync.native(dirname(dirname(legacyFile(w.other)))), realpathSync.native(w.root), "found from any worktree");
   const listed = (await requestsCommand(w.other, [], { gh: w.gh, now: () => new Date("2026-11-15T12:30:00Z") })) as string;
-  assert.equal(listed, "0001/A  decision  30m  Which name should it have?\n");
+  assert.equal(listed, `${code}  0001/A  decision  30m  Which name should it have?\n`);
   askCommand(w.other, ["0001/A", "Plan ok?", "--kind", "plan"], { now: w.clock });
   assert.deepEqual(loadRequests(w.root).map((r) => [r.id, r.kind, r.text]), [["0001/A", "plan", "Plan ok?"]]);
   assert.equal(readdirSync(join(w.root, ".braid")).filter((n) => n.endsWith(".tmp")).length, 0);
-  assert.match(answerCommand(w.other, w.other, ["0001/A"]), /request closed/);
+  assert.match(answerCommand(w.other, w.other, ["0001/A"]), /^q-[a-z0-9]{4} 0001\/A: answered by the user\n$/);
   assert.equal(await requestsCommand(w.root, [], { gh: w.gh }), "no open requests\n");
   assert.match(answerCommand(w.root, w.root, ["0001/A"]), /no open request/);
+  // Nothing is deleted: the first is withdrawn as replaced, the second answered.
+  const all = loadRecord(w.root).requests;
+  const first = all.find((r) => r.code === code);
+  const second = all.find((r) => r.code !== code);
+  assert.deepEqual([all.length, first?.state, second?.state], [2, "withdrawn", "answered"]);
+  assert.equal(first?.events.at(-1)?.text, `replaced by ${second?.code}`);
 });
 
 test("ask refuses a bad kind, an empty text, an unknown item and a bad thread", () => {
@@ -123,24 +134,26 @@ test("ask refuses a bad kind, an empty text, an unknown item and a bad thread", 
   assert.deepEqual(loadRequests(w.root), []);
 });
 
-test("answer --log adds the decision to the braid log, and a refused log leaves the request open", () => {
+test("answer --log is the answer's text on the record: no braid log, no commit; an unreadable file leaves the request open", () => {
   const w = world();
   askCommand(w.root, ["0001", "Approve the plan?", "--kind", "plan"], { now: w.clock });
   assert.throws(() => answerCommand(w.root, w.root, ["0001", "--log", join(w.root, "nope.txt")]), /can't read/);
   assert.equal(loadRequests(w.root).length, 1);
   writeFileSync(join(w.root, "decision.txt"), "User approved the plan.\n");
+  const head = git(w.root, "rev-parse", "HEAD");
   const out = answerCommand(w.root, w.root, ["0001", "--log", join(w.root, "decision.txt"), "--thread", THREAD]);
-  assert.match(out, /request closed/);
-  const log = readdirSync(join(w.root, "braids/0001-alpha")).find((n) => n.startsWith("log-"));
-  assert.ok(log !== undefined);
-  assert.match(readFileSync(join(w.root, "braids/0001-alpha", log), "utf8"), /User approved the plan\./);
+  assert.match(out, /answered by the user: User approved the plan\./);
+  assert.equal(readdirSync(join(w.root, "braids/0001-alpha")).some((n) => n.startsWith("log-")), false, "no braid log entry");
+  assert.equal(git(w.root, "rev-parse", "HEAD"), head, "no commit on the checkout's branch");
   assert.deepEqual(loadRequests(w.root), []);
+  const e = loadRecord(w.root).requests[0]?.events.at(-1);
+  assert.deepEqual([e?.event, e?.by, e?.text], ["answered", "user", "User approved the plan."]);
 });
 
 test("handover opens a review request and prints the recap draft", async () => {
   const w = world();
   const out = (await handoverCommand(w.other, ["0001/A", "--head", w.first.slice(0, 7), "--thread", THREAD], { gh: w.gh, now: w.clock })) as string;
-  assert.match(out, new RegExp(`0001/A: review request opened for PR #5 at ${w.first}`));
+  assert.match(out, new RegExp(`^q-[a-z0-9]{4} 0001/A: review request opened for PR #5 at ${w.first}`));
   assert.match(out, /ready for your merge/);
   assert.match(out, /braid log line:/);
   const [r] = loadRequests(w.root);
@@ -170,10 +183,14 @@ test("a review request is void after a merge, a close or a moved head", async ()
   for (const change of changes) {
     const w = world();
     await handoverCommand(w.root, ["0001/A", "--head", w.first], { gh: w.gh, now: w.clock });
-    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /0001\/A  review  0m  review PR #5/);
+    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^q-[a-z0-9]{4}  0001\/A  review  0m  review PR #5/);
     change(w.pr);
     assert.equal(await requestsCommand(w.root, [], { gh: w.gh, now: w.clock }), "no open requests\n");
-    assert.deepEqual(loadRequests(w.root), [], "the void request is dropped from the store");
+    assert.deepEqual(loadRequests(w.root), [], "the void request is no longer open");
+    const [r] = loadRecord(w.root).requests;
+    const ended = [r?.state, r?.events.at(-1)?.text, r?.events.at(-1)?.by];
+    const want = w.pr.state === "MERGED" ? ["met", "PR #5 merged"] : w.pr.state === "CLOSED" ? ["withdrawn", "PR #5 closed"] : ["withdrawn", "PR #5 head moved to fffffff"];
+    assert.deepEqual(ended, [...want, "board"], "recorded, not dropped");
   }
 });
 
@@ -186,7 +203,7 @@ test("a review request stays when GitHub can't be read; a question never self-cl
   const out = (await requestsCommand(w.root, [], { gh: down, now: w.clock })) as string;
   assert.match(out, /0001\/A  review/);
   assert.match(out, /0001  decision/);
-  assert.equal(((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string).trim(), "0001  decision  0m  Decide?");
+  assert.match(((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string).trim(), /^q-[a-z0-9]{4}  0001  decision  0m  Decide\?$/);
 });
 
 test("braid start closes the request of the item it starts, and only that one", async () => {
@@ -201,6 +218,8 @@ test("braid start closes the request of the item it starts, and only that one", 
   const t3 = async () => ({ status: 1, stdout: "", stderr: "no t3" });
   await startCommand(w.root, ["0001/A"], { gh: none, t3 }, env);
   assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0001"]);
+  const started = loadRecord(w.root).requests.find((r) => r.id === "0001/A")?.events.at(-1);
+  assert.deepEqual([started?.event, started?.by, started?.text], ["answered", "coordinator", "started"]);
 });
 
 test("braid accept closes the request when the item is Done; a refused done leaves it", async () => {
@@ -216,6 +235,7 @@ test("braid accept closes the request when the item is Done; a refused done leav
   const out = (await acceptCommand(w.root, ["0001/A", "--thread", THREAD], { gh: merged, t3 })) as string;
   assert.match(out, /0001\/A done/);
   assert.deepEqual(loadRequests(w.root), []);
+  assert.deepEqual(loadRecord(w.root).requests.map((r) => [r.state, r.events.at(-1)?.text]), [["withdrawn", "the item is Done"]]);
 });
 
 test("age is minutes, hours or days", () => {
@@ -251,16 +271,16 @@ test("overlapping writers in separate processes lose no update", async () => {
   const script = join(scratch, "writer.mjs");
   writeFileSync(script, `import { openRequest } from ${JSON.stringify(pathToFileURL(fileURLToPath(new URL("../dist/braids/requests.js", import.meta.url))).href)};
 const [root, id] = process.argv.slice(2);
-for (let i = 0; i < 8; i++) openRequest(root, { id: id + i, kind: "question", text: "x", at: "2026-11-15T12:00:00Z", thread: null });`);
+for (let i = 0; i < 4; i++) openRequest(root, { id: id + i, kind: "question", text: "x", at: "2026-11-15T12:00:00Z", thread: null });`);
   const run = (id: string) => new Promise<number | null>((done) => spawn(process.execPath, [script, w.root, id]).on("close", done));
   const codes = await Promise.all(["0001/A", "0002/B", "0003/C", "0004/D"].map(run));
   assert.deepEqual(codes, [0, 0, 0, 0]);
-  assert.equal(loadRequests(w.root).length, 32);
+  assert.equal(loadRequests(w.root).length, 16);
 });
 
 test("a stale lock is taken over and the lock is released", () => {
   const w = world();
-  const lock = `${requestsFile(w.root)}.lock`;
+  const lock = lockOf(w.root);
   mkdirSync(dirname(lock), { recursive: true });
   writeFileSync(lock, "");
   const old = new Date(Date.now() - 60_000);
@@ -285,7 +305,7 @@ const { takeOverStale } = (await load("../dist/braids/requests.js")) as { takeOv
 
 test("a stale lock goes to one waiter only: the second looks again and leaves the first one's new lock alone", () => {
   const w = world();
-  const lock = `${requestsFile(w.root)}.lock`;
+  const lock = lockOf(w.root);
   mkdirSync(dirname(lock), { recursive: true });
   writeFileSync(lock, "");
   const old = new Date(Date.now() - 60_000);
@@ -311,7 +331,7 @@ test("a stale lock goes to one waiter only: the second looks again and leaves th
 
 test("overlapping writers in separate processes lose no update when they start on a stale lock", async () => {
   const w = world();
-  const lock = `${requestsFile(w.root)}.lock`;
+  const lock = lockOf(w.root);
   mkdirSync(dirname(lock), { recursive: true });
   writeFileSync(lock, "");
   const old = new Date(Date.now() - 60_000);
@@ -319,18 +339,18 @@ test("overlapping writers in separate processes lose no update when they start o
   const script = join(scratch, "writer-stale.mjs");
   writeFileSync(script, `import { openRequest } from ${JSON.stringify(pathToFileURL(fileURLToPath(new URL("../dist/braids/requests.js", import.meta.url))).href)};
 const [root, id] = process.argv.slice(2);
-for (let i = 0; i < 6; i++) openRequest(root, { id: id + i, kind: "question", text: "x", at: "2026-11-15T12:00:00Z", thread: null });`);
+for (let i = 0; i < 3; i++) openRequest(root, { id: id + i, kind: "question", text: "x", at: "2026-11-15T12:00:00Z", thread: null });`);
   const run = (id: string) => new Promise<number | null>((done) => spawn(process.execPath, [script, w.root, id]).on("close", done));
   const codes = await Promise.all(["0001/A", "0002/B", "0003/C", "0004/D", "0005/E", "0006/F"].map(run));
   assert.deepEqual(codes, [0, 0, 0, 0, 0, 0]);
-  assert.equal(loadRequests(w.root).length, 36);
+  assert.equal(loadRequests(w.root).length, 18);
   assert.equal(existsSync(lock), false);
 });
 
 test("the state folder ignores itself, so it never shows as untracked", () => {
   const w = world();
   openRequest(w.root, req("0001"));
-  assert.equal(readFileSync(join(dirname(requestsFile(w.root)), ".gitignore"), "utf8"), "*\n");
+  assert.equal(readFileSync(join(dirname(legacyFile(w.root)), ".gitignore"), "utf8"), "*\n");
   assert.equal(git(w.root, "status", "--porcelain", "--untracked-files=all"), "");
 });
 
@@ -384,8 +404,8 @@ test("ask and answer find a braid that lives only on its branch, from the main c
   git(w.root, "checkout", "-q", "main");
   git(w.root, "branch", "-D", "braid/0002-beta");
   assert.equal(existsSync(join(w.root, "braids", "0002-beta")), false, "not in the working tree");
-  assert.match(askCommand(w.root, ["0002", "Go?", "--kind", "decision"], { now: w.clock }) as string, /0002: decision request opened/);
+  assert.match(askCommand(w.root, ["0002", "Go?", "--kind", "decision"], { now: w.clock }) as string, /^q-[a-z0-9]{4} 0002: decision request opened/);
   assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0002"]);
-  assert.match(answerCommand(w.root, w.root, ["0002"]), /request closed/);
+  assert.match(answerCommand(w.root, w.root, ["0002"]), /answered by the user/);
   assert.throws(() => askCommand(w.root, ["0009", "x"]), /no braid 0009/);
 });

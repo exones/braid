@@ -58,7 +58,7 @@ test("braid decisions lists the Decided: entries of a braid and its strands, old
 test("braid decisions --since cuts by a date (that day included) or by a commit's time", () => {
   const root = repo();
   assert.equal(decisionsCommand(root, ["0001", "--since", "2026-11-19"]), "2026-11-19  0001/A  Decided: strand A over two lines\n2026-11-21  0001/B  Decided: strand B\n");
-  assert.equal(decisionsCommand(root, ["0001", "--since", "2026-11-22"]), "no Decided: entries for 0001 since 2026-11-22\n");
+  assert.equal(decisionsCommand(root, ["0001", "--since", "2026-11-22"]), "no Decided: entries or answered requests for 0001 since 2026-11-22\n");
   // The commit was made 2026-11-20 10:00: only later entries remain.
   const sha = git(root, "rev-parse", "HEAD").slice(0, 9);
   assert.equal(decisionsCommand(root, ["0001", "--since", sha]), "2026-11-21  0001/B  Decided: strand B\n");
