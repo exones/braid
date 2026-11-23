@@ -1,7 +1,7 @@
 ---
 id: '0071/A'
 title: "Waits wake their asker: braid and time conditions, one wake, waits apart from questions"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: []
 order: 10
