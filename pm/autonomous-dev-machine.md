@@ -132,6 +132,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P2 · 0069/A merged into its braid branch (PR #255): the board's PR lookup missed a Done-stamped story's PR and dropped its open review request (the cause of 0068's missed merge notification); also the lost one-shot limit push, the weekly-limit hint and the typo. 0069/B started.
 - 2026-11-23: P7 · 0067/A merged into its braid branch (address file, `braid board --url`, PM naming, D92); 0067/B started. No sweep into 0067; leftovers 7ija and yd2t routed to P5 (with qap7), t7ap and 5vky stay with P15.
 - 2026-11-23: P7 · 0067 plan approved by the PM (strands A, B); service-kind decision forwarded to the user.
 - 2026-11-23: the user looked at 0064 and said continue; P7 · 0067 started in its existing coordinator thread with the amended goal (Windows service) and the PM-run autonomy.
