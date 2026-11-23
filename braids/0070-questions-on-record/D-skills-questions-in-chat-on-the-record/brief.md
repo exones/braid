@@ -26,6 +26,7 @@ Expected size: about 60 changed lines in 6 files, net shorter.
 - "Launched by a PM": the PM's reply recorded with `--from pm` and its reason; "never use the question tool" no longer needs saying there once no role uses it.
 - `references/autonomy.md`, `references/limits.md`, `references/stop-cases.md`: the question-tool lines go; markers as above.
 - `braid-pm/SKILL.md`: the same markers on every PM message; questions to the user in chat after `braid ask`; its merge request (`braid ask pm/<slug> … --done-when pr:<n>`) closes itself; the "After each merge" step that closes it by hand goes.
+- `braid/SKILL.md` "Talking to the user" and `braid-pm/SKILL.md`, in one sentence within the word budget: a question, with its context and options, goes in the turn's final message after the last tool call, never in text before a tool call.
 - `braid-worker` and `braid-reviewer`: a question for the user goes to the coordinator, which records it (one line each, only if they say otherwise today).
 - Measure each changed skill file's words before and after, and put the numbers in `report.md`.
 
@@ -34,6 +35,7 @@ Expected size: about 60 changed lines in 6 files, net shorter.
 - The user: "I don't want any more the modal user input from coordinator or PM. I prefer now just chat because now the board has all the questions stored. I mean this widget that blocks".
 - The user: "I like end of message emojis so I want it permanently for coordinator/pm"; ⏳ "is when you wait for something. It's just another emoji for another state".
 - The option sets stay, as lettered answers in chat.
+- Questions in the final message (added by the PM after approval, from the user: "those memories have to go to the skill eventually"): T3 folds text written before a tool call into the collapsed work, and the user missed the PM's questions there on 2026-11-22.
 - Programme rule: the skills get shorter or stay the same size; prefer one CLI call over a prose rule.
 - This strand changes agent instructions, so the braid's final PR is the user's merge (AGENTS.md).
 
