@@ -117,6 +117,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P7 · 0067 keeps its existing coordinator thread (planned as the sweep; the user told it "Remove check, you will run under pm"); the PM told it it is P7 and to wait for the go.
 - 2026-11-23 01:15Z: P2 launched on the user's go (coordinator mcp:launch:445e5f92…); 0064's coordinator told to send its new head to the PM for a live check first.
 - 2026-11-23: the forward of 0068's merge handover never reached the user (leftover 2026-11-23-brb2, to P2); stopgap: a PM action request for each merge.
 - 2026-11-23: P0 · 0068 merged by the user (PR #250 at 617e484); CI green on main; skills and CLI installed from 617e484; board restarted on port 7800; the user asked to have a look; waiting for their go.
