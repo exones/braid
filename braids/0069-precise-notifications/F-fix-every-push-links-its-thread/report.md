@@ -3,9 +3,10 @@
 **Done**
 - A programme request opened without `--thread` now pushes with the plan file's PM thread as its click link. I did it in the push (`forUser` takes the programme's thread as its fallback), so nothing new is stored and old requests work too.
 - The Done push of a braid no programme runs now clicks the braid's coordinator thread when it is known.
+- Review round: a Done card drops an idle coordinator, so the Done push also reads the idle coordinator link (an optional `doneLink` on the card, push only; the card still shows none, key and sequence ID unchanged). Test with an idle coordinator.
 - `docs/board.md` says a push ends "Open the board" only when no thread can be named (none recorded and T3 lists none).
 
-**Validation:** new tests in `test/notify-rule.test.ts` (programme request without thread opens the PM thread; with none known, "Open the board"; Done push with and without coordinator) and `test/notify.test.ts`. `npm run verify` passes (561 tests).
+**Validation:** new tests in `test/notify-rule.test.ts` (programme request without thread opens the PM thread; with none known, "Open the board"; Done push with and without coordinator) and `test/notify.test.ts`. `npm run verify` passes (562 tests).
 
 **Docs:** `docs/board.md` updated; no other doc is affected.
 

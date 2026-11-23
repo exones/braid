@@ -117,6 +117,15 @@ test("0069/F: a Done push of a braid no programme runs opens its coordinator thr
   assert.match(done(false).body, /\nOpen the board$/);
 });
 
+test("0069/F: a Done push opens the idle coordinator's thread too, the card still shows none", () => {
+  const merged = { ...PR, state: "merged", base: "main" };
+  const idle = t3({ idleCoordinators: new Map([["0001", { link: base + COORD, provider: null, model: null }]]) });
+  const board = boardOf([], { github: gh(merged), braids: [braid("Done")], t3: idle });
+  const [p] = pushes(board).filter((x) => x.kind === "done");
+  assert.deepEqual([p.key, p.sequence, p.click], ["0001|done", null, url(COORD)]);
+  assert.equal(board.braids[0].coordinator, null);
+});
+
 test("nothing else pushes: an alarm, a pending question, a Done waiting for its merge, a strand PR with no request, a Done braid a programme runs", () => {
   // A broke alarm: checks failing on an open PR (held 20 min), and a stalled braid.
   const clock = signals.brokeClock({ "0001 checks failed": ago(20), "0001 stalled": ago(30) }, NOW);

@@ -201,7 +201,7 @@ export function pushesOf(board: BoardData): Push[] {
       if (card.programme != null && running.has(card.programme)) {
         continue;
       }
-      const click = clickOf(coordinator);
+      const click = clickOf(coordinator ?? card.doneLink ?? null);
       out.push({
         key: doneKey(card.id),
         item: card.id,
