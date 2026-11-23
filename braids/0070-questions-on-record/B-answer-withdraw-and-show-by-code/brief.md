@@ -50,6 +50,20 @@ Expected size: about 450 lines in 7 files, with tests.
 - An answer to a code that is already closed: refused, naming its state and who closed it; nothing changes. Test it.
 - An id with two open requests (the coordinator's and the PM's): the id form without `--by` names both codes and changes nothing. Test it.
 
+## Plan
+
+1. `src/braids/requests.ts`: `to` widened to a braid number (`0042`); `Ending.reason`; one `endRequest(root, code, ending)` that re-checks inside the write that the request is still open and otherwise returns the request as it is (the command refuses, naming its state and who closed it). `closeRequest` and `forwardRequest` return the write's warning. A `pr:<n>` "done when" is checked as a review's PR is (met on merge, withdrawn on close; the head check stays the review's), in `liveRequests` and `filterLive`.
+2. `src/braids/gitbranch.ts`: `currentFiles` merges a file both sides changed with `BranchSpec.merge`, as the write's replay does.
+3. `src/commands/requests.ts`:
+   - `answer <code>|<id> [--by] [--from user|pm] [--reason] [--file|--log <file>|-]`: the text and who go on the record; nothing is committed on a braid branch. The id form with two open requests and no `--by` refuses, naming both codes.
+   - `withdraw <code>|<id> [--by] --why <reason>`.
+   - `requests <code>` (the history) and `requests --closed [--since <date>]`.
+   - `ask --to user|pm|<number> --done-when ...`, the code and condition in its output.
+   - Finding an item: the known braids, then the braid on `origin/<main>`, then the record (an id it already has).
+   - Warnings printed by `answer`, `forward`, `start`, `accept`.
+4. `braid decisions` and the recap draft add the item's answered requests (answered by the user or the PM) from the record.
+5. CLI help, `docs/cli.md`, `docs/braids-format.md`, `docs/decisions.md`; tests in `test/requests-answer.test.ts`.
+
 ## Completion
 
 - [ ] `braid answer`, `braid withdraw` and `braid requests` take a code; the record keeps who answered and the PM's reason, and `braid requests <code>` shows the whole history
