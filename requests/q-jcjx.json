@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-23T19:09:25.350Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-23T19:10:04.526Z",
+      "by": "pm",
+      "text": "a. Approve",
+      "reason": "plan covers the goal and the user's decisions; decisions 1–7 internal and cheap to reverse, because only 0072 shares the record and merges after, instead of asking the user"
     }
   ]
 }
