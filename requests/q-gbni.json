@@ -13,6 +13,12 @@
       "event": "opened",
       "at": "2026-11-23T20:35:20.777Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-23T20:38:18.869Z",
+      "by": "user",
+      "text": "Q1. to be configurable. Default: strand to braid, and braid to main too\nQ2. Configurable.\nQ3. A"
     }
   ]
 }
