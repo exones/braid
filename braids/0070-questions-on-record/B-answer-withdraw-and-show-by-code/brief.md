@@ -28,6 +28,8 @@ Expected size: about 450 lines in 7 files, with tests.
 - `braid ask` and `braid handover` print the new code. `braid ask --to user|pm|<braid number>` and `--done-when answered|pr:<n>|braid:<number>|time:<iso>`; a `pr:<n>` condition closes as `met` when the PR merges, as a handover's does since 0070/A.
 - `braid ask`, `answer` and `withdraw` find an item on any branch, on `origin/main`, or in the record, so they work after a story's branch is gone.
 - `braid decisions <number>` and the recap draft's decisions read the braid's answered requests from the record (the answer, who answered, the PM's reason), next to the `Decided:` log entries.
+- From 0070/A's review (https://github.com/exones/braid/pull/268#issuecomment-7101350444): reads while the local and remote branch differ overlay the whole local file and never merge the two event lists (`currentFiles` in `src/braids/gitbranch.ts`), so `braid requests` can hide the remote's events until the next write; merge on read as the write's replay does. And `closeRequest` and `forwardRequest` drop `WriteResult.warning`, so `answer`, `forward`, `start` and `accept` don't print the offline line that `ask` and `handover` print.
+- `to` is typed `user | pm` since 0070/A: widen it for a braid-number addressee.
 - Tests for each, including: answering on a final PR's item leaves the PR head and the braid branch unchanged (k5d1); asking and answering on a merged story whose branch is deleted; withdraw keeps the record; a `pr:` condition met on merge; who answered and the reason round-trip.
 
 ## Already decided
