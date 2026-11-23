@@ -121,8 +121,13 @@ test("install over an installed task (another port) ends its run first, and repl
 });
 
 test("install on a port another process holds says so; a refused registration, a bad flag and a board that never answers fail", async () => {
-  const held = await svc.serviceCommand(["install"], deps(fakeSchtasks(), { free: false }));
-  assert.match(held.stderr, /port 8765 is held by another process \(a board started by hand\?\)/);
+  // A board started by hand holds the port and answers there: the task stays installed, isn't run, and install fails.
+  const holder = fakeSchtasks();
+  const held = await svc.serviceCommand(["install"], { ...deps(holder, { free: false }), live: async () => [{ port: 8765, url: `http://127.0.0.1:8765/#token=${TOKEN}` }] });
+  assert.equal(held.code, 1);
+  assert.equal(held.stdout, "", "no claim that the task's board runs");
+  assert.match(held.stderr, /installed the braid board task, but its board didn't start: port 8765 is held by another process \(a board started by hand\?\)\. Stop that board, then run braid board service restart/);
+  assert.deepEqual(holder.verbs(), ["/query", "/create"], "registered, never run onto the held port");
   const refused = await svc.serviceCommand(["install"], deps(fakeSchtasks({ failCreate: true })));
   assert.deepEqual([refused.code, refused.stderr], [1, "braid board service: schtasks couldn't register the task: ERROR: Access is denied.\n"]);
   const silent = await svc.serviceCommand(["install"], deps(fakeSchtasks(), { answers: false }));
@@ -208,7 +213,7 @@ test("on another platform every subcommand is Windows-only and points to the sys
 });
 
 test("the last result in words and the CSV fields", () => {
-  assert.equal(svc.resultText("0"), "exited 0");
+  assert.equal(svc.resultText("0"), "ended (the board's own exit code isn't kept; see the log)", "conhost exits 0 even for a killed board: never a clean exit");
   assert.equal(svc.resultText("267011"), "not run yet");
   assert.equal(svc.resultText("3221225786"), "stopped (its console closed)");
   assert.deepEqual(svc.csvFields('"a","b ""c""",,"d,e"'), ["a", 'b "c"', "", "d,e"]);

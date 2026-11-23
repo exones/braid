@@ -1,6 +1,7 @@
 // The board's address file (0067/A, D92): `~/.braid/board-<port>.url`, written owner-only by a real
 // `braid board` run, removed when it stops, and read by `braid board --url`. Every test runs in a scratch home.
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";
 import { homedir, tmpdir } from "node:os";
@@ -52,10 +53,21 @@ const board = (await load("../dist/commands/board.js")) as {
 };
 const address = (await load("../dist/board/address.js")) as {
   addressFile(port: number, home?: string): string;
-  writeAddress(port: number, url: string, home?: string): string;
+  writeAddress(port: number, url: string, home?: string, ownerOnly?: ((file: string) => void) | null): string;
   removeAddress(port: number, url: string, home?: string): void;
   readAddresses(home?: string): { port: number; url: string }[];
 };
+
+/** The file's ACL as icacls lists it: its entries, and whether any is inherited. */
+function aclOf(file: string): { entries: string[]; inherited: boolean } {
+  const out = execFileSync("icacls", [file], { encoding: "utf8" });
+  const entries = out
+    .split(/\r?\n/)
+    .map((l, i) => (i === 0 ? l.slice(file.length) : l).trim())
+    .filter((l) => /:\(/.test(l));
+  return { entries: entries.map((e) => e.toLowerCase()), inherited: entries.some((e) => e.includes("(I)")) };
+}
+const whoami = (): string => execFileSync("whoami", { encoding: "utf8" }).trim().toLowerCase();
 
 const ok = () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" });
 const run = { gh: ok, t3: ok, projects: () => [], notifier: () => () => {} };
@@ -81,6 +93,8 @@ test("a real braid board run writes its tokened address owner-only, --url prints
     assert.equal(readFileSync(file, "utf8"), `${tokened(started)}\n`);
     if (process.platform !== "win32") {
       assert.equal(statSync(file).mode & 0o777, 0o600, "owner-only on POSIX");
+    } else {
+      assert.deepEqual(aclOf(file), { entries: [`${whoami()}:(f)`], inherited: false }, "owner-only on Windows: only the current user, inheritance off");
     }
     assert.deepEqual(readdirSync(home).filter((n) => n.endsWith(".tmp")), [], "no temporary file left");
     // The address works: the session check accepts its token and refuses another.
@@ -103,6 +117,25 @@ test("a real braid board run writes its tokened address owner-only, --url prints
   assert.equal(none.code, 1);
   assert.equal(none.stdout, "");
   assert.match(none.stderr, /^no braid board is running for this user/);
+});
+
+test("the ACL is set on the empty file before the token is written; a failed ACL leaves no file and no token", () => {
+  const seen: string[] = [];
+  const url = "http://127.0.0.1:4100/#token=abc";
+  const file = address.writeAddress(4100, url, home, (temp) => {
+    seen.push(readFileSync(temp, "utf8"));
+  });
+  assert.deepEqual(seen, [""], "empty when its ACL is set");
+  assert.equal(readFileSync(file, "utf8"), `${url}\n`);
+  rmSync(file);
+  assert.throws(
+    () =>
+      address.writeAddress(4101, "http://127.0.0.1:4101/#token=abc", home, () => {
+        throw new Error("icacls couldn't make it owner-only: denied");
+      }),
+    /icacls couldn't make it owner-only/,
+  );
+  assert.deepEqual(readdirSync(home).filter((n) => n.startsWith("board-4101")), [], "no file, no temporary file");
 });
 
 test("--demo and boards started without runBoard write no address file", async () => {
