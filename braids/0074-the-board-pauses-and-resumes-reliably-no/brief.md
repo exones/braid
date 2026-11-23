@@ -16,6 +16,8 @@ Programme pm/autonomous-dev-machine, row P21 (the user: "add this adjustment not
 - since the reset, T3 writes `usageLimits.windows` as an object keyed "0", "1", "2" plus `resetCredits`, so `braid limits` reads "unknown" and the board's pause is blind for Claude_Everix.
 Fix, in the spirit of "reliable calls": the board sends pause and resume messages itself with `t3 thread send` (as it already does for the resume), ids filled in by code; replies are counted from the threads; one "resume now" action (board button and CLI) clears every board pause and sends the resumes, for a usage reset; `braid limits` reads the new cache shape. Drop the LLM steering thread, or keep it only to relay the board's text verbatim; the coordinator decides with evidence. Inbox 2026-11-23-apcr, 2026-11-23-oa4d, 2026-11-23-tr1o.
 
+Decided by the user (2026-11-24): direct pause plus PM-led resume, "PM is smarter on that how to restart". The board pauses every agent directly (a fast safety stop, the board's own text sent by code) and sends the PM of PM-run braids one summary (which braids, until when). The resume of PM-run braids goes through the PM: the board tells the PM the window is open (or the user's "resume now" does), and the PM decides the order and resumes its coordinators, which resume their agents. Braids without a PM keep the board's direct resume.
+
 This is an outline: its coordinator plans it fully when its turn comes.
 
 ## Working at the end
