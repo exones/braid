@@ -1,22 +1,25 @@
 ---
 id: '0067'
-title: "Sweep: programme manager naming and escalation; board token address at login"
+title: "Board as a Windows service, fully usable; PM naming"
 status: To Do
-labels: ["kind:task", "tier:L", "sweep", "ask:security"]
+labels: ["kind:story", "tier:L", "sweep", "ask:security", "ask:architecture"]
 dependencies: []
-related: ['0064', '0062']
+related: ['0064', '0062', '0069']
 delivery: epic
+autonomy: free
 ---
 
 ## Goal
 
-Clear two leftovers from braid 0062 ("Programme manager on the board", [PR #245](https://github.com/exones/braid/pull/245), report `braids/0062-programme-manager-on-the-board-and-in/report.md` on `main`). First, make the programme manager's name and its escalation path read the same in the braid-pm skill's agent metadata and in `docs/autonomy.md` as everywhere else. Second, let a board started at login (no console) act from its local page: today it prints the address with its session token only to a console nobody sees, so its page stays read-only.
+The board runs as a Windows service: it starts with the machine or the login, restarts when it fails, and is fully usable from its local page and the phone (Start, Merge, Open thread), without a console. braid has commands to install, remove, restart and show it (status, port, address). Along the way, the programme manager's name and escalation path read the same in braid-pm's agent metadata and `docs/autonomy.md` as everywhere else. For the user, who today runs the board by hand from a console. Programme row P7 of `pm/autonomous-dev-machine` ("Board as a Windows service, fully usable; PM naming").
 
-Expected size: about 80 lines in 5 to 7 files (code, tests, docs).
+A user can try it: install the service, reboot, open the board's address on the phone, Start a strand from the page, and restart the service with braid's command.
+
+Expected size: about 400 lines in 10 to 14 files, in two strands: 0067/A (the address file, `braid board --url`, the PM naming) and 0067/B (the service).
 
 ## Leftovers taken
 
-The user chose this sweep on 2026-11-22 ("Sweep: a"), when the coordinator of braid 0064 proposed it: 2026-11-22-7kqa went into 0064/C, and these two into this story, run after 0064.
+The user chose this sweep on 2026-11-22 ("Sweep: a"), when the coordinator of braid 0064 proposed it: 2026-11-22-7kqa went into 0064/C, and the two leftovers below into this braid, run after 0064. On 2026-11-23 the PM's go amended the goal with the user's request for the Windows service, and the idea 2026-11-21-mbb2 was taken in too.
 
 ### 2026-11-22-n60n: braid-pm openai.yaml and docs/autonomy.md still lag the programme manager
 
@@ -34,54 +37,41 @@ What: braid board prints its address with the session token only to its console;
 Why: the login recipe gives notifications but a read-only board.
 Where: src/commands/board.ts (the token address); the board could write it to a file under ~/.braid.
 
-## Start here
+### 2026-11-21-mbb2 (idea): Headless board started at login
 
-- `src/commands/board.ts`: `runBoard`, where it builds `url` with `#token=` and prints it (around "The token rides in the fragment"), and `startBoardWith` (the token, and the local listener's 403 texts that tell the user to "Open the URL that `braid board` printed").
-- `docs/board.md`: "Run the board at login" (the Windows scheduled task and the Linux systemd recipes), the notes on the token (D50) and "Requests" (the escalation text, the line "It reaches your side").
-- `docs/autonomy.md`: the `PM-run (thread <id>)` paragraph under "Which preset a braid runs on".
-- `docs/getting-started.md` (the braid-pm bullet) and `docs/braids-format.md` (`--to pm`): how the escalation is already worded there, gone thread included.
-- `.agents/skills/braid-pm/agents/openai.yaml`, and the other skills' `agents/openai.yaml` for the naming style.
-- `docs/decisions.md` D50 (the local token) and D60 (the Tailscale listener).
+From 0049/C.
 
-## Change
+A `braid board --no-open` mode (no browser window) that can start at login, so the multi-project board and its phone pushes run without a terminal open. Proposed in 0049/C's report; a login task per OS stays outside braid's code.
 
-- `.agents/skills/braid-pm/agents/openai.yaml`: `display_name` names the programme manager (for example "Braid programme manager"); `short_description` and `default_prompt` stay unless they contradict it.
-- `docs/autonomy.md`: the `PM-run` paragraph says a request reaches the user when the PM forwards it, doesn't answer in time (20 minutes, 60 for a handover) or its thread is gone (archived, failed or unknown to T3), worded as `docs/getting-started.md` and `docs/board.md` have it.
-- `src/commands/board.ts`: a real board run (not `--demo`) writes its full local address with the token to a file under `~/.braid` when it starts, and deletes it when it stops (Ctrl+C, SIGTERM, a normal exit). Add a way to read it without opening the file by hand: `braid board --url` (or a small subcommand the worker proposes) prints the running board's address, or says plainly that no board is running.
-- Tests for the file: written on start with owner-only permissions on POSIX, holds the working address, removed on stop, replaced by a newer run on the same port, and never written by `--demo` or by board tests that don't go through `runBoard` (tests use a temporary home, never the real `~/.braid`).
-- `docs/board.md` "Run the board at login": how to get the address of a board started at login; the 403 texts point there too. `docs/cli.md` and the CLI's help text for the new flag or subcommand.
-- `docs/decisions.md`: a dated decision for the token file (why a file, where, its permissions, its lifetime), next to D50.
+(The user's request of 2026-11-23 brings the Windows part into braid's code; Linux keeps the systemd recipe in docs/board.md.)
 
 ## Already decided
 
-- Taken by the user's choice "Sweep: a" (2026-11-22): both leftovers in this one story. The openai.yaml edit is a skill file change the user asked for by choosing the sweep; the user merges this PR.
-- The token address goes to a file under `~/.braid`, the per-user folder the board already reads (`projects.json`, the notify settings). Never into a project's `.braid/`, a log, a push or the board's page.
-- The file is owner-only: mode 0600 on POSIX (created with that mode through a temp file and a rename, not chmod after), and under the user's profile on Windows, whose ACL already limits it to the user. One file per board port, so two boards don't overwrite each other's address; the worker names it.
-- The token itself doesn't change: still random per run, still in the URL fragment. A stale file left by a killed board holds a dead run's token, which a new run on that port replaces; the reader says no board is running when nothing answers on that port.
-- Related to 0064 (The board watches provider limits, on `braid/0064-the-board-watches-provider-limits`): it also changes `src/commands/board.ts` and `docs/autonomy.md`. This story starts only after 0064 has merged into `main`, and its branch merges `main` first.
+- The user's words, through the PM (2026-11-23): "braid board as a windows service. now I run it manually from console", "very close to the beginning", and from the after-merge routine: "kill running board, start a new one … (when service ready, service)".
+- The user's rule for every braid of this programme: "don't overblow skills, try to see how to make easier, don't create spaghetti states and lean more to realiable calls like with requests". So: one command group for the service, and no new state file beyond the address file of 0067/A.
+- "Remove check, you will run under pm" (the user, 2026-11-23): this braid is run by the PM (`## Autonomy`).
+- The kind of service (a real Windows service under the user's account with a stored password, a logon scheduled task, or what the research finds) is the user's decision, asked through the PM on 0067/B before its worker starts. The research goes into `sources.md` and 0067/B's brief.
+- The openai.yaml edit is a skill file change the user asked for by choosing the sweep; the user merges this braid's PR into `main`.
+- Related to 0064 (The board watches provider limits): merged into `main` at 93c9c47; this branch merged `main` after it.
+- Related to 0069 (Precise notifications, on `braid/0069-precise-notifications`): it changes `src/notify/` and the board's request routing; this braid changes `src/commands/board.ts`. 0069/D also edits `.agents/skills/braid-pm/SKILL.md`. Whichever merges into `main` second merges `main` first and keeps both.
 - Related to 0062 (Programme manager on the board and in the skills): the source of both leftovers; done.
+- No docs strand: each strand updates the docs it touches (`docs/board.md`, `docs/cli.md`, `docs/autonomy.md`, `docs/decisions.md`, the help text), which are all the docs this braid changes.
+
+## Autonomy
+
+PM-run (thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b): security, data and outward: always ask. architecture, dependency and scope: ask when expensive to reverse (the platform or technology, the form of the product, a contract with another braid); scope: also ask for any change to the goal or the Completion boxes; otherwise decide and log it. Before merging a story or the final PR into main, send the PM the PR and its head, and merge only on the PM's go.
 
 ## Out of scope
 
-- The Tailscale listener and its request header (D60): unchanged.
-- A headless board as a service with its own installer (idea 2026-11-21-mbb2): this story only adds the address file and its reader to the existing login recipes.
+- The Tailscale listener and its request header (D60): unchanged, except that the service may pass `--host tailscale` when installed with it.
+- A Linux or macOS service command: Linux keeps the systemd recipe in docs/board.md.
 - Renaming "PM" elsewhere: the short name stays where the docs use it after first naming the programme manager.
-
-## Failure modes and regression tests
-
-- The token leaks: the file is readable by other users, or the login recipe redirects the address into a world-readable log. Test the POSIX mode; check the recipes in docs/board.md.
-- A stale file after a killed board: the reader must not offer a dead address as live. Test with a file whose port answers nothing.
-- Two boards on different ports: each keeps its own file; stopping one removes only its own. Test it.
-- Tests touching the real home: every test of the file sets a temporary home; `~/.braid` is untouched after the suite.
-- Cleanup on Windows: Ctrl+C and the scheduled task's stop remove the file, or the stale-file case covers it; report.md says which.
 
 ## Completion
 
 - [ ] braid-pm's `agents/openai.yaml` names the programme manager, and `docs/autonomy.md` gives the gone-PM-thread escalation as the other docs do
-- [ ] A real `braid board` run writes its tokened local address to an owner-only file under `~/.braid`, removes it on stop, and `--demo` writes none
-- [ ] `braid board --url` (or the agreed reader) prints the running board's address, or says no board runs when the file is stale or missing
-- [ ] Tests cover the failure modes above with a temporary home, on Windows and Ubuntu CI
-- [ ] docs/board.md "Run the board at login", docs/cli.md, the help text and the 403 texts say how to get the address; docs/decisions.md has the dated decision
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [ ] A running board writes its tokened local address to an owner-only file under `~/.braid` and removes it on stop; `braid board --url` prints it, or says no board runs
+- [ ] braid installs, removes, restarts and shows the board as a Windows service of the kind the user chose; it starts with the machine or the login and restarts after a failure
+- [ ] The service's board is fully usable: Start, Merge and Open thread from its local page and on the phone after a reboot
+- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated
+- [ ] The gate command from BRAID.md passes on the braid branch
