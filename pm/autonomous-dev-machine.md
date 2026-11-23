@@ -7,12 +7,12 @@ limit: 2
 state: running
 hold:
 next: P2 · 0069 and P7 · 0067 run; then P3 when a slot frees, on the user's go after the look
-digest: 23 Nov · 2 done · 1 running · 1 ready to merge (#263) · 7 PM decisions
+digest: "23 Nov · 2 done · 0 running · 1 ready to merge (#259) · 7 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | done
   - P2 | 0069 | Precise notifications | done
-  - P7 | 0067 | Board as a Windows service, fully usable; PM naming | running
+  - P7 | 0067 | Board as a Windows service, fully usable; PM naming | ready to merge
   - P3 | - | Questions on record | planned
   - P6 | - | The board wakes, reminds and nudges | planned
   - P4 | - | Questions say what they unblock | planned
@@ -134,6 +134,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P7 · 0067 ready to merge: PR #259 at fde0339 (main and 0067/D in, boxes ticked from the user's try); PM check on the head: board-address tests pass from Git Bash (10/10), status words the previous run; forwarded to the user. Leftovers th6n, 14vt.
 - 2026-11-23: idea 2026-11-23-j4i2 (skills fade after compaction, with the research findings; replaced ckfk) routed to P10, on the user's "B".
 - 2026-11-23: P7 · 0067: main merged into the braid branch (15c07a9; decisions renumbered D94/D95). Fix strand 0067/D (security): system tools by their System32 path (Git Bash whoami broke the owner-only ACL), status no longer shows the previous run's result as a failure. User's try "ok, I see it's working (the panel)" counts for its boxes.
 - 2026-11-23: user merged #263 (0069) into main (3fd62ca); #259 conflicts, its coordinator merges main in. User: "Let's install when both are merged": one install after #259 merges; the 0067 try runs on the board already installed from ba55c23.
