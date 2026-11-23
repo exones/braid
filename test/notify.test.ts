@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -506,4 +506,22 @@ test("merges forwarded by one PM are one push, updated in place under one sequen
   // None left: the push is cleared by that sequence ID.
   await run(withProg());
   assert.deepEqual(cleared, [at(0).sequence]);
+});
+
+test("upgrading with 0069/B's per-braid push on the phone: it is cleared and the group push is sent once", async () => {
+  const file = join(dir(), ".braid", "notified.json");
+  mkdirSync(dirname(file), { recursive: true });
+  // 0069/B's key for a forwarded merge: item `0001`, lane, kind and when it was forwarded.
+  writeFileSync(file, JSON.stringify({ keys: { "0001|In Review|review|2026-11-22T12:00:00Z": "0001" } }));
+  const f = fakeSender();
+  const cleared: string[] = [];
+  const notify = notifierMod.notifier({ file, config: () => CFG, send: f.send, token: () => null, warn: () => {}, clear: async (_c: unknown, sequence: string) => void cleared.push(sequence) } as never);
+  const forward = { id: "0001", title: "T", head: "a".repeat(40), need: need("review", "The PM asks you: merge PR #7", "2026-11-22T12:00:00Z", { pr: 7, via: "forwarded" }) };
+  const b = { ...boardOf([]), programmes: [{ slug: "w", title: "W", section: "needs", thread: "pm-thread", link: "http://127.0.0.1:3773/env1/pm-thread", need: null, forwards: [forward] }] } as unknown as Board;
+  notify(b);
+  await notify.idle();
+  notify(b);
+  await notify.idle();
+  assert.equal(f.sent.length, 1, "the group push is sent once");
+  assert.deepEqual(cleared, ["braid-agento-0001"], "the old per-braid push is cleared");
 });

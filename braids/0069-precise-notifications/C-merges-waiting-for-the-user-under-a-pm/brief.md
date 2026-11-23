@@ -44,4 +44,4 @@ Forwarded reviews under a running programme join `throughPm` (panel + quiet card
 - [x] A merge joining or leaving updates that push in place (same sequence ID); none left clears it
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [x] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open

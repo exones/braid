@@ -46,7 +46,7 @@ export interface Programme {
   readonly running: number;
   /** The open programme request, or the stall; null otherwise. */
   readonly need: Need | null;
-  /** What the PM forwarded to the user from its braids (not handovers): the PM asking you, each opening the PM's thread. Item, lane its card would sit in, and the need. */
+  /** What the PM forwarded to the user from its braids (a forwarded merge handover too): the PM asking you, each opening the PM's thread. Item, lane its card would sit in, and the need. */
   readonly forwards: readonly Forward[];
   /** The card's one status line: the hold, what the PM is doing, or next. */
   readonly status: string;
