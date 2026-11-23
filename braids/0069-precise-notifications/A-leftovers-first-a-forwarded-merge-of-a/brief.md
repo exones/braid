@@ -30,7 +30,7 @@ Expected size: about 120 lines in 4 files, most of them tests.
 ## Already decided
 
 - Code starts only after 0064 is merged into `main` and `main` is merged into the braid branch (the limit pusher is 0064's).
-- Keep this strand to the two fixes; which needs push and which thread they open is 0069/B's.
+- Keep this strand to these fixes; which needs push and which thread they open is 0069/B's.
 - If the cause is only an old board build, the test still lands and the log says so.
 
 ## Out of scope
