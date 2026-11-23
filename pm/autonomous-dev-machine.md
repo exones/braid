@@ -7,7 +7,7 @@ limit: 2
 state: running
 hold:
 next: P2 · 0069 and P7 · 0067 run; then P3 when a slot frees, on the user's go after the look
-digest: "23 Nov · 2 done · 0 running · 1 ready to merge (#259) · 7 PM decisions"
+digest: "23 Nov · 3 done · 0 running · 1 ready to merge (#259) · 7 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | done
