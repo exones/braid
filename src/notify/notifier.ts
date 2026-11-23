@@ -193,8 +193,12 @@ export function limitPusher(opts: Omit<NotifierOptions, "clear">): ((push: Limit
   const waiting = new Map<string, LimitPush>();
   let failing = false;
   const pushOne = (push: LimitPush): void => {
-    if (flying.has(push.key) || push.key in readSent(opts.file).keys) {
+    if (push.key in readSent(opts.file).keys) {
       waiting.delete(push.key);
+      return;
+    }
+    // A send in flight keeps its entry waiting: if it fails, the next refresh sends it again.
+    if (flying.has(push.key)) {
       return;
     }
     const cfg = config();

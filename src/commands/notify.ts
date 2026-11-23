@@ -1,4 +1,9 @@
-// `braid notify`: set up ntfy pushes once per machine, send a test, turn them off, or show the state.
+// `braid notify`: set up ntfy pushes once per machine, send a test or the PM's own line, turn them off, or show the state.
+import { runT3, showThread, type T3Runner } from "../board/t3.js";
+import { t3codeUrl } from "../board/marks.js";
+import { findRoot } from "../braids/store.js";
+import { titleRepoName } from "../braids/title.js";
+import { sequenceOf } from "../notify/message.js";
 import { braidHome, configFile, DEFAULT_SERVER, newTopic, normaliseServer, partialTopic, readConfig, tokenOf, TOKEN_VAR, validTopic, writeConfig, type NotifyConfig } from "../notify/config.js";
 import { ntfyClearer, ntfySender, type Clearer, type Sender } from "../notify/sender.js";
 import { UsageError } from "./braids.js";
@@ -10,6 +15,64 @@ export interface NotifyDeps {
   readonly env?: NodeJS.ProcessEnv;
   readonly send?: Sender;
   readonly clear?: Clearer;
+  /** The repository `send` names (`findRoot` of the working folder when not given). */
+  readonly root?: string;
+  readonly t3?: T3Runner;
+}
+
+/** The longest line `send` pushes; a longer one is cut with an ellipsis. */
+export const SEND_MAX = 200;
+
+/**
+ * `braid notify send "<line>" --thread <id> [--programme <slug>]`: the PM's own push with no board item (its digest, "nothing can
+ * run until you act"), sent at once without the board: `<repo> pm/<slug>: the PM`, the line, 🧭, high, opening the thread. One
+ * sequence ID per programme, so a newer line replaces the older. Off, not set up or a failed send print why and return: a PM never
+ * fails on it. The output names the server's host, never the topic or the token.
+ */
+async function sendLine(args: readonly string[], home: string, env: NodeJS.ProcessEnv, deps: NotifyDeps): Promise<string> {
+  const thread = option(args, "--thread");
+  const slug = option(args, "--programme");
+  const known = new Set(["--thread", "--programme", thread, slug]);
+  const words = args.filter((a) => !known.has(a));
+  const usage = 'usage: braid notify send "<one line>" --thread <thread id> [--programme <slug>]';
+  if (thread === undefined || words.length !== 1 || words[0]?.startsWith("--") === true) {
+    throw new UsageError(usage);
+  }
+  const line = (words[0] ?? "").replace(/\s+/g, " ").trim();
+  if (line === "") {
+    throw new UsageError(usage);
+  }
+  const config = readConfig(home);
+  if (config === null) {
+    return "Not sent: notifications are not set up (braid notify setup).\n";
+  }
+  if (!config.enabled) {
+    return "Not sent: notifications are off (braid notify setup turns them on).\n";
+  }
+  const root = deps.root ?? findRoot(process.cwd());
+  const repo = titleRepoName(root);
+  const where = await showThread(deps.t3 ?? runT3, root, thread);
+  const click = where?.link == null ? null : t3codeUrl(where.link);
+  const cut = line.length > SEND_MAX ? `${line.slice(0, SEND_MAX - 1)}…` : line;
+  const send = deps.send ?? ntfySender();
+  const host = new URL(config.server).host;
+  try {
+    await send(
+      config,
+      {
+        title: slug === undefined ? `${repo}: the PM` : `${repo} pm/${slug}: the PM`,
+        body: click === null ? `${cut}\nOpen the board` : cut,
+        tags: ["compass"],
+        priority: "high",
+        click,
+        sequence: sequenceOf(repo, `pm/${slug ?? "-"}#send`),
+      },
+      tokenOf(env),
+    );
+  } catch (e) {
+    return `Not sent: ${e instanceof Error ? e.message : String(e)}.\n`;
+  }
+  return `Sent to ${host}${click === null ? " (T3 doesn't know the thread: no link; the push says to open the board)" : ""}.\n`;
 }
 
 /** The one line `braid board` prints about notifications. */
@@ -86,7 +149,7 @@ function setup(args: readonly string[], home: string): string {
   ].join("\n");
 }
 
-/** `braid notify [setup|test|off]`. */
+/** `braid notify [setup|test|off|send]`. */
 export async function notifyCommand(args: readonly string[], deps: NotifyDeps = {}): Promise<string> {
   const home = deps.home ?? braidHome();
   const env = deps.env ?? process.env;
@@ -97,8 +160,11 @@ export async function notifyCommand(args: readonly string[], deps: NotifyDeps = 
   if (sub === "setup") {
     return setup(rest, home);
   }
+  if (sub === "send") {
+    return sendLine(rest, home, env, deps);
+  }
   if (rest.length > 0 || (sub !== "test" && sub !== "off")) {
-    throw new UsageError("usage: braid notify [setup [--topic <topic>] [--server <url>] [--new-topic] | test | off]");
+    throw new UsageError('usage: braid notify [setup [--topic <topic>] [--server <url>] [--new-topic] | test | off | send "<one line>" --thread <id> [--programme <slug>]]');
   }
   const config = readConfig(home);
   if (config === null) {

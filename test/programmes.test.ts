@@ -290,14 +290,14 @@ test("the filter keeps ?projects= and the route opens a programme's details", ()
   assert.equal(route.openMode("#/programme/app/x"), "replace", "inside open details, a move replaces");
 });
 
-test("a programme's request is pushed from the panel; a braid it runs is pushed Done at low priority", () => {
+test("a programme's request is pushed from the panel; a braid it runs sends no Done push", () => {
   const sig = { now: NOW, requests: new Map(), programmes: [{ id: "pm/working-product", kind: "action", by: "pm", text: "protect main", at: ago(1), thread: PM }], alarm: () => null, plans: [read()] };
   const braid = (n: string) => ({ number: n, folder: `braids/${n}-a`, brief: { id: n, title: `B${n}`, status: "Done", labels: [], dependencies: [] }, strands: [] });
   const board = model.toBoard("agento", [braid("0001"), braid("0009")], gh(), t3("idle"), sig);
   const pushes = message.pushesOf(board);
   const ask = pushes.find((p: any) => p.item === "pm/working-product#pm");
   assert.deepEqual([ask.title, ask.body, ask.priority], ["agento working-product: the PM asks", "The PM asks you to: protect main", "high"]);
-  assert.equal(pushes.find((p: any) => p.item === "0001").priority, "low", "run by the programme");
+  assert.equal(pushes.find((p: any) => p.item === "0001"), undefined, "run by the programme: the PM handles what follows");
   assert.equal(pushes.find((p: any) => p.item === "0009").priority, "default");
 });
 
