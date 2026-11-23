@@ -66,12 +66,12 @@ Expected size: about 450 lines in 7 files, with tests.
 
 ## Completion
 
-- [ ] `braid answer`, `braid withdraw` and `braid requests` take a code; the record keeps who answered and the PM's reason, and `braid requests <code>` shows the whole history
-- [ ] `braid ask` takes `--to` (user, PM or a braid number) and `--done-when`; a `pr:` condition closes as met when its PR merges
-- [ ] `braid answer` never commits on a braid branch, and the k5d1 test passes
-- [ ] `braid ask`, `answer` and `withdraw` work on a merged story whose branch is gone
-- [ ] `braid decisions` and the recap draft include the braid's answered requests
-- [ ] The CLI's help text and usage lines describe the new flags
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid answer`, `braid withdraw` and `braid requests` take a code; the record keeps who answered and the PM's reason, and `braid requests <code>` shows the whole history
+- [x] `braid ask` takes `--to` (user, PM or a braid number) and `--done-when`; a `pr:` condition closes as met when its PR merges
+- [x] `braid answer` never commits on a braid branch, and the k5d1 test passes
+- [x] `braid ask`, `answer` and `withdraw` work on a merged story whose branch is gone
+- [x] `braid decisions` and the recap draft include the braid's answered requests
+- [x] The CLI's help text and usage lines describe the new flags
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
