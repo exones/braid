@@ -279,7 +279,9 @@ function target(root: string, raw: string, values: Parameters<typeof str>[0], co
   fetchBranch(root, REQUESTS);
   const open = loadRequests(root).filter((r) => r.id === id && (by === undefined || askerOf(r) === by));
   if (open.length > 1) {
-    throw new UsageError(`${id} has ${open.length} open requests: ${[...open].sort((a, b) => Number(askerOf(a) === "pm") - Number(askerOf(b) === "pm")).map((r) => `${r.code} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"})`).join(", ")}; give the code, or --by coordinator|pm; nothing changed`);
+    // A question and a wait of one asker are both open: only the code tells them apart.
+    const oneAsker = new Set(open.map(askerOf)).size === 1;
+    throw new UsageError(`${id} has ${open.length} open requests: ${[...open].sort((a, b) => Number(askerOf(a) === "pm") - Number(askerOf(b) === "pm")).map((r) => `${r.code} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"}${isWait(r) ? `, waiting on braid ${r.to ?? ""}` : ""})`).join(", ")}; give the code${oneAsker ? "" : ", or --by coordinator|pm"}; nothing changed`);
   }
   const [one] = open;
   if (one !== undefined) {
