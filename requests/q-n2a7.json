@@ -1,0 +1,19 @@
+{
+  "code": "q-n2a7",
+  "item": "0073",
+  "kind": "decision",
+  "text": "Merge early PR #279 (0073/A, fewer CI runs) into main at f293edf: the user's merge",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-23T21:30:36.119Z",
+      "by": "coordinator"
+    }
+  ]
+}
