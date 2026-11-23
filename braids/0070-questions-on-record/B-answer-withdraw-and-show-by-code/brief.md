@@ -1,7 +1,7 @@
 ---
 id: '0070/B'
 title: "Answer, withdraw and show by code"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: ['0070/A']
 order: 20
