@@ -6,7 +6,7 @@ import { parsePlan } from "./braids/plan.js";
 import { FormatError } from "./braids/frontmatter.js";
 import { findRoot } from "./braids/store.js";
 import { checkBraids } from "./braids/check.js";
-import { runBoard } from "./commands/board.js";
+import { boardUrl, runBoard } from "./commands/board.js";
 import { notifyCommand } from "./commands/notify.js";
 import { projectsCommand } from "./commands/projects.js";
 import { ProjectsFileError } from "./projects/list.js";
@@ -89,7 +89,7 @@ export function helpText(version: string): string {
     "  inbox drop <entry>... --why <reason>  Drop entries with a reason",
     "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; forces only a recorded reviewer's t3/ branch whose tip is the PR head or on origin)",
-    "  board                       Open the board in the browser (--no-open: only print the address; --no-pause: show the limits but don't pause or resume agents through a steering thread; --demo: sample data, never pauses, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port)",
+    "  board                       Open the board in the browser (--no-open: only print the address; --no-pause: show the limits but don't pause or resume agents through a steering thread; --demo: sample data, never pauses, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port; --url [--port <n>]: print the running board's address with its token, from ~/.braid/board-<port>.url, or say that none runs)",
     "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends a push, then one it clears, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
     "  projects add [<path>]       Add a project to this machine's list in ~/.braid/projects.json (its main checkout; --name <n>, --port <n>) and print its readiness",
     "  projects remove <name>      Remove a project from the list",
@@ -268,6 +268,13 @@ export function run(argv: readonly string[], cwd: string = process.cwd()): Outpu
 async function main(argv: readonly string[]): Promise<void> {
   if (argv[0] === "board") {
     try {
+      if (argv.includes("--url")) {
+        const out = await boardUrl(argv.slice(1));
+        process.stdout.write(out.stdout);
+        process.stderr.write(out.stderr);
+        process.exitCode = out.code;
+        return;
+      }
       // The demo reads no repository, so it does not look for one.
       await runBoard(argv.includes("--demo") || argv.includes("--demo-t3-down") || argv.includes("--demo-not-ready") ? process.cwd() : findRoot(process.cwd()), argv.slice(1));
     } catch (error) {

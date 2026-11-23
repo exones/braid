@@ -1,7 +1,7 @@
 ---
 id: '0067/A'
 title: "Board address file, braid board --url, PM naming"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:security"]
 dependencies: []
 order: 10
@@ -51,13 +51,21 @@ Expected size: about 150 lines in 6 to 8 files (code, tests, docs).
 - Tests touching the real home: every test of the file sets a temporary home; `~/.braid` is untouched after the suite.
 - Cleanup on Windows: Ctrl+C and a scheduled task's stop remove the file, or the stale-file case covers it; report.md says which.
 
+## Plan
+
+1. `src/board/address.ts`: `addressFile(port, home)` is `~/.braid/board-<port>.url`; `writeAddress` writes a temp file created with mode 0600 and renames it over the port's file; `removeAddress` deletes it only while it still holds this run's address; `readAddresses(home)` lists the files; `liveAddresses(home, probe)` keeps those whose board answers `GET /api/session` with this token (204). 0067/B reads through `liveAddresses`.
+2. `src/commands/board.ts`: the local listener answers `GET /api/session` (204 for this run's token, 403 otherwise; nothing else read). `runBoard` (not `--demo`) writes the file after it listens, removes it in `close()`, on `exit` and on SIGINT, SIGTERM, SIGHUP (and SIGBREAK on Windows), then re-raises the signal. `boardUrl(args)` is `braid board --url [--port <n>]`.
+3. `src/cli.ts`: `braid board --url` goes to `boardUrl`; the help line. The 403 texts name `braid board --url`.
+4. Tests (`test/board-address.test.ts`, temporary home): mode 0600 on POSIX, the working address, removed on close and on a signal, a newer run on the same port replaces it, two ports keep their own, `--demo` and `startBoardWith` write none, a stale file reads as no board.
+5. Docs: board.md ("Run the board at login", token notes), cli.md, autonomy.md (the gone PM thread), decisions.md (a dated decision next to D50), braid-pm's openai.yaml.
+
 ## Completion
 
-- [ ] braid-pm's `agents/openai.yaml` names the programme manager, and `docs/autonomy.md` gives the gone-PM-thread escalation as the other docs do
-- [ ] A real `braid board` run writes its tokened local address to an owner-only file under `~/.braid`, removes it on stop, and `--demo` writes none
-- [ ] `braid board --url` prints the running board's address, or says no board runs when the file is stale or missing
-- [ ] Tests cover the failure modes above with a temporary home, on Windows and Ubuntu CI
-- [ ] docs/board.md "Run the board at login", docs/cli.md, the help text and the 403 texts say how to get the address; docs/decisions.md has the dated decision
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] braid-pm's `agents/openai.yaml` names the programme manager, and `docs/autonomy.md` gives the gone-PM-thread escalation as the other docs do
+- [x] A real `braid board` run writes its tokened local address to an owner-only file under `~/.braid`, removes it on stop, and `--demo` writes none
+- [x] `braid board --url` prints the running board's address, or says no board runs when the file is stale or missing
+- [x] Tests cover the failure modes above with a temporary home, on Windows and Ubuntu CI
+- [x] docs/board.md "Run the board at login", docs/cli.md, the help text and the 403 texts say how to get the address; docs/decisions.md has the dated decision
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
