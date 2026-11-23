@@ -1,7 +1,7 @@
 ---
 id: '0070/A'
 title: "The request record on its own branch"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L"]
 dependencies: []
 order: 10
