@@ -1,7 +1,7 @@
 ---
 id: '0067'
 title: "Board as a Windows service, fully usable; PM naming"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "sweep", "ask:security", "ask:architecture"]
 dependencies: []
 related: ['0064', '0062', '0069']
