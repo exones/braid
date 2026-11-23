@@ -144,6 +144,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-24: user: "would be nice if I could click 'Resume' button on the board for a program or a braid": in outline 0074 (programme card: to the PM; braid card: via the PM if PM-run, else direct); P5's Hold and Go reuse the same button and path.
 - 2026-11-24: user: "Direct pause plus PM-led resume: PM is smarter on that how to restart": in outline 0074 (P21). The board pauses all agents directly and tells the PM; PM-run braids resume through the PM; braids without a PM resume directly.
 - 2026-11-24: user: "see if all people woke up": all 17 targets of the pause resumed or are correctly idle (waiting on CI or another braid). "add this adjustment not far from now": P21 · 0074 outlined, next free slot, before P4.
 - 2026-11-24: the user reset the weekly usage; the PM (before the user's "just answer, no action") cleared the limit pauses of 0071, 0073, 0060 with braid resume --limit and sent the 0071 and 0073 coordinators Resume. The board then sent its own resume. Noted: the board resumes only at its resume time, never early after a reset; and its pause message misprinted the steering id (22 agents couldn't answer).
