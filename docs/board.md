@@ -392,20 +392,22 @@ Pushes come only from a running board ([Notifications](#notifications)), and so 
 
 The board needs what it needs from a terminal: `braid`, `node`, `git`, `gh` (logged in) and `t3` on `PATH`, and `BRAID_NTFY_TOKEN` in your user environment if your ntfy server needs it. Add `--host tailscale` to also serve it to your phone.
 
-**Windows: a scheduled task at logon.** In PowerShell 7, as yourself (no administrator needed):
+**Windows: `braid board service`.** From your main checkout (or any checkout of a project in your [project list](#several-projects)), as yourself, no administrator needed:
 
 ```powershell
-$folder   = 'C:\code\my-project'   # your main checkout (any folder with a project list)
-$action   = New-ScheduledTaskAction -Execute 'pwsh.exe' -WorkingDirectory $folder `
-              -Argument '-NoProfile -WindowStyle Hidden -Command "braid board --no-open --port 8765"'
-$trigger  = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
-$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries `
-              -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
-Register-ScheduledTask -TaskName 'braid board' -Action $action -Trigger $trigger -Settings $settings
-Start-ScheduledTask -TaskName 'braid board'   # start it now, without logging off
+braid board service install --port 8765               # add --host tailscale to also serve it to your phone
+braid board service status                            # the task, the port, the address, the versions, the log
+braid board service restart                           # stop and start it, e.g. after an update
+braid board service remove                            # stop it and remove the task
 ```
 
-`-ExecutionTimeLimit 0` keeps Windows from stopping it after three days; the restart settings start it again if it fails. It runs only while you are logged in, in a hidden window. `Get-ScheduledTask 'braid board' | Get-ScheduledTaskInfo` shows its last result. `Stop-ScheduledTask` ends only the `pwsh` it started, not the board's `node` process under it, so stop the board by its port: `Stop-Process -Id (Get-NetTCPConnection -LocalPort 8765 -State Listen).OwningProcess`. `Unregister-ScheduledTask 'braid board' -Confirm:$false` removes the task. The page is at `http://127.0.0.1:8765/`; actions need the token of the run, so for Start, Merge and Open thread open the address `braid board --url` prints ([The address file](#the-address-file)), or use the Tailscale address. `Stop-Process` kills the board without letting it remove its address file; `braid board --url` then says no board runs, and the next start replaces the file.
+`install` registers a Task Scheduler task named `braid board` that runs as you, only while you are logged in (no stored password, D93), and starts it at once. It starts at each logon, and Task Scheduler starts it again every 5 minutes; a running board ignores that (`IgnoreNew`), so a board that crashed or was killed is back within 5 minutes. There is no time limit and no battery rule. The task runs `conhost.exe --headless cmd.exe /d /c braid board --service --no-open --port <n>` in the checkout's main folder: no window opens (also with Windows Terminal as the default terminal), and `braid` is found on `PATH` at each start, so after a reinstall the task starts the new code; it never points into a versioned install folder (Volta's image, an npm cache). `--service` makes the board stop when its headless console goes away, which is what stopping the task does, so `restart`, `remove` and `Stop-ScheduledTask` end the board's `node` as well (no process stays behind) and its address file goes with it. `install` over an installed task stops that one first and replaces it, also on another port.
+
+`status` prints the task's state and last result, the port, the folder, the address with its token when the board answers ([The address file](#the-address-file); a file left by a killed run is reported as no board answering), the braid version the running board started from next to this braid's own (a board still on older code after an install says so; `restart` starts the installed one), and the log: `~/.braid/board-<port>.log`, the board's output, replaced at each start, with the token hidden. It exits 1 when no board answers. A board you started by hand on the same port keeps the task's board from listening: `install` says so, the log says why, and the task tries again every 5 minutes. For Start, Merge and Open thread, open the address `braid board --url` prints, or the Tailscale address on the phone.
+
+**Updating.** `scripts/Install-Skills.ps1` ([getting started](getting-started.md)) ends with `braid board service restart --if-installed`, run by the braid it just installed: with a task installed it restarts the board on the same port, on the new code, with a fresh address file, and prints one line (`braid board service: restarted the board on port 8765 (braid <version>); ...`); with none it prints nothing. A restart keeps a running [limits pause](#the-board-pauses-and-resumes): its record is in `.braid/pauses.json` and the new board picks it up.
+
+**After a reboot.** The task needs your logon: the board, and T3 (every Start and Merge goes through the T3 desktop app, which runs only in your session), start when you sign in. To have them back after a reboot with no hands on the PC, turn on automatic sign-in for your account (Sysinternals Autologon, which keeps the password encrypted, or `netplwiz`), and lock the screen at sign-in if others can reach the PC. For the phone before anyone signs in, Tailscale on Windows needs unattended mode, or it disconnects until a login: `tailscale set --unattended=true`.
 
 **Linux: a systemd user service.** Save as `~/.config/systemd/user/braid-board.service`:
 

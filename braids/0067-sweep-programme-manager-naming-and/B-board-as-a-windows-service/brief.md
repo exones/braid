@@ -68,14 +68,26 @@ Sources in `sources.md` (this folder).
 - A restart drops a running limits pause: test that the pause record survives and the new board keeps it.
 - A stale board after an install: `status` shows the running version differs from the installed one. Test it.
 
+## Plan
+
+Measured first (2026-11-23, a throwaway task on this machine): Stop-ScheduledTask ends only the task's first process. Under Volta the chain is `node` shim → `cmd` → real `node`, so stopping a task that runs `node` directly still orphans the real one; and this machine's default terminal is Windows Terminal, so a console task opens a visible window. But a `node` that reads its standard input from a `conhost --headless` console gets EPIPE the moment that conhost is stopped, and the whole chain ends.
+
+1. The task (Task Scheduler XML through `schtasks /create /xml`, as arrays of arguments): InteractiveToken as the current user, a logon trigger for that user, a time trigger from the install time repeating every 5 minutes with no end (so a crashed board comes back within minutes, also in the session it was installed in), `IgnoreNew`, no time limit, no battery stops. Action: `conhost.exe --headless cmd.exe /d /c braid board --service --no-open --port <n> [--host <h>]`, working folder the main checkout. `braid` is resolved on PATH at each start, so a reinstall's new launcher is what runs; no path into a versioned folder, no paths in the arguments at all.
+2. `braid board --service` (new, used by the task): needs `--port`; the board's output also goes to `~/.braid/board-<port>.log` (replaced at each start, `#token=` redacted); it reads standard input and stops cleanly (address file removed) when it closes, which is how stopping the task ends the board's `node`.
+3. `/api/session` answers its 204 with `x-braid-version`, the version the board started from; `status` shows it next to its own (the installed) version. No file format change.
+4. `src/commands/service.ts`: `install [--port <n>] [--host <h>]` (ends a running task first and waits for the port, replaces the definition, runs it, waits for the board to answer), `remove`, `restart [--if-installed]` (end, wait for the port to be free, run, wait for a live address), `status` (state and last result from `schtasks /query /v /fo csv` by column position, port, host and folder from the task XML, the live address, the versions, the log). Other platforms: Windows-only, pointing to the systemd recipe; `restart --if-installed` is silent there.
+5. Updating: `Install-Skills.ps1` calls `braid board service restart --if-installed` after it installed the CLI and skills, and prints its one line; braid itself decides whether a task exists, so the script needs no Task Scheduler code and its Pester test uses the stub braid.
+6. Tests: the XML (triggers, IgnoreNew, no limit, InteractiveToken, the action without a versioned path or token, XML escaping of a folder with spaces and `&`), the schtasks arguments with a fake runner, status on a missing task / stale address file / stale version, non-Windows, the service log redaction, the stdin stop, a steering pause kept across a board restart (board-steer), Install-Skills calling restart.
+7. Docs: board.md "Run the board at login", getting-started (updating), cli.md, help text, decisions.md (dated decision), and a live try on this machine reported in report.md.
+
 ## Completion
 
-- [ ] `braid board service install | remove | restart | status` on Windows, of the kind the user chose
+- [x] `braid board service install | remove | restart | status` on Windows, of the kind the user chose
 - [ ] The installed board starts at logon, comes back after a crash, and status shows its state, port, live address and running version against the installed one
 - [ ] Updating braid (`Install-Skills.ps1`, or the documented `braid board service restart`) leaves the task running the new code on the same port, and a running limits pause survives the restart
-- [ ] On another platform the commands say they are Windows-only and point to the systemd recipe
-- [ ] Tests cover the failure modes above without registering a real task in CI, on Windows and Ubuntu
+- [x] On another platform the commands say they are Windows-only and point to the systemd recipe
+- [x] Tests cover the failure modes above without registering a real task in CI, on Windows and Ubuntu
 - [ ] report.md says how it was tried on Windows: install, reboot or log off and on, Start a strand from the page, update braid, restart
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected; docs/decisions.md has the dated decision
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected; docs/decisions.md has the dated decision
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
