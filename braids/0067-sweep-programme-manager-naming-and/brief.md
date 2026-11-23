@@ -71,7 +71,7 @@ PM-run (thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b): security, data and outward
 
 - [x] braid-pm's `agents/openai.yaml` names the programme manager, and `docs/autonomy.md` gives the gone-PM-thread escalation as the other docs do
 - [x] A running board writes its tokened local address to an owner-only file under `~/.braid` and removes it on stop; `braid board --url` prints it, or says no board runs
-- [ ] braid installs, removes, restarts and shows the board as a Windows service of the kind the user chose; it starts with the machine or the login and restarts after a failure
-- [ ] The service's board is fully usable: Start, Merge and Open thread from its local page and on the phone after a reboot
+- [x] braid installs, removes, restarts and shows the board as a Windows service of the kind the user chose; it starts with the machine or the login and restarts after a failure
+- [x] The service's board is fully usable: Start, Merge and Open thread from its local page and on the phone after a reboot
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated
 - [x] The gate command from BRAID.md passes on the braid branch
