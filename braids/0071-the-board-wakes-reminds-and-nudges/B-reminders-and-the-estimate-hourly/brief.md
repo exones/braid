@@ -1,7 +1,7 @@
 ---
 id: '0071/B'
 title: "Reminders and the estimate: hourly reminder, braid eta, expected by on the card"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L", "ui"]
 dependencies: ['0071/A']
 order: 20
