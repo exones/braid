@@ -1,7 +1,7 @@
 ---
 id: '0069/C'
 title: "Merges waiting for the user under a PM: one push, updated in place"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: ['0069/B']
 order: 30
