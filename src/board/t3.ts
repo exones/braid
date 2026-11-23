@@ -136,6 +136,8 @@ export interface Where {
   readonly relationshipToParent: string | null;
   /** The provider instance the thread runs on. */
   readonly provider: string | null;
+  /** T3's link to the thread (`<base>/<env>/<thread>`). */
+  readonly link: string | null;
 }
 
 const recent = new Map<string, { at: number; t3: Promise<T3> }>();
@@ -158,6 +160,7 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
       pending: typeof pending === "number" ? pending : 0,
       relationshipToParent: str(t["relationshipToParent"]),
       provider: str(t["providerInstanceId"]),
+      link: str(t["link"]),
     };
   } catch {
     return null;

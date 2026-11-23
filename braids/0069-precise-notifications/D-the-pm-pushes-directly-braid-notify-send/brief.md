@@ -1,7 +1,7 @@
 ---
 id: '0069/D'
 title: "The PM pushes directly: braid notify send"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: ['0069/B']
 order: 40
@@ -37,9 +37,18 @@ Expected size: about 100 lines in 4 files, plus a few changed lines in `.agents/
 
 ## Completion
 
-- [ ] `braid notify send` pushes one line opening the given thread, and does nothing (exit 0, a line saying why) with notifications off or not set up
-- [ ] Tests cover the publish body and that no topic or token is printed
-- [ ] The braid-pm skill pushes the digest and "nothing can run until you act" with it, and is no longer than before (line and word counts before and after in report.md)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid notify send` pushes one line opening the given thread, and does nothing (exit 0, a line saying why) with notifications off or not set up
+- [x] Tests cover the publish body and that no topic or token is printed
+- [x] The braid-pm skill pushes the digest and "nothing can run until you act" with it, and is no longer than before (line and word counts before and after in report.md)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `src/board/t3.ts`: `showThread` also returns the thread's `link` (T3's `thread show --json` has it).
+- `src/commands/notify.ts`: `send "<line>" --thread <id> [--programme <slug>]`. Needs a repository (root from the CLI: `findRoot`, `titleRepoName`), not the board. Off / not set up: a line why, exit 0, no send. Click: `t3codeUrl(showThread(...).link)`; unknown thread: body ends "Open the board", as the board's pushes. Title `<repo> pm/<slug>: the PM` or `<repo>: the PM`, body cut at 200 characters, 🧭, high, sequence `sequenceOf(repo, "pm/<slug>#send")` (or `pm#send`). A failed send prints why and exits 0 too (a PM never fails on it). Output names the server host only.
+- `src/cli.ts`: help line and the root for `send`.
+- Tests in `test/notify.test.ts`: publish body via a fake sender and a fake T3 runner, off, not set up, a failed send, no topic or token in the output; the help.
+- Docs: `docs/board.md` Notifications, `docs/cli.md`.
+- Skill: the digest paragraph names `braid notify send`, replacing words so the skill is no longer (before: 150 lines, 3063 words by `wc`).

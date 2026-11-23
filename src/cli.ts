@@ -91,6 +91,7 @@ export function helpText(version: string): string {
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; forces only a recorded reviewer's t3/ branch whose tip is the PR head or on origin)",
     "  board                       Open the board in the browser (--no-open: only print the address; --no-pause: show the limits but don't pause or resume agents through a steering thread; --demo: sample data, never pauses, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port)",
     "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends a push, then one it clears, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
+    "  notify send <line> --thread <id>  The PM's own push, sent at once without the board: the line (200 characters at most), opening the thread (--programme <slug>; a newer line of a programme replaces the older; off or not set up: says why, exit 0)",
     "  projects add [<path>]       Add a project to this machine's list in ~/.braid/projects.json (its main checkout; --name <n>, --port <n>) and print its readiness",
     "  projects remove <name>      Remove a project from the list",
     "  projects list               Each listed project: name, path, port and readiness (GitHub not checked)",
