@@ -65,6 +65,7 @@ The user's decisions, quoted and dated, then the PM's own.
 - 2026-11-22, user, for the whole programme: "don't overblow skills, try to see how to make easier, don't create spaghetti states and lean more to realiable calls like with requests".
 - 2026-11-22, user: "consider the programme started -- let's go! 🚀"; "move P6 after P3".
 - 2026-11-22, user, limit: "B: due to too rapid Claude limits consumption" (keep 2; P2 starts when 0068 or 0064 finishes).
+- 2026-11-23, user: "I agree with the exception for 69. Start when you see fit": 0069's code strands start as soon as 0064 is on main, without a further go.
 - 2026-11-23, PM for P2 · 0069: plan approved (strands A leftovers brb2 and zmry, B one push rule from the request record, C one updated push for merges waiting under a PM, D `braid notify send` for the PM, E docs; no mode setting, no new lane), with the programme stall still pushed, because a dead PM thread has no one else to ask, instead of no derived push at all; the braid-pm skill line kept, since the user asked for PM direct pushes.
 - 2026-11-23, user: "Ok go with your plan": go for P2 now, and the PM live-checks 0064's new head before the user's merge.
 - 2026-11-22, PM: 2026-11-22-n46f (pushes only for what needs the user under a PM) is P2, as the user said ("basically what I told about more precise notifications").
