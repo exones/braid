@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -55,12 +55,15 @@ const config = (await load("../dist/notify/config.js")) as {
   configFile(home: string): string;
 };
 const message = (await load("../dist/notify/message.js")) as { pushesOf(board: Board): Push[] };
-const sender = (await load("../dist/notify/sender.js")) as { ntfySender(fetcher: typeof fetch, timeoutMs?: number): Sender };
+const sender = (await load("../dist/notify/sender.js")) as { ntfySender(fetcher: typeof fetch, timeoutMs?: number): Sender; ntfyBody(c: Config, push: PushIn): Record<string, unknown> };
 const notifierMod = (await load("../dist/notify/notifier.js")) as {
   notifier(opts: { file: string; config?: () => Config | null; send?: Sender; token?: () => string | null; warn?: (line: string) => void; timeoutMs?: number }): Notifier;
 };
 const command = (await load("../dist/commands/notify.js")) as {
-  notifyCommand(args: readonly string[], deps?: { home?: string; env?: Record<string, string | undefined>; send?: Sender; clear?: (c: Config, sequence: string, token: string | null) => Promise<void> }): Promise<string>;
+  notifyCommand(
+    args: readonly string[],
+    deps?: { home?: string; env?: Record<string, string | undefined>; send?: Sender; clear?: (c: Config, sequence: string, token: string | null) => Promise<void>; root?: string; t3?: (root: string, args: readonly string[]) => Promise<{ status: number; stdout: string; stderr: string }> },
+  ): Promise<string>;
 };
 const boardMod = (await load("../dist/commands/board.js")) as {
   demoSources(): Record<string, unknown>;
@@ -79,6 +82,8 @@ interface Need {
   pr: number | null;
   who: string | null;
   more: number;
+  link?: string | null;
+  via?: string;
 }
 interface Strand {
   id: string;
@@ -228,11 +233,63 @@ test("braid notify test sends one push with the token from the environment, and 
   await assert.rejects(command.notifyCommand(["test"], { home, env: {}, send: f.send, clear }), /test push failed: can't reach/);
 });
 
+test("braid notify send pushes the PM's line opening its thread, and never prints the topic or the token", async () => {
+  const home = dir();
+  const root = join(dir(), "agento");
+  mkdirSync(root);
+  const pm = "9b3a8157-f696-45de-ac39-f35a4a90cf9b";
+  const asked: string[][] = [];
+  const t3 = async (_root: string, args: readonly string[]) => {
+    asked.push([...args]);
+    const known = args[2] === pm;
+    return { status: known ? 0 : 1, stdout: known ? JSON.stringify({ thread: { threadId: pm, link: `http://127.0.0.1:3773/env-1/${pm}` } }) : "", stderr: "" };
+  };
+  const send = (args: string[], f = fakeSender()) => command.notifyCommand(["send", ...args], { home, root, env: { BRAID_NTFY_TOKEN: "secret-tk" }, send: f.send, t3 }).then((out) => ({ out, f }));
+
+  const unset = await send(["Nothing can run until you act", "--thread", pm]);
+  assert.match(unset.out, /^Not sent: notifications are not set up/);
+  assert.equal(unset.f.sent.length, 0);
+  config.writeConfig({ ...CFG, enabled: false }, home);
+  const off = await send(["Nothing can run until you act", "--thread", pm]);
+  assert.match(off.out, /^Not sent: notifications are off/);
+  assert.equal(off.f.sent.length, 0);
+
+  config.writeConfig(CFG, home);
+  const ok = await send(["Digest: 2 done, 1 running; 3 merges wait for you", "--thread", pm, "--programme", "dev-machine"]);
+  assert.equal(ok.out, "Sent to ntfy.example.\n");
+  assert.deepEqual(asked[0], ["thread", "show", pm, "--json"]);
+  assert.equal(ok.f.sent[0]?.token, "secret-tk");
+  const push = ok.f.sent[0]?.push as PushIn;
+  assert.deepEqual(push, { title: "agento pm/dev-machine: the PM", body: "Digest: 2 done, 1 running; 3 merges wait for you", tags: ["compass"], priority: "high", click: `t3code://threads/env-1/${pm}`, sequence: "braid-agento-pm-dev-machine-send" });
+  assert.deepEqual(sender.ntfyBody(CFG, push), { topic: CFG.topic, title: push.title, message: push.body, tags: ["compass"], priority: 4, click: push.click, sequence_id: "braid-agento-pm-dev-machine-send" });
+
+  const plain = await send(["x".repeat(250), "--thread", "unknown-thread"]);
+  const p2 = plain.f.sent[0]?.push as PushIn;
+  assert.equal(p2.title, "agento: the PM");
+  assert.equal(p2.click, null);
+  assert.equal(p2.body, `${"x".repeat(199)}…\nOpen the board`, "cut at 200 characters; no link: open the board");
+  assert.equal(p2.sequence, "braid-agento-pm---send");
+  assert.match(plain.out, /no link/);
+
+  const failing = fakeSender();
+  failing.set("fail");
+  const failed = await send(["Nothing can run until you act", "--thread", pm], failing);
+  assert.equal(failed.out, "Not sent: can't reach ntfy.example.\n", "a failed send says why and doesn't throw");
+
+  for (const out of [unset.out, off.out, ok.out, plain.out, failed.out]) {
+    assert.ok(!out.includes(CFG.topic) && !out.includes("secret-tk"), out);
+  }
+  await assert.rejects(command.notifyCommand(["send", "--thread", pm], { home, root }), /usage: braid notify send/);
+  await assert.rejects(command.notifyCommand(["send", "a", "b", "--thread", pm], { home, root }), /usage: braid notify send/);
+  await assert.rejects(command.notifyCommand(["send", "a"], { home, root }), /usage: braid notify send/);
+  assert.equal(runCli(home, ["send", "Nothing can run", "--thread", pm]).code, 0, "off or not set up exits 0 from the CLI too");
+});
+
 // ---- the pushes ----
 
 test("a push carries the repo, id, lane, title, need line, tag, priority and app link only", () => {
   const b = boardOf([
-    card("0007", "Waiting", need("decision", "Pick the database", "2026-11-20T10:00:00.000Z", { key: "architecture" }), { thread: "http://127.0.0.1:3773/env1/th1" }),
+    card("0007", "Waiting", need("decision", "Pick the database", "2026-11-20T10:00:00.000Z", { key: "architecture", link: "http://127.0.0.1:3773/env1/th1" })),
     card("0008", "In Review", need("review", "Merge PR #12", "2026-11-20T10:05:00.000Z", { pr: 12 })),
     card("0009", "In Progress", null),
   ]);
@@ -242,19 +299,22 @@ test("a push carries the repo, id, lane, title, need line, tag, priority and app
     { ...pushes[0] },
     { key: "0007|Waiting|decision|2026-11-20T10:00:00.000Z", item: "0007", kind: "need", title: "agento 0007: Needs You", body: "Title of 0007\nPick the database", tags: ["scales"], priority: "high", click: "t3code://threads/env1/th1", sequence: "braid-agento-0007" },
   );
-  assert.deepEqual({ ...pushes[1] }, { key: "0008|In Review|review|2026-11-20T10:05:00.000Z", item: "0008", kind: "need", title: "agento 0008: To Review", body: "Title of 0008\nMerge PR #12", tags: ["eyes"], priority: "default", click: null, sequence: "braid-agento-0008" });
+  assert.deepEqual({ ...pushes[1] }, { key: "0008|In Review|review|2026-11-20T10:05:00.000Z", item: "0008", kind: "need", title: "agento 0008: To Review", body: "Title of 0008\nMerge PR #12\nOpen the board", tags: ["eyes"], priority: "default", click: null, sequence: "braid-agento-0008" });
+  // No thread to open (no request thread, no coordinator): the body says where to go.
+  assert.equal(pushes[1]?.body, "Title of 0008\nMerge PR #12\nOpen the board");
 });
 
-test("a braid card with strands pushes per strand need, not once per braid", () => {
-  const s1 = strand("0010/A", "Waiting", need("checks failed", "Checks failed: verify; fix or retry", "2026-11-20T09:00:00.000Z"));
-  const s2 = strand("0010/B", "In Review", need("review", "Merge PR #3", null, { pr: 3 }), "http://127.0.0.1:3773/e/w");
-  const b = boardOf([card("0010", "Waiting", { ...s1.need!, who: "0010/A", more: 1 }, { strands: [s1, s2, strand("0010/C", "In Progress", null)] })]);
+test("a braid card with strands pushes per strand request, and no alarm", () => {
+  const s1 = strand("0010/A", "Waiting", need("question", "Which name?", "2026-11-20T09:00:00.000Z", { link: "http://127.0.0.1:3773/e/asker" }));
+  const s2 = strand("0010/B", "In Review", need("review", "Merge PR #3", "2026-11-20T09:30:00.000Z", { pr: 3 }));
+  const s3 = strand("0010/D", "Waiting", need("checks failed", "Checks failed: verify; fix or retry", "2026-11-20T09:00:00.000Z", { verb: "for" }));
+  const b = boardOf([card("0010", "Waiting", { ...s1.need!, who: "0010/A", more: 2 }, { strands: [s1, s2, s3, strand("0010/C", "In Progress", null)], coordinator: { link: "http://127.0.0.1:3773/e/coord" } })]);
   const pushes = message.pushesOf(b);
   assert.deepEqual(
     pushes.map((p) => [p.key, p.title, p.tags[0], p.click]),
     [
-      ["0010/A|Waiting|checks failed|2026-11-20T09:00:00.000Z", "agento 0010/A: Needs You", "x", null],
-      ["0010/B|In Review|review|#3", "agento 0010/B: To Review", "eyes", "t3code://threads/e/w"],
+      ["0010/A|Waiting|question|2026-11-20T09:00:00.000Z", "agento 0010/A: Needs You", "question", "t3code://threads/e/asker"],
+      ["0010/B|In Review|review|2026-11-20T09:30:00.000Z", "agento 0010/B: To Review", "eyes", "t3code://threads/e/coord"],
     ],
   );
 });
@@ -263,8 +323,12 @@ test("a Done braid's push names its title and PR", () => {
   const pushes = message.pushesOf(boardOf([card("0011", "Done", null, { pr: { number: 44 }, strands: [strand("0011/A", "Done", null)] })]));
   assert.deepEqual(
     pushes.map((p) => ({ ...p })),
-    [{ key: "0011|done", item: "0011", kind: "done", title: "agento 0011: Done", body: "Title of 0011\nPR #44 merged", tags: ["white_check_mark"], priority: "default", click: null, sequence: null }],
+    [{ key: "0011|done", item: "0011", kind: "done", title: "agento 0011: Done", body: "Title of 0011\nPR #44 merged\nOpen the board", tags: ["white_check_mark"], priority: "default", click: null, sequence: null }],
   );
+  // 0069/F: with the coordinator thread known, the Done push opens it.
+  const withThread = message.pushesOf(boardOf([card("0011", "Done", null, { pr: { number: 44 }, strands: [], coordinator: { link: "http://127.0.0.1:3773/e/coord" } })]));
+  assert.equal(withThread[0]!.click, "t3code://threads/e/coord");
+  assert.equal(withThread[0]!.body, "Title of 0011\nPR #44 merged");
 });
 
 // ---- the notifier ----
@@ -459,4 +523,64 @@ test("the board hands each snapshot to the notifier and keeps serving when it th
   assert.equal(seen[0]?.repo, "demo");
   assert.equal((await fetch(`${started.url}api/board?fresh=1`)).status, 200);
   assert.ok(seen.length >= 2);
+});
+
+// ---- the merges that wait for the user under a PM (0069/C) ----
+
+test("merges forwarded by one PM are one push, updated in place under one sequence ID, and cleared when none is left", async () => {
+  const file = join(dir(), ".braid", "notified.json");
+  const f = fakeSender();
+  const cleared: string[] = [];
+  const at = (n: number): PushIn => (f.sent[n] as { push: PushIn }).push;
+  const notify = notifierMod.notifier({ file, config: () => CFG, send: f.send, token: () => null, warn: () => {}, clear: async (_c: unknown, sequence: string) => void cleared.push(sequence) } as never);
+  const forward = (id: string, pr: number, head = "a".repeat(40)) => ({ id, title: `Title ${id}`, head, need: need("review", `The PM asks you: merge PR #${pr}`, "2026-11-22T12:00:00Z", { pr, via: "forwarded" }) });
+  const prog = (...forwards: unknown[]) => ({ slug: "w", title: "W", section: "needs", thread: "pm-thread", link: "http://127.0.0.1:3773/env1/pm-thread", need: null, forwards });
+  const withProg = (...forwards: unknown[]) => ({ ...boardOf([]), programmes: [prog(...forwards)] }) as unknown as Board;
+  const run = async (b: Board) => {
+    notify(b);
+    await notify.idle();
+  };
+  await run(withProg(forward("0001", 7)));
+  assert.equal(f.sent.length, 1);
+  assert.equal(at(0).title, "agento 0001: merge PR #7");
+  assert.equal(at(0).click, "t3code://threads/env1/pm-thread");
+  await run(withProg(forward("0001", 7)));
+  assert.equal(f.sent.length, 1, "nothing changed: nothing sent");
+  // Another joins: one push with both, the same sequence ID (it replaces the first).
+  await run(withProg(forward("0001", 7), forward("0002", 8)));
+  assert.equal(f.sent.length, 2);
+  assert.equal(at(1).title, "agento: 2 merges wait for you");
+  assert.equal(at(1).body, "0001 PR #7\n0002 PR #8");
+  assert.equal(at(1).sequence, at(0).sequence);
+  assert.deepEqual([at(1).priority, at(1).tags], ["high", ["eyes"]]);
+  // A head moves: sent again, still in place.
+  await run(withProg(forward("0001", 7, "b".repeat(40)), forward("0002", 8)));
+  assert.equal(f.sent.length, 3);
+  // One leaves: back to one merge, same sequence ID, nothing cleared.
+  await run(withProg(forward("0002", 8)));
+  assert.equal(f.sent.length, 4);
+  assert.equal(at(3).title, "agento 0002: merge PR #8");
+  assert.equal(at(3).sequence, at(0).sequence);
+  assert.deepEqual(cleared, []);
+  // None left: the push is cleared by that sequence ID.
+  await run(withProg());
+  assert.deepEqual(cleared, [at(0).sequence]);
+});
+
+test("upgrading with 0069/B's per-braid push on the phone: it is cleared and the group push is sent once", async () => {
+  const file = join(dir(), ".braid", "notified.json");
+  mkdirSync(dirname(file), { recursive: true });
+  // 0069/B's key for a forwarded merge: item `0001`, lane, kind and when it was forwarded.
+  writeFileSync(file, JSON.stringify({ keys: { "0001|In Review|review|2026-11-22T12:00:00Z": "0001" } }));
+  const f = fakeSender();
+  const cleared: string[] = [];
+  const notify = notifierMod.notifier({ file, config: () => CFG, send: f.send, token: () => null, warn: () => {}, clear: async (_c: unknown, sequence: string) => void cleared.push(sequence) } as never);
+  const forward = { id: "0001", title: "T", head: "a".repeat(40), need: need("review", "The PM asks you: merge PR #7", "2026-11-22T12:00:00Z", { pr: 7, via: "forwarded" }) };
+  const b = { ...boardOf([]), programmes: [{ slug: "w", title: "W", section: "needs", thread: "pm-thread", link: "http://127.0.0.1:3773/env1/pm-thread", need: null, forwards: [forward] }] } as unknown as Board;
+  notify(b);
+  await notify.idle();
+  notify(b);
+  await notify.idle();
+  assert.equal(f.sent.length, 1, "the group push is sent once");
+  assert.deepEqual(cleared, ["braid-agento-0001"], "the old per-braid push is cleared");
 });

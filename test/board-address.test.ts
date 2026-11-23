@@ -1,4 +1,4 @@
-// The board's address file (0067/A, D92): `~/.braid/board-<port>.url`, written owner-only by a real
+// The board's address file (0067/A, D94): `~/.braid/board-<port>.url`, written owner-only by a real
 // `braid board` run, removed when it stops, and read by `braid board --url`. Every test runs in a scratch home.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";

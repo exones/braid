@@ -1263,7 +1263,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const started = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
-  // A real run also leaves its address in ~/.braid for a board with no console (D92); the demo writes nothing.
+  // A real run also leaves its address in ~/.braid for a board with no console (D94); the demo writes nothing.
   const stopped = demo ? started : keepAddress(started, url);
   if (service) {
     // The exit handler keepAddress set removes the address file.
@@ -1304,7 +1304,7 @@ function boardVersion(): string {
 const STOP_SIGNALS: readonly NodeJS.Signals[] = process.platform === "win32" ? ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"] : ["SIGINT", "SIGTERM", "SIGHUP"];
 
 /**
- * Writes the run's address file (D92) and removes it when the board stops: `close()`, a normal exit, or a stop signal,
+ * Writes the run's address file (D94) and removes it when the board stops: `close()`, a normal exit, or a stop signal,
  * which is raised again once the file is gone so the process ends as it did before. A process killed outright
  * (TerminateProcess, SIGKILL) leaves the file; `braid board --url` then finds no board answering with its token.
  * A file that can't be written is reported on standard error, and the board runs on without it.
@@ -1343,7 +1343,7 @@ export function keepAddress(started: Started, url: string, home?: string, raise:
   };
 }
 
-/** `braid board --url [--port <n>]`: the address of each board running for this user, from its address file (D92). */
+/** `braid board --url [--port <n>]`: the address of each board running for this user, from its address file (D94). */
 export async function boardUrl(args: readonly string[], home?: string, probe?: Probe): Promise<{ code: number; stdout: string; stderr: string }> {
   const rest = args.filter((a) => a !== "--url");
   let port: number | undefined;

@@ -1,8 +1,8 @@
-// `braid board service install | remove | restart | status` (0067/B, D93): the board as a Task Scheduler task of the
+// `braid board service install | remove | restart | status` (0067/B, D95): the board as a Task Scheduler task of the
 // logged-in user on Windows. The task runs `conhost.exe --headless cmd.exe /d /c braid board --service ...`: no window,
 // `braid` found on PATH at each start (so a reinstall's new code is what starts), and stopping the task ends the board,
 // whose `--service` mode stops when its headless console goes away. Nothing is kept beyond the task itself, the address
-// file (D92) and a log that each start replaces.
+// file (D94) and a log that each start replaces.
 import { spawnSync } from "node:child_process";
 import { closeSync, mkdirSync, openSync, rmSync, writeFileSync, writeSync } from "node:fs";
 import { createServer } from "node:net";

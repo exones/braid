@@ -306,6 +306,7 @@ test("at the reset plus the buffer the board re-checks: still over keeps the rec
   assert.equal(records(root)[0].resumeAt, iso(55, clock.now));
   assert.match(b.pushes.at(-1)?.title ?? "", /^claude still over: resumes /);
   assert.match(b.pushes.at(-1)?.key ?? "", /:extended:/);
+  assert.match(b.pushes.at(-1)?.body ?? "", / [0-9]{4} stays paused[.]$/, "one braid: stays paused");
   // At the new time it is under.
   clock.now = new Date(clock.now.getTime() + 56 * MIN);
   cache(caches, "claude", 3, clock.now);
@@ -513,4 +514,35 @@ test("a board restart (braid board service restart, an update) keeps a running l
   assert.equal(t3.starts().length, 1, "no second steering thread");
   assert.deepEqual(t3.sends(), [], "nothing resumed early");
   assert.equal(pause.pauseView(records(root)[0], later).state, "paused");
+});
+
+test("0069/A: a limit push whose send fails while a refresh retries stays waiting and goes out at the next refresh, on a two-project board", async () => {
+  const dirs = [mkdtempSync(join(scratch, "a-")), mkdtempSync(join(scratch, "b-"))];
+  const files: string[] = dirs.map((d) => join(d as string, ".braid", "notified.json"));
+  const sent: string[] = [];
+  let release: (() => void) | undefined;
+  let fail = true;
+  const send = async (_c: unknown, p: { title: string }) => {
+    if (fail) {
+      await new Promise<void>((done) => (release = done));
+      throw new Error("ntfy.example answered HTTP 502");
+    }
+    sent.push(p.title);
+  };
+  const config = () => ({ enabled: true, server: "https://ntfy.example", topic: "t" });
+  const pushers = files.map((file) => limitPusher({ file, config, send, token: () => null, warn: () => {} }));
+  // The board retries every project's pusher at each refresh, whichever project refreshed.
+  const refresh = () => pushers.forEach((p) => p.retry());
+  pushers[0]({ key: "pause:claude:five_hour:x:paused", title: "claude paused", body: "", tags: [], priority: "low", click: null });
+  refresh(); // the other project's refresh arrives while the first send is still in flight
+  await new Promise((done) => setImmediate(done)); // the send has started and waits
+  release?.();
+  await pushers[0].idle();
+  assert.equal(pushers[0].pending(), 1, "the failed send is still waiting");
+  fail = false;
+  refresh(); // the second project's refresh sends it
+  await Promise.all(pushers.map((p) => p.idle()));
+  assert.deepEqual(sent, ["claude paused"]);
+  assert.equal(pushers[0].pending(), 0);
+  assert.ok("pause:claude:five_hour:x:paused" in JSON.parse(readFileSync(files[0] as string, "utf8")).keys);
 });

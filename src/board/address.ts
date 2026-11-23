@@ -1,4 +1,4 @@
-// The running board's local address with its session token (D92): one file per port,
+// The running board's local address with its session token (D94): one file per port,
 // `~/.braid/board-<port>.url`, so a board with no console (started at login or as a service) can still be
 // acted on from its page. Written owner-only when a real board run listens, removed when it stops; a file a
 // killed board left behind is told apart by asking the port (`liveAddresses`).

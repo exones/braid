@@ -1,4 +1,4 @@
-// `braid board service` (0067/B, D93): the Task Scheduler definition, the schtasks calls (a fake runner: no real task
+// `braid board service` (0067/B, D95): the Task Scheduler definition, the schtasks calls (a fake runner: no real task
 // is ever registered here), status, the Windows-only message, the service log and the stop with the console.
 // Every test runs in a scratch home.
 import assert from "node:assert/strict";

@@ -1,6 +1,7 @@
 // Requests addressed to the programme manager (PM): whom a request is for right now, derived at each read
 // from the request, the clock, the PM's thread in T3 and the braid's pause. Pure; the board writes nothing.
 import { age, type Request } from "../braids/requests.js";
+import type { PlanRead } from "./plans.js";
 import type { T3 } from "./t3.js";
 
 /** A question, decision or plan escalates when the PM hasn't answered for this long. */
@@ -20,6 +21,22 @@ export type Routed =
   | { readonly to: "pm" }
   /** It reached the user's side: `since` (ISO) keys the one push, `words` leads the need line. */
   | { readonly to: "user"; readonly via: Via; readonly since: string; readonly words: string };
+
+/** What a forwarded request's line starts with on the braid's own card. */
+export const FORWARDED_WORDS = "Forwarded by the PM:";
+
+/** Whether a programme that runs now (a plan neither done nor stopped) lists the braid of this item. */
+export function runByProgramme(plans: readonly PlanRead[] | undefined, id: string): boolean {
+  const number = id.slice(0, 4);
+  return (plans ?? []).some((p) => p.plan !== null && p.plan.state !== "done" && p.plan.state !== "stopped" && p.plan.rows.some((r) => r.braid === number));
+}
+
+/**
+ * A forwarded request that is the PM asking the user, not the braid: it came from a PM-run braid (a forwarded merge handover too:
+ * the PM's merges that wait for the user are one push). The programme's panel shows it; the braid's card keeps its lane.
+ */
+export const throughPm = (req: Request, routed: Routed, plans: readonly PlanRead[] | undefined): boolean =>
+  "via" in routed && routed.via === "forwarded" && runByProgramme(plans, req.id);
 
 /** Whether the PM's thread can't answer: archived, failed, or unknown to T3. null when T3 wasn't read (nothing can be told). */
 export function pmGone(t3: T3, thread: string | undefined): boolean | null {
@@ -41,7 +58,7 @@ export function routeOf(req: Request, now: Date, t3: T3, paused: boolean): Route
     return { to: "pm" };
   }
   if (req.forwarded !== undefined) {
-    return { to: "user", via: "forwarded", since: req.forwarded, words: "Forwarded by the PM:" };
+    return { to: "user", via: "forwarded", since: req.forwarded, words: FORWARDED_WORDS };
   }
   if (req.to !== "pm") {
     return { to: "user" };
@@ -70,10 +87,17 @@ export interface PmLine {
   /** When it was sent to the PM (ISO). */
   readonly since: string;
   readonly kind: Request["kind"];
+  /** True for a forwarded request the user is asked, through the PM: the PM isn't handling it. */
+  readonly forwarded?: boolean;
 }
 
 export function pmLine(req: Request, now: Date): PmLine {
   const checking = req.kind === "review";
   const text = checking && req.pr !== undefined ? `PR #${req.pr}, its live check runs` : req.text;
   return { text: `The PM is ${checking ? "checking" : "handling"}: ${text}`, age: age(req.at, now), since: req.at, kind: req.kind };
+}
+
+/** The card's quiet line for a request forwarded to the user, through the PM. */
+export function forwardedLine(req: Request, now: Date): PmLine {
+  return { text: `Waiting on the user, through the PM: ${req.text}`, age: age(req.forwarded ?? req.at, now), since: req.forwarded ?? req.at, kind: req.kind, forwarded: true };
 }

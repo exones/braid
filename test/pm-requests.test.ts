@@ -158,7 +158,7 @@ test("the compass mark and the Merge button: a request the PM handles shows 🧭
 });
 
 const board = (card: object): any => ({ repo: "agento", github: { state: "ok" }, t3: { state: "ok" }, braids: [card] });
-const cardOf = (d: any): any => ({ id: "0001", title: "T", lane: d.lane, need: d.need, pm: d.pm, thread: "http://127.0.0.1:3773/env1/thread1", pr: null, strands: [], coordinator: null });
+const cardOf = (d: any): any => ({ id: "0001", title: "T", lane: d.lane, need: d.need, pm: d.pm, thread: null, pr: null, strands: [], coordinator: { link: "http://127.0.0.1:3773/env1/thread1" } });
 
 test("a request the PM handles is never pushed; an escalation or forward is pushed once at high priority, a handover too", () => {
   const handled = derive("In Progress", gh(), t3(), sig([request("question", 3)]));
@@ -175,7 +175,9 @@ test("a request the PM handles is never pushed; an escalation or forward is push
   assert.equal(b.priority, "high", "an escalated handover is high; an ordinary review stays default");
   const fwd = derive("In Progress", gh(), t3(), sig([request("question", 1, { to: "user", forwarded: ago(0) })]));
   const [c] = message.pushesOf(board(cardOf(fwd)));
-  assert.match(c.title, /\(forwarded by the PM\)$/);
+  assert.match(c.title, /agento 0001: the PM asks$/);
+  assert.equal(c.tags[0], "compass");
+  assert.equal(c.body, "T\nThe PM asks you: a question text");
   assert.notEqual(c.key, a.key);
   const ordinary = derive("In Progress", gh(PR), t3(), sig([{ id: KEY, kind: "review", text: "r", at: ago(5), thread: null, pr: 7 }]));
   assert.equal(message.pushesOf(board(cardOf(ordinary)))[0].priority, "default");
@@ -424,4 +426,33 @@ test("a hold with no words (a plan's state: held) reads without empty quotes", (
   const view = pauseMod.pauseView({ ...hold(), words: null }, NOW);
   assert.equal(view.text, "Held: the plan says held");
   assert.equal(pauseMod.pauseView({ ...hold(), words: "  " }, NOW).text, "Held: the plan says held");
+});
+
+test("0069/A: a story stamped Done with its PR open and a review forwarded by the PM is To Review, forwarded, pushed once (0068's case)", () => {
+  const forwarded = request("review", 5, { pr: 7, to: "user", forwarded: ago(1), note: "live check passed · merge PR #7" });
+  const d = derive("Done", gh(PR), t3(), sig([forwarded]));
+  assert.equal(d.lane, "In Review");
+  assert.equal(d.need.via, "forwarded");
+  assert.match(d.need.text, /live check passed/);
+  const pushes = message.pushesOf(board({ ...cardOf(d), pr: { number: 7 } }));
+  assert.equal(pushes.length, 1);
+  assert.match(pushes[0].title, /the PM asks$/);
+  assert.equal(pushes[0].priority, "high");
+  // While the PM still checks it, the Done stamp shows the merge as To Review but the card says the PM is on it.
+  const handled = derive("Done", gh(PR), t3(), sig([request("review", 5, { pr: 7 })]));
+  assert.equal(handled.lane, "In Review");
+  // The cause found: when the PR lookup misses the story's PR, a stored Done used to drop the open request (lane Done, no push).
+  const missed = derive("Done", gh(), t3(), sig([forwarded]));
+  assert.equal(missed.lane, "In Review");
+  assert.equal(missed.need.via, "forwarded");
+  assert.equal(message.pushesOf(board({ ...cardOf(missed), pr: null })).length, 1, "the missed PR is pushed once too");
+  // Still with the PM: a stored Done with a missed PR and a review reads To Do with the PM line, never Done or To Review.
+  const still = derive("Done", gh(), t3(), sig([request("review", 5, { pr: 7 })]));
+  assert.equal(still.lane, "To Do");
+  assert.equal(still.need, null);
+  assert.equal(still.pm.text, "The PM is checking: PR #7, its live check runs");
+  assert.deepEqual(message.pushesOf(board({ ...cardOf(still), pr: null })), []);
+  // Without a request, a stored Done with no PR stays Done; a merged PR is Done whatever is open.
+  assert.equal(derive("Done", gh(), t3(), sig([])).lane, "Done");
+  assert.equal(derive("Done", gh({ ...PR, state: "merged" }), t3(), sig([forwarded])).lane, "Done");
 });
