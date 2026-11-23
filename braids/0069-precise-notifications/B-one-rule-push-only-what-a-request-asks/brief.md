@@ -32,6 +32,7 @@ Expected size: about 280 lines in 7 files, half of them tests.
 - Under a PM, a forwarded request is the PM asking the user, not the braid (the user: "Pm (you) needed me yes, but not 67 (it talked to you, the PM)"). It shows in the programmes panel's needs-you as `The PM asks you: <text>` (the PM's note after it, as the card shows it today), opening the PM's thread, and pushes as the PM's request does (🧭, the PM's thread); a forwarded merge handover joins 0069/C's merge push instead. The braid's card stays in the lane of its work, with a quiet line `Waiting on the user, through the PM: <text>`. A forward of a braid no programme lists stays on the braid's card, as today. An escalation by timeout or a gone PM thread is the exception: the PM didn't act, so the braid's card goes to Needs You (a handover: To Review), as now. The same rule decides it: the request record (`to`, `by`, `forwarded`, `via`), no new state.
 - Every push has a click link. When T3 doesn't list the thread, build the link from the thread id as `t3codeUrl` does, if it can; otherwise the body ends with "Open the board" and the push still goes.
 - Tests: each push and no-push case above, and the thread each push opens.
+- From the review of 0069/A (https://github.com/exones/braid/pull/255#issuecomment-7089458573), in `test/pm-requests.test.ts` when you move its forwarded-story test: assert `pushesOf` on the missed-PR derive too, and lock that a stored Done with a missed PR and a review still with the PM reads To Do with the PM line.
 
 ## Already decided
 
