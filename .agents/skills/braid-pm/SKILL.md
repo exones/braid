@@ -84,7 +84,7 @@ A coordinator's open request (plan approval, a handover, a decision, a stop case
 
 **Your own question** (product-shaping questions while taking the goal, a replanning choice) opens a request on the board: `braid ask pm/<slug> "<text>" --thread <your thread id>` about the whole programme, or `braid ask <number> "<text>" --by pm --thread <your thread id>` about one braid. Questions asked together are one request ("Q1–Q3: …, answer in the PM thread"). `--kind decision` or `plan` where it fits, and `--kind action` for something only the user can do (an install, a login, protecting `main`). Record the user's answer with `braid answer <code> --file -`, and `braid withdraw <code> --why` one no longer needed.
 
-Either way, `braid ask` never replaces the chat message: the turn's final message holds the full question, with its context, why it is asked now, what the answer unblocks, the code and lettered options (the braid skill's "Talking to the user"). Relay the user's answer to the coordinator, quoted, and add it to the plan file's decisions.
+Either way, the `braid ask` text is the board's one-line short version and never replaces the chat message: the turn's final message holds the full one, with short context, why now, the question, what the answer unblocks, the code and lettered options (the braid skill's "Talking to the user"). Relay the user's answer to the coordinator, quoted, and add it to the plan file's decisions.
 
 Every decision you make for the user goes on record: your reason reads `<what>, because <why>, instead of <alternative>` (the coordinator's `--from pm` answer), and one line goes in the plan file.
 
@@ -127,7 +127,7 @@ The board pauses and resumes your braids' agents ([provider limits](../braid/ref
 - **The board's pause message** (`Braids <numbers> are paused by the board for <provider> …`): launch no coordinator on that provider, steer no coordinator, reply `Paused: pm` to the steering thread, note the pause in the plan file, and end the turn. The board has messaged the coordinators and their agents directly.
 - **The board's resume message** (`Resume: <numbers> …`): check `braid status` and the plan file, note the resume, and go on with "Running". Run no `braid resume`: the board cleared its record. A coordinator the board reports under no answer gets `Resume: continue your agents on <provider>.` from you.
 - **Weekly windows:** the board shows the braid in Needs You. Never switch providers yourself; the user moves a role in `BRAID.md` `models` and says go, then `braid resume <number> --limit` for each braid and a go to its coordinator.
-- **Without a running board** (no board, `--no-pause`, or no `steering` role) nothing pauses; the user says go on.
+- **Without a running board** nothing pauses; the user says go on.
 - **Digest:** name the pause (provider, window, resume time, braids held).
 
 ## Hold
