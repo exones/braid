@@ -1,0 +1,14 @@
+Braid 0067 makes the board a Windows logon task that braid installs and runs, lets a board without a console act from its page, and fixes the programme manager's name and escalation text. Two strands, both merged into the braid branch under the `free` preset after an independent review with nothing blocking: 0067/A (PR #254) and 0067/B (PR #257).
+
+- 0067/A: a running board writes its tokened local address to an owner-only `~/.braid/board-<port>.url`, removed on stop; `braid board --url` prints it after a live check through the new token-checked `GET /api/session`; the Linux systemd recipe sends standard output to null so the token stays out of the journal; braid-pm's `openai.yaml` reads "Braid programme manager" and `docs/autonomy.md` gives the gone-PM-thread escalation; D92.
+- 0067/B: `braid board service install | remove | restart | status` registers a Task Scheduler task as the user at logon (InteractiveToken, no admin, no stored password), started again every 5 minutes so a crashed board comes back; the action is `conhost --headless cmd /c braid board --service`, so `braid` is found on PATH at each start (survives a reinstall) and stopping the task ends the board's node; `--service` logs to `~/.braid/board-<port>.log` without the token; `status` shows the state, port, live address and the running version against the installed one (`x-braid-version`); `Install-Skills.ps1` ends with `braid board service restart --if-installed`; a limits pause survives a restart; D93.
+
+Validation: the gate in each strand (552, then 566 tests; Pester 25), CI on Ubuntu and Windows; 0067/B tried live on this PC on port 7811 with a scratch home (install, status, a killed board back after 5 minutes, restart and remove with no orphan node).
+
+Open boxes:
+- "braid installs, removes, restarts and shows the board as a Windows service …; it starts with the machine or the login and restarts after a failure": all proved but the start at logon, which needs the user's own log-off and log-on.
+- "The service's board is fully usable: Start, Merge and Open thread … after a reboot": needs the user's try on this PC. Both are the user's try before the merge into main (the PM's decision, 2026-11-23); a real `Install-Skills.ps1` update that restarts the task is checked in the PM's after-merge routine.
+
+Decisions: the user chose the logon task over a WinSW service or a logged-off task ("A ok just think how updating would go"); the user accepted GET /api/session and the journal change ("A"); the PM approved the split into two strands, kept the five 0064 and 0068 leftovers out of this braid, and moved three of 0067/B's boxes to this final PR. Decided by the coordinator: the conhost action instead of node directly (measured: a task stop ends only its first process, and node under Volta sits two levels down); both strands ran over twice their expected size within the goal.
+For later items: none
+Needs the user: none beyond the try above
