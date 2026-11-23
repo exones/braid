@@ -1,5 +1,5 @@
 // What the lanes need besides GitHub and T3: the open requests (read through src/braids/requests.ts from the local refs, never
-// written here), the paused braids (src/braids/pauses.ts, read only) and the broke alarms' clock: when each condition was first seen, kept in `.braid/broke.json`
+// written here; the wake step writes them), the paused braids (src/braids/pauses.ts, read only) and the broke alarms' clock: when each condition was first seen, kept in `.braid/broke.json`
 // of the main checkout, so `braid status`, the board and a restart agree.
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -8,7 +8,7 @@ import { doneDate, headOf, prefetchDoneDates } from "./done.js";
 import { gitAsync } from "../braids/gitio.js";
 import type { Braid } from "../braids/store.js";
 import { BROKE_MS, type BrokeReason, type Signals } from "./model.js";
-import { askerOf, conditionPr, ensureStateDir, loadRecord, mainCheckout, programmeOf, voided, voidEnding, type PrNow, type Request } from "../braids/requests.js";
+import { askerOf, conditionEnding, ensureStateDir, loadRecord, mainCheckout, programmeOf, type PrNow, type Request } from "../braids/requests.js";
 import { toBraid } from "./record.js";
 import { loadPauses, type Pause } from "../braids/pauses.js";
 
@@ -32,14 +32,16 @@ export function prOf(github: Github, number: number): PrNow {
   return null;
 }
 
-/** A request whose PR condition is void now (merged, closed, or a review's head moved), as it will be recorded: met or withdrawn by the board. Others unchanged. */
+/**
+ * A request whose "done when" holds now (its PR merged or closed, a review's head moved, its time reached), as
+ * the running board will record it: met or withdrawn by the board. Others unchanged. A `braid:` condition
+ * needs main, so it shows once the board has recorded it.
+ */
 export function ended(r: Request, now: Date, pr: (number: number) => PrNow): Request {
-  const n = r.state === "open" ? conditionPr(r) : undefined;
-  const now_ = n === undefined ? null : pr(n);
-  if (now_ === null || !voided(r, now_)) {
+  const e = r.state === "open" ? conditionEnding(r, { pr, now }) : null;
+  if (e === null) {
     return r;
   }
-  const e = voidEnding(r, now_);
   return { ...r, state: e.state, events: [...r.events, { event: e.state, at: now.toISOString(), by: e.who, ...(e.text === undefined ? {} : { text: e.text }) }] };
 }
 
@@ -92,7 +94,7 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
   let pauses: readonly Pause[] = [];
   let pausesNote: string | null = null;
   try {
-    // A request whose PR just merged or closed is closed for the board now, though only `braid requests` records it.
+    // A request whose PR just merged or closed, or whose time came, is closed for the board now; the board's wake step (src/board/wake.ts) records it.
     const record = loadRecord(root).requests.map((r) => ended(r, now, (n) => prOf(github, n)));
     closed = record.filter((r) => r.state !== "open");
     // A request to another braid's coordinator isn't the user's: no lane and no push (P6); the asking braid's card shows it.

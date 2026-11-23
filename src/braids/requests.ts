@@ -228,6 +228,12 @@ export const programmeOf = (id: string): string | null => /^pm\/(.+)$/.exec(id)?
 
 const same = (r: Request, id: string, by: Asker | undefined): boolean => r.id === id && (by === undefined || askerOf(r) === by);
 
+/** A wait: a request to another braid's coordinator (`to` a braid number). */
+export const isWait = (r: Pick<Request, "to">): boolean => r.to !== undefined && BRAID_TO.test(r.to);
+
+/** Whether a new request replaces an open one of its asker on its item: a question (to the user or the PM) replaces a question, a wait a wait to the same braid. */
+const replaces = (r: Request, next: Pick<Request, "to">): boolean => (isWait(next) ? r.to === next.to : !isWait(r));
+
 /** Every request and the files that can't be read, from texts by path. */
 function parseAll(texts: ReadonlyMap<string, string>): { requests: Request[]; problems: RecordProblem[] } {
   const requests: Request[] = [];
@@ -403,7 +409,8 @@ const withEvent = (r: Request, e: RequestEvent): Request => ({ ...r, events: [..
 
 /**
  * Opens a request and returns its code. The open one on the same item from the same asker is withdrawn,
- * "replaced by q-…"; the other asker's stays.
+ * "replaced by q-…", when it is of the same sort: a question (to the user or the PM) replaces a question,
+ * a wait (to a braid) replaces the wait to that braid. The other asker's stays.
  */
 export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly warning: string | null } {
   let code = "";
@@ -412,7 +419,7 @@ export function openRequest(root: string, request: NewRequest): { readonly code:
     code = newCode((c) => view.has(pathOf(c)));
     const by = askerOf(request);
     const files = new Map<string, string>();
-    for (const old of all.filter((r) => r.state === "open" && same(r, request.id, by))) {
+    for (const old of all.filter((r) => r.state === "open" && same(r, request.id, by) && replaces(r, request))) {
       files.set(pathOf(old.code), serialise(withEvent(old, { event: "withdrawn", at: request.at, by, text: `replaced by ${code}` })));
     }
     files.set(pathOf(code), serialise(newRecord({ ...request, code })));
@@ -485,7 +492,7 @@ export const closing = (r: Pick<Request, "events">): RequestEvent | null => r.ev
 export function forwardRequest(root: string, id: string, at: string, note: string | undefined): { readonly request: Request | null; readonly warning: string | null } {
   let out: Request | null = null;
   const result = writeRecord(root, (view) => {
-    const old = viewAll(view).requests.find((r) => r.state === "open" && same(r, id, "coordinator"));
+    const old = viewAll(view).requests.find((r) => r.state === "open" && same(r, id, "coordinator") && !isWait(r));
     if (old === undefined) {
       out = null;
       return { files: new Map(), message: "" };
@@ -530,26 +537,62 @@ export function voidEnding(request: PrFields, pr: NonNullable<PrNow>): Ending {
   return { state: "withdrawn", who: "board", text: `PR #${n} head moved to ${pr.headRefOid.slice(0, 7)}` };
 }
 
-/** The requests still open, given what the PR each one waits on is now. Pure: it writes nothing, so a board can derive lanes from it. */
-export function filterLive<T extends PrFields>(requests: readonly T[], prOf: (number: number) => PrNow): T[] {
-  return requests.filter((r) => {
-    const n = conditionPr(r);
-    return !(n !== undefined && voided(r, prOf(n)));
-  });
+/** What a "done when" is checked against now. */
+export interface Conditions {
+  /** What GitHub says of a PR; null when it can't be read. */
+  readonly pr: (number: number) => PrNow;
+  /** Whether braid `number` is Done on the main branch on origin; null or absent when it can't be told. */
+  readonly braidDone?: (number: string) => boolean | null;
+  /** The time a `time:` condition is compared with; the clock when absent. */
+  readonly now?: Date;
+}
+
+/** The conditions, or only what the PRs are (the rest from the clock). */
+export type Check = Conditions | ((number: number) => PrNow);
+
+const conditionsOf = (check: Check): Conditions => (typeof check === "function" ? { pr: check } : check);
+
+/**
+ * How an open request ends now, by its "done when": `pr:<n>` (and a review's PR) as `voidEnding` says when
+ * the PR is void; `braid:<number>` met when that braid is Done on main; `time:<iso>` met once now is at or
+ * after it. Null while it doesn't hold, can't be told, or the request waits for an answer.
+ */
+export function conditionEnding(request: PrFields, check: Check): Ending | null {
+  const c = conditionsOf(check);
+  const n = conditionPr(request);
+  if (n !== undefined) {
+    const pr = c.pr(n);
+    return pr !== null && voided(request, pr) ? voidEnding(request, pr) : null;
+  }
+  const braid = /^braid:(\d{4})$/.exec(request.doneWhen ?? "")?.[1];
+  if (braid !== undefined) {
+    return c.braidDone?.(braid) === true ? { state: "met", who: "board", text: `braid ${braid} merged into main` } : null;
+  }
+  const time = /^time:(.+)$/.exec(request.doneWhen ?? "")?.[1];
+  const due = time === undefined ? Number.NaN : Date.parse(time);
+  if (!Number.isNaN(due) && (c.now ?? new Date()).getTime() >= due) {
+    return { state: "met", who: "board", text: `time ${time ?? ""} reached` };
+  }
+  return null;
+}
+
+/** The requests still open, given what each one's "done when" is now (`conditionEnding`). Pure: it writes nothing, so a board can derive lanes from it. */
+export function filterLive<T extends PrFields>(requests: readonly T[], check: Check): T[] {
+  return requests.filter((r) => conditionEnding(r, check) === null);
 }
 
 /**
- * The open requests, with each void review request recorded as met (its PR merged) or withdrawn (closed, or
- * its head moved). GitHub is asked without the lock; the write then ends only the requests still open.
+ * The open requests, with each one whose "done when" holds recorded as met (its PR merged, its braid Done
+ * on main, its time reached) or withdrawn (its PR closed, or a review's head moved). GitHub and main are
+ * read without the lock; the write then ends only the requests still open.
  */
-export function liveRequests(root: string, prOf: (number: number) => PrNow): Request[] {
+export function liveRequests(root: string, check: Check): Request[] {
   const seen = loadRequests(root);
   const ends = new Map<string, Ending>();
   for (const r of seen) {
-    const n = conditionPr(r);
-    const pr = n === undefined ? null : prOf(n);
-    if (pr !== null && voided(r, pr)) {
-      ends.set(r.code, voidEnding(r, pr));
+    const e = conditionEnding(r, check);
+    if (e !== null) {
+      ends.set(r.code, e);
     }
   }
   if (ends.size === 0) {
@@ -564,7 +607,7 @@ export function liveRequests(root: string, prOf: (number: number) => PrNow): Req
         files.set(pathOf(r.code), serialise(withEvent(r, endEvent(e, at))));
       }
     }
-    return { files, message: `docs(requests): ${files.size} ${files.size === 1 ? "request" : "requests"} ended by their PR` };
+    return { files, message: `docs(requests): ${files.size} ${files.size === 1 ? "request" : "requests"} ended by their condition` };
   });
   // Read again: another writer may have opened or closed one meanwhile.
   return loadRequests(root);
