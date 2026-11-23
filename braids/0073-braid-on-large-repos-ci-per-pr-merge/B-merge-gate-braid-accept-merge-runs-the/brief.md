@@ -1,7 +1,7 @@
 ---
 id: '0073/B'
 title: "Merge gate: braid accept --merge runs the project command"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 20
@@ -45,7 +45,7 @@ Expected size: about 150 lines of code and tests in 4 to 5 files, plus docs.
 
 ## Completion
 
-- [ ] With `merge-gate:` in BRAID.md, `braid accept --merge` runs it on the merges `merge-gate-on` names (default: strand and main) with `<pr>` and `<sha>` filled in, merges on exit 0 and otherwise refuses with the command's output, with and without `--preset`; tests cover each case and `merge-gate-on: [main]`
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, and the template shows `merge-gate` with an example
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] With `merge-gate:` in BRAID.md, `braid accept --merge` runs it on the merges `merge-gate-on` names (default: strand and main) with `<pr>` and `<sha>` filled in, merges on exit 0 and otherwise refuses with the command's output, with and without `--preset`; tests cover each case and `merge-gate-on: [main]`
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, and the template shows `merge-gate` with an example
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

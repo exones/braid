@@ -14,6 +14,7 @@ import { runGh, runsOf, type GhRunner } from "../board/github.js";
 import { UsageError } from "./braids.js";
 import { ciChecks, read, type Sources, type World } from "./coordinate.js";
 import { editItem, parse, readText, str } from "./edit.js";
+import { runMergeGate } from "./mergegate.js";
 import { mainBranch } from "./start.js";
 
 const REMOTE = "origin";
@@ -23,6 +24,8 @@ export interface DoneOptions extends Sources {
   readonly sleep?: (ms: number) => Promise<void>;
   /** How long `--merge` waits for the checks on the new head, in ms. */
   readonly waitMs?: number;
+  /** The merge gate's time limit in ms; replaced in tests. */
+  readonly gateMs?: number;
 }
 
 export interface PrView {
@@ -434,6 +437,7 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
       }
       onBraidBranch(root, t);
       const skipped = ready(root, run, w, t, pr, head);
+      runMergeGate(root, "strand", pr.number, pr.headRefOid, opts.gateMs);
       gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
       const a = accepted(pr.headRefOid);
       return `${skipped}merged PR #${pr.number} at ${pr.headRefOid}\n${stampStrand(root, t, number, withAccepted(log, a), pr.number)}${comment(run, root, pr.number, a)}`;
@@ -469,6 +473,7 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
     }
     const waited = await waitGreen(root, run, t, pr.number, pr.headRefOid, opts);
     const skipped = ready(root, run, w, t, view(run, root, pr.number), head);
+    runMergeGate(root, "main", pr.number, pr.headRefOid, opts.gateMs);
     gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
     return `${waited}${skipped}${t.id} is already Done at ${pr.headRefOid}\nmerged PR #${pr.number} at ${pr.headRefOid}\n`;
   }
@@ -478,6 +483,7 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
   let out = `${skipped}${t.id} done: Done on ${pr.headRefName} in ${commit}\nhead ${commit}\n${comment(run, root, pr.number, a)}`;
   if (merge) {
     out += await waitGreen(root, run, t, pr.number, commit, opts);
+    runMergeGate(root, "main", pr.number, commit, opts.gateMs);
     gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", commit], `${t.id} is Done in ${commit.slice(0, 7)}, but PR #${pr.number} not merged`);
     out += `merged PR #${pr.number} at ${commit}\n`;
   }
