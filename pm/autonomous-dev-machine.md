@@ -134,6 +134,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P3 · 0070/D merged into its braid branch (#271, 2b193a3): no question tool, answers by code, ✋/⏳/🟢, skills 11366 → 11210 words. The coordinator stalled on a background command whose wake never came (idea kq5k); nudged by the PM. 0070/E (docs, tier L) running. After 0070 is installed: the PM's merge requests use --done-when pr:<n> and step 1 of "After each merge" goes.
 - 2026-11-23: P3 · 0070/C merged into its braid branch (#270, c315574): codes and thread links on cards, PM-ask box and programmes panel, Requests tab, code-first pushes; a flaky ordering test from B fixed in it. 0070/D (skills) started. Weekly Claude use 85%.
 - 2026-11-23: user, 0070/C mockups: "a. A / b. A / c. A / Overall: A" (codes on cards, a Requests tab, grey waiting-on-braid line, last 10 closed, code-first pushes). A board-wide Questions list stays for P14.
 - 2026-11-23: P3 · 0070/B merged into its braid branch (#269, b4db801): answer/withdraw/show by code, --to and --done-when, pr: conditions close themselves, k5d1 fixed on the branch. 0070/C started; its mockups go to the user.
