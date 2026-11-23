@@ -367,7 +367,10 @@ export async function acceptCommand(root: string, args: readonly string[], opts:
   const id = /^(\d{1,4})(?:\/([A-Z]))?$/;
   const m = id.exec(args.find((a) => id.test(a)) ?? "");
   if (m !== null) {
-    closeRequest(root, `${(m[1] ?? "").padStart(4, "0")}${m[2] === undefined ? "" : `/${m[2]}`}`);
+    // A review request is met by the accept; anything else still open is withdrawn.
+    closeRequest(root, `${(m[1] ?? "").padStart(4, "0")}${m[2] === undefined ? "" : `/${m[2]}`}`, undefined, (r) =>
+      r.kind === "review" ? { state: "met", who: "coordinator", text: "accepted" } : { state: "withdrawn", who: "coordinator", text: "the item is Done" },
+    );
   }
   return out;
 }

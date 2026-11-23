@@ -1,9 +1,10 @@
 // `braid handover`, `braid ask`, `braid answer` and `braid requests`: the coordinator records that it
-// needs the user (a request), and closes it again. The store is src/braids/requests.ts.
+// needs the user (a request), and closes it again. The record is src/braids/requests.ts.
 import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { loadKnownBraids } from "../braids/branches.js";
-import { age, askerOf, closeRequest, forwardRequest, KINDS, liveRequests, loadRequests, openRequest, programmeOf, type Asker, type Kind, type PrNow, type Request } from "../braids/requests.js";
+import { fetchBranch } from "../braids/gitbranch.js";
+import { age, askerOf, closeRequest, forwardRequest, KINDS, liveRequests, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Kind, type PrNow, type Request } from "../braids/requests.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
 import { UsageError } from "./braids.js";
@@ -13,6 +14,9 @@ import { find, parse, readText, str } from "./edit.js";
 import { logEntry } from "./logs.js";
 import { recordReview } from "../braids/reviews.js";
 import { recapCommand } from "./facts.js";
+
+/** A push that didn't happen: the request is on the local branch, and the next write pushes it. */
+const warned = (warning: string | null): string => (warning === null ? "" : `warning: ${warning}\n`);
 
 export interface RequestOptions {
   readonly gh?: GhRunner;
@@ -123,9 +127,9 @@ export async function handoverCommand(root: string, args: readonly string[], opt
     fail(checks.why);
   }
   const at = (opts.now ?? (() => new Date()))();
-  openRequest(root, { id, kind: "review", text: `review PR #${pr.number} at ${pr.headRefOid.slice(0, 7)}`, at: at.toISOString(), thread, pr: pr.number, head: pr.headRefOid, ...route });
+  const opened = openRequest(root, { id, kind: "review", text: `review PR #${pr.number} at ${pr.headRefOid.slice(0, 7)}`, at: at.toISOString(), thread, pr: pr.number, head: pr.headRefOid, ...route });
   const recap = await recapCommand(root, [id], { gh: run });
-  return `${notes.map((n) => `${n}\n`).join("")}${id}: review request ${route.to === "pm" ? "to the PM " : ""}opened for PR #${pr.number} at ${pr.headRefOid}\n\n${recap}`;
+  return `${notes.map((n) => `${n}\n`).join("")}${opened.code} ${id}: review request ${route.to === "pm" ? "to the PM " : ""}opened for PR #${pr.number} at ${pr.headRefOid}\n${warned(opened.warning)}\n${recap}`;
 }
 
 /** Whether the project has this `pm/<slug>` branch, local or on `origin`. */
@@ -177,8 +181,8 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   // A PM request is answered in the PM's thread: --thread, else the PM-run line of the braid's brief.
   const pmThread = by === "pm" ? (thread ?? (slug === null ? pmOfBraid(root, id) : null)) : thread;
   const at = (opts.now ?? (() => new Date()))();
-  openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route });
-  return `${id}: ${kind} request ${by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : ""}opened: ${text}\n`;
+  const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route });
+  return `${opened.code} ${id}: ${kind} request ${by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : ""}opened: ${text}\n${warned(opened.warning)}`;
 }
 
 /** `braid forward <id> [--note <text>]`: the PM hands a request on to the user; it reaches the user (on the braid's card, or for a braid a programme runs as the PM asking in the programme's Needs you) and is pushed, at once or, while the braid is paused or held, after `braid resume`. */
@@ -218,7 +222,7 @@ export function answerCommand(root: string, cwd: string, args: readonly string[]
   const thread = str(values, "thread");
   // The log entry first: a refused one leaves the request open.
   const logged = logFile === undefined ? "" : logEntry(root, cwd, [id, "--file", logFile, ...(thread === undefined ? [] : ["--thread", thread])]);
-  const closed = closeRequest(root, id, by);
+  const closed = closeRequest(root, id, by, { state: "answered", who: by });
   const other = loadRequests(root).find((r) => r.id === id && askerOf(r) !== by);
   const hint = closed || other === undefined ? "" : ` (the ${askerOf(other) === "pm" ? "PM's" : "coordinator's"} is open: --by ${askerOf(other)})`;
   return `${closed ? `${id}: ${by === "pm" ? "the PM's " : ""}request closed` : `${id}: no open ${by === "pm" ? "PM " : ""}request${hint}`}\n${logged}`;
@@ -238,10 +242,16 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
       return null;
     }
   };
+  // Fetched first, outside any lock, as `braid inbox` does; offline, the local copy is listed.
+  const fetched = fetchBranch(root, REQUESTS);
+  const offline = fetched.state === "offline" ? `warning: can't fetch ${REQUESTS.branch} from origin (${fetched.why}); listing the local copy\n` : "";
   const list: Request[] = liveRequests(root, prOf);
+  const skipped = loadRecord(root)
+    .problems.map((p) => `warning: skipped ${p.file}: ${p.message}\n`)
+    .join("");
   if (list.length === 0) {
-    return "no open requests\n";
+    return `${offline}${skipped}no open requests\n`;
   }
   const now = (opts.now ?? (() => new Date()))();
-  return `${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.id}  ${r.kind}  ${age(r.at, now)}  ${askerOf(r) === "pm" ? "from the PM  " : ""}${r.forwarded !== undefined ? "forwarded by the PM  " : r.to === "pm" ? "to the PM  " : ""}${r.text}`).join("\n")}\n`;
+  return `${offline}${skipped}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${r.kind}  ${age(r.at, now)}  ${askerOf(r) === "pm" ? "from the PM  " : ""}${r.forwarded !== undefined ? "forwarded by the PM  " : r.to === "pm" ? "to the PM  " : ""}${r.text}`).join("\n")}\n`;
 }

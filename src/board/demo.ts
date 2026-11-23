@@ -2,7 +2,7 @@
 // reason shows. Nothing here reads the repository, `gh` or `t3`, and nothing is written.
 import { loadTree, type Braid, type Tree } from "../braids/store.js";
 import { GITHUB_TODO, type Problem } from "../braids/readiness.js";
-import type { Request } from "../braids/requests.js";
+import { newRecord, type NewRequest, type Request } from "../braids/requests.js";
 import type { Pause } from "../braids/pauses.js";
 import type { InboxData } from "./inbox.js";
 import type { Github } from "./github.js";
@@ -231,7 +231,7 @@ export function demoLimits(t3: T3, pauses: ReadonlyMap<string, Pause>, now: Date
 /** The requests and broke alarms of the demo, as of `now`: every kind of request, both alarms. Nothing is read or written. */
 export function demoSignals(now: Date = new Date()): ReadSignals {
   const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
-  const request = (id: string, kind: Request["kind"], text: string, minutes: number, extra: Partial<Request> = {}): Request => ({ id, kind, text, at: at(minutes), thread: null, ...extra });
+  const request = (id: string, kind: Request["kind"], text: string, minutes: number, extra: Partial<NewRequest> = {}): Request => newRecord({ id, kind, text, at: at(minutes), thread: null, ...extra });
   const requests: Request[] = [
     request("0001/B", "review", "review PR #12 at 0000012", 120, { pr: 12, head: demoHead(12), thread: "demo-coordinator" }),
     request("0003/B", "decision", "Decide: approve the PDF layout (approve-layout)", 60, { key: "approve-layout" }),
@@ -374,8 +374,8 @@ export function apiPlans(): PlanRead[] {
 export function apiSignals(now: Date = new Date()): ReadSignals {
   const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
   const requests: Request[] = [
-    { id: "0001/B", kind: "question", text: "Send Retry-After in seconds or as a date?", at: at(15), thread: null },
-    { id: "0002", kind: "review", text: "review PR #43 at 000002b", at: at(50), thread: null, pr: 43, head: demoHead(43) },
+    newRecord({ id: "0001/B", kind: "question", text: "Send Retry-After in seconds or as a date?", at: at(15), thread: null }),
+    newRecord({ id: "0002", kind: "review", text: "review PR #43 at 000002b", at: at(50), thread: null, pr: 43, head: demoHead(43) }),
   ];
   return {
     now,

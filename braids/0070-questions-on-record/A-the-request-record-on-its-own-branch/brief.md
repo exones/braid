@@ -1,7 +1,7 @@
 ---
 id: '0070/A'
 title: "The request record on its own branch"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L"]
 dependencies: []
 order: 10
@@ -11,6 +11,15 @@ order: 10
 Requests move from the local, never-committed `.braid/requests.json` to the branch `braid-requests`, one file per request with a short code and a history that only grows, in the form the braid's "Already decided" fixes. Every command and reader that uses requests today works on the new record with the same behaviour, except that nothing is deleted any more: a closed request keeps its file with a final state. Open requests in an existing `.braid/requests.json` are carried over once.
 
 Expected size: about 600 lines in 8 files, half of them tests.
+
+## Plan
+
+1. `src/git/branch.ts`: the inbox's branch code, parametrised by a `BranchSpec` (branch, folders, lock name, what it holds): fetch (sync and async), read files from the refs (local, `origin/`, or the remote with local-only changes on top when they diverged), write (temporary index, commit-tree, update-ref, push, fetch and redo, offline kept local), with an optional `merge` for a file both sides changed when local commits are replayed, and `push: false` for a local-only commit. `src/inbox/branch.ts` keeps its exports and parsing and calls it.
+2. `src/braids/requests.ts`: one JSON file per request, `requests/<code>.json` on `braid-requests`. Fields fixed at opening; every change is an event (`opened`, `forwarded`, `answered`, `withdrawn`, `met`; `eta` later), and the state is derived from the events, never stored. In memory the `Request` keeps today's fields (`at`, `forwarded`, `note`, `to` derived from the events) plus `code`, `state`, `events`, `doneWhen`, `eta`, so the board and commands change little. Replaying an offline commit over a file the remote also changed merges the two event lists, so no event is lost.
+3. Same API names: `openRequest` (returns the code; withdraws the open one of the same asker and item, "replaced by q-…"), `closeRequest` (an event with the closer and the state), `forwardRequest`, `loadRequests` (open ones, local refs, no fetch), `filterLive` (pure), `liveRequests` (records `met` for a merged PR, `withdrawn` for a closed one or a moved head).
+4. Migration: before any read or write, a `.braid/requests.json` with records is opened on the branch with codes and original times in one commit (records already there, same item, asker and time, are skipped), then renamed `requests.migrated.json`. The board's read migrates without pushing.
+5. Board: reads the local refs only; a fresh read (Refresh) fetches `braid-requests` alongside the GitHub and T3 reads. `braid requests` fetches first, prints the code first, and notes unreadable files.
+6. Tests in `test/requests-record.test.ts` plus the existing request tests moved onto the record; inbox tests unchanged. Bench the board read before and after.
 
 ## Start here
 
@@ -52,13 +61,13 @@ Expected size: about 600 lines in 8 files, half of them tests.
 
 ## Completion
 
-- [ ] Requests are stored on `braid-requests` as `requests/<code>.json` with an `events` history, and no request is ever deleted
-- [ ] `braid ask`, `handover`, `answer`, `forward`, `requests`, `start`, `done` and the board work on the record with today's behaviour, and `braid requests` shows each code
-- [ ] Review requests record `met` or `withdrawn` with a reason instead of vanishing
-- [ ] Open requests in an old `.braid/requests.json` are carried over once, and the old file is kept renamed
-- [ ] The inbox and the record share one branch module, and the inbox tests pass unchanged
-- [ ] The regression tests listed under "Failure modes" exist and pass
-- [ ] report.md gives the board's page-load time before and after
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Requests are stored on `braid-requests` as `requests/<code>.json` with an `events` history, and no request is ever deleted
+- [x] `braid ask`, `handover`, `answer`, `forward`, `requests`, `start`, `done` and the board work on the record with today's behaviour, and `braid requests` shows each code
+- [x] Review requests record `met` or `withdrawn` with a reason instead of vanishing
+- [x] Open requests in an old `.braid/requests.json` are carried over once, and the old file is kept renamed
+- [x] The inbox and the record share one branch module, and the inbox tests pass unchanged
+- [x] The regression tests listed under "Failure modes" exist and pass
+- [x] report.md gives the board's page-load time before and after
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
