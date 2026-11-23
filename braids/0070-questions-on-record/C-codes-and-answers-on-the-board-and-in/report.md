@@ -27,3 +27,5 @@ For later items:
 Needs the user: none
 
 CI fix: the refusal naming two open requests listed their codes in random file order; a test of 0070/B failed on Ubuntu half the time. The coordinator's code now comes first.
+
+Review of 8244952d (three suggestions, fixed): the forwarded test now uses a request opened `--to pm` and asserts the asking thread (link) against the PM thread (push click); `docs/board.md` names `loadRecord` and `ended` and lists the Requests tab; the PM-ask box and the programmes panel's need show the code and the asking-thread link.

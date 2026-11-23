@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { load, scratch, world } from "./support/done-fixtures.ts";
+import { brief, load, scratch, world } from "./support/done-fixtures.ts";
 
 // 0070/C: the board shows each request with its code and its asking thread, the closed ones with who answered, a request to
 // another braid on the asking braid's card; pushes carry the code; a withdrawn or met request takes its push off the phone.
@@ -51,16 +51,24 @@ test("an open request carries its code and its asking thread; the push leads wit
   assert.equal(p.click, url(ASKER));
 });
 
-test("a forwarded request and the PM's own request carry their code in the push, the asking thread stays the asker's", () => {
+test("a forwarded request keeps the asker's thread for the link and opens the PM's thread from the push; the PM's own request carries its code", () => {
   const w = world();
-  const fwd = codeOf(Cmd.askCommand(w.root, ["0002", "Merge it?", "--thread", ASKER, "--kind", "decision"]));
-  Rec.forwardRequest(w.root, "0002", "2026-11-23T10:00:00Z", "your call");
+  // Braid 0001 is run by a PM, so `--to pm` is allowed and the record keeps the PM's thread.
+  writeFileSync(join(w.root, "braids", "0001-alpha", "brief.md"), brief("0001", "In Progress", `
+## Autonomy
+
+PM-run (thread ${PM}): security always ask.
+`));
+  const fwd = codeOf(Cmd.askCommand(w.root, ["0001", "Merge it?", "--thread", ASKER, "--kind", "decision", "--to", "pm"]));
+  Rec.forwardRequest(w.root, "0001", "2026-11-23T10:00:00Z", "your call");
   const ask = codeOf(Cmd.askCommand(w.root, ["0001/A", "Install the runner", "--by", "pm", "--kind", "action", "--thread", PM]));
   const b = boardOf(w.root, github());
   const pushes = message.pushesOf(b);
-  const forwarded = pushes.find((p: any) => p.item === "0002");
-  assert.match(forwarded.body, new RegExp(`^${fwd} · B0002\\n`));
-  assert.equal(b.braids.find((c: any) => c.id === "0002").need.asking, base + ASKER);
+  const forwarded = pushes.find((p: any) => p.item === "0001");
+  assert.match(forwarded.body, new RegExp(`^${fwd} · B0001\n`));
+  assert.equal(forwarded.click, url(PM), "the push opens the PM's thread");
+  const need = b.braids.find((c: any) => c.id === "0001").need;
+  assert.deepEqual([need.code, need.link, need.asking], [fwd, base + PM, base + ASKER], "the link the page shows stays the coordinator's");
   const byPm = pushes.find((p: any) => p.item.endsWith("#pm"));
   assert.match(byPm.body, new RegExp(`^${ask} · `));
 });

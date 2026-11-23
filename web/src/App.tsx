@@ -1139,7 +1139,9 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
       {item.pmAsk !== null && item.need?.by !== "pm" && (
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.pmAsk)}`}>
           <b className="mb-0.5 block text-xs uppercase tracking-wide">Needs you · from the PM{ageText(item.pmAsk) === "" ? "" : ` · ${ageText(item.pmAsk)}`}</b>
+          {item.pmAsk.code !== undefined && <><CodeChip code={item.pmAsk.code} />{" "}</>}
           {item.pmAsk.text}
+          {item.pmAsk.code !== undefined && <div className="mt-2"><AskingLink link={item.pmAsk.asking ?? null} /></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">Answer in the PM thread; the card leaves Needs You when the PM closes the request.</div>
         </div>
       )}
@@ -1714,7 +1716,9 @@ function OneNeed({ p, need, item }: { p: TaggedProgramme; need: Need; item?: str
   const { head, options } = optionLines(words?.[2] ?? need.text);
   return (
     <div className="mt-1.5 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-2 py-1.5 text-[13px] leading-snug text-amber-950">
+      {need.code !== undefined && <><CodeChip code={need.code} />{" "}</>}
       <b>{words?.[1] ?? "The PM asks you:"}</b> {head}
+      {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {options.length > 0 && (
         <ul className="mt-0.5 list-none pl-1">
           {options.map((o) => (
