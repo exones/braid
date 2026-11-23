@@ -142,6 +142,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P6 · 0071/C merged into its braid branch (#281, 27f247f): one nudge, then "Stalled after a nudge" and one PM message; 1oq8, dy2k in. 2h98: T3 hides subagent threads, so the PM records its live checker with `braid review pm/<slug> --thread <child id>` (skill line in 0071/D); leftover ozjp (records never dropped) kept in 0071. 0071/D (skills) running.
 - 2026-11-23: user: "for project colors don't use red palette colors: looks like errors and attracts too much attention": into 0073/E (TAG_COLOURS in web/src/App.tsx has pink-700 and orange-600; no red, pink, rose, orange or amber for projects).
 - 2026-11-23: P20 · 0073/B merged into its braid branch (#280, 521615f): merge-gate and merge-gate-on, run by braid accept --merge under every preset, 9-minute limit. Leftover puxp (after the early PR, braid clean reads the live 0073 branch as merged) fixed inside 0073; until installed, 0071's coordinator runs no unattended braid clean (it agreed). avsv into 0073/D. 0073/C running; 0071/C (#281) in review.
 - 2026-11-23: user: "Merge" #279; 0073/A merged into main (d130b6b), ci green; installed from main, board restarted (running = installed, page 200). Braid branches have no push CI from now on.
