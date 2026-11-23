@@ -18,6 +18,8 @@ Fix, in the spirit of "reliable calls": the board sends pause and resume message
 
 Decided by the user (2026-11-24): direct pause plus PM-led resume, "PM is smarter on that how to restart". The board pauses every agent directly (a fast safety stop, the board's own text sent by code) and sends the PM of PM-run braids one summary (which braids, until when). The resume of PM-run braids goes through the PM: the board tells the PM the window is open (or the user's "resume now" does), and the PM decides the order and resumes its coordinators, which resume their agents. Braids without a PM keep the board's direct resume.
 
+The user, 2026-11-24: "would be nice if I could click 'Resume' button on the board for a program or a braid". So "resume now" is a board button on a paused programme's card (it goes to the PM, which restarts its braids in its order) and on a paused braid's card (a PM-run braid: the PM is asked to resume that braid; a braid without a PM: the board resumes it directly), plus the same in the CLI. P5's Hold and Go buttons (deliberate holds) should reuse the same button and path, so the board has one Resume/Go for any pause.
+
 This is an outline: its coordinator plans it fully when its turn comes.
 
 ## Working at the end
