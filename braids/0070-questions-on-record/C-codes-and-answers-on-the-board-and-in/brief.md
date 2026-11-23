@@ -39,12 +39,20 @@ Expected size: about 300 lines in 6 files, with tests.
 - Showing waits' estimates or reminders (P6).
 - What a question unblocks (P4).
 
+## Plan
+
+Verdict (user, via the PM): Requests tab on the item only, the grey "Waiting on braid" line on the asking card, last 10 closed then Show more; no board-wide list.
+
+- `Need` gets `code` and `asking` (the asking thread's link); `src/board/record.ts` makes the rows (open, waiting, closed); `Signals` gains `waits` and `closed`; a request whose PR just merged or closed is closed for the board at once (met or withdrawn).
+- Pushes lead their body with the code; clearing stays the notifier's rule (a need that is gone clears its push).
+- Page: code chip, "Open asking thread", the waiting line, the Requests tab. Tests: `test/board-requests.test.ts`.
+
 ## Completion
 
-- [ ] Mockups approved; the verdicts are in the log
-- [ ] The board shows each open request's code with a link to the asking thread
-- [ ] The board lists closed requests with their state, who answered, and the answer or reason
-- [ ] Pushes carry the code, and a withdrawn or met request's push is cleared
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] Mockups approved; the verdicts are in the log
+- [x] The board shows each open request's code with a link to the asking thread
+- [x] The board lists closed requests with their state, who answered, and the answer or reason
+- [x] Pushes carry the code, and a withdrawn or met request's push is cleared
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open

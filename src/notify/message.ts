@@ -70,6 +70,9 @@ export function forUser(need: Need | null | undefined, fallback: string | null):
   return { kind: need.via === "forwarded" ? "forward" : "request", link: need.link ?? fallback };
 }
 
+/** A line that starts with the request's code (`q-7f3k · …`), so it can be named in any thread; unchanged for a need without one. */
+const coded = (need: Need, line: string): string => (need.code === undefined ? line : `${need.code} · ${line}`);
+
 /** A body that ends with where to go when no thread can be opened. */
 const withBoard = (body: string, click: string | null): string => (click === null ? `${body}\nOpen the board` : body);
 
@@ -84,7 +87,7 @@ function pmAskPush(repo: string, id: string, title: string, need: Need, link: st
     item: `${id}#pm`,
     kind: "need",
     title: `${repo} ${slug ?? id}: the PM asks`,
-    body: withBoard(slug === undefined ? `${title}\n${need.text}` : need.text, click),
+    body: withBoard(slug === undefined ? `${coded(need, title)}\n${need.text}` : coded(need, need.text), click),
     tags: ["compass"],
     priority: "high",
     click,
@@ -119,7 +122,7 @@ function needPush(repo: string, id: string, title: string, lane: Lane, need: Nee
     item: id,
     kind: "need",
     title: forward ? `${repo} ${id}: the PM asks` : `${repo} ${id}: ${LANE_LABEL[lane]}${need.via === undefined ? "" : " (escalated)"}`,
-    body: withBoard(`${title}\n${forward ? need.text.replace(FORWARDED_WORDS, "The PM asks you:") : need.text}`, click),
+    body: withBoard(`${coded(need, title)}\n${forward ? need.text.replace(FORWARDED_WORDS, "The PM asks you:") : need.text}`, click),
     tags: [forward ? "compass" : TAGS[need.kind]],
     // An escalation or a forward is high even for a review: the PM was meant to deal with it, and didn't or couldn't.
     priority: lane === "Waiting" || need.via !== undefined ? "high" : "default",
