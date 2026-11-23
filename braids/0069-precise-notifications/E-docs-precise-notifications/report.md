@@ -7,6 +7,10 @@
 - CLI help (`src/cli.ts` `forward`): no longer says a forward reaches Needs You; it is the PM's ask in the programme's Needs you, opening the PM's thread.
 - `docs/getting-started.md` (PM paragraph, board paragraph), `README.md` (programme bullet), `docs/roadmap.md` (a built entry for 0069).
 
+## Review round
+
+Forward wording qualified (README, cli.md, D89, board.md rules 2-3 and Requests); a braid stall never pushes (Broke); "What a push contains" and "Several projects" match the rule; D70 marked superseded; the intro names the programme-stall exception; getting-started names the stall and a Done with no PM.
+
 ## Docs from BRAID.md `docs`
 
 Updated: README.md, docs/getting-started.md, docs/board.md, the CLI's help text, docs/decisions.md, docs/roadmap.md. Unchanged: docs/cli.md (`braid notify send` and `forward` already by D and B/C), docs/autonomy.md, docs/development.md, docs/braids-format.md, docs/npm-distribution.md.
