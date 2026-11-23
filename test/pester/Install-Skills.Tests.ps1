@@ -264,6 +264,7 @@ exit 0
 '@ | Set-Content -LiteralPath $script:StubNpm
       @'
 Add-Content -LiteralPath $env:STUB_LOG -Value ("braid " + ($args -join ' '))
+if ($args[0] -eq 'board') { if ($env:STUB_RESTART_PRINTS) { Write-Output $env:STUB_RESTART_PRINTS }; exit ([int]$env:STUB_RESTART_CODE) }
 if ($args[0] -eq 'wait') { if ($env:STUB_SHIM -and (Select-String -Quiet -Pattern 'volta run' -LiteralPath $env:STUB_SHIM)) { exit 126 }; exit ([int]$env:STUB_WAIT_CODE) }
 Write-Output $env:STUB_BRAID_PRINTS
 exit 0
@@ -273,26 +274,42 @@ exit 0
       $env:STUB_FAIL = ''
       $env:STUB_WAIT_CODE = '2'
       $env:STUB_SHIM = ''
+      $env:STUB_RESTART_PRINTS = ''
+      $env:STUB_RESTART_CODE = '0'
       Write-RepoFile 'package.json' "{ `"name`": `"@exones/braid`", `"version`": `"0.9.0`" }`n"
       Invoke-RepoGit @('add', '-A')
       Invoke-RepoGit @('commit', '-q', '-m', 'package')
     }
     AfterEach {
-      foreach ($name in @('STUB_LOG', 'STUB_BRAID_PRINTS', 'STUB_FAIL', 'STUB_WAIT_CODE', 'STUB_SHIM')) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
+      foreach ($name in @('STUB_LOG', 'STUB_BRAID_PRINTS', 'STUB_FAIL', 'STUB_WAIT_CODE', 'STUB_SHIM', 'STUB_RESTART_PRINTS', 'STUB_RESTART_CODE')) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
     }
 
     It 'builds, packs and globally installs the ref, checks the version and stamps it' {
       $result = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
       $result.Code | Should -Be 0 -Because $result.Text
       $log = @(Get-Content -LiteralPath $script:StubLog)
-      $log.Count | Should -Be 6
+      $log.Count | Should -Be 7
       $log[0] | Should -Match '^npm ci @ source$'
       $log[1] | Should -Match '^npm run build @ source$'
       $log[2] | Should -Match '^npm pack --pack-destination .+ @ source$'
       $log[3] | Should -Match '^npm install -g .+exones-braid-0\.9\.0\.tgz @ '
       $log[4] | Should -Be 'braid --version'
       $log[5] | Should -Be 'braid wait 9999'
+      $log[6] | Should -Be 'braid board service restart --if-installed'
       (Get-Installed $script:TargetA 'braid/.braid-install.json' | ConvertFrom-Json).cliVersion | Should -Be '0.9.0'
+    }
+
+    It 'restarts an installed board task after the install and prints its line; a failed restart fails' {
+      $env:STUB_RESTART_PRINTS = 'braid board service: restarted the board on port 8765 (braid 0.9.0); braid board --url prints its address'
+      $result = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
+      $result.Code | Should -Be 0 -Because $result.Text
+      $result.Text | Should -Match 'restarted the board on port 8765 \(braid 0\.9\.0\)'
+      Get-Installed $script:TargetA 'braid-demo/SKILL.md' | Should -Not -BeNullOrEmpty
+      $env:STUB_RESTART_PRINTS = 'braid board service: port 8765 is still held'
+      $env:STUB_RESTART_CODE = '1'
+      $failed = Invoke-Install -Cli -Extra @('-NpmCommand', $script:StubNpm, '-BraidCommand', $script:StubBraid)
+      $failed.Code | Should -Not -Be 0
+      $failed.Text | Should -Match 'the board task did not restart: braid board service: port 8765 is still held'
     }
 
     It 'fails and installs no skills when braid --version does not match' {

@@ -84,7 +84,11 @@ test("a real braid board run writes its tokened address owner-only, --url prints
     }
     assert.deepEqual(readdirSync(home).filter((n) => n.endsWith(".tmp")), [], "no temporary file left");
     // The address works: the session check accepts its token and refuses another.
-    assert.equal((await fetch(`${started.url}api/session`, { headers: { "x-braid-token": started.token } })).status, 204);
+    const session = await fetch(`${started.url}api/session`, { headers: { "x-braid-token": started.token } });
+    assert.equal(session.status, 204);
+    // The 204 names the version the board started from (braid board service status, 0067/B).
+    assert.equal(session.headers.get("x-braid-version"), JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8")).version);
+    assert.equal((await fetch(`${started.url}api/session`, { headers: { "x-braid-token": "0".repeat(48) } })).headers.get("x-braid-version"), null, "not without the token");
     assert.equal((await fetch(`${started.url}api/session`, { headers: { "x-braid-token": "0".repeat(48) } })).status, 403);
     assert.equal((await fetch(`${started.url}api/session`)).status, 403);
     assert.deepEqual(await board.boardUrl(["--url"]), { code: 0, stdout: `${tokened(started)}\n`, stderr: "" });

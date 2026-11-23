@@ -492,3 +492,25 @@ test("a limit push whose send failed is sent again at the next refresh, and only
   await push.idle();
   assert.equal(sent.length, 1, "sent once");
 });
+
+test("a board restart (braid board service restart, an update) keeps a running limits pause: the new board picks the record up from disk", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 98, NOW);
+  cache(caches, "codex", 20, NOW);
+  const t3 = fakeT3({ shown: () => ({ thread: { status: "idle" }, messages: [{ role: "assistant", text: "Steering: claude paused 3/3; children: none; no answer: none" }] }) });
+  const first = board(root, caches, t3, { now: NOW });
+  await first.tick();
+  await first.tick();
+  const before = records(root);
+  assert.equal(before.length, 1);
+  assert.equal(before[0].steering.outcome, "paused");
+  // The old board is gone; a new process starts ten minutes later, still before the resume time and still over.
+  const later = new Date(NOW.getTime() + 10 * MIN);
+  cache(caches, "claude", 99, later);
+  const restarted = board(root, caches, t3, { now: later });
+  await restarted.tick();
+  assert.deepEqual(records(root), before, "the record is kept as it was");
+  assert.equal(t3.starts().length, 1, "no second steering thread");
+  assert.deepEqual(t3.sends(), [], "nothing resumed early");
+  assert.equal(pause.pauseView(records(root)[0], later).state, "paused");
+});

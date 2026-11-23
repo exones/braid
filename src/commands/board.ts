@@ -34,6 +34,8 @@ import { readConfig } from "../notify/config.js";
 import { readProjects, type Project } from "../projects/list.js";
 import { notifier } from "../notify/notifier.js";
 import { liveAddresses, removeAddress, SESSION_PATH, writeAddress, type Probe } from "../board/address.js";
+import { readVersion } from "../version.js";
+import { serviceLog, stopWithConsole, VERSION_HEADER } from "./service.js";
 
 const TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8",
@@ -950,7 +952,9 @@ export function startBoardWith(
       if (url.pathname === SESSION_PATH && listener.kind === "local") {
         // Whether this run is the one an address file names (`braid board --url`): 204 for this run's token, else 403. It reads nothing.
         const given = req.headers[TOKEN_HEADER];
-        res.writeHead(typeof given === "string" && tokenMatches(given, listener.token) ? 204 : 403, { "cache-control": "no-store" }).end();
+        const ok = typeof given === "string" && tokenMatches(given, listener.token);
+        // The 204 also names the version this board started from (`braid board service status`).
+        res.writeHead(ok ? 204 : 403, ok ? { "cache-control": "no-store", [VERSION_HEADER]: boardVersion() } : { "cache-control": "no-store" }).end();
         return;
       }
       if (url.pathname === "/api/events") {
@@ -1121,7 +1125,7 @@ function valueFlag(args: readonly string[], flag: string, need: string): { value
 }
 
 export async function runBoard(root: string, args: readonly string[], tailscale: TailscaleRunner = runTailscale, run: Runners = {}): Promise<Started> {
-  const flags = ["--no-open", "--no-pause", "--demo", "--demo-t3-down", "--demo-not-ready"];
+  const flags = ["--no-open", "--no-pause", "--service", "--demo", "--demo-t3-down", "--demo-not-ready"];
   const { value: host, rest: afterHost } = valueFlag(args, "--host", "an address: tailscale, this machine's Tailscale IP or its MagicDNS name");
   const pat = afterHost.indexOf("--port");
   const portArg = pat === -1 ? undefined : afterHost[pat + 1];
@@ -1134,6 +1138,15 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const unknown = rest.filter((a) => !flags.includes(a));
   if (unknown.length > 0) {
     throw new UsageError(`braid board takes only ${flags.join(", ")}, --host <address>, --port <n>, --project <name>; got: ${unknown.join(" ")}`);
+  }
+  // `--service`: the run of `braid board service`'s task (0067/B). Its output also goes to ~/.braid/board-<port>.log,
+  // opened first so even a refused start says why, and it stops when its headless console closes (the task stopped).
+  const service = args.includes("--service");
+  if (service && fixedPort === 0) {
+    throw new UsageError("--service needs --port <n>: its log and its address file are per port");
+  }
+  if (service) {
+    serviceLog(fixedPort, boardVersion());
   }
   const t3Down = args.includes("--demo-t3-down");
   const notReady = args.includes("--demo-not-ready");
@@ -1252,6 +1265,10 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const url = `${started.url}#token=${started.token}`;
   // A real run also leaves its address in ~/.braid for a board with no console (D92); the demo writes nothing.
   const stopped = demo ? started : keepAddress(started, url);
+  if (service) {
+    // The exit handler keepAddress set removes the address file.
+    stopWithConsole(() => process.exit(0));
+  }
   process.stdout.write(`braid board${demo ? " (demo: sample data; nothing is read or written)" : ""}: ${url}\n`);
   if (several) {
     process.stdout.write(`Projects: ${only ?? names.join(", ")}\n`);
@@ -1274,6 +1291,13 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
     }
   }
   return stopped;
+}
+
+let version: string | undefined;
+/** This braid's version, read once. */
+function boardVersion(): string {
+  version ??= readVersion();
+  return version;
 }
 
 /** The signals that stop a board from its console or its service manager; the address file goes before the process does. */
