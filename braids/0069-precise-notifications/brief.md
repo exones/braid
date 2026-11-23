@@ -59,14 +59,14 @@ Expected size: about 500 lines in 12 files, over five strands.
 
 ## Completion
 
-- [ ] Under a PM, a braid run end to end (plan, strands merged under the preset, final PR) sends no push until the PM or the coordinator asks the user something; tests cover each "never pushes" case of the goal
-- [ ] Every push opens the thread that needs the user (tests: the PM's request, a forward, an escalation, a request to the user, a merge group, a programme's stall)
-- [ ] A forwarded merge handover of a Done-stamped story shows on the board and pushes once (leftover 2026-11-23-brb2)
-- [ ] Several merges waiting for the user under one PM are one push, updated in place, cleared when none is left
-- [ ] The PM can push a line with no board item through `braid notify send`, with the same privacy rules
-- [ ] Skills changed by this braid are no longer than before
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] Under a PM, a braid run end to end (plan, strands merged under the preset, final PR) sends no push until the PM or the coordinator asks the user something; tests cover each "never pushes" case of the goal
+- [x] Every push opens the thread that needs the user (tests: the PM's request, a forward, an escalation, a request to the user, a merge group, a programme's stall)
+- [x] A forwarded merge handover of a Done-stamped story shows on the board and pushes once (leftover 2026-11-23-brb2)
+- [x] Several merges waiting for the user under one PM are one push, updated in place, cleared when none is left
+- [x] The PM can push a line with no board item through `braid notify send`, with the same privacy rules
+- [x] Skills changed by this braid are no longer than before
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
 
 ## Autonomy
 
