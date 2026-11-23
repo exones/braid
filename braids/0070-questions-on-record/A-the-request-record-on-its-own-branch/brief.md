@@ -12,6 +12,15 @@ Requests move from the local, never-committed `.braid/requests.json` to the bran
 
 Expected size: about 600 lines in 8 files, half of them tests.
 
+## Plan
+
+1. `src/git/branch.ts`: the inbox's branch code, parametrised by a `BranchSpec` (branch, folders, lock name, what it holds): fetch (sync and async), read files from the refs (local, `origin/`, or the remote with local-only changes on top when they diverged), write (temporary index, commit-tree, update-ref, push, fetch and redo, offline kept local), with an optional `merge` for a file both sides changed when local commits are replayed, and `push: false` for a local-only commit. `src/inbox/branch.ts` keeps its exports and parsing and calls it.
+2. `src/braids/requests.ts`: one JSON file per request, `requests/<code>.json` on `braid-requests`. Fields fixed at opening; every change is an event (`opened`, `forwarded`, `answered`, `withdrawn`, `met`; `eta` later), and the state is derived from the events, never stored. In memory the `Request` keeps today's fields (`at`, `forwarded`, `note`, `to` derived from the events) plus `code`, `state`, `events`, `doneWhen`, `eta`, so the board and commands change little. Replaying an offline commit over a file the remote also changed merges the two event lists, so no event is lost.
+3. Same API names: `openRequest` (returns the code; withdraws the open one of the same asker and item, "replaced by q-…"), `closeRequest` (an event with the closer and the state), `forwardRequest`, `loadRequests` (open ones, local refs, no fetch), `filterLive` (pure), `liveRequests` (records `met` for a merged PR, `withdrawn` for a closed one or a moved head).
+4. Migration: before any read or write, a `.braid/requests.json` with records is opened on the branch with codes and original times in one commit (records already there, same item, asker and time, are skipped), then renamed `requests.migrated.json`. The board's read migrates without pushing.
+5. Board: reads the local refs only; a fresh read (Refresh) fetches `braid-requests` alongside the GitHub and T3 reads. `braid requests` fetches first, prints the code first, and notes unreadable files.
+6. Tests in `test/requests-record.test.ts` plus the existing request tests moved onto the record; inbox tests unchanged. Bench the board read before and after.
+
 ## Start here
 
 - The braid's brief (`braid view 0070`), "Already decided": the record's form, its fields, codes and states.
