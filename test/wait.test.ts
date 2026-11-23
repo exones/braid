@@ -313,3 +313,47 @@ test("a failed read of the newer commit never lets the older commit's cancelled 
   ok.answers.set(ok.tip, [null, null, NAMES.map((n) => done(n, "success"))]);
   assert.equal((await waitCommand(ok.root, ["1"], ok.opts)).code, 0);
 });
+
+test("ci: all waits for every reported check: green after the start grace, failed at once, pending at the timeout, none is exit 2", async () => {
+  const all = (w: ReturnType<typeof world>) => writeFileSync(join(w.root, "BRAID.md"), "---\n@main: main\nci: all\n---\n");
+  const ok = (n: string) => done(n, "success");
+  const green = world();
+  all(green);
+  green.answers.set(green.code, [NAMES.map(ok)]);
+  const r = await waitCommand(green.root, ["1"], green.opts);
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /^green at [0-9a-f]{7} on braid\/0001-alpha: verify \(ubuntu-latest\), verify \(windows-latest\)\n$/);
+  assert.equal(green.minutes(), 2, "green only after the 2-minute start grace");
+
+  const failed = world();
+  all(failed);
+  failed.answers.set(failed.code, [[ok("a"), done("b", "failure")]]);
+  const f = await waitCommand(failed.root, ["1"], failed.opts);
+  assert.equal(f.code, 1);
+  assert.match(f.stdout, /failed at [0-9a-f]{7} on braid\/0001-alpha: b\n$/);
+
+  const pending = world();
+  all(pending);
+  pending.answers.set(pending.code, [[ok("a"), running("b")]]);
+  const p = await waitCommand(pending.root, ["1", "--timeout", "10"], pending.opts);
+  assert.equal(p.code, 3);
+  assert.match(p.stdout, /still running: b/);
+
+  const none = world();
+  all(none);
+  const n = await waitCommand(none.root, ["1"], none.opts);
+  assert.equal(n.code, 2);
+  assert.match(n.stdout, /^no run appeared for any check at/);
+});
+
+test("ci: all: a check that appears inside the grace keeps the wait going", async () => {
+  const w = world();
+  writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: all\n---\n");
+  const a = [done("a", "success")];
+  // Seven polls (0 to 90 seconds) see only a; then b appears at 105 seconds and passes; the grace restarts from b.
+  w.answers.set(w.code, [...Array.from({ length: 7 }, () => a), [...a, running("b")], [...a, done("b", "success")]]);
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /: a, b\n$/);
+  assert.equal(w.minutes(), 3.75);
+});

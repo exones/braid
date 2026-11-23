@@ -178,6 +178,16 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
   }
 }
 
+/** Why the braid on this branch isn't Done (its status on the branch, or that it can't be read), or null when it is Done there. */
+function notDone(root: string, branch: string, folder: string): string | null {
+  const shown = git(root, ["show", `${branch}:${folder}/brief.md`]);
+  if (shown.status !== 0) {
+    return `its brief can't be read on ${branch}`;
+  }
+  const status = /^status:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(shown.stdout)?.[1] ?? "";
+  return status === "Done" ? null : `its braid is not Done on ${branch} (${status === "" ? "no status" : status})`;
+}
+
 export async function cleanCommand(root: string, args: readonly string[], src: Sources = {}, env: NodeJS.ProcessEnv = process.env): Promise<string> {
   const yes = args.includes("--yes");
   const ids = args.filter((a) => a !== "--yes");
@@ -234,7 +244,11 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
         const tree = listed.find((t) => t.branch === ref.branch);
         const named = only?.letter !== null && only?.letter !== undefined;
         let skip: string | null = null;
-        if (tree !== undefined && norm(tree.path) === here) {
+        // A braid branch is live until its braid is stamped Done there, whatever PR from it merged (an early PR into main).
+        const live = item.letter === null ? notDone(root, ref.branch, w.braid.folder) : null;
+        if (live !== null) {
+          skip = `${live}; the braid goes on`;
+        } else if (tree !== undefined && norm(tree.path) === here) {
           skip = "checked out in this checkout";
         } else if (git(root, ["merge-base", "--is-ancestor", ref.branch, "HEAD"]).status !== 0) {
           // `git branch -d` also accepts a branch merged into its upstream; that is not enough here.

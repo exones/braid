@@ -188,3 +188,14 @@ test("braid recap: carries the item's Decided: entries under Decisions, a final 
   assert.ok(out.indexOf("**Decisions:**") < out.indexOf("- 2026-11-19 0001"));
   assert.doesNotMatch(out, /Merged strand A/);
 });
+
+test("braid facts: with ci: all, no reported check is not green, and all green is", async () => {
+  const w = world("about 100 lines", (put) => put("src/a.ts", "export const a = 1;\n"));
+  writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: all\n---\n");
+  const none = (_r: string, args: readonly string[]) => {
+    const out = JSON.parse(w.gh(_r, args).stdout) as Record<string, unknown>;
+    return ok(Array.isArray(out) ? out.map((p) => ({ ...p, statusCheckRollup: [] })) : { ...out, statusCheckRollup: [] });
+  };
+  assert.match(await recapCommand(w.root, ["1"], { gh: none }), /^checks: {2}\(ci: all, but no check is reported on [0-9a-f]{7}\)$/m);
+  assert.match(await recapCommand(w.root, ["1"], { gh: w.gh }), /^checks: verify passing \(green on this head\)$/m);
+});

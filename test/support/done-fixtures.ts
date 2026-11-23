@@ -102,7 +102,7 @@ export function world(preset = "", ci = "[verify]") {
   const merges: string[][] = [];
   const comments: string[] = [];
   const headOf = (branch: string) => git(root, "ls-remote", remote, `refs/heads/${branch}`).split("\t")[0] ?? "";
-  const rollup = (p: FakePr) => [{ name: "verify", conclusion: p.checks === "PENDING" ? "" : p.checks, status: p.checks === "PENDING" ? "IN_PROGRESS" : "COMPLETED" }];
+  const rollup = (p: FakePr) => p.checks === "NONE" ? [] : [{ name: "verify", conclusion: p.checks === "PENDING" ? "" : p.checks, status: p.checks === "PENDING" ? "IN_PROGRESS" : "COMPLETED" }];
   /** Commits whose `verify` check passed, as `gh api .../check-runs` reports it. */
   const green = new Set<string>();
   const gh = (_r: string, args: readonly string[]) => {
