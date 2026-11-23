@@ -13,6 +13,12 @@
       "event": "opened",
       "at": "2026-11-23T20:01:02.032Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-23T20:03:55.322Z",
+      "by": "user",
+      "text": "Q1. P20 goes after P6\nQ2. steady (already done)\nQ3. D"
     }
   ]
 }
