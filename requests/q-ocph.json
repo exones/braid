@@ -20,6 +20,12 @@
       "at": "2026-11-23T20:37:20.173Z",
       "by": "pm",
       "text": "UI mockups for 0071/B: PM recommends a, b leave out, c1"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-23T20:43:11.762Z",
+      "by": "user",
+      "text": "The user (relayed by the PM): \"slim please\" (a1: card unchanged from 0070 while all is well; only the D, E, I red stall lines, without \"the PM was told\"; expected by and the history in the details panel; CLI and messages as shown); \"b. leave it out\" (no card G); \"c. c1\" (escalation recorded as a reminded event with a reason). No redrawn mockup needed; build."
     }
   ]
 }
