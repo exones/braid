@@ -1,0 +1,19 @@
+{
+  "code": "q-l7z6",
+  "item": "0073",
+  "kind": "decision",
+  "text": "Sequence 0073/D with 0071/D: PR #282 has braid/SKILL.md open (no overlapping lines)",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-23T23:16:16.249Z",
+      "by": "coordinator"
+    }
+  ]
+}
