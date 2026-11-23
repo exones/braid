@@ -1,5 +1,5 @@
 interface:
-  display_name: "Braid programme manager"
+  display_name: "Braid Programme Manager"
   short_description: "Run a goal as several braids through their coordinators"
   default_prompt: "Use $braid-pm to run my goal as braids."
 policy:
