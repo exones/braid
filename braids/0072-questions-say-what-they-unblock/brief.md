@@ -11,6 +11,8 @@ delivery: epic
 
 Programme pm/autonomous-dev-machine, row P4. Builds on 0070's request record (P3). Each question says what it unblocks (items, strands) and whether it is a decision or something the user does outside braid (a token, a repo setting); answered questions stay listed as decided, with the answer. When the user answers, the agent first recaps in one line what it understood and what it will do next, then acts, so a misread answer is caught at once. Inbox 2026-11-19-aeli (the user promoted it) and 2026-11-21-t7b8, taken into this braid.
 
+The forwarded-merge push (inbox 2026-11-23-zcr3) is the one hiccup left in the pushes the user called "MUUUUCH better" (2026-11-24): "👀 everix 0002: merge PR #1583" with the body "0002 PR #1583" has no q-code, no braid title, no PM note (checked or not) and no head, while the PM's own asks carry all of that. Make it read like them.
+
 This is an outline: its coordinator plans it fully when its turn comes, from 0070 as merged.
 
 ## Working at the end
