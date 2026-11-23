@@ -1,7 +1,7 @@
 ---
 id: '0070/D'
 title: "Skills: questions in chat on the record, end markers"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L"]
 dependencies: ['0070/B']
 order: 40
