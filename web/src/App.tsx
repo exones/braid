@@ -203,7 +203,9 @@ function PmLine({ pm }: { pm: PmHandling }) {
   return (
     <div className="mt-1.5 rounded-md border-l-[3px] border-teal-700 bg-teal-50 px-1.5 py-1 text-[12.5px] leading-snug text-teal-900">
       🧭 {pm.text}
-      <small className="mt-px block text-[11px] text-slate-500">to the PM {pm.age} ago · no push; it comes to you if the PM doesn't answer</small>
+      <small className="mt-px block text-[11px] text-slate-500">
+        {pm.forwarded === true ? `the PM asked you ${pm.age} ago · it pushes from the PM's thread` : `to the PM ${pm.age} ago · no push; it comes to you if the PM doesn't answer`}
+      </small>
     </div>
   );
 }
@@ -1099,7 +1101,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
       )}
       {item.pm !== null && (
         <div role="note" className="my-3.5 max-w-[75ch] rounded-lg border-l-[3px] border-teal-700 bg-teal-50 px-3.5 py-2.5 text-teal-900">
-          <b className="mb-0.5 block text-xs uppercase tracking-wide">For the PM · {item.pm.age} ago</b>
+          <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.pm.forwarded === true ? "Asked of you through the PM" : "For the PM"} · {item.pm.age} ago</b>
           {item.pm.text}
           <div className="mt-1.5 text-[11px] text-slate-500">It comes to you if the PM doesn't answer in time or forwards it. Your own answer still wins.</div>
         </div>
@@ -1570,10 +1572,17 @@ function optionLines(text: string): { head: string; options: string[] } {
 
 /** A programme's need: the PM's request with its options, or the stall with what the board saw. */
 function ProgrammeNeed({ p }: { p: TaggedProgramme }) {
-  const need = p.need;
-  if (need === null) {
-    return null;
-  }
+  return (
+    <>
+      {p.need !== null && <OneNeed p={p} need={p.need} />}
+      {p.forwards.map((f) => (
+        <OneNeed key={f.id} p={p} need={f.need} item={f.id} />
+      ))}
+    </>
+  );
+}
+
+function OneNeed({ p, need, item }: { p: TaggedProgramme; need: Need; item?: string }) {
   if (need.kind === "stalled") {
     return (
       <div className="mt-1.5 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-2 py-1.5 text-[13px] leading-snug text-amber-950">
@@ -1594,17 +1603,17 @@ function ProgrammeNeed({ p }: { p: TaggedProgramme }) {
           ))}
         </ul>
       )}
-      <small className="mt-0.5 block text-[11px] text-slate-500">programme · {ageText(need)} · answer in the PM thread</small>
+      <small className="mt-0.5 block text-[11px] text-slate-500">{item === undefined ? "programme" : `from ${item}`} · {ageText(need)} · answer in the PM thread</small>
     </div>
   );
 }
 
 /** The mark at the top right of a programme card: ? asks, ⏳ stalled, ⏸ held. */
 function ProgrammeMark({ p }: { p: TaggedProgramme }) {
-  if (p.need !== null) {
+  if (p.need !== null || p.forwards.length > 0) {
     return (
-      <span title={p.need.kind === "stalled" ? "Stalled" : "The PM asks you"} className="flex size-5 flex-none items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
-        {p.need.kind === "stalled" ? "⏳" : "?"}
+      <span title={p.need?.kind === "stalled" ? "Stalled" : "The PM asks you"} className="flex size-5 flex-none items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
+        {p.need?.kind === "stalled" ? "⏳" : "?"}
       </span>
     );
   }

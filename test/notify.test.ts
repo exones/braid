@@ -79,6 +79,7 @@ interface Need {
   pr: number | null;
   who: string | null;
   more: number;
+  link?: string | null;
 }
 interface Strand {
   id: string;
@@ -232,7 +233,7 @@ test("braid notify test sends one push with the token from the environment, and 
 
 test("a push carries the repo, id, lane, title, need line, tag, priority and app link only", () => {
   const b = boardOf([
-    card("0007", "Waiting", need("decision", "Pick the database", "2026-11-20T10:00:00.000Z", { key: "architecture" }), { thread: "http://127.0.0.1:3773/env1/th1" }),
+    card("0007", "Waiting", need("decision", "Pick the database", "2026-11-20T10:00:00.000Z", { key: "architecture", link: "http://127.0.0.1:3773/env1/th1" })),
     card("0008", "In Review", need("review", "Merge PR #12", "2026-11-20T10:05:00.000Z", { pr: 12 })),
     card("0009", "In Progress", null),
   ]);
@@ -242,19 +243,22 @@ test("a push carries the repo, id, lane, title, need line, tag, priority and app
     { ...pushes[0] },
     { key: "0007|Waiting|decision|2026-11-20T10:00:00.000Z", item: "0007", kind: "need", title: "agento 0007: Needs You", body: "Title of 0007\nPick the database", tags: ["scales"], priority: "high", click: "t3code://threads/env1/th1", sequence: "braid-agento-0007" },
   );
-  assert.deepEqual({ ...pushes[1] }, { key: "0008|In Review|review|2026-11-20T10:05:00.000Z", item: "0008", kind: "need", title: "agento 0008: To Review", body: "Title of 0008\nMerge PR #12", tags: ["eyes"], priority: "default", click: null, sequence: "braid-agento-0008" });
+  assert.deepEqual({ ...pushes[1] }, { key: "0008|In Review|review|2026-11-20T10:05:00.000Z", item: "0008", kind: "need", title: "agento 0008: To Review", body: "Title of 0008\nMerge PR #12\nOpen the board", tags: ["eyes"], priority: "default", click: null, sequence: "braid-agento-0008" });
+  // No thread to open (no request thread, no coordinator): the body says where to go.
+  assert.equal(pushes[1]?.body, "Title of 0008\nMerge PR #12\nOpen the board");
 });
 
-test("a braid card with strands pushes per strand need, not once per braid", () => {
-  const s1 = strand("0010/A", "Waiting", need("checks failed", "Checks failed: verify; fix or retry", "2026-11-20T09:00:00.000Z"));
-  const s2 = strand("0010/B", "In Review", need("review", "Merge PR #3", null, { pr: 3 }), "http://127.0.0.1:3773/e/w");
-  const b = boardOf([card("0010", "Waiting", { ...s1.need!, who: "0010/A", more: 1 }, { strands: [s1, s2, strand("0010/C", "In Progress", null)] })]);
+test("a braid card with strands pushes per strand request, and no alarm", () => {
+  const s1 = strand("0010/A", "Waiting", need("question", "Which name?", "2026-11-20T09:00:00.000Z", { link: "http://127.0.0.1:3773/e/asker" }));
+  const s2 = strand("0010/B", "In Review", need("review", "Merge PR #3", "2026-11-20T09:30:00.000Z", { pr: 3 }));
+  const s3 = strand("0010/D", "Waiting", need("checks failed", "Checks failed: verify; fix or retry", "2026-11-20T09:00:00.000Z", { verb: "for" }));
+  const b = boardOf([card("0010", "Waiting", { ...s1.need!, who: "0010/A", more: 2 }, { strands: [s1, s2, s3, strand("0010/C", "In Progress", null)], coordinator: { link: "http://127.0.0.1:3773/e/coord" } })]);
   const pushes = message.pushesOf(b);
   assert.deepEqual(
     pushes.map((p) => [p.key, p.title, p.tags[0], p.click]),
     [
-      ["0010/A|Waiting|checks failed|2026-11-20T09:00:00.000Z", "agento 0010/A: Needs You", "x", null],
-      ["0010/B|In Review|review|#3", "agento 0010/B: To Review", "eyes", "t3code://threads/e/w"],
+      ["0010/A|Waiting|question|2026-11-20T09:00:00.000Z", "agento 0010/A: Needs You", "question", "t3code://threads/e/asker"],
+      ["0010/B|In Review|review|2026-11-20T09:30:00.000Z", "agento 0010/B: To Review", "eyes", "t3code://threads/e/coord"],
     ],
   );
 });
@@ -263,7 +267,7 @@ test("a Done braid's push names its title and PR", () => {
   const pushes = message.pushesOf(boardOf([card("0011", "Done", null, { pr: { number: 44 }, strands: [strand("0011/A", "Done", null)] })]));
   assert.deepEqual(
     pushes.map((p) => ({ ...p })),
-    [{ key: "0011|done", item: "0011", kind: "done", title: "agento 0011: Done", body: "Title of 0011\nPR #44 merged", tags: ["white_check_mark"], priority: "default", click: null, sequence: null }],
+    [{ key: "0011|done", item: "0011", kind: "done", title: "agento 0011: Done", body: "Title of 0011\nPR #44 merged\nOpen the board", tags: ["white_check_mark"], priority: "default", click: null, sequence: null }],
   );
 });
 
