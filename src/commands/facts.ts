@@ -6,7 +6,7 @@ import { decidedEntries } from "../braids/decided.js";
 import { answeredRows, loadRecord } from "../braids/requests.js";
 import { LOG_FILE } from "../braids/store.js";
 import { UsageError } from "./braids.js";
-import { ciChecks } from "./coordinate.js";
+import { ciAll, ciChecks } from "./coordinate.js";
 import { checksProblem, git, must, view, type PrView } from "./done.js";
 
 const REMOTE = "origin";
@@ -161,7 +161,7 @@ export async function recapCommand(root: string, args: readonly string[], opts: 
   const names = ciChecks(root);
   const runs = runsOf(pr.statusCheckRollup);
   const checks = (names.length === 0 ? runs.map((r) => r.name) : names).map((n) => `${n} ${runs.find((r) => r.name === n)?.result ?? "pending"}`).join(", ");
-  const problem = checksProblem(names, pr, { root, run });
+  const problem = checksProblem(names, pr, { root, run }, ciAll(root));
   const worker = field(report, "Needs the user");
   const quiet = worker === null || /^`?none`?\.?$/i.test(worker);
   const needs = facts.map((f) => `${f.key} (facts): ${f.text}`);

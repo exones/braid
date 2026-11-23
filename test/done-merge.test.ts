@@ -155,3 +155,19 @@ test("--merge --preset: refused when ci is none, and --preset needs --merge", as
   await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--preset"], w.opts), /--preset goes with --merge/);
   assert.equal(w.merges.length, 0);
 });
+
+test("ci: all: --merge needs every reported check green and at least one reported", async () => {
+  const w = world("", "all");
+  const head = w.headOf("braid/0001/A-first").slice(0, 7);
+  const merge = ["0001/A", "--head", head, "--merge"];
+  const refuse = async (why: RegExp) => assert.rejects(acceptCommand(w.root, merge, w.opts), why);
+  w.prs[0]!.checks = "NONE";
+  await refuse(/ci: all, but no check is reported on [0-9a-f]{7}/);
+  w.prs[0]!.checks = "FAILURE";
+  await refuse(/checks not green: verify failing/);
+  w.prs[0]!.checks = "PENDING";
+  await refuse(/checks not green: verify pending/);
+  assert.equal(w.merges.length, 0);
+  w.prs[0]!.checks = "SUCCESS";
+  assert.match(await acceptCommand(w.root, merge, w.opts), /merged PR #5/);
+});

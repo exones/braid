@@ -9,7 +9,7 @@ import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
 import { normaliseId, UsageError } from "./braids.js";
-import { ciChecks } from "./coordinate.js";
+import { ciAll, ciChecks } from "./coordinate.js";
 import { checksProblem, view } from "./done.js";
 import { find, parse, readText, str } from "./edit.js";
 import { mainBranch } from "./start.js";
@@ -171,7 +171,7 @@ export async function handoverCommand(root: string, args: readonly string[], opt
     fail(`PR #${pr.number}'s head is ${pr.headRefOid.slice(0, 7)}, not ${head}`);
   }
   const notes: string[] = [];
-  const checks = checksProblem(ciChecks(root), pr, { root, run, notes });
+  const checks = checksProblem(ciChecks(root), pr, { root, run, notes }, ciAll(root));
   if (checks !== null) {
     fail(checks.why);
   }

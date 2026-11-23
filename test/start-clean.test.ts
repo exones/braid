@@ -229,3 +229,14 @@ test("clean in one listed twin leaves the other twin's worktree in the shared ol
     },
   );
 });
+
+test("clean keeps a braid branch whose braid is not Done, even after a merged PR from it, and names why", async () => {
+  const { root, env, prs } = await started();
+  // An early PR from the braid branch into main merged while the braid went on.
+  git(root, "worktree", "prune");
+  const early = [...prs, merged(279, "braid/0001-alpha")];
+  const out = await cleanCommand(root, ["--yes"], src(early), env);
+  assert.match(out, /skip 0001: .*branch braid\/0001-alpha \(PR #279 merged\): its braid is not Done on braid\/0001-alpha \(In Progress\); the braid goes on/);
+  assert.equal(gone(root, "braid/0001-alpha"), false);
+  assert.match(out, /removed 0001\/A:/);
+});

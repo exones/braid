@@ -41,9 +41,9 @@ Expected size: about 150 lines of code and tests in 4 to 6 files, plus docs.
 
 ## Completion
 
-- [ ] With `ci: all`, `braid wait` waits for every check reported after a start grace and exits 0 only when all passed; `braid accept`, `braid handover` and `braid facts` require at least one reported check and all passed; tests cover green, failed, pending, none reported and a late check
-- [ ] `braid clean` keeps a braid branch whose braid is not Done, even after a merged PR from it, with a test
-- [ ] The template and docs say exactly what `[]`, `all`, a list and `none` mean
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] With `ci: all`, `braid wait` waits for every check reported after a start grace and exits 0 only when all passed; `braid accept`, `braid handover` and `braid facts` require at least one reported check and all passed; tests cover green, failed, pending, none reported and a late check
+- [x] `braid clean` keeps a braid branch whose braid is not Done, even after a merged PR from it, with a test
+- [x] The template and docs say exactly what `[]`, `all`, a list and `none` mean
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

@@ -77,7 +77,7 @@ A preset is a short Markdown file that says what the coordinator merges by itsel
 - `steady`: it merges strands into the braid branch, starts the next one and decides the small cases; the big decisions and the final PR into `main` are yours.
 - `free`: it merges everything, `main` included, and decides every case, logging each.
 
-Whatever the preset, a merge by the coordinator needs green CI (`ci` not `none`), an independent review with nothing blocking and the reviewed head commit. Each decision it makes is logged as `Decided: <what>, because <why>, instead of <alternative>`; your answers, and the PM's with its reason, are on the request record (below). You read them together in the recap (`braid decisions <number>` lists them).
+Whatever the preset, a merge by the coordinator needs green CI (`ci` a list or `all`, not `none`), an independent review with nothing blocking and the reviewed head commit. Each decision it makes is logged as `Decided: <what>, because <why>, instead of <alternative>`; your answers, and the PM's with its reason, are on the request record (below). You read them together in the recap (`braid decisions <number>` lists them).
 
 **For a project,** set `autonomy: <name>` in `BRAID.md`. Every braid without its own preset runs on it.
 
