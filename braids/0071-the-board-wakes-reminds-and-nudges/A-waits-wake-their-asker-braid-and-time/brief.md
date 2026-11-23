@@ -55,10 +55,10 @@ Expected size: about 400 lines in 8 files.
 
 ## Completion
 
-- [ ] The running board records `met` for open requests whose `pr:`, `braid:` or `time:` condition holds, and sends the asking thread one wake message; a test covers each condition.
-- [ ] A test shows the wake is sent once across two refreshes and across a board restart, and that a failed send or failed push neither repeats a delivered wake nor loses an undelivered one.
-- [ ] A held or paused braid's requests are not closed or woken; a test covers it.
-- [ ] A wait does not withdraw its asker's open question on the same item and the reverse; a question still replaces a question and a wait to the same braid a wait (tests in `test/requests-record.test.ts`).
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The running board records `met` for open requests whose `pr:`, `braid:` or `time:` condition holds, and sends the asking thread one wake message; a test covers each condition.
+- [x] A test shows the wake is sent once across two refreshes and across a board restart, and that a failed send or failed push neither repeats a delivered wake nor loses an undelivered one.
+- [x] A held or paused braid's requests are not closed or woken; a test covers it.
+- [x] A wait does not withdraw its asker's open question on the same item and the reverse; a question still replaces a question and a wait to the same braid a wait (tests in `test/requests-record.test.ts`).
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

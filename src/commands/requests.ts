@@ -3,11 +3,12 @@
 import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
-import { fetchBranch } from "../braids/gitbranch.js";
-import { age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, KINDS, liveRequests, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { fetchBranch, git } from "../braids/gitbranch.js";
+import { age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isWait, KINDS, liveRequests, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
+import { braidDoneOn } from "../board/wake.js";
 import { normaliseId, UsageError } from "./braids.js";
 import { ciChecks } from "./coordinate.js";
 import { checksProblem, view } from "./done.js";
@@ -246,7 +247,8 @@ export function forwardCommand(root: string, args: readonly string[], opts: Requ
   }
   const id = itemId(root, positionals[0], "braid forward");
   const note = str(values, "note")?.replace(/\s+/g, " ").trim();
-  const open = loadRequests(root).find((r) => r.id === id && askerOf(r) === "coordinator");
+  // A wait to another braid is never forwarded: the coordinator's question is.
+  const open = loadRequests(root).find((r) => r.id === id && askerOf(r) === "coordinator" && !isWait(r)) ?? loadRequests(root).find((r) => r.id === id && askerOf(r) === "coordinator");
   if (open === undefined) {
     throw new UsageError(`${id}: no open request to forward`);
   }
@@ -443,7 +445,12 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
       return null;
     }
   };
-  const list: Request[] = liveRequests(root, prOf);
+  // A `braid:` wait reads main as origin has it; offline, the last fetched one.
+  const main = mainBranch(root);
+  if (loadRequests(root).some((r) => r.doneWhen.startsWith("braid:"))) {
+    git(root, ["fetch", "-q", "origin", main]);
+  }
+  const list: Request[] = liveRequests(root, { pr: prOf, braidDone: braidDoneOn(root, main), now: (opts.now ?? (() => new Date()))() });
   if (list.length === 0) {
     return `${offline}${skipped()}no open requests\n`;
   }
