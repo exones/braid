@@ -20,7 +20,7 @@ The PM's live check of the final PR (#259 at e0cd47c) found the address file inh
 
 ## Docs
 
-`docs/board.md` (the address file's Windows ACL; stop a hand-started board before `install`; install on a held port; what last result 0 means), `docs/cli.md` (install on a held port), `docs/decisions.md` D92 (dated correction, and why).
+`docs/board.md` (the address file's Windows ACL; stop a hand-started board before `install`; install on a held port; what last result 0 means), `docs/cli.md` (install on a held port), `docs/decisions.md` D94 (dated correction, and why).
 
 ## Open
 

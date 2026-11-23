@@ -3,7 +3,7 @@
 ## What changed
 
 - `braid board service install [--port <n>] [--host <address>] | remove | restart [--if-installed] | status` (`src/commands/service.ts`, wired in `src/cli.ts`). Each command builds Task Scheduler XML and runs `schtasks` with an array of arguments. Off Windows every subcommand says it is Windows-only and points to the systemd recipe. `restart --if-installed` is silent off Windows and when no task is installed.
-- The task, `braid board`, is the kind the user chose (D93):
+- The task, `braid board`, is the kind the user chose (D95):
   - It runs with your interactive token, as the user who logs on, with `LeastPrivilege`. No password is stored and no administrator is needed.
   - It has two triggers: a logon trigger for that user, and a time trigger from the install time that repeats every 5 minutes with no end. Together with `IgnoreNew`, a board that crashed or was killed comes back within 5 minutes, including in the session it was installed in. Restart-on-failure is not used, so unknown U1 doesn't matter.
   - No time limit and no battery rules.
@@ -16,7 +16,7 @@
 - `scripts/Install-Skills.ps1` ends with `braid board service restart --if-installed`, after the CLI and the skills are installed, and prints its line. A failed restart fails the script, with everything else already installed.
 - Docs:
   - `docs/board.md` "Run the board at login": the Windows recipe is now `braid board service`, plus how updating restarts it, automatic sign-in after a reboot, and Tailscale's unattended mode.
-  - `docs/getting-started.md` (updating), `docs/cli.md` (the new row and `--service`), the help text, a README line, and `docs/decisions.md` D93 with its dated log entry.
+  - `docs/getting-started.md` (updating), `docs/cli.md` (the new row and `--service`), the help text, a README line, and `docs/decisions.md` D95 with its dated log entry.
 
 ## Why this shape (measured, 2026-11-23, throwaway tasks on this machine)
 
@@ -67,7 +67,7 @@ Clearing the throwaway probe tasks also left the probe's orphaned `node` process
 
 ## Docs
 
-Updated: `docs/board.md`, `docs/getting-started.md`, `docs/cli.md`, `docs/decisions.md` (D93 and the log entry), `README.md`, and the help text in `src/cli.ts`. Not affected: `docs/autonomy.md`, `docs/braids-format.md`, `docs/development.md`, `docs/roadmap.md`, `docs/npm-distribution.md`.
+Updated: `docs/board.md`, `docs/getting-started.md`, `docs/cli.md`, `docs/decisions.md` (D95 and the log entry), `README.md`, and the help text in `src/cli.ts`. Not affected: `docs/autonomy.md`, `docs/braids-format.md`, `docs/development.md`, `docs/roadmap.md`, `docs/npm-distribution.md`.
 
 ## Open
 

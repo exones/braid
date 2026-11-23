@@ -34,11 +34,18 @@ Expected size: about 60 lines in 3 to 5 files.
 
 - Leftovers 2026-11-23-th6n and 2026-11-23-14vt.
 
+## Plan
+
+1. `src/system32.ts`: `system32(exe)` gives `%SystemRoot%\System32\<exe>` (`C:\Windows` without SystemRoot). `ownerOnlyAcl` runs `whoami.exe` and `icacls.exe` through it, `runSchtasks` runs `schtasks.exe` through it. Tests: the paths, the sources never spawn by bare name, and on Windows the ACL is set with Git's `usr/bin` first on PATH.
+2. Status: while the task runs (status column "Running", or last result 267009), its last result is shown as `previous run: <text>`; with 267009 itself only the status. `resultText` reads signed HRESULTs by their unsigned value and names 0x800710E0 "ended by a logoff or a stop". The address line's "isn't running" note uses the same test.
+3. D92 to D94 and D93 to D95 in 0067's reports and strand C's brief; logs untouched.
+4. docs/board.md and docs/cli.md: the `previous run:` wording.
+
 ## Completion
 
-- [ ] whoami, icacls and schtasks run by their full System32 path; tested; `test/board-address.test.ts` passes from Git Bash
-- [ ] `status` doesn't show a previous run's result as if the running task had failed; 0x800710E0 reads in words; tested
-- [ ] 0067's `braids/` reports name D94 and D95 where they mean 0067's decisions
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] whoami, icacls and schtasks run by their full System32 path; tested; `test/board-address.test.ts` passes from Git Bash
+- [x] `status` doesn't show a previous run's result as if the running task had failed; 0x800710E0 reads in words; tested
+- [x] 0067's `braids/` reports name D94 and D95 where they mean 0067's decisions
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open

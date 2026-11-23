@@ -58,16 +58,19 @@ const address = (await load("../dist/board/address.js")) as {
   readAddresses(home?: string): { port: number; url: string }[];
 };
 
+const sys = (await load("../dist/system32.js")) as { system32(exe: string, env?: NodeJS.ProcessEnv): string };
+const ownerOnlyAcl = (await load("../dist/board/address.js")).ownerOnlyAcl as (file: string) => void;
+
 /** The file's ACL as icacls lists it: its entries, and whether any is inherited. */
 function aclOf(file: string): { entries: string[]; inherited: boolean } {
-  const out = execFileSync("icacls", [file], { encoding: "utf8" });
+  const out = execFileSync(sys.system32("icacls.exe"), [file], { encoding: "utf8" });
   const entries = out
     .split(/\r?\n/)
     .map((l, i) => (i === 0 ? l.slice(file.length) : l).trim())
     .filter((l) => /:\(/.test(l));
   return { entries: entries.map((e) => e.toLowerCase()), inherited: entries.some((e) => e.includes("(I)")) };
 }
-const whoami = (): string => execFileSync("whoami", { encoding: "utf8" }).trim().toLowerCase();
+const whoami = (): string => execFileSync(sys.system32("whoami.exe"), { encoding: "utf8" }).trim().toLowerCase();
 
 const ok = () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" });
 const run = { gh: ok, t3: ok, projects: () => [], notifier: () => () => {} };
@@ -136,6 +139,40 @@ test("the ACL is set on the empty file before the token is written; a failed ACL
     /icacls couldn't make it owner-only/,
   );
   assert.deepEqual(readdirSync(home).filter((n) => n.startsWith("board-4101")), [], "no file, no temporary file");
+});
+
+test("whoami, icacls and schtasks run by their full System32 path, never by a bare name on PATH", () => {
+  assert.equal(sys.system32("whoami.exe", { SystemRoot: "D:\\Win" }), "D:\\Win\\System32\\whoami.exe");
+  assert.equal(sys.system32("icacls.exe", {}), "C:\\Windows\\System32\\icacls.exe", "C:\\Windows when SystemRoot isn't set");
+  const here = fileURLToPath(new URL(".", import.meta.url));
+  for (const [file, tools] of [["../src/board/address.ts", ["whoami", "icacls"]], ["../src/commands/service.ts", ["schtasks"]]] as const) {
+    const source = readFileSync(join(here, file), "utf8");
+    for (const tool of tools) {
+      assert.ok(source.includes(`spawnSync(system32("${tool}.exe")`), `${file} runs ${tool} from System32`);
+      assert.ok(!source.includes(`spawnSync("${tool}`), `${file} never runs ${tool} by bare name`);
+    }
+  }
+});
+
+test("on Windows the ACL is set with another whoami first on PATH (Git Bash's coreutils)", { skip: process.platform !== "win32" }, (t) => {
+  // Under Git Bash, `whoami` on PATH is GNU coreutils', which rejects /user: a bare name would find it.
+  const gitBin = [join(process.env["ProgramFiles"] ?? "C:/Program Files", "Git", "usr", "bin")].find((d) => existsSync(join(d, "whoami.exe")));
+  if (gitBin === undefined) {
+    t.skip("no Git for Windows usr/bin here");
+    return;
+  }
+  const saved = process.env["PATH"];
+  process.env["PATH"] = `${gitBin};${saved ?? ""}`;
+  try {
+    const file = join(root, "acl-under-git-bash.txt");
+    writeFileSync(file, "");
+    ownerOnlyAcl(file);
+    const acl = aclOf(file);
+    assert.equal(acl.inherited, false);
+    assert.equal(acl.entries.length, 1);
+  } finally {
+    process.env["PATH"] = saved;
+  }
 });
 
 test("--demo and boards started without runBoard write no address file", async () => {
