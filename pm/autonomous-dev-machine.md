@@ -7,7 +7,7 @@ limit: 2
 state: running
 hold:
 next: "P6 · 0071 and P20 · 0073 (fewer CI runs first) run; then P4 · 0072, P5"
-digest: "23 Nov · 5 done · 2 running · 10 PM decisions"
+digest: "23 Nov · 5 done · 2 running · 11 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | done
@@ -142,6 +142,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P20 · 0073 plan approved by the PM (q-7qq3): A fewer CI runs (push CI on main only, one push per review round, braid wait takes a merge commit's second-parent runs) to main early via an intermediate PR; B merge-gate (9-minute limit, exit 0 passes); C ci: all; D large-repo lines and docs. Questions 1–3 stay with the user (q-gbni), needed before B and D.
 - 2026-11-23: user: "for 73 you can give it information that it can investigate c:\code\everix4 if required" (sent to 0073, read-only) and "don't forget to ask me in advance if you see some decisions will be required later": a PM rule for this programme (and for the braid-pm skill, P10): look ahead and ask the decisions a running or next braid will need before its coordinator reaches them. First use: q-gbni (0073).
 - 2026-11-23: P6 · 0071/A merged into its braid branch (#275, 7ad5b60): pr:/braid:/time: checked, one wake then met, question and wait apart. Leftovers dy2k and 1oq8 kept in 0071 (strand C), 5bor to P14. 0071/B running (mockups to the user).
 - 2026-11-23: user: "don't worry about the usage, I will reset it as it reaches like 3% left" (after "I need it quite quickly"): P20 · 0073 started next to 0071 (limit 2), its CI-runs story first and to main early; no overlap with 0071 beyond the braid/braid-pm skills (0073 asks first).
