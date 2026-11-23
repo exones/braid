@@ -15,7 +15,7 @@ What changed:
   - D82 notes that D99 supersedes its `Decided:` for the PM's decisions; D99 says the PM's `--from pm` reason is that decision on the record (0070/D's review).
   - The user's words from 0070's "Already decided" added where a decision lacked them: D97 (waits as requests, "Yes"), D99 ("not only via chat, but via braid cli"; on ⏳).
 - `docs/roadmap.md`: questions on record (0070, built), with P6 named as what comes next on top of it.
-- `.agents/skills/braid/SKILL.md`, "Launched by a PM": "the user's answer on the board" becomes "the user's reply". The board has no Answer button (asked by the user through this braid). Nothing else in the skill changed (6371 → 6368 words).
+- `.agents/skills/braid/SKILL.md`, "Launched by a PM": "the user's answer on the board" becomes "the user's reply", and "A reply from the user on the board still wins" becomes "A reply from the user still wins". The board has no Answer button. The first was asked by the user through this braid; the coordinator decided the second under the preset as the same correction. Nothing else in the skill changed: 6371 → 6365 words (`wc -w`).
 
 Why: the brief's goal; the board has no Answer button (D98), so the skill's wording pointed at something that doesn't exist.
 
@@ -47,9 +47,12 @@ Open: nothing.
 
 Decisions: the upgrade note sits in getting started's install section, where updating is described, and not in `docs/npm-distribution.md`, which is about publishing.
 
+The capital `Q-ctz4` in the upgrade check: not braid's. Codes are generated from `abcdefghijklmnopqrstuvwxyz0123456789` (`newCode` in `src/braids/requests.ts`), stored lowercase (`"code": "q-l9en"` in the record's file), and no output path upper-cases them. A second run's output, written to a file and read with `od -c`, starts `q - l 9 e n`. A plain `echo "q-abcd"` showed as `Q-abcd` in the same place: the agent tool's display capitalises the first character of a command's output. Neither Git Bash nor the terminal does it, and nothing changed.
+
+Lookup by code is case-sensitive: `braid requests Q-L9EN` is refused ("not a request code"), and `braid answer Q-L9EN` is refused with "not a braid or strand id", a misleading message. Nothing is ever written under the wrong code.
+
 For later items:
 
-- The braid skill's "Launched by a PM" also says "A reply from the user on the board still wins". The board has no Answer button there either; "a reply from the user still wins" would match. I left it out because the brief kept the skill edit to the one wording; it needs the user's go.
-- In this run `braid answer` printed its line as `Q-ctz4 0070/E: answered by the user: Keep it.` (a capital Q) in Git Bash, though the source writes the code as is. Not investigated; worth a look if it repeats.
+- Codes typed in capitals (a phone keyboard, or a user copying a code from a capitalised display) are refused. `braid requests`, `answer` and `withdraw` could lower-case a code matching `/^q-/i` before the lookup, and `answer` and `withdraw` could say "not a request code" for one that doesn't match. It is small, with a test, but it is code and outside this docs strand's scope.
 
 Needs the user: none
