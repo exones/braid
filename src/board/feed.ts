@@ -67,7 +67,8 @@ export async function readSnapshot(src: Sources, fetch: boolean): Promise<Snapsh
     const inbox = await timed("inbox", () => src.inbox(fetch));
     const start = src.start();
     const board = await timed("board", () => {
-      const b = toBoard(src.repo, braids, gh, threads, sig, start, inbox, src.readiness?.(gh) ?? []);
+      const limits = src.limits?.(threads, sig.pauses ?? new Map()) ?? null;
+      const b = toBoard(src.repo, braids, gh, threads, sig, start, inbox, src.readiness?.(gh) ?? [], limits);
       sig.commit();
       return b;
     });
@@ -162,6 +163,11 @@ export function feed(src: Sources, options: FeedOptions): Feed {
           src.notify?.(snap.board);
         } catch {
           // Notifications never stop the board.
+        }
+        try {
+          src.act?.(snap);
+        } catch {
+          // The limits pause never stops the board.
         }
       } else {
         failure = message(snap.error);

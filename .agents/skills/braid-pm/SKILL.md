@@ -13,7 +13,7 @@ You are the programme manager (PM for short) of one project. The user, acting as
 
 Read `BRAID.md` (`gate`, `main`, `ci`, `run`, `models`), the project's agent instructions (`AGENTS.md` or `CLAUDE.md`), and these parts of the [braid skill](../braid/SKILL.md): "Plan" step 0 (how a coordinator thread is launched), "Talking to the user" (the open requests and option sets you will answer), "Autonomy" and "Launched by a PM". The cases you judge are the [stop cases](../braid/references/stop-cases.md); merging under a preset is in [autonomy](../braid/references/autonomy.md).
 
-Models: coordinators and the live checker use `models.coordinator` from `BRAID.md`, with its exact provider, model and options. If it is unavailable, tell the user; never substitute.
+Models: coordinators and the live checker use `models.coordinator` from `BRAID.md`, with its exact provider, model and options. If it is unavailable, tell the user; never substitute. `models.steering` (a `first` and a `fallback` line) is the board's pause thread, not yours.
 
 ## Taking a goal
 
@@ -120,16 +120,13 @@ When the user says something about the work, update the plan file and tell the u
 
 ## Provider limits
 
-You check and pause for all your braids, as the braid skill's [provider limits](../braid/references/limits.md) says for one coordinator, with these differences:
+The board pauses and resumes your braids' agents ([provider limits](../braid/references/limits.md)); you keep no limits check task, schedule no resume and run no `braid pause` or `braid resume` for a limit.
 
-- **Before launching a coordinator:** `braid limits --role coordinator`. Exit 3: launch nothing on that provider and pause as below.
-- **While braids run:** keep one `braid pm limits check` task in your own thread (`schedule_task`, `{type:"interval", everyMs:900000}`, bound to it), whose prompt runs `braid limits` for the providers your running braids use (their coordinators and agents, from `BRAID.md` `models`), pauses as below on exit 3, and otherwise ends at once with no message. You wait by ending your turn ("Running" step 6), so a queued run starts at once. Create it with the first running braid; delete it when none runs and when you pause. A coordinator's `<number>: <provider> … over its threshold` message is the same signal.
-- **Pause:** for every braid you run with agents on that provider, steer its coordinator (`t3_thread_send`, `mode:"auto"`): `Pause for <provider> <window> until <resume time>: pause your agents on it as "Under a PM" in references/limits.md says, then reply Paused: <number>.` Wait for each `Paused:` reply as the reference's "Pause" step 2 says. Delete the `braid pm limits check` task. Schedule one resume task in your own thread: `schedule_task`, `{type:"interval", everyMs: max(60000, resumeAt − now)}` (`resumeAt` from `braid limits --json`), bound to it, title `braid pm resume <provider>`, prompt `braid pm resume <provider>. First delete this task (delete_scheduled_task <task id>; if unknown, find it by title with list_scheduled_tasks). Then follow "Resume" under "Provider limits" in the braid-pm skill.` (fill in the id with a second `schedule_task` call once the first returns it). Then run `braid pause <number> --by pm --provider <instanceId> --thread <your thread id> --task <task id>` for each braid, note the pause in the plan file, and end the turn with `⏳ Paused for <provider> <window>; resumes at <time>`. Weekly windows ask the user in chat, context first, with the same two options; never switch providers yourself.
-- **Resume:** the scheduled run deletes its task first, then:
-  1. No braid still paused by you on that provider (`braid status`: the user resumed by hand): end the turn.
-  2. `braid limits <instanceId>`. Exit 3 (still over): schedule a new resume task as above and run `braid pause <number> --by pm …` again with the new `--task` for each braid; end the turn.
-  3. Exit 0 (`ok`, or `unknown`: a stale cache or a past reset reads as go): `braid resume <number>` for each braid you paused, and send each coordinator (`mode:"auto"`) `Resume: continue your agents on <provider>.`
-  4. Recreate the `braid pm limits check` task while braids run, note the resume in the plan file, and go on with "Running".
+- **Before launching a coordinator:** `braid limits --role coordinator`. Exit 3: launch nothing on that provider, say so once, and end the turn. A coordinator's `<number>: <provider> … over its threshold` message is the same signal; you answer nothing.
+- **The board's pause message** (`Braids <numbers> are paused by the board for <provider> <window> until <resume time>; launch nothing on <provider> until the board's resume message. Reply Paused: pm to <steering thread id> and end your turn.`): launch no coordinator on that provider, steer no coordinator, reply `Paused: pm` to the steering thread, note the pause in the plan file, and end the turn. The board has messaged the coordinators and their agents directly.
+- **The board's resume message** (`Resume: <numbers> were paused by the board for <provider>; go on where you left off`): check `braid status` and the plan file, note the resume, and go on with "Running". Run no `braid resume`: the board cleared its record. A coordinator the board reports under no answer gets `Resume: continue your agents on <provider>.` from you.
+- **Weekly windows:** the board shows the braid in Needs You. Never switch providers yourself; the user moves a role in `BRAID.md` `models` and says go, then `braid resume <number> --limit` for each braid and a go to its coordinator.
+- **Without a running board** (no board, `--no-pause`, or no `steering` role) nothing pauses; the user says go on.
 - **Digest:** name the pause (provider, window, resume time, braids held).
 
 ## Hold
@@ -139,7 +136,7 @@ You check and pause for all your braids, as the braid skill's [provider limits](
 - `braid pause <number> --hold "<their words>" --thread <your thread id> --by pm` for each running braid, so the board shows it held and nothing of it escalates or pushes;
 - in the plan file, `state: held`, `hold: <ISO time> <their words>`, and a change-log line.
 
-"Go" lifts it: `braid resume <number>` for each braid you held, `state: running` and an empty `hold`, then `Go from the user: <their words>` to the coordinators. A pause for a provider's usage limit is "Provider limits" instead.
+"Go" lifts it: `braid resume <number>` for each braid you held, `state: running` and an empty `hold`, then `Go from the user: <their words>` to the coordinators. A pause for a provider's usage limit is the board's, "Provider limits" instead.
 
 ## Resuming
 

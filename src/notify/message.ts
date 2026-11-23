@@ -29,6 +29,7 @@ export const TAGS: Readonly<Record<Need["kind"] | "done", string>> = {
   action: "compass",
   "checks failed": "x",
   stalled: "hourglass",
+  limit: "scales",
   review: "eyes",
   done: "white_check_mark",
 };
@@ -126,7 +127,8 @@ export function pushesOf(board: BoardData): Push[] {
     if (card.pmAsk?.who === null) {
       out.push(pmAskPush(board.repo, card.id, card.title, card.pmAsk));
     }
-    if (card.need !== null && card.need.who === null && card.need.by === undefined && ON_SIDE.includes(card.lane)) {
+    // A limit need (a weekly window, a failed pause) is pushed by the board's limit pushes, once per provider: not again per braid.
+    if (card.need !== null && card.need.who === null && card.need.by === undefined && card.need.kind !== "limit" && ON_SIDE.includes(card.lane)) {
       out.push(needPush(board.repo, card.id, card.title, card.lane, card.need, card.thread ?? card.coordinator?.link ?? null));
     }
     for (const s of card.strands) {

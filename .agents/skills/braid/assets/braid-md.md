@@ -23,6 +23,9 @@ models:
     L: <provider / model / options; optional tier key, also S: or M:; wins over the kind keys>
   reviewer: <provider / model / options>; skill braid-reviewer
   researcher: <provider / model / options>; skill braid-researcher
+  steering:
+    first: <provider / model / options>; the board's pause thread, cheap and low effort
+    fallback: <provider / model / options>; another provider, for when `first`'s is over its threshold
 ---
 
 # <project> for braid agents
