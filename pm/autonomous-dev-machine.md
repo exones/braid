@@ -142,6 +142,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: user: "ok, good, so no major overengineering": 0073 rescoped: only `merge-gate:` (run by braid accept --merge, no preset skips it) and `ci: all` in code; partial CI, review-bot handling, path gates/stops and caches as BRAID.md/AGENTS.md/skill lines; braid doctor to P18.
 - 2026-11-23: user: "do we have a story to react on remote reviewers (rabbit, grok)?", then "yes" to putting it into 0073: idea odxc taken into 0073.
 - 2026-11-23: P20 outlined as 0073 (next after P6).
 - 2026-11-23: user (q-uld7): "Q1. P20 goes after P6 / Q2. steady (already done) / Q3. D": P20 moved after P6; Everix on steady; own trackers (gwwt) decided later.
