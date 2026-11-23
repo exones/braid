@@ -22,7 +22,7 @@ Tell braid a goal. It splits the goal into small work items, has a coding agent 
 ## What it can do
 
 - **Plan a goal into reviewed pull requests.** Say "braid: add dark mode"; you get a plan to approve, then one PR per part.
-- **Review before it reaches you.** Medium and large changes get an independent reviewer (you can set it to a different model than the worker's); the coordinator checks small ones itself, and every PR the coordinator merges by itself gets a reviewer. Review bots such as CodeRabbit can take part: the worker answers and resolves their comments.
+- **Review before it reaches you.** Medium and large changes get an independent reviewer (you can set it to a different model than the worker's); the coordinator checks small ones itself, and every PR the coordinator merges by itself gets a reviewer, or if you choose, review bots such as CodeRabbit for small and medium ones. The worker answers and resolves the bots' comments.
 - **Resume from the files.** Briefs, logs and reports live in `braids/`; after a crash or in a new session any agent continues from them.
 - **See what needs you.** `braid board` shows what waits on you, and can Start a braid, ask the coordinator to merge, and open an agent's thread. On Windows `braid board service install` keeps it running in the background from your logon, without a window.
 - **Pauses before a usage limit.** `braid limits` reads each provider's usage; over a threshold a running `braid board` pauses the braid's agents at a clean point through a steering thread and resumes them after the window's reset; coordinators launch nothing meanwhile. The board shows the pause, not a stall.
