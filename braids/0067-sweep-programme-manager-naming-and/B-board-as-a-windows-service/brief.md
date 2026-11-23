@@ -1,7 +1,7 @@
 ---
 id: '0067/B'
 title: "Board as a Windows service"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:security", "ask:architecture"]
 dependencies: ['0067/A']
 order: 20
