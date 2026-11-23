@@ -5,6 +5,7 @@
 import type { BoardData, Lane, Need } from "../board/model.js";
 import { LANE_LABEL, t3codeUrl } from "../board/marks.js";
 import { FORWARDED_WORDS } from "../board/pm.js";
+import type { Forward } from "../board/programme.js";
 
 export interface Push {
   /** What makes this need distinct: a need whose key was sent is not sent again. */
@@ -127,6 +128,30 @@ function needPush(repo: string, id: string, title: string, lane: Lane, need: Nee
   };
 }
 
+/**
+ * The merges the PM forwarded to the user, one push per PM thread: `<repo>: <n> merges wait for you` (one: `<repo> <id>: merge PR #<n>`),
+ * a body line per PR, high, 👀, opening the PM's thread. Its key holds the set of PRs and their heads and its sequence ID is the PM thread's,
+ * so a merge joining or leaving (or a moved head) sends it again in place of the old one; when none is left the notifier clears it.
+ */
+function mergesPush(repo: string, thread: string, items: readonly Forward[], link: string | null): Push {
+  const click = clickOf(link);
+  const sorted = [...items].sort((a, b) => a.id.localeCompare(b.id));
+  const line = (f: Forward): string => `${f.id} PR #${f.need.pr ?? "?"}`;
+  const one = sorted.length === 1 ? sorted[0] : undefined;
+  const item = `merges#${thread}`;
+  return {
+    key: `${item}|${sorted.map((f) => `${f.id}#${f.need.pr ?? "-"}@${f.head ?? "-"}`).join(",")}`,
+    item,
+    kind: "need",
+    title: one === undefined ? `${repo}: ${sorted.length} merges wait for you` : `${repo} ${one.id}: merge PR #${one.need.pr ?? "?"}`,
+    body: withBoard(sorted.map(line).join("\n"), click),
+    tags: [TAGS.review],
+    priority: "high",
+    click,
+    sequence: sequenceOf(repo, item),
+  };
+}
+
 /** The lane a request puts its item in: a review is To Review, any other request Needs You. */
 const laneOf = (need: Need): Lane => (need.kind === "review" ? "In Review" : "Waiting");
 
@@ -149,6 +174,7 @@ function pushOf(repo: string, id: string, title: string, lane: Lane, need: Need 
  */
 export function pushesOf(board: BoardData): Push[] {
   const out: Push[] = [];
+  const merges = new Map<string, { link: string | null; items: Forward[] }>();
   const running = new Set((board.programmes ?? []).filter((p) => p.section !== null).map((p) => p.slug));
   // A programme's own pushes: the PM's request on it, else its stall; what the PM forwarded from its braids. Done and stopped ones push nothing.
   for (const p of board.programmes ?? []) {
@@ -157,8 +183,17 @@ export function pushesOf(board: BoardData): Push[] {
     }
     out.push(...pushOf(board.repo, `pm/${p.slug}`, p.title, "Waiting", p.need, null));
     for (const f of p.forwards) {
-      out.push(...pushOf(board.repo, f.id, f.id, laneOf(f.need), f.need, null));
+      if (f.need.kind === "review") {
+        // The PM's merges that wait for the user are one push per PM thread: collected here, sent below.
+        const at = p.thread ?? p.slug;
+        merges.set(at, { link: p.link, items: [...(merges.get(at)?.items ?? []), f] });
+      } else {
+        out.push(...pushOf(board.repo, f.id, f.title, laneOf(f.need), f.need, null));
+      }
     }
+  }
+  for (const [thread, group] of merges) {
+    out.push(mergesPush(board.repo, thread, group.items, group.link));
   }
   for (const card of board.braids) {
     const coordinator = card.coordinator?.link ?? null;

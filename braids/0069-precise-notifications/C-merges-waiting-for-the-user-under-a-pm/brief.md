@@ -1,7 +1,7 @@
 ---
 id: '0069/C'
 title: "Merges waiting for the user under a PM: one push, updated in place"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0069/B']
 order: 30
@@ -25,6 +25,10 @@ Expected size: about 120 lines in 3 files.
 - Under a PM, a forwarded merge handover also leaves the braid's card: it shows in the programmes panel with the merge group (`The PM asks you: merge …`, opening the PM's thread), and the card keeps its lane with `Waiting on the user, through the PM: …`, as 0069/B does for other forwards. When the PR lookup misses, it still reaches the user (0069/A's test).
 - From the review of 0069/B (https://github.com/exones/braid/pull/256#issuecomment-7089918385): the programme-forward push body uses the braid's title, not its id (`src/notify/message.ts` `pushOf(..., f.id, f.id, ...)`); the card-need key now uses `laneOf(need)`, so a review sharing a card with a PM ask is resent once after an upgrade: keep the old key or test and accept it, and say which in the log; the details panel copy for a forwarded line (`web/src/App.tsx` near 1106) no longer says it comes to you if the PM forwards it.
 
+## Plan
+
+Forwarded reviews under a running programme join `throughPm` (panel + quiet card line); `Forward` gains title and head; `pushesOf` groups the review forwards per PM thread into one push (key: PR+head set, sequence ID: the PM thread); the notifier's existing clear-by-sequence handles join, leave and none. Per project, since a snapshot is one project. Titles in forward push bodies; web copy; docs.
+
 ## Already decided
 
 - A merge waiting for the user without a PM keeps its own push from 0069/B (the coordinator's handover, opening its thread).
@@ -36,8 +40,8 @@ Expected size: about 120 lines in 3 files.
 
 ## Completion
 
-- [ ] Two forwarded merge handovers under one PM give one push listing both, opening the PM's thread, shown in the programmes panel while the braid cards keep their lanes
-- [ ] A merge joining or leaving updates that push in place (same sequence ID); none left clears it
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] Two forwarded merge handovers under one PM give one push listing both, opening the PM's thread, shown in the programmes panel while the braid cards keep their lanes
+- [x] A merge joining or leaving updates that push in place (same sequence ID); none left clears it
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open

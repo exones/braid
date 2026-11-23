@@ -162,3 +162,30 @@ test("under a PM an escalation by timeout or a gone PM thread still puts the car
   assert.equal(gone.braids[0].need.via, "gone");
   assert.equal(pushes(gone).length, 1);
 });
+
+test("under a PM merges forwarded to the user are one push opening the PM's thread; the cards keep their lanes and the panel lists them", () => {
+  const two = planOf("working-product", "pm/working-product", `---\nprogramme: working-product\ntitle: W\ngoal: G\nthread: ${PM}\nstate: running\nrows:\n  - P1 | 0001 | One | running\n  - P1 | 0002 | Two | running\n---\n`);
+  const head = "a".repeat(40);
+  const forwarded = (id: string, pr: number) => ({ ...request("review", 5, { to: "user", pm: PM, forwarded: ago(1), pr, head }), id });
+  const github: any = { status: { state: "ok" }, prs: new Map([["0001", { ...PR, number: 7, head }], ["0002", { ...PR, number: 8, head, branch: "braid/0002-b" }]]) };
+  const b = boardOf([forwarded("0001", 7), forwarded("0002", 8)], { plans: [two], github, braids: [braid("Done", "0001"), braid("Done", "0002")] });
+  assert.deepEqual(b.braids.map((c: any) => [c.lane, c.need?.since ?? null]), [["In Review", null], ["In Review", null]], "the cards keep the lane the open PM-less PR gives them");
+  assert.ok(b.braids.every((c: any) => c.pm?.forwarded === true && c.pm.text.startsWith("Waiting on the user, through the PM:")));
+  const [prog] = b.programmes;
+  assert.deepEqual(prog.forwards.map((f: any) => [f.id, f.title, f.need.text, f.head]), [["0001", "B0001", "The PM asks you: merge PR #7", head], ["0002", "B0002", "The PM asks you: merge PR #8", head]]);
+  const out = pushes(b);
+  assert.equal(out.length, 1);
+  assert.deepEqual([out[0].title, out[0].body, out[0].tags, out[0].priority, out[0].click], ["agento: 2 merges wait for you", "0001 PR #7\n0002 PR #8", ["eyes"], "high", url(PM)]);
+  // One merge: the single title.
+  const one = pushes(boardOf([forwarded("0001", 7)], { plans: [two], github, braids: [braid("Done", "0001")] }));
+  assert.equal(one[0].title, "agento 0001: merge PR #7");
+  assert.equal(one[0].sequence, out[0].sequence);
+  assert.notEqual(one[0].key, pushes(boardOf([{ ...forwarded("0001", 7), head: "b".repeat(40) }], { plans: [two], github: gh({ ...PR, head: "b".repeat(40) }), braids: [braid("Done", "0001")] }))[0].key, "a moved head changes the key");
+  // The PR lookup misses: the merge still reaches the user.
+  const missed = pushes(boardOf([forwarded("0001", 7)], { plans: [two], braids: [braid("Done", "0001")] }));
+  assert.equal(missed.length, 1);
+  assert.equal(missed[0].title, "agento 0001: merge PR #7");
+  // Without a PM the coordinator's handover keeps its own push, and its key still names the lane.
+  const alone = pushes(boardOf([forwarded("0001", 7)], { github }));
+  assert.deepEqual([alone[0].title, alone[0].key.split("|")[1]], ["agento 0001: the PM asks", "In Review"]);
+});

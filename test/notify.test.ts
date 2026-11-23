@@ -80,6 +80,7 @@ interface Need {
   who: string | null;
   more: number;
   link?: string | null;
+  via?: string;
 }
 interface Strand {
   id: string;
@@ -463,4 +464,46 @@ test("the board hands each snapshot to the notifier and keeps serving when it th
   assert.equal(seen[0]?.repo, "demo");
   assert.equal((await fetch(`${started.url}api/board?fresh=1`)).status, 200);
   assert.ok(seen.length >= 2);
+});
+
+// ---- the merges that wait for the user under a PM (0069/C) ----
+
+test("merges forwarded by one PM are one push, updated in place under one sequence ID, and cleared when none is left", async () => {
+  const file = join(dir(), ".braid", "notified.json");
+  const f = fakeSender();
+  const cleared: string[] = [];
+  const at = (n: number): PushIn => (f.sent[n] as { push: PushIn }).push;
+  const notify = notifierMod.notifier({ file, config: () => CFG, send: f.send, token: () => null, warn: () => {}, clear: async (_c: unknown, sequence: string) => void cleared.push(sequence) } as never);
+  const forward = (id: string, pr: number, head = "a".repeat(40)) => ({ id, title: `Title ${id}`, head, need: need("review", `The PM asks you: merge PR #${pr}`, "2026-11-22T12:00:00Z", { pr, via: "forwarded" }) });
+  const prog = (...forwards: unknown[]) => ({ slug: "w", title: "W", section: "needs", thread: "pm-thread", link: "http://127.0.0.1:3773/env1/pm-thread", need: null, forwards });
+  const withProg = (...forwards: unknown[]) => ({ ...boardOf([]), programmes: [prog(...forwards)] }) as unknown as Board;
+  const run = async (b: Board) => {
+    notify(b);
+    await notify.idle();
+  };
+  await run(withProg(forward("0001", 7)));
+  assert.equal(f.sent.length, 1);
+  assert.equal(at(0).title, "agento 0001: merge PR #7");
+  assert.equal(at(0).click, "t3code://threads/env1/pm-thread");
+  await run(withProg(forward("0001", 7)));
+  assert.equal(f.sent.length, 1, "nothing changed: nothing sent");
+  // Another joins: one push with both, the same sequence ID (it replaces the first).
+  await run(withProg(forward("0001", 7), forward("0002", 8)));
+  assert.equal(f.sent.length, 2);
+  assert.equal(at(1).title, "agento: 2 merges wait for you");
+  assert.equal(at(1).body, "0001 PR #7\n0002 PR #8");
+  assert.equal(at(1).sequence, at(0).sequence);
+  assert.deepEqual([at(1).priority, at(1).tags], ["high", ["eyes"]]);
+  // A head moves: sent again, still in place.
+  await run(withProg(forward("0001", 7, "b".repeat(40)), forward("0002", 8)));
+  assert.equal(f.sent.length, 3);
+  // One leaves: back to one merge, same sequence ID, nothing cleared.
+  await run(withProg(forward("0002", 8)));
+  assert.equal(f.sent.length, 4);
+  assert.equal(at(3).title, "agento 0002: merge PR #8");
+  assert.equal(at(3).sequence, at(0).sequence);
+  assert.deepEqual(cleared, []);
+  // None left: the push is cleared by that sequence ID.
+  await run(withProg());
+  assert.deepEqual(cleared, [at(0).sequence]);
 });

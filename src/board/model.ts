@@ -300,7 +300,8 @@ function needOfRequest(r: Request, now: Date, routed: Routed, t3: T3): Need {
 
 /** A forwarded request as the programmes panel shows it: the PM asking the user, opening the PM's thread. */
 export function needOfForward(r: Request, now: Date, t3: T3): Need {
-  return { kind: r.kind, text: `${askWords(r.kind)} ${r.text}${viaNote("forwarded", r, now)}`, verb: "asked", age: age(r.forwarded ?? r.at, now), since: r.forwarded ?? r.at, key: r.key ?? null, pr: null, who: null, more: 0, via: "forwarded", link: linkOfThread(t3, r.pm) };
+  const text = r.kind === "review" && r.pr !== undefined ? `${askWords(r.kind)} merge PR #${r.pr}` : `${askWords(r.kind)} ${r.text}`;
+  return { kind: r.kind, text: `${text}${viaNote("forwarded", r, now)}`, verb: "asked", age: age(r.forwarded ?? r.at, now), since: r.forwarded ?? r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: "forwarded", link: linkOfThread(t3, r.pm) };
 }
 
 /** "The PM asks you: …", or "The PM asks you to: …" for something only the user can do. */

@@ -1103,7 +1103,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
         <div role="note" className="my-3.5 max-w-[75ch] rounded-lg border-l-[3px] border-teal-700 bg-teal-50 px-3.5 py-2.5 text-teal-900">
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.pm.forwarded === true ? "Asked of you through the PM" : "For the PM"} · {item.pm.age} ago</b>
           {item.pm.text}
-          <div className="mt-1.5 text-[11px] text-slate-500">It comes to you if the PM doesn't answer in time or forwards it. Your own answer still wins.</div>
+          <div className="mt-1.5 text-[11px] text-slate-500">{item.pm.forwarded === true ? "The PM forwarded it: it comes to you from the PM's thread. Your own answer still wins." : "It comes to you if the PM doesn't answer in time or forwards it. Your own answer still wins."}</div>
         </div>
       )}
       {item.pause !== null && <PauseBox pause={item.pause} />}
