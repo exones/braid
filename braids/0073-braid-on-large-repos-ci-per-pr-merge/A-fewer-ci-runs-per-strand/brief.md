@@ -42,9 +42,9 @@ Expected size: about 60 lines of code and tests in 3 files, plus a few doc and c
 
 ## Completion
 
-- [ ] `.github/workflows/ci.yml` runs push CI only on `main`, and its comments say why
-- [ ] `braid wait` answers a merge commit without runs of its own from its second parent, with tests for green and failed
-- [ ] The braid-worker skill says one push per review round, and its word count is not higher (`wc -w` before and after in report.md)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `.github/workflows/ci.yml` runs push CI only on `main`, and its comments say why
+- [x] `braid wait` answers a merge commit without runs of its own from its second parent, with tests for green and failed
+- [x] The braid-worker skill says one push per review round, and its word count is not higher (`wc -w` before and after in report.md)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
