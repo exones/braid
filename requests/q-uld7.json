@@ -1,0 +1,18 @@
+{
+  "code": "q-uld7",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "Everix field report: Q1 P20 (braid on large repos) position: A after P5, B after P19, C first after P6. Q2 Everix autonomy until P20 lands: A careful, B steady. Q3 own trackers (initiatives, gwwt): A link field, B importer, C configurable root, D later. Answer in the PM thread",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-23T20:01:02.032Z",
+      "by": "pm"
+    }
+  ]
+}
