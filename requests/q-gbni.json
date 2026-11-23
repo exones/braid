@@ -1,0 +1,18 @@
+{
+  "code": "q-gbni",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "0073 decisions ahead: Q1 merge-gate runs before A merges into main only, B also strand merges. Q2 with review bots: A braid reviewer stays and reads the bots, B no braid reviewer for small items the bots reviewed. Q3 bot threads: A worker replies and resolves, B replies only, you resolve. Answer in the PM thread",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-23T20:35:20.777Z",
+      "by": "pm"
+    }
+  ]
+}
