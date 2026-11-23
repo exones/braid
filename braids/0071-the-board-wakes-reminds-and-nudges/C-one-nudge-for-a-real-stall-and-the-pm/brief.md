@@ -11,7 +11,7 @@ order: 30
 
 A real stall (a coordinator idle, no open request or wait, no running agent, no hold or pause) gets one nudge from the board in the coordinator's thread, then escalates as today's stall. The safety net for a coordinator whose wake never came (inbox 2026-11-23-kq5k). Also inbox 2026-11-23-2h98: the board reads the PM as stalled while its delegated live checker runs, because `thread list` doesn't list subagent threads.
 
-Expected size: about 250 lines in 7 files.
+Expected size: about 320 lines in 8 files.
 
 ## Start here
 
@@ -28,6 +28,8 @@ Expected size: about 250 lines in 7 files.
 - The nudge's memory is the existing alarm clock in `.braid/broke.json` (a nudged time beside the first-seen time), not a new file.
 - 2h98: a running delegated PM check keeps the programme from reading as stalled. First see what T3 offers (a subagent's `thread show` has `relationshipToParent`; does `thread list` or `thread show` of the PM thread give its running children?). Prefer the board reading it with no skill change; if T3 gives no way, the PM records its checker the way reviewers are recorded (`braid review`-style, one CLI call), and 0071/D puts that call in the braid-pm skill. Log which and why.
 - Skip a held or paused braid or programme.
+- Leftover 2026-11-23-1oq8 (from 0071/A): a request on a programme item (`pm/<slug>`) is still checked and woken by `src/board/wake.ts` while that plan is held; skip it while the programme is held or paused, like a held braid. A test covers it.
+- Leftover 2026-11-23-dy2k (from 0071/A): two boards serving one project (a service and a hand-started run) each send the same wake, reminder or nudge, since each sends before either records. Make only one board act per project, or re-read the record right before each send so a second board skips what the first recorded; use existing state (the board's address file, the record), no new file. Log which, and test two boards on one record.
 
 ## Already decided
 
