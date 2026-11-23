@@ -33,15 +33,23 @@ Expected size: about 80 changed lines in 4 files; the word count goes down or st
 - The user merges skill changes into main; this strand merges into the braid branch under the preset.
 - The PM, with the plan: the word counts before and after go in the PR body too.
 
+## Plan
+
+- Before: count words per file of `.agents/skills/braid` and `.agents/skills/braid-pm` (all `.md`).
+- braid `SKILL.md`: "Talking to the user": a turn that waits on another braid opens a wait (`braid ask <id> … --to <n> --done-when braid:<n> --thread <own>`, or `time:`); replacement holds per sort, use the code when both are open; "Say waiting" names the board's messages. "Run an item": one habit for the board's three messages (wake: go on; reminder: do it or `braid eta`; nudge: go on or open a request or wait), the pause pointer folded into it. The handover's merge is also learned from the board's wake (Watch rule, handover options). Sweep: "one open request" becomes "a new question replaces it".
+- `references/resuming.md`: an old thread's open waits don't wake a new coordinator: ask them again.
+- braid-pm `SKILL.md`: "Wait" names the board (reminder, nudge, pause); a reminder for a braid with no coordinator is answered or estimated with `--by pm`; a nudge: launch the next ready braid or ask; the live checker is recorded with `braid review pm/<slug> --thread <child id>` right after `delegate_task`.
+- Cut wording elsewhere in the same sections so neither skill grows; after: count again, put both counts in report.md and the PR body.
+
 ## Out of scope
 
 - Product code. Docs outside the skills (0071/E).
 
 ## Completion
 
-- [ ] The braid skill tells a coordinator how to wait with a condition, answer a reminder with an estimate, and act on a wake or nudge
-- [ ] The braid-pm skill does the same for the PM, including 0071/C's call if it needs one
-- [ ] The two skills (with references) have no more words than before; report.md gives both counts
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The braid skill tells a coordinator how to wait with a condition, answer a reminder with an estimate, and act on a wake or nudge
+- [x] The braid-pm skill does the same for the PM, including 0071/C's call if it needs one
+- [x] The two skills (with references) have no more words than before; report.md gives both counts
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
