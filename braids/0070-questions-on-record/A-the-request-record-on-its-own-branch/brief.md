@@ -61,13 +61,13 @@ Expected size: about 600 lines in 8 files, half of them tests.
 
 ## Completion
 
-- [ ] Requests are stored on `braid-requests` as `requests/<code>.json` with an `events` history, and no request is ever deleted
-- [ ] `braid ask`, `handover`, `answer`, `forward`, `requests`, `start`, `done` and the board work on the record with today's behaviour, and `braid requests` shows each code
-- [ ] Review requests record `met` or `withdrawn` with a reason instead of vanishing
-- [ ] Open requests in an old `.braid/requests.json` are carried over once, and the old file is kept renamed
-- [ ] The inbox and the record share one branch module, and the inbox tests pass unchanged
-- [ ] The regression tests listed under "Failure modes" exist and pass
-- [ ] report.md gives the board's page-load time before and after
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Requests are stored on `braid-requests` as `requests/<code>.json` with an `events` history, and no request is ever deleted
+- [x] `braid ask`, `handover`, `answer`, `forward`, `requests`, `start`, `done` and the board work on the record with today's behaviour, and `braid requests` shows each code
+- [x] Review requests record `met` or `withdrawn` with a reason instead of vanishing
+- [x] Open requests in an old `.braid/requests.json` are carried over once, and the old file is kept renamed
+- [x] The inbox and the record share one branch module, and the inbox tests pass unchanged
+- [x] The regression tests listed under "Failure modes" exist and pass
+- [x] report.md gives the board's page-load time before and after
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
