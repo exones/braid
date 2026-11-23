@@ -325,6 +325,10 @@ test("a Done braid's push names its title and PR", () => {
     pushes.map((p) => ({ ...p })),
     [{ key: "0011|done", item: "0011", kind: "done", title: "agento 0011: Done", body: "Title of 0011\nPR #44 merged\nOpen the board", tags: ["white_check_mark"], priority: "default", click: null, sequence: null }],
   );
+  // 0069/F: with the coordinator thread known, the Done push opens it.
+  const withThread = message.pushesOf(boardOf([card("0011", "Done", null, { pr: { number: 44 }, strands: [], coordinator: { link: "http://127.0.0.1:3773/e/coord" } })]));
+  assert.equal(withThread[0]!.click, "t3code://threads/e/coord");
+  assert.equal(withThread[0]!.body, "Title of 0011\nPR #44 merged");
 });
 
 // ---- the notifier ----

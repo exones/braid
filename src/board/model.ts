@@ -152,6 +152,8 @@ export interface BraidCard {
   readonly start: StartInfo;
   /** The braid's coordinator thread, running or idle; null when it has none. */
   readonly coordinator: CoordinatorInfo | null;
+  /** A Done card's idle coordinator thread link, kept for the Done push only (`coordinator` stays null there); absent otherwise. */
+  readonly doneLink?: string;
   /** When it became Done: the commit that set its own brief Done, else its newest strand's (ISO); null when it isn't Done or the date isn't known. */
   readonly doneAt: string | null;
   /** The braid's pause (`braid pause`); null when it isn't paused or is Done. */
@@ -510,6 +512,12 @@ export function startOf(braid: Braid, lane: Lane, t3: T3, ctx: StartContext): St
   };
 }
 
+/** The idle coordinator's link of a Done card, for its push only (0069/F). */
+function doneLinkOf(number: string, t3: T3, lane: Lane): { readonly doneLink?: string } {
+  const c = lane === "Done" && t3.coordinators?.get(number) === undefined ? t3.idleCoordinators?.get(number) : undefined;
+  return c?.link == null ? {} : { doneLink: c.link };
+}
+
 function coordinatorOf(number: string, t3: T3, ctx: StartContext, lane: Lane): CoordinatorInfo | null {
   const c = t3.coordinators?.get(number) ?? (lane === "Done" ? undefined : t3.idleCoordinators?.get(number));
   return c === undefined ? null : { link: c.link, warning: coordinatorWarning(c, ctx) };
@@ -555,7 +563,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     const derived = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
     const lift = planned(braid.number, derived.lane, gh, t3);
     const own = lift === null ? derived : { ...derived, ...lift };
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null, pause: own.lane === "Done" ? null : derived.pause, pm: own.lane === "Done" ? null : derived.pm, pmAsk: own.lane === "Done" ? null : derived.pmAsk, programme: null };
+    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), ...doneLinkOf(braid.number, t3, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null, pause: own.lane === "Done" ? null : derived.pause, pm: own.lane === "Done" ? null : derived.pm, pmAsk: own.lane === "Done" ? null : derived.pmAsk, programme: null };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -627,6 +635,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     merge: own === null || pr?.state === "merged" ? null : mergeOf(braid.number, gh, sig, t3),
     start: startOf(braid, lane, t3, ctx),
     coordinator: coordinatorOf(braid.number, t3, ctx, lane),
+    ...doneLinkOf(braid.number, t3, lane),
     doneAt: lane === "Done" ? ((braid.brief.status === "Done" ? sig.doneAt?.(braid.folder, braid.source) : null) ?? strands.map((s) => s.doneAt).filter((d) => d !== null).sort().pop() ?? null) : null,
     pause: paused === null || lane === "Done" ? null : pauseView(paused, sig.now),
     pm: lane === "Done" ? null : pm,
