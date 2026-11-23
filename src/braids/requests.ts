@@ -31,7 +31,8 @@ export const STATES = ["open", "answered", "withdrawn", "met"] as const;
 /** `answered`, `withdrawn` (with a reason) and `met` (its "done when" held) are final. */
 export type State = (typeof STATES)[number];
 
-export const EVENTS = ["opened", "forwarded", "answered", "withdrawn", "met", "eta"] as const;
+/** `eta`: the addressee's estimate (its time in `text`, its why in `reason`); `reminded`: the board sent a reminder (`text`: to whom), or, with a `reason`, escalated a missed estimate or a gone addressee. */
+export const EVENTS = ["opened", "forwarded", "answered", "withdrawn", "met", "eta", "reminded"] as const;
 export type EventKind = (typeof EVENTS)[number];
 
 export interface RequestEvent {
@@ -39,9 +40,9 @@ export interface RequestEvent {
   /** ISO time. */
   readonly at: string;
   readonly by: Who;
-  /** The answer, the forward's note, the reason it was withdrawn or met, the estimate. */
+  /** The answer, the forward's note, the reason it was withdrawn or met, the estimate (ISO), to whom a reminder went. */
   readonly text?: string;
-  /** The PM's reason, when the PM answered for the user (filled by 0070/B). */
+  /** The PM's reason, when the PM answered for the user (filled by 0070/B); an estimate's why; an escalation's cause. */
   readonly reason?: string;
 }
 
@@ -80,7 +81,7 @@ export interface Request {
   readonly note?: string;
   /** When it is done: `answered` (the default), `pr:<n>` merged, `braid:<number>` merged into main, `time:<iso>`. */
   readonly doneWhen: string;
-  /** The estimate (P6); null until set. */
+  /** The estimate (ISO): the newest `eta` event's, else the field; null until set. */
   readonly eta: string | null;
   readonly state: State;
   readonly events: readonly RequestEvent[];
@@ -188,7 +189,7 @@ export function parseRecord(file: string, text: string): Request | RecordProblem
     ...(typeof v["pm"] === "string" ? { pm: v["pm"] } : {}),
     ...(forward === undefined ? {} : { forwarded: forward.at, ...(forward.text === undefined ? {} : { note: forward.text }) }),
     doneWhen: typeof v["doneWhen"] === "string" ? v["doneWhen"] : "answered",
-    eta: typeof v["eta"] === "string" ? v["eta"] : null,
+    eta: list.findLast((e) => e.event === "eta")?.text ?? (typeof v["eta"] === "string" ? v["eta"] : null),
     state: final === undefined ? "open" : (FINAL[final.event] ?? "open"),
     events: list,
   };
@@ -487,6 +488,29 @@ export function endRequest(root: string, code: string, end: Ending | ((r: Reques
 
 /** The event that closed a request, or null while it is open. */
 export const closing = (r: Pick<Request, "events">): RequestEvent | null => r.events.findLast((e) => FINAL[e.event] !== undefined) ?? null;
+
+/**
+ * Appends an event to one open request by its code (`braid eta`, the board's reminders), the `eta` field following
+ * an `eta` event. Checked again inside the write: a closed request is left and returned with `added: false`. Null: no such code.
+ */
+export function addEvent(root: string, code: string, event: RequestEvent): { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null {
+  let found: Request | null = null;
+  let added = false;
+  const result = writeRecord(root, (view) => {
+    const text = view.read(pathOf(code));
+    const r = text === null ? null : parseRecord(pathOf(code), text);
+    found = r === null || isRecordProblem(r) ? null : r;
+    added = found !== null && found.state === "open";
+    if (found === null || !added) {
+      return { files: new Map(), message: "" };
+    }
+    const next = withEvent(event.event === "eta" && event.text !== undefined ? { ...found, eta: event.text } : found, event);
+    found = next;
+    return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} ${event.event}` };
+  });
+  const request: Request | null = found;
+  return request === null ? null : { request, added, warning: result.warning };
+}
 
 /** Hands the item's request to the user (`braid forward`): a `forwarded` event with the note. Null when there is no open request. */
 export function forwardRequest(root: string, id: string, at: string, note: string | undefined): { readonly request: Request | null; readonly warning: string | null } {

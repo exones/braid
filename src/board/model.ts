@@ -7,7 +7,8 @@ import { NO_INBOX, type InboxData } from "./inbox.js";
 import { age, type Request } from "../braids/requests.js";
 import { requestsOf, rowOf, type RequestRow, type RequestsView } from "./record.js";
 import type { Pause } from "../braids/pauses.js";
-import { limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
+import { clock, limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
+import { addresseeOf, braidOfId, missedEta } from "./waits.js";
 import { forwardedLine, pmLine, routeOf, throughPm, viaNote, type PmLine, type Routed, type Via } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import { programmeOfBraid, toProgrammes, type Programme } from "./programme.js";
@@ -362,6 +363,9 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   if (pr?.state === "merged" || (stored === "Done" && pr?.state !== "open" && !heldReview)) {
     sig.alarm(key, "checks failed", false);
     sig.alarm(key, "stalled", false);
+    if (!key.includes("/")) {
+      sig.alarm(`${key} wait`, "stalled", false);
+    }
     return { lane: "Done", pr, reason: null, need: null, ask: null, agents, activity: null, pause: null, pm: null, pmAsk: null };
   }
   const label = labels.find((l) => l.startsWith("ask:") && l.length > 4);
@@ -382,7 +386,9 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const failing = pr?.state === "open" && pr.checks === "failing";
   const checking = pr?.state === "open" && (pr.checks === "pending" || pr.checks === "failing");
   const failed = sig.alarm(key, "checks failed", waiting ? false : known ? failing && agents.length === 0 : null);
-  const stallHolds = waiting || stored !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
+  // An open wait of the braid on another braid is the coordinator waiting on purpose: no item of it reads stalled; a broken one does, on the braid.
+  const stallHolds = waiting || waits(key.slice(0, 4), sig).length > 0 || stored !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
+  const broken = key.includes("/") ? null : waitStall(key, sig, t3);
   // A paused braid's items aren't stalled while the pause lasts; once its resume is 25 min overdue they are, at once, naming the pause.
   const paused = sig.pauses?.get(key.slice(0, 4)) ?? null;
   const stalled = sig.alarm(key, "stalled", paused === null ? stallHolds : false);
@@ -407,6 +413,9 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   }
   if (stalled !== null) {
     return out("Waiting", "stalled", { ...plain, kind: "stalled", text: "Stalled: nobody is working and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled });
+  }
+  if (broken !== null) {
+    return out("Waiting", "stalled", broken);
   }
   if (paused !== null && pausedStall !== null) {
     return out("Waiting", "stalled", { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(pausedStall, sig.now), since: pausedStall });
@@ -597,9 +606,10 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const quiet = strands.every((s) => s.lane === "To Do" || s.lane === "Done");
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const asked = (asked0 !== undefined && pr?.state !== "merged") || pmNeed !== null;
-  const holds = finalPr || asked || pr?.state === "merged" || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
+  const holds = finalPr || asked || waits(braid.number, sig).length > 0 || pr?.state === "merged" || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
   const paused = sig.pauses?.get(braid.number) ?? null;
   const stalled = sig.alarm(`${braid.number} coordinator`, "stalled", paused === null ? holds : false);
+  const broken = waitStall(braid.number, sig, t3);
   const pausedStall = paused !== null && holds === true && phaseOf(paused, sig.now) === "over" ? stalledSince(paused) : null;
   let own: { lane: Lane; reason: Reason | null; need: Need | null; agents?: readonly T3Thread[]; activity?: Activity | null } | null = null;
   if (finalPr) {
@@ -613,6 +623,8 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: "Stalled: the coordinator stopped and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled } };
   } else if (paused !== null && pausedStall !== null) {
     own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(pausedStall, sig.now), since: pausedStall } };
+  } else if (broken !== null && own === null) {
+    own = { lane: "Waiting", reason: "stalled", need: broken };
   }
   const limit = paused === null || own?.lane === "Waiting" ? null : limitNeed(paused, sig.now);
   if (limit !== null) {
@@ -656,6 +668,27 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     programme: null,
     waits: waitsOf(braid.number, sig, t3),
   };
+}
+
+/** The open waits of braid `number` and its strands on another braid. */
+const waits = (number: string, sig: Signals): Request[] => (sig.waits ?? []).filter((r) => braidOfId(r.id) === number);
+
+/**
+ * What a broken wait of braid `number` reads as: the stall, with its reason. Past its estimate at once; a gone addressee
+ * (no coordinator thread, and no PM to remind instead) after ten minutes, on the alarm clock as `<number> wait`. Nothing
+ * while the braid, or the braid it waits on, is held or paused.
+ */
+function waitStall(number: string, sig: Signals, t3: T3): Need | null {
+  const live = sig.pauses?.has(number) === true ? [] : waits(number, sig).filter((r) => sig.pauses?.has(r.to ?? "") !== true);
+  const gone = live.find((r) => addresseeOf(r, t3, sig.plans)?.to === "gone");
+  const since = sig.alarm(`${number} wait`, "stalled", live.length === 0 ? false : t3.status.state !== "ok" ? null : gone !== undefined);
+  for (const r of live) {
+    const missed = missedEta(r, sig.now);
+    if (missed !== null) {
+      return { ...plain, kind: "stalled", text: `Stalled: waiting on braid ${r.to ?? ""} past its estimate ${clock(missed, sig.now)}`, verb: "for", age: age(missed, sig.now), since: missed };
+    }
+  }
+  return since === null || gone === undefined ? null : { ...plain, kind: "stalled", text: `Stalled: waiting on braid ${gone.to ?? ""}, whose coordinator is gone`, verb: "for", age: age(since, sig.now), since };
 }
 
 /** The open requests of a braid and its strands that wait on another braid. */

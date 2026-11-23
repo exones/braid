@@ -250,7 +250,15 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
   ];
   const asks: Request[] = [request("0004/B", "action", "install the runner on the build machine", 8, { by: "pm" })];
   // A request to another braid's coordinator: not the user's; the asking braid's card shows it quietly, with its "done when".
-  const waits: Request[] = [request("0009", "question", "Can search ship before reports?", 120, { to: "0002", doneWhen: "braid:0002" })];
+  // The wait was reminded once, and 0002's coordinator gave an estimate: the Requests tab lists both.
+  const wait = request("0009", "question", "Can search ship before reports?", 120, { to: "0002", doneWhen: "braid:0002" });
+  const waits: Request[] = [
+    {
+      ...wait,
+      eta: at(-90),
+      events: [...wait.events, { event: "reminded", at: at(60), by: "board", text: "sent to the 0002 coordinator" }, { event: "eta", at: at(50), by: "coordinator", text: at(-90), reason: "after strand 0002/C merges" }],
+    },
+  ];
   const ended: Request[] = [
     closed("0004/A", "Which tax table should it load?", 300, 280, { state: "answered", by: "user", text: "B: the 2026 table." }),
     closed("0009", "Should totals include refunds?", 240, 235, { state: "answered", by: "pm", text: "Yes, net of refunds.", reason: "the goal says totals as the customer sees them" }),

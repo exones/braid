@@ -30,9 +30,12 @@ export function braidDoneOn(root: string, main: string): (number: string) => boo
 /** The braid a request's asker works on (`0042` of `0042/B`); null for a programme's request. */
 const askingBraid = (r: Pick<Request, "id">): string | null => /^(\d{4})(?:\/|$)/.exec(r.id)?.[1] ?? null;
 
-/** What the asking thread is sent. The text goes through cmd.exe on Windows: no quote or shell character may reach it. */
+/** A request's text for a T3 send: it goes through cmd.exe on Windows, so no quote or shell character may reach it; one line, no closing full stop. */
+export const safeText = (text: string): string => text.replace(/["%^&|<>!\r\n]+/g, " ").replace(/\s+/g, " ").trim().replace(/[.\s]+$/, "");
+
+/** What the asking thread is sent. */
 export function wakeMessage(r: Pick<Request, "code" | "text">, e: Ending): string {
-  const text = r.text.replace(/["%^&|<>!\r\n]+/g, " ").replace(/\s+/g, " ").trim().replace(/[.\s]+$/, "");
+  const text = safeText(r.text);
   return `Wake: ${r.code} is met (${e.text ?? "its condition holds"}): ${text}. Go on where you left off.`;
 }
 
@@ -43,6 +46,19 @@ export interface WakeProject {
 
 /** One project's wake step, run after a good read; `warn` reports what it couldn't do. */
 export type Waker = (project: WakeProject, at: Date, warn: (line: string, once?: string) => void) => Promise<void>;
+
+/** Several steps as one, in order; one that throws is reported and doesn't stop the next. */
+export function steps(...all: readonly Waker[]): Waker {
+  return async (project, at, warn) => {
+    for (const step of all) {
+      try {
+        await step(project, at, warn);
+      } catch (error) {
+        warn(`a board step failed this refresh (${error instanceof Error ? error.message : String(error)})`, `step ${project.root}`);
+      }
+    }
+  };
+}
 
 export function waker(t3: T3Runner): Waker {
   /** Codes whose wake was delivered but whose ending isn't recorded yet. */
