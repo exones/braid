@@ -63,14 +63,14 @@ Expected size: about 1500 lines in 25 files, over five strands.
 
 ## Completion
 
-- [ ] An agent's question is opened with `braid ask`, has a code and shows on the board with that code; after `braid answer`, `braid requests` and the board list it with who answered
-- [ ] A request no longer needed is withdrawn with a reason and stays listed; its push is cleared
-- [ ] A request with a PR condition closes itself as met when the PR merges
-- [ ] `braid answer` on a final PR's item leaves the PR head unchanged (k5d1)
-- [ ] `braid ask` and `braid answer` work on a story whose branch is gone after its merge
-- [ ] No skill uses a question tool; coordinator and PM messages end with ✋, ⏳ or 🟢; the skills are no longer than before
-- [ ] Docs from BRAID.md `docs` that this braid makes untrue are updated (0070/E)
-- [ ] The gate command from BRAID.md passes
+- [x] An agent's question is opened with `braid ask`, has a code and shows on the board with that code; after `braid answer`, `braid requests` and the board list it with who answered
+- [x] A request no longer needed is withdrawn with a reason and stays listed; its push is cleared
+- [x] A request with a PR condition closes itself as met when the PR merges
+- [x] `braid answer` on a final PR's item leaves the PR head unchanged (k5d1)
+- [x] `braid ask` and `braid answer` work on a story whose branch is gone after its merge
+- [x] No skill uses a question tool; coordinator and PM messages end with ✋, ⏳ or 🟢; the skills are no longer than before
+- [x] Docs from BRAID.md `docs` that this braid makes untrue are updated (0070/E)
+- [x] The gate command from BRAID.md passes
 
 ## Autonomy
 
