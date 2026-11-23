@@ -109,11 +109,13 @@ Merges into `main` stay the user's (AGENTS.md): each story's and final PR waits 
 
 The user (2026-11-22): "each item of this programme changes materially how the braid works. Previous dev showed that we can build braid using braid. So after each item, when it's merged, please install the new skills / board, kill running board, start a new one and notify me to have a look (when service ready, service). Then wait for my instructions."
 
+Before the merge, when a PR passes the live check and waits for the user's merge: until P2 fixes 2026-11-23-brb2 (and P3/P6 close requests by their condition), the PM also opens `braid ask pm/autonomous-dev-machine "Merge PR #<n> at <head> (<braid>): live check passed" --kind action`, which reliably shows and pushes.
+
 After each braid of this programme merges into `main` (the user's merge), the PM:
 
-1. Waits for the `ci` run on the merge commit, then installs the skills and the CLI from `origin/main`: `pwsh -NoProfile -File scripts/Install-Skills.ps1` (docs/getting-started.md).
-2. Stops the running board and starts the new one: today by its port and a new console window (`braid board`), so its tokened address is printed where the user sees it; once P7 · 0067 is in, by restarting the service.
-3. Until P2 fixes 2026-11-23-brb2 (and P3/P6 close requests by their condition): when a PR passes the live check and waits for the user's merge, the PM also opens `braid ask pm/autonomous-dev-machine "Merge PR #<n> at <head> (<braid>): live check passed" --kind action`, which reliably shows and pushes; closed as the first step after the merge (before the CI wait).
+1. Closes that merge request: `braid answer pm/autonomous-dev-machine --by pm`.
+2. Waits for the `ci` run on the merge commit, then installs the skills and the CLI from `origin/main`: `pwsh -NoProfile -File scripts/Install-Skills.ps1` (docs/getting-started.md).
+3. Stops the running board and starts the new one: today by its port and a new console window (`braid board`), so its tokened address is printed where the user sees it; once P7 · 0067 is in, by restarting the service.
 4. Tells the user to have a look: a message in this thread and a programme request `braid ask pm/autonomous-dev-machine "<braid> is installed and the board restarted: have a look" --kind action`, so it is on the board and pushed. It names what changed and what to try.
 5. Waits for the user's instructions: no next braid is launched until the user says so. Braids already running go on.
 
