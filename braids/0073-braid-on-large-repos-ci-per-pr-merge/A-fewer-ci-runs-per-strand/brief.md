@@ -1,7 +1,7 @@
 ---
 id: '0073/A'
 title: "Fewer CI runs per strand"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 10
