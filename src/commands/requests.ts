@@ -128,13 +128,15 @@ export async function reviewCommand(root: string, args: readonly string[], opts:
   const { positionals, values } = parse("braid review", args, { thread: { type: "string" } });
   const thread = str(values, "thread");
   if (positionals.length !== 1 || thread === undefined) {
-    throw new UsageError("usage: braid review <id> --thread <thread id>  (the reviewer's child thread id, from delegate_task)");
+    throw new UsageError("usage: braid review <id> --thread <thread id>  (the reviewer's child thread id, from delegate_task; a PM's checker: braid review pm/<slug> --thread <thread id>)");
   }
   threadOf(values);
-  const id = itemId(root, positionals[0], "braid review");
+  // A PM's live checker is recorded on its programme (`pm/<slug>`): T3 lists no subagent threads, so this is how the board sees it run (0071/C).
+  const pm = /^pm\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(positionals[0] ?? "");
+  const id = pm ? (positionals[0] ?? "") : itemId(root, positionals[0], "braid review");
   const at = (opts.now ?? (() => new Date()))();
   const where = await showThread(opts.t3 ?? runT3, root, thread);
-  const folder = where?.worktreePath ?? null;
+  const folder = pm ? null : (where?.worktreePath ?? null);
   const added = recordReview(root, id, thread, at.toISOString(), folder === null ? null : { folder, branch: where?.branch ?? null });
   const what = folder === null ? `no checkout yet (${where === null ? "T3 doesn't know the thread or can't be read" : "T3 gives no folder"}); braid clean will ask T3` : `checkout ${folder}${where?.branch == null ? "" : `, branch ${where.branch}`}`;
   return `${id}: review thread ${thread} ${added ? "recorded" : "already recorded"} (${what})

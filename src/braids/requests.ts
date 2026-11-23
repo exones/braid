@@ -31,7 +31,7 @@ export const STATES = ["open", "answered", "withdrawn", "met"] as const;
 /** `answered`, `withdrawn` (with a reason) and `met` (its "done when" held) are final. */
 export type State = (typeof STATES)[number];
 
-/** `eta`: the addressee's estimate (its time in `text`, its why in `reason`); `reminded`: the board sent a reminder (`text`: to whom), or, with a `reason`, escalated a missed estimate or a gone addressee. */
+/** `eta`: the addressee's estimate (its time in `text`, its why in `reason`); `reminded`: the board sent a reminder (`text`: to whom), or, with a `reason`, escalated a missed estimate. */
 export const EVENTS = ["opened", "forwarded", "answered", "withdrawn", "met", "eta", "reminded"] as const;
 export type EventKind = (typeof EVENTS)[number];
 

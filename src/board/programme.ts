@@ -4,7 +4,7 @@
 import { age, type Request } from "../braids/requests.js";
 import type { Pause } from "../braids/pauses.js";
 import type { Hold, PlanRow, PlanState } from "../braids/plan.js";
-import { linkOfThread, needOfAsk, needOfForward, type BraidCard, type Lane, type Need, type Signals } from "./model.js";
+import { linkOfThread, needOfAsk, needOfForward, type BraidCard, type Lane, type Need, type NudgeTarget, type Signals } from "./model.js";
 import { routeOf, throughPm } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import type { T3 } from "./t3.js";
@@ -68,6 +68,7 @@ export interface Forward {
   readonly head?: string;
 }
 
+const AFTER_NUDGE_PM = "Stalled after a nudge: the PM stopped and none of its braids is running";
 export const STALLED_TEXT = "Stalled: the PM stopped and none of its braids is running";
 
 /** The braids a held plan (`hold`, or `state: held`) holds that have no pause record of their own: they read as held, by the PM. */
@@ -158,10 +159,12 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
         return braids.includes(r.id.slice(0, 4)) && throughPm(r, routed, [read]) ? [{ id: r.id, title: titleOf(cards, r.id), need: needOfForward(r, sig.now, t3), ...(r.head === undefined ? {} : { head: r.head }) }] : [];
       });
   const holds = over || held || asked !== null || forwards.length > 0 ? false : t3ok && ghOk ? !(pmRunning || running > 0 || checking) : null;
-  const since = sig.alarm(clock, "stalled", holds);
+  // The PM thread, known and idle, is nudged once before the stall shows; without one the stall shows after ten minutes as before.
+  const nudge: NudgeTarget | undefined = thread !== null && pmState !== null && pmState !== "unknown" && pmState !== "archived" ? { kind: "pm", who: read.slug, thread, pm: null } : undefined;
+  const since = sig.alarm(clock, "stalled", holds, nudge);
   const handling = mine.filter((c) => c.pm !== null && c.pm.forwarded !== true).map((c) => `${c.id} ${c.pm?.kind === "review" ? "live check" : (c.pm?.kind ?? "request")} (${c.pm?.age ?? ""})`);
   const stall: Need | null =
-    since === null ? null : { kind: "stalled", text: STALLED_TEXT, verb: "for", age: age(since, sig.now), since, key: null, pr: null, who: null, more: 0, by: "pm", link };
+    since === null ? null : { kind: "stalled", text: sig.nudged?.(clock) === true ? AFTER_NUDGE_PM : STALLED_TEXT, verb: "for", age: age(since, sig.now), since, key: null, pr: null, who: null, more: 0, by: "pm", link };
   const need = over ? null : (asked ?? stall);
   const pmWords = pmState === null ? "PM thread not known" : pmState === "unknown" ? "the PM thread is gone" : `PM thread ${pmState}`;
   const status = held

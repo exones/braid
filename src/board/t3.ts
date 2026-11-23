@@ -289,7 +289,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined, provider: str(t["providerInstanceId"]) ?? where?.provider ?? null } satisfies T3Thread };
   });
   // A recorded review thread is its item's reviewer while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
-  const reviewing = await pool(reviews, async (r) => {
+  const reviewing = await pool(reviews.filter((r) => !r.id.startsWith("pm/")), async (r) => {
     const where = await showThread(run, root, r.thread);
     return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: "reviewer", pending: where.pending, link: null, provider: where.provider } satisfies T3Thread } : null;
   });
@@ -311,10 +311,13 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
       into.set(f.key, [...(into.get(f.key) ?? []), f.thread]);
     }
   }
-  const pmChecks = wanted.flatMap(({ t, running }) => {
+  const listedChecks = wanted.flatMap(({ t, running }) => {
     const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) pm check: (.*)$/.exec(str(t["title"]) ?? "");
     return running && m !== null && repos.has(m[1] ?? "") ? [m[2] ?? ""] : [];
   });
+  // A PM's checker is a subagent, which `thread list` leaves out: the PM records it (`braid review pm/<slug> --thread <id>`), and it checks while T3 says it runs (0071/C, 2h98).
+  const recordedChecks = await pool(reviews.filter((r) => r.id.startsWith("pm/")), async (r) => ((await showThread(run, root, r.thread))?.status === "running" ? [r.id] : []));
+  const pmChecks = [...listedChecks, ...recordedChecks.flat()];
   return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, providers, pmChecks };
 }
 

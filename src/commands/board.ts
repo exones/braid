@@ -13,6 +13,7 @@ import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from ".
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
 import { steerer, type Steerer } from "../board/steerer.js";
 import { steps, waker } from "../board/wake.js";
+import { nudger } from "../board/nudge.js";
 import { reminder } from "../board/remind.js";
 import { steeringLines } from "../board/steer.js";
 import { LimitsError, readModelLines } from "../braids/limits.js";
@@ -1184,7 +1185,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const steer = pausing
     ? steerer({
         t3,
-        wake: steps(waker(t3), reminder(t3)),
+        wake: steps(waker(t3), reminder(t3), nudger(t3)),
         ...(run.notifier === undefined
           ? {
               push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => {
