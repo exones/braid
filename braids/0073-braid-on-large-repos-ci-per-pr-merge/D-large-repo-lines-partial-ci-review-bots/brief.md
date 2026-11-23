@@ -61,10 +61,10 @@ Baseline `wc -w`: braid-md.md 837, braid-worker SKILL.md 1773, braid-reviewer SK
 
 ## Completion
 
-- [ ] The template shows, each with an example: partial CI on braid branches, `review-bots` and `reviewer-with-bots`, caches in `setup`, `merge-gate` and `merge-gate-on` (an Everix-style example with `[main]`), `ci: all`
-- [ ] The braid-worker skill covers the bots' comments (triage, one push, reply, resolve as decided) and the gate evidence for partial CI; the braid-reviewer skill reads the bots' comments and replies; `reviewer-with-bots: L-only` is honoured where the review is picked
-- [ ] `braid facts` names the merge gate and whether it runs on this PR's merge, with a test
-- [ ] `wc -w` of each touched skill is not higher than before (numbers in report.md)
-- [ ] The docs from BRAID.md `docs` are true for everything 0073 changed; report.md lists each as updated or unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The template shows, each with an example: partial CI on braid branches, `review-bots` and `reviewer-with-bots`, caches in `setup`, `merge-gate` and `merge-gate-on` (an Everix-style example with `[main]`), `ci: all`
+- [x] The braid-worker skill covers the bots' comments (triage, one push, reply, resolve as decided) and the gate evidence for partial CI; the braid-reviewer skill reads the bots' comments and replies; `reviewer-with-bots: L-only` is honoured where the review is picked
+- [x] `braid facts` names the merge gate and whether it runs on this PR's merge, with a test
+- [x] `wc -w` of each touched skill is not higher than before (numbers in report.md)
+- [x] The docs from BRAID.md `docs` are true for everything 0073 changed; report.md lists each as updated or unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
