@@ -1,7 +1,7 @@
 ---
 id: '0069/A'
 title: "Leftovers first: a forwarded merge of a Done story reaches the user; no lost limit push"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 10
