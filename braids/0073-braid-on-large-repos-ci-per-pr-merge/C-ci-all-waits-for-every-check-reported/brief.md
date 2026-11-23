@@ -1,7 +1,7 @@
 ---
 id: '0073/C'
 title: "ci: all waits for every check reported"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 order: 30
