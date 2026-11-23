@@ -24,6 +24,7 @@ const Rec = (await load("../../dist/braids/requests.js")) as {
 };
 const { fetchBranch } = (await load("../../dist/braids/gitbranch.js")) as { fetchBranch: (root: string, b: object) => unknown };
 const { REQUESTS } = (await load("../../dist/braids/requests.js")) as { REQUESTS: object };
+const { readSignals } = (await load("../../dist/board/signals.js")) as { readSignals: (root: string, github: object) => { requests: Map<string, unknown> } };
 
 const codeOf = (out: string): string => /^(q-[a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`);
 const record = (root: string, code: string) => Rec.loadRecord(root).requests.find((r) => r.code === code) ?? assert.fail(`no ${code}`);
@@ -139,6 +140,9 @@ test("ask --to a braid number and --done-when: stored, shown; a pr: condition is
   const listed = R.requestsCommand(w.root, [], { gh: w.opts.gh });
   assert.match(listed, /0001  question  \d+[mhd]  done when pr:5  Wait for strand A's PR/);
   assert.match(listed, /0001\/A  question  \d+[mhd]  to braid 0002  done when braid:0002  Does 0002/);
+  // Not the user's: the board neither shows it as theirs nor pushes it.
+  const sig = readSignals(w.root, { status: { state: "unavailable", reason: "test" }, prs: new Map() });
+  assert.deepEqual([sig.requests.has("0001/A"), sig.requests.has("0001")], [false, true]);
   // The board's pure filter hides it once the PR merged; braid requests records it as met.
   w.prs[0]!.state = "MERGED";
   const merged = () => ({ state: "MERGED", headRefOid: "x" });
