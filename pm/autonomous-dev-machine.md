@@ -6,10 +6,10 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 2
 state: running
 hold:
-next: After each merge into main the PM installs, restarts the board and waits for the user; then P2 and P7 · 0067
-digest: 23 Nov · 0 done · 1 running · 1 ready to merge (#250) · 2 PM decisions
+next: Waiting for the user's look at 0068 and their go; then P2, and P7 · 0067 after 0064 merges
+digest: 23 Nov · 1 done · 1 running · 2 PM decisions
 rows:
-  - P0 | 0068 | Coordinators stop waiting in the foreground | ready to merge
+  - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | running
   - P2 | - | Precise notifications | planned
   - P7 | 0067 | Board as a Windows service, fully usable; PM naming | planned
@@ -74,7 +74,7 @@ Order: the user's priorities, then dependencies and overlap. A row starts when i
 
 | Row | Sketch | Braid | Coordinator thread | Depends on | State |
 | --- | --- | --- | --- | --- | --- |
-| P0 | **Coordinators stop waiting in the foreground.** The coordinator ends its turn and is woken by events (the worker's report, a `delegate_task` result, a PR watch), so the user's and the PM's messages no longer queue behind `t3_thread_wait` and `braid wait`. Try: write to a coordinator while its worker runs; it answers at once. | 0068 | mcp:launch:c419718a1a923226aae4fd04259b64cecbd21c5cd9e70288b871e599f7a7e9bc | - | ready to merge |
+| P0 | **Coordinators stop waiting in the foreground.** The coordinator ends its turn and is woken by events (the worker's report, a `delegate_task` result, a PR watch), so the user's and the PM's messages no longer queue behind `t3_thread_wait` and `braid wait`. Try: write to a coordinator while its worker runs; it answers at once. | 0068 | mcp:launch:c419718a1a923226aae4fd04259b64cecbd21c5cd9e70288b871e599f7a7e9bc | - | done |
 | P1 | **The board watches provider limits.** Runs under its own coordinator (not PM-launched); D and E left. | 0064 | its own | - | running |
 | P2 | **Precise notifications.** A push only when someone explicitly asked the user: a request addressed to the user, a PM forward or escalation, the PM's own request, a merge into `main` the user keeps. A lane moving (To Review for a strand PR the coordinator merges itself, a braid Done under a PM) never pushes. The PM can push the digest and "nothing can run until you act" directly. A `mode` per machine (`all` or `escalations`). T3's own notifications are out of scope: the user relies on braid's ntfy pushes. **Every ntfy notification braid sends opens, when tapped, the thread that needs the user** (the coordinator's or the PM's); today some don't. PRs ready for the user's merge come as one notification for whatever is waiting (updated in place when another joins), opening the PM thread. No Done notification for a braid the PM runs: the PM's after-merge "have a look" request covers it. Inbox: 2026-11-22-n46f; leftover 2026-11-22-zmry (a failed one-shot limit push lost on a multi-project board). Try: run a braid under a PM and get no push until the PM asks you. | - | - | P1's code merged (both change `src/notify/`); may plan before | planned |
 | P7 | **Board as a Windows service, fully usable; PM naming.** The board runs as a Windows service (the user: "braid board as a windows service. now I run it manually from console"), started with the machine or the login, restarted when it fails, with commands to install, remove, restart and show it; Linux (systemd) as the docs already describe. A board run that way can act from its page (0067's token address file and `braid board --url`). Plus 0067's PM naming in openai.yaml and docs/autonomy.md, and inbox 2026-11-21-mbb2. Which kind of service (a real Windows service, which runs as a user who must hold the `gh` and `t3` logins, or a logon task) is the coordinator's question to the user. Try: reboot, open the board's address, Start a strand from the page. | 0067 | - | P1 (both change `src/commands/board.ts`); runs beside P2, merges after it if they overlap | planned |
@@ -115,6 +115,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P0 · 0068 merged by the user (PR #250 at 617e484); CI green on main; skills and CLI installed from 617e484; board restarted on port 7800; the user asked to have a look; waiting for their go.
 - 2026-11-23: P0 · 0068 live check passed after one fix round (exit mapping in SKILL.md, red-branch merge order, neutral exit-3 output); PR #250 at ec845d6 ready for the user's merge, forwarded to the user. limits.md's old waits go with 0064's merge.
 - 2026-11-23: P0 · 0068 handed over: PR #250 at 9c31f67, reviewed and green; PM live check launched (thread:delegated-task:command%3Amcp%3A18e3807a-f7a3-4cdf-a5d8-b3c099c402e3%3Adelegate-task%3Acc9840ae-9ace-4515-a67d-20d46eed85a8). Leftover 2026-11-22-t7ap (`braid wait --once`) to P15.
 - 2026-11-23 00:40Z: programme started by the user; P6 moved after P3 (depends on P1, P3; no longer on P5).
