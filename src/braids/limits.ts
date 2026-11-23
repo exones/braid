@@ -24,6 +24,9 @@ export const SCOPED_WINDOWS: Readonly<Record<string, string>> = {
   seven_day_fable: "fable",
 };
 
+/** What the reason of an unmeasurable provider (T3 reports it unsupported, as for cursor) starts with; the board shows it as "not measured". */
+export const NOT_MEASURED = "T3 cannot measure this provider";
+
 export class LimitsError extends Error {
   override name = "LimitsError";
 }
@@ -259,7 +262,7 @@ export function readProvider(caches: string, instanceId: string, lines: readonly
   const checkedAt = typeof usage.checkedAt === "string" && !Number.isNaN(Date.parse(usage.checkedAt)) ? usage.checkedAt : null;
   if (isRecord(usage.unavailable)) {
     const why = typeof usage.unavailable.reason === "string" ? usage.unavailable.reason : "unavailable";
-    return unknownReading(instanceId, roles, models, `T3 cannot measure this provider (${why})`, checkedAt);
+    return unknownReading(instanceId, roles, models, `${NOT_MEASURED} (${why})`, checkedAt);
   }
   if (checkedAt === null) {
     return unknownReading(instanceId, roles, models, "usageLimits has no valid checkedAt");

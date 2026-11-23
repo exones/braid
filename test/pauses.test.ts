@@ -132,7 +132,7 @@ test("braid pause is refused when the verdict isn't pause, unless --until is giv
   assert.throws(() => pauseCommand(root, ["0061", "--provider", "nobody", "--thread", THREAD], opts), /names no provider nobody/);
   assert.throws(() => pauseCommand(root, ["0061", "--provider", "claude_ok", "--thread", "short"], opts), /--thread needs an id/);
   assert.throws(() => pauseCommand(root, ["0061", "--provider", "claude_ok", "--thread", THREAD, "--until", "soon"], opts), /--until needs an ISO time/);
-  assert.throws(() => pauseCommand(root, ["0061", "--provider", "claude_ok", "--thread", THREAD, "--until", "2026-11-21T19:00:00Z", "--by", "me"], opts), /--by is coordinator or pm/);
+  assert.throws(() => pauseCommand(root, ["0061", "--provider", "claude_ok", "--thread", THREAD, "--until", "2026-11-21T19:00:00Z", "--by", "me"], opts), /--by is coordinator, pm, board/);
   assert.throws(() => pauseCommand(root, ["0061", "--provider", "claude_session_over", "--thread", THREAD, "--window", "nope"], opts), /has no window nope/);
 });
 

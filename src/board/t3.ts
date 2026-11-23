@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { loadReviews, type ReviewRecord } from "../braids/reviews.js";
-import { parseThreadTitle, titleRepoName } from "../braids/title.js";
+import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { itemOfFolder, repoNameOf } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
 
@@ -22,6 +22,8 @@ export interface T3Thread {
   readonly link: string | null;
   /** The thread's title, when T3 lists one. */
   readonly title?: string | undefined;
+  /** The provider instance it runs on (`Claude_Everix`), as T3 lists it; null or absent when T3 doesn't say. The limits view and the steering targets read it. */
+  readonly provider?: string | null | undefined;
 }
 
 export type T3State =
@@ -56,6 +58,8 @@ export interface T3 {
   readonly states?: ReadonlyMap<string, string>;
   /** The T3 link of every thread `thread list` named, by id: where a request addressed by a thread id (the PM's) opens. */
   readonly links?: ReadonlyMap<string, string>;
+  /** The provider instance of every thread `thread list` named that says one, by id: the steering targets read a PM thread's here (0064). */
+  readonly providers?: ReadonlyMap<string, string>;
   /** What each running PM checker thread of this repository checks: the text after `🧭 <repo> pm check: `. A programme whose checker runs is running. */
   readonly pmChecks?: readonly string[];
 }
@@ -130,6 +134,8 @@ export interface Where {
   readonly pending: number;
   /** `subagent` for a delegated task's child thread; null for a top-level thread. */
   readonly relationshipToParent: string | null;
+  /** The provider instance the thread runs on. */
+  readonly provider: string | null;
 }
 
 const recent = new Map<string, { at: number; t3: Promise<T3> }>();
@@ -151,6 +157,7 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
       branch: str(t["branch"]),
       pending: typeof pending === "number" ? pending : 0,
       relationshipToParent: str(t["relationshipToParent"]),
+      provider: str(t["providerInstanceId"]),
     };
   } catch {
     return null;
@@ -223,6 +230,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   const named = (Array.isArray(all) ? all : []).map(obj).filter((t): t is Json => t !== null);
   const states = new Map<string, string>();
   const links = new Map<string, string>();
+  const providers = new Map<string, string>();
   for (const t of named) {
     const id = str(t["threadId"]) ?? str(t["id"]);
     if (id !== null) {
@@ -231,6 +239,10 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
         links.set(id, link);
       }
       states.set(id, archived(t) ? "archived" : (str(t["status"]) ?? "unknown").toLowerCase());
+      const provider = str(t["providerInstanceId"]);
+      if (provider !== null) {
+        providers.set(id, provider);
+      }
     }
   }
   const wanted = named
@@ -259,7 +271,8 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     let key: string | null = null;
     if (running) {
       where = await showThread(run, root, id);
-      key = ownerOf(where?.worktreePath ?? null)?.key ?? null;
+      // A steering thread (0064) belongs to no item, wherever it runs.
+      key = parseSteeringTitle(str(t["title"]) ?? "") !== null ? null : (ownerOf(where?.worktreePath ?? null)?.key ?? null);
     } else {
       const p = titled(t);
       key = p !== null && p.role === "worker" ? p.id : null;
@@ -270,12 +283,12 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
         ideaThreads.set(branch, { id, link: str(t["link"]), provider: str(t["providerInstanceId"]), model: str(t["model"]) });
       }
     }
-    return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined } satisfies T3Thread };
+    return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined, provider: str(t["providerInstanceId"]) ?? where?.provider ?? null } satisfies T3Thread };
   });
   // A recorded review thread is its item's reviewer while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
   const reviewing = await pool(reviews, async (r) => {
     const where = await showThread(run, root, r.thread);
-    return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: "reviewer", pending: where.pending, link: null } satisfies T3Thread } : null;
+    return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: "reviewer", pending: where.pending, link: null, provider: where.provider } satisfies T3Thread } : null;
   });
   const coordinators = new Map<string, T3Coordinator>();
   const idleCoordinators = new Map<string, T3Coordinator>();
@@ -299,7 +312,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) pm check: (.*)$/.exec(str(t["title"]) ?? "");
     return running && m !== null && repos.has(m[1] ?? "") ? [m[2] ?? ""] : [];
   });
-  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, pmChecks };
+  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, providers, pmChecks };
 }
 
 /** Forgets what was read, for tests. */

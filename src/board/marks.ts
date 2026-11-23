@@ -13,7 +13,7 @@ export const LANE_LABEL: Readonly<Record<Lane, string>> = {
   Done: "Done",
 };
 
-export type ReasonKind = "question" | "checks" | "stalled" | "ask" | "plan";
+export type ReasonKind = "question" | "checks" | "stalled" | "ask" | "plan" | "limit";
 
 export interface ReasonIcon {
   readonly kind: ReasonKind;
@@ -28,7 +28,7 @@ export interface ActivityIcon {
 
 /** The pause mark: sky while paused, amber once the resume is overdue. */
 export interface PausedIcon {
-  readonly state: "paused" | "due";
+  readonly state: "paused" | "pausing" | "due";
   readonly tooltip: string;
 }
 
@@ -86,6 +86,9 @@ export function reasonIcon(reason: string, failed: readonly string[] = [], key: 
   }
   if (reason === "action") {
     return { kind: "ask", tooltip: "The PM asks you to do something" };
+  }
+  if (reason === "limit") {
+    return { kind: "limit", tooltip: "Provider limit: a weekly window or a failed pause needs you" };
   }
   if (reason === "checks failed") {
     return { kind: "checks", tooltip: failed.length > 0 ? `Checks failed: ${failed.join(", ")}` : "Checks failed" };

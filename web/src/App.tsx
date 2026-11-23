@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { ROLES } from "../../src/braids/roles.ts";
 import { Md } from "./Md.tsx";
+import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
 import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
@@ -111,6 +112,9 @@ function ReasonMark({ kind, tooltip }: { kind: string; tooltip: string }) {
       </Icon>
     );
   }
+  if (kind === "limit") {
+    return <Icon tip={tooltip} className="text-amber-500">⚖</Icon>;
+  }
   if (kind === "plan") {
     return (
       <Icon tip={tooltip} className="text-amber-500">
@@ -180,6 +184,7 @@ const NEED_TONE = {
 /** A paused braid: sky while it waits for its resume, amber once the resume is overdue. */
 const PAUSE_TONE = {
   paused: { icon: "text-sky-600", box: "border-sky-600 bg-sky-50 text-sky-900" },
+  pausing: { icon: "animate-pulse text-sky-600", box: "border-sky-600 bg-sky-50 text-sky-900" },
   due: { icon: "text-amber-600", box: "border-amber-500 bg-amber-50 text-amber-900" },
 } as const;
 
@@ -203,7 +208,7 @@ function PmLine({ pm }: { pm: PmHandling }) {
   );
 }
 
-const toneOf = (need: Need): string => NEED_TONE[need.kind === "review" ? "review" : need.kind === "checks failed" || need.kind === "stalled" ? "bad" : "wait"];
+const toneOf = (need: Need): string => NEED_TONE[need.kind === "review" ? "review" : need.kind === "checks failed" || need.kind === "stalled" || (need.kind === "limit" && need.text.startsWith("Pause failed")) ? "bad" : "wait"];
 
 /** One line saying what the user needs to do, with its age; on a braid card also which strand it comes from. */
 function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?: boolean; className?: string }) {
@@ -1960,6 +1965,10 @@ export function App() {
   const notes = shown.flatMap((i) => (i.t3?.state === "unavailable" ? [`T3 unavailable (${i.t3.reason})${several ? ` for ${i.name}` : ""}: no agent states`] : []));
   const pauseNotes = shown.filter((i) => i.pausesNote !== null);
   const resolved = resolveProject(route.project, selected, served);
+  const limits = all.state === "ready" && all.data.limits !== null && all.data.limits.providers.length > 0 ? all.data.limits : null;
+  const [limitsOpen, setLimitsOpen] = useState(false);
+  const toggleLimits = () => setLimitsOpen(!limitsOpen);
+  const now = new Date();
   return (
     <RemoteContext value={all.state !== "ready" || all.data.remote}>
     <ScopeContext value={scope}>
@@ -1971,6 +1980,7 @@ export function App() {
           {single !== undefined && <span className="text-slate-500 max-md:hidden">Each braid sits in the lane where it needs you most. · {single.repo} · braids/</span>}
           {several && <span className="text-slate-500 max-md:hidden">Each braid sits in the lane where it needs you most.</span>}
           <span className="flex-1" />
+          {limits !== null && <LimitChips view={limits} now={now} onOpen={toggleLimits} />}
           {all.state === "ready" && <InboxChip inbox={inbox} on={route.inbox} />}
           <label className="flex cursor-pointer items-center gap-1.5 text-xs" title="Show the line on each card saying what is needed; off moves the text into the icon's tooltip">
             <input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details
@@ -1989,6 +1999,8 @@ export function App() {
             Refresh
           </button>
         </header>
+        {limits !== null && <LimitsStrip view={limits} now={now} onOpen={toggleLimits} />}
+        {limitsOpen && limits !== null && <LimitsPanel view={limits} now={now} onClose={() => setLimitsOpen(false)} />}
         {several && <ProjectsBar infos={infos} selected={selected} onSelect={setSelected} />}
         {single !== undefined && single.problems.length > 0 && (
           <div role="note" aria-label="This project is not ready for braid" className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs text-amber-900">
