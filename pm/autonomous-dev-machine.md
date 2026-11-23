@@ -7,7 +7,7 @@ limit: 2
 state: running
 hold:
 next: "P6 · 0071 runs; then P4 · 0072, P5"
-digest: "23 Nov · 5 done · 1 running · 9 PM decisions"
+digest: "23 Nov · 5 done · 1 running · 10 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | done
@@ -140,6 +140,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P6 · 0071 plan approved by the PM (q-jcjx): strands A waits wake their asker (braid:/time:, one wake, rf9z: replacement within kind), B reminders and eta (mockups to the user), C one nudge then escalate, and the PM check seen (2h98), D skills, E docs; ~1200 lines. The coordinator's decisions 1–7 are internal to braid, because only 0072 shares the record and merges after, instead of asking the user.
 - 2026-11-23: user: "another story: `board init` command to init a new repo / also `board skills install` and `board skills update` I guess. Probably the second one will require the whole update story which is bigger than just usability": P18 (init, skills install) and P19 (update story) added before P17, which stays last.
 - 2026-11-23: user: "looks great, go P6" (q-t42d). P6 · 0071 launched from its outline (coordinator mcp:launch:f3ded457…); limits ok (session 58%, weekly 88% used). Idea wcox (likely answers as board buttons, free-text line) added as P17, last, in the user's words.
 - 2026-11-23: user: "Merge" #273; P3 · 0070 merged into main (4ffd36d), ci green; installed from main, board restarted through the service (running = installed, page 200). From now on the PM's merge requests use --done-when pr:<n>, and step 1 of "After each merge" (closing by hand) is dropped. Waiting for the user's look and go for P6 · 0071.
