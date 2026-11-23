@@ -134,6 +134,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P3 · 0070/B merged into its braid branch (#269, b4db801): answer/withdraw/show by code, --to and --done-when, pr: conditions close themselves, k5d1 fixed on the branch. 0070/C started; its mockups go to the user.
 - 2026-11-23: user: draft final PR from the start (option B, with CI skipping drafts) added to P10; until then the PM unsettles a coordinator thread T3 settles.
 - 2026-11-23: P3 · 0070/A merged into its braid branch (#268, 58faed2): requests on braid-requests, one q-xxxx file each with a growing history; board load unchanged within noise. 0070/B started. PM: no sweep in 0070, leftovers go to P15.
 - 2026-11-23: user: the PM's two memories go to the skills: "questions in the final reply" sent to 0070/D; "unambiguous phrases" added to P11. Memories deleted.
