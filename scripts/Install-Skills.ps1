@@ -13,7 +13,10 @@
 # pack) and installs the tarball globally (npm install -g), then checks that
 # `braid --version` prints that version and that `braid wait 9999` exits 2 (a
 # Volta shim loses exit codes; its launcher is then replaced, see docs); the
-# version goes into the stamp.
+# version goes into the stamp. Once the CLI and the skills are installed it runs
+# `braid board service restart --if-installed`, so a board task installed with
+# `braid board service install` runs the new code (the new braid decides whether
+# there is a task; it prints nothing when there is none or off Windows).
 # Without -Ref it runs `git fetch origin main` and installs origin/main, never
 # the local main, which can be stale. -Ref origin/<branch> fetches that branch
 # first and a failed fetch stops the install; any other ref (a local branch, a
@@ -196,6 +199,12 @@ try {
       Remove-Item -LiteralPath $old -Recurse -Force
       Write-Output "removed $($folder.Name), no longer in $Ref -> $rootFull"
     }
+  }
+
+  if ($null -ne $cliVersion) {
+    $restart = @(@(& $BraidCommand board service restart --if-installed 2>&1) | ForEach-Object { "$_" })
+    if ($LASTEXITCODE -ne 0) { Fail "the CLI and the skills are installed, but the board task did not restart: $($restart -join ' ')" }
+    if ($restart.Count -gt 0) { Write-Output ($restart -join "`n") }
   }
 } finally {
   Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

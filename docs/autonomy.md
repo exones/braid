@@ -45,7 +45,7 @@ The table is guidance for the agents, in your words. braid checks its shape (all
 
 A braid's exceptions go in its brief's `## Autonomy` section, in a line or two of free text ("architecture: ask for everything in 0031/B"). braid prints that section and doesn't parse it.
 
-A braid a [programme manager](getting-started.md#the-skills) runs has the `PM-run (thread <id>)` line there. braid reads one thing from it, the PM's thread: the coordinator's "ask" cases then go to the PM with `braid ask --to pm` (and its handovers with `braid handover --to pm`), and reach you only when the PM forwards them or doesn't answer in time ([Requests](board.md#requests)).
+A braid a [programme manager](getting-started.md#the-skills) runs has the `PM-run (thread <id>)` line there. braid reads one thing from it, the PM's thread: the coordinator's "ask" cases then go to the PM with `braid ask --to pm` (and its handovers with `braid handover --to pm`), and reach you only when the PM forwards them, hasn't answered in 20 minutes (60 for a handover), or its thread is gone (archived, failed or unknown to T3) ([Requests](board.md#requests)).
 
 A braid's preset is set only at your request, in the plan you approve or later in chat.
 

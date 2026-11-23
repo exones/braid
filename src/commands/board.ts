@@ -33,6 +33,9 @@ import { notifyLine } from "./notify.js";
 import { readConfig } from "../notify/config.js";
 import { readProjects, type Project } from "../projects/list.js";
 import { notifier } from "../notify/notifier.js";
+import { liveAddresses, removeAddress, SESSION_PATH, writeAddress, type Probe } from "../board/address.js";
+import { readVersion } from "../version.js";
+import { serviceLog, stopWithConsole, VERSION_HEADER } from "./service.js";
 
 const TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8",
@@ -627,10 +630,10 @@ async function postAction(req: IncomingMessage, url: URL, listener: Listener, pi
   } else {
     const given = req.headers[TOKEN_HEADER];
     if (typeof given !== "string" || given === "") {
-      return json(403, { error: "This page has no token for this board run. Open the URL that `braid board` printed (it ends in #token=...)." });
+      return json(403, { error: "This page has no token for this board run. Open the URL that `braid board` printed (it ends in #token=...), or the one `braid board --url` prints." });
     }
     if (!tokenMatches(given, listener.token)) {
-      return json(403, { error: "This page's token is from another `braid board` run (a second tab, or a tab kept across a board restart). Open the URL that `braid board` printed now." });
+      return json(403, { error: "This page's token is from another `braid board` run (a second tab, or a tab kept across a board restart). Open the URL that `braid board` printed now, or the one `braid board --url` prints." });
     }
   }
   const name = decodeURIComponent(url.pathname.slice("/api/action/".length));
@@ -946,6 +949,14 @@ export function startBoardWith(
         res.writeHead(405).end();
         return;
       }
+      if (url.pathname === SESSION_PATH && listener.kind === "local") {
+        // Whether this run is the one an address file names (`braid board --url`): 204 for this run's token, else 403. It reads nothing.
+        const given = req.headers[TOKEN_HEADER];
+        const ok = typeof given === "string" && tokenMatches(given, listener.token);
+        // The 204 also names the version this board started from (`braid board service status`).
+        res.writeHead(ok ? 204 : 403, ok ? { "cache-control": "no-store", [VERSION_HEADER]: boardVersion() } : { "cache-control": "no-store" }).end();
+        return;
+      }
       if (url.pathname === "/api/events") {
         res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store" });
         res.write(": open\n\n");
@@ -1114,7 +1125,7 @@ function valueFlag(args: readonly string[], flag: string, need: string): { value
 }
 
 export async function runBoard(root: string, args: readonly string[], tailscale: TailscaleRunner = runTailscale, run: Runners = {}): Promise<Started> {
-  const flags = ["--no-open", "--no-pause", "--demo", "--demo-t3-down", "--demo-not-ready"];
+  const flags = ["--no-open", "--no-pause", "--service", "--demo", "--demo-t3-down", "--demo-not-ready"];
   const { value: host, rest: afterHost } = valueFlag(args, "--host", "an address: tailscale, this machine's Tailscale IP or its MagicDNS name");
   const pat = afterHost.indexOf("--port");
   const portArg = pat === -1 ? undefined : afterHost[pat + 1];
@@ -1127,6 +1138,15 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const unknown = rest.filter((a) => !flags.includes(a));
   if (unknown.length > 0) {
     throw new UsageError(`braid board takes only ${flags.join(", ")}, --host <address>, --port <n>, --project <name>; got: ${unknown.join(" ")}`);
+  }
+  // `--service`: the run of `braid board service`'s task (0067/B). Its output also goes to ~/.braid/board-<port>.log,
+  // opened first so even a refused start says why, and it stops when its headless console closes (the task stopped).
+  const service = args.includes("--service");
+  if (service && fixedPort === 0) {
+    throw new UsageError("--service needs --port <n>: its log and its address file are per port");
+  }
+  if (service) {
+    serviceLog(fixedPort, boardVersion());
   }
   const t3Down = args.includes("--demo-t3-down");
   const notReady = args.includes("--demo-not-ready");
@@ -1243,6 +1263,12 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const started = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
+  // A real run also leaves its address in ~/.braid for a board with no console (D94); the demo writes nothing.
+  const stopped = demo ? started : keepAddress(started, url);
+  if (service) {
+    // The exit handler keepAddress set removes the address file.
+    stopWithConsole(() => process.exit(0));
+  }
   process.stdout.write(`braid board${demo ? " (demo: sample data; nothing is read or written)" : ""}: ${url}\n`);
   if (several) {
     process.stdout.write(`Projects: ${only ?? names.join(", ")}\n`);
@@ -1264,5 +1290,73 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
       process.stdout.write(`${several ? `${f.name}: ` : ""}${problemLine(p)}\n`);
     }
   }
-  return started;
+  return stopped;
+}
+
+let version: string | undefined;
+/** This braid's version, read once. */
+function boardVersion(): string {
+  version ??= readVersion();
+  return version;
+}
+
+/** The signals that stop a board from its console or its service manager; the address file goes before the process does. */
+const STOP_SIGNALS: readonly NodeJS.Signals[] = process.platform === "win32" ? ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"] : ["SIGINT", "SIGTERM", "SIGHUP"];
+
+/**
+ * Writes the run's address file (D94) and removes it when the board stops: `close()`, a normal exit, or a stop signal,
+ * which is raised again once the file is gone so the process ends as it did before. A process killed outright
+ * (TerminateProcess, SIGKILL) leaves the file; `braid board --url` then finds no board answering with its token.
+ * A file that can't be written is reported on standard error, and the board runs on without it.
+ */
+export function keepAddress(started: Started, url: string, home?: string, raise: (signal: NodeJS.Signals) => void = (s) => process.kill(process.pid, s)): Started {
+  const port = Number(new URL(started.url).port);
+  try {
+    writeAddress(port, url, home);
+  } catch (error) {
+    process.stderr.write(`braid board: the address file can't be written (${error instanceof Error ? error.message : String(error)}); braid board --url won't find this board\n`);
+    return started;
+  }
+  const remove = (): void => removeAddress(port, url, home);
+  const detach = (): void => {
+    process.off("exit", remove);
+    for (const s of STOP_SIGNALS) {
+      process.off(s, onSignal);
+    }
+  };
+  function onSignal(signal: NodeJS.Signals): void {
+    remove();
+    detach();
+    raise(signal);
+  }
+  process.once("exit", remove);
+  for (const s of STOP_SIGNALS) {
+    process.once(s, onSignal);
+  }
+  return {
+    ...started,
+    close: async () => {
+      detach();
+      remove();
+      await started.close();
+    },
+  };
+}
+
+/** `braid board --url [--port <n>]`: the address of each board running for this user, from its address file (D94). */
+export async function boardUrl(args: readonly string[], home?: string, probe?: Probe): Promise<{ code: number; stdout: string; stderr: string }> {
+  const rest = args.filter((a) => a !== "--url");
+  let port: number | undefined;
+  if (rest.length > 0) {
+    const value = rest[1] ?? "";
+    if (rest.length !== 2 || rest[0] !== "--port" || !/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 65535) {
+      throw new UsageError(`braid board --url takes only --port <n> (a port number from 1 to 65535); got: ${rest.join(" ")}`);
+    }
+    port = Number(value);
+  }
+  const live = (await liveAddresses(home, probe)).filter((a) => port === undefined || a.port === port);
+  if (live.length === 0) {
+    return { code: 1, stdout: "", stderr: `no braid board is running${port === undefined ? "" : ` on port ${port}`} for this user; start one with braid board\n` };
+  }
+  return { code: 0, stdout: live.map((a) => `${a.url}\n`).join(""), stderr: "" };
 }
