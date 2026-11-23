@@ -1,7 +1,7 @@
 ---
 id: '0071/C'
 title: "One nudge for a real stall, and the PM check seen by the board"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0071/B']
 order: 30
