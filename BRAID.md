@@ -31,6 +31,9 @@ models:
     L: Claude_Everix / claude-opus-5-5 / effort=medium (tier L items, including spikes)
   reviewer: cursor / grok-4.6 / effort=high, fastMode=false; skill braid-reviewer
   researcher: Claude_Everix / claude-opus-5-5 / effort=medium; skill braid-researcher
+  steering:
+    first: Claude_Everix / claude-haiku-5-5 / effort=low
+    fallback: codex / gpt-6-luna / effort=low
 ---
 
 # braid for braid agents
