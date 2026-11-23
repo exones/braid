@@ -15,7 +15,7 @@ Expected size: about 320 lines in 8 files.
 
 ## Start here
 
-- The braid's brief (`braid view 0071`), and 0071/B's approved mockups and log (the nudged and stalled card text).
+- The braid's brief (`braid view 0071`), and 0071/B's report and log, and the user's verdict on its mockups (q-ocph: "slim please"): the card says nothing while all is well, and only a stall gets one red line.
 - `src/board/model.ts` (`derive`, `toCard`: `stallHolds`, the coordinator alarm, `BROKE_MS`), `src/board/signals.ts` (`brokeClock`, `.braid/broke.json`), `src/board/programme.ts` (`programmeOf`, `checkerOf`, `STALLED_TEXT`).
 - `src/board/t3.ts` (`readFresh`: `thread list`, `thread show`, `relationshipToParent`, reviewers from `.braid/reviews.json`; `pmChecks`).
 - The sends of 0071/A and 0071/B, and `src/board/steerer.ts`.
@@ -23,11 +23,12 @@ Expected size: about 320 lines in 8 files.
 
 ## Change
 
-- When a coordinator stall holds (item or braid level) and its 10-minute clock runs out, the board sends the braid's coordinator thread one nudge instead of raising the alarm, e.g. `Nudge from the board: 0071 looks idle: no running agent, no open request or wait, no hold. Go on with the next step, or open a request or wait and end your turn.` The card shows it was nudged (0071/B's mockup). If the stall still holds 10 minutes after the nudge, the alarm is raised as today, with "after a nudge" in its reason, and under a PM the board sends the PM one message. Anything that ends the stall (an agent runs, a request opens) resets it; a later stall gets a new nudge.
+- When a coordinator stall holds (item or braid level) and its 10-minute clock runs out, the board sends the braid's coordinator thread one nudge instead of raising the alarm, e.g. `Nudge from the board: 0071 looks idle: no running agent, no open request or wait, no hold. Go on with the next step, or open a request or wait and end your turn.` Per the user's verdict (q-ocph) the card shows nothing for the nudge and stays where it is. If the stall still holds 10 minutes after the nudge, the alarm is raised as today with one red line, "Stalled after a nudge: the coordinator stopped and nothing was asked", and under a PM the board sends the PM one message. Anything that ends the stall (an agent runs, a request opens) resets it; a later stall gets a new nudge.
 - The same for the PM: a programme stall nudges the PM thread once, then escalates as today.
 - The nudge's memory is the existing alarm clock in `.braid/broke.json` (a nudged time beside the first-seen time), not a new file.
 - 2h98: a running delegated PM check keeps the programme from reading as stalled. First see what T3 offers (a subagent's `thread show` has `relationshipToParent`; does `thread list` or `thread show` of the PM thread give its running children?). Prefer the board reading it with no skill change; if T3 gives no way, the PM records its checker the way reviewers are recorded (`braid review`-style, one CLI call), and 0071/D puts that call in the braid-pm skill. Log which and why.
 - Skip a held or paused braid or programme.
+- Review nit from 0071/B (PR #278): the EVENTS comment in `src/braids/requests.ts` mentions a send for a gone addressee that is never written; make it true.
 - Leftover 2026-11-23-1oq8 (from 0071/A): a request on a programme item (`pm/<slug>`) is still checked and woken by `src/board/wake.ts` while that plan is held; skip it while the programme is held or paused, like a held braid. A test covers it.
 - Leftover 2026-11-23-dy2k (from 0071/A): two boards serving one project (a service and a hand-started run) each send the same wake, reminder or nudge, since each sends before either records. Make only one board act per project, or re-read the record right before each send so a second board skips what the first recorded; use existing state (the board's address file, the record), no new file. Log which, and test two boards on one record.
 
