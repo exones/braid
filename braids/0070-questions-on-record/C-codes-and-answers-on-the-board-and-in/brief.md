@@ -1,7 +1,7 @@
 ---
 id: '0070/C'
 title: "Codes and answers on the board and in pushes"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M", "ui"]
 dependencies: ['0070/B']
 order: 30
