@@ -1,0 +1,19 @@
+{
+  "code": "q-ocph",
+  "item": "0071/B",
+  "kind": "decision",
+  "text": "Approve the 0071/B mockups (cards A–I, braid eta, the board's messages); card G in or out; escalation as its own event kind or a reminded event with a reason",
+  "by": "coordinator",
+  "thread": "mcp:launch:f3ded457bc2c4f65d211a846066216bed62134d0108c48673cbeab472db55819",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-23T20:36:53.715Z",
+      "by": "coordinator"
+    }
+  ]
+}
