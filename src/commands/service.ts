@@ -195,11 +195,15 @@ export function csvFields(line: string): string[] {
   return out;
 }
 
-/** A task's last result (`schtasks` prints it in decimal) in words. */
+/**
+ * A task's last result (`schtasks` prints it in decimal) in words. The task's process is `conhost --headless`, which
+ * exits 0 however its board ended (checked 0067/C: a killed board and one that exited 3 both leave 0), so 0 says only
+ * that the run ended; the address line and the log say whether the board is up and why it stopped.
+ */
 export function resultText(code: string): string {
   const n = Number(code);
   const known: Record<number, string> = {
-    0: "exited 0",
+    0: "ended (the board's own exit code isn't kept; see the log)",
     267009: "running",
     267011: "not run yet",
     267014: "stopped",
@@ -364,9 +368,15 @@ export async function serviceCommand(args: readonly string[], deps: ServiceDeps 
     if (r.status !== 0) {
       return { code: 1, stdout: "", stderr: `braid board service: schtasks couldn't register the task: ${(r.stderr || r.stdout).trim()}\n` };
     }
-    const started = await startTask(ctx, port, `installed the ${TASK_NAME} task (at logon, again every 5 minutes if it stopped), running`);
-    const busy = free ? "" : `braid board service: port ${port} is held by another process (a board started by hand?); the task's board can't listen until it is free, and the task tries again every 5 minutes\n`;
-    return { ...started, stderr: `${busy}${started.stderr}` };
+    if (!free) {
+      // Not run onto a held port: its board would fail to listen, and the board answering there is the other one.
+      return {
+        code: 1,
+        stdout: "",
+        stderr: `braid board service: installed the ${TASK_NAME} task, but its board didn't start: port ${port} is held by another process (a board started by hand?). Stop that board, then run braid board service restart; the task also tries again every 5 minutes\n`,
+      };
+    }
+    return startTask(ctx, port, `installed the ${TASK_NAME} task (at logon, again every 5 minutes if it stopped), running`);
   }
 
   const task = readTask(ctx.run);

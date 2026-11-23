@@ -1,7 +1,7 @@
 ---
 id: '0067/C'
 title: "Final PR fixes: owner-only ACL on Windows, install on a held port"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:security"]
 dependencies: []
 order: 30
@@ -44,13 +44,20 @@ Expected size: about 120 lines in 5 to 7 files (code, tests, docs).
 - POSIX unchanged: mode 0600 still, tests still pass on Ubuntu.
 - Install on a held port: non-zero exit, a plain message, task kept.
 
+## Plan
+
+1. `writeAddress`: create the temp file empty (0600), on Windows `icacls <temp> /inheritance:r /grant:r *<SID>:F` (SID from `whoami /user`), then write the token and rename; an ACL failure removes the empty file and throws (the board's existing stderr line). Seam for tests; a real-board test reads the ACL with `icacls`.
+2. `service install`: when the port is still held after the wait, register the task, don't run it, exit 1 with the way out.
+3. Measure a killed board's last result with a scratch task of the same shape; reword `resultText(0)` if it never reflects the board.
+4. openai.yaml display_name; docs/board.md, docs/cli.md, D92.
+
 ## Completion
 
-- [ ] On Windows the address file's ACL lists only the current user with inheritance off, set before the token is written; tested
-- [ ] docs/board.md and D92 say how the file is owner-only on Windows
-- [ ] `braid board service install` on a port another board holds says so plainly and exits non-zero; tested; docs/board.md says to stop a hand-started board first
-- [ ] `status` after a killed board doesn't claim a clean exit, or report.md says why it's right
-- [ ] braid-pm's openai.yaml display_name is "Braid Programme Manager"
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] On Windows the address file's ACL lists only the current user with inheritance off, set before the token is written; tested
+- [x] docs/board.md and D92 say how the file is owner-only on Windows
+- [x] `braid board service install` on a port another board holds says so plainly and exits non-zero; tested; docs/board.md says to stop a hand-started board first
+- [x] `status` after a killed board doesn't claim a clean exit, or report.md says why it's right
+- [x] braid-pm's openai.yaml display_name is "Braid Programme Manager"
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
