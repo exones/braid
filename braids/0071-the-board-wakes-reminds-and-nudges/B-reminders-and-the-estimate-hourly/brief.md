@@ -18,11 +18,11 @@ Expected size: about 450 lines in 10 files.
 ## Plan
 
 0. Mockups (`mockups/reminders.html`, `reminders-full.png`): the card states A-G, the Requests tab history, the CLI, the messages, 0071/C's nudged card. Stop for approval.
-1. `src/braids/requests.ts`: events `reminded` and `escalated` (by `board`); `setEta(root, code, at, why, by)` (refuses a closed request); a duration/time parser.
-2. `src/commands/requests.ts`, `src/cli.ts`: `braid eta <code> <duration|time> ["<why>"]`; `eta`, `reminded`, `escalated` in `braid requests <code>`, "expected by" in the open list.
-3. `src/board/remind.ts` (new), run by the steerer's tick after the wake: per open wait or request to the PM whose asker and addressee braid are not held or paused: due when an hour has passed since opened or last reminded and the estimate (if any) has passed or is unset; addressee thread from `t3.coordinators` (else the PM when PM-run, else gone); send, then record `reminded`. A missed estimate or a gone addressee, not yet escalated since the last `eta`: send the PM one message (PM-run) and record `escalated`.
-4. `src/board/model.ts`, `signals.ts`, `web/src/App.tsx`: an open wait clears the stall; the wait row carries eta, last reminded, missed/gone; an escalated wait is the stall need with its reason.
-5. Tests (`test/board-remind.test.ts`, `test/requests-record.test.ts`, `test/lanes.test.ts`), docs (`docs/board.md`, `docs/cli.md`, `docs/braids-format.md`), gate.
+1. `src/braids/requests.ts`: the event `reminded` (by `board`; an escalation is one with a `reason`, verdict c1); `addEvent(root, code, event)` (refuses a closed request); `eta` read from the newest `eta` event.
+2. `src/commands/requests.ts`, `src/cli.ts`: `braid eta <code> <duration|time> ["<why>"]` with its parser; "expected by" in the `braid requests` open list (the history lists the events as they are).
+3. `src/board/waits.ts` (pure: addressee, missed estimate, due, escalated) and `src/board/remind.ts` (the step, after the wake in the steerer's tick): per open wait or request to the PM, skipping held or paused braids: remind the addressee hourly, not before the estimate; a missed estimate of a PM-run wait sends the PM one message per estimate. Send first, then record `reminded`.
+4. `src/board/model.ts`, `record.ts`, `web/src/App.tsx`: an open wait clears the braid's and its strands' stall; a broken wait is the stall need (verdict: slim card, no other lines); the Requests tab shows "expected by" and the history.
+5. Tests (`test/board-remind.test.ts`), docs (`docs/board.md`, `docs/cli.md`, `docs/braids-format.md`, `docs/decisions.md`), gate.
 
 ## Start here
 
@@ -52,10 +52,10 @@ Expected size: about 450 lines in 10 files.
 
 ## Completion
 
-- [ ] Mockups approved by the user (through the PM), recorded in the log, before building
-- [ ] `braid eta` sets and moves an estimate, appends an `eta` event and refuses a closed request; tests cover it.
-- [ ] The board reminds a wait's addressee at most hourly, not before its estimate, never a held or paused braid, and never the user; tests cover each.
-- [ ] A card with an open wait never reads as stalled; it shows "expected by <time>" when an estimate is set; a missed estimate or a gone addressee reads as a stall with its reason, and a PM gets one message for it; tests cover each.
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockups approved by the user (through the PM), recorded in the log, before building
+- [x] `braid eta` sets and moves an estimate, appends an `eta` event and refuses a closed request; tests cover it.
+- [x] The board reminds a wait's addressee at most hourly, not before its estimate, never a held or paused braid, and never the user; tests cover each.
+- [x] A card with an open wait never reads as stalled; it shows "expected by <time>" when an estimate is set; a missed estimate or a gone addressee reads as a stall with its reason, and a PM gets one message for it; tests cover each.
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

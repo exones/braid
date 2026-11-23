@@ -1239,8 +1239,29 @@ function RequestCard({ row }: { row: RequestRow }) {
         {row.item} · asked {when(row.at)}
         {row.state === "open" ? ` (${row.age} ago)` : ""} · {doneWhenText(row.doneWhen)}
         {row.note !== null && ` · forwarded: ${row.note}`}
+        {row.state === "open" && row.eta !== null && <b className="font-semibold text-slate-700"> · expected by {when(row.eta)}{Date.parse(row.eta) <= Date.now() ? ", missed" : ""}</b>}
       </div>
+      {row.history.length > 1 && <RequestHistory row={row} />}
     </div>
+  );
+}
+
+/** An open request's opening, estimates and reminders, oldest first: who did what when. */
+function RequestHistory({ row }: { row: RequestRow }) {
+  // The estimate comes from the addressee: another braid's coordinator, or the PM.
+  const whoOf = (event: string, by: string): string => (by === "coordinator" ? (event === "eta" && /^\d{4}$/.test(row.to) ? `the ${row.to} coordinator` : `the ${row.item.slice(0, 4)} coordinator`) : (WHO[by] ?? by));
+  return (
+    <ul className="mt-1.5 list-none p-0 text-[12.5px] text-slate-700">
+      {row.history.map((e, i) => (
+        <li key={i} className="border-l-2 border-slate-200 py-0.5 pl-2.5">
+          <span className="inline-block w-24 text-slate-500">{when(e.at)}</span>
+          <b className="font-semibold">{e.event}</b>
+          {e.event === "eta" && e.text !== null && ` ${when(e.text)}`} by {whoOf(e.event, e.by)}
+          {e.event === "reminded" && e.text !== null && ` (${e.text})`}
+          {e.reason !== null && `: ${e.reason}`}
+        </li>
+      ))}
+    </ul>
   );
 }
 

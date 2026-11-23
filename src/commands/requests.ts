@@ -4,10 +4,11 @@ import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, git } from "../braids/gitbranch.js";
-import { age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isWait, KINDS, liveRequests, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isWait, KINDS, liveRequests, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
+import { clock } from "../board/pause.js";
 import { braidDoneOn } from "../board/wake.js";
 import { normaliseId, UsageError } from "./braids.js";
 import { ciChecks } from "./coordinate.js";
@@ -376,6 +377,87 @@ export function withdrawCommand(root: string, args: readonly string[]): string {
 
 const oneLine = (text: string): string => text.replace(/\s+/g, " ").trim();
 
+const ETA_USAGE = 'usage: braid eta <code> <duration|time> ["<why>"] [--by coordinator|pm]  (a duration: 2h, 90m, 1h30m, 2d; a time: 16:30, or 2026-11-24T09:00)';
+
+/**
+ * When an estimate given as `2h`, `90m`, `1h30m`, `2d` (from now), `16:30` (today, or tomorrow once it has passed)
+ * or an ISO time (`2026-11-24T09:00`) comes, as ISO; null when it is none of them or an ISO time already past.
+ */
+export function etaAt(raw: string, now: Date): string | null {
+  const d = /^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?$/.exec(raw);
+  if (d !== null && raw !== "") {
+    const ms = ((Number(d[1] ?? 0) * 24 + Number(d[2] ?? 0)) * 60 + Number(d[3] ?? 0)) * 60_000;
+    return ms > 0 ? new Date(now.getTime() + ms).toISOString() : null;
+  }
+  const t = /^(\d{1,2}):(\d{2})$/.exec(raw);
+  if (t !== null) {
+    const [h, m] = [Number(t[1]), Number(t[2])];
+    if (h > 23 || m > 59) {
+      return null;
+    }
+    const at = new Date(now);
+    at.setHours(h, m, 0, 0);
+    if (at.getTime() <= now.getTime()) {
+      at.setDate(at.getDate() + 1);
+    }
+    return at.toISOString();
+  }
+  const iso = /^\d{4}-\d{2}-\d{2}/.test(raw) ? Date.parse(raw) : Number.NaN;
+  return Number.isNaN(iso) || iso <= now.getTime() ? null : new Date(iso).toISOString();
+}
+
+/** `in 40 min`, `in 2h 10m`, `in 1d 3h`. */
+function inSpan(ms: number): string {
+  const min = Math.max(0, Math.round(ms / 60_000));
+  if (min < 60) {
+    return `in ${min} min`;
+  }
+  const [big, small, a, b] = min < 1440 ? [Math.floor(min / 60), min % 60, "h", "m"] : [Math.floor(min / 1440), Math.floor((min % 1440) / 60), "d", "h"];
+  return `in ${big}${a}${small === 0 ? "" : ` ${small}${b}`}`;
+}
+
+/**
+ * `braid eta <code> <duration|time> ["<why>"]`: the addressee of an open request says when it expects to get to it. Sets the
+ * request's `eta` and appends an `eta` event with the why; a later call moves it. The running board reminds no sooner, and
+ * reads the wait as stalled once it passes. By the coordinator, or the PM for a request to the PM (`--by` to say otherwise).
+ */
+export function etaCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
+  const { positionals, values } = parse("braid eta", args, { by: { type: "string" } });
+  const [code, raw, ...rest] = positionals;
+  if (code === undefined || raw === undefined || rest.length > 1) {
+    throw new UsageError(ETA_USAGE);
+  }
+  if (!CODE.test(code)) {
+    throw new UsageError(`braid eta: ${code} is not a request code (q- and four letters or digits)`);
+  }
+  const now = (opts.now ?? (() => new Date()))();
+  const at = etaAt(raw, now);
+  if (at === null) {
+    throw new UsageError(`braid eta: ${raw} is not a duration or a time to come (2h, 90m, 1h30m, 2d, 16:30 or 2026-11-24T09:00)`);
+  }
+  const by = str(values, "by");
+  if (by !== undefined && by !== "coordinator" && by !== "pm") {
+    throw new UsageError(`--by is coordinator or pm; got: ${by}`);
+  }
+  const why = rest[0] === undefined ? "" : oneLine(rest[0]);
+  // Someone else may have moved it or closed it: read the record as it is on origin.
+  fetchBranch(root, REQUESTS);
+  const was = loadRecord(root).requests.find((r) => r.code === code);
+  const who: Who = by === "pm" || by === "coordinator" ? by : was?.to === "pm" ? "pm" : "coordinator";
+  const done = addEvent(root, code, { event: "eta", at: now.toISOString(), by: who, text: at, ...(why === "" ? {} : { reason: why }) });
+  if (done === null) {
+    throw new UsageError(`braid eta: no request ${code} on ${REQUESTS.branch}; nothing changed`);
+  }
+  const r = done.request;
+  if (!done.added) {
+    const last = closing(r);
+    throw new UsageError(`braid eta: ${code} is ${r.state}${last === null ? "" : ` (closed ${stamp(last.at)})`}; an estimate is only for an open request; nothing changed`);
+  }
+  const before = was?.eta ?? null;
+  const whom = whomOf(r).trim();
+  return `${code} (${r.id}${whom === "" ? "" : `, ${whom}`}): expected by ${clock(at, now)} (${inSpan(Date.parse(at) - now.getTime())})${before === null || before === at ? "" : `; was ${clock(before, now)}`}\n${warned(done.warning)}`;
+}
+
 /** Whom a request is for, as `braid requests` says it. */
 function whomOf(r: Request): string {
   return askerOf(r) === "pm" ? "from the PM  " : r.forwarded !== undefined ? "forwarded by the PM  " : r.to === "pm" ? "to the PM  " : r.to !== undefined && BRAID_TO.test(r.to) ? `to braid ${r.to}  ` : "";
@@ -458,5 +540,6 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
   }
   const now = (opts.now ?? (() => new Date()))();
   const when = (r: Request): string => (r.doneWhen === "answered" || r.kind === "review" ? "" : `done when ${r.doneWhen}  `);
-  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${r.kind}  ${age(r.at, now)}  ${whomOf(r)}${when(r)}${r.text}`).join("\n")}\n`;
+  const eta = (r: Request): string => (r.eta === null ? "" : `expected by ${clock(r.eta, now)}  `);
+  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${r.kind}  ${age(r.at, now)}  ${whomOf(r)}${when(r)}${eta(r)}${r.text}`).join("\n")}\n`;
 }
