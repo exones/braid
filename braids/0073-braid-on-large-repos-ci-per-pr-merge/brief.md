@@ -11,6 +11,8 @@ delivery: epic
 
 Programme pm/autonomous-dev-machine, row P20, from the Everix field report (a large polyglot monorepo where a merge into main deploys shared environments; 2026-11-23). Scope settled with the user: enforce in code only what is expensive to get wrong and what an agent could skip; everything else is a line in BRAID.md, AGENTS.md or a skill (the user: "ok, good, so no major overengineering").
 
+First, and quickly (the user: "I need it quite quickly. Even make it first in P20"): fewer CI runs per strand. (1) No push CI on `braid/*` in .github/workflows/ci.yml: a strand's PR run already tests it merged onto the braid branch, and the final PR into main runs everything again; `main` keeps its push run. (2) The worker pushes all fixes from one review round in one push (a braid-worker skill line). (3) If P10's draft final PR lands first, CI skips draft PRs. Ship this as the braid's first strand, so it can merge into main early as a story of its own if the coordinator sees fit.
+
 Enforced in code (small):
 - `merge-gate:` in BRAID.md: one command (with `<pr>` and `<sha>` filled in) that `braid accept --merge` runs before any merge into main and that no preset skips; a failure refuses the merge with its output. The project's own script decides the rest (test counts, merge windows, a finance non-regression run). Inbox 2026-11-23-60mj.
 - `ci: all`: wait for every check actually reported on the commit, with a short start grace, so `braid wait` and the merge condition "checks green" check something; today `ci: []` returns at once. Inbox 2026-11-23-n1xv.
