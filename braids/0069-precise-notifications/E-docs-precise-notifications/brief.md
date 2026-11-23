@@ -23,6 +23,7 @@ Expected size: about 80 lines in 4 files.
 - `docs/cli.md`: `braid notify send`.
 - `docs/decisions.md`: one decision for the rule and why (push only what a request asks of the user, from the request record; no mode setting).
 - README, getting started, roadmap status: check, update where untrue.
+- From the review of 0069/B (https://github.com/exones/braid/pull/256#issuecomment-7089918385): the CLI help (`src/cli.ts` near line 80), `docs/getting-started.md` and the README still say a forward reaches Needs You; D88 still says a programme-run Done pushes at `low` (D92 supersedes it: mark it).
 
 ## Already decided
 
