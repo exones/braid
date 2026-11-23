@@ -1,7 +1,7 @@
 ---
 id: '0069/B'
 title: "One rule: push only what a request asks of the user, opening the asking thread"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: ['0069/A']
 order: 20
