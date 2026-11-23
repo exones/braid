@@ -7,10 +7,11 @@ import { NO_INBOX, type InboxData } from "./inbox.js";
 import { age, type Request } from "../braids/requests.js";
 import type { Pause } from "../braids/pauses.js";
 import { limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
-import { pmLine, routeOf, viaNote, type PmLine, type Routed, type Via } from "./pm.js";
+import { forwardedLine, pmLine, routeOf, throughPm, viaNote, type PmLine, type Routed, type Via } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import { programmeOfBraid, toProgrammes, type Programme } from "./programme.js";
 import type { LimitsView } from "./limits.js";
+import { t3codeUrl } from "./marks.js";
 
 /** Left to right, what needs the user most first. The board shows Waiting as Needs You, In Review as To Review, In Progress as Working. */
 export const LANES = ["Waiting", "In Review", "In Progress", "To Do", "Done"] as const;
@@ -45,7 +46,7 @@ export interface Need {
   readonly via?: Via;
   /** `pm`: the programme manager asks the user itself (`braid ask … --by pm`, or a programme request). */
   readonly by?: "pm";
-  /** The T3 link of the PM's thread, where a PM request is answered; set with `by`, null when T3 doesn't list the thread. */
+  /** The T3 link of the thread a push for this need opens: the PM's thread for a PM request or a forwarded one, else the asking thread; null when T3 doesn't list it. Set on a request's need and the PM's; absent on a broke alarm. */
   readonly link?: string | null;
 }
 
@@ -272,12 +273,34 @@ export interface Derived {
 
 const plain = { key: null, pr: null, who: null, more: 0 } as const;
 
-function needOfRequest(r: Request, now: Date, routed: Routed): Need {
+/**
+ * The T3 link of a thread: T3's own when it lists the thread, else built from the thread id with the environment
+ * of another listed thread (a link is `<base>/<env>/<thread>`); null when neither can be done.
+ */
+export function linkOfThread(t3: T3, thread: string | null | undefined): string | null {
+  if (thread === null || thread === undefined || thread === "") {
+    return null;
+  }
+  const known = t3.links?.get(thread);
+  if (known !== undefined) {
+    return known;
+  }
+  const other = [...(t3.links?.values() ?? [])].find((l) => t3codeUrl(l) !== null);
+  return other === undefined ? null : other.replace(/[^/]+\/?$/, encodeURIComponent(thread));
+}
+
+function needOfRequest(r: Request, now: Date, routed: Routed, t3: T3): Need {
   const text = r.kind === "review" && r.pr !== undefined ? `Merge PR #${r.pr}` : r.text;
   if ("via" in routed) {
-    return { kind: r.kind, text: `${routed.words} ${text}${viaNote(routed.via, r, now)}`, verb: "asked", age: age(r.at, now), since: routed.since, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: routed.via };
+    const link = linkOfThread(t3, routed.via === "forwarded" ? r.pm : r.thread);
+    return { kind: r.kind, text: `${routed.words} ${text}${viaNote(routed.via, r, now)}`, verb: "asked", age: age(r.at, now), since: routed.since, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: routed.via, link };
   }
-  return { kind: r.kind, text, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0 };
+  return { kind: r.kind, text, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, link: linkOfThread(t3, r.thread) };
+}
+
+/** A forwarded request as the programmes panel shows it: the PM asking the user, opening the PM's thread. */
+export function needOfForward(r: Request, now: Date, t3: T3): Need {
+  return { kind: r.kind, text: `${askWords(r.kind)} ${r.text}${viaNote("forwarded", r, now)}`, verb: "asked", age: age(r.forwarded ?? r.at, now), since: r.forwarded ?? r.at, key: r.key ?? null, pr: null, who: null, more: 0, via: "forwarded", link: linkOfThread(t3, r.pm) };
 }
 
 /** "The PM asks you: …", or "The PM asks you to: …" for something only the user can do. */
@@ -285,7 +308,7 @@ export const askWords = (kind: Request["kind"]): string => (kind === "action" ? 
 
 /** The PM's own request as a need: always on the user's side, pushed at once. */
 export function needOfAsk(r: Request, now: Date, t3: T3, who: string | null = null): Need {
-  return { kind: r.kind === "review" ? "question" : r.kind, text: `${askWords(r.kind)} ${r.text}`, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: null, who, more: 0, by: "pm", link: (r.thread === null ? undefined : t3.links?.get(r.thread)) ?? null };
+  return { kind: r.kind === "review" ? "question" : r.kind, text: `${askWords(r.kind)} ${r.text}`, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: null, who, more: 0, by: "pm", link: linkOfThread(t3, r.thread) };
 }
 
 /** Whether the braid of this item is paused or held (either reason). */
@@ -299,8 +322,8 @@ function activityOf(agents: readonly T3Thread[], pr: PullRequest | null): Activi
 }
 
 /** An item's open request as a lane: a review is To Review, any other request Needs You. */
-function requestLane(r: Request, now: Date, routed: Routed): { lane: Lane; reason: Reason | null; need: Need } {
-  const need = needOfRequest(r, now, routed);
+function requestLane(r: Request, now: Date, routed: Routed, t3: T3): { lane: Lane; reason: Reason | null; need: Need } {
+  const need = needOfRequest(r, now, routed, t3);
   return r.kind === "review" ? { lane: "In Review", reason: null, need } : { lane: "Waiting", reason: r.kind, need };
 }
 
@@ -330,8 +353,10 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   // A request to the PM leaves the lane alone until it reaches the user's side; meanwhile something is asked, so nothing reads stalled.
   const asked = sig.requests.get(key);
   const routed = asked === undefined ? undefined : routeOf(asked, sig.now, t3, pausedBraid(key, sig));
-  const req = routed !== undefined && "via" in routed ? asked : routed?.to === "pm" ? undefined : asked;
-  const pm = asked !== undefined && routed?.to === "pm" && !("via" in routed) ? pmLine(asked, sig.now) : null;
+  // A forwarded request of a braid a programme runs is the PM asking the user: the programmes panel shows it, the card keeps its lane and says so quietly.
+  const away = asked !== undefined && routed !== undefined && throughPm(asked, routed, sig.plans);
+  const req = away ? undefined : routed !== undefined && "via" in routed ? asked : routed?.to === "pm" ? undefined : asked;
+  const pm = asked !== undefined && away ? forwardedLine(asked, sig.now) : asked !== undefined && routed?.to === "pm" && !("via" in routed) ? pmLine(asked, sig.now) : null;
   const pmAskOf = sig.asks?.get(key);
   const pmAsk = pmAskOf === undefined ? null : needOfAsk(pmAskOf, sig.now, t3);
   const question = agents.some((t) => t.pending > 0);
@@ -351,7 +376,7 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const out = (lane: Lane, reason: Reason | null, need: Need | null): Derived =>
     pmAsk === null ? { lane, pr, reason, need, ask, agents, activity, pause, pm, pmAsk } : { lane: "Waiting", pr, reason: lane === "Waiting" && reason !== null ? reason : pmAsk.kind as Reason, need: need ?? pmAsk, ask, agents, activity, pause, pm, pmAsk };
   if (req !== undefined && routed !== undefined) {
-    const r = requestLane(req, sig.now, routed);
+    const r = requestLane(req, sig.now, routed, t3);
     return out(r.lane, r.reason, r.need);
   }
   if (question) {
@@ -376,7 +401,8 @@ export function derive(status: Status, labels: readonly string[], key: string, g
     return out("Waiting", "limit", { ...plain, kind: "limit", text: limit.text, verb: "for", age: age(limit.since, sig.now), since: limit.since });
   }
   const started = stored === "In Progress" || agents.length > 0 || pr?.state === "open";
-  return out(started ? "In Progress" : laneOfStatus(stored), null, null);
+  // A stored Done whose review request is still open (the PR lookup missed) isn't Done: it reads To Do, with the PM line while the PM checks it.
+  return out(started ? "In Progress" : heldReview ? "To Do" : laneOfStatus(stored), null, null);
 }
 
 /** Most urgent first. */
@@ -538,8 +564,9 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const asked0 = sig.requests.get(braid.number);
   const routed = asked0 === undefined ? undefined : routeOf(asked0, sig.now, t3, sig.pauses?.has(braid.number) === true);
   const toPm = routed?.to === "pm" && !("via" in routed);
-  const req = toPm ? undefined : asked0;
-  const pm = asked0 !== undefined && toPm ? pmLine(asked0, sig.now) : (strands.find((s) => s.pm !== null)?.pm ?? null);
+  const away = asked0 !== undefined && routed !== undefined && throughPm(asked0, routed, sig.plans);
+  const req = toPm || away ? undefined : asked0;
+  const pm = asked0 !== undefined && away ? forwardedLine(asked0, sig.now) : asked0 !== undefined && toPm ? pmLine(asked0, sig.now) : (strands.find((s) => s.pm !== null)?.pm ?? null);
   const askOf = pr?.state === "merged" ? undefined : sig.asks?.get(braid.number);
   const pmNeed = askOf === undefined ? null : needOfAsk(askOf, sig.now, t3);
   const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
@@ -558,7 +585,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     const reviewers = (t3.threads.get(braid.number) ?? []).filter((t) => t.role === "reviewer");
     own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, { ...t3, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []) }, sig);
   } else if (req !== undefined && routed !== undefined && pr?.state !== "merged") {
-    own = requestLane(req, sig.now, routed);
+    own = requestLane(req, sig.now, routed, t3);
   }
   if (stalled !== null) {
     own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: "Stalled: the coordinator stopped and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled } };

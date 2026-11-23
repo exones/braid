@@ -1,7 +1,7 @@
 ---
 id: '0069/B'
 title: "One rule: push only what a request asks of the user, opening the asking thread"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: ['0069/A']
 order: 20
@@ -44,12 +44,20 @@ Expected size: about 280 lines in 7 files, half of them tests.
 
 - Grouping merges (0069/C); `braid notify send` (0069/D); T3's notifications.
 
+## Plan
+
+1. `forUser` in `src/notify/message.ts`: the one rule; `pushesOf` calls it for every need and nothing else decides.
+2. A request's `Need` carries `link` (the thread a push opens: asking thread, or the PM's for a forward); `linkOfThread` builds a link from the id when T3 doesn't list the thread.
+3. `throughPm` (`src/board/pm.ts`): a forwarded non-handover request of a braid a live programme lists is the PM asking; `derive`/`toCard` keep the card's lane with the line `Waiting on the user, through the PM: <text>`, `toProgrammes` lists it in `forwards` (panel: `The PM asks you: …`), and the push comes from the programme.
+4. A Done braid a programme runs pushes nothing; every body without a click ends with "Open the board".
+5. Tests (`test/notify-rule.test.ts`, updated notify, pm-requests and programmes tests), the web panel and card line, docs (board.md, cli.md, D92).
+
 ## Completion
 
-- [ ] One function decides whether a need pushes and which thread it opens; `pushesOf` relies on it alone
-- [ ] Under a PM, a forwarded request shows in the programmes panel as `The PM asks you: …` opening the PM's thread, and the braid's card stays in its lane with `Waiting on the user, through the PM: …`; an escalation by timeout or a gone PM thread still puts the card in Needs You (tests)
-- [ ] Tests: a push for each push case in Change (the programme stall included) and none for each no-push case, with the thread each push opens
-- [ ] Every push in the tests has a click link or ends with "Open the board"
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] One function decides whether a need pushes and which thread it opens; `pushesOf` relies on it alone
+- [x] Under a PM, a forwarded request shows in the programmes panel as `The PM asks you: …` opening the PM's thread, and the braid's card stays in its lane with `Waiting on the user, through the PM: …`; an escalation by timeout or a gone PM thread still puts the card in Needs You (tests)
+- [x] Tests: a push for each push case in Change (the programme stall included) and none for each no-push case, with the thread each push opens
+- [x] Every push in the tests has a click link or ends with "Open the board"
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

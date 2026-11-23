@@ -1,8 +1,10 @@
-// What a board snapshot calls for: one push per need on the user's side (Needs You, To Review) and one per
-// Done braid. A push carries only the repo, item id, lane, title, need line, tag, priority and thread link:
+// What a board snapshot calls for: one push per open request that asks the user, the programme stall, and one per
+// Done braid no programme runs. `forUser` is the one place that says whether a need pushes and which thread it opens.
+// A push carries only the repo, item id, lane, title, need line, tag, priority and thread link:
 // a topic on ntfy.sh is readable by anyone who knows its name, so nothing else from the repository goes out.
 import type { BoardData, Lane, Need } from "../board/model.js";
 import { LANE_LABEL, t3codeUrl } from "../board/marks.js";
+import { FORWARDED_WORDS } from "../board/pm.js";
 
 export interface Push {
   /** What makes this need distinct: a need whose key was sent is not sent again. */
@@ -34,8 +36,6 @@ export const TAGS: Readonly<Record<Need["kind"] | "done", string>> = {
   done: "white_check_mark",
 };
 
-const ON_SIDE: readonly Lane[] = ["Waiting", "In Review"];
-
 /** The key of a need: item, lane, reason and when it began (else the PR it is about). */
 export function needKey(id: string, lane: Lane, need: Need): string {
   return [id, lane, need.kind, need.since ?? (need.pr === null ? "-" : `#${need.pr}`)].join("|");
@@ -44,99 +44,150 @@ export function needKey(id: string, lane: Lane, need: Need): string {
 /** The sequence ID of an item's need push: the repository and the item, in the characters a URL path holds. */
 export const sequenceOf = (repo: string, id: string): string => `braid-${repo}-${id}`.replace(/[^A-Za-z0-9_-]/g, "-");
 
+
+/** What a push is: a request to the user (or its escalation), the PM asking (its own request, or one it forwarded), or a programme's stall. */
+export type PushKind = "request" | "forward" | "pm-ask" | "stall";
+
+/**
+ * The one rule: whether a need pushes the user, and which thread it opens. A request addressed to the user (no `to`, or
+ * `to: user`, any kind) or escalated opens its asking thread (the braid's coordinator when it names none); a request the PM
+ * forwarded opens the PM's thread; the PM's own request and a programme's stall open the PM's thread. Nothing else pushes:
+ * a request the PM handles (it is no need), a broke alarm, an agent's pending question, a Done waiting for its merge with no request.
+ * `fallback` is the T3 link of the braid's coordinator; the link returned is T3's (null: the push says "Open the board").
+ */
+export function forUser(need: Need | null | undefined, fallback: string | null): { readonly kind: PushKind; readonly link: string | null } | null {
+  if (need == null) {
+    return null;
+  }
+  if (need.by === "pm") {
+    return { kind: need.kind === "stalled" ? "stall" : "pm-ask", link: need.link ?? null };
+  }
+  // A request has a time it was asked; an alarm ("for 14 min"), an agent's question and a Done handover without a request have none.
+  if (need.verb !== "asked" || need.since === null) {
+    return null;
+  }
+  return { kind: need.via === "forwarded" ? "forward" : "request", link: need.link ?? fallback };
+}
+
+/** A body that ends with where to go when no thread can be opened. */
+const withBoard = (body: string, click: string | null): string => (click === null ? `${body}\nOpen the board` : body);
+
+const clickOf = (link: string | null): string | null => (link === null ? null : t3codeUrl(link));
+
 /** The push of the PM's own request (`braid ask … --by pm`, or a programme request `pm/<slug>`): high priority, tagged 🧭, the PM thread as click. Its own sequence ID, so it never replaces the coordinator's push for the same item. */
-function pmAskPush(repo: string, id: string, title: string, need: Need): Push {
+function pmAskPush(repo: string, id: string, title: string, need: Need, link: string | null): Push {
   const slug = /^pm\/(.+)$/.exec(id)?.[1];
+  const click = clickOf(link);
   return {
     key: needKey(`${id}#pm`, "Waiting", need),
     item: `${id}#pm`,
     kind: "need",
     title: `${repo} ${slug ?? id}: the PM asks`,
-    body: slug === undefined ? `${title}
-${need.text}` : need.text,
+    body: withBoard(slug === undefined ? `${title}\n${need.text}` : need.text, click),
     tags: ["compass"],
     priority: "high",
-    click: need.link == null ? null : t3codeUrl(need.link),
+    click,
     sequence: sequenceOf(repo, `${id}#pm`),
   };
 }
 
 /** A programme's stall: `<repo> <slug>: Needs You`, high, ⏳, opening the PM thread. */
-function stallPush(repo: string, id: string, slug: string, need: Need): Push {
+function stallPush(repo: string, id: string, slug: string, need: Need, link: string | null): Push {
+  const click = clickOf(link);
   return {
     key: needKey(id, "Waiting", need),
     item: id,
     kind: "need",
     title: `${repo} ${slug}: ${LANE_LABEL.Waiting}`,
-    body: need.text,
+    body: withBoard(need.text, click),
     tags: [TAGS.stalled],
     priority: "high",
-    click: need.link == null ? null : t3codeUrl(need.link),
+    click,
     sequence: sequenceOf(repo, id),
   };
 }
 
 export const doneKey = (id: string): string => `${id}|done`;
 
-function needPush(repo: string, id: string, title: string, lane: Lane, need: Need, thread: string | null): Push {
+/** A request to the user, or one the PM forwarded (the PM asking: 🧭, high, the PM's thread). Same key and sequence ID as before, so a restart resends nothing. */
+function needPush(repo: string, id: string, title: string, lane: Lane, need: Need, kind: PushKind, link: string | null): Push {
+  const click = clickOf(link);
+  const forward = kind === "forward";
   return {
     key: needKey(id, lane, need),
     item: id,
     kind: "need",
-    title: `${repo} ${id}: ${LANE_LABEL[lane]}${need.via === undefined ? "" : need.via === "forwarded" ? " (forwarded by the PM)" : " (escalated)"}`,
-    body: `${title}\n${need.text}`,
-    tags: [TAGS[need.kind]],
+    title: forward ? `${repo} ${id}: the PM asks` : `${repo} ${id}: ${LANE_LABEL[lane]}${need.via === undefined ? "" : " (escalated)"}`,
+    body: withBoard(`${title}\n${forward ? need.text.replace(FORWARDED_WORDS, "The PM asks you:") : need.text}`, click),
+    tags: [forward ? "compass" : TAGS[need.kind]],
     // An escalation or a forward is high even for a review: the PM was meant to deal with it, and didn't or couldn't.
     priority: lane === "Waiting" || need.via !== undefined ? "high" : "default",
-    click: thread === null ? null : t3codeUrl(thread),
+    click,
     sequence: sequenceOf(repo, id),
   };
 }
 
+/** The lane a request puts its item in: a review is To Review, any other request Needs You. */
+const laneOf = (need: Need): Lane => (need.kind === "review" ? "In Review" : "Waiting");
+
+/** The push `forUser` calls for, or none. */
+function pushOf(repo: string, id: string, title: string, lane: Lane, need: Need | null | undefined, fallback: string | null): Push[] {
+  const rule = forUser(need, fallback);
+  if (need == null || rule === null) {
+    return [];
+  }
+  if (rule.kind === "pm-ask") {
+    return [pmAskPush(repo, id, title, need, rule.link)];
+  }
+  return [rule.kind === "stall" ? stallPush(repo, id, id.replace(/^pm\//, ""), need, rule.link) : needPush(repo, id, title, lane, need, rule.kind, rule.link)];
+}
+
 /**
- * The pushes a board calls for. An item without strands: its own need. A braid with strands: one per strand
- * need (its card shows only the most urgent), and the braid's own need (a request of its own, its final PR)
- * when that is the card's top need. Every Done braid card (a story or a goal; strands never): one Done push.
+ * The pushes a board calls for, each from `forUser`: a programme's request, forwards and stall; per item without strands its own
+ * request; a braid with strands: one per strand request, and the braid's own request or final-PR need. A Done braid card (a story
+ * or a goal; strands never) pushes one Done, unless a programme runs it.
  */
 export function pushesOf(board: BoardData): Push[] {
   const out: Push[] = [];
-  // A programme's own pushes: the PM's request on it, else its stall (high, ⏳, the PM thread). Done and stopped ones push nothing.
+  const running = new Set((board.programmes ?? []).filter((p) => p.section !== null).map((p) => p.slug));
+  // A programme's own pushes: the PM's request on it, else its stall; what the PM forwarded from its braids. Done and stopped ones push nothing.
   for (const p of board.programmes ?? []) {
-    if (p.section === null || p.need === null) {
+    if (p.section === null) {
       continue;
     }
-    const id = `pm/${p.slug}`;
-    out.push(p.need.kind === "stalled" ? stallPush(board.repo, id, p.slug, p.need) : pmAskPush(board.repo, id, p.title, p.need));
+    out.push(...pushOf(board.repo, `pm/${p.slug}`, p.title, "Waiting", p.need, null));
+    for (const f of p.forwards) {
+      out.push(...pushOf(board.repo, f.id, f.id, laneOf(f.need), f.need, null));
+    }
   }
   for (const card of board.braids) {
+    const coordinator = card.coordinator?.link ?? null;
     if (card.lane === "Done") {
+      if (card.programme != null && running.has(card.programme)) {
+        continue;
+      }
       out.push({
         key: doneKey(card.id),
         item: card.id,
         kind: "done",
         title: `${board.repo} ${card.id}: ${LANE_LABEL.Done}`,
-        body: card.pr === null ? card.title : `${card.title}\nPR #${card.pr.number} merged`,
+        body: withBoard(card.pr === null ? card.title : `${card.title}\nPR #${card.pr.number} merged`, null),
         tags: [TAGS.done],
-        // A braid a programme runs: the PM handles what follows, so its Done is news without a sound.
-        priority: card.programme == null ? "default" : "low",
+        priority: "default",
         click: null,
         sequence: null,
       });
       continue;
     }
-    if (card.pmAsk?.who === null) {
-      out.push(pmAskPush(board.repo, card.id, card.title, card.pmAsk));
-    }
-    // A limit need (a weekly window, a failed pause) is pushed by the board's limit pushes, once per provider: not again per braid.
-    if (card.need !== null && card.need.who === null && card.need.by === undefined && card.need.kind !== "limit" && ON_SIDE.includes(card.lane)) {
-      out.push(needPush(board.repo, card.id, card.title, card.lane, card.need, card.thread ?? card.coordinator?.link ?? null));
+    out.push(...pushOf(board.repo, card.id, card.title, "Waiting", card.pmAsk?.who === null ? card.pmAsk : null, coordinator));
+    // A limit need is pushed by the board's limit pushes, once per provider; a strand's need has its own push, so the card's counts only when it is the braid's own.
+    if (card.need !== null && card.need.who === null && card.need.by === undefined && card.need.kind !== "limit") {
+      out.push(...pushOf(board.repo, card.id, card.title, laneOf(card.need), card.need, coordinator));
     }
     for (const s of card.strands) {
-      if (s.pmAsk != null) {
-        out.push(pmAskPush(board.repo, s.id, s.title, s.pmAsk));
-      }
-      if (s.need !== null && s.need.by === undefined && ON_SIDE.includes(s.lane)) {
-        out.push(needPush(board.repo, s.id, s.title, s.lane, s.need, s.thread));
+      out.push(...pushOf(board.repo, s.id, s.title, "Waiting", s.pmAsk, coordinator));
+      if (s.need !== null && s.need.by === undefined) {
+        out.push(...pushOf(board.repo, s.id, s.title, s.lane, s.need, coordinator));
       }
     }
   }
