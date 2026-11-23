@@ -55,4 +55,4 @@ Verdict (user, via the PM): Requests tab on the item only, the grey "Waiting on 
 - [x] Pushes carry the code, and a withdrawn or met request's push is cleared
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [x] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
