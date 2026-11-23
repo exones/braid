@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-23T23:16:16.249Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-23T23:16:56.222Z",
+      "by": "pm",
+      "text": "A. Start D now",
+      "reason": "different lines; whichever braid reaches main second merges main first, because holding only idles the slot, instead of B or C"
     }
   ]
 }
