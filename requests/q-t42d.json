@@ -1,0 +1,18 @@
+{
+  "code": "q-t42d",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "action",
+  "text": "0070 Questions on record is installed from main (4ffd36d) and the board restarted: have a look (question codes on cards, the Requests tab), then give the PM your go for P6 · 0071 The board wakes, reminds and nudges",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-23T18:56:28.093Z",
+      "by": "pm"
+    }
+  ]
+}
