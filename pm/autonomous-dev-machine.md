@@ -133,6 +133,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P7 · 0067 live check: works, but the address file inherits its folder's ACL (the user's ~/.braid grants CodexSandboxUsers read), so it isn't owner-only; sent as a blocking fix with the misleading install message, a possible wrong exit code and the display name case. The user's try waits for the fix.
 - 2026-11-23: P2 · 0069/C merged into its braid branch (PR #258): forwarded merges are one push per project and PM thread, updated in place, cleared when empty; shown in the programmes panel. 0069/D started.
 - 2026-11-23: P7 · 0067 final PR #259 at e0cd47c handed to the PM; live check launched; the user's try follows it (install from the PR head, logon, Start from the page).
 - 2026-11-23: P7 · 0067/B reviewed (PR #257); PM moved its on-PC try to the final PR.
