@@ -66,13 +66,13 @@ export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): bo
 }
 
 /**
- * Runs `fn` holding the lock of `file`: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up after 10 s. Never call GitHub inside `fn`.
+ * Runs `fn` holding the lock of `file`: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up after `waitMs` (10 s). Never call GitHub inside `fn`.
  * `makeDir` prepares the file's folder (default: a repository's `.braid/`, ignored by Git).
  */
-export function locked<T>(file: string, fn: () => T, what = "the requests store", makeDir: (dir: string) => void = ensureStateDir): T {
+export function locked<T>(file: string, fn: () => T, what = "the requests store", makeDir: (dir: string) => void = ensureStateDir, waitMs: number = LOCK_WAIT_MS): T {
   makeDir(dirname(file));
   const lock = `${file}.lock`;
-  const give = Date.now() + LOCK_WAIT_MS;
+  const give = Date.now() + waitMs;
   for (;;) {
     try {
       closeSync(openSync(lock, "wx"));

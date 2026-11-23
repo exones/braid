@@ -1,4 +1,4 @@
-// What the lanes need besides GitHub and T3: the open requests (read through src/braids/requests.ts, never
+// What the lanes need besides GitHub and T3: the open requests (read through src/braids/requests.ts from the local refs, never
 // written here), the paused braids (src/braids/pauses.ts, read only) and the broke alarms' clock: when each condition was first seen, kept in `.braid/broke.json`
 // of the main checkout, so `braid status`, the board and a restart agree.
 import { readFileSync, renameSync, writeFileSync } from "node:fs";

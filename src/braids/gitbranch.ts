@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GitError } from "./numbers.js";
-import { gitAsync } from "./gitio.js";
+import { catBatchSync, gitAsync } from "./gitio.js";
 import { locked, mainCheckout } from "./state.js";
 
 export const REMOTE = "origin";
@@ -141,7 +141,10 @@ export function changesOf(root: string, b: BranchSpec, commit: string): Map<stri
 
 /** The local branch and its remote-tracking ref, as they are now. */
 export function tips(root: string, b: BranchSpec): { readonly local: string | null; readonly remote: string | null } {
-  return { local: refCommit(root, local(b)), remote: refCommit(root, tracking(b)) };
+  // One process for both: the board reads this on every page load.
+  const out = must(root, ["for-each-ref", "--format=%(refname) %(objectname)", local(b), tracking(b)]);
+  const sha = (ref: string): string | null => out.split("\n").map((l) => l.trim()).find((l) => l.startsWith(`${ref} `))?.slice(ref.length + 1) ?? null;
+  return { local: sha(local(b)), remote: sha(tracking(b)) };
 }
 
 /** `tips` without blocking the process. */
@@ -175,8 +178,8 @@ export function reading(root: string, b: BranchSpec, t: { readonly local: string
  * The branch's files from the refs, path to blob: the descendant's, or when they have diverged the
  * remote's with the files the local-only commits add or change on top, as the next write replays them.
  */
-export function currentFiles(root: string, b: BranchSpec): Map<string, string> {
-  const r = reading(root, b, tips(root, b));
+export function currentFiles(root: string, b: BranchSpec, at: { readonly local: string | null; readonly remote: string | null } = tips(root, b)): Map<string, string> {
+  const r = reading(root, b, at);
   if (r.commit === null) {
     return new Map();
   }
@@ -199,6 +202,8 @@ export interface BranchView {
   read(path: string): string | null;
   /** The paths on the branch. */
   paths(): readonly string[];
+  /** The texts of these paths, with one `git cat-file --batch`; null for a path that isn't there. */
+  readMany(paths: readonly string[]): (string | null)[];
 }
 
 /** A write: files to add or replace (path on the branch to text), and the commit message. No files: nothing is committed. */
@@ -224,6 +229,13 @@ function viewAt(root: string, b: BranchSpec, commit: string | null): BranchView 
       return blob === undefined ? null : must(root, ["cat-file", "blob", blob]);
     },
     paths: () => [...map.keys()],
+    readMany: (paths) => {
+      const blobs = paths.map((p) => map.get(p));
+      const known = blobs.filter((b): b is string => b !== undefined);
+      const texts = catBatchSync(root, known);
+      let i = 0;
+      return blobs.map((b) => (b === undefined ? null : (texts[i++] ?? null)));
+    },
   };
 }
 
@@ -233,11 +245,21 @@ function commitOn(root: string, parent: string | null, changes: ReadonlyMap<stri
   try {
     const index = { ...env, GIT_INDEX_FILE: join(dir, "index") };
     must(root, parent === null ? ["read-tree", "--empty"] : ["read-tree", parent], { env: index });
-    for (const [path, blob] of changes) {
-      must(root, ["update-index", "--add", "--cacheinfo", `100644,${blob},${path}`], { env: index });
+    if (changes.size > 0) {
+      must(root, ["update-index", "--index-info"], { env: index, input: [...changes].map(([path, blob]) => `100644 blob ${blob}\t${path}\n`).join("") });
     }
     const tree = must(root, ["write-tree"], { env: index });
-    return must(root, ["commit-tree", tree, ...(parent === null ? [] : ["-p", parent]), "-m", message], { env: index });
+    const args = ["commit-tree", tree, ...(parent === null ? [] : ["-p", parent]), "-m", message];
+    const r = git(root, args, { env: index });
+    if (r.status === 0) {
+      return r.stdout.trim();
+    }
+    // No Git identity on this machine (a fresh CI runner): the record is still written, as braid.
+    if (!/identity unknown|tell me who you are/i.test(r.stderr)) {
+      throw new GitError(`git commit-tree failed: ${r.stderr.trim()}`);
+    }
+    const braid = { GIT_AUTHOR_NAME: "braid", GIT_AUTHOR_EMAIL: "braid@localhost", GIT_COMMITTER_NAME: "braid", GIT_COMMITTER_EMAIL: "braid@localhost" };
+    return must(root, args, { env: { ...braid, ...index } });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -300,9 +322,12 @@ function refuseCheckedOut(root: string, b: BranchSpec): void {
   }
 }
 
+/** How long a writer waits for the branch's lock: a write fetches and pushes, so a queue of them takes longer than a local file's. */
+const BRANCH_LOCK_WAIT_MS = 60_000;
+
 /** Runs `fn` holding the branch's lock in the main checkout's `.braid/`, so writers on one machine take turns. */
 export function lockedBranch<T>(root: string, b: BranchSpec, fn: () => T): T {
-  return locked(join(mainCheckout(root), ".braid", b.lock), fn, b.what);
+  return locked(join(mainCheckout(root), ".braid", b.lock), fn, b.what, undefined, BRANCH_LOCK_WAIT_MS);
 }
 
 /**
