@@ -1,7 +1,7 @@
 ---
 id: '0071/A'
 title: "Waits wake their asker: braid and time conditions, one wake, waits apart from questions"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: []
 order: 10
@@ -12,6 +12,16 @@ order: 10
 When an open request's "done when" holds, the running board closes it as met on the record and sends the asking thread exactly one wake message. Today only `pr:` is checked, and the board applies `met` only in memory (`braid requests` is the only writer); `braid:<n>` and `time:<iso>` are stored but never checked, and nobody is woken. Also: a wait no longer withdraws its asker's open question (inbox 2026-11-23-rf9z).
 
 Expected size: about 400 lines in 8 files.
+
+## Plan
+
+1. `src/braids/requests.ts`: one check, `conditionEnding(request, check)`, for `pr:` (and a review's PR, as `voidEnding`), `braid:<n>` (Done on `origin/<main>`) and `time:<iso>`; `filterLive` and `liveRequests` take it (a bare `prOf` still works). `openRequest` replaces by sort: a question a question, a wait the wait to the same braid; `forwardRequest` never forwards a wait.
+2. `src/board/signals.ts`: `ended` uses the same check (pr and time; `braid:` shows once recorded).
+3. `src/board/wake.ts`: the wake step, run by the steerer's tick for each project after a good read: skip held or paused asking braids; fetch main when a `braid:` wait is open; for each request whose condition holds: send the wake (met, with a thread, not archived), then record the ending with `endRequest`. Withdrawn endings and thread-less requests are recorded without a send.
+4. Order: send first, record after. The `met` event is the memory; no new event kind, no new field. A failed send records nothing (retried next refresh); a failed push keeps the local commit (read back, never resent); a record write that throws after a send is retried without resending (codes kept in memory). The gap: a board killed between the send and the local commit may wake twice.
+5. `braid requests` (CLI) checks through the same function, fetching main for `braid:` waits.
+6. Tests: each condition, once across refreshes and a restart, failed send, failed push, failed record write, held/paused, board write racing a CLI write, rf9z replacement.
+7. Docs: docs/board.md (the wake), docs/cli.md (`braid requests`, `ask` replacement), docs/braids-format.md if it states replacement.
 
 ## Start here
 
