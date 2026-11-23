@@ -71,11 +71,13 @@ Updated: `docs/board.md`, `docs/getting-started.md`, `docs/cli.md`, `docs/decisi
 
 ## Open
 
-These three Completion boxes are not ticked: they need the user's logon and the real update.
+**The user's try, for the braid's final PR** (the PM moved it there, 2026-11-23):
 
-- The board starting at logon (the logon trigger is tested in the definition only).
-- The real `Install-Skills.ps1` update.
-- The full try list: reboot or log off and on, Start from the page, update.
+1. In the main checkout, stop the board started by hand on port 7800, or pick a free port.
+2. Run `braid board service install --port 7800 --host tailscale`.
+3. Log off and on, or reboot, then run `braid board service status`. The board should have started at logon.
+4. Open the address `braid board --url` prints and Start a strand from the page.
+5. After the merge into `main`, run `scripts/Install-Skills.ps1`. It should print "restarted the board on port 7800 (braid <version>)", and `status` should show the new version running.
 
 `conhost --headless` is undocumented, but Windows has shipped it since 1809 and OpenSSH and WSL use it. If a later Windows dropped it, `install` would still register the task, and `status` would show it failing with no board answering.
 

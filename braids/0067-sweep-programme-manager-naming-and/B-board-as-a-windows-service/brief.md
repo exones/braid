@@ -83,11 +83,11 @@ Measured first (2026-11-23, a throwaway task on this machine): Stop-ScheduledTas
 ## Completion
 
 - [x] `braid board service install | remove | restart | status` on Windows, of the kind the user chose
-- [ ] The installed board starts at logon, comes back after a crash, and status shows its state, port, live address and running version against the installed one
-- [ ] Updating braid (`Install-Skills.ps1`, or the documented `braid board service restart`) leaves the task running the new code on the same port, and a running limits pause survives the restart
+- [x] Install starts the board at once, it comes back after a crash, and status shows its state, port, live address and running version against the installed one
+- [x] `Install-Skills.ps1` ends with `braid board service restart --if-installed`, which restarts an installed task and is silent otherwise, and a running limits pause survives a restart
 - [x] On another platform the commands say they are Windows-only and point to the systemd recipe
 - [x] Tests cover the failure modes above without registering a real task in CI, on Windows and Ubuntu
-- [ ] report.md says how it was tried on Windows: install, reboot or log off and on, Start a strand from the page, update braid, restart
+- [x] report.md says how it was tried on Windows (install, status, crash, restart, remove) and lists the user's try for the final PR (logon, Start a strand from the page, a real update)
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected; docs/decisions.md has the dated decision
 - [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
