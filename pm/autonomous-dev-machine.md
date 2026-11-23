@@ -142,6 +142,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P6 · 0071/B merged into its braid branch (#278, 3aa6af9): slim cards, eta and history in details, escalation as a reminded event. After install, every machine reading braid-requests needs the new CLI (older ones read `reminded` as unreadable). 0071/C running.
 - 2026-11-23: user: copy a question's code by clicking its chip, "piggy back on 73 (at the end)": sent to 0073 as its last small strand.
 - 2026-11-23: user on 0071/B mockups (q-ocph): "now cards will be come quite crowded ... show only when needed ... is it overengineering", then "slim please" (a1), "b. leave it out", "c. c1": cards unchanged while a wait is fine; only red stall lines for a missed estimate, a gone addressee and a stall after a nudge; estimate and history in the details panel. Built without a second mockup round (PM: checked in the live check).
 - 2026-11-23: user (q-gbni): "Q1. to be configurable. Default: strand to braid, and braid to main too / Q2. Configurable. / Q3. A", relayed to 0073. PM default for Q2: the braid reviewer stays and reads the bots, because it is cheap to reverse, instead of asking again.
