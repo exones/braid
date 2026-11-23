@@ -5,6 +5,7 @@ import type { Status } from "../braids/brief.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
 import { age, type Request } from "../braids/requests.js";
+import { requestsOf, rowOf, type RequestRow, type RequestsView } from "./record.js";
 import type { Pause } from "../braids/pauses.js";
 import { limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
 import { forwardedLine, pmLine, routeOf, throughPm, viaNote, type PmLine, type Routed, type Via } from "./pm.js";
@@ -48,6 +49,10 @@ export interface Need {
   readonly by?: "pm";
   /** The T3 link of the thread a push for this need opens: the PM's thread for a PM request or a forwarded one, else the asking thread; null when T3 doesn't list it. Set on a request's need and the PM's; absent on a broke alarm. */
   readonly link?: string | null;
+  /** The request's code (`q-7f3k`), to name it in any thread; absent on a broke alarm. */
+  readonly code?: string;
+  /** The T3 link of the thread that asked (always the asker's, also when the PM forwarded it); null when T3 doesn't list it. Set with `code`. */
+  readonly asking?: string | null;
 }
 
 /** What Merge on request needs of an item with an open review request: what the confirmation shows, and why it can't be asked for yet. */
@@ -164,6 +169,8 @@ export interface BraidCard {
   readonly pmAsk: Need | null;
   /** The slug of the programme whose plan lists this braid (the 🧭 tag); null for none. */
   readonly programme: string | null;
+  /** Open requests this braid's coordinator (or a strand's) put to another braid; they don't ask the user. */
+  readonly waits: readonly RequestRow[];
 }
 
 export interface BoardData {
@@ -217,6 +224,8 @@ export interface ItemDetail {
   readonly brief: string;
   readonly report: string | null;
   readonly logs: readonly { readonly name: string; readonly text: string }[];
+  /** The item's requests: open, waiting on another braid, and closed (newest first); a braid's include its strands'. */
+  readonly requests: RequestsView;
   /** The braid the item belongs to (the item itself for a braid). */
   readonly braid: BraidCard;
 }
@@ -236,6 +245,10 @@ export interface Signals {
   readonly requests: ReadonlyMap<string, Request>;
   /** The PM's own open requests on an item (`by: pm`), by item id. Absent: none. */
   readonly asks?: ReadonlyMap<string, Request>;
+  /** The open requests addressed to another braid's coordinator, which aren't the user's: the asking braid's card shows them. Absent: none. */
+  readonly waits?: readonly Request[];
+  /** The closed requests (answered, withdrawn, met), the ones whose PR just merged or closed included; the details panel's Requests tab lists them. Absent: none. */
+  readonly closed?: readonly Request[];
   /** The open programme requests (`pm/<slug>`). Absent: none. */
   readonly programmes?: readonly Request[];
   /**
@@ -295,15 +308,15 @@ function needOfRequest(r: Request, now: Date, routed: Routed, t3: T3): Need {
   const text = r.kind === "review" && r.pr !== undefined ? `Merge PR #${r.pr}` : r.text;
   if ("via" in routed) {
     const link = linkOfThread(t3, routed.via === "forwarded" ? r.pm : r.thread);
-    return { kind: r.kind, text: `${routed.words} ${text}${viaNote(routed.via, r, now)}`, verb: "asked", age: age(r.at, now), since: routed.since, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: routed.via, link };
+    return { kind: r.kind, text: `${routed.words} ${text}${viaNote(routed.via, r, now)}`, verb: "asked", age: age(r.at, now), since: routed.since, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: routed.via, link, code: r.code, asking: linkOfThread(t3, r.thread) };
   }
-  return { kind: r.kind, text, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, link: linkOfThread(t3, r.thread) };
+  return { kind: r.kind, text, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, link: linkOfThread(t3, r.thread), code: r.code, asking: linkOfThread(t3, r.thread) };
 }
 
 /** A forwarded request as the programmes panel shows it: the PM asking the user, opening the PM's thread. */
 export function needOfForward(r: Request, now: Date, t3: T3): Need {
   const text = r.kind === "review" && r.pr !== undefined ? `${askWords(r.kind)} merge PR #${r.pr}` : `${askWords(r.kind)} ${r.text}`;
-  return { kind: r.kind, text: `${text}${viaNote("forwarded", r, now)}`, verb: "asked", age: age(r.forwarded ?? r.at, now), since: r.forwarded ?? r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: "forwarded", link: linkOfThread(t3, r.pm) };
+  return { kind: r.kind, text: `${text}${viaNote("forwarded", r, now)}`, verb: "asked", age: age(r.forwarded ?? r.at, now), since: r.forwarded ?? r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: "forwarded", link: linkOfThread(t3, r.pm), code: r.code, asking: linkOfThread(t3, r.thread) };
 }
 
 /** "The PM asks you: …", or "The PM asks you to: …" for something only the user can do. */
@@ -311,7 +324,7 @@ export const askWords = (kind: Request["kind"]): string => (kind === "action" ? 
 
 /** The PM's own request as a need: always on the user's side, pushed at once. */
 export function needOfAsk(r: Request, now: Date, t3: T3, who: string | null = null): Need {
-  return { kind: r.kind === "review" ? "question" : r.kind, text: `${askWords(r.kind)} ${r.text}`, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: null, who, more: 0, by: "pm", link: linkOfThread(t3, r.thread) };
+  return { kind: r.kind === "review" ? "question" : r.kind, text: `${askWords(r.kind)} ${r.text}`, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: null, who, more: 0, by: "pm", link: linkOfThread(t3, r.thread), code: r.code, asking: linkOfThread(t3, r.thread) };
 }
 
 /** Whether the braid of this item is paused or held (either reason). */
@@ -563,7 +576,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     const derived = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
     const lift = planned(braid.number, derived.lane, gh, t3);
     const own = lift === null ? derived : { ...derived, ...lift };
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), ...doneLinkOf(braid.number, t3, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null, pause: own.lane === "Done" ? null : derived.pause, pm: own.lane === "Done" ? null : derived.pm, pmAsk: own.lane === "Done" ? null : derived.pmAsk, programme: null };
+    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), ...doneLinkOf(braid.number, t3, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null, pause: own.lane === "Done" ? null : derived.pause, pm: own.lane === "Done" ? null : derived.pm, pmAsk: own.lane === "Done" ? null : derived.pmAsk, programme: null, waits: waitsOf(braid.number, sig, t3) };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -641,8 +654,13 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     pm: lane === "Done" ? null : pm,
     pmAsk: lane === "Done" ? null : (pmNeed ?? ((s) => (s?.pmAsk == null ? null : { ...s.pmAsk, who: s.id }))(strands.find((x) => x.pmAsk !== null))),
     programme: null,
+    waits: waitsOf(braid.number, sig, t3),
   };
 }
+
+/** The open requests of a braid and its strands that wait on another braid. */
+const waitsOf = (number: string, sig: Signals, t3: T3): RequestRow[] =>
+  (sig.waits ?? []).filter((r) => r.id === number || r.id.startsWith(`${number}/`)).map((r) => rowOf(r, sig.now, t3));
 
 /** How many Done braids show at first, and how many more each press of Show more adds. */
 export const DONE_PAGE = 10;
@@ -690,6 +708,7 @@ export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T
     pause: own?.pause ?? null,
     pm: own?.pm ?? null,
     pmAsk: own?.pmAsk ?? null,
+    requests: requestsOf(item === braid ? (id) => id === braid.number || id.startsWith(`${braid.number}/`) : (id) => id === item.brief.id, sig, t3),
     brief: item.brief.body.trim(),
     report: item.hasReport ? tree.read(`${item.folder}/report.md`) : null,
     logs: item.logs.map((name) => ({ name, text: tree.read(`${item.folder}/${name}`) ?? "" })),

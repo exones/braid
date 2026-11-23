@@ -38,6 +38,8 @@ export async function readSnapshot(src: Sources, fetch: boolean): Promise<Snapsh
   // Every source call this read starts settles before it ends, so the next read never overlaps a `gh` or `t3` still running.
   const github = timed("github", () => src.github(true));
   const t3 = timed("t3", () => src.t3(true));
+  // A fresh read fetches the requests record too, alongside GitHub and T3; a failed fetch leaves the local copy.
+  const requests = fetch && src.fetchRequests !== undefined ? timed("requests fetch", () => src.fetchRequests?.()).catch(() => {}) : Promise.resolve();
   github.catch(() => {}); // their failure is reported when they are awaited below
   t3.catch(() => {});
   try {
@@ -60,6 +62,7 @@ export async function readSnapshot(src: Sources, fetch: boolean): Promise<Snapsh
         return []; // the programmes are left out, never the board
       }
     });
+    await requests;
     const read = await timed("signals", () => src.signals(gh));
     // A held plan holds its braids too: those without a pause record of their own read as held by the PM.
     const sig: ReadSignals = plans.length === 0 ? read : { ...read, plans, pauses: heldPauses(plans, read.pauses ?? new Map(), read.now) };
@@ -76,7 +79,7 @@ export async function readSnapshot(src: Sources, fetch: boolean): Promise<Snapsh
   } catch (error) {
     return { ok: false, error };
   } finally {
-    await Promise.allSettled([github, t3]);
+    await Promise.allSettled([github, t3, requests]);
     if (process.env["BRAID_BOARD_TIMINGS"] === "1") {
       process.stderr.write(`board read${src.repo === "" ? "" : ` (${src.repo})`}: ${marks.join(", ")}\n`);
     }

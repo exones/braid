@@ -9,6 +9,7 @@ import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProj
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
 import { pauseBox, type PauseView } from "../../src/board/pause.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
+import { CLOSED_PAGE, type RequestRow, type RequestsView } from "../../src/board/record.ts";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard, type TaggedProgramme } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
@@ -221,8 +222,48 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
   ].filter((p) => p !== null);
   return (
     <div className={`mt-1.5 rounded-md border-l-[3px] px-1.5 py-1 text-[12.5px] leading-snug ${toneOf(need)} ${className}`}>
+      {need.code !== undefined && <><CodeChip code={need.code} />{" "}</>}
       {need.text}
+      {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {parts.length > 0 && <small className="mt-px block text-[11px] text-slate-500">{parts.join(" · ")}</small>}
+    </div>
+  );
+}
+
+/** A request's code (`q-7f3k`), the name to use for it in any thread. */
+function CodeChip({ code }: { code: string }) {
+  return <code className="whitespace-nowrap rounded bg-slate-900 px-1.5 font-mono text-[11.5px] font-semibold text-amber-200">{code}</code>;
+}
+
+/** "Open asking thread": the T3 app link of the thread that asked; nothing when T3 doesn't list it. */
+function AskingLink({ link }: { link: string | null }) {
+  const app = link === null ? null : t3codeUrl(link);
+  if (app === null) {
+    return null;
+  }
+  return (
+    <a href={app} onClick={(e) => e.stopPropagation()} className="ml-1.5 mt-1 inline-block whitespace-nowrap rounded border border-blue-200 bg-white px-1.5 text-[11.5px] text-blue-600 no-underline hover:border-blue-600">
+      ↗ Open asking thread
+    </a>
+  );
+}
+
+/** What a request waits for, in words. */
+function doneWhenText(doneWhen: string): string {
+  const i = doneWhen.indexOf(":");
+  const value = doneWhen.slice(i + 1);
+  return i < 0 ? "done when answered" : doneWhen.startsWith("pr:") ? `done when PR #${value} is merged` : doneWhen.startsWith("braid:") ? `done when ${value} is merged into main` : doneWhen.startsWith("time:") ? `done at ${new Date(value).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}` : `done when ${doneWhen}`;
+}
+
+/** The quiet line on the asking braid's card for a request to another braid: it doesn't ask the user. */
+function WaitLine({ row }: { row: RequestRow }) {
+  return (
+    <div className="mt-1.5 rounded-md border-l-[3px] border-slate-300 bg-slate-50 px-1.5 py-1 text-[12.5px] leading-snug text-slate-700">
+      Waiting on braid {row.to}: <CodeChip code={row.code} /> {row.text}
+      <small className="mt-px block text-[11px] text-slate-500">
+        {doneWhenText(row.doneWhen)} · {row.item} asked {row.age} ago
+        <AskingLink link={row.link} />
+      </small>
     </div>
   );
 }
@@ -673,6 +714,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
       {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
       {details && !open && braid.pmAsk !== null && braid.need?.by !== "pm" && <NeedLine need={braid.pmAsk} />}
       {details && !open && braid.pm !== null && <PmLine pm={braid.pm} />}
+      {details && !open && braid.waits.map((w) => <WaitLine key={w.code} row={w} />)}
       {details && !open && braid.pause !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PauseLine pause={braid.pause} />}
       {open && (
         <div className="mt-2 border-t border-dashed border-slate-200 pt-1">
@@ -1088,14 +1130,18 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
       {item.need !== null && (
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.need)}`}>
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
+          {item.need.code !== undefined && <><CodeChip code={item.need.code} />{" "}</>}
           {item.need.text}
+          {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.code}</b> in any thread to refer to it.</span></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
       )}
       {item.pmAsk !== null && item.need?.by !== "pm" && (
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.pmAsk)}`}>
           <b className="mb-0.5 block text-xs uppercase tracking-wide">Needs you · from the PM{ageText(item.pmAsk) === "" ? "" : ` · ${ageText(item.pmAsk)}`}</b>
+          {item.pmAsk.code !== undefined && <><CodeChip code={item.pmAsk.code} />{" "}</>}
           {item.pmAsk.text}
+          {item.pmAsk.code !== undefined && <div className="mt-2"><AskingLink link={item.pmAsk.asking ?? null} /></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">Answer in the PM thread; the card leaves Needs You when the PM closes the request.</div>
         </div>
       )}
@@ -1128,10 +1174,12 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <Tabs.Trigger value="brief" className={trigger}>Brief</Tabs.Trigger>
           <Tabs.Trigger value="report" className={trigger}>Report</Tabs.Trigger>
           <Tabs.Trigger value="logs" className={trigger}>Logs ({item.logs.length})</Tabs.Trigger>
+          <Tabs.Trigger value="requests" className={trigger}>Requests ({item.requests.open.length + item.requests.waiting.length + item.requests.closed.length})</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="brief"><Md text={item.brief} empty="This brief has no text." /></Tabs.Content>
         <Tabs.Content value="report"><Md text={item.report} empty="No report yet." /></Tabs.Content>
         <Tabs.Content value="logs"><Logs logs={item.logs} /></Tabs.Content>
+        <Tabs.Content value="requests"><RequestsTab view={item.requests} /></Tabs.Content>
       </Tabs.Root>
     </div>
   );
@@ -1145,6 +1193,79 @@ function PauseBox({ pause }: { pause: PauseView }) {
       <b className="mb-0.5 block text-xs uppercase tracking-wide">{box.head}</b>
       {box.text}
       <div className="mt-1.5 text-[11px] text-slate-500">{box.foot}</div>
+    </div>
+  );
+}
+
+const REQUEST_STATE: Record<RequestRow["state"], { label: string; tone: string }> = {
+  open: { label: "open", tone: "bg-amber-100 text-amber-800" },
+  answered: { label: "answered", tone: "bg-green-100 text-green-800" },
+  withdrawn: { label: "withdrawn", tone: "bg-slate-100 text-slate-600" },
+  met: { label: "met", tone: "bg-violet-100 text-violet-800" },
+};
+
+const WHO: Record<string, string> = { user: "you", pm: "the PM", coordinator: "the coordinator", board: "the board" };
+
+const when = (at: string): string => new Date(at).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+
+/** One request: code, state (who answered), kind, the text, the answer or the reason, and the times. */
+function RequestCard({ row }: { row: RequestRow }) {
+  const end = row.closed;
+  const state = REQUEST_STATE[row.state];
+  const label = end !== null && row.state === "answered" ? `answered by ${WHO[end.by] ?? end.by}` : state.label;
+  return (
+    <div className="my-2 max-w-[75ch] rounded-lg border border-slate-200 px-3 py-2 text-[13.5px]">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <CodeChip code={row.code} />
+        <span className={`rounded-full px-2 py-px text-[11px] font-semibold ${state.tone}`}>{label}</span>
+        <Badge>{row.kind}</Badge>
+        {/^\d{4}$/.test(row.to) && <Badge>to braid {row.to}</Badge>}
+        <span className="flex-1" />
+        {end !== null ? <span className="text-xs text-slate-500">{when(end.at)}</span> : <AskingLink link={row.link} />}
+      </div>
+      <div className="mt-1">{row.text}</div>
+      {end?.text != null && (
+        <div className={`mt-1.5 rounded border-l-[3px] bg-slate-50 px-2 py-1 text-[13px] ${row.state === "answered" ? "border-green-600" : "border-slate-400 text-slate-700"}`}>
+          {row.state !== "answered" && <b>{row.state === "met" ? "Met: " : `Withdrawn by ${WHO[end.by] ?? end.by}: `}</b>}
+          {end.text}
+        </div>
+      )}
+      {end?.reason != null && (
+        <div className="mt-1.5 rounded border-l-[3px] border-slate-400 bg-slate-50 px-2 py-1 text-[13px] text-slate-700">
+          <b>Reason:</b> {end.reason}
+        </div>
+      )}
+      <div className="mt-1 text-[11.5px] text-slate-500">
+        {row.item} · asked {when(row.at)}
+        {row.state === "open" ? ` (${row.age} ago)` : ""} · {doneWhenText(row.doneWhen)}
+        {row.note !== null && ` · forwarded: ${row.note}`}
+      </div>
+    </div>
+  );
+}
+
+/** The Requests tab: open, waiting on another braid, then the closed ones newest first, ten at first. */
+function RequestsTab({ view }: { view: RequestsView }) {
+  const [shown, setShown] = useState(CLOSED_PAGE);
+  const heading = (text: string) => <h3 className="mb-1 mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">{text}</h3>;
+  if (view.open.length + view.waiting.length + view.closed.length === 0) {
+    return <p className="text-slate-500">No requests yet.</p>;
+  }
+  return (
+    <div>
+      {view.open.length > 0 && <>{heading(`Open · ${view.open.length}`)}{view.open.map((r) => <RequestCard key={r.code} row={r} />)}</>}
+      {view.waiting.length > 0 && <>{heading(`Waiting on others · ${view.waiting.length}`)}{view.waiting.map((r) => <RequestCard key={r.code} row={r} />)}</>}
+      {view.closed.length > 0 && (
+        <>
+          {heading(`Closed · ${view.closed.length} · newest first`)}
+          {view.closed.slice(0, shown).map((r) => <RequestCard key={r.code} row={r} />)}
+          {view.closed.length > shown && (
+            <button type="button" onClick={() => setShown(shown + CLOSED_PAGE)} className="cursor-pointer rounded border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 hover:border-blue-600">
+              Show more ({view.closed.length - shown})
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1595,7 +1716,9 @@ function OneNeed({ p, need, item }: { p: TaggedProgramme; need: Need; item?: str
   const { head, options } = optionLines(words?.[2] ?? need.text);
   return (
     <div className="mt-1.5 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-2 py-1.5 text-[13px] leading-snug text-amber-950">
+      {need.code !== undefined && <><CodeChip code={need.code} />{" "}</>}
       <b>{words?.[1] ?? "The PM asks you:"}</b> {head}
+      {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {options.length > 0 && (
         <ul className="mt-0.5 list-none pl-1">
           {options.map((o) => (

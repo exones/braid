@@ -1,4 +1,4 @@
-// What the lanes need besides GitHub and T3: the open requests (read through src/braids/requests.ts, never
+// What the lanes need besides GitHub and T3: the open requests (read through src/braids/requests.ts from the local refs, never
 // written here), the paused braids (src/braids/pauses.ts, read only) and the broke alarms' clock: when each condition was first seen, kept in `.braid/broke.json`
 // of the main checkout, so `braid status`, the board and a restart agree.
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -8,7 +8,8 @@ import { doneDate, headOf, prefetchDoneDates } from "./done.js";
 import { gitAsync } from "../braids/gitio.js";
 import type { Braid } from "../braids/store.js";
 import { BROKE_MS, type BrokeReason, type Signals } from "./model.js";
-import { askerOf, ensureStateDir, filterLive, programmeOf, loadRequests, mainCheckout, type PrNow, type Request } from "../braids/requests.js";
+import { askerOf, conditionPr, ensureStateDir, loadRecord, mainCheckout, programmeOf, voided, voidEnding, type PrNow, type Request } from "../braids/requests.js";
+import { toBraid } from "./record.js";
 import { loadPauses, type Pause } from "../braids/pauses.js";
 
 export interface ReadSignals extends Signals {
@@ -29,6 +30,17 @@ export function prOf(github: Github, number: number): PrNow {
     }
   }
   return null;
+}
+
+/** A request whose PR condition is void now (merged, closed, or a review's head moved), as it will be recorded: met or withdrawn by the board. Others unchanged. */
+export function ended(r: Request, now: Date, pr: (number: number) => PrNow): Request {
+  const n = r.state === "open" ? conditionPr(r) : undefined;
+  const now_ = n === undefined ? null : pr(n);
+  if (now_ === null || !voided(r, now_)) {
+    return r;
+  }
+  const e = voidEnding(r, now_);
+  return { ...r, state: e.state, events: [...r.events, { event: e.state, at: now.toISOString(), by: e.who, ...(e.text === undefined ? {} : { text: e.text }) }] };
 }
 
 /** The first-seen times of the broke conditions, in memory; `onChange` is told when they should be written. */
@@ -74,11 +86,19 @@ function readBroke(file: string): Record<string, string> {
  */
 export function readSignals(root: string, github: Github, now: Date = new Date()): ReadSignals {
   let requests: Request[] = [];
+  let waits: Request[] = [];
+  let closed: Request[] = [];
   let file: string | null = null;
   let pauses: readonly Pause[] = [];
   let pausesNote: string | null = null;
   try {
-    requests = filterLive(loadRequests(root), (n) => prOf(github, n));
+    // A request whose PR just merged or closed is closed for the board now, though only `braid requests` records it.
+    const record = loadRecord(root).requests.map((r) => ended(r, now, (n) => prOf(github, n)));
+    closed = record.filter((r) => r.state !== "open");
+    // A request to another braid's coordinator isn't the user's: no lane and no push (P6); the asking braid's card shows it.
+    const open = record.filter((r) => r.state === "open");
+    waits = open.filter(toBraid);
+    requests = open.filter((r) => !toBraid(r));
     file = brokeFile(root);
     ({ pauses, note: pausesNote } = loadPauses(root));
   } catch {
@@ -91,6 +111,8 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
     requests: new Map(requests.filter((r) => askerOf(r) === "coordinator" && programmeOf(r.id) === null).map((r) => [r.id, r])),
     asks: new Map(requests.filter((r) => askerOf(r) === "pm" && programmeOf(r.id) === null).map((r) => [r.id, r])),
     programmes: requests.filter((r) => programmeOf(r.id) !== null),
+    waits,
+    closed,
     pauses: new Map(pauses.map((p) => [p.braid, p])),
     pausesNote,
     alarm: clock.alarm,

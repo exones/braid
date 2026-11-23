@@ -507,6 +507,17 @@ export function loadKnownBraids(root: string, only?: string): Braid[] {
   return braids.sort((a, b) => (a.number < b.number ? -1 : a.number > b.number ? 1 : 0));
 }
 
+/** Braid `number` as a ref (`origin/main`) has it, or null when the ref or the braid isn't there. */
+export function braidAt(root: string, ref: string, number: string): Braid | null {
+  const r = git(root, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+  if (r.status !== 0) {
+    return null;
+  }
+  const t = gitTree(root, { branch: ref, commit: r.stdout.trim() });
+  const dir = braidFolder(t, number);
+  return dir === null ? null : attempt(() => loadBraid(t, dir, number));
+}
+
 /** Every braid whose status is not Done, wherever it lives (`loadKnownBraids`). */
 export function loadOpenBraids(root: string): Braid[] {
   return loadKnownBraids(root).filter((b) => b.brief.status !== "Done");

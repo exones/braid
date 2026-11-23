@@ -91,7 +91,7 @@ braid accept 0013 --head <reviewed sha> --review <link> --thread <your thread id
 ```markdown
 <what changed, why, validation, anything open>
 
-Decisions: <the user's answers from the log, then your own, or none>
+Decisions: <the user's answers (`braid decisions`), then your own, or none>
 For later items: <for later strands: changed names or interfaces, deviations from the plan, new decisions; then gaps for a later item, each self-contained (what, where, why); or none>
 Needs the user: <none, or per stop case `<key>: <what it is about, then what is needed>`>
 ```
