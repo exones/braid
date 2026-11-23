@@ -34,9 +34,19 @@ Expected size: about 150 lines in 6 files.
 
 - Code and skills.
 
+## Plan
+
+1. Skill: "Launched by a PM", "the user's answer on the board" becomes "the user's reply"; nothing else in the skill.
+2. `src/cli.ts`: the `recap` help line names the `Decided:` entries and the answered requests.
+3. `docs/braids-format.md` (`braid decisions`, `braid recap`) and `docs/autonomy.md` ("What the CLI enforces"): both read the answered requests from the record too.
+4. `docs/decisions.md`: D82 notes D99 supersedes its `Decided:` for the PM's decisions; the user's words from 0070's "Already decided" where a decision lacks them (D97's waits, D99's "via braid cli").
+5. README and `docs/getting-started.md`: questions on record as a whole (codes, the board, answering in any thread, who answered, the end markers), the decisions the recap shows, and the upgrade carry-over of `.braid/requests.json` where installing and updating is described.
+6. `docs/roadmap.md`: questions on record (0070, built).
+7. Check `docs/cli.md`, `docs/board.md` and the rest of the help against the code; check the upgrade path by hand on a temporary clone.
+
 ## Completion
 
-- [ ] Docs from BRAID.md `docs` that this braid makes untrue are updated
-- [ ] report.md lists each doc from `docs` as updated or unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Docs from BRAID.md `docs` that this braid makes untrue are updated
+- [x] report.md lists each doc from `docs` as updated or unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

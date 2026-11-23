@@ -32,6 +32,8 @@ The script copies `.agents/skills/braid` and `.agents/skills/braid-*` from that 
 - An installed braid skill that is no longer in the ref (such as the old `braid-coordinate`) is removed.
 - `-Target` replaces the default folders.
 
+**Updating from a braid before the request record** (braid 0070). Requests opened with an older `braid` sit in `.braid/requests.json` of the main checkout. The first command that reads or writes requests (`braid requests`, `braid ask`, `braid answer`, the board) carries them over once onto the branch `braid-requests`, each with a new code and its original time, and renames the file `requests.migrated.json`. A read commits the carry-over locally; the next write pushes it. Nothing else is needed.
+
 ## BRAID.md
 
 A target repository needs a `BRAID.md` at its root with the facts the skills read:
@@ -75,7 +77,7 @@ A preset is a short Markdown file that says what the coordinator merges by itsel
 - `steady`: it merges strands into the braid branch, starts the next one and decides the small cases; the big decisions and the final PR into `main` are yours.
 - `free`: it merges everything, `main` included, and decides every case, logging each.
 
-Whatever the preset, a merge by the coordinator needs green CI (`ci` not `none`), an independent review with nothing blocking and the reviewed head commit. Each decision it makes is logged as `Decided: <what>, because <why>, instead of <alternative>`, and you read them together in the recap (`braid decisions <number>` lists them).
+Whatever the preset, a merge by the coordinator needs green CI (`ci` not `none`), an independent review with nothing blocking and the reviewed head commit. Each decision it makes is logged as `Decided: <what>, because <why>, instead of <alternative>`; your answers, and the PM's with its reason, are on the request record (below). You read them together in the recap (`braid decisions <number>` lists them).
 
 **For a project,** set `autonomy: <name>` in `BRAID.md`. Every braid without its own preset runs on it.
 
@@ -88,6 +90,10 @@ Whatever the preset, a merge by the coordinator needs green CI (`ci` not `none`)
 **Provider usage limits.** Before each launch the coordinator (or PM) runs `braid limits`, which reads the usage T3 caches for each provider in `BRAID.md` `models`; at or over a threshold (session 97%, weekly 95%; change them with `limits:` in `BRAID.md`) it launches nothing on that provider and says so. Pausing and resuming is the board's job: a running `braid board` with a `steering` role in `BRAID.md` `models` (a `first` and a `fallback` line) pauses every agent on a provider over its threshold through a 🚦 steering thread, so the board shows a pause mark instead of a stall, and resumes them after the reset plus a buffer ([the board](board.md#the-board-pauses-and-resumes)). Coordinators and PMs keep no check task and schedule no resume; they answer the board's pause and resume messages. Unknown usage never pauses. A weekly limit shows in Needs You; moving the role to another provider is your edit of `BRAID.md`. Without a running board (or with `braid board --no-pause`, or no `steering` role) nothing pauses and you say go on. A pause is not a hold: it needs no go from you. See [the CLI](cli.md#provider-limits) and [the board](board.md#paused).
 
 A goal's plan is merged into its braid branch, so `main` gets its briefs with the final PR. Approving the plan is the only answer it needs: `braid` then merges the planning PR itself once its checks are green, exactly the commit you approved, and starts the first strand (unless you asked only for a plan). If that PR changed after your approval, `braid` shows you what changed and asks again. The plan, and the first message after you ask to start or resume a braid, open with the braid's number and title, so you can catch a wrong number at once.
+
+## Questions and answers
+
+When a coordinator or the PM needs you, it opens a request with `braid ask` and then asks in chat, in its turn's last message: the question, the request's code (`q-7f3k`) and the options as lettered answers, the recommended one first. No dialog blocks the thread. The request lives on the branch `braid-requests` with its whole history: who asked and for whom, when it was answered, withdrawn with a reason, or met (its "done when" held, such as a PR merged), the answer, and who answered, you or the PM with its reason. Reply in the asking thread, or name the code in any thread; the agent records your reply with `braid answer <code>`. `braid requests` lists the open ones, `braid requests <code>` one with its history, `--closed` the closed ones; the board shows each with its code and a link to the asking thread, and the item's Requests tab lists the closed ones ([the board](board.md#requests), D96 to D99 in [decisions](decisions.md)). Every coordinator and PM message to you ends with one marker: `✋ <what is needed>`, `⏳ Waiting for <what>` or `🟢`.
 
 ## See the board
 
