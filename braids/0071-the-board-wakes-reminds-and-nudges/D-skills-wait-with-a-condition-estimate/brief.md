@@ -1,7 +1,7 @@
 ---
 id: '0071/D'
 title: "Skills: wait with a condition, estimate, answer a nudge"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L"]
 dependencies: ['0071/C']
 order: 40
