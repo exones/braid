@@ -134,6 +134,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P3 · 0070/A merged into its braid branch (#268, 58faed2): requests on braid-requests, one q-xxxx file each with a growing history; board load unchanged within noise. 0070/B started. PM: no sweep in 0070, leftovers go to P15.
 - 2026-11-23: user: the PM's two memories go to the skills: "questions in the final reply" sent to 0070/D; "unambiguous phrases" added to P11. Memories deleted.
 - 2026-11-23: P3 · 0070 plan approved by the PM: strands A record on braid-requests, B answer/withdraw/show by code with --done-when, C codes on the board and pushes (mockups to the user), D skills (no question tool, ✋/⏳/🟢, not longer), E docs. The record's form (one JSON per request with events, q-xxxx codes, open/answered/withdrawn/met, only pr: checked in P3) decided by the PM, because it is internal to braid and serves P6, instead of a single file or a separate wait record.
 - 2026-11-23: user: "Okay, go P Three." P3 launched (coordinator thread mcp:launch:c107ad17…), limits ok (session 13%, weekly 81% used).
