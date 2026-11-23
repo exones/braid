@@ -277,7 +277,7 @@ function target(root: string, raw: string, values: Parameters<typeof str>[0], co
   fetchBranch(root, REQUESTS);
   const open = loadRequests(root).filter((r) => r.id === id && (by === undefined || askerOf(r) === by));
   if (open.length > 1) {
-    throw new UsageError(`${id} has ${open.length} open requests: ${open.map((r) => `${r.code} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"})`).join(", ")}; give the code, or --by coordinator|pm; nothing changed`);
+    throw new UsageError(`${id} has ${open.length} open requests: ${[...open].sort((a, b) => Number(askerOf(a) === "pm") - Number(askerOf(b) === "pm")).map((r) => `${r.code} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"})`).join(", ")}; give the code, or --by coordinator|pm; nothing changed`);
   }
   const [one] = open;
   if (one !== undefined) {
