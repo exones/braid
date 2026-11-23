@@ -1,7 +1,7 @@
 ---
 id: '0069/F'
 title: "Fix: every push links its thread"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 60
