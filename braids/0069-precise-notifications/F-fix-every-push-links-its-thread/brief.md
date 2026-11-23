@@ -1,7 +1,7 @@
 ---
 id: '0069/F'
 title: "Fix: every push links its thread"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 60
@@ -37,9 +37,9 @@ Expected size: about 60 lines in 4 files, half of them tests.
 
 ## Completion
 
-- [ ] A programme request opened without `--thread` pushes with the PM's thread from the plan file as its click link (test)
-- [ ] The Done push of a braid no programme runs opens its coordinator thread when known (test)
-- [ ] docs/board.md says when a push still ends "Open the board"
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A programme request opened without `--thread` pushes with the PM's thread from the plan file as its click link (test)
+- [x] The Done push of a braid no programme runs opens its coordinator thread when known (test)
+- [x] docs/board.md says when a push still ends "Open the board"
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

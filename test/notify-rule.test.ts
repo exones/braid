@@ -99,6 +99,24 @@ test("the PM's own request and a programme's stall push, opening the PM's thread
   ]);
 });
 
+test("0069/F: a programme request with no thread opens the plan's PM thread; with none known it ends Open the board", () => {
+  const clock = signals.brokeClock({}, NOW);
+  const sig = { now: NOW, requests: new Map(), alarm: clock.alarm, plans: [plan()], programmes: [{ id: "pm/working-product", kind: "action", by: "pm", text: "protect main", at: ago(1), thread: null }] };
+  const [p] = pushes(model.toBoard("agento", [braid()], gh(), t3(), sig));
+  assert.deepEqual([p.item, p.click], ["pm/working-product#pm", url(PM)]);
+  const unlisted = pushes(model.toBoard("agento", [braid()], gh(), t3({}, []), sig))[0];
+  assert.equal(unlisted.click, null);
+  assert.match(unlisted.body, /\nOpen the board$/);
+});
+
+test("0069/F: a Done push of a braid no programme runs opens its coordinator thread; none known ends Open the board", () => {
+  const merged = { ...PR, state: "merged", base: "main" };
+  const done = (coordinator: boolean) => pushes(boardOf([], { github: gh(merged), braids: [braid("Done")], coordinator })).filter((x) => x.kind === "done")[0];
+  assert.equal(done(true).click, url(COORD));
+  assert.equal(done(false).click, null);
+  assert.match(done(false).body, /\nOpen the board$/);
+});
+
 test("nothing else pushes: an alarm, a pending question, a Done waiting for its merge, a strand PR with no request, a Done braid a programme runs", () => {
   // A broke alarm: checks failing on an open PR (held 20 min), and a stalled braid.
   const clock = signals.brokeClock({ "0001 checks failed": ago(20), "0001 stalled": ago(30) }, NOW);

@@ -61,7 +61,7 @@ export function forUser(need: Need | null | undefined, fallback: string | null):
     return null;
   }
   if (need.by === "pm") {
-    return { kind: need.kind === "stalled" ? "stall" : "pm-ask", link: need.link ?? null };
+    return { kind: need.kind === "stalled" ? "stall" : "pm-ask", link: need.link ?? fallback };
   }
   // A request has a time it was asked; an alarm ("for 14 min"), an agent's question and a Done handover without a request have none.
   if (need.verb !== "asked" || need.since === null) {
@@ -181,7 +181,7 @@ export function pushesOf(board: BoardData): Push[] {
     if (p.section === null) {
       continue;
     }
-    out.push(...pushOf(board.repo, `pm/${p.slug}`, p.title, "Waiting", p.need, null));
+    out.push(...pushOf(board.repo, `pm/${p.slug}`, p.title, "Waiting", p.need, p.link));
     for (const f of p.forwards) {
       if (f.need.kind === "review") {
         // The PM's merges that wait for the user are one push per PM thread: collected here, sent below.
@@ -201,15 +201,16 @@ export function pushesOf(board: BoardData): Push[] {
       if (card.programme != null && running.has(card.programme)) {
         continue;
       }
+      const click = clickOf(coordinator);
       out.push({
         key: doneKey(card.id),
         item: card.id,
         kind: "done",
         title: `${board.repo} ${card.id}: ${LANE_LABEL.Done}`,
-        body: withBoard(card.pr === null ? card.title : `${card.title}\nPR #${card.pr.number} merged`, null),
+        body: withBoard(card.pr === null ? card.title : `${card.title}\nPR #${card.pr.number} merged`, click),
         tags: [TAGS.done],
         priority: "default",
-        click: null,
+        click,
         sequence: null,
       });
       continue;
