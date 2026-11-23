@@ -9,14 +9,20 @@ delivery: epic
 
 ## Goal
 
-Programme pm/autonomous-dev-machine, row P20, from the Everix field report (a large polyglot monorepo; 2026-11-23). braid fits repos where CI and merging are more than "fixed check names green":
-- CI that differs per PR: `ci: all` (wait for every check reported on the commit, with a start grace) or path rules (`<glob> → <names>`); BRAID.md can say CI on braid branches is partial or none, and then the worker's gate run (output and duration) is the strand's required evidence; existing review bots are named, as input to the braid reviewer or excluded from `ci` (inbox 2026-11-23-n1xv).
-- A project merge gate: a `merge-gate:` command `braid accept --merge` runs with the PR and sha before any merge into main; project merge preconditions no preset overrides (a command answering "may I merge now?"); path-based forced stops (`code/finance/** → ask`) (2026-11-23-60mj).
-- Path-scoped gates (`<glob> → <command>`, full gate as fallback), `braid doctor` (runs setup and a dry gate, reports environment failures as setup problems), a `cleanup:` field `braid clean` also removes, a disk-space check before `braid start` (2026-11-23-bbd3).
-Projects with their own tracker (2026-11-23-gwwt) are out of scope: the user decided later.
+Programme pm/autonomous-dev-machine, row P20, from the Everix field report (a large polyglot monorepo where a merge into main deploys shared environments; 2026-11-23). Scope settled with the user: enforce in code only what is expensive to get wrong and what an agent could skip; everything else is a line in BRAID.md, AGENTS.md or a skill (the user: "ok, good, so no major overengineering").
 
-This is an outline: its coordinator plans it fully when its turn comes, and may split it.
+Enforced in code (small):
+- `merge-gate:` in BRAID.md: one command (with `<pr>` and `<sha>` filled in) that `braid accept --merge` runs before any merge into main and that no preset skips; a failure refuses the merge with its output. The project's own script decides the rest (test counts, merge windows, a finance non-regression run). Inbox 2026-11-23-60mj.
+- `ci: all`: wait for every check actually reported on the commit, with a short start grace, so `braid wait` and the merge condition "checks green" check something; today `ci: []` returns at once. Inbox 2026-11-23-n1xv.
+
+Lines, not code (documented with BRAID.md examples, and a few skill lines):
+- partial or no CI on braid branches: the strand's evidence is the worker's gate output and duration (n1xv);
+- review bots named in BRAID.md; the worker waits for their reviews, triages each comment (fix, answer why not, or nit), replies and resolves, and the braid reviewer reads them instead of re-reviewing (2026-11-23-odxc);
+- path-scoped gates live in the project's gate script; path-based "ask first" stops (e.g. code/finance/**) are an AGENTS.md line, and the merge gate blocks them for main; caches and disk space are a project script or a `setup` note (2026-11-23-bbd3).
+Out of scope: `braid doctor` (P18), projects with their own tracker (2026-11-23-gwwt, the user decided later).
+
+This is an outline: its coordinator plans it fully when its turn comes.
 
 ## Working at the end
 
-A repo whose checks depend on paths and whose merge into main deploys: braid waits for the checks actually reported, runs the project's merge gate and its may-I-merge-now check before any merge into main, and stops for a finance path even under free.
+On a repo whose merge into main deploys: braid accept --merge runs the project's merge-gate and refuses on failure, under any preset; with ci: all, braid wait waits for the checks actually reported; a worker answers and resolves the review bots' comments.
