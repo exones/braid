@@ -142,6 +142,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: user: "Merge" #279; 0073/A merged into main (d130b6b), ci green; installed from main, board restarted (running = installed, page 200). Braid branches have no push CI from now on.
 - 2026-11-23: P20 · 0073/A (fewer CI runs) ready for the user's merge as an early PR into main: #279 at f293edf. PM check: diff read (push CI on main only; braid wait falls back to a merge commit's second parent), test/wait.test.ts 23/23, built `braid wait 0073` on the real braid branch read green through the merge commit 09f6cff (no push run of its own). Forwarded (q-n2a7).
 - 2026-11-23: P6 · 0071/B merged into its braid branch (#278, 3aa6af9): slim cards, eta and history in details, escalation as a reminded event. After install, every machine reading braid-requests needs the new CLI (older ones read `reminded` as unreadable). 0071/C running.
 - 2026-11-23: user: copy a question's code by clicking its chip, "piggy back on 73 (at the end)": sent to 0073 as its last small strand.
