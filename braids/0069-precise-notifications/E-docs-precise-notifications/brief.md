@@ -35,7 +35,7 @@ Expected size: about 80 lines in 4 files.
 
 ## Completion
 
-- [ ] Each doc from BRAID.md `docs` is listed in report.md as updated or unchanged
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Each doc from BRAID.md `docs` is listed in report.md as updated or unchanged
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
