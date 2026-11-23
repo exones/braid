@@ -11,7 +11,7 @@ order: 50
 
 The project's docs describe the board's wake, reminder, estimate and nudge as one whole, after everything 0071 changed.
 
-Expected size: about 150 lines in 6 files.
+Expected size: about 190 lines in 8 files.
 
 ## Start here
 
@@ -24,6 +24,7 @@ Expected size: about 150 lines in 6 files.
 - Bring the docs from `docs` up to date as a whole: `README.md`, `docs/getting-started.md`, `docs/cli.md` (`braid eta`, `--done-when` conditions checked), `docs/board.md` (wake, reminder, estimate, nudge, escalation, held or paused, without a running board), `docs/braids-format.md` (the record's events), `docs/roadmap.md` status, the CLI's help text.
 - `docs/decisions.md`: a dated decision for the board acting without a click (waking, reminding, nudging), next to 0064's steering, with why (passive waits can be forgotten; a missed wake must not stall a braid), and the rf9z decision (a wait replaces only a wait).
 - List in `report.md` each doc checked, as updated or unchanged.
+- Leftover 2026-11-23-ozjp (from 0071/C), the one code change here: `braid review pm/<slug> --thread <id>` records a PM's checker in `.braid/reviews.json` (src/braids/reviews.ts), and those records are never dropped, so each finished checker costs one `t3 thread show` per board refresh. A new record for a `pm/<slug>` item replaces the older one for that item, and the board (src/board/t3.ts) drops a `pm/` record once its thread is no longer running. A test covers both.
 
 ## Already decided
 
@@ -31,11 +32,12 @@ Expected size: about 150 lines in 6 files.
 
 ## Out of scope
 
-- Skills (0071/D). Product code.
+- Skills (0071/D). Product code other than ozjp.
 
 ## Completion
 
 - [ ] Every doc in BRAID.md `docs` checked against what 0071 changed, and report.md lists each as updated or unchanged
+- [ ] A `pm/<slug>` review record is replaced by the next one for that item and dropped once its thread stops running; a test covers it
 - [ ] `docs/decisions.md` has the dated decision for the board acting without a click and the rf9z decision
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
