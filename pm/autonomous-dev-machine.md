@@ -134,6 +134,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: P2 · 0069 live check passed on the goal; a fix round for two pushes without a thread link (a programme request without --thread, the Done push), per the user's "always … a thread link"; three cosmetic findings to leftovers.
 - 2026-11-23: P2 · 0069 final PR #263 at bf8aa63 handed to the PM; live check launched (clone, fake ntfy server). Leftover uanu to P15.
 - 2026-11-23: P2 · 0069/D merged into its braid branch (PR #260, `braid notify send`); 0069/E (docs) started.
 - 2026-11-23: P7 · 0067 live check: works, but the address file inherits its folder's ACL (the user's ~/.braid grants CodexSandboxUsers read), so it isn't owner-only; sent as a blocking fix with the misleading install message, a possible wrong exit code and the display name case. The user's try waits for the fix.
