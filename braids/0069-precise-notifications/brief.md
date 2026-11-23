@@ -1,7 +1,7 @@
 ---
 id: '0069'
 title: "Precise notifications"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 related: ['0064', '0067']
