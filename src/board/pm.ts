@@ -32,11 +32,11 @@ export function runByProgramme(plans: readonly PlanRead[] | undefined, id: strin
 }
 
 /**
- * A forwarded request that is the PM asking the user, not the braid: it came from a PM-run braid and is no handover
- * (a forwarded merge joins the merge push, 0069/C). The programme's panel shows it; the braid's card keeps its lane.
+ * A forwarded request that is the PM asking the user, not the braid: it came from a PM-run braid (a forwarded merge handover too:
+ * the PM's merges that wait for the user are one push). The programme's panel shows it; the braid's card keeps its lane.
  */
 export const throughPm = (req: Request, routed: Routed, plans: readonly PlanRead[] | undefined): boolean =>
-  "via" in routed && routed.via === "forwarded" && req.kind !== "review" && runByProgramme(plans, req.id);
+  "via" in routed && routed.via === "forwarded" && runByProgramme(plans, req.id);
 
 /** Whether the PM's thread can't answer: archived, failed, or unknown to T3. null when T3 wasn't read (nothing can be told). */
 export function pmGone(t3: T3, thread: string | undefined): boolean | null {
