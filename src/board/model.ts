@@ -318,7 +318,9 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const stored = status === "Done" && pr?.state === "closed" ? "To Do" : status;
   const agents = t3.threads.get(key) ?? [];
   const activity = activityOf(agents, pr);
-  if (pr?.state === "merged" || (stored === "Done" && pr?.state !== "open")) {
+  // A review request still open on a stored Done whose PR the lookup didn't find isn't dropped: the merge is the user's one task (0068).
+  const heldReview = stored === "Done" && pr === null && sig.requests.get(key)?.kind === "review";
+  if (pr?.state === "merged" || (stored === "Done" && pr?.state !== "open" && !heldReview)) {
     sig.alarm(key, "checks failed", false);
     sig.alarm(key, "stalled", false);
     return { lane: "Done", pr, reason: null, need: null, ask: null, agents, activity: null, pause: null, pm: null, pmAsk: null };

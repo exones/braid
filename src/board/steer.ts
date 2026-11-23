@@ -221,7 +221,7 @@ export function limitPush(event: LimitEvent, records: readonly Pause[], now: Dat
         : { key: `${key}:resumed`, title: `${provider} resumed (was due ${extra.due})`, body: `No board ran at ${extra.due}. Re-checked at start: ${usage}${braids} go${records.length === 1 ? "es" : ""} on.`, tags: ["arrow_forward"], priority: "default", click: null };
     }
     case "extended":
-      return { key: `${key}:extended:${first.resetsAt ?? first.resumeAt ?? ""}`, title: `${provider} still over: resumes ${resume}`, body: `${window} at the resume time. ${braids} stay paused.`, tags: ["double_vertical_bar"], priority: "default", click: null };
+      return { key: `${key}:extended:${first.resetsAt ?? first.resumeAt ?? ""}`, title: `${provider} still over: resumes ${resume}`, body: `${window} at the resume time. ${braids} stay${records.length === 1 ? "s" : ""} paused.`, tags: ["double_vertical_bar"], priority: "default", click: null };
     case "weekly":
       return {
         key: `${key}:weekly`,

@@ -39,10 +39,10 @@ Expected size: about 120 lines in 4 files, most of them tests.
 
 ## Completion
 
-- [ ] A test reproduces 0068's case (story stamped Done, PR open, review request to the PM, forwarded) and passes: the card is To Review as forwarded, and one push is sent
-- [ ] The log names the cause found
-- [ ] A test shows a failed one-shot limit push sent again at a later refresh on a two-project board
-- [ ] The weekly-limit Needs You details say what to do instead of "Answer in the coordinator thread", and the still-over push agrees in number (one braid: "stays paused"), with tests
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A test reproduces 0068's case (story stamped Done, PR open, review request to the PM, forwarded) and passes: the card is To Review as forwarded, and one push is sent
+- [x] The log names the cause found
+- [x] A test shows a failed one-shot limit push sent again at a later refresh on a two-project board
+- [x] The weekly-limit Needs You details say what to do instead of "Answer in the coordinator thread", and the still-over push agrees in number (one braid: "stays paused"), with tests
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
