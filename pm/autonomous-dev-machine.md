@@ -6,14 +6,14 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 2
 state: running
 hold:
-next: "the user looks at 0069 + 0067 on the board; P3 on the user's go"
-digest: "23 Nov · 4 done · 0 running · 7 PM decisions"
+next: "P3 runs; then P6 after P3, P4, P5"
+digest: "23 Nov · 4 done · 1 running · 7 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | done
   - P2 | 0069 | Precise notifications | done
   - P7 | 0067 | Board as a Windows service, fully usable; PM naming | done
-  - P3 | - | Questions on record | planned
+  - P3 | - | Questions on record | running
   - P6 | - | The board wakes, reminds and nudges | planned
   - P4 | - | Questions say what they unblock | planned
   - P5 | - | Board lanes collapse, Held lane, Hold and Go | planned
@@ -134,6 +134,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-23: user: "Okay, go P Three." P3 launched (coordinator thread mcp:launch:c107ad17…), limits ok (session 13%, weekly 81% used).
 - 2026-11-23: user: links for everything named in recaps; added to P11 (the PM does it now).
 - 2026-11-23: user: end-of-message markers (✋ / ⏳ / 🟢) permanent for coordinator and PM; added to P3.
 - 2026-11-23: P7 · 0067 merged into main (699fc3a), ci green; installed 0069 + 0067 from main; the checkout's old Install-Skills.ps1 has no restart step, so the PM ran braid board service restart (running 0.2.0 = installed, page 200). Waiting for the user's look and go for P3.
