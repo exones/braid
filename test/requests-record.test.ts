@@ -72,7 +72,7 @@ test("a request round-trips through its file: fields fixed at opening, every cha
     events: [{ event: "opened", at: "2026-11-23T10:00:00.000Z", by: "coordinator" }],
   });
   R.forwardRequest(root, "0001/A", "2026-11-23T10:05:00.000Z", "your call");
-  assert.equal(R.closeRequest(root, "0001/A", "coordinator", { state: "answered", who: "coordinator", text: "B", at: "2026-11-23T10:10:00.000Z" }), true);
+  assert.equal(R.closeRequest(root, "0001/A", "coordinator", { state: "answered", who: "coordinator", text: "B", at: "2026-11-23T10:10:00.000Z" }).found, true);
   const [r] = R.loadRecord(root).requests;
   assert.deepEqual([r.state, r.to, r.forwarded, r.note], ["answered", "user", "2026-11-23T10:05:00.000Z", "your call"]);
   assert.deepEqual(

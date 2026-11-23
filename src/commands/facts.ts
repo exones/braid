@@ -3,6 +3,7 @@
 import { keyOfBranch, readGithub, runGh, runsOf, type GhRunner } from "../board/github.js";
 import { openCounts, SWEEP_DUE } from "../inbox/branch.js";
 import { decidedEntries } from "../braids/decided.js";
+import { answeredRows, loadRecord } from "../braids/requests.js";
 import { LOG_FILE } from "../braids/store.js";
 import { UsageError } from "./braids.js";
 import { ciChecks } from "./coordinate.js";
@@ -99,7 +100,7 @@ export async function factsCommand(root: string, args: readonly string[], opts: 
   return `${[head, ...factLines(facts)].join("\n")}\n`;
 }
 
-/** The `Decided:` entries of the logs at `head`: the item's own, and for a braid's final PR (`whole`) those of its strands too, oldest first. */
+/** The `Decided:` entries of the logs at `head` and the requests the user or the PM answered (from the record): the item's own, and for a braid's final PR (`whole`) those of its strands too, oldest first. */
 function decidedAt(root: string, head: string, item: Item, whole: boolean): string[] {
   const names = lines(git(root, ["ls-tree", "-r", "--name-only", head, "--", item.folder]).stdout);
   const ids = new Map<string, string>([[item.folder, item.id]]);
@@ -122,6 +123,8 @@ function decidedAt(root: string, head: string, item: Item, whole: boolean): stri
       rows.push({ at: d.at, id: idOf(dir), text: d.text });
     }
   }
+  // The answers the user or the PM gave, from the request record; a braid's final PR takes its strands' too.
+  rows.push(...answeredRows(loadRecord(root).requests, (id) => id === item.id || (whole && id.startsWith(`${item.id}/`))));
   rows.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
   return rows.map((r) => `- ${r.at.slice(0, 10)} ${r.id}: ${r.text}`);
 }

@@ -8,7 +8,7 @@ import { doneDate, headOf, prefetchDoneDates } from "./done.js";
 import { gitAsync } from "../braids/gitio.js";
 import type { Braid } from "../braids/store.js";
 import { BROKE_MS, type BrokeReason, type Signals } from "./model.js";
-import { askerOf, ensureStateDir, filterLive, programmeOf, loadRequests, mainCheckout, type PrNow, type Request } from "../braids/requests.js";
+import { askerOf, BRAID_TO, ensureStateDir, filterLive, programmeOf, loadRequests, mainCheckout, type PrNow, type Request } from "../braids/requests.js";
 import { loadPauses, type Pause } from "../braids/pauses.js";
 
 export interface ReadSignals extends Signals {
@@ -78,7 +78,8 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
   let pauses: readonly Pause[] = [];
   let pausesNote: string | null = null;
   try {
-    requests = filterLive(loadRequests(root), (n) => prOf(github, n));
+    // A request to another braid's coordinator isn't the user's: nothing routes or pushes it yet (P6).
+    requests = filterLive(loadRequests(root), (n) => prOf(github, n)).filter((r) => r.to === undefined || !BRAID_TO.test(r.to));
     file = brokeFile(root);
     ({ pauses, note: pausesNote } = loadPauses(root));
   } catch {

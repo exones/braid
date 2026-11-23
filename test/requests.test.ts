@@ -114,7 +114,7 @@ test("ask opens a request that every worktree shares; a new ask replaces it; ans
   askCommand(w.other, ["0001/A", "Plan ok?", "--kind", "plan"], { now: w.clock });
   assert.deepEqual(loadRequests(w.root).map((r) => [r.id, r.kind, r.text]), [["0001/A", "plan", "Plan ok?"]]);
   assert.equal(readdirSync(join(w.root, ".braid")).filter((n) => n.endsWith(".tmp")).length, 0);
-  assert.match(answerCommand(w.other, w.other, ["0001/A"]), /request closed/);
+  assert.match(answerCommand(w.other, w.other, ["0001/A"]), /^q-[a-z0-9]{4} 0001\/A: answered by the user\n$/);
   assert.equal(await requestsCommand(w.root, [], { gh: w.gh }), "no open requests\n");
   assert.match(answerCommand(w.root, w.root, ["0001/A"]), /no open request/);
   // Nothing is deleted: the first is withdrawn as replaced, the second answered.
@@ -134,18 +134,20 @@ test("ask refuses a bad kind, an empty text, an unknown item and a bad thread", 
   assert.deepEqual(loadRequests(w.root), []);
 });
 
-test("answer --log adds the decision to the braid log, and a refused log leaves the request open", () => {
+test("answer --log is the answer's text on the record: no braid log, no commit; an unreadable file leaves the request open", () => {
   const w = world();
   askCommand(w.root, ["0001", "Approve the plan?", "--kind", "plan"], { now: w.clock });
   assert.throws(() => answerCommand(w.root, w.root, ["0001", "--log", join(w.root, "nope.txt")]), /can't read/);
   assert.equal(loadRequests(w.root).length, 1);
   writeFileSync(join(w.root, "decision.txt"), "User approved the plan.\n");
+  const head = git(w.root, "rev-parse", "HEAD");
   const out = answerCommand(w.root, w.root, ["0001", "--log", join(w.root, "decision.txt"), "--thread", THREAD]);
-  assert.match(out, /request closed/);
-  const log = readdirSync(join(w.root, "braids/0001-alpha")).find((n) => n.startsWith("log-"));
-  assert.ok(log !== undefined);
-  assert.match(readFileSync(join(w.root, "braids/0001-alpha", log), "utf8"), /User approved the plan\./);
+  assert.match(out, /answered by the user: User approved the plan\./);
+  assert.equal(readdirSync(join(w.root, "braids/0001-alpha")).some((n) => n.startsWith("log-")), false, "no braid log entry");
+  assert.equal(git(w.root, "rev-parse", "HEAD"), head, "no commit on the checkout's branch");
   assert.deepEqual(loadRequests(w.root), []);
+  const e = loadRecord(w.root).requests[0]?.events.at(-1);
+  assert.deepEqual([e?.event, e?.by, e?.text], ["answered", "user", "User approved the plan."]);
 });
 
 test("handover opens a review request and prints the recap draft", async () => {
@@ -404,6 +406,6 @@ test("ask and answer find a braid that lives only on its branch, from the main c
   assert.equal(existsSync(join(w.root, "braids", "0002-beta")), false, "not in the working tree");
   assert.match(askCommand(w.root, ["0002", "Go?", "--kind", "decision"], { now: w.clock }) as string, /^q-[a-z0-9]{4} 0002: decision request opened/);
   assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0002"]);
-  assert.match(answerCommand(w.root, w.root, ["0002"]), /request closed/);
+  assert.match(answerCommand(w.root, w.root, ["0002"]), /answered by the user/);
   assert.throws(() => askCommand(w.root, ["0009", "x"]), /no braid 0009/);
 });
