@@ -1,0 +1,18 @@
+{
+  "code": "q-cd0e",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "Fable's review: Q1 new braid 'Lifecycle off code branches + one pure lane' (idea 0a0a): A before P5, B after P5, C later. Q2 clean this checkout's ~45 stale worktrees and 90 merged local branches: A yes, list first, B leave it. Answer in the PM thread",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T00:00:45.113Z",
+      "by": "pm"
+    }
+  ]
+}
