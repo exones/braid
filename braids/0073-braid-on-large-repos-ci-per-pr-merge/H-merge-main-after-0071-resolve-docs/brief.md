@@ -1,7 +1,7 @@
 ---
 id: '0073/H'
 title: "Merge main after 0071: resolve docs, renumber decisions"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 80
