@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-24T09:42:55.536Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-24T09:43:47.255Z",
+      "by": "pm",
+      "text": "A, approve, with one part held for the user. 1. Early PR for A: yes, as recommended: merge A into the braid branch under the preset once reviewed and green, then open the early PR into main and send the PM the PR and head. 2. Record shape: the user decides (the PM asks now, recommending lifecycle/ on braid-requests); start A at once, do not start B until the PM relays the answer. Take 2026-11-23-k5d1 and 2026-11-23-sqck into 0075.",
+      "reason": "plan approved as proposed, because it follows the binding order, cuts special cases and keeps skills shorter, instead of a separate story braid for the checker fix (a new braid for one S story is more machinery); 0075/A goes to main via an early PR from the braid branch; k5d1 and sqck taken in; the lifecycle record's shape goes to the user before 0075/B starts"
     }
   ]
 }
