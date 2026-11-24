@@ -146,6 +146,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-24 ~20:30Z: 0075/F (limits per model) merged into main as #300 (21d982d) on the user's "a", main CI green, installed, board restarted, checkout pulled; `braid limits --role reviewer` now ok for grok-4.6, no pause records. Open thread still opens nothing for the user (asked where); board stalls up to ~5 s (z45n). Only 0075/D left, then the final PR.
 - 2026-11-24 ~19:00Z: 0075/E (Open thread links in T3's new link shape, a T3 update regression) merged into main as #299 (d908d5e) on the user's "merge it", main CI green, installed, board restarted, checkout pulled. q-awvg: the user says grok-4.6 isn't on cursor's Other Models limit; the PM told 0075 to launch the C review anyway. 83cd/99xh (limits per model) moved into 0075 as a second hotfix straight into main, on the user's "quite urgent". The 13:44 steering pause failed again (osda, to 0074).
 - 2026-11-24 ~14:00-14:35Z: board paused Claude_Everix (session limit) and resumed at 14:35; 0075's coordinator failed one run at 14:00 and is running again after the resume.
 - 2026-11-24: 0075/A in main: #296 merged on the user's "merge #296" (a3a48b8), main CI green, installed, board restarted (running = installed), the user's checkout pulled. 0075/B building.
