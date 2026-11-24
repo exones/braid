@@ -1,7 +1,7 @@
 ---
 id: '0071/E'
 title: "Docs: The board wakes, reminds and nudges"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: ['0071/A', '0071/B', '0071/C', '0071/D']
 order: 50
