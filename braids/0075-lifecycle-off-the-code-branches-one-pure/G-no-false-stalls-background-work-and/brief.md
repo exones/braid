@@ -1,7 +1,7 @@
 ---
 id: '0075/G'
 title: "No false stalls: background work and timed waits"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 order: 28
