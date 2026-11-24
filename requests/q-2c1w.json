@@ -1,0 +1,18 @@
+{
+  "code": "q-2c1w",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "action",
+  "text": "Have a look: 0073 is installed (board restarted). Copy chip on question codes, calmer project colours, braid clean counting Done right; merge gate and ci: all in BRAID.md. Say ok or what is off, in the PM thread.",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T09:32:37.814Z",
+      "by": "pm"
+    }
+  ]
+}
