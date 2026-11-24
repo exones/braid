@@ -1,0 +1,21 @@
+{
+  "code": "q-z4k7",
+  "item": "0073",
+  "kind": "review",
+  "text": "review PR #287 at 19c4c2d",
+  "by": "coordinator",
+  "thread": "mcp:launch:0d9e40640333c25feefb9295666cd2361f50ca8457d7f494682c690a4668a78c",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:287",
+  "pr": 287,
+  "head": "19c4c2d2f8362edfe16ee3118d0b7a3f1e52eb04",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T04:39:02.042Z",
+      "by": "coordinator"
+    }
+  ]
+}
