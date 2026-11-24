@@ -146,6 +146,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-24: P20 · 0073 final PR #287 opened; its review blocked: the braid skill folder 270 words longer than main (the BRAID.md template grew), and docs naming `braid facts` for ci: all. Fix strand 0073/F (template explanations move to braids-format.md). PM (q-pxl3): box 3 says `braid recap`, a wording slip, instead of asking the user.
 - 2026-11-24: P6 · 0071/E merged (#285); main merged into the braid branch. The coordinator's try found `braid eta` unreachable (wired into dispatch and help, not BRAID_COMMANDS: Fable's "a command is registered in four places", l7dw, P14); fix strand 0071/F running.
 - 2026-11-24: user, after the Everix 0001 thread confirmed the moved head (accept added a status commit, TeamCity ran again): "move P22 right after P20": P22 · 0075 now before P21 and takes the first freed slot; it starts once 0071 and 0073 are in main (it touches the lanes, accept and wait).
 - 2026-11-24: P20 · 0073/D merged into its braid branch (#284, 68bee1e): review-bots and reviewer-with-bots, bots read once at green CI (no wait), merge-gate-on and the large-repo docs, braid facts names the gate (avsv); skills shorter per folder (the PM: the rule is per skill, not per file). 0073/E (copy chip, project colours) running. 0071's final PR #285 open.
