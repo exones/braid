@@ -1,7 +1,7 @@
 ---
 id: '0071'
 title: "The board wakes, reminds and nudges"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: ['0070']
 related: ['0072']
