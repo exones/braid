@@ -1,7 +1,7 @@
 // What a running board knows of an open wait (a request to another braid's coordinator) or an open request to the PM, beyond
 // the record: who gets its reminders, whether its estimate has passed, and when it was last reminded or escalated
 // (docs/board.md "Reminders"). Pure: the reminder step (src/board/remind.ts) and the cards (src/board/model.ts) both read it.
-import { BRAID_TO, isWait, type Request } from "../braids/requests.js";
+import { BRAID_TO, isTimedWait, isWait, type Request } from "../braids/requests.js";
 import type { PlanRead } from "./plans.js";
 import type { T3 } from "./t3.js";
 
@@ -17,8 +17,8 @@ export type Addressee =
 /** The braid an item id belongs to (`0042` of `0042/B`); null for a programme's request. */
 export const braidOfId = (id: string): string | null => /^(\d{4})(?:\/|$)/.exec(id)?.[1] ?? null;
 
-/** Whether the board reminds this request: an open wait, or an open request to the PM it hasn't forwarded. Never one to the user. */
-export const remindable = (r: Request): boolean => r.state === "open" && braidOfId(r.id) !== null && (isWait(r) || (r.to === "pm" && r.forwarded === undefined));
+/** Whether the board reminds this request: an open wait on a braid, or an open request to the PM it hasn't forwarded. Never one to the user, nor a timed wait (no one to remind). */
+export const remindable = (r: Request): boolean => r.state === "open" && braidOfId(r.id) !== null && ((isWait(r) && !isTimedWait(r)) || (r.to === "pm" && r.forwarded === undefined));
 
 /** The PM thread of a PM-run braid: the thread of the plan that has it as a row; null when no plan does. */
 export function pmThreadOf(braid: string, plans: readonly PlanRead[] | undefined): string | null {

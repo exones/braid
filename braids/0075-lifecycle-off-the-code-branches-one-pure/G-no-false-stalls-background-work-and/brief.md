@@ -1,7 +1,7 @@
 ---
 id: '0075/G'
 title: "No false stalls: background work and timed waits"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:process"]
 dependencies: []
 order: 28
@@ -51,12 +51,19 @@ Expected size: about 150 lines in 6 to 8 files, half of them tests, plus one ski
 
 - Board pauses and resumes (0074); the PM's own requests beyond what the timed wait needs; anything else of 0075.
 
+## Plan
+
+1. One predicate for "running", `working` in `src/board/t3.ts`: T3 says `running` or `waiting` (dctl-studio 0011/E, added on the coordinator's request), or `pendingBackgroundTasks` is non-empty, or `blockedOnThreadWait` is true. `readFresh` uses it for listed threads (workers, coordinators, idea threads), and `statusOf` uses it for the `states` map (the PM) and for `thread show` (recorded reviewers, PM checkers, `braid clean`). So a working thread reads `running` everywhere.
+2. A timed wait is a request with `to: self` (`SELF`, `isTimedWait` in `src/braids/requests.ts`), and `isWait` includes it. It goes in the board's waits: no lane change, no push. `remindable` excludes it. `waitStall` ignores it, since it has no addressee to be gone or late. One predicate for "deliberately waiting" (`waits` in `src/board/model.ts`) keeps a timed wait only while its time is still ahead.
+3. `braid ask --to self` requires `--done-when time:`. `braid requests` and the history show it as a timed wait. The card's `WaitLine` reads "Waiting until <time>", and the Requests tab adds a badge.
+4. Tests in `test/board-no-false-stalls.test.ts` for both real cases. Docs updated: board.md, cli.md, braids-format.md and the `braid ask` help. The skill gains one line and loses one.
+
 ## Completion
 
-- [ ] A thread with pending background tasks or blocked on a thread wait counts as running for workers, coordinators and the PM (tests from the 0010/B case)
-- [ ] A timed wait (`--done-when time:<iso>`, no question to anyone) shows quietly as "waiting until <time>", is never pushed, keeps the item from reading stalled until then, and ends with the time wake (tests from the 0012/B case)
-- [ ] After the time passes, the stall reads as today (test)
-- [ ] The braid skill gains one line on the timed wait and loses one; `.agents/skills/` is no longer than before (report.md gives both counts)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (at least `docs/board.md`, `docs/cli.md` and the help text), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A thread with pending background tasks or blocked on a thread wait counts as running for workers, coordinators and the PM (tests from the 0010/B case)
+- [x] A timed wait (`--done-when time:<iso>`, no question to anyone) shows quietly as "waiting until <time>", is never pushed, keeps the item from reading stalled until then, and ends with the time wake (tests from the 0012/B case)
+- [x] After the time passes, the stall reads as today (test)
+- [x] The braid skill gains one line on the timed wait and loses one; `.agents/skills/` is no longer than before (report.md gives both counts)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (at least `docs/board.md`, `docs/cli.md` and the help text), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

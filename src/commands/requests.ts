@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, git } from "../braids/gitbranch.js";
-import { addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
@@ -231,16 +231,24 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
     throw new UsageError("braid ask: the text of what is needed must not be empty");
   }
   const key = str(values, "key");
-  const route = by === "pm" ? {} : addressee(root, values, id);
+  // `--to self`: a timed wait (0075/G). The coordinator waits on purpose until a time; nobody is asked, and the board's time wake ends it.
+  const self = str(values, "to") === "self";
+  if (self && !doneWhen.startsWith("time:")) {
+    throw new UsageError("--to self is a timed wait: give --done-when time:<iso>; nothing opened");
+  }
+  const route = by === "pm" ? {} : self ? { to: "self" } : addressee(root, values, id);
   // A PM request is answered in the PM's thread: --thread, else the PM-run line of the braid's brief.
   const pmThread = by === "pm" ? (thread ?? (slug === null ? pmOfBraid(root, id) : null)) : thread;
   const at = (opts.now ?? (() => new Date()))();
   const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route, doneWhen });
+  if (self) {
+    return `${opened.code} ${id}: timed wait opened, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
+  }
   const whom = by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : route.to !== undefined ? `to braid ${route.to} ` : "";
   return `${opened.code} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${warned(opened.warning)}`;
 }
 
-const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]';
+const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>|self] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]  (--to self --done-when time:<iso>: a timed wait, nobody asked)';
 
 /** `braid forward <id> [--note <text>]`: the PM hands a request on to the user; it reaches the user (on the braid's card, or for a braid a programme runs as the PM asking in the programme's Needs you) and is pushed, at once or, while the braid is paused or held, after `braid resume`. */
 export function forwardCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
@@ -256,7 +264,7 @@ export function forwardCommand(root: string, args: readonly string[], opts: Requ
     throw new UsageError(`${id}: no open request to forward`);
   }
   if (open.to !== "pm" || open.forwarded !== undefined) {
-    const whose = open.to !== undefined && BRAID_TO.test(open.to) ? `for braid ${open.to}'s coordinator` : `already the user's${open.forwarded === undefined ? "" : " (forwarded)"}`;
+    const whose = isTimedWait(open) ? "a timed wait" : open.to !== undefined && BRAID_TO.test(open.to) ? `for braid ${open.to}'s coordinator` : `already the user's${open.forwarded === undefined ? "" : " (forwarded)"}`;
     return `${id}: the ${open.kind} request is ${whose}; nothing changed\n`;
   }
   const given = note === undefined || note === "" ? undefined : note;
@@ -462,7 +470,7 @@ export function etaCommand(root: string, args: readonly string[], opts: RequestO
 
 /** Whom a request is for, as `braid requests` says it. */
 function whomOf(r: Request): string {
-  return askerOf(r) === "pm" ? "from the PM  " : r.forwarded !== undefined ? "forwarded by the PM  " : r.to === "pm" ? "to the PM  " : r.to !== undefined && BRAID_TO.test(r.to) ? `to braid ${r.to}  ` : "";
+  return askerOf(r) === "pm" ? "from the PM  " : r.forwarded !== undefined ? "forwarded by the PM  " : r.to === "pm" ? "to the PM  " : isTimedWait(r) ? `waiting until ${stamp(r.doneWhen.slice(5))}  ` : r.to !== undefined && BRAID_TO.test(r.to) ? `to braid ${r.to}  ` : "";
 }
 
 /** Who an event is by; an estimate's coordinator is named by its braid (the addressee's), as the board's details panel says. */
@@ -474,7 +482,7 @@ function whoOf(r: Request, event: string, by: Who): string {
 function history(r: Request): string {
   const facts = [
     `asked by ${WHO[askerOf(r)]}`,
-    `for ${r.to === undefined || r.to === "user" ? "the user" : r.to === "pm" ? "the PM" : `braid ${r.to}`}`,
+    isTimedWait(r) ? "a timed wait, nobody asked" : `for ${r.to === undefined || r.to === "user" ? "the user" : r.to === "pm" ? "the PM" : `braid ${r.to}`}`,
     `done when ${r.doneWhen}`,
     ...(r.key === undefined ? [] : [`stop case ${r.key}`]),
     ...(r.pr === undefined ? [] : [`PR #${r.pr}${r.head === undefined ? "" : ` at ${r.head.slice(0, 7)}`}`]),
@@ -547,9 +555,9 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
     return `${offline}${skipped()}no open requests\n`;
   }
   const now = (opts.now ?? (() => new Date()))();
-  const when = (r: Request): string => (r.doneWhen === "answered" || r.kind === "review" ? "" : `done when ${r.doneWhen}  `);
+  const when = (r: Request): string => (r.doneWhen === "answered" || r.kind === "review" || isTimedWait(r) ? "" : `done when ${r.doneWhen}  `);
   const eta = (r: Request): string => (r.eta === null ? "" : `expected by ${clock(r.eta, now)}  `);
   // A condition that holds is still open: only the running board's tick closes it (and wakes the asker).
   const holds = (r: Request): string => (ends.get(r.code)?.state === "met" ? "condition holds: the board wakes the asker  " : ends.has(r.code) ? "condition holds: the board withdraws it  " : "");
-  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${r.kind}  ${age(r.at, now)}  ${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}`).join("\n")}\n`;
+  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${age(r.at, now)}  ${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}`).join("\n")}\n`;
 }
