@@ -1,7 +1,7 @@
 ---
 id: '0071/G'
 title: "Fix: reads never close a request; one eta wording; the missed estimate beside a question"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 70
