@@ -17,7 +17,7 @@
 
 ## Docs
 
-`docs/braids-format.md` (the `braid clean` entry) now names the four places Done is looked for.
+`docs/braids-format.md` and `docs/cli.md` (the `braid clean` text) now say the branch is kept until the braid's brief says Done on the local branch, `origin/<branch>`, `main` or `origin/main`.
 
 ## Open
 
