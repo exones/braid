@@ -1,0 +1,21 @@
+{
+  "code": "q-msol",
+  "item": "0075",
+  "kind": "review",
+  "text": "review PR #296 at 1c92041",
+  "by": "coordinator",
+  "thread": "mcp:launch:3e7a675d49e3518b6491791c56cfc91a9781fcac408168337991fb133e7ff590",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:296",
+  "pr": 296,
+  "head": "1c920417eb54cc84a23912266621a7655c08c812",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T11:28:28.446Z",
+      "by": "coordinator"
+    }
+  ]
+}
