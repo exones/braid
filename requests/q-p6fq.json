@@ -22,6 +22,12 @@
       "at": "2026-11-24T04:51:01.455Z",
       "by": "pm",
       "text": "live check and re-check passed · merge PR #290 at 8864539"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-24T07:28:46.236Z",
+      "by": "user",
+      "text": "The user (relayed by the PM): \"Merge both\": #290 first, then #287. Merge #290 at 8864539."
     }
   ]
 }
