@@ -47,5 +47,5 @@ Expected size: about 60 lines in 2 to 4 files, half of them tests.
 - [x] "Overall" still pauses grok-4.6, a model billed under "Other Models" still pauses on it, and a provider without per-model windows is unchanged (tests)
 - [x] report.md says how a new model gets mapped
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open

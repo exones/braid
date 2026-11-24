@@ -6,7 +6,7 @@
 
 **New model mapping:** a model joins the Cursor Models pool by adding its name to `CURSOR_POOL` in `src/braids/limits.ts`; models not matched count against Other Models. No config added.
 
-**Validation:** new test with fixtures `cursor_other_over` (today's reading: grok-4.6 ok, a non-pool model pauses on Other Models) and `cursor_total_over` (Overall pauses grok-4.6); claude fixtures unchanged. Gate: see PR.
+**Validation:** new test with fixtures `cursor_other_over` (today's reading: grok-4.6 ok, a non-pool model pauses on Other Models) and `cursor_total_over` (Overall pauses grok-4.6); claude fixtures unchanged. Gate: `npm run verify` passed (685 tests, ~5 min).
 
 **Docs:** `docs/cli.md` (Provider limits) updated; no others affected.
 
