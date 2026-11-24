@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-24T22:28:35.077Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-24T22:29:30.297Z",
+      "by": "pm",
+      "text": "read: programmes first, 12-line feature list with links, claims match docs and skills; grok review fixed · merge PR #302 at 753ef0a"
     }
   ]
 }
