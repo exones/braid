@@ -37,7 +37,7 @@ Decisions:
   - reminders to agents only;
   - escalation as today's stall;
   - held or paused braids skipped;
-  - the fix strand 0071/F.
+  - the fix strands 0071/F and 0071/G (G at the PM's direction).
 - The workers' decisions: send-then-record; 2h98 by a record; dy2k by re-reading; a nudge only to a thread that can receive it; a missed estimate shows at once.
 
 For later items: leftovers 2026-11-23-5bor (the board writes the record with synchronous Git, P14), 2026-11-23-tr1o (the board's pause message misprints the steering thread id), 2026-11-24-es8z (the help test runs against the repository; commands handled before `run` aren't tested through the CLI), 2026-11-24-gqez (two boards at the same instant).
