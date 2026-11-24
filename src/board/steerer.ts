@@ -2,8 +2,10 @@
 // rule. Every served project's feed hands its good snapshot to one board-wide steerer, which runs a tick at a time:
 //   1. follow: read each 🚦 steering thread that is still pausing (its `Steering:` line, a failed run, the 15-minute limit);
 //   2. resume: each `by: board` record whose resume time has passed is re-checked, then its threads get `t3 thread send`;
-//   3. pause: per provider over its threshold, claim a record per braid under the lock, then start one steering thread.
-// Only `.braid/pauses.json` and `notified.json` are written, and only `t3 thread start` and `t3 thread send` are called.
+//   3. pause: per provider over its threshold, claim a record per braid under the lock, then start one steering thread;
+//   4. wake: each project's open requests whose "done when" holds are closed and their askers woken (src/board/wake.ts).
+// Only `.braid/pauses.json`, `notified.json` and (the wake) `braid-requests` are written, and only `t3 thread start` and
+// `t3 thread send` are called.
 import { join } from "node:path";
 import { LimitsError, readLimits, readModelLines, readProvider, t3Home, type ModelLine, type ProviderReading } from "../braids/limits.js";
 import { claimPauses, clearPause, loadPauses, patchPauses, reasonOf, type Pause, type PauseTarget, type Steering } from "../braids/pauses.js";
@@ -12,6 +14,7 @@ import type { Good } from "./feed.js";
 import { clock } from "./pause.js";
 import { limitPush, overWindow, parseSteeringLine, pickSteering, resumeMessage, steeringLines, steeringMessage, targetsOf, weeklyPause, type LimitEvent, type LimitPush, type PmThread } from "./steer.js";
 import type { T3Runner } from "./t3.js";
+import type { Waker } from "./wake.js";
 
 /** How long a steering thread may take to give its `Steering:` line before the pause counts as failed. */
 export const STEER_LIMIT_MS = 15 * 60_000;
@@ -44,6 +47,8 @@ export interface SteererOptions {
   readonly retry?: () => void;
   /** Where the steerer reports what it couldn't do: the board's standard error. */
   readonly warn?: (line: string) => void;
+  /** The wake step, run for each project after the pause steps; absent: nothing is woken. */
+  readonly wake?: Waker;
 }
 
 export interface Steerer {
@@ -370,6 +375,14 @@ export function steerer(opts: SteererOptions): Steerer {
       await pause(seen, at);
     } catch (error) {
       warn(`the limits pause failed this refresh (${error instanceof Error ? error.message : String(error)})`, "tick");
+    }
+    for (const s of opts.wake === undefined ? [] : seen) {
+      try {
+        // Read the clock again: the steps above may have taken a while.
+        await opts.wake?.({ root: s.project.root, good: s.good }, now(), warn);
+      } catch (error) {
+        warn(`the wake of ${s.project.name} failed this refresh (${error instanceof Error ? error.message : String(error)})`, `wake ${s.project.name}`);
+      }
     }
   };
   return {

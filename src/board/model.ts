@@ -7,7 +7,8 @@ import { NO_INBOX, type InboxData } from "./inbox.js";
 import { age, type Request } from "../braids/requests.js";
 import { requestsOf, rowOf, type RequestRow, type RequestsView } from "./record.js";
 import type { Pause } from "../braids/pauses.js";
-import { limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
+import { clock, limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
+import { addresseeOf, braidOfId, missedEta, pmThreadOf } from "./waits.js";
 import { forwardedLine, pmLine, routeOf, throughPm, viaNote, type PmLine, type Routed, type Via } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import { programmeOfBraid, toProgrammes, type Programme } from "./programme.js";
@@ -53,6 +54,8 @@ export interface Need {
   readonly code?: string;
   /** The T3 link of the thread that asked (always the asker's, also when the PM forwarded it); null when T3 doesn't list it. Set with `code`. */
   readonly asking?: string | null;
+  /** A second need shown under this one: a broken wait (past its estimate, or a gone addressee) on a braid that also has a question open; both need the user. */
+  readonly also?: Need;
 }
 
 /** What Merge on request needs of an item with an open review request: what the confirmation shows, and why it can't be asked for yet. */
@@ -238,6 +241,32 @@ export function laneOfStatus(status: Status): Lane {
 /** How long a broke condition must have held before it shows. */
 export const BROKE_MS = 10 * 60_000;
 
+/** A stall the board may nudge: whose thread gets the nudge, who is named in it, and the PM thread told when the nudge didn't help (coordinator stalls only). */
+export interface NudgeTarget {
+  readonly kind: "coordinator" | "pm";
+  /** What the message names: `0071`, `0071/C`, or the programme's slug. */
+  readonly who: string;
+  readonly thread: string;
+  readonly pm: string | null;
+}
+
+/** The stall's one red line once the board's nudge didn't help (0071/C). */
+const AFTER_NUDGE = "Stalled after a nudge: the coordinator stopped and nothing was asked";
+
+/**
+ * Where the nudge of a coordinator stall of this braid goes: its coordinator thread, known and idle. Without one there is nobody to
+ * nudge, and the stall shows after ten minutes as before. The PM thread of a PM-run braid hears of it when the nudge didn't help.
+ */
+function nudgeOf(number: string, who: string, t3: T3, sig: Signals): NudgeTarget | undefined {
+  const c = t3.idleCoordinators?.get(number);
+  if (c === undefined) {
+    return undefined;
+  }
+  const pm = pmThreadOf(number, sig.plans);
+  const state = pm === null ? undefined : t3.states?.get(pm);
+  return { kind: "coordinator", who, thread: c.id, pm: state === undefined || state === "archived" ? null : pm };
+}
+
 /** What derive needs besides the item itself: the open requests, the clock and the alarm clock. */
 export interface Signals {
   readonly now: Date;
@@ -256,7 +285,9 @@ export interface Signals {
    * began (ISO) once it has held for ten minutes, else null. Called for every item, so a condition that
    * stopped holding starts again from zero.
    */
-  readonly alarm: (id: string, reason: BrokeReason, holds: boolean | null) => string | null;
+  readonly alarm: (id: string, reason: BrokeReason, holds: boolean | null, nudge?: NudgeTarget) => string | null;
+  /** Whether the stall of this alarm id was nudged (and so is shown as the stall after a nudge). Absent: never. */
+  readonly nudged?: (id: string) => boolean;
   /** When the item whose brief is in `folder` became Done (ISO; the commit that set `status: Done`), or null when it isn't known. Absent: no dates. */
   readonly doneAt?: (folder: string, source: Source | null) => string | null;
   /** The paused braids by number (`.braid/pauses.json`). Absent: none. */
@@ -362,6 +393,9 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   if (pr?.state === "merged" || (stored === "Done" && pr?.state !== "open" && !heldReview)) {
     sig.alarm(key, "checks failed", false);
     sig.alarm(key, "stalled", false);
+    if (!key.includes("/")) {
+      sig.alarm(`${key} wait`, "stalled", false);
+    }
     return { lane: "Done", pr, reason: null, need: null, ask: null, agents, activity: null, pause: null, pm: null, pmAsk: null };
   }
   const label = labels.find((l) => l.startsWith("ask:") && l.length > 4);
@@ -382,10 +416,12 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const failing = pr?.state === "open" && pr.checks === "failing";
   const checking = pr?.state === "open" && (pr.checks === "pending" || pr.checks === "failing");
   const failed = sig.alarm(key, "checks failed", waiting ? false : known ? failing && agents.length === 0 : null);
-  const stallHolds = waiting || stored !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
+  // An open wait of the braid on another braid is the coordinator waiting on purpose: no item of it reads stalled; a broken one does, on the braid.
+  const stallHolds = waiting || waits(key.slice(0, 4), sig).length > 0 || stored !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
+  const broken = key.includes("/") ? null : waitStall(key, sig, t3);
   // A paused braid's items aren't stalled while the pause lasts; once its resume is 25 min overdue they are, at once, naming the pause.
   const paused = sig.pauses?.get(key.slice(0, 4)) ?? null;
-  const stalled = sig.alarm(key, "stalled", paused === null ? stallHolds : false);
+  const stalled = sig.alarm(key, "stalled", paused === null ? stallHolds : false, nudgeOf(key.slice(0, 4), key, t3, sig));
   const pausedStall = paused !== null && stallHolds === true && phaseOf(paused, sig.now) === "over" ? stalledSince(paused) : null;
   const pause = paused === null ? null : pauseView(paused, sig.now);
   // The PM's own request puts the item in Needs You and is its need when nothing else is asked; the coordinator's request stays what it was.
@@ -393,10 +429,10 @@ export function derive(status: Status, labels: readonly string[], key: string, g
     pmAsk === null ? { lane, pr, reason, need, ask, agents, activity, pause, pm, pmAsk } : { lane: "Waiting", pr, reason: lane === "Waiting" && reason !== null ? reason : pmAsk.kind as Reason, need: need ?? pmAsk, ask, agents, activity, pause, pm, pmAsk };
   if (req !== undefined && routed !== undefined) {
     const r = requestLane(req, sig.now, routed, t3);
-    return out(r.lane, r.reason, r.need);
+    return out(r.lane, r.reason, broken === null || r.need === null ? r.need : { ...r.need, also: broken });
   }
   if (question) {
-    return out("Waiting", "question", { ...plain, kind: "question", text: "An agent asked a question: answer it in its thread", verb: "asked", age: null, since: null });
+    return out("Waiting", "question", { ...plain, kind: "question", text: "An agent asked a question: answer it in its thread", verb: "asked", age: null, since: null, ...(broken === null ? {} : { also: broken }) });
   }
   if (stored === "Done" && pr !== null) {
     return out("In Review", null, { ...plain, kind: "review", text: `Merge PR #${pr.number}`, verb: "asked", age: null, since: null, pr: pr.number });
@@ -406,7 +442,10 @@ export function derive(status: Status, labels: readonly string[], key: string, g
     return out("Waiting", "checks failed", { ...plain, kind: "checks failed", text: `Checks failed${names.length > 0 ? `: ${names.join(", ")}` : ""}; fix or retry`, verb: "for", age: age(failed, sig.now), since: failed });
   }
   if (stalled !== null) {
-    return out("Waiting", "stalled", { ...plain, kind: "stalled", text: "Stalled: nobody is working and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled });
+    return out("Waiting", "stalled", { ...plain, kind: "stalled", text: sig.nudged?.(key) === true ? AFTER_NUDGE : "Stalled: nobody is working and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled });
+  }
+  if (broken !== null) {
+    return out("Waiting", "stalled", broken);
   }
   if (paused !== null && pausedStall !== null) {
     return out("Waiting", "stalled", { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(pausedStall, sig.now), since: pausedStall });
@@ -597,9 +636,10 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const quiet = strands.every((s) => s.lane === "To Do" || s.lane === "Done");
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const asked = (asked0 !== undefined && pr?.state !== "merged") || pmNeed !== null;
-  const holds = finalPr || asked || pr?.state === "merged" || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
+  const holds = finalPr || asked || waits(braid.number, sig).length > 0 || pr?.state === "merged" || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
   const paused = sig.pauses?.get(braid.number) ?? null;
-  const stalled = sig.alarm(`${braid.number} coordinator`, "stalled", paused === null ? holds : false);
+  const stalled = sig.alarm(`${braid.number} coordinator`, "stalled", paused === null ? holds : false, nudgeOf(braid.number, braid.number, t3, sig));
+  const broken = waitStall(braid.number, sig, t3);
   const pausedStall = paused !== null && holds === true && phaseOf(paused, sig.now) === "over" ? stalledSince(paused) : null;
   let own: { lane: Lane; reason: Reason | null; need: Need | null; agents?: readonly T3Thread[]; activity?: Activity | null } | null = null;
   if (finalPr) {
@@ -610,9 +650,13 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     own = requestLane(req, sig.now, routed, t3);
   }
   if (stalled !== null) {
-    own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: "Stalled: the coordinator stopped and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled } };
+    own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: sig.nudged?.(`${braid.number} coordinator`) === true ? AFTER_NUDGE : "Stalled: the coordinator stopped and nothing was asked", verb: "for", age: age(stalled, sig.now), since: stalled } };
   } else if (paused !== null && pausedStall !== null) {
     own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(pausedStall, sig.now), since: pausedStall } };
+  } else if (broken !== null && own === null) {
+    own = { lane: "Waiting", reason: "stalled", need: broken };
+  } else if (broken !== null && own?.need != null && own.need.kind !== "stalled") {
+    own = { ...own, need: { ...own.need, also: broken } };
   }
   const limit = paused === null || own?.lane === "Waiting" ? null : limitNeed(paused, sig.now);
   if (limit !== null) {
@@ -656,6 +700,27 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     programme: null,
     waits: waitsOf(braid.number, sig, t3),
   };
+}
+
+/** The open waits of braid `number` and its strands on another braid. */
+const waits = (number: string, sig: Signals): Request[] => (sig.waits ?? []).filter((r) => braidOfId(r.id) === number);
+
+/**
+ * What a broken wait of braid `number` reads as: the stall, with its reason. Past its estimate at once; a gone addressee
+ * (no coordinator thread, and no PM to remind instead) after ten minutes, on the alarm clock as `<number> wait`. Nothing
+ * while the braid, or the braid it waits on, is held or paused.
+ */
+function waitStall(number: string, sig: Signals, t3: T3): Need | null {
+  const live = sig.pauses?.has(number) === true ? [] : waits(number, sig).filter((r) => sig.pauses?.has(r.to ?? "") !== true);
+  const gone = live.find((r) => addresseeOf(r, t3, sig.plans)?.to === "gone");
+  const since = sig.alarm(`${number} wait`, "stalled", live.length === 0 ? false : t3.status.state !== "ok" ? null : gone !== undefined);
+  for (const r of live) {
+    const missed = missedEta(r, sig.now);
+    if (missed !== null) {
+      return { ...plain, kind: "stalled", text: `Stalled: waiting on braid ${r.to ?? ""} past its estimate ${clock(missed, sig.now)}`, verb: "for", age: age(missed, sig.now), since: missed };
+    }
+  }
+  return since === null || gone === undefined ? null : { ...plain, kind: "stalled", text: `Stalled: waiting on braid ${gone.to ?? ""}, whose coordinator is gone`, verb: "for", age: age(since, sig.now), since };
 }
 
 /** The open requests of a braid and its strands that wait on another braid. */

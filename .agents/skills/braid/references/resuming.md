@@ -11,6 +11,7 @@ Read `BRAID.md`, then:
 - A closed, unmerged PR of a story whose braid now has strands: it grew; continue as phases.
 - A strand whose folder is gone was dropped.
 - Otherwise read the item's log on its branch, then relaunch or `braid ask`.
+- The braid's open waits (`braid requests`) wake the old thread: ask each again with your `--thread`.
 - The preset: `braid autonomy <number>` (the skill, "Autonomy").
 - A paused braid (a `Paused:` line in `braid status`): the board resumes a limit pause itself ([provider limits](limits.md)). Otherwise it is a hold or a hand pause: the user says go.
 

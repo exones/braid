@@ -21,12 +21,12 @@ const { startCommand } = (await load("../dist/commands/start.js")) as { startCom
 const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
 const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
-const { loadRequests, loadRecord, legacyFile, openRequest, liveRequests, filterLive, age } = (await load("../dist/braids/requests.js")) as {
+const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
   loadRecord: (root: string) => { requests: { code: string; id: string; state: string; events: { event: string; at: string; by: string; text?: string }[] }[] };
   legacyFile: (root: string) => string;
   openRequest: (root: string, request: object) => { code: string };
-  liveRequests: (root: string, prOf: (n: number) => { state: string; headRefOid: string } | null) => { id: string }[];
+  holding: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => Map<string, { state: string }>;
   filterLive: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => object[];
   age: (at: string, now: Date) => string;
 };
@@ -185,12 +185,12 @@ test("a review request is void after a merge, a close or a moved head", async ()
     await handoverCommand(w.root, ["0001/A", "--head", w.first], { gh: w.gh, now: w.clock });
     assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^q-[a-z0-9]{4}  0001\/A  review  0m  review PR #5/);
     change(w.pr);
-    assert.equal(await requestsCommand(w.root, [], { gh: w.gh, now: w.clock }), "no open requests\n");
-    assert.deepEqual(loadRequests(w.root), [], "the void request is no longer open");
-    const [r] = loadRecord(w.root).requests;
-    const ended = [r?.state, r?.events.at(-1)?.text, r?.events.at(-1)?.by];
-    const want = w.pr.state === "MERGED" ? ["met", "PR #5 merged"] : w.pr.state === "CLOSED" ? ["withdrawn", "PR #5 closed"] : ["withdrawn", "PR #5 head moved to fffffff"];
-    assert.deepEqual(ended, [...want, "board"], "recorded, not dropped");
+    // A read closes nothing: the request stays open, marked, for the board's tick to record.
+    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^q-[a-z0-9]{4} {2}0001\/A {2}review {2}0m {2}condition holds: the board (wakes the asker|withdraws it) {2}review PR #5/);
+    assert.equal(loadRequests(w.root).length, 1, "still open");
+    assert.equal(loadRecord(w.root).requests[0]?.events.length, 1, "no ending recorded");
+    const ends = holding(loadRequests(w.root), () => ({ state: w.pr.state, headRefOid: w.pr.head }));
+    assert.deepEqual([...ends.values()].map((e) => e.state), [w.pr.state === "MERGED" ? "met" : "withdrawn"]);
   }
 });
 
@@ -203,7 +203,9 @@ test("a review request stays when GitHub can't be read; a question never self-cl
   const out = (await requestsCommand(w.root, [], { gh: down, now: w.clock })) as string;
   assert.match(out, /0001\/A  review/);
   assert.match(out, /0001  decision/);
-  assert.match(((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string).trim(), /^q-[a-z0-9]{4}  0001  decision  0m  Decide\?$/);
+  const lines = ((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string).trim().split("\n");
+  assert.match(lines.find((l) => l.includes(" 0001  decision")) ?? "", /^q-[a-z0-9]{4} {2}0001 {2}decision {2}0m {2}Decide\?$/, "a question never self-closes on a PR");
+  assert.match(lines.find((l) => l.includes("0001/A")) ?? "", /review .*condition holds/, "the merged review stays open for the board");
 });
 
 test("braid start closes the request of the item it starts, and only that one", async () => {
@@ -247,23 +249,14 @@ test("age is minutes, hours or days", () => {
 
 const req = (id: string, extra: object = {}) => ({ id, kind: "question", text: id, at: "2026-11-15T12:00:00Z", thread: null, ...extra });
 
-test("a write from another worktree during liveRequests' GitHub call is not lost", () => {
+test("holding writes nothing: a void request stays open on the record", () => {
   const w = world();
   const head = "a".repeat(40);
   openRequest(w.root, req("0001/A", { kind: "review", pr: 5, head }));
-  const live = liveRequests(w.root, () => {
-    openRequest(w.other, req("0001", { text: "new during the call" })); // another writer, in between
-    return { state: "MERGED", headRefOid: head };
-  });
-  assert.deepEqual(live.map((r) => r.id), ["0001"]);
-  assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0001"], "the void request went, the new one stayed");
-  // A replacement opened for the same item during the call survives too.
-  openRequest(w.root, req("0001/A", { kind: "review", pr: 5, head }));
-  liveRequests(w.root, () => {
-    openRequest(w.other, req("0001/A", { kind: "review", pr: 5, head, at: "2026-11-15T13:00:00Z" }));
-    return { state: "MERGED", headRefOid: head };
-  });
-  assert.deepEqual(loadRequests(w.root).map((r) => r.id).sort(), ["0001", "0001/A"]);
+  const open = loadRequests(w.root);
+  const ends = holding(open as never, () => ({ state: "MERGED", headRefOid: head }));
+  assert.deepEqual([...ends.values()].map((e) => e.state), ["met"]);
+  assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0001/A"], "still open");
 });
 
 test("overlapping writers in separate processes lose no update", async () => {
