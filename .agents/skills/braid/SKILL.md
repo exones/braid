@@ -118,7 +118,7 @@ A worker that finds more work stops and sends you one proposal: **absorb** it (s
 
 When the worker reports green:
 
-1. **Review** by tier (workflow, "Tiers").
+1. **Review** by tier (workflow, "Tiers"), none for S and M items the review bots reviewed under `reviewer-with-bots: L-only` (`BRAID.md`).
    - S: read the diff yourself.
    - M and L: check the reviewer's provider ([provider limits](references/limits.md), "Check before launch"), then launch an independent reviewer as a subagent: `delegate_task` with `role: review`, `isolation: worktree`, `mode: async`, the reviewer model from `BRAID.md` as `target` (`providerInstanceId`, `model`, `options`), `title` the output of `braid title <id> --role review` and the first message below as `task` (add the `SKILL.md` path if needed). T3 makes its checkout. A model or provider T3 can't run as a child: tell the user; never substitute another.
    - Right after it, run `braid review <id> --thread <child thread id>`: it records the thread with the checkout T3 gives for it, so the board shows the review and `braid clean` removes that checkout after the merge. Then call `link_pull_request` with the PR URL and `threadId` set to the child thread.

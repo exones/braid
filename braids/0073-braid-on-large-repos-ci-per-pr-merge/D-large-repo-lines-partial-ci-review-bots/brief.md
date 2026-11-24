@@ -1,7 +1,7 @@
 ---
 id: '0073/D'
 title: "Large-repo lines: partial CI, review bots, path stops, caches, and the docs"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0073/B', '0073/C']
 order: 40
@@ -49,12 +49,22 @@ Expected size: about 40 lines of skill and template text changed (net zero or fe
 - `braid doctor` (P18), a `cleanup:` field, a disk-space check, `gate:` as a list, path rules in `ci`.
 - This repository's own BRAID.md and AGENTS.md (the user's).
 
+## Plan
+
+1. `braid facts`: `mergeGateLine` in `src/commands/facts.ts` (scope: base is `main` → `main`, else `strand`), a test in `test/facts.test.ts`.
+2. Template `braid-md.md`: front matter gains `review-bots`, `reviewer-with-bots` and a `setup` cache example; body lines for partial CI, review bots, caches, path stops; the `ci` and `merge-gate` lines shortened (the full behaviour is in `docs/braids-format.md`) so the file does not grow.
+3. Skills: braid-worker (partial-CI gate evidence in the report; a review-bots round after green), braid-reviewer (read the bots' threads and replies), braid SKILL.md "Accept and hand over" step 1 and autonomy.md condition 3 (one sentence each, `L-only`); cut words elsewhere in each file; `wc -w` before and after.
+4. Docs: a "braid on a large repo" section in `docs/getting-started.md`; braids-format (the new keys), cli (facts line), autonomy, README, roadmap, decisions; each doc from `docs` listed in report.md.
+5. Gate, report, PR into the braid branch.
+
+Baseline `wc -w`: braid-md.md 837, braid-worker SKILL.md 1773, braid-reviewer SKILL.md 709, braid SKILL.md 6365, braid references/autonomy.md 798 (braid skill folder 12801).
+
 ## Completion
 
-- [ ] The template shows, each with an example: partial CI on braid branches, `review-bots` and `reviewer-with-bots`, caches in `setup`, `merge-gate` and `merge-gate-on` (an Everix-style example with `[main]`), `ci: all`
-- [ ] The braid-worker skill covers the bots' comments (triage, one push, reply, resolve as decided) and the gate evidence for partial CI; the braid-reviewer skill reads the bots' comments and replies; `reviewer-with-bots: L-only` is honoured where the review is picked
-- [ ] `braid facts` names the merge gate and whether it runs on this PR's merge, with a test
-- [ ] `wc -w` of each touched skill is not higher than before (numbers in report.md)
-- [ ] The docs from BRAID.md `docs` are true for everything 0073 changed; report.md lists each as updated or unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The template shows, each with an example: partial CI on braid branches, `review-bots` and `reviewer-with-bots`, caches in `setup`, `merge-gate` and `merge-gate-on` (an Everix-style example with `[main]`), `ci: all`
+- [x] The braid-worker skill covers the bots' comments (triage, one push, reply, resolve as decided) and the gate evidence for partial CI; the braid-reviewer skill reads the bots' comments and replies; `reviewer-with-bots: L-only` is honoured where the review is picked
+- [x] `braid facts` names the merge gate and whether it runs on this PR's merge, with a test
+- [x] `wc -w` of each touched skill is not higher than before (numbers in report.md)
+- [x] The docs from BRAID.md `docs` are true for everything 0073 changed; report.md lists each as updated or unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

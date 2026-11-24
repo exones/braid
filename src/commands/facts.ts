@@ -8,6 +8,8 @@ import { LOG_FILE } from "../braids/store.js";
 import { UsageError } from "./braids.js";
 import { ciAll, ciChecks } from "./coordinate.js";
 import { checksProblem, git, must, view, type PrView } from "./done.js";
+import { readMergeGate } from "./mergegate.js";
+import { mainBranch } from "./start.js";
 
 const REMOTE = "origin";
 
@@ -90,6 +92,21 @@ function factLines(facts: readonly Fact[]): string[] {
   return facts.length === 0 ? ["no stop-case facts: no dependency, process or size change"] : facts.map((f) => `${f.key}: ${f.text}`);
 }
 
+/** The line naming BRAID.md's merge gate and whether `braid accept --merge` runs it on this PR's merge; null without a gate. */
+export function mergeGateLine(root: string, base: string): string | null {
+  let gate;
+  try {
+    gate = readMergeGate(root);
+  } catch (e) {
+    return `merge gate: ${(e as Error).message}`;
+  }
+  if (gate === null) {
+    return null;
+  }
+  const scope = base === mainBranch(root) ? "main" : "strand";
+  return `merge gate: ${gate.command} (${gate.on.includes(scope) ? "runs on this merge" : `not on this merge: merge-gate-on is [${gate.on.join(", ")}]`})`;
+}
+
 export async function factsCommand(root: string, args: readonly string[], opts: { gh?: GhRunner } = {}): Promise<string> {
   const m = args.length === 1 ? /^#?(\d+)$/.exec(args[0] ?? "") : null;
   if (m === null) {
@@ -97,7 +114,8 @@ export async function factsCommand(root: string, args: readonly string[], opts: 
   }
   const { pr, item, facts } = gather(root, opts.gh ?? runGh, Number(m[1]));
   const head = `PR #${pr.number}: ${pr.baseRefName} <- ${pr.headRefName} at ${pr.headRefOid}${item === null ? " (no braid item found for this branch: no size check)" : ""}`;
-  return `${[head, ...factLines(facts)].join("\n")}\n`;
+  const gate = mergeGateLine(root, pr.baseRefName);
+  return `${[head, ...factLines(facts), ...(gate === null ? [] : [gate])].join("\n")}\n`;
 }
 
 /** The `Decided:` entries of the logs at `head` and the requests the user or the PM answered (from the record): the item's own, and for a braid's final PR (`whole`) those of its strands too, oldest first. */
