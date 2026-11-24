@@ -1,0 +1,19 @@
+{
+  "code": "q-l0qo",
+  "item": "0075/C",
+  "kind": "decision",
+  "text": "Launch the 0075/C review on cursor / grok-4.6 although braid limits says pause (Other Models 100%); the user says grok is not on that limit",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T17:31:16.180Z",
+      "by": "coordinator"
+    }
+  ]
+}
