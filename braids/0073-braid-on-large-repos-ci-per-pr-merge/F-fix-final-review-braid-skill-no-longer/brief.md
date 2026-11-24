@@ -1,7 +1,7 @@
 ---
 id: '0073/F'
 title: "Fix: final review, braid skill no longer than on main"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 60
