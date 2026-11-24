@@ -54,7 +54,7 @@ export interface T3 {
   readonly idleCoordinators?: ReadonlyMap<string, T3Coordinator>;
   /** Running threads on a branch `coordinator/idea-<idea id>` (or its `-2`, `-3`), by branch: coordinators planning an idea. */
   readonly ideaThreads?: ReadonlyMap<string, T3Coordinator>;
-  /** The status of every thread `thread list` named, by id exactly as T3 gives it (ids are case-sensitive; `archived` for an archived one). A thread absent from it is unknown to T3. */
+  /** The status of every thread `thread list` named, by id exactly as T3 gives it (ids are case-sensitive; `archived` for an archived one, `running` for one that works in the background: `working`). A thread absent from it is unknown to T3. */
   readonly states?: ReadonlyMap<string, string>;
   /** The T3 link of every thread `thread list` named, by id: where a request addressed by a thread id (the PM's) opens. */
   readonly links?: ReadonlyMap<string, string>;
@@ -166,7 +166,7 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
     const t = obj(top?.["thread"]) ?? top ?? {};
     const pending = t["pendingRequestCount"];
     return {
-      status: archived(t) ? "archived" : str(t["status"]),
+      status: statusOf(t),
       worktreePath: str(t["worktreePath"]),
       branch: str(t["branch"]),
       pending: typeof pending === "number" ? pending : 0,
@@ -222,6 +222,21 @@ export function readT3(root: string, options: T3Options = {}): Promise<T3> {
   return t3;
 }
 
+/**
+ * Whether a thread works: T3 says `running`, or it has background work pending (a background command or a subagent:
+ * `pendingBackgroundTasks`), or it is blocked on a thread wait (`blockedOnThreadWait`). T3 shows such a thread `completed` or
+ * `waiting` between turns, yet it is working (0075/G). The one rule for "running" wherever the board decides it.
+ */
+export function working(t: Json): boolean {
+  const tasks = t["pendingBackgroundTasks"];
+  return str(t["status"])?.toLowerCase() === "running" || (Array.isArray(tasks) && tasks.length > 0) || t["blockedOnThreadWait"] === true;
+}
+
+/** A thread's status as the board reads it: `archived` for an archived one, `running` for one that works (`working`), else T3's status. */
+function statusOf(t: Json): string | null {
+  return archived(t) ? "archived" : working(t) ? "running" : str(t["status"]);
+}
+
 /** A thread T3 marks archived (`archived: true`, an `archivedAt` time, or the status `archived`): it gets no button. */
 function archived(t: Json): boolean {
   return t["archived"] === true || (t["archivedAt"] !== undefined && t["archivedAt"] !== null) || t["status"] === "archived";
@@ -255,7 +270,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
       if (link !== null) {
         links.set(id, link);
       }
-      states.set(id, archived(t) ? "archived" : (str(t["status"]) ?? "unknown").toLowerCase());
+      states.set(id, (statusOf(t) ?? "unknown").toLowerCase());
       const provider = str(t["providerInstanceId"]);
       if (provider !== null) {
         providers.set(id, provider);
@@ -264,9 +279,9 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   }
   const wanted = named
     .filter((t) => !archived(t))
-    .map((t) => ({ t, id: str(t["threadId"]) ?? str(t["id"]), status: str(t["status"]) }))
-    .filter((x): x is { t: Json; id: string; status: string } => x.id !== null)
-    .map((x) => ({ ...x, running: x.status === "running" }));
+    .map((t) => ({ t, id: str(t["threadId"]) ?? str(t["id"]) }))
+    .filter((x): x is { t: Json; id: string } => x.id !== null)
+    .map((x) => ({ ...x, running: working(x.t) }));
 
   const mine = (typeof agents === "string" ? [agents] : agents).map(norm);
   // Only a worker's worktree directly inside the braid worktree folder, named for an item, is an agent's; a leftover `-review` checkout is no one's.
