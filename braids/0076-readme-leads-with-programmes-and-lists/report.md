@@ -10,7 +10,7 @@ The user, 2026-11-24: programmes should lead the README, with every feature list
 
 ## Validation
 
-Every claim checked against `docs/board.md` (requests, wakes, reminders, nudges, provider limits, programmes, inbox, Open thread, Tailscale, run at login), `docs/getting-started.md`, `docs/autonomy.md`, `docs/cli.md` and `braid-pm` SKILL.md; every anchor exists. Gate: `npm run verify`.
+Every claim checked against `docs/board.md` (requests, wakes, reminders, nudges, provider limits, programmes, inbox, Open thread, Tailscale, run at login), `docs/getting-started.md`, `docs/autonomy.md`, `docs/cli.md` and `braid-pm` SKILL.md; every anchor exists. Gate: `npm run verify` passes when run alone (the first run, overlapped with a second, failed `test/requests.test.ts` under load).
 
 ## 0075
 

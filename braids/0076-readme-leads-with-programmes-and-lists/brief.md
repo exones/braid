@@ -47,13 +47,13 @@ Expected size: about 120 changed lines in README.md; the README stays near its c
 
 ## Completion
 
-- [ ] README.md opens (after the tagline and board picture) with programmes: what one is, a short concrete example, and how to start one
-- [ ] One feature list follows, one line per feature, each linking to its doc; it covers every feature named under Change
-- [ ] Every claim and link in README.md checked against `docs/` and the code on `main` at the PR's head, including 0075's changes once merged; report.md lists any doc found wrong as a leftover
-- [ ] README.md is at most about 170 lines and keeps the walk-through, parts, quick start, CLI and docs index
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] README.md opens (after the tagline and board picture) with programmes: what one is, a short concrete example, and how to start one
+- [x] One feature list follows, one line per feature, each linking to its doc; it covers every feature named under Change
+- [x] Every claim and link in README.md checked against `docs/` and the code on `main` at the PR's head, including 0075's changes once merged; report.md lists any doc found wrong as a leftover
+- [x] README.md is at most about 170 lines and keeps the walk-through, parts, quick start, CLI and docs index
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Autonomy
 
