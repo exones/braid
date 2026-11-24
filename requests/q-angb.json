@@ -1,0 +1,18 @@
+{
+  "code": "q-angb",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "action",
+  "text": "Have a look: 0071 is installed (board restarted). Waits now wake their coordinator, reminders are hourly, idle threads get one nudge before Stalled. Say ok or what is off, in the PM thread.",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T07:42:40.941Z",
+      "by": "pm"
+    }
+  ]
+}
