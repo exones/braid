@@ -1,0 +1,19 @@
+{
+  "code": "q-pzb7",
+  "item": "0075",
+  "kind": "decision",
+  "text": "Reviewer provider cursor is over its limit until 2026-12-03: wait, or switch models.reviewer in BRAID.md (user's edit)",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T16:35:20.789Z",
+      "by": "coordinator"
+    }
+  ]
+}
