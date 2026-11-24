@@ -1,7 +1,7 @@
 ---
 id: '0075/B'
 title: "Lifecycle events on the record branch, Done from the merged PR"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ask:architecture", "ask:data"]
 dependencies: []
 order: 20
