@@ -13,6 +13,12 @@
       "event": "opened",
       "at": "2026-11-24T16:35:25.688Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-24T17:29:16.704Z",
+      "by": "user",
+      "text": "The user: it's not out, Grok now makes part of \"cursor models\" so it's not on the limit."
     }
   ]
 }
