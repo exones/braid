@@ -1,4 +1,4 @@
-braid 0073 makes braid work on a large repository whose merge into main deploys. The user asked for it as P20 of pm/autonomous-dev-machine, after the Everix field report. Seven strands were merged into the braid branch, each reviewed by an independent braid-reviewer and green on Windows and Ubuntu CI.
+braid 0073 makes braid work on a large repository whose merge into main deploys. The user asked for it as P20 of pm/autonomous-dev-machine, after the Everix field report. Eight strands were merged into the braid branch, each reviewed by an independent braid-reviewer and green on Windows and Ubuntu CI.
 
 - 0073/A, fewer CI runs per strand (PR #277):
   - Push CI now runs only on `main`.
@@ -15,9 +15,10 @@ braid 0073 makes braid work on a large repository whose merge into main deploys.
   - BRAID.md template keys `review-bots` and `reviewer-with-bots: always | L-only`, plus lines with examples for partial CI on braid branches, the merge gate, caches and path stops.
   - The worker reads the named bots' threads once at green CI, then fixes, answers or marks a nit, pushes once, replies and resolves. It has no separate wait.
   - The braid reviewer reads the bots' threads.
-  - Docs: "braid on a large repo" in getting-started, and D100–D102.
+  - Docs: "braid on a large repo" in getting-started, and D102–D104.
 - 0073/F, fix strand from the final review (PR #289): the BRAID.md template keeps every 0073 key with an example; its explanations moved to docs/getting-started.md, so the braid skill folder is no longer than on main. Docs name `braid wait`, `braid accept`, `braid handover` and `braid recap` for `ci: all`; the start grace is `braid wait`'s only.
 - 0073/G, fix strand from the PM's live check (PR #292): `braid clean` counts a braid Done when its brief says Done on the local branch, `origin/<branch>`, `main` or `origin/main`, because `braid accept` pushes its Done stamp only to origin; Done and merged stories and braids are removed again, a live braid is still kept. A merge-gate limit under a minute reads in seconds.
+- 0073/H, main merged after 0071 (PR #293): both braids' text kept in four docs; 0073's decisions renumbered to D102 (merge gate), D103 (`ci: all`) and D104 (review bots), since 0071 reached main first with D100 and D101.
 - 0073/E, the user's board additions (PR #286): a request code chip copies its code on click, also over plain http and on a phone. Project tag colours use no warm hues.
 
 Validation:
