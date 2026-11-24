@@ -12,7 +12,7 @@ import { normPath as norm, reviewFolder } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
 import { dropReviews, loadReviews } from "../braids/reviews.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
-import { repoName } from "./start.js";
+import { mainBranch, repoName } from "./start.js";
 
 interface Worktree {
   readonly path: string;
@@ -178,14 +178,25 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
   }
 }
 
-/** Why the braid on this branch isn't Done (its status on the branch, or that it can't be read), or null when it is Done there. */
+/**
+ * Why the braid on this branch isn't Done (its status, or that no brief can be read), or null when it is Done.
+ * `braid accept` stamps Done in a temporary worktree and pushes it only to origin/<branch>, so the local branch can lag: Done on any of the local branch, origin/<branch>, main or origin/<main> counts.
+ */
 function notDone(root: string, branch: string, folder: string): string | null {
-  const shown = git(root, ["show", `${branch}:${folder}/brief.md`]);
-  if (shown.status !== 0) {
-    return `its brief can't be read on ${branch}`;
+  const main = mainBranch(root);
+  const seen: string[] = [];
+  for (const ref of [branch, `origin/${branch}`, main, `origin/${main}`]) {
+    const shown = git(root, ["show", `${ref}:${folder}/brief.md`]);
+    if (shown.status !== 0) {
+      continue;
+    }
+    const status = /^status:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(shown.stdout)?.[1] ?? "";
+    if (status === "Done") {
+      return null;
+    }
+    seen.push(status === "" ? "no status" : status);
   }
-  const status = /^status:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(shown.stdout)?.[1] ?? "";
-  return status === "Done" ? null : `its braid is not Done on ${branch} (${status === "" ? "no status" : status})`;
+  return seen.length === 0 ? `its brief can't be read on ${branch}` : `its braid is not Done on ${branch} (${seen[0]})`;
 }
 
 export async function cleanCommand(root: string, args: readonly string[], src: Sources = {}, env: NodeJS.ProcessEnv = process.env): Promise<string> {

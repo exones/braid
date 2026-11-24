@@ -51,7 +51,7 @@ test("a gate that outlives its time limit refuses the merge and says to run brai
   git(w.root, "commit", "-q", "-am", "slow gate");
   git(w.root, "push", "-q", "origin", "HEAD:refs/heads/braid/0001-alpha");
   const head = w.headOf("braid/0001/A-first");
-  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--merge"], { ...w.opts, gateMs: 400 }), /the merge gate didn't finish in 0 minutes \(it was stopped\); run braid accept again/);
+  await assert.rejects(acceptCommand(w.root, ["0001/A", "--head", head, "--merge"], { ...w.opts, gateMs: 400 }), /the merge gate didn't finish in 1 second \(it was stopped\); run braid accept again/);
   assert.equal(w.merges.length, 0);
 });
 

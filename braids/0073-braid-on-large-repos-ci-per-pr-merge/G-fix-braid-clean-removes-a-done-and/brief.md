@@ -1,7 +1,7 @@
 ---
 id: '0073/G'
 title: "Fix: braid clean removes a Done and merged braid again"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 70
@@ -40,8 +40,8 @@ Expected size: about 30 lines of code and tests in 2 files.
 
 ## Completion
 
-- [ ] `braid clean` removes a Done and merged story's or braid's branch when Done is only on `origin/<branch>` or on main, and still keeps a live braid's branch; tests cover the accept-then-clean flow
-- [ ] A merge-gate limit under a minute is reported in seconds, with a test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid clean` removes a Done and merged story's or braid's branch when Done is only on `origin/<branch>` or on main, and still keeps a live braid's branch; tests cover the accept-then-clean flow
+- [x] A merge-gate limit under a minute is reported in seconds, with a test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

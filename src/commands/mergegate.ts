@@ -89,6 +89,16 @@ function execGate(command: string, cwd: string, limitMs: number): Promise<GateRe
   });
 }
 
+/** A time limit in words: seconds under a minute, else whole minutes. */
+function limitText(ms: number): string {
+  if (ms < 60_000) {
+    const s = Math.max(1, Math.round(ms / 1000));
+    return `${s} second${s === 1 ? "" : "s"}`;
+  }
+  const min = Math.round(ms / 60_000);
+  return `${min} minute${min === 1 ? "" : "s"}`;
+}
+
 /** Runs the gate for a merge of PR `pr` at `sha` (the reviewed head), when it names this kind of merge; refuses (throws) unless it exits 0. */
 export async function runMergeGate(root: string, scope: GateScope, pr: number, sha: string, limitMs: number = GATE_MS): Promise<void> {
   const gate = readMergeGate(root);
@@ -103,7 +113,7 @@ export async function runMergeGate(root: string, scope: GateScope, pr: number, s
   const tail = r.output.trimEnd().split(/\r?\n/).slice(-40).join("\n");
   const shown = `gate: ${command}${tail === "" ? "" : `\n${tail}`}`;
   if (r.timedOut) {
-    throw new UsageError(`PR #${pr} not merged: the merge gate didn't finish in ${Math.round(limitMs / 60_000)} minutes (it was stopped); run braid accept again\n${shown}`);
+    throw new UsageError(`PR #${pr} not merged: the merge gate didn't finish in ${limitText(limitMs)} (it was stopped); run braid accept again\n${shown}`);
   }
   const how = r.error !== null ? `could not run (${r.error.message})` : `exit code ${r.status ?? `signal ${r.signal ?? "?"}`}`;
   throw new UsageError(`PR #${pr} not merged: the merge gate failed (${how}); nothing merged\n${shown}`);
