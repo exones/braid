@@ -8,7 +8,7 @@ braid 0073 makes braid work on a large repository whose merge into main deploys.
 - 0073/B, merge gate (PR #280): `merge-gate: <command>` and `merge-gate-on: [strand, main]`.
   - `braid accept --merge` runs the command with `<pr>` and the reviewed head before the Done stamp and before every merge, under every preset.
   - Exit 0 merges. Anything else, or the 9-minute timeout, refuses and changes nothing, and the timeout kills the command's whole process tree.
-- 0073/C, `ci: all` (PR #283): every check reported on the commit must pass, after a 2-minute grace for checks that appear late, in wait, accept, handover, recap and facts. `[]` and `none` are unchanged.
+- 0073/C, `ci: all` (PR #283): every check reported on the commit must pass, in `braid wait`, `braid accept`, `braid handover` and `braid recap`; `braid wait` also gives late checks a 2-minute grace. `[]` and `none` are unchanged.
   - Also: `braid clean` keeps a braid's own branch until that braid is Done on it. This was leftover 2026-11-23-puxp: after the early PR, `braid clean` read the live braid branch as merged.
 - 0073/D, large-repo lines and the docs (PR #284):
   - `braid facts` names the merge gate (leftover 2026-11-23-avsv).
