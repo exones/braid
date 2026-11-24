@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-24T16:49:12.935Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-24T16:50:20.804Z",
+      "by": "pm",
+      "text": "checked: the PR's parsing gives a t3code:// link for all 407 real T3 links (0 null), 684 tests, CI green · merge PR #299 at 46f5b13"
     }
   ]
 }
