@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-24T01:00:43.569Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-24T01:01:20.351Z",
+      "by": "pm",
+      "text": "A",
+      "reason": "a wording slip: the box names the command C built and D101 records, so its meaning doesn't change, instead of asking the user"
     }
   ]
 }
