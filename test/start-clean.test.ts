@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { cleanCommand, git, gone, listed, repo, resetGithubMemory, src, startCommand } from "./support/start-fixtures.ts";
@@ -239,4 +239,52 @@ test("clean keeps a braid branch whose braid is not Done, even after a merged PR
   assert.match(out, /skip 0001: .*branch braid\/0001-alpha \(PR #279 merged\): its braid is not Done on braid\/0001-alpha \(In Progress\); the braid goes on/);
   assert.equal(gone(root, "braid/0001-alpha"), false);
   assert.match(out, /removed 0001\/A:/);
+});
+
+/** Stamps Done on the brief at `folder` in the checkout at `cwd` and commits it. */
+function stampDone(cwd: string, folder: string): void {
+  const file = join(cwd, folder, "brief.md");
+  writeFileSync(file, readFileSync(file, "utf8").replace(/^status: .*$/m, "status: Done"));
+  git(cwd, "commit", "-q", "-am", "done");
+}
+
+test("clean removes a braid's branch when Done is only on origin/<branch>, as braid accept leaves it", async () => {
+  const { root, env, prs } = await started();
+  // braid accept stamps Done on origin/<branch> only; the local branch stays one commit behind.
+  git(root, "checkout", "-q", "braid/0001-alpha");
+  const behind = git(root, "rev-parse", "HEAD");
+  stampDone(root, "braids/0001-alpha");
+  git(root, "push", "-q", "origin", "braid/0001-alpha");
+  git(root, "reset", "-q", "--hard", behind);
+  git(root, "checkout", "-q", "main");
+  git(root, "worktree", "prune");
+  const out = await cleanCommand(root, ["--yes"], src([...prs, merged(279, "braid/0001-alpha")]), env);
+  assert.doesNotMatch(out, /skip 0001:/);
+  assert.ok(gone(root, "braid/0001-alpha"));
+});
+
+test("clean removes a story's branch when Done is only on origin/<branch>", async () => {
+  const { root, env } = repo(false);
+  await startCommand(root, ["0002", "--force"], src(), env);
+  const branch = git(root, "branch", "--list", "braid/0002-*", "--format=%(refname:short)");
+  assert.ok(branch !== "");
+  const work = join(root, "..", "story-stamp");
+  git(root, "worktree", "add", "-q", "--detach", work, `origin/${branch}`);
+  stampDone(work, "braids/0002-story");
+  git(work, "push", "-q", "origin", `HEAD:refs/heads/${branch}`);
+  git(root, "worktree", "remove", "--force", work);
+  git(root, "fetch", "-q", "origin");
+  git(root, "merge", "-q", "--no-ff", "-m", "merge story", branch);
+  const out = await cleanCommand(root, ["--yes"], src([merged(8, branch)]), env);
+  assert.doesNotMatch(out, /skip 0002:/);
+  assert.ok(gone(root, branch));
+});
+
+test("clean removes a braid's branch when Done is only on main", async () => {
+  const { root, env, prs } = await started();
+  stampDone(root, "braids/0001-alpha");
+  git(root, "worktree", "prune");
+  const out = await cleanCommand(root, ["--yes"], src([...prs, merged(279, "braid/0001-alpha")]), env);
+  assert.doesNotMatch(out, /skip 0001:/);
+  assert.ok(gone(root, "braid/0001-alpha"));
 });
