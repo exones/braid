@@ -1,4 +1,4 @@
-braid 0073 makes braid work on a large repository whose merge into main deploys. The user asked for it as P20 of pm/autonomous-dev-machine, after the Everix field report. Six strands were merged into the braid branch, each reviewed by an independent braid-reviewer and green on Windows and Ubuntu CI.
+braid 0073 makes braid work on a large repository whose merge into main deploys. The user asked for it as P20 of pm/autonomous-dev-machine, after the Everix field report. Seven strands were merged into the braid branch, each reviewed by an independent braid-reviewer and green on Windows and Ubuntu CI.
 
 - 0073/A, fewer CI runs per strand (PR #277):
   - Push CI now runs only on `main`.
@@ -17,11 +17,12 @@ braid 0073 makes braid work on a large repository whose merge into main deploys.
   - The braid reviewer reads the bots' threads.
   - Docs: "braid on a large repo" in getting-started, and D100–D102.
 - 0073/F, fix strand from the final review (PR #289): the BRAID.md template keeps every 0073 key with an example; its explanations moved to docs/getting-started.md, so the braid skill folder is no longer than on main. Docs name `braid wait`, `braid accept`, `braid handover` and `braid recap` for `ci: all`; the start grace is `braid wait`'s only.
+- 0073/G, fix strand from the PM's live check (PR #292): `braid clean` counts a braid Done when its brief says Done on the local branch, `origin/<branch>`, `main` or `origin/main`, because `braid accept` pushes its Done stamp only to origin; Done and merged stories and braids are removed again, a live braid is still kept. A merge-gate limit under a minute reads in seconds.
 - 0073/E, the user's board additions (PR #286): a request code chip copies its code on click, also over plain http and on a phone. Project tag colours use no warm hues.
 
 Validation:
 - Every strand passed `npm run verify`.
-- Review rounds: A, B and D each had one blocking round, fixed and re-checked; C, E and F passed the first time. The final PR's first review was blocking (skill size against main, and `braid facts` named where `braid recap` is meant), which 0073/F fixed.
+- Review rounds: A, B and D each had one blocking round, fixed and re-checked; C, E and F passed the first time; G had one blocking round (docs). The PM's live check of the final PR at 93cb010 found the `braid clean` regression that 0073/G fixed. The final PR's first review was blocking (skill size against main, and `braid facts` named where `braid recap` is meant), which 0073/F fixed.
 - `braid wait 0073` was green before the final PR.
 
 Skill size against `main`, as `wc -w` summed over each skill folder (the user's rule counts each skill as a whole, confirmed by the PM): the braid skill 12561 to 12556, braid-worker 1774 to 1771, braid-reviewer 709 to 706. The first final review had found the braid skill 270 words longer than on main, because the BRAID.md template grew; 0073/F fixed that.
