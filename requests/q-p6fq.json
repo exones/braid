@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-24T04:50:20.670Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-24T04:51:01.455Z",
+      "by": "pm",
+      "text": "live check and re-check passed · merge PR #290 at 8864539"
     }
   ]
 }
