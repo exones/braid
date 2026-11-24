@@ -96,11 +96,11 @@ test("a braid: wait is woken once that braid is Done on origin's main, not befor
   assert.match(Cmd.requestsCommand(w.root, [], { gh: w.opts.gh, now: () => NOW }), /no open requests/);
 });
 
-test("`braid requests` records a braid: or time: ending through the same check when no board runs", () => {
+test("`braid requests` lists a due braid: or time: request as open and records nothing when no board runs", () => {
   const w = world();
   const code = codeOf(Cmd.askCommand(w.root, ["0001", "Later", "--done-when", "time:2026-11-23T11:00:00Z", "--thread", ASKER]));
-  assert.match(Cmd.requestsCommand(w.root, [], { gh: w.opts.gh, now: () => NOW }), /no open requests/);
-  assert.deepEqual([recordOf(w.root, code).state, recordOf(w.root, code).events.at(-1).by], ["met", "board"]);
+  assert.match(Cmd.requestsCommand(w.root, [], { gh: w.opts.gh, now: () => NOW }), /condition holds: the board wakes the asker/);
+  assert.equal(recordOf(w.root, code).state, "open");
 });
 
 test("a restarted board doesn't wake again: the met event is the memory", async () => {

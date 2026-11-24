@@ -120,7 +120,7 @@ test("a PR that merged or closed closes its waits for the board at once, as met 
   assert.deepEqual([...sig.requests.keys()], [], "neither is open for the board");
   const closed = view.requestsOf(() => true, sig, t3).closed;
   assert.deepEqual(closed.map((r: any) => [r.code, r.state, r.closed.by, r.closed.text]).sort(), [[gone, "withdrawn", "board", "PR #6 closed"], [wait, "met", "board", "PR #5 merged"]].sort());
-  // Nothing was written: the record still has both open until `braid requests` records them.
+  // Nothing was written: the record still has both open until the board's tick records them.
   assert.deepEqual(Rec.loadRequests(w.root).map((r: any) => r.code).sort(), [wait, gone].sort());
 });
 
@@ -130,12 +130,12 @@ test("filterLive keeps the right request and a pr: wait whose PR closed unmerged
   assert.deepEqual(kept.map((r: any) => r.id), ["b"], "the pr: wait goes, the plain question stays");
   assert.deepEqual(Rec.voidEnding({ kind: "question", doneWhen: "pr:5" }, closed()), { state: "withdrawn", who: "board", text: "PR #5 closed" });
   assert.deepEqual(Rec.voidEnding({ kind: "question", doneWhen: "pr:5" }, { state: "MERGED", headRefOid: "x" }), { state: "met", who: "board", text: "PR #5 merged" });
-  // Recorded by `braid requests` through liveRequests.
+  // Only the board's tick records it (test/board-wake.test.ts); `holding` reads and writes nothing.
   const w = world();
   const code = codeOf(Cmd.askCommand(w.root, ["0001", "Wait for PR 5", "--done-when", "pr:5"]));
-  Rec.liveRequests(w.root, () => closed());
-  const r = Rec.loadRecord(w.root).requests.find((x: any) => x.code === code);
-  assert.deepEqual([r.state, r.events.at(-1).by, r.events.at(-1).text], ["withdrawn", "board", "PR #5 closed"]);
+  const ends = Rec.holding(Rec.loadRequests(w.root), () => closed());
+  assert.deepEqual(ends.get(code), { state: "withdrawn", who: "board", text: "PR #5 closed" });
+  assert.equal(Rec.loadRequests(w.root).length, 1, "still open");
 });
 
 test("a withdrawn or met request takes its push off the phone, as an answered one does", async () => {

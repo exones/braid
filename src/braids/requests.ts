@@ -606,35 +606,18 @@ export function filterLive<T extends PrFields>(requests: readonly T[], check: Ch
 }
 
 /**
- * The open requests, with each one whose "done when" holds recorded as met (its PR merged, its braid Done
- * on main, its time reached) or withdrawn (its PR closed, or a review's head moved). GitHub and main are
- * read without the lock; the write then ends only the requests still open.
+ * The open requests whose "done when" holds now, with how each one will end (`conditionEnding`). A read: it writes
+ * nothing. Only the running board's tick records the ending, with its wake; `braid requests` shows these as still open.
  */
-export function liveRequests(root: string, check: Check): Request[] {
-  const seen = loadRequests(root);
+export function holding(requests: readonly Request[], check: Check): Map<string, Ending> {
   const ends = new Map<string, Ending>();
-  for (const r of seen) {
+  for (const r of requests) {
     const e = conditionEnding(r, check);
     if (e !== null) {
       ends.set(r.code, e);
     }
   }
-  if (ends.size === 0) {
-    return seen;
-  }
-  const at = new Date().toISOString();
-  writeRecord(root, (view) => {
-    const files = new Map<string, string>();
-    for (const r of viewAll(view).requests.filter((x) => x.state === "open")) {
-      const e = ends.get(r.code);
-      if (e !== undefined) {
-        files.set(pathOf(r.code), serialise(withEvent(r, endEvent(e, at))));
-      }
-    }
-    return { files, message: `docs(requests): ${files.size} ${files.size === 1 ? "request" : "requests"} ended by their condition` };
-  });
-  // Read again: another writer may have opened or closed one meanwhile.
-  return loadRequests(root);
+  return ends;
 }
 
 /**

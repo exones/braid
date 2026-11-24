@@ -1,7 +1,7 @@
 ---
 id: '0071/G'
 title: "Fix: reads never close a request; one eta wording; the missed estimate beside a question"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 70
@@ -44,10 +44,17 @@ Expected size: about 150 lines in 8 files.
 
 ## Completion
 
-- [ ] `braid requests` (and every other read) never records an ending; a request whose condition holds stays open until the board's tick wakes it; a test runs the list through the CLI and then a board tick, and sees one wake
-- [ ] A held braid's request whose condition holds stays open after a list; a test covers it
-- [ ] The eta event reads the same in the CLI history and the details panel
-- [ ] A card with an open question and a missed estimate or a gone addressee shows both lines; a test covers it
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid requests` (and every other read) never records an ending; a request whose condition holds stays open until the board's tick wakes it; a test runs the list through the CLI and then a board tick, and sees one wake
+- [x] A held braid's request whose condition holds stays open after a list; a test covers it
+- [x] The eta event reads the same in the CLI history and the details panel
+- [x] A card with an open question and a missed estimate or a gone addressee shows both lines; a test covers it
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `liveRequests` (the write on a read path) becomes `holding`: it only reports which open requests' conditions hold. `braid requests` lists them as open with "condition holds: the board wakes the asker". Its only caller was the list.
+- The CLI history names the coordinator by braid, as the details panel does.
+- A need gets an optional `also`: a broken wait under an open question; the card and details render it.
+- Docs and tests follow.
