@@ -20,7 +20,7 @@ Validation:
   - The try found the `braid eta` bug, fixed in 0071/F.
 
 Open:
-- The Completion box "The coordinator's try on a throwaway clone: a `braid:` wait reminded, shown and woken once; an idle coordinator nudged once" is half done. The CLI side was tried as above. The board side (a running board sending the reminder, the wake and the nudge through T3) needs T3 and a running board, so it can't run in a throwaway clone. Tests cover it, and the PM's live check before the merge tries it for real.
+- The try box: the CLI side ran on the coordinator's throwaway clone; the board side (reminder, wake, nudge sent through T3 by a running board) ran in the PM's live check of #290, and its re-check at ceda4b0 passed all five items with 659/659 tests (reads write nothing, one wake, a held braid stays open until resume and is then woken once, one eta wording, the red line beside a question). Evidence: ~/.braid/artifacts/agento/0071/.
 - Update the CLI on every clone once this is installed: a braid CLI older than 0071/B reads a request record with a `reminded` event as unreadable.
 - Two boards started at the same instant can both send one wake (seen in the PM's live check; boards started 10 s apart were fine). Leftover 2026-11-24-gqez, for P21 · 0074's acting-board lock. A delegated PM checker is visible only if the PM records it.
 - Without a running board nothing closes: a met request, a merged handover included, stays open on the record (reads show "condition holds") until a board runs.
@@ -40,6 +40,6 @@ Decisions:
   - the fix strands 0071/F and 0071/G (G at the PM's direction).
 - The workers' decisions: send-then-record; 2h98 by a record; dy2k by re-reading; a nudge only to a thread that can receive it; a missed estimate shows at once.
 
-For later items: leftovers 2026-11-23-5bor (the board writes the record with synchronous Git, P14), 2026-11-23-tr1o (the board's pause message misprints the steering thread id), 2026-11-24-es8z (the help test runs against the repository; commands handled before `run` aren't tested through the CLI), 2026-11-24-gqez (two boards at the same instant).
+For later items: leftovers 2026-11-23-5bor (the board writes the record with synchronous Git, P14), 2026-11-23-tr1o (the board's pause message misprints the steering thread id), 2026-11-24-es8z (the help test runs against the repository; commands handled before `run` aren't tested through the CLI), 2026-11-24-gqez (two boards at the same instant), 2026-11-24-11u3 (the opened event reads differently in the CLI and the details panel, P15).
 
 Needs the user: the final PR changes skills, so it is the user's merge (AGENTS.md), after the PM's live check.

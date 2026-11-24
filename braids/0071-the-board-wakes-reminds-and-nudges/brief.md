@@ -68,7 +68,7 @@ Expected size: about 1200 lines in 25 files, over five strands.
 - [x] A wait no longer withdraws its asker's open question on the same item, and the reverse.
 - [x] Nothing is woken, reminded or nudged while the braid is held or paused.
 - [x] The braid and braid-pm skills are no longer than before this braid (word counts in the report).
-- [ ] The coordinator's try on a throwaway clone: a `braid:` wait reminded, shown and woken once; an idle coordinator nudged once.
+- [x] The coordinator's try on a throwaway clone: a `braid:` wait reminded, shown and woken once; an idle coordinator nudged once.
 - [x] Docs from BRAID.md `docs` are up to date (0071/E).
 
 ## Autonomy
