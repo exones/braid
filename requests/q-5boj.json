@@ -1,0 +1,19 @@
+{
+  "code": "q-5boj",
+  "item": "0076",
+  "kind": "plan",
+  "text": "0076 README leads with programmes: approve the plan (story, M, free + PM exceptions)",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T20:52:47.585Z",
+      "by": "coordinator"
+    }
+  ]
+}
