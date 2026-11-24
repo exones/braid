@@ -29,10 +29,10 @@ Expected size: about 150 lines changed in 10 files, net fewer lines in `.agents/
 
 ## Completion
 
-- [ ] The braid skills say nothing that only the old Done stamp needed, and `.agents/skills/` has fewer lines than at the braid's start (report.md gives both counts)
-- [ ] Docs from BRAID.md `docs` are brought up to date as a whole; report.md lists each doc as updated or unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The braid skills say nothing that only the old Done stamp needed, and `.agents/skills/` has fewer lines than at the braid's start (report.md gives both counts)
+- [x] Docs from BRAID.md `docs` are brought up to date as a whole; report.md lists each doc as updated or unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
