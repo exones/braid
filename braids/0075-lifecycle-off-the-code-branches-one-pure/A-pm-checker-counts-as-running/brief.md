@@ -1,7 +1,7 @@
 ---
 id: '0075/A'
 title: "PM checker counts as running"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S"]
 dependencies: []
 order: 10

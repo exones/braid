@@ -138,6 +138,20 @@ export interface Where {
   readonly provider: string | null;
   /** T3's link to the thread (`<base>/<env>/<thread>`). */
   readonly link: string | null;
+  /** When T3 last updated the thread, ISO; null when it gives none. */
+  readonly updatedAt: string | null;
+}
+
+/** How long a recorded PM checker that T3 shows `completed` still counts as running, from its last update (or, without one, its record). Docs: board.md. */
+export const CHECKER_CAP_MS = 3 * 60 * 60_000;
+
+/** Whether a recorded PM checker still counts: it runs, or T3 shows it `completed` between its runs (it waits on its own background work) and its last update is within the cap. */
+export function checkerCounts(where: Where, recordedAt: string, now: Date): boolean {
+  if (where.status === "running") {
+    return true;
+  }
+  const last = Date.parse(where.updatedAt ?? recordedAt);
+  return where.status === "completed" && !Number.isNaN(last) && now.getTime() - last < CHECKER_CAP_MS;
 }
 
 const recent = new Map<string, { at: number; t3: Promise<T3> }>();
@@ -161,6 +175,7 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
       relationshipToParent: str(t["relationshipToParent"]),
       provider: str(t["providerInstanceId"]),
       link: str(t["link"]),
+      updatedAt: str(t["updatedAt"]),
     };
   } catch {
     return null;
@@ -191,6 +206,8 @@ export interface T3Options {
   readonly ttlMs?: number;
   /** The recorded review threads; read from `.braid/reviews.json` of the main checkout when not given. */
   readonly reviews?: readonly ReviewRecord[];
+  /** The clock for the checker cap; now when not given. */
+  readonly now?: Date;
 }
 
 /**
@@ -203,7 +220,7 @@ export function readT3(root: string, options: T3Options = {}): Promise<T3> {
   if (shared !== undefined && Date.now() - shared.at < ttl) {
     return shared.t3;
   }
-  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root));
+  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root), options.now ?? new Date());
   recent.set(root, { at: Date.now(), t3 });
   return t3;
 }
@@ -213,7 +230,7 @@ function archived(t: Json): boolean {
   return t["archived"] === true || (t["archivedAt"] !== undefined && t["archivedAt"] !== null) || t["status"] === "archived";
 }
 
-async function readFresh(root: string, run: T3Runner, agents: string | readonly string[], project: string, reviews: readonly ReviewRecord[]): Promise<T3> {
+async function readFresh(root: string, run: T3Runner, agents: string | readonly string[], project: string, reviews: readonly ReviewRecord[], now: Date): Promise<T3> {
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
   const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
@@ -315,15 +332,15 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) pm check: (.*)$/.exec(str(t["title"]) ?? "");
     return running && m !== null && repos.has(m[1] ?? "") ? [m[2] ?? ""] : [];
   });
-  // A PM's checker is a subagent, which `thread list` leaves out: the PM records it (`braid review pm/<slug> --thread <id>`), and it checks while T3 says it runs (0071/C, 2h98).
-  // Once T3 says the thread isn't running, the board drops its record, so a finished checker costs no more reads (0071/E, ozjp).
+  // A PM's checker is a subagent, which `thread list` leaves out: the PM records it (`braid review pm/<slug> --thread <id>`), and it checks while T3 says it runs, or `completed` between its runs, until the cap (0071/C, 2h98; 0075/A, fwoa).
+  // Once T3 says the thread is neither, or the cap passed, the board drops its record, so a finished checker costs no more reads (0071/E, ozjp).
   const ended: string[] = [];
   const recordedChecks = await pool(reviews.filter((r) => r.id.startsWith("pm/")), async (r) => {
-    const status = (await showThread(run, root, r.thread))?.status ?? null;
-    if (status === "running") {
+    const where = await showThread(run, root, r.thread);
+    if (where !== null && checkerCounts(where, r.at, now)) {
       return [r.id];
     }
-    if (status !== null) {
+    if (where !== null) {
       ended.push(r.thread);
     }
     return [];
