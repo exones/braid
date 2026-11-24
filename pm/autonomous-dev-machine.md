@@ -146,6 +146,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-24 ~14:00-14:35Z: board paused Claude_Everix (session limit) and resumed at 14:35; 0075's coordinator failed one run at 14:00 and is running again after the resume.
 - 2026-11-24: 0075/A in main: #296 merged on the user's "merge #296" (a3a48b8), main CI green, installed, board restarted (running = installed), the user's checkout pulled. 0075/B building.
 - 2026-11-24 13:20Z: P22 · 0075 early PR #296 (0075/A, the checker count) at 1c92041: live check passed (682/682, the real timeline replayed), CI green, forwarded to the user (q-msol). 0075/B runs on the braid branch. q1bm (pause only braids with agents; check the reply thread) taken into P21 · 0074.
 - 2026-11-24: P22 · 0075 plan approved by the PM (q-e7ti): strands A checker count (S, early PR into main), B lifecycle on the record branch (L), C one pure lane (M), D docs and skills shorter (L), because it follows the binding order and cuts special cases, instead of a separate braid for the checker fix; k5d1 and sqck taken in. The lifecycle record's shape (a contract other repos read) asked of the user as q-5asx before 0075/B starts.
