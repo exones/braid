@@ -7,7 +7,7 @@ import { execFile, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
-import { loadReviews, type ReviewRecord } from "../braids/reviews.js";
+import { dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
 import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { itemOfFolder, repoNameOf } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
@@ -289,7 +289,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined, provider: str(t["providerInstanceId"]) ?? where?.provider ?? null } satisfies T3Thread };
   });
   // A recorded review thread is its item's reviewer while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
-  const reviewing = await pool(reviews, async (r) => {
+  const reviewing = await pool(reviews.filter((r) => !r.id.startsWith("pm/")), async (r) => {
     const where = await showThread(run, root, r.thread);
     return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: "reviewer", pending: where.pending, link: null, provider: where.provider } satisfies T3Thread } : null;
   });
@@ -311,10 +311,31 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
       into.set(f.key, [...(into.get(f.key) ?? []), f.thread]);
     }
   }
-  const pmChecks = wanted.flatMap(({ t, running }) => {
+  const listedChecks = wanted.flatMap(({ t, running }) => {
     const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) pm check: (.*)$/.exec(str(t["title"]) ?? "");
     return running && m !== null && repos.has(m[1] ?? "") ? [m[2] ?? ""] : [];
   });
+  // A PM's checker is a subagent, which `thread list` leaves out: the PM records it (`braid review pm/<slug> --thread <id>`), and it checks while T3 says it runs (0071/C, 2h98).
+  // Once T3 says the thread isn't running, the board drops its record, so a finished checker costs no more reads (0071/E, ozjp).
+  const ended: string[] = [];
+  const recordedChecks = await pool(reviews.filter((r) => r.id.startsWith("pm/")), async (r) => {
+    const status = (await showThread(run, root, r.thread))?.status ?? null;
+    if (status === "running") {
+      return [r.id];
+    }
+    if (status !== null) {
+      ended.push(r.thread);
+    }
+    return [];
+  });
+  if (ended.length > 0) {
+    try {
+      dropEndedChecks(root, ended);
+    } catch {
+      // A record that can't be rewritten now is dropped at a later refresh.
+    }
+  }
+  const pmChecks = [...listedChecks, ...recordedChecks.flat()];
   return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, providers, pmChecks };
 }
 
