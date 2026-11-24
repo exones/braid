@@ -32,7 +32,7 @@ No new rule or special case was added.
 | --- | --- |
 | README.md | unchanged (it says nothing about accept or Done) |
 | docs/getting-started.md | updated: a strand reads Done once its PR merged; braid commits nothing on a PR's branch for it |
-| docs/cli.md | unchanged (0075/B updated `start` and `accept`; 0075/F the Cursor windows) |
+| docs/cli.md | updated: `braid clean` keeps a braid's branch until the braid reads Done as lifecycle gives it (record, merged PR, stored status), not until a brief says `Done` (review round 1); 0075/B updated `start` and `accept`, 0075/F the Cursor windows |
 | docs/board.md | updated (0075/E already updated Open thread): the Done date of an item Done only from its merged PR is the PR's merge time; the pure lane cites D106 (0075/A, B, C updated the rest) |
 | docs/autonomy.md | unchanged (it doesn't describe the stamp) |
 | help text (src/cli.ts) | unchanged (0075/B updated `start` and `accept`) |
@@ -46,6 +46,10 @@ No new rule or special case was added.
 
 - Gate (`npm run verify`, quick), run in its parts in the foreground because the whole run takes over 10 minutes: docs-gate passed (after merging f642bf63, the coordinator's fix of trailing whitespace in 0075/F's brief); the OIDC guard passed; `npm run typecheck` and `npm run build` passed; `node --test` over every suite in `test/`, in two halves: 313 + 386 = 699 tests, 0 failures (about 4 and 7 minutes). I ran all of it again after merging the braid branch with 0075/F (28bfa31). This PR changes no product code; the only code change is that test fixture.
 - A search of `.agents/skills/` for `stamp`, `sets Done`, `status-only` and `In Progress'` finds nothing.
+
+## Review round 1
+
+- `docs/cli.md`'s `braid clean` row still tied a braid branch's removal to a brief saying `Done`; it now names what clean reads. I searched the docs, README, skills, `src/cli.ts` and the commands' messages for any other tie of clean, status or accept to a stored Done or the stamp. None is left outside `docs/decisions.md`'s history (D102, D105 name the old stamp on purpose) and the lifecycle text about older stored `Done`s. `braid status`'s note "lanes come from stored statuses" without GitHub is kept: without PRs the stored status is the fallback, and two tests pin the text.
 
 ## Open
 
