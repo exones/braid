@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-24T20:52:47.585Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-24T20:54:30.159Z",
+      "by": "pm",
+      "text": "A, approve. Plan approved as proposed, because it follows the user's request (programmes first, every feature listed with a link) and keeps the README short, instead of splitting it into several stories. The sweep stays at programme level (row P15); fold nothing in.",
+      "reason": "plan approved as proposed"
     }
   ]
 }
