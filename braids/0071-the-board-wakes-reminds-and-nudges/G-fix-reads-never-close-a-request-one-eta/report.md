@@ -9,7 +9,7 @@
 
 **Validation:** new `test/requests-read.test.ts` runs `dist/cli.js requests` on a due `time:` wait (nothing written on `braid-requests`, request open, then one board tick sends one wake) and on a held braid's wait (stays open); card test in `test/board-remind.test.ts`; old `liveRequests` tests changed to `holding`. `npm run verify` passes (659 tests).
 
-**Docs updated:** docs/cli.md, docs/board.md, docs/braids-format.md, D100 and D98 in docs/decisions.md, the braid's "Already decided".
+**Docs updated:** docs/cli.md (the list and `braid ask`), docs/board.md, docs/braids-format.md, D100 and D98 in docs/decisions.md, the braid's "Already decided".
 
 **Open:** two boards started in the same instant can still both send one wake (P21 · 0074's lock), as the brief decided.
 
