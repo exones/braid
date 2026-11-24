@@ -1,0 +1,21 @@
+{
+  "code": "q-c0jd",
+  "item": "0076",
+  "kind": "review",
+  "text": "review PR #302 at 753ef0a",
+  "by": "coordinator",
+  "thread": "mcp:launch:20a7ff515fd152875b4fe410b6d168fba89452c5b111457e71113e387f65626c",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:302",
+  "pr": 302,
+  "head": "753ef0af3bd31aec62d752c5c77971ee59384654",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T22:28:35.077Z",
+      "by": "coordinator"
+    }
+  ]
+}
