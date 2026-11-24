@@ -1,7 +1,7 @@
 ---
 id: '0073/G'
 title: "Fix: braid clean removes a Done and merged braid again"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 70
