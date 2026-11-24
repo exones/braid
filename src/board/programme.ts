@@ -1,10 +1,10 @@
 // Programmes on the board (docs/board.md, "Programmes"): one per `pm/<slug>` plan, derived at each read from the
 // plan's front matter, the braid cards, the programme's open request, T3 and the broke clock. Pure apart from the
-// clock, which `sig.alarm` keeps. A programme isn't a braid: it never sits in a lane, it sits in the panel.
+// clock, which the step after the derivation keeps. A programme isn't a braid: it never sits in a lane, it sits in the panel.
 import { age, type Request } from "../braids/requests.js";
 import type { Pause } from "../braids/pauses.js";
 import type { Hold, PlanRow, PlanState } from "../braids/plan.js";
-import { linkOfThread, needOfAsk, needOfForward, type BraidCard, type Lane, type Need, type NudgeTarget, type Signals } from "./model.js";
+import { linkOfThread, needOfAsk, needOfForward, raiseTo, type Alarm, type BraidCard, type Lane, type Need, type NudgeTarget, type Raise, type Signals } from "./model.js";
 import { routeOf, throughPm } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import type { T3 } from "./t3.js";
@@ -97,11 +97,11 @@ const hhmm = (iso: string): string => new Date(iso).toLocaleTimeString("en-GB", 
  * The programmes of one project. `repo` names the stall clock (`<repo>/<slug> pm`, in the project's own
  * `.braid/broke.json`). The clock is asked for every programme at every read, so one that stops holding starts again from zero.
  */
-export function toProgrammes(repo: string, plans: readonly PlanRead[], cards: readonly BraidCard[], t3: T3, sig: Signals, gh: { readonly status: { readonly state: string } }): Programme[] {
+export function toProgrammes(repo: string, plans: readonly PlanRead[], cards: readonly BraidCard[], t3: T3, sig: Signals, gh: { readonly status: { readonly state: string } }, alarms: Alarm[] = []): Programme[] {
   const byId = new Map(cards.map((c) => [c.id, c]));
   const requests = new Map((sig.programmes ?? []).map((r) => [r.id, r] as const));
   const live = plans.filter((p) => p.plan === null || p.plan.state === "running" || p.plan.state === "held").length;
-  return plans.map((read) => programmeOf(repo, read, byId, requests.get(`pm/${read.slug}`), t3, sig, gh.status.state === "ok", live === 1));
+  return plans.map((read) => programmeOf(repo, read, byId, requests.get(`pm/${read.slug}`), t3, sig, gh.status.state === "ok", live === 1, raiseTo(sig, alarms)));
 }
 
 /**
@@ -118,12 +118,12 @@ const titleOf = (cards: ReadonlyMap<string, BraidCard>, id: string): string => {
   return (id.includes("/") ? card?.strands.find((s) => s.id === id)?.title : card?.title) ?? id;
 };
 
-function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, BraidCard>, request: Request | undefined, t3: T3, sig: Signals, ghOk: boolean, only: boolean): Programme {
+function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, BraidCard>, request: Request | undefined, t3: T3, sig: Signals, ghOk: boolean, only: boolean, raise: Raise): Programme {
   const clock = `${repo}/${read.slug} pm`;
   const plan = read.plan;
   const asked = request === undefined ? null : needOfAsk(request, sig.now, t3);
   if (plan === null) {
-    sig.alarm(clock, "stalled", false);
+    raise(clock, "stalled", false);
     return {
       slug: read.slug, branch: read.branch, title: read.slug, goal: null, state: null, section: asked === null ? "working" : "needs", thread: request?.thread ?? null, link: asked?.link ?? null, pmState: null,
       hold: null, paused: false, next: null, digest: null, limit: null, rows: [], braids: [], done: 0, total: 0, running: 0, need: asked, forwards: [],
@@ -161,7 +161,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
   const holds = over || held || asked !== null || forwards.length > 0 ? false : t3ok && ghOk ? !(pmRunning || running > 0 || checking) : null;
   // The PM thread, known and idle, is nudged once before the stall shows; without one the stall shows after ten minutes as before.
   const nudge: NudgeTarget | undefined = thread !== null && pmState !== null && pmState !== "unknown" && pmState !== "archived" ? { kind: "pm", who: read.slug, thread, pm: null } : undefined;
-  const since = sig.alarm(clock, "stalled", holds, nudge);
+  const since = raise(clock, "stalled", holds, nudge);
   const handling = mine.filter((c) => c.pm !== null && c.pm.forwarded !== true).map((c) => `${c.id} ${c.pm?.kind === "review" ? "live check" : (c.pm?.kind ?? "request")} (${c.pm?.age ?? ""})`);
   const stall: Need | null =
     since === null ? null : { kind: "stalled", text: sig.nudged?.(clock) === true ? AFTER_NUDGE_PM : STALLED_TEXT, verb: "for", age: age(since, sig.now), since, key: null, pr: null, who: null, more: 0, by: "pm", link };

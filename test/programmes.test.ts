@@ -155,7 +155,9 @@ const read = (lines: string[] = []): any => planOf("working-product", "pm/workin
 function one(opts: { cards?: any[]; t3?: any; lines?: string[]; seen?: Record<string, string>; requests?: any[]; pauses?: Map<string, any>; ghOk?: boolean } = {}): { p: any; seen: Record<string, string> } {
   const clock = signals.brokeClock(opts.seen ?? {}, NOW);
   const sig = { now: NOW, requests: new Map(), programmes: opts.requests ?? [], pauses: opts.pauses ?? new Map(), alarm: clock.alarm, nudged: clock.nudged };
-  const [p] = programme.toProgrammes("agento", [read(opts.lines)], opts.cards ?? [card("0001"), card("0002")], opts.t3 ?? t3("idle"), sig, { status: { state: opts.ghOk === false ? "unavailable" : "ok" } });
+  const alarms: unknown[] = [];
+  const [p] = programme.toProgrammes("agento", [read(opts.lines)], opts.cards ?? [card("0001"), card("0002")], opts.t3 ?? t3("idle"), sig, { status: { state: opts.ghOk === false ? "unavailable" : "ok" } }, alarms);
+  clock.settle(alarms);
   return { p, seen: clock.seen() };
 }
 const KEY = "agento/working-product pm stalled";

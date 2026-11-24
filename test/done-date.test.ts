@@ -118,10 +118,10 @@ test("the board dates Done braids from Git alone, a braid with strands by its ow
   assert.equal(by["0001"]?.doneAt, "2026-11-13T10:00:00.000Z");
   assert.equal(by["0002"]?.doneAt, "2026-11-19T10:00:00.000Z", "its own Done commit (day 9), not strand B (day 8)");
   assert.deepEqual(by["0002"]?.strands.map((s) => s.doneAt), ["2026-11-14T10:00:00.000Z", "2026-11-18T10:00:00.000Z"]);
-  assert.equal(by["0003"]?.lane, "Done");
-  assert.equal(by["0003"]?.doneAt, "2026-11-16T10:00:00.000Z", "no own Done commit: the newest strand's");
+  assert.equal(by["0003"]?.lane, "In Progress", "every strand Done is no Done braid without its own Done or its merged PR");
+  assert.equal(by["0003"]?.doneAt, null);
   assert.equal(by["0004"]?.doneAt, "2026-11-17T10:00:00.000Z");
   assert.equal(by["0005"]?.doneAt, null, "not Done: no date");
   const order = doneNewestFirst(board.braids.filter((b) => b.lane === "Done")).map((b) => b.id);
-  assert.deepEqual(order, ["0002", "0004", "0003", "0006", "0001"]);
+  assert.deepEqual(order, ["0002", "0004", "0006", "0001"]);
 });
