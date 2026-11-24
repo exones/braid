@@ -12,7 +12,7 @@
 
 ## Validation
 
-`npm run verify` passes; docs updated: `docs/board.md`.
+`npm run verify` passes. Docs updated: `docs/board.md`, `docs/cli.md`, `docs/braids-format.md`, `docs/decisions.md` (D100 wording).
 
 For later items: "quiet until <time>" for a PM or coordinator that doesn't land on the user, not built.
 Needs the user: none.
