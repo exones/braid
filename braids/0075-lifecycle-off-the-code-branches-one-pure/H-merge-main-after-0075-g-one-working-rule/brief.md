@@ -1,7 +1,7 @@
 ---
 id: '0075/H'
 title: "Merge main after 0075/G: one working rule, one waiting rule"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 50
@@ -38,9 +38,13 @@ Expected size: the merge plus about 100 lines of resolution in 2 to 4 files.
 
 ## Completion
 
-- [ ] `origin/main` (with 0075/G) is merged into this branch, and every conflict is resolved
-- [ ] One running rule (`working`) and one waiting rule (`waits` with its time filter), used by 0075/C's shared stall steps; the derivation writes nothing
-- [ ] G's tests (the three real cases and the timed wait) and 0075/C's tests all pass
-- [ ] Docs from BRAID.md `docs` that this merge makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `origin/main` (with 0075/G) is merged into this branch, and every conflict is resolved
+- [x] One running rule (`working`) and one waiting rule (`waits` with its time filter), used by 0075/C's shared stall steps; the derivation writes nothing
+- [x] G's tests (the three real cases and the timed wait) and 0075/C's tests all pass
+- [x] Docs from BRAID.md `docs` that this merge makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Merge `origin/main`; take main's G brief; in `model.ts` keep 0075/C's shape (`raise`, `stallsOf`/`withStalls`) and bring in G's `waits()` time filter and `waitStall`'s timed-wait filter; adapt G's tests to `commit(alarms)`.
