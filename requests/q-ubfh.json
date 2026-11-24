@@ -15,6 +15,13 @@
       "event": "opened",
       "at": "2026-11-24T11:10:19.613Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-24T11:10:58.976Z",
+      "by": "pm",
+      "text": "A, approve the new box 1 and merge. Merge #295 at 9844b650 into the braid branch, open the early PR into main and send the PM the PR and head.",
+      "reason": "new box 1 approved, because the real timeline shows each checker run is a separate task the PM starts and gets back in seconds, so counting a completed checker would hide a truly idle PM, instead of the old wording, which rested on a wrong premise; the braid's own box (a PM whose only work is its checker is not nudged or stalled) is unchanged"
     }
   ]
 }
