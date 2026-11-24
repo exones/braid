@@ -70,11 +70,11 @@ Expected size: about 600 lines in 12 files, half of them tests; it should remove
 
 ## Completion
 
-- [ ] `braid start` and `braid accept` write `started` and `accepted` events to the record branch in the shape the braid's log records as decided; nothing else writes lifecycle into briefs
-- [ ] `braid accept` on a story's or final PR leaves the PR's head unchanged (test)
-- [ ] Done of a strand, story and goal comes from the merged PR; the dsyv case reads right (tests)
-- [ ] Old braids with stored statuses read the same as before, here and in another project's fixture (tests)
-- [ ] One definition of "braids-only commits inherit green" in the CLI; `derive` has no stored-Done special cases left
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (at least `docs/braids-format.md` and the help text), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid start` and `braid accept` write `started` and `accepted` events to the record branch in the shape the braid's log records as decided; nothing else writes lifecycle into briefs
+- [x] `braid accept` on a story's or final PR leaves the PR's head unchanged (test)
+- [x] Done of a strand, story and goal comes from the merged PR; the dsyv case reads right (tests)
+- [x] Old braids with stored statuses read the same as before, here and in another project's fixture (tests)
+- [x] One definition of "braids-only commits inherit green" in the CLI; `derive` has no stored-Done special cases left
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (at least `docs/braids-format.md` and the help text), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
