@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { ROLES } from "../../src/braids/roles.ts";
 import { Md } from "./Md.tsx";
+import { TAG_COLOURS } from "./palette.ts";
+import { copyText, type CopyEnv } from "../../src/board/copy.ts";
 import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
 import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
@@ -230,9 +232,30 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
   );
 }
 
-/** A request's code (`q-7f3k`), the name to use for it in any thread. */
+/** A request's code (`q-7f3k`), the name to use for it in any thread. A click, tap or Enter copies it and says "copied" for a moment; the card under it stays as it is. */
 function CodeChip({ code }: { code: string }) {
-  return <code className="whitespace-nowrap rounded bg-slate-900 px-1.5 font-mono text-[11.5px] font-semibold text-amber-200">{code}</code>;
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const copy = (e: { stopPropagation(): void; preventDefault(): void }) => {
+    e.stopPropagation();
+    e.preventDefault();
+    void copyText(code, { isSecureContext: window.isSecureContext, clipboard: navigator.clipboard, document: document as unknown as CopyEnv["document"] }).then((ok) => {
+      setState(ok ? "copied" : "failed");
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setState("idle"), 1500);
+    });
+  };
+  return (
+    <button type="button" title={`Copy ${code}`} onClick={copy} className="relative cursor-copy whitespace-nowrap rounded border-0 bg-slate-900 p-0 px-1.5 align-baseline font-mono text-[11.5px] font-semibold text-amber-200">
+      {code}
+      {state !== "idle" && (
+        <span role="status" className={`absolute -top-5 left-0 rounded px-1.5 py-px text-[11px] font-medium text-white shadow ${state === "copied" ? "bg-emerald-700" : "bg-red-700"}`}>
+          {state === "copied" ? "copied" : "copy failed"}
+        </span>
+      )}
+    </button>
+  );
 }
 
 /** "Open asking thread": the T3 app link of the thread that asked; nothing when T3 doesn't list it. */
@@ -322,15 +345,6 @@ interface Scope {
 }
 const ScopeContext = createContext<Scope>({ projects: new Map(), several: false, tagged: false });
 
-/** Placeholder tag colours, by position in the project list (the design stays open to a colour per project later). */
-const TAG_COLOURS = [
-  { dot: "bg-indigo-600", text: "text-indigo-700", border: "border-indigo-200" },
-  { dot: "bg-teal-600", text: "text-teal-700", border: "border-teal-200" },
-  { dot: "bg-pink-700", text: "text-pink-800", border: "border-pink-200" },
-  { dot: "bg-orange-600", text: "text-orange-700", border: "border-orange-200" },
-  { dot: "bg-cyan-600", text: "text-cyan-700", border: "border-cyan-200" },
-  { dot: "bg-lime-600", text: "text-lime-800", border: "border-lime-300" },
-] as const;
 const colourOf = (index: number) => TAG_COLOURS[index % TAG_COLOURS.length] ?? TAG_COLOURS[0];
 
 /** How old a snapshot is, as "12 s", "14 min" or "3 h". */
