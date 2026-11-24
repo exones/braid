@@ -62,8 +62,8 @@ test("Done, as statusOf reads it (a merged PR, or a stored Done with no open PR)
   assert.equal(lane("Done", gh(pr("merged")), t3([thread()]), s).lane, "Done");
   assert.equal(lane("Done", gh(null), t3(), s).lane, "Done");
   // A card reads it from the PR: a merged strand whose brief still says In Progress is Done.
-  const story = demo.demoBraids().find((b: { strands: unknown[] }) => b.strands.length === 0);
-  const merged = model.toCard({ ...story, brief: { ...story.brief, status: "In Progress" } }, { status: { state: "ok" }, prs: new Map([[story.number, pr("merged")]]) }, t3(), sig());
+  const story = demo.demoBraids().find((b) => (b as unknown as { strands: unknown[] }).strands.length === 0) as unknown as { number: string; brief: object };
+  const merged = model.toCard({ ...story, brief: { ...story.brief, status: "In Progress" } }, { status: { state: "ok" }, prs: new Map([[story.number, pr("merged")]]) }, t3(), sig()) as unknown as { lane: string; status: string };
   assert.deepEqual([merged.lane, merged.status], ["Done", "Done"]);
 });
 

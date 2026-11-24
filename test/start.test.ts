@@ -9,9 +9,13 @@ import { agentsDirs, git, gone, listed, load, repo, scratch, src, startCommand, 
 test("start creates the strand branch from the braid tip, pushes it and adds a worktree", async () => {
   const { root, env, wt } = repo();
   const tipCommit = git(root, "rev-parse", "braid/0001-alpha");
-  const out = await startCommand(root, ["0001/B"], src(), env);
+  const out = await startCommand(root, ["0001/B", "--thread", "mcp:launch:coord1234"], src(), env);
   const folder = join(wt, "proj", "0001-B");
   assert.equal(out, `branch braid/0001/B-second-one\ncommit ${tipCommit}\nfolder ${folder}\n`);
+  // The start is an event on the record branch; no brief is written.
+  const life = JSON.parse(git(root, "show", "origin/braid-requests:lifecycle/0001-B.json")) as { id: string; events: { kind: string; thread: string | null; branch: string }[] };
+  assert.deepEqual([life.id, life.events.map((e) => [e.kind, e.thread, e.branch])], ["0001/B", [["started", "mcp:launch:coord1234", "braid/0001/B-second-one"]]]);
+  assert.equal(git(root, "log", "-1", "--format=%s", "origin/braid-requests"), "docs(record): 0001/B started");
   assert.equal(git(folder, "rev-parse", "--abbrev-ref", "HEAD"), "braid/0001/B-second-one");
   assert.equal(git(folder, "rev-parse", "HEAD"), tipCommit);
   assert.equal(git(root, "ls-remote", "--heads", "origin", "braid/0001/B-second-one").split("\t")[0], tipCommit);
