@@ -146,6 +146,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-24 night: a second board pause for Claude_Everix (session window); the steering thread (mcp:b45f…) gave no Steering line in 15 min, so the board read "Pause failed" (more evidence for P21 · 0074); then the board's resume reached everyone. The PM's 0071 re-check hit the Claude rate limit and was re-sent after the resume. 0071/G merged (#291); #290 at ceda4b0, review clean, CI green.
 - 2026-11-24: PM live check of 0073 #287 at 93cb010 (fake gh/t3): merge gate (pass, fail, timeout tree-kill, [main], presets), ci: all, copy chip on secure and insecure http, colours, docs and skills all work; 633/633. Blocking: the puxp fix makes braid clean keep Done-and-merged branches (reads the local, pre-stamp brief); sent back as a fix. The early-PR "run braid accept" status predates 0073: into 0075.
 - 2026-11-24: PM live check of 0071 #290 at 6b64f9f (throwaway clone, fake t3/gh): wakes, reminder, missed-estimate line, nudge, holds, slim cards, eta all work; 655/655 tests. Blocking: plain `braid requests` closes met waits without a wake and ignores holds (liveRequests); sent back as a fix with two small wording/visibility items. Two boards started at the same instant double-send a wake: to P21 · 0074 (acting-board lock).
 - 2026-11-24: P6 · 0071 all strands merged (F fixed `braid eta`); final PR #290 at 6b64f9f opened, review and CI running; the board half of the try is the PM's live check. es8z to P15.
