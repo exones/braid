@@ -62,14 +62,14 @@ Expected size: about 1200 lines in 25 files, over five strands.
 
 ## Completion
 
-- [ ] An open request with `--done-when braid:<n>`, `time:<iso>` or `pr:<n>` is closed as met by the running board once its condition holds, and the asking thread gets exactly one wake message, also across board restarts.
-- [ ] A wait's addressee gets "Gentle hourly reminder: I'm still waiting for you" at most hourly, and not before its estimate; `braid eta` sets the estimate; the waiting card shows the wait with "expected by <time>" and never reads as stalled; a missed estimate or a gone addressee reads as a stall.
-- [ ] A coordinator idle with no open request, wait, running agent or hold gets one nudge, then its card reads as stalled; a running delegated PM check keeps the programme from reading as stalled.
-- [ ] A wait no longer withdraws its asker's open question on the same item, and the reverse.
-- [ ] Nothing is woken, reminded or nudged while the braid is held or paused.
-- [ ] The braid and braid-pm skills are no longer than before this braid (word counts in the report).
+- [x] An open request with `--done-when braid:<n>`, `time:<iso>` or `pr:<n>` is closed as met by the running board once its condition holds, and the asking thread gets exactly one wake message, also across board restarts.
+- [x] A wait's addressee gets "Gentle hourly reminder: I'm still waiting for you" at most hourly, and not before its estimate; `braid eta` sets the estimate; the waiting card shows the wait ("expected by <time>" in its details panel, per the user's verdict q-ocph: "slim please") and never reads as stalled; a missed estimate or a gone addressee reads as a stall.
+- [x] A coordinator idle with no open request, wait, running agent or hold gets one nudge, then its card reads as stalled; a running delegated PM check keeps the programme from reading as stalled.
+- [x] A wait no longer withdraws its asker's open question on the same item, and the reverse.
+- [x] Nothing is woken, reminded or nudged while the braid is held or paused.
+- [x] The braid and braid-pm skills are no longer than before this braid (word counts in the report).
 - [ ] The coordinator's try on a throwaway clone: a `braid:` wait reminded, shown and woken once; an idle coordinator nudged once.
-- [ ] Docs from BRAID.md `docs` are up to date (0071/E).
+- [x] Docs from BRAID.md `docs` are up to date (0071/E).
 
 ## Autonomy
 
