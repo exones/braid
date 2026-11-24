@@ -1,7 +1,7 @@
 ---
 id: '0075/E'
 title: "Open thread links in the new T3 shape"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 25
@@ -36,8 +36,8 @@ Expected size: about 40 lines in 2 to 4 files, most of them tests.
 
 ## Completion
 
-- [ ] `t3codeUrl` gives `t3code://threads/<env>/<thread>` for both link shapes on any host, null otherwise (tests, including a real `%3A` id)
-- [ ] Every caller of `t3codeUrl` works with the new shape (checked; fixed where needed, with a test)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `t3codeUrl` gives `t3code://threads/<env>/<thread>` for both link shapes on any host, null otherwise (tests, including a real `%3A` id)
+- [x] Every caller of `t3codeUrl` works with the new shape (checked; fixed where needed, with a test)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
