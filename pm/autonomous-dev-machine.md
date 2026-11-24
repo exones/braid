@@ -146,6 +146,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-24: PM live check of 0073 #287 at 93cb010 (fake gh/t3): merge gate (pass, fail, timeout tree-kill, [main], presets), ci: all, copy chip on secure and insecure http, colours, docs and skills all work; 633/633. Blocking: the puxp fix makes braid clean keep Done-and-merged branches (reads the local, pre-stamp brief); sent back as a fix. The early-PR "run braid accept" status predates 0073: into 0075.
 - 2026-11-24: PM live check of 0071 #290 at 6b64f9f (throwaway clone, fake t3/gh): wakes, reminder, missed-estimate line, nudge, holds, slim cards, eta all work; 655/655 tests. Blocking: plain `braid requests` closes met waits without a wake and ignores holds (liveRequests); sent back as a fix with two small wording/visibility items. Two boards started at the same instant double-send a wake: to P21 · 0074 (acting-board lock).
 - 2026-11-24: P6 · 0071 all strands merged (F fixed `braid eta`); final PR #290 at 6b64f9f opened, review and CI running; the board half of the try is the PM's live check. es8z to P15.
 - 2026-11-24: P20 · 0073 final PR #287 opened; its review blocked: the braid skill folder 270 words longer than main (the BRAID.md template grew), and docs naming `braid facts` for ci: all. Fix strand 0073/F (template explanations move to braids-format.md). PM (q-pxl3): box 3 says `braid recap`, a wording slip, instead of asking the user.
