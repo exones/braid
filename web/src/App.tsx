@@ -279,13 +279,20 @@ function doneWhenText(doneWhen: string): string {
   return i < 0 ? "done when answered" : doneWhen.startsWith("pr:") ? `done when PR #${value} is merged` : doneWhen.startsWith("braid:") ? `done when ${value} is merged into main` : doneWhen.startsWith("time:") ? `done at ${new Date(value).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}` : `done when ${doneWhen}`;
 }
 
-/** The quiet line on the asking braid's card for a request to another braid: it doesn't ask the user. */
+/** A timed wait's time (`time:<iso>`) as the card says it: `04:15` today, else the short date and time. */
+function untilText(doneWhen: string): string {
+  const at = new Date(doneWhen.slice(5));
+  return at.toDateString() === new Date().toDateString() ? at.toLocaleTimeString([], { timeStyle: "short" }) : at.toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+}
+
+/** The quiet line on the asking braid's card for a request to another braid, or a timed wait (`to: self`): it doesn't ask the user. */
 function WaitLine({ row }: { row: RequestRow }) {
+  const timed = row.to === "self";
   return (
     <div className="mt-1.5 rounded-md border-l-[3px] border-slate-300 bg-slate-50 px-1.5 py-1 text-[12.5px] leading-snug text-slate-700">
-      Waiting on braid {row.to}: <CodeChip code={row.code} /> {row.text}
+      {timed ? `Waiting until ${untilText(row.doneWhen)}` : `Waiting on braid ${row.to}`}: <CodeChip code={row.code} /> {row.text}
       <small className="mt-px block text-[11px] text-slate-500">
-        {doneWhenText(row.doneWhen)} · {row.item} asked {row.age} ago
+        {timed ? "the board wakes it then" : doneWhenText(row.doneWhen)} · {row.item} {timed ? "waits since" : "asked"} {row.age} ago
         <AskingLink link={row.link} />
       </small>
     </div>
@@ -1236,6 +1243,7 @@ function RequestCard({ row }: { row: RequestRow }) {
         <span className={`rounded-full px-2 py-px text-[11px] font-semibold ${state.tone}`}>{label}</span>
         <Badge>{row.kind}</Badge>
         {/^\d{4}$/.test(row.to) && <Badge>to braid {row.to}</Badge>}
+        {row.to === "self" && <Badge>waiting until {untilText(row.doneWhen)}</Badge>}
         <span className="flex-1" />
         {end !== null ? <span className="text-xs text-slate-500">{when(end.at)}</span> : <AskingLink link={row.link} />}
       </div>
@@ -1292,7 +1300,7 @@ function RequestsTab({ view }: { view: RequestsView }) {
   return (
     <div>
       {view.open.length > 0 && <>{heading(`Open · ${view.open.length}`)}{view.open.map((r) => <RequestCard key={r.code} row={r} />)}</>}
-      {view.waiting.length > 0 && <>{heading(`Waiting on others · ${view.waiting.length}`)}{view.waiting.map((r) => <RequestCard key={r.code} row={r} />)}</>}
+      {view.waiting.length > 0 && <>{heading(`Waiting · ${view.waiting.length}`)}{view.waiting.map((r) => <RequestCard key={r.code} row={r} />)}</>}
       {view.closed.length > 0 && (
         <>
           {heading(`Closed · ${view.closed.length} · newest first`)}

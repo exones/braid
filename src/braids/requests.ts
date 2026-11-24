@@ -18,11 +18,14 @@ export type Kind = (typeof KINDS)[number];
 /** Who opened a request: the braid's coordinator, or the programme manager asking the user itself. */
 export type Asker = "coordinator" | "pm";
 
-/** Whom a request is for: the user, the PM, or another braid's coordinator by its four-digit number. */
-export type To = "user" | "pm" | (string & {});
+/** Whom a request is for: the user, the PM, another braid's coordinator by its four-digit number, or `self` (a timed wait: the asker waits until a time, 0075/G). */
+export type To = "user" | "pm" | "self" | (string & {});
 
 /** A braid number as an addressee. */
 export const BRAID_TO = /^\d{4}$/;
+
+/** The addressee of a timed wait: no one is asked; the asker waits on purpose until its `time:` "done when", and the board's time wake ends it. */
+export const SELF = "self";
 
 /** Who did something to a request. */
 export type Who = "user" | "pm" | "coordinator" | "board";
@@ -173,7 +176,7 @@ export function parseRecord(file: string, text: string): Request | RecordProblem
   const final = list.findLast((e) => FINAL[e.event] !== undefined);
   const by = v["by"] === "pm" ? "pm" : "coordinator";
   // Without `to`, the request is the user's, as before the record.
-  const to = forward !== undefined ? "user" : v["to"] === "pm" || (typeof v["to"] === "string" && BRAID_TO.test(v["to"])) ? (v["to"] as string) : undefined;
+  const to = forward !== undefined ? "user" : v["to"] === "pm" || v["to"] === SELF || (typeof v["to"] === "string" && BRAID_TO.test(v["to"])) ? (v["to"] as string) : undefined;
   return {
     code,
     id: v["item"],
@@ -229,10 +232,13 @@ export const programmeOf = (id: string): string | null => /^pm\/(.+)$/.exec(id)?
 
 const same = (r: Request, id: string, by: Asker | undefined): boolean => r.id === id && (by === undefined || askerOf(r) === by);
 
-/** A wait: a request to another braid's coordinator (`to` a braid number). */
-export const isWait = (r: Pick<Request, "to">): boolean => r.to !== undefined && BRAID_TO.test(r.to);
+/** A wait: a request to another braid's coordinator (`to` a braid number), or a timed wait (`to: self`). Neither asks the user. */
+export const isWait = (r: Pick<Request, "to">): boolean => r.to !== undefined && (BRAID_TO.test(r.to) || r.to === SELF);
 
-/** Whether a new request replaces an open one of its asker on its item: a question (to the user or the PM) replaces a question, a wait a wait to the same braid. */
+/** A timed wait (`braid ask <id> "<why>" --to self --done-when time:<iso>`): the asker waits on purpose until a time. */
+export const isTimedWait = (r: Pick<Request, "to">): boolean => r.to === SELF;
+
+/** Whether a new request replaces an open one of its asker on its item: a question (to the user or the PM) replaces a question, a wait a wait to the same braid, a timed wait a timed wait. */
 const replaces = (r: Request, next: Pick<Request, "to">): boolean => (isWait(next) ? r.to === next.to : !isWait(r));
 
 /** Every request and the files that can't be read, from texts by path. */

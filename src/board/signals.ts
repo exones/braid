@@ -144,7 +144,7 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
     // A request whose PR just merged or closed, or whose time came, is closed for the board now; the board's wake step (src/board/wake.ts) records it.
     const record = loadRecord(root).requests.map((r) => ended(r, now, (n) => prOf(github, n)));
     closed = record.filter((r) => r.state !== "open");
-    // A request to another braid's coordinator isn't the user's: no lane and no push (P6); the asking braid's card shows it.
+    // A request to another braid's coordinator isn't the user's: no lane and no push (P6); the asking braid's card shows it. A timed wait (`to: self`) likewise.
     const open = record.filter((r) => r.state === "open");
     waits = open.filter(toBraid);
     requests = open.filter((r) => !toBraid(r));
