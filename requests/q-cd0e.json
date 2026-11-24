@@ -13,6 +13,12 @@
       "event": "opened",
       "at": "2026-11-24T00:00:45.113Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-24T00:15:05.424Z",
+      "by": "user",
+      "text": "q1: maybe after 20? bcs this is most painful on large repos (bcs of constant moving of head)\nq2: A"
     }
   ]
 }
