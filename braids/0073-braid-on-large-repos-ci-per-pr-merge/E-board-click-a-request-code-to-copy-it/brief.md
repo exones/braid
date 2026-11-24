@@ -1,7 +1,7 @@
 ---
 id: '0073/E'
 title: "Board: click a request code to copy it"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S", "ui"]
 dependencies: ['0073/D']
 order: 50
@@ -40,9 +40,9 @@ Second addition from the user (relayed by the PM, 2026-11-23): "for project colo
 
 ## Completion
 
-- [ ] Every code chip copies its code on click, tap or Enter, shows "copied" briefly, and doesn't open the card under it; it has a copy cursor and the tooltip `Copy <code>`
-- [ ] `TAG_COLOURS` has no red, pink, rose, orange or amber, with the rule as a comment above it; the colours stay distinct from each other
-- [ ] Copy works without a secure context (plain http), through the textarea fallback; tests cover both paths
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open, and a screenshot of a chip after a click (desktop and a narrow phone width)
+- [x] Every code chip copies its code on click, tap or Enter, shows "copied" briefly, and doesn't open the card under it; it has a copy cursor and the tooltip `Copy <code>`
+- [x] `TAG_COLOURS` has no red, pink, rose, orange or amber, with the rule as a comment above it; the colours stay distinct from each other
+- [x] Copy works without a secure context (plain http), through the textarea fallback; tests cover both paths
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open, and a screenshot of a chip after a click (desktop and a narrow phone width)
