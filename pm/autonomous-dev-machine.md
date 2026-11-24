@@ -146,6 +146,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-24: P20 · 0073/D merged into its braid branch (#284, 68bee1e): review-bots and reviewer-with-bots, bots read once at green CI (no wait), merge-gate-on and the large-repo docs, braid facts names the gate (avsv); skills shorter per folder (the PM: the rule is per skill, not per file). 0073/E (copy chip, project colours) running. 0071's final PR #285 open.
 - 2026-11-24: user (q-cd0e): "q1: maybe after 20? bcs this is most painful on large repos (bcs of constant moving of head) / q2: A": P22 · 0075 (lifecycle off code branches, one pure lane) outlined after P20; checkout cleanup listed first for the user.
 - 2026-11-24: Fable's review of origin/main (pasted by the user, "See what's already done, planned or would be good to do") captured as ideas 0a0a (lifecycle off code branches + one pure lane, proposed as its own braid before P5), 4bwm (P5), 9xc7 (into 0074), l7dw (P14, P15), vwv0 (P10, P8).
 - 2026-11-24: user: "would be nice if I could click 'Resume' button on the board for a program or a braid": in outline 0074 (programme card: to the PM; braid card: via the PM if PM-run, else direct); P5's Hold and Go reuse the same button and path.
