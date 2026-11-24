@@ -51,6 +51,16 @@ No new rule or special case was added.
 
 - `docs/cli.md`'s `braid clean` row still tied a braid branch's removal to a brief saying `Done`; it now names what clean reads. I searched the docs, README, skills, `src/cli.ts` and the commands' messages for any other tie of clean, status or accept to a stored Done or the stamp. None is left outside `docs/decisions.md`'s history (D102, D105 name the old stamp on purpose) and the lifecycle text about older stored `Done`s. `braid status`'s note "lanes come from stored statuses" without GitHub is kept: without PRs the stored status is the fallback, and two tests pin the text.
 
+## Review round 2
+
+Small factual fixes from the review's suggestions 1, 3, 5, 6 and 7 (2 and 4 left as they are, by the coordinator):
+- `docs/board.md`: the Done date is given in the order `doneAtOf` uses: a stored `status: Done`'s commit date, else the merged PR's merge time, else (a braid with strands) its newest strand's date.
+- `braid/SKILL.md`, Finish: a goal is finished when every strand reads Done in `braid status <number>`. Briefs on the braid branch are no longer stamped.
+- `assets/brief.md`: the strand `braid accept --merge --log -` example gets `--thread`.
+- `braid-worker/SKILL.md`, Start: the worker no longer uses `braid edit` for status.
+- `test/start-clean.test.ts`: the test name and comment say an *older* `braid accept` stamped Done on `origin/<branch>`; wording only.
+- `.agents/skills/` stays at 1079 lines.
+
 ## Open
 
 - CI on Ubuntu failed twice on `test/start-clean.test.ts`, "clean removes a braid's branch when Done is only on origin/<branch>" (0075/B's test). In that fixture strand C isn't merged, so the braid's merged PR doesn't count and the braid reads its stored status. That comes from the copy with the newer commit, with a local branch winning a tie. When the Done commit on `origin` and the local commit fell in the same second, the local `In Progress` won. Fixed in the test only: the Done commit gets a committer date one minute later. The assertion is unchanged. It reproduced here with every commit given the same timestamp, and passes with the fix; the whole file passes (16 tests).

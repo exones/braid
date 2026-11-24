@@ -73,7 +73,7 @@ braid edit 0012/B --dep 0012/A --order 20     # --dep and --labels replace the l
 # coordinator: accept an item; <link>: the review comment (not for tier S); never commits on the PR's branch
 braid accept 0012/A --review <link> --thread <your thread id> --log -
                                               # strand merged: on the braid branch; pulls, commits the log entry, pushes
-braid accept 0012/A --head <reviewed sha> --review <link> --merge --log -
+braid accept 0012/A --head <reviewed sha> --review <link> --thread <your thread id> --merge --log -
                                               # strand on request: merges that head first; --preset: a merge under the braid's preset
 braid accept 0013 --head <reviewed sha> --review <link> --thread <your thread id>
                                               # story or final PR: checks, before the handover

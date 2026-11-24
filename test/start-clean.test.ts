@@ -248,9 +248,9 @@ function stampDone(cwd: string, folder: string): void {
   git(cwd, "commit", "-q", "-am", "done");
 }
 
-test("clean removes a braid's branch when Done is only on origin/<branch>, as braid accept leaves it", async () => {
+test("clean removes a braid's branch when Done is only on origin/<branch>, as an older braid accept left it", async () => {
   const { root, env, prs } = await started();
-  // braid accept stamps Done on origin/<branch> only; the local branch stays one commit behind.
+  // An older braid accept stamped Done on origin/<branch> only; the local branch stays one commit behind.
   git(root, "checkout", "-q", "braid/0001-alpha");
   const behind = git(root, "rev-parse", "HEAD");
   stampDone(root, "braids/0001-alpha");

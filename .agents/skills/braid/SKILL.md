@@ -195,7 +195,7 @@ When your first message names a PM thread (a `braid-pm` programme manager launch
 
 A story is finished when the user merges its PR.
 
-A goal, when every strand is Done on the braid branch (the docs strand, if planned, included):
+A goal, when every strand reads Done in `braid status <number>` (the docs strand, if planned, included):
 
 1. Run `braid wait <number> --timeout 0.25` (exits as in "Accept and hand over" step 3). Merge `main` into the braid branch, open one PR from it into `main` and watch it.
 2. In one commit, tick the braid's boxes that now hold, write its `report.md` naming any box left open and why, and add a closing log entry.

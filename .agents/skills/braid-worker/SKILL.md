@@ -13,7 +13,7 @@ Do one item from its brief, hand it back, and stop.
 2. Check where you are with `git status -sb` and `git log -1 --oneline`. If they don't match the first message, tell the coordinator what you see and write nothing until it answers.
 3. Use `setup` (first, in a new worktree), `shell` and `test` when provided; otherwise follow project conventions.
 
-The PR goes into the base branch the first message names (`main` for a story, the braid branch for a strand). You own your item's folder on your branch: edit `brief.md` and `report.md` directly and run `braid check`; use `braid edit` for status and `braid log --thread <your thread id>` for log entries ("Your thread id" in the first message, never the thread you send your result to). You don't create, split or restructure items or change other items. Commands are in [the brief template](../braid/assets/brief.md).
+The PR goes into the base branch the first message names (`main` for a story, the braid branch for a strand). You own your item's folder on your branch: edit `brief.md` and `report.md` directly and run `braid check`; use `braid log --thread <your thread id>` for log entries ("Your thread id" in the first message, never the thread you send your result to). You don't create, split or restructure items or change other items. Commands are in [the brief template](../braid/assets/brief.md).
 
 ## Work
 
