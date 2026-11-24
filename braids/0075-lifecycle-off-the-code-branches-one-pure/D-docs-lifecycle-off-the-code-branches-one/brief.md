@@ -1,7 +1,7 @@
 ---
 id: '0075/D'
 title: "Docs: Lifecycle off the code branches, one pure lane"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0075/A', '0075/B', '0075/C']
 order: 40
@@ -29,7 +29,13 @@ Expected size: about 150 lines changed in 10 files, net fewer lines in `.agents/
 
 ## Completion
 
-- [ ] The braid skills say nothing that only the old Done stamp needed, and `.agents/skills/` has fewer lines than at the braid's start (report.md gives both counts)
-- [ ] Docs from BRAID.md `docs` are brought up to date as a whole; report.md lists each doc as updated or unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The braid skills say nothing that only the old Done stamp needed, and `.agents/skills/` has fewer lines than at the braid's start (report.md gives both counts)
+- [x] Docs from BRAID.md `docs` are brought up to date as a whole; report.md lists each doc as updated or unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- Skills: drop the Done stamp's traces: the stamp exception to one writer per branch, the re-watch of a story PR after accept, "merged but not stamped", the worker's `In Progress` first commit (`braid start` records `started`), "stamps Done"/"sets Done" wording, Done rows in the branches table; the coordinator passes `--thread` to `braid start`. Each edit removes or shortens text; nothing new.
+- Docs: getting-started (Done after the merge), board.md (Done date from the PR's merge), decisions (D102's "Done stamp" wording; D106 the pure lane), roadmap (0075 line). README, cli.md, autonomy.md, braids-format.md, help text, development.md, npm-distribution.md: check, B and C already updated the CLI's own docs.
+- Count `.agents/skills/` lines the same way as the baseline (all tracked files concatenated, `git ls-files | xargs cat | wc -l`), run the gate in parts, report.

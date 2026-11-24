@@ -13,12 +13,12 @@ Do one item from its brief, hand it back, and stop.
 2. Check where you are with `git status -sb` and `git log -1 --oneline`. If they don't match the first message, tell the coordinator what you see and write nothing until it answers.
 3. Use `setup` (first, in a new worktree), `shell` and `test` when provided; otherwise follow project conventions.
 
-The PR goes into the base branch the first message names (`main` for a story, the braid branch for a strand). You own your item's folder on your branch: edit `brief.md` and `report.md` directly and run `braid check`; use `braid edit` for status and `braid log --thread <your thread id>` for log entries ("Your thread id" in the first message, never the thread you send your result to). You don't create, split or restructure items or change other items. Commands are in [the brief template](../braid/assets/brief.md).
+The PR goes into the base branch the first message names (`main` for a story, the braid branch for a strand). You own your item's folder on your branch: edit `brief.md` and `report.md` directly and run `braid check`; use `braid log --thread <your thread id>` for log entries ("Your thread id" in the first message, never the thread you send your result to). You don't create, split or restructure items or change other items. Commands are in [the brief template](../braid/assets/brief.md).
 
 ## Work
 
 - "Start here" and "Already decided" are context; you write the plan. "Already decided" is settled; don't re-investigate it.
-- Set the item `In Progress` in your first commit (`braid edit <id> --status 'In Progress'`) and push that commit at once. Before coding, write your plan into the brief's `## Plan` section. Log decisions and findings with the commit they explain. Apply brief changes the coordinator sends.
+- Before coding, write your plan into the brief's `## Plan` section (`braid start` already marked the item started). Log decisions and findings with the commit they explain. Apply brief changes the coordinator sends.
 - **Converge loop.** If the item is `ui`, or the brief says the user chooses the shape (design, names, wording), first make a proposal on realistic test data (mockups for UI), commit it, report it and stop. Log each verdict the coordinator passes on; build only once the user approved.
 - **Context first.** Whatever is meant for the user (a proposal, a question, the `Needs the user` and `You` lines) starts with one or two short sentences of context: what it is about and why it comes up now, enough to answer without reading anything else. Name the thing itself, never a list number.
 - **Docs stay true.** In the same PR, update every doc from `docs` in `BRAID.md` (without it, `README.md` and `docs/`) that your change makes untrue or incomplete, and the project's decisions record for what the user decided. With `docs.update: on-demand` and no docs Completion box, document only the user's decisions. Docs that need the user's go (`AGENTS.md`, `CLAUDE.md`, `BRAID.md`, skills) go under `For later items:` as proposals, unless your brief allows editing them. Unconfirmed proposals stay in `report.md`.
@@ -47,10 +47,10 @@ The PR goes into the base branch the first message names (`main` for a story, th
    - Pending: end the turn.
    - Failed: read the log (`gh run view <run-id> --log-failed`), fix, run the gate, push, and end the turn.
    - Blocked: tell the coordinator the cause and who can fix it.
-   - Green: with `review-bots` in `BRAID.md`, read their threads once; per comment fix it, answer why not, or mark it a nit; push fixes in one push, reply on each comment and resolve its thread (`gh api graphql`, `resolveReviewThread`). Report a silent named bot as `<bot>: no review`; never wait for one. After a push go back to step 3, otherwise to step 5. Make no other commit after green; never set the item Done (the coordinator accepts after review).
+   - Green: with `review-bots` in `BRAID.md`, read their threads once; per comment fix it, answer why not, or mark it a nit; push fixes in one push, reply on each comment and resolve its thread (`gh api graphql`, `resolveReviewThread`). Report a silent named bot as `<bot>: no review`; never wait for one. After a push go back to step 3, otherwise to step 5. Make no other commit after green; the coordinator accepts after review.
 5. When every required check is green on your latest commit (with `ci: none`, once the gate passed), stop any server or browser you started, call `unwatch_pull_request` if you watched, then write the final report below as your last chat message and send the same text to the coordinator with `t3_thread_send`, adding the head commit. You're done.
 
-If the coordinator later sends review findings, fix them on the same branch and PR in one push per round (each push runs CI), rewrite `report.md` so it describes the PR as it stands (history goes in your log), and repeat steps 3–5. After pushing, do step 3 again in full (watch, then check once). Leave the status `In Progress`.
+If the coordinator later sends review findings, fix them on the same branch and PR in one push per round (each push runs CI), rewrite `report.md` so it describes the PR as it stands (history goes in your log), and repeat steps 3–5. After pushing, do step 3 again in full (watch, then check once).
 
 ## Final report
 

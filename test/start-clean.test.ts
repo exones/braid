@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -248,12 +248,15 @@ function stampDone(cwd: string, folder: string): void {
   git(cwd, "commit", "-q", "-am", "done");
 }
 
-test("clean removes a braid's branch when Done is only on origin/<branch>, as braid accept leaves it", async () => {
+test("clean removes a braid's branch when Done is only on origin/<branch>, as an older braid accept left it", async () => {
   const { root, env, prs } = await started();
-  // braid accept stamps Done on origin/<branch> only; the local branch stays one commit behind.
+  // An older braid accept stamped Done on origin/<branch> only; the local branch stays one commit behind.
   git(root, "checkout", "-q", "braid/0001-alpha");
   const behind = git(root, "rev-parse", "HEAD");
   stampDone(root, "braids/0001-alpha");
+  // The newest commit's copy wins and a local branch wins a tie: date the stamp a minute later, so a fast run can't tie.
+  const later = `${Number(git(root, "log", "-1", "--format=%ct", behind)) + 60} +0000`;
+  assert.equal(spawnSync("git", ["commit", "-q", "--amend", "--no-edit"], { cwd: root, env: { ...process.env, GIT_COMMITTER_DATE: later } }).status, 0);
   git(root, "push", "-q", "origin", "braid/0001-alpha");
   git(root, "reset", "-q", "--hard", behind);
   git(root, "checkout", "-q", "main");
