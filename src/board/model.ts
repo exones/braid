@@ -54,6 +54,8 @@ export interface Need {
   readonly code?: string;
   /** The T3 link of the thread that asked (always the asker's, also when the PM forwarded it); null when T3 doesn't list it. Set with `code`. */
   readonly asking?: string | null;
+  /** A second need shown under this one: a broken wait (past its estimate, or a gone addressee) on a braid that also has a question open; both need the user. */
+  readonly also?: Need;
 }
 
 /** What Merge on request needs of an item with an open review request: what the confirmation shows, and why it can't be asked for yet. */
@@ -427,10 +429,10 @@ export function derive(status: Status, labels: readonly string[], key: string, g
     pmAsk === null ? { lane, pr, reason, need, ask, agents, activity, pause, pm, pmAsk } : { lane: "Waiting", pr, reason: lane === "Waiting" && reason !== null ? reason : pmAsk.kind as Reason, need: need ?? pmAsk, ask, agents, activity, pause, pm, pmAsk };
   if (req !== undefined && routed !== undefined) {
     const r = requestLane(req, sig.now, routed, t3);
-    return out(r.lane, r.reason, r.need);
+    return out(r.lane, r.reason, broken === null || r.need === null ? r.need : { ...r.need, also: broken });
   }
   if (question) {
-    return out("Waiting", "question", { ...plain, kind: "question", text: "An agent asked a question: answer it in its thread", verb: "asked", age: null, since: null });
+    return out("Waiting", "question", { ...plain, kind: "question", text: "An agent asked a question: answer it in its thread", verb: "asked", age: null, since: null, ...(broken === null ? {} : { also: broken }) });
   }
   if (stored === "Done" && pr !== null) {
     return out("In Review", null, { ...plain, kind: "review", text: `Merge PR #${pr.number}`, verb: "asked", age: null, since: null, pr: pr.number });
@@ -653,6 +655,8 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     own = { lane: "Waiting", reason: "stalled", need: { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(pausedStall, sig.now), since: pausedStall } };
   } else if (broken !== null && own === null) {
     own = { lane: "Waiting", reason: "stalled", need: broken };
+  } else if (broken !== null && own?.need != null && own.need.kind !== "stalled") {
+    own = { ...own, need: { ...own.need, also: broken } };
   }
   const limit = paused === null || own?.lane === "Waiting" ? null : limitNeed(paused, sig.now);
   if (limit !== null) {

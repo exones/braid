@@ -44,7 +44,7 @@ test("braid eta sets an estimate, a later call moves it, each an eta event with 
   assert.equal(r.events.filter((e: any) => e.event === "eta").length, 2);
   const history = Cmd.requestsCommand(w.root, [code]);
   assert.match(history, /eta 2026-11-23T11:50:00.000Z/);
-  assert.match(history, /eta +the coordinator: 2026-11-23T10:50:00.000Z \(reason: after strand 0002\/C merges\)/);
+  assert.match(history, /eta +the 0002 coordinator: 2026-11-23T10:50:00.000Z \(reason: after strand 0002\/C merges\)/);
   const list = Cmd.requestsCommand(w.root, [], { gh: w.opts.gh, now: () => at(20) });
   assert.match(list, new RegExp(`expected by ${clock(at(110).toISOString(), at(20))} {2}Can search ship`));
 });
@@ -227,6 +227,21 @@ test("a wait past its estimate reads stalled at once, with the estimate; a new e
     assert.equal(model.toCard(b, GH, T3(), sig([wait({ eta: ago(-30) })])).lane, "In Progress", "an estimate still to come");
     assert.equal(model.toCard(b, GH, T3(), sig([wait({ eta: ago(20) })], {}, ["0007"])).reason, null, "held: no stall");
     assert.equal(model.toCard(b, GH, T3(), sig([wait({ eta: ago(20) })], {}, ["0002"])).reason, null, "the braid it waits on is held: no stall");
+  }
+});
+
+test("a braid with an open question and a missed estimate or a gone addressee shows the question first and the red line under it", () => {
+  for (const [t3, extra, text] of [
+    [T3(), { eta: ago(20) }, `Stalled: waiting on braid 0002 past its estimate ${clock(ago(20), NOW)}`],
+    [T3(false), {}, "Stalled: waiting on braid 0002, whose coordinator is gone"],
+  ] as const) {
+    const question = Rec.newRecord({ id: "0007", kind: "question", text: "Which rounding rule?", at: ago(5), thread: ASKER, code: "q-q001" });
+    const s: any = sig([wait(extra)], { "0007 wait stalled": 12 });
+    s.requests = new Map([["0007", question]]);
+    const c = model.toCard(braid(false), GH, t3, s);
+    assert.equal(c.need?.code, "q-q001", "the question first");
+    assert.equal(c.need?.also?.text, text, "the red line under it");
+    assert.equal(c.need?.also?.kind, "stalled");
   }
 });
 

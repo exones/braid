@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, git } from "../braids/gitbranch.js";
-import { addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isWait, KINDS, liveRequests, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
@@ -465,6 +465,11 @@ function whomOf(r: Request): string {
   return askerOf(r) === "pm" ? "from the PM  " : r.forwarded !== undefined ? "forwarded by the PM  " : r.to === "pm" ? "to the PM  " : r.to !== undefined && BRAID_TO.test(r.to) ? `to braid ${r.to}  ` : "";
 }
 
+/** Who an event is by; an estimate's coordinator is named by its braid (the addressee's), as the board's details panel says. */
+function whoOf(r: Request, event: string, by: Who): string {
+  return by === "coordinator" && event === "eta" ? `the ${BRAID_TO.test(r.to ?? "") ? (r.to ?? "") : r.id.slice(0, 4)} coordinator` : (WHO[by] ?? by);
+}
+
 /** One request with every event: `braid requests <code>`. */
 function history(r: Request): string {
   const facts = [
@@ -476,7 +481,7 @@ function history(r: Request): string {
     ...(r.thread === null ? [] : [`thread ${r.thread}`]),
     ...(r.eta === null ? [] : [`eta ${r.eta}`]),
   ];
-  const events = r.events.map((e) => `${stamp(e.at)}  ${e.event.padEnd(9)}  ${WHO[e.by] ?? e.by}${e.text === undefined ? "" : `: ${oneLine(e.text)}`}${e.reason === undefined ? "" : ` (reason: ${e.reason})`}`);
+  const events = r.events.map((e) => `${stamp(e.at)}  ${e.event.padEnd(9)}  ${whoOf(r, e.event, e.by)}${e.text === undefined ? "" : `: ${oneLine(e.text)}`}${e.reason === undefined ? "" : ` (reason: ${e.reason})`}`);
   return `${r.code}  ${r.id}  ${r.kind}  ${r.state}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
 }
 
@@ -536,12 +541,15 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
   if (loadRequests(root).some((r) => r.doneWhen.startsWith("braid:"))) {
     git(root, ["fetch", "-q", "origin", main]);
   }
-  const list: Request[] = liveRequests(root, { pr: prOf, braidDone: braidDoneOn(root, main), now: (opts.now ?? (() => new Date()))() });
+  const list: Request[] = loadRequests(root);
+  const ends = holding(list, { pr: prOf, braidDone: braidDoneOn(root, main), now: (opts.now ?? (() => new Date()))() });
   if (list.length === 0) {
     return `${offline}${skipped()}no open requests\n`;
   }
   const now = (opts.now ?? (() => new Date()))();
   const when = (r: Request): string => (r.doneWhen === "answered" || r.kind === "review" ? "" : `done when ${r.doneWhen}  `);
   const eta = (r: Request): string => (r.eta === null ? "" : `expected by ${clock(r.eta, now)}  `);
-  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${r.kind}  ${age(r.at, now)}  ${whomOf(r)}${when(r)}${eta(r)}${r.text}`).join("\n")}\n`;
+  // A condition that holds is still open: only the running board's tick closes it (and wakes the asker).
+  const holds = (r: Request): string => (ends.get(r.code)?.state === "met" ? "condition holds: the board wakes the asker  " : ends.has(r.code) ? "condition holds: the board withdraws it  " : "");
+  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${r.kind}  ${age(r.at, now)}  ${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}`).join("\n")}\n`;
 }

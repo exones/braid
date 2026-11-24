@@ -143,13 +143,12 @@ test("ask --to a braid number and --done-when: stored, shown; a pr: condition is
   // Not the user's: the board neither shows it as theirs nor pushes it.
   const sig = readSignals(w.root, { status: { state: "unavailable", reason: "test" }, prs: new Map() });
   assert.deepEqual([sig.requests.has("0001/A"), sig.requests.has("0001")], [false, true]);
-  // The board's pure filter hides it once the PR merged; braid requests records it as met.
+  // The board's pure filter hides it once the PR merged; braid requests keeps it open, marked, and the board's tick records it.
   w.prs[0]!.state = "MERGED";
   const merged = () => ({ state: "MERGED", headRefOid: "x" });
   assert.equal(Rec.filterLive([{ kind: "question", doneWhen: "pr:5" }, { kind: "question", doneWhen: "answered" }], merged).length, 1);
-  assert.doesNotMatch(R.requestsCommand(w.root, [], { gh: w.opts.gh }), /Wait for strand A's PR/);
-  const met = record(w.root, codeOf(wait));
-  assert.deepEqual([met.state, met.events.at(-1)?.by, met.events.at(-1)?.text], ["met", "board", "PR #5 merged"]);
+  assert.match(R.requestsCommand(w.root, [], { gh: w.opts.gh }), /condition holds: the board wakes the asker {2}Wait for strand A's PR/);
+  assert.equal(record(w.root, codeOf(wait)).state, "open", "a read closes nothing");
   assert.equal(record(w.root, codeOf(other)).state, "open", "braid: conditions are only stored");
 });
 

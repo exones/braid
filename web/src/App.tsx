@@ -226,6 +226,7 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
       {need.text}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {parts.length > 0 && <small className="mt-px block text-[11px] text-slate-500">{parts.join(" · ")}</small>}
+      {need.also !== undefined && <NeedLine need={need.also} />}
     </div>
   );
 }
@@ -1132,6 +1133,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
           {item.need.code !== undefined && <><CodeChip code={item.need.code} />{" "}</>}
           {item.need.text}
+          {item.need.also !== undefined && <div className={`mt-2 rounded-md border-l-[3px] px-1.5 py-1 ${toneOf(item.need.also)}`}>{item.need.also.text}</div>}
           {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.code}</b> in any thread to refer to it.</span></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
@@ -1249,6 +1251,7 @@ function RequestCard({ row }: { row: RequestRow }) {
 /** An open request's opening, estimates and reminders, oldest first: who did what when. */
 function RequestHistory({ row }: { row: RequestRow }) {
   // The estimate comes from the addressee: another braid's coordinator, or the PM.
+  // The same words as `braid requests <code>`: the coordinator is named by its braid.
   const whoOf = (event: string, by: string): string => (by === "coordinator" ? (event === "eta" && /^\d{4}$/.test(row.to) ? `the ${row.to} coordinator` : `the ${row.item.slice(0, 4)} coordinator`) : (WHO[by] ?? by));
   return (
     <ul className="mt-1.5 list-none p-0 text-[12.5px] text-slate-700">
