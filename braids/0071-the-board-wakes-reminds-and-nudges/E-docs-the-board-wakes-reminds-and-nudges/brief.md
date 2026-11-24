@@ -1,7 +1,7 @@
 ---
 id: '0071/E'
 title: "Docs: The board wakes, reminds and nudges"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: ['0071/A', '0071/B', '0071/C', '0071/D']
 order: 50
@@ -36,9 +36,13 @@ Expected size: about 190 lines in 8 files.
 
 ## Completion
 
-- [ ] Every doc in BRAID.md `docs` checked against what 0071 changed, and report.md lists each as updated or unchanged
-- [ ] A `pm/<slug>` review record is replaced by the next one for that item and dropped once its thread stops running; a test covers it
-- [ ] `docs/decisions.md` has the dated decision for the board acting without a click and the rf9z decision
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Every doc in BRAID.md `docs` checked against what 0071 changed, and report.md lists each as updated or unchanged
+- [x] A `pm/<slug>` review record is replaced by the next one for that item and dropped once its thread stops running; a test covers it
+- [x] `docs/decisions.md` has the dated decision for the board acting without a click and the rf9z decision
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Code first (ozjp: a `pm/<slug>` record replaces the older one; the board drops it once T3 says its thread isn't running), then read the docs as a whole and fix what is stale: README, getting-started, roadmap, board (the exceptions line), cli and braids-format (the checker record), decisions (D100 the board acting without a click, D101 a wait replaces only a wait, D45 and D89 notes).

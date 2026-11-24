@@ -351,10 +351,14 @@ test("a PM's checker recorded on its programme (pm/<slug>) keeps the programme r
   assert.equal(await reviewCommand(root, ["pm/working-product", "--thread", child(1)], { t3: run }), `pm/working-product: review thread ${child(1)} recorded (no checkout yet (T3 gives no folder); braid clean will ask T3)\n`);
   await reviewCommand(root, ["pm/working-product", "--thread", child(2)], { t3: run });
   await assert.rejects(reviewCommand(root, ["pm/Bad Slug", "--thread", child(1)], { t3: run }), /0001|Bad/);
-  assert.deepEqual(loadReviews(root).map((r) => [r.id, r.folder]), [["pm/working-product", undefined], ["pm/working-product", undefined]]);
+  assert.deepEqual(loadReviews(root).map((r) => [r.id, r.folder]), [["pm/working-product", undefined]], "the newer record replaces the older one (ozjp)");
+  await reviewCommand(root, ["pm/working-product", "--thread", child(1)], { t3: run });
+  assert.deepEqual(loadReviews(root).map((r) => r.thread), [child(1)]);
   let read = await t3mod.readT3(root, { run, ttlMs: 0, agents: join(scratch, "none"), project: root });
   assert.deepEqual([...read.threads.keys()], [], "a checker is no item's reviewer");
-  assert.deepEqual(read.pmChecks, ["pm/working-product"], "only the one that runs counts");
+  assert.deepEqual(read.pmChecks, ["pm/working-product"], "it runs");
+  assert.equal(loadReviews(root).length, 1, "a running checker's record stays");
   read = await t3mod.readT3(root, { run: t3({ [child(1)]: { status: "completed" } }), ttlMs: 0, agents: join(scratch, "none"), project: root });
   assert.deepEqual(read.pmChecks, [], "it ended");
+  assert.deepEqual(loadReviews(root), [], "the board dropped the record of the ended checker");
 });
