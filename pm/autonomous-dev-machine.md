@@ -146,6 +146,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-24: PM live check of 0071 #290 at 6b64f9f (throwaway clone, fake t3/gh): wakes, reminder, missed-estimate line, nudge, holds, slim cards, eta all work; 655/655 tests. Blocking: plain `braid requests` closes met waits without a wake and ignores holds (liveRequests); sent back as a fix with two small wording/visibility items. Two boards started at the same instant double-send a wake: to P21 · 0074 (acting-board lock).
 - 2026-11-24: P6 · 0071 all strands merged (F fixed `braid eta`); final PR #290 at 6b64f9f opened, review and CI running; the board half of the try is the PM's live check. es8z to P15.
 - 2026-11-24: P20 · 0073 final PR #287 opened; its review blocked: the braid skill folder 270 words longer than main (the BRAID.md template grew), and docs naming `braid facts` for ci: all. Fix strand 0073/F (template explanations move to braids-format.md). PM (q-pxl3): box 3 says `braid recap`, a wording slip, instead of asking the user.
 - 2026-11-24: P6 · 0071/E merged (#285); main merged into the braid branch. The coordinator's try found `braid eta` unreachable (wired into dispatch and help, not BRAID_COMMANDS: Fable's "a command is registered in four places", l7dw, P14); fix strand 0071/F running.
