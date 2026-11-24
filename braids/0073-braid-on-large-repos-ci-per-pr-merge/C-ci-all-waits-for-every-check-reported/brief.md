@@ -23,7 +23,7 @@ Expected size: about 150 lines of code and tests in 4 to 6 files, plus docs.
 
 - `ci: all`: the required checks are every check run reported on the commit (by name; the newest run per name), excluding none.
 - `braid wait`: with `ci: all`, it waits for every check reported on the answering commit; it doesn't call it green until a start grace (say 2 minutes after the CI commit's first run appeared, or the existing 5-minute start limit when none has; the worker decides and documents) has passed without a new check appearing and all reported ones finished. No run at all within the start limit is exit 2, as now.
-- `braid accept`, `braid handover`, `braid facts`: with `ci: all`, every reported check must have passed, and at least one must be reported; a pending one is pending as now. These read once; the grace is `braid wait`'s.
+- `braid accept`, `braid handover`, `braid recap`: with `ci: all`, every reported check must have passed, and at least one must be reported; a pending one is pending as now. These read once; the grace is `braid wait`'s.
 - `ci: []` and `ci: none` keep today's behaviour; the template's line says exactly what each of `[]`, `all`, a list and `none` means (today it says `[]` is every reported check, which `braid wait` doesn't do: make the text true).
 - Tests per command: `all` with every check green, one failed, one pending, none reported; for `braid wait` a check appearing inside the grace keeps it waiting.
 - Docs: template line, `docs/braids-format.md`, `docs/cli.md`, help text, a decision in `docs/decisions.md`.
@@ -41,7 +41,7 @@ Expected size: about 150 lines of code and tests in 4 to 6 files, plus docs.
 
 ## Completion
 
-- [x] With `ci: all`, `braid wait` waits for every check reported after a start grace and exits 0 only when all passed; `braid accept`, `braid handover` and `braid facts` require at least one reported check and all passed; tests cover green, failed, pending, none reported and a late check
+- [x] With `ci: all`, `braid wait` waits for every check reported after a start grace and exits 0 only when all passed; `braid accept`, `braid handover` and `braid recap` require at least one reported check and all passed; tests cover green, failed, pending, none reported and a late check
 - [x] `braid clean` keeps a braid branch whose braid is not Done, even after a merged PR from it, with a test
 - [x] The template and docs say exactly what `[]`, `all`, a list and `none` mean
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected

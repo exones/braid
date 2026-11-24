@@ -1,7 +1,7 @@
 ---
 id: '0073/F'
 title: "Fix: final review, braid skill no longer than on main"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 60
@@ -41,8 +41,8 @@ Expected size: about 270 words moved out of the template into the docs, plus a f
 
 ## Completion
 
-- [ ] The braid skill folder's `wc -w` sum is at most its sum on `origin/main`, with both numbers in report.md
-- [ ] The template keeps every key from 0073 with an example; their explanations live in the docs, and the template links to them
-- [ ] Docs name `braid wait`, `braid accept`, `braid handover` and `braid recap` (not `braid facts`) for `ci: all`, and give the start grace to `braid wait` only
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The braid skill folder's `wc -w` sum is at most its sum on `origin/main`, with both numbers in report.md
+- [x] The template keeps every key from 0073 with an example; their explanations live in the docs, and the template links to them
+- [x] Docs name `braid wait`, `braid accept`, `braid handover` and `braid recap` (not `braid facts`) for `ci: all`, and give the start grace to `braid wait` only
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
