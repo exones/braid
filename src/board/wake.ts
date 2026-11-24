@@ -10,19 +10,24 @@
 // The one gap left is a board that dies between the send and the local commit: that wake may come twice.
 import { braidAt } from "../braids/branches.js";
 import { gitAsync } from "../braids/gitio.js";
+import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
+import type { PullRequest } from "./github.js";
 import { conditionEnding, endRequest, loadRecord, programmeOf, type Ending, type Request } from "../braids/requests.js";
 import type { PlanRead } from "./plans.js";
 import type { Good } from "./feed.js";
 import { prOf } from "./signals.js";
 import type { T3Runner } from "./t3.js";
 
-/** Whether braid `number` is Done on `origin/<main>`; each braid read once per call of this. Null: not there. */
-export function braidDoneOn(root: string, main: string): (number: string) => boolean | null {
+/**
+ * Whether braid `number`, as `origin/<main>` has it, is Done: its PR merged after its strands, or an older stored Done
+ * (`withStatuses`); `prs` gives the PRs when GitHub can be read, else null. Each braid read once per call of this. Null: not there.
+ */
+export function braidDoneOn(root: string, main: string, prs: () => ReadonlyMap<string, PullRequest> | null): (number: string) => boolean | null {
   const memo = new Map<string, boolean | null>();
   return (number) => {
     if (!memo.has(number)) {
       const b = braidAt(root, `origin/${main}`, number);
-      memo.set(number, b === null ? null : b.brief.status === "Done");
+      memo.set(number, b === null ? null : withStatuses(b, loadLifecycle(root), prs() ?? new Map()).brief.status === "Done");
     }
     return memo.get(number) ?? null;
   };
@@ -86,7 +91,7 @@ export function waker(t3: T3Runner): Waker {
     if (open.some((r) => r.doneWhen.startsWith("braid:"))) {
       await gitAsync(root, ["fetch", "-q", "origin", main]).catch(() => undefined);
     }
-    const check = { pr: (n: number) => prOf(good.github, n), braidDone: braidDoneOn(root, main), now: at };
+    const check = { pr: (n: number) => prOf(good.github, n), braidDone: braidDoneOn(root, main, () => (good.github.status.state === "ok" ? good.github.prs : null)), now: at };
     for (const r of open) {
       const e = conditionEnding(r, check);
       if (e === null) {

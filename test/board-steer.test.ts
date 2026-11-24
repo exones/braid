@@ -82,7 +82,7 @@ const braidsOf = () =>
 function good(root: string, caches: string, at: Date, t3 = threads()) {
   const pauses = new Map(loadPauses(root).pauses.map((p: { braid: string }) => [p.braid, p]));
   const limits = readLimitsView(root, t3, pauses, at, caches);
-  return { braids: braidsOf(), t3, board: { limits, programmes: [{ thread: "pm-1", braids: ["0070"], section: "working" }] } };
+  return { braids: braidsOf(), t3, board: { braids: [], limits, programmes: [{ thread: "pm-1", braids: ["0070"], section: "working" }] } };
 }
 
 interface Call {

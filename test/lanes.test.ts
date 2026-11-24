@@ -57,11 +57,14 @@ function sig(requests: object[] = [], held: Record<string, number> = {}) {
 }
 const lane = (status: string, g: unknown, t: unknown, s: Signals, labels: string[] = []) => model.derive(status, labels, KEY, g, t, s);
 
-test("a merged PR or a stored Done with no open PR is Done, whatever else is open", () => {
+test("Done, as statusOf reads it (a merged PR, or a stored Done with no open PR), is Done, whatever else is open", () => {
   const s = sig([request("question")], {});
-  assert.equal(lane("In Progress", gh(pr("merged")), t3([thread()]), s).lane, "Done");
+  assert.equal(lane("Done", gh(pr("merged")), t3([thread()]), s).lane, "Done");
   assert.equal(lane("Done", gh(null), t3(), s).lane, "Done");
-  assert.equal(lane("Done", gh(pr("closed")), t3(), sig()).lane, "To Do", "a closed PR never makes Done");
+  // A card reads it from the PR: a merged strand whose brief still says In Progress is Done.
+  const story = demo.demoBraids().find((b: { strands: unknown[] }) => b.strands.length === 0);
+  const merged = model.toCard({ ...story, brief: { ...story.brief, status: "In Progress" } }, { status: { state: "ok" }, prs: new Map([[story.number, pr("merged")]]) }, t3(), sig());
+  assert.deepEqual([merged.lane, merged.status], ["Done", "Done"]);
 });
 
 test("an open review request is To Review; another open request is Needs You with its text", () => {

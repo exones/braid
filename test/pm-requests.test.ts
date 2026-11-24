@@ -40,7 +40,7 @@ function sig(requests: object[], pauses: object[] = []): any {
   const clock = signals.brokeClock({}, NOW);
   return { now: NOW, requests: new Map(requests.map((r) => [(r as { id: string }).id, r])), pauses: new Map(pauses.map((p) => [(p as { braid: string }).braid, p])), alarm: clock.alarm };
 }
-const derive = (status: string, g: object, t: object, s: object): any => model.derive(status, [], KEY, g, t, s);
+const derive = (status: string, g: object, t: object, s: object, accepted: string | null = null): any => model.derive(status, [], KEY, g, t, s, accepted);
 
 test("a request to the PM keeps the lane the other state gives, with the PM line and no need", () => {
   const working = derive("In Progress", gh(PR), t3(), sig([request("question", 3)]));
@@ -428,9 +428,10 @@ test("a hold with no words (a plan's state: held) reads without empty quotes", (
   assert.equal(pauseMod.pauseView({ ...hold(), words: "  " }, NOW).text, "Held: the plan says held");
 });
 
-test("0069/A: a story stamped Done with its PR open and a review forwarded by the PM is To Review, forwarded, pushed once (0068's case)", () => {
+test("0069/A: a story accepted with its PR open and a review forwarded by the PM is To Review, forwarded, pushed once (0068's case)", () => {
   const forwarded = request("review", 5, { pr: 7, to: "user", forwarded: ago(1), note: "live check passed · merge PR #7" });
-  const d = derive("Done", gh(PR), t3(), sig([forwarded]));
+  // `braid accept` records the acceptance on the record branch; the brief keeps In Progress (statusOf gives `accepted`).
+  const d = derive("In Progress", gh(PR), t3(), sig([forwarded]), "abc1234");
   assert.equal(d.lane, "In Review");
   assert.equal(d.need.via, "forwarded");
   assert.match(d.need.text, /live check passed/);
@@ -438,21 +439,21 @@ test("0069/A: a story stamped Done with its PR open and a review forwarded by th
   assert.equal(pushes.length, 1);
   assert.match(pushes[0].title, /the PM asks$/);
   assert.equal(pushes[0].priority, "high");
-  // While the PM still checks it, the Done stamp shows the merge as To Review but the card says the PM is on it.
-  const handled = derive("Done", gh(PR), t3(), sig([request("review", 5, { pr: 7 })]));
+  // While the PM still checks it, the acceptance shows the merge as To Review but the card says the PM is on it.
+  const handled = derive("In Progress", gh(PR), t3(), sig([request("review", 5, { pr: 7 })]), "abc1234");
   assert.equal(handled.lane, "In Review");
-  // The cause found: when the PR lookup misses the story's PR, a stored Done used to drop the open request (lane Done, no push).
-  const missed = derive("Done", gh(), t3(), sig([forwarded]));
+  // When the PR lookup misses the story's PR, the item isn't Done (no merge seen), so the open request still decides.
+  const missed = derive("In Progress", gh(), t3(), sig([forwarded]));
   assert.equal(missed.lane, "In Review");
   assert.equal(missed.need.via, "forwarded");
   assert.equal(message.pushesOf(board({ ...cardOf(missed), pr: null })).length, 1, "the missed PR is pushed once too");
-  // Still with the PM: a stored Done with a missed PR and a review reads To Do with the PM line, never Done or To Review.
-  const still = derive("Done", gh(), t3(), sig([request("review", 5, { pr: 7 })]));
-  assert.equal(still.lane, "To Do");
+  // Still with the PM: a missed PR and a review read Working with the PM line, never Done or To Review.
+  const still = derive("In Progress", gh(), t3(), sig([request("review", 5, { pr: 7 })]));
+  assert.equal(still.lane, "In Progress");
   assert.equal(still.need, null);
   assert.equal(still.pm.text, "The PM is checking: PR #7, its live check runs");
   assert.deepEqual(message.pushesOf(board({ ...cardOf(still), pr: null })), []);
-  // Without a request, a stored Done with no PR stays Done; a merged PR is Done whatever is open.
+  // Done (a merged PR, or an older stored Done with no PR) is Done whatever is open.
   assert.equal(derive("Done", gh(), t3(), sig([])).lane, "Done");
   assert.equal(derive("Done", gh({ ...PR, state: "merged" }), t3(), sig([forwarded])).lane, "Done");
 });

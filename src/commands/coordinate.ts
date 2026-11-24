@@ -125,9 +125,7 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
   const pr = card.pr === null ? "-" : `#${card.pr.number} ${card.pr.state}`;
   const lane = card.reason !== null ? `${LANE_LABEL[card.lane]} (${card.reason})` : card.pause !== null ? `${LANE_LABEL[card.lane]} (${laneNote(card.pause)})` : LANE_LABEL[card.lane];
   const ask = card.ask === null ? "" : `  ask:${card.ask}`;
-  // Merged but not stamped (a merge in GitHub's UI, or a run that stopped after the merge): the coordinator's next step.
-  const hint = card.pr?.state === "merged" && card.status !== "Done" ? `  run braid accept ${card.id}` : "";
-  const head = `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}${hint}`;
+  const head = `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}`;
   const pause = letter === null && card.pause !== null && card.reason !== "stalled" ? [`    ${statusLine(card.pause, w.now)}`] : [];
   const pm = card.pm === null ? [] : [`    🧭 ${card.pm.text} (to the PM ${card.pm.age} ago)`];
   // The PM's own request, when the need line is another one (the coordinator's).
