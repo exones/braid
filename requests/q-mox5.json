@@ -10,7 +10,7 @@
   "doneWhen": "pr:287",
   "pr": 287,
   "head": "7e215d5f5a965232482e84ec3206cdf82e6f1428",
-  "eta": null,
+  "eta": "2026-11-24T10:12:12.731Z",
   "events": [
     {
       "event": "opened",
@@ -22,6 +22,13 @@
       "at": "2026-11-24T09:12:05.840Z",
       "by": "board",
       "text": "sent to the PM"
+    },
+    {
+      "event": "eta",
+      "at": "2026-11-24T09:12:12.731Z",
+      "by": "pm",
+      "text": "2026-11-24T10:12:12.731Z",
+      "reason": "PM's live re-check of 7e215d5 is running (0071+0073 paths together); then the user's merge is relayed"
     }
   ]
 }
