@@ -1,7 +1,7 @@
 ---
 id: '0075/D'
 title: "Docs: Lifecycle off the code branches, one pure lane"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0075/A', '0075/B', '0075/C']
 order: 40
