@@ -22,6 +22,12 @@
       "at": "2026-11-24T22:44:34.105Z",
       "by": "pm",
       "text": "checked: one working() rule (running/waiting, pendingBackgroundTasks, blockedOnThreadWait) read against T3's real thread list fields; tests from the three real cases; grok not blocking; 691 tests · merge PR #303 at 65f9232"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-24T22:47:28.647Z",
+      "by": "user",
+      "text": "Merge 303"
     }
   ]
 }
