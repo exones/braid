@@ -1,7 +1,7 @@
 ---
 id: '0073'
 title: "braid on large repos: CI per PR, merge gate, merge preconditions"
-status: In Progress
+status: Done
 labels: []
 dependencies: []
 related: ['0071']
