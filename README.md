@@ -12,28 +12,38 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-082A48" alt="MIT licence"></a>
 </p>
 
-Tell braid a goal. It splits the goal into small work items, has a coding agent build each one on its own branch, has the work reviewed, and hands you pull requests that are ready to merge. Everything is written down as plain files in your repository, so nothing depends on one chat staying alive.
+Tell braid a goal, or a business need. It splits the goal into small work items, has a coding agent build each one on its own branch, has the work reviewed, and hands you pull requests that are ready to merge. Everything is written down as plain files in your repository, so nothing depends on one chat staying alive.
 
 <p align="center">
   <img src="docs/images/board.png" alt="The braid attention board on sample data: lanes Needs You, To Review, Working, To Do and Done" width="900">
 </p>
 <p align="center"><em>The board on sample data: what needs you comes first, the rest stays out of your way.</em></p>
 
-## What it can do
+## Start with a programme
 
-- **Plan a goal into reviewed pull requests.** Say "braid: add dark mode"; you get a plan to approve, then one PR per part.
-- **Review before it reaches you.** Medium and large changes get an independent reviewer (you can set it to a different model than the worker's); the coordinator checks small ones itself, and every PR the coordinator merges by itself gets a reviewer, or if you choose, review bots such as CodeRabbit for small and medium ones. The worker answers and resolves the bots' comments.
-- **Resume from the files.** Briefs, logs and reports live in `braids/`; after a crash or in a new session any agent continues from them.
-- **See what needs you.** `braid board` shows what waits on you, and can Start a braid, ask the coordinator to merge, and open an agent's thread. On Windows `braid board service install` keeps it running in the background from your logon, without a window.
-- **Pauses before a usage limit.** `braid limits` reads each provider's usage; over a threshold a running `braid board` pauses the braid's agents at a clean point through a steering thread and resumes them after the window's reset; coordinators launch nothing meanwhile. The board shows the pause, not a stall.
-- **Waits never go quiet.** A coordinator that waits for another braid or a time says so with a condition; a running `braid board` wakes it once when the condition holds, reminds the one it waits for hourly (who can say when with `braid eta`), and nudges a coordinator that stopped with nothing open, once, before it reads as stalled.
-- **Check in from your phone.** The board has a phone layout, and `braid board --host tailscale` serves it on your Tailscale network, to your own login only.
-- **Hand a whole goal to a programme manager.** `$braid-pm <goal>` plans it as several braids and runs them, answering their coordinators for you. The board shows each programme in a panel with its braids, what the PM is handling and whether it stalled; what the PM can't decide reaches you as the PM asking (in the panel, and on your phone), as do its own questions, each push opening the thread that asks.
-- **Stops and asks when a decision is yours.** Security, a new dependency, stored data, an effect outside the repository, a change of scope: it waits for you, unless your preset lets it decide that case. Each question is on the record with a short code (`q-7f3k`): the board shows it with a link to the thread that asks, you answer in chat and can name the code in any thread, and it stays listed with who answered, you or the PM. Every coordinator and PM message ends with ✋ (you're needed), ⏳ (it waits on agents or CI) or 🟢 (nothing pending).
-- **Autonomy presets: you choose what braid decides.** A short file per project or per braid says what the coordinator merges and starts by itself and, per stop case, what it decides and what it asks you; what it decides it logs, and you read those decisions in the recap.
-- **Works on large repositories.** A project's own merge gate runs before every merge braid makes, under any preset; `ci: all` waits for every check a PR gets when the checks depend on its paths; partial CI on braid branches, review bots, path rules and caches are lines in `BRAID.md` ([braid on a large repo](docs/getting-started.md#braid-on-a-large-repo)).
-- **Capture ideas without breaking flow.** `$braid-idea` and `braid note` park an idea or a leftover in an inbox the board shows.
-- **Works with Claude, Codex and Cursor.** braid is a set of agent skills plus a CLI that does the bookkeeping; agents run as threads in [T3 Code](https://github.com/pingdotgg/t3code).
+A programme is how you hand braid a business goal and get on with your day. You write a few plain lines, such as "I need customers to pay by invoice; check with me before anything about money or stored data". A programme manager (the PM, the `braid-pm` skill) takes it from there:
+
+1. **It slices the goal into braids**, each one a step you can try, and keeps the plan in a file on its own branch.
+2. **It settles with you only what is hard to reverse** (the platform, the form of the product, security, stored data, anything outside the repository), as a short question on the board and the full text in chat. Cheap choices it makes itself and logs.
+3. **It runs a coordinator per braid**, two at a time unless you set another limit, answers their questions as your proxy and starts the next braid when its dependencies are done.
+4. **It checks each result live** by building and running the PR before it reaches you, then brings the merges into `main` to you.
+
+Start one in a T3 thread: `$braid-pm I need customers to pay by invoice; ask me before anything about money or stored data`. The board shows each programme in a panel with its braids, what the PM is handling and whether it stalled ([programmes](docs/board.md#programmes)). For a single story or goal, skip the PM and start a thread with `braid: add dark mode`.
+
+## What braid does
+
+- **Plan a goal into reviewed pull requests:** a plan to approve, then one PR per part ([walk-through](#a-walk-through)).
+- **Review before it reaches you:** an independent reviewer on medium and large changes, the coordinator on small ones, review bots if you choose ([review bots](docs/getting-started.md#braid-on-a-large-repo)).
+- **Questions and requests on the board:** a short line on the board, the full question in chat, each with a code (`q-7f3k`) that `braid ask`, `braid answer` and `braid requests` read and write on a record branch, not in a chat ([questions and answers](docs/getting-started.md#questions-and-answers), [requests](docs/board.md#requests)).
+- **Autonomy presets:** a file per project or braid says what the coordinator merges and starts itself and, per stop case, what it decides and what it asks you; decisions it makes are logged ([autonomy](docs/autonomy.md)).
+- **Wakes, reminders and nudges:** a coordinator that waits ends its turn; the running board wakes it when the condition holds, reminds whoever it waits for hourly (`braid eta` sets when), and nudges an agent that has gone quiet before it shows as stalled ([wakes](docs/board.md#wakes), [reminders](docs/board.md#reminders)).
+- **Pausing before provider limits:** `braid limits` reads each provider's usage; over a threshold the board pauses that provider's agents at a clean point and resumes them after the reset ([provider limits](docs/board.md#provider-limits), [pauses](docs/cli.md#pauses)).
+- **The merge gate and `ci: all`:** your own gate runs before every merge braid makes, and `ci: all` waits for every check a PR gets ([braid on a large repo](docs/getting-started.md#braid-on-a-large-repo)).
+- **Live checks by the PM:** it builds and runs a PR's head, and again after the merge, before a PM-run braid is done ([the PM skill](.agents/skills/braid-pm/SKILL.md)).
+- **The attention board:** lanes by what needs you, Open thread, merge on request, a programmes panel, and a phone layout that `braid board --host tailscale` serves to your own login ([lanes](docs/board.md#lanes), [Open thread and Merge on request](docs/board.md#open-thread-and-merge-on-request), [Tailscale](docs/board.md#on-tailscale)); on Windows `braid board service install` runs it at logon ([run at login](docs/board.md#run-the-board-at-login)).
+- **The ideas inbox:** `$braid-idea` and `braid note` park an idea or a leftover where the board shows it ([the inbox](docs/board.md#the-inbox)).
+- **Resume from the files:** briefs, logs and reports live in `braids/`, so any agent continues after a crash ([the braids/ format](docs/braids-format.md)).
+- **Claude, Codex and Cursor:** agent skills plus a CLI that does the bookkeeping; agents run as threads in [T3 Code](https://github.com/pingdotgg/t3code) ([getting started](docs/getting-started.md)).
 
 ## Why braid
 
@@ -81,6 +91,7 @@ Away from your desk, the same board fits a phone, and the inbox keeps ideas and 
 
 ## The parts
 
+- **A programme manager** takes a business goal, slices it into braids and runs their coordinators for you.
 - **A coordinator** is the agent you talk to. It plans with you, launches the other agents and reports back.
 - **Workers** each do one item on their own branch and worktree, run the gate and open a PR.
 - **Reviewers** check medium and large PRs independently before they reach you.
