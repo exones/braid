@@ -6,7 +6,7 @@ import { loadKnownBraids, loadOpenBraids } from "../braids/branches.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import { fetchRemotes } from "../braids/numbers.js";
 import { loadBraids, type Braid, type Item, type Strand } from "../braids/store.js";
-import { readGithub, runGh, type GhRunner } from "../board/github.js";
+import { readPrStates, runGh, type GhRunner } from "../board/github.js";
 
 export class UsageError extends Error {
   override name = "UsageError";
@@ -25,7 +25,7 @@ function strandLine(strand: Strand, withDeps = false): string {
  * when GitHub can be read, and the stored status. Without GitHub, a merged item shows its stored status.
  */
 export function live(root: string, braids: readonly Braid[], gh: GhRunner = runGh): Braid[] {
-  const github = readGithub(root, gh);
+  const github = readPrStates(root, gh);
   const prs = github.status.state === "ok" ? github.prs : new Map();
   const life = loadLifecycle(root);
   return braids.map((b) => withStatuses(b, life, prs));

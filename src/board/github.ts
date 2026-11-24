@@ -237,17 +237,10 @@ function assemble(root: string, mem: Memory, fetched: RawPr[] | string): Github 
   }
   memory.set(root, mem);
 
-  const prs = new Map<string, PullRequest>();
   const merged = [...mem.merged.values()].sort((a, b) => a.number - b.number);
   const closed = [...mem.closed.values()].sort((a, b) => a.number - b.number);
   const open = fetched.filter((p) => p.state === "OPEN");
-  // Closed ones first, then merged, so a later (higher-numbered) one wins within a kind; an open PR wins over all of them.
-  for (const [raw, state] of [...closed.map((p) => [p, "closed"] as const), ...merged.map((p) => [p, "merged"] as const), ...open.map((p) => [p, "open"] as const)]) {
-    const key = keyOfBranch(raw.headRefName);
-    if (key !== null) {
-      prs.set(key, { number: raw.number, url: raw.url, state, ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), ...(raw.baseRefName === undefined ? {} : { base: raw.baseRefName }), branch: raw.headRefName, ...(state === "merged" && typeof raw.mergedAt === "string" ? { mergedAt: raw.mergedAt } : {}), checks: state === "open" ? checksOf(raw.statusCheckRollup) : state === "merged" ? "passing" : "none", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
-    }
-  }
+  const prs = pick(closed, merged, open);
   const plans = new Map<string, number>();
   for (const p of merged) {
     if (p.headRefName.startsWith("plan/") && !open.some((o) => o.headRefName === p.headRefName)) {
@@ -262,6 +255,32 @@ function assemble(root: string, mem: Memory, fetched: RawPr[] | string): Github 
     }
   }
   return { status: { state: "ok" }, prs, plans, planning };
+}
+
+/** The PR to show per item key: closed ones first, then merged, so a later (higher-numbered) one wins within a kind; an open PR wins over all of them. */
+function pick(closed: readonly RawPr[], merged: readonly RawPr[], open: readonly RawPr[]): Map<string, PullRequest> {
+  const prs = new Map<string, PullRequest>();
+  for (const [raw, state] of [...closed.map((p) => [p, "closed"] as const), ...merged.map((p) => [p, "merged"] as const), ...open.map((p) => [p, "open"] as const)]) {
+    const key = keyOfBranch(raw.headRefName);
+    if (key !== null) {
+      prs.set(key, { number: raw.number, url: raw.url, state, ...(raw.headRefOid === undefined ? {} : { head: raw.headRefOid }), ...(raw.baseRefName === undefined ? {} : { base: raw.baseRefName }), branch: raw.headRefName, ...(state === "merged" && typeof raw.mergedAt === "string" ? { mergedAt: raw.mergedAt } : {}), checks: state === "open" ? checksOf(raw.statusCheckRollup) : state === "merged" ? "passing" : "none", ...(state === "open" ? { failed: failedChecks(raw.statusCheckRollup), runs: runsOf(raw.statusCheckRollup) } : {}) });
+    }
+  }
+  return prs;
+}
+
+/**
+ * The PRs of braid and strand branches by item key, picked as `readGithub` picks them, without their checks: one
+ * `gh pr list` without the check rollup, which is several times faster. For readers that need only whether an item's
+ * PR merged (`braid list`, `braid view`). Any failure gives `unavailable` with the reason.
+ */
+export function readPrStates(root: string, run: GhRunner = runGh): Github {
+  const fetched = parsed(run(root, ["pr", "list", "--state", "all", "--limit", "500", "--json", "number,url,state,headRefName,headRefOid,baseRefName,mergedAt"]));
+  if (typeof fetched === "string") {
+    return { status: { state: "unavailable", reason: fetched }, prs: new Map() };
+  }
+  const of = (state: string) => fetched.filter((p) => p.state === state).sort((a, b) => a.number - b.number);
+  return { status: { state: "ok" }, prs: pick(of("CLOSED"), of("MERGED"), of("OPEN")) };
 }
 
 /** Forgets what was read, for tests. */
