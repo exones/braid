@@ -136,6 +136,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 
 1. (Since P3 · 0070: the merge request was opened with `--done-when pr:<n>` and closes itself; nothing to do.)
 2. Waits for the `ci` run on the merge commit, then installs the skills and the CLI from `origin/main`: `pwsh -NoProfile -File scripts/Install-Skills.ps1` (docs/getting-started.md).
+2a. Keeps the user's checkout `C:\codegento` up to date: when its `git status` is clean and on `main`, `git pull --ff-only`; otherwise leave it and tell the user (the user, 2026-11-24: "Can you do this good pull for me? And actually I'm okay if you keep it up to date.").
 3. Stops the running board and starts the new one: today by its port and a new console window (`braid board`), so its tokened address is printed where the user sees it; once P7 · 0067 is in, by restarting the service.
 4. Tells the user to have a look: a message in this thread and a programme request `braid ask pm/autonomous-dev-machine "<braid> is installed and the board restarted: have a look" --kind action`, so it is on the board and pushed. It names what changed and what to try.
 5. Waits for the user's instructions: no next braid is launched until the user says so. Braids already running go on.
@@ -145,6 +146,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-24 09:40Z: P20 · 0073 merged (#287, ffb6b06) on the user's "Merge both" after the PM's re-check at 7e215d5 passed. The user's checkout is now kept up to date by the PM after each merge (fast-forward only, clean main only); pulled to ffb6b06.
 - 2026-11-24 09:10Z: fwoa moved from P21 · 0074 to P22 · 0075 as its first strand, on the user's "Put it somewhere close to us. Just at the first convenience."
 - 2026-11-24 09:00Z: leftovers fwoa (false PM nudges while only a delegated checker runs) and bh9u (failed 03:06 steering pause) taken into P21 · 0074; ylq2 dropped (the repeat nudge followed the rules).
 - 2026-11-24 07:29Z: P6 · 0071 done: #290 merged on the user's "Merge both" (merge commit 957e46f), main CI green, installed and board restarted (running = installed 0.2.0). P20 · 0073 merges main through strand 0073/H (doc conflicts; its decisions renumbered D102–D104), then #287's new head gets a re-check before the relayed merge.
