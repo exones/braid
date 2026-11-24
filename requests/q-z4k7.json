@@ -22,6 +22,12 @@
       "at": "2026-11-24T04:49:04.135Z",
       "by": "pm",
       "text": "live check passed (re-check of clean too) · merge PR #287 at 19c4c2d"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-24T07:42:00.870Z",
+      "by": "board",
+      "text": "PR #287 head moved to 51a0bb2"
     }
   ]
 }
