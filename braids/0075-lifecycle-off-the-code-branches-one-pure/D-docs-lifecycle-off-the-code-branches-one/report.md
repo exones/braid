@@ -44,14 +44,14 @@ No new rule or special case was added.
 
 ## Validation
 
-- Gate (`npm run verify`, quick), run in its parts in the foreground because the whole run takes over 10 minutes: docs-gate passed (after merging f642bf63, the coordinator's fix of trailing whitespace in 0075/F's brief); the OIDC guard passed; `npm run typecheck` and `npm run build` passed; `node --test` over every suite in `test/`, in two halves: 313 + 386 = 699 tests, 0 failures (about 4 and 7 minutes). I ran all of it again after merging the braid branch with 0075/F (28bfa31). This PR changes no source code.
+- Gate (`npm run verify`, quick), run in its parts in the foreground because the whole run takes over 10 minutes: docs-gate passed (after merging f642bf63, the coordinator's fix of trailing whitespace in 0075/F's brief); the OIDC guard passed; `npm run typecheck` and `npm run build` passed; `node --test` over every suite in `test/`, in two halves: 313 + 386 = 699 tests, 0 failures (about 4 and 7 minutes). I ran all of it again after merging the braid branch with 0075/F (28bfa31). This PR changes no product code; the only code change is that test fixture.
 - A search of `.agents/skills/` for `stamp`, `sets Done`, `status-only` and `In Progress'` finds nothing.
 
 ## Open
 
-- CI's first Ubuntu run failed one test that fails only sometimes and that this PR doesn't touch: `test/start-clean.test.ts`, "clean removes a braid's branch when Done is only on origin/<branch>" (0075/B's). It stores Done on `origin/<branch>` with the local branch one commit behind. Briefs are read from the newest commit, with a local branch winning a tie, so when both commits fall in the same second the local `In Progress` copy wins and the braid reads not Done. It passed 5 of 5 runs here. A leftover for the coordinator: give the stamp commit a later committer date in the test.
+- CI on Ubuntu failed twice on `test/start-clean.test.ts`, "clean removes a braid's branch when Done is only on origin/<branch>" (0075/B's test). In that fixture strand C isn't merged, so the braid's merged PR doesn't count and the braid reads its stored status. That comes from the copy with the newer commit, with a local branch winning a tie. When the Done commit on `origin` and the local commit fell in the same second, the local `In Progress` won. Fixed in the test only: the Done commit gets a committer date one minute later. The assertion is unchanged. It reproduced here with every commit given the same timestamp, and passes with the fix; the whole file passes (16 tests).
 - The skills reach other projects with the installer. A project that runs these skills with a CLI older than 0075/B gets no `started` event, and its workers no longer commit `In Progress`. Its items read To Do until their PR opens. Update the CLI with the skills, as 0075/B's report says.
 
-Decisions: none from the user. My own: the story's and final PR's `braid accept` stays before the handover, not dropped. It still runs the Completion and report checks and posts the acceptance comment, which `braid handover` doesn't do.
+Decisions: none from the user. My own: fix the test's date tie in this PR, because it turned this PR's CI red and the fix doesn't weaken the test. And the story's and final PR's `braid accept` stays before the handover, not dropped. It still runs the Completion and report checks and posts the acceptance comment, which `braid handover` doesn't do.
 For later items: none.
 Needs the user: none
