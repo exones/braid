@@ -1,7 +1,7 @@
 ---
 id: '0076'
 title: "README leads with programmes and lists what braid does"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:M"]
 dependencies: []
 related: ['0075']
