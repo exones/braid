@@ -168,7 +168,7 @@ export function cardMarks(card: BraidCard, details = true): Marks {
 
 const T3_SEGMENT = /^[\w.%~-]+$/;
 
-/** `t3code://threads/<env>/<thread>` from T3's thread link (`http://127.0.0.1:3773/<env>/<thread>`); null when the link isn't that shape. */
+/** `t3code://threads/<env>/<thread>` from T3's thread link (`<host>/<env>/<thread>` or the newer `<host>/threads/<env>/<thread>`, any host); null when the link is neither shape. */
 export function t3codeUrl(link: string): string | null {
   let path: string;
   try {
@@ -176,7 +176,7 @@ export function t3codeUrl(link: string): string | null {
   } catch {
     return null;
   }
-  const m = /^\/([^/]+)\/([^/]+)\/?$/.exec(path);
+  const m = /^\/(?:threads\/)?([^/]+)\/([^/]+)\/?$/.exec(path);
   return m !== null && T3_SEGMENT.test(m[1] ?? "") && T3_SEGMENT.test(m[2] ?? "") ? `t3code://threads/${m[1]}/${m[2]}` : null;
 }
 
