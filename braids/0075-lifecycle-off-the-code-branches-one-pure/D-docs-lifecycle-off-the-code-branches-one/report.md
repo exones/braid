@@ -32,23 +32,24 @@ No new rule or special case was added.
 | --- | --- |
 | README.md | unchanged (it says nothing about accept or Done) |
 | docs/getting-started.md | updated: a strand reads Done once its PR merged; braid commits nothing on a PR's branch for it |
-| docs/cli.md | unchanged (0075/B updated `start` and `accept`) |
-| docs/board.md | updated: the Done date of an item Done only from its merged PR is the PR's merge time; the pure lane cites D106 (0075/A, B, C updated the rest) |
+| docs/cli.md | unchanged (0075/B updated `start` and `accept`; 0075/F the Cursor windows) |
+| docs/board.md | updated (0075/E already updated Open thread): the Done date of an item Done only from its merged PR is the PR's merge time; the pure lane cites D106 (0075/A, B, C updated the rest) |
 | docs/autonomy.md | unchanged (it doesn't describe the stamp) |
 | help text (src/cli.ts) | unchanged (0075/B updated `start` and `accept`) |
 | docs/development.md | unchanged |
 | docs/decisions.md | updated: D106, the pure lane derivation; D105 names the skill text it removed; D102's "before the Done stamp" now reads "before the acceptance is recorded" |
 | docs/braids-format.md | unchanged (0075/B rewrote the status, lifecycle, start, accept, list, clean and `braid:<n>` parts) |
-| docs/roadmap.md | updated: the 0075 line (built; not built: moving briefs, reports and logs off the code branches) |
+| docs/roadmap.md | updated: the 0075 line, with the hotfixes 0075/E (Open thread links) and 0075/F (Cursor windows per model); not built: moving briefs, reports and logs off the code branches |
 | docs/npm-distribution.md | unchanged |
 
 ## Validation
 
-- Gate (`npm run verify`, quick), run in its parts in the foreground because the whole run takes over 10 minutes: docs-gate passed (after merging f642bf63, the coordinator's fix of trailing whitespace in 0075/F's brief); the OIDC guard passed; `npm run typecheck` and `npm run build` passed; `node --test` over every suite in `test/`, in two halves: 313 + 385 = 698 tests, 0 failures (about 2.5 and 4.5 minutes). This PR changes no source code.
+- Gate (`npm run verify`, quick), run in its parts in the foreground because the whole run takes over 10 minutes: docs-gate passed (after merging f642bf63, the coordinator's fix of trailing whitespace in 0075/F's brief); the OIDC guard passed; `npm run typecheck` and `npm run build` passed; `node --test` over every suite in `test/`, in two halves: 313 + 386 = 699 tests, 0 failures (about 4 and 7 minutes). I ran all of it again after merging the braid branch with 0075/F (28bfa31). This PR changes no source code.
 - A search of `.agents/skills/` for `stamp`, `sets Done`, `status-only` and `In Progress'` finds nothing.
 
 ## Open
 
+- CI's first Ubuntu run failed one test that fails only sometimes and that this PR doesn't touch: `test/start-clean.test.ts`, "clean removes a braid's branch when Done is only on origin/<branch>" (0075/B's). It stores Done on `origin/<branch>` with the local branch one commit behind. Briefs are read from the newest commit, with a local branch winning a tie, so when both commits fall in the same second the local `In Progress` copy wins and the braid reads not Done. It passed 5 of 5 runs here. A leftover for the coordinator: give the stamp commit a later committer date in the test.
 - The skills reach other projects with the installer. A project that runs these skills with a CLI older than 0075/B gets no `started` event, and its workers no longer commit `In Progress`. Its items read To Do until their PR opens. Update the CLI with the skills, as 0075/B's report says.
 
 Decisions: none from the user. My own: the story's and final PR's `braid accept` stays before the handover, not dropped. It still runs the Completion and report checks and posts the acceptance comment, which `braid handover` doesn't do.
