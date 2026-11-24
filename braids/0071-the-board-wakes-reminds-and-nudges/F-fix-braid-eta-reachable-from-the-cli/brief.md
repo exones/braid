@@ -1,7 +1,7 @@
 ---
 id: '0071/F'
 title: "Fix: braid eta reachable from the CLI"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 60
@@ -33,7 +33,7 @@ Expected size: about 20 lines in 2 files.
 
 ## Completion
 
-- [ ] `braid eta <code> 2h "<why>"` works through the CLI; a test runs it through the CLI
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid eta <code> 2h "<why>"` works through the CLI; a test runs it through the CLI
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

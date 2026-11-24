@@ -110,7 +110,7 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "withdraw", "forward", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
+const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "withdraw", "forward", "eta", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
