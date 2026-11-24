@@ -7,8 +7,10 @@ Strands:
 - 0071/D (PR #282): the braid and braid-pm skills. At the user's request they also say that `braid ask` never replaces the chat message: the ask text is the board's one-line short version, and the chat message is the full one (short context, why now, the question, what the answer unblocks, the code and the options). Words: braid 12529 -> 12527, braid-pm 3306 -> 3303.
 - 0071/E (PR #285): the docs as a whole; decisions D100 (the board acts without a click) and D101 (a wait replaces only a wait); ozjp (a PM checker record is replaced by the next one and dropped once its thread stops).
 - 0071/F (PR #288): fix strand. `braid eta` printed "unknown command": 0071/B wired it into the dispatch but not into `BRAID_COMMANDS`. It is now tested through the CLI, plus a test that every command in the help is accepted.
+- 0071/G (PR #291): fix strand from the PM's live check of #290 at 6b64f9f. A plain `braid requests` closed condition requests as met with no wake, held braids included, so the wake was lost. Now reads never close a request: they show "condition holds", and only the board's tick records an ending, with its wake. Also: one eta wording ("the <n> coordinator"), and the missed-estimate line kept beside an open question.
 
 Validation:
+- The PM's live check of #290 at 6b64f9f, on a throwaway clone with fake T3 and gh: the time and braid wakes (one each), the reminder after an estimate, the missed-estimate line, the nudge then "Stalled after a nudge", held braids skipped, the slim cards, `braid eta`, and a question beside a wait all worked; npm test 655/655. It found the read-closes bug fixed in 0071/G.
 - Each strand: an independent review (cursor / grok-4.6) and green CI on Ubuntu and Windows. The braid branch's CI is green.
 - The coordinator's try, with the built CLI on a throwaway clone with a local bare remote:
   - `braid ask 0072 … --to 0071 --done-when braid:0071` opened a wait.
@@ -20,7 +22,8 @@ Validation:
 Open:
 - The Completion box "The coordinator's try on a throwaway clone: a `braid:` wait reminded, shown and woken once; an idle coordinator nudged once" is half done. The CLI side was tried as above. The board side (a running board sending the reminder, the wake and the nudge through T3) needs T3 and a running board, so it can't run in a throwaway clone. Tests cover it, and the PM's live check before the merge tries it for real.
 - Update the CLI on every clone once this is installed: a braid CLI older than 0071/B reads a request record with a `reminded` event as unreadable.
-- Two boards sending in the same instant can still both send (the window is one send); a delegated PM checker is visible only if the PM records it.
+- Two boards started at the same instant can both send one wake (seen in the PM's live check; boards started 10 s apart were fine). Leftover 2026-11-24-gqez, for P21 · 0074's acting-board lock. A delegated PM checker is visible only if the PM records it.
+- Without a running board nothing closes: a met request, a merged handover included, stays open on the record (reads show "condition holds") until a board runs.
 
 Decisions:
 - The user, via the PM:
@@ -37,6 +40,6 @@ Decisions:
   - the fix strand 0071/F.
 - The workers' decisions: send-then-record; 2h98 by a record; dy2k by re-reading; a nudge only to a thread that can receive it; a missed estimate shows at once.
 
-For later items: leftovers 2026-11-23-5bor (the board writes the record with synchronous Git, P14), 2026-11-23-tr1o (the board's pause message misprints the steering thread id), 2026-11-24-es8z (the help test runs against the repository; commands handled before `run` aren't tested through the CLI).
+For later items: leftovers 2026-11-23-5bor (the board writes the record with synchronous Git, P14), 2026-11-23-tr1o (the board's pause message misprints the steering thread id), 2026-11-24-es8z (the help test runs against the repository; commands handled before `run` aren't tested through the CLI), 2026-11-24-gqez (two boards at the same instant).
 
 Needs the user: the final PR changes skills, so it is the user's merge (AGENTS.md), after the PM's live check.
