@@ -42,8 +42,8 @@ The PM thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b recorded its checker `thread:
 
 ## Completion
 
-- [ ] A recorded PM checker that T3 shows `completed` between runs still counts as running; the PM is not nudged and the programme doesn't read stalled (test from the real case)
-- [ ] A finished checker, and one past the cap, stops counting and its record is dropped (tests)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (at least `docs/board.md` on the checker and the cap), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A recorded PM checker keeps its record between runs (T3 shows it completed), and a later run on the same thread counts as running, so the PM is not nudged during it (test from the real timeline)
+- [x] A finished checker, and one past the cap, stops counting and its record is dropped (tests)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (at least `docs/board.md` on the checker and the cap), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
