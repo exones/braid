@@ -1,7 +1,7 @@
 ---
 id: '0073/D'
 title: "Large-repo lines: partial CI, review bots, path stops, caches, and the docs"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:L", "ask:process"]
 dependencies: ['0073/B', '0073/C']
 order: 40
