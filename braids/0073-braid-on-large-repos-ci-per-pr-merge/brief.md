@@ -45,7 +45,7 @@ PM-run (thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b): security, data and outward
 
 - [x] A strand's PR run is the only CI run per push on a strand; the braid branch has no push CI, and `braid wait` still answers after a strand's merge
 - [x] `braid accept --merge` into `main` runs the project's `merge-gate` command and refuses on its failure with its output, under any preset
-- [ ] With `ci: all`, `braid wait`, `braid accept`, `braid handover` and `braid facts` require every check reported on the commit, after a start grace
+- [ ] With `ci: all`, `braid wait`, `braid accept`, `braid handover` and `braid recap` require every check reported on the commit (the start grace is `braid wait`'s only)
 - [x] BRAID.md template and docs show, with examples, partial CI on braid branches, review bots, path stops and caches; the worker answers and resolves the review bots' comments
 - [ ] Skills touched are the same size or shorter
 - [x] Every request code chip on the board copies its code on click, also over plain http and on a phone
