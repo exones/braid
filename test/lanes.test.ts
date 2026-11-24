@@ -273,7 +273,7 @@ test("the braid-level stall never leaks into wrap-up or a merged final PR", () =
     assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0008 coordinator stalled"), "the braid-level clock is cleared");
   }
   const s = held();
-  const merged = model.toCard(braid("Done"), G(pr("merged")), { status: { state: "ok" }, threads: new Map(), coordinators: new Map() }, s);
+  const merged = model.toCard(braid("Done"), G({ ...pr("merged"), mergedAt: "2026-11-20T10:00:00Z" } as Pr), { status: { state: "ok" }, threads: new Map(), coordinators: new Map() }, s);
   assert.equal(merged.lane, "Done");
   assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0008 coordinator stalled"), "a merged final PR clears it");
 });

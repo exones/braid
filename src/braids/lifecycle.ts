@@ -128,8 +128,10 @@ export interface ItemStatus {
  * at that head); an `accepted` event at the open PR's head waits for the merge; a `started` event or a stored
  * In Progress is In Progress; else the stored status. `pr` is the item's PR as the board picks it (open, else newest
  * merged, else newest closed); for a braid with strands, pass it only when `goalMerged` says its merge counts.
+ * `review`: the item has an open review request; a stored Done whose PR the lookup didn't find then reads To Do, so
+ * the request decides the lane and the merge is never dropped (0068, 0069/A, as before 0075).
  */
-export function statusOf(stored: Status, life: Lifecycle | undefined, pr: PullRequest | null): ItemStatus {
+export function statusOf(stored: Status, life: Lifecycle | undefined, pr: PullRequest | null, review = false): ItemStatus {
   if (stored === "Outline") {
     return { status: stored, accepted: null };
   }
@@ -139,7 +141,10 @@ export function statusOf(stored: Status, life: Lifecycle | undefined, pr: PullRe
   const events = life?.events ?? [];
   const accepted = pr?.state === "open" ? events.findLast((e) => e.kind === "accepted" && pr.head !== undefined && pr.head.startsWith(e.head.toLowerCase())) : undefined;
   if (stored === "Done") {
-    return pr?.state === "closed" ? { status: "To Do", accepted: null } : pr?.state === "open" ? { status: "In Progress", accepted: pr.head ?? "" } : { status: "Done", accepted: null };
+    if (pr?.state === "open") {
+      return { status: "In Progress", accepted: pr.head ?? "" };
+    }
+    return pr?.state === "closed" || (pr === null && review) ? { status: "To Do", accepted: null } : { status: "Done", accepted: null };
   }
   if (accepted !== undefined && accepted.kind === "accepted") {
     return { status: "In Progress", accepted: accepted.head };
@@ -156,10 +161,14 @@ export function goalMerged(pr: PullRequest | null, strands: readonly { readonly 
   if (pr?.state !== "merged") {
     return false;
   }
+  // Without its merge time the merge can't be placed after the strands', so it isn't the braid's merge.
   const at = pr.mergedAt ?? "";
+  if (at === "") {
+    return false;
+  }
   return strands.every((s) => {
     if (s.pr?.state === "merged") {
-      return at === "" || (s.pr.mergedAt ?? "") <= at;
+      return (s.pr.mergedAt ?? "") <= at;
     }
     return s.status === "Done";
   });
@@ -170,19 +179,20 @@ export function braidStatuses(
   braid: { readonly number: string; readonly brief: { readonly status: Status }; readonly strands: readonly { readonly letter: string; readonly brief: { readonly status: Status } }[] },
   life: ReadonlyMap<string, Lifecycle>,
   prs: ReadonlyMap<string, PullRequest>,
+  reviews: ReadonlySet<string> = new Set(),
 ): Map<string, ItemStatus> {
   const out = new Map<string, ItemStatus>();
   const strands = braid.strands.map((s) => {
     const id = `${braid.number}/${s.letter}`;
     const pr = prs.get(id) ?? null;
-    const st = statusOf(s.brief.status, life.get(id), pr);
+    const st = statusOf(s.brief.status, life.get(id), pr, reviews.has(id));
     out.set(id, st);
     return { status: st.status, pr };
   });
   const own = prs.get(braid.number) ?? null;
   // A braid's merge counts only when its strands were Done by then; otherwise it is read without that PR.
   const counted = braid.strands.length === 0 || own?.state !== "merged" || goalMerged(own, strands) ? own : null;
-  out.set(braid.number, statusOf(braid.brief.status, life.get(braid.number), counted));
+  out.set(braid.number, statusOf(braid.brief.status, life.get(braid.number), counted, reviews.has(braid.number)));
   return out;
 }
 

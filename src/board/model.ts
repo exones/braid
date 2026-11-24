@@ -593,7 +593,8 @@ function doneAtOf(item: Item, pr: PullRequest | null, sig: Signals): string | nu
 
 export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): BraidCard {
   // What each item reads as (record, PRs, stored status): the one input of the lanes below.
-  const st = braidStatuses(braid, sig.lifecycle ?? new Map(), gh.prs);
+  const reviews = new Set([...sig.requests].filter(([, r]) => r.kind === "review").map(([k]) => k));
+  const st = braidStatuses(braid, sig.lifecycle ?? new Map(), gh.prs, reviews);
   const statusOfItem = (id: string, stored: Status) => st.get(id) ?? { status: stored, accepted: null };
   const strands: StrandCard[] = braid.strands.map((s) => {
     const own = statusOfItem(`${braid.number}/${s.letter}`, s.brief.status);

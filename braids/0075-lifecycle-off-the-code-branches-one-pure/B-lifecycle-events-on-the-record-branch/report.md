@@ -15,6 +15,15 @@
 
 `braid accept` used to commit the Done stamp on a story's or final PR's branch, which moved the PR's head after review and re-ran CI and reviews for bookkeeping. The early PR from a braid branch (inbox 2026-11-24-dsyv) read as "merged, run braid accept", and accept then refused it. Writing the events to the record branch keeps code heads still, and deriving Done from the merge removes the stamp's special cases.
 
+## Fix round 1 (review of 205b9e1a)
+
+- `braid new`'s open count reads each braid through the status function, as `braid list --open` does: a story Done only from its merged PR isn't counted (review suggestion 1).
+- `braid start` run again on a started item records `started` if the record has none (a first run whose write failed); otherwise it adds nothing (suggestion 3).
+- An older stored Done whose PR the lookup missed, with an open review request, reads To Review again, as before 0075 (`statusOf`'s stored-Done branch takes `review`; suggestion 4).
+- `goalMerged`: a merged braid PR without `mergedAt` isn't the braid's merge (suggestion 5).
+- Each has a test (open, start, lifecycle, pm-requests). Suggestion 2 is leftover 2026-11-24-sojn; 6 is 0075/C's. Docs: braids-format.md (status rule, goal rule, `braid start` retry) and board.md rule 1.
+- Gate steps run again in the foreground on this round's code: docs-gate, OIDC guard, typecheck, build, tests 312 + 381 = 693, 0 failures.
+
 ## Validation
 
 - Gate (`npm run verify`, quick), run in its parts because the whole run takes over 10 minutes. I didn't run the script as one command; each step it runs passed on this branch: docs-gate passed; the OIDC guard passed; `npm run typecheck` passed; `npm run build` passed; `node --test` over every suite in `test/`, in two halves, 312 + 377 = 689 tests, 0 failures (about 4.5 and 9 minutes). All of it was run again on the final code (docs-gate, typecheck, build, both halves of the tests: 0 failures). CI runs the full gate on the PR.
@@ -53,6 +62,6 @@
 For later items:
 - 0075/D (skills text): `.agents/skills/braid/SKILL.md` and `references/workflow.md` still describe the Done stamp ("a story's PR … from your own commit on it (`braid accept`)", watching the new head after accept, "commits as `docs(braids): <id> done`", the stamp as the coordinator's one commit on a worker's branch); `references/resuming.md` still names the `run braid accept <id>` hint; `references/autonomy.md` says accept "stamps Done". With this change accept leaves the head as reviewed, so the story flow needs no second watch. `braid start --thread <id>` can be passed by the coordinator.
 - 0075/C: a braid with strands still reads Done on the board once every strand is Done, without its final PR (`braidLane`); that is 0075/C's Completion box.
-- Idea: `braid edit --status 'To Do'` on a started item can't override the `started` event; if resets matter, a `reset` event would make the override exact.
+- `braid edit --status 'To Do'` on a started item can't override the `started` event: leftover 2026-11-24-sojn.
 
 Needs the user: none

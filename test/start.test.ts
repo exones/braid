@@ -139,6 +139,24 @@ test("a second start of a strand says already started and creates nothing", asyn
   assert.equal(await startCommand(root, ["0001/B"], src(), env), `branch braid/0001/B-second-one (already started)\ncommit ${git(folder, "rev-parse", "HEAD")}\nfolder ${folder}\n`);
 });
 
+test("a second start records the start when the first run's record is missing, and only then", async () => {
+  const { root, env, wt } = repo();
+  await startCommand(root, ["0001/B"], src(), env);
+  // As if the first run made the worktree but its record write failed: drop the file from the record branch.
+  const rec = join(wt, "record-edit");
+  git(root, "worktree", "add", "-q", rec, "braid-requests");
+  git(rec, "rm", "-q", "lifecycle/0001-B.json");
+  git(rec, "commit", "-q", "-m", "drop");
+  git(rec, "push", "-q", "origin", "braid-requests");
+  git(root, "worktree", "remove", rec);
+  await startCommand(root, ["0001/B", "--thread", "again"], src(), env);
+  const events = (JSON.parse(git(root, "show", "origin/braid-requests:lifecycle/0001-B.json")) as { events: { kind: string; thread: string | null; branch: string }[] }).events;
+  assert.deepEqual(events.map((e) => [e.kind, e.thread, e.branch]), [["started", "again", "braid/0001/B-second-one"]]);
+  // Recorded now: a third start adds nothing.
+  await startCommand(root, ["0001/B"], src(), env);
+  assert.equal((JSON.parse(git(root, "show", "origin/braid-requests:lifecycle/0001-B.json")) as { events: unknown[] }).events.length, 1);
+});
+
 test("a second start of a planned story says already started", async () => {
   const { root, env, wt } = repo(false);
   git(root, "push", "-q", "origin", "main:refs/heads/braid/0002-story");

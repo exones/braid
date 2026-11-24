@@ -93,8 +93,8 @@ export function listOpen(root: string, fetch: boolean, gh: GhRunner = runGh): Sa
 }
 
 /** `Open braids: <n> (braid list --open)`, the last line of `braid new`. */
-export function openBraidsLine(root: string): string {
-  return `Open braids: ${loadOpenBraids(root).length} (braid list --open)\n`;
+export function openBraidsLine(root: string, gh: GhRunner = runGh): string {
+  return `Open braids: ${loadOpenBraids(root, (b) => live(root, b, gh)).length} (braid list --open)\n`;
 }
 
 /** Accepts `2`, `0002`, `0002/A` and `2/a`; returns `0002` or `0002/A`. */

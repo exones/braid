@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import type { BranchRef } from "../braids/branches.js";
-import { recordEvent } from "../braids/lifecycle.js";
+import { loadLifecycle, recordEvent } from "../braids/lifecycle.js";
 import { closeRequest, type Ending } from "../braids/requests.js";
 import { normPath, repoNameOf, workFolder, worktreesDir } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
@@ -102,7 +102,9 @@ export async function startCommand(root: string, args: readonly string[], src: S
   // A retry: the item is already started as asked, so say so before the ready check (its branch is pushed now).
   const again = alreadyStarted(root, id, tip(w.refs.filter((r) => r.number === number && r.letter === letter)), folder, earlier, letter === null ? undefined : tip(w.refs.filter((r) => r.number === number && r.letter === null)));
   if (again !== null) {
-    return again;
+    // A first run that made the worktree but couldn't record the start records it now.
+    const has = loadLifecycle(root).get(id)?.events.some((e) => e.kind === "started") ?? false;
+    return has ? again : `${again}${started(root, id, thread, /^branch (\S+)/.exec(again)?.[1] ?? "")}`;
   }
   if (t.why !== null && !force) {
     throw new UsageError(`${id} is not ready: ${t.why} (--force starts it anyway)`);

@@ -10,8 +10,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 const life = (await load("../dist/braids/lifecycle.js")) as {
-  statusOf: (stored: string, l: object | undefined, pr: object | null) => { status: string; accepted: string | null };
-  braidStatuses: (braid: object, l: ReadonlyMap<string, object>, prs: ReadonlyMap<string, object>) => Map<string, { status: string; accepted: string | null }>;
+  statusOf: (stored: string, l: object | undefined, pr: object | null, review?: boolean) => { status: string; accepted: string | null };
+  braidStatuses: (braid: object, l: ReadonlyMap<string, object>, prs: ReadonlyMap<string, object>, reviews?: ReadonlySet<string>) => Map<string, { status: string; accepted: string | null }>;
   recordEvent: (root: string, id: string, e: object) => { commit: string | null; pushed: boolean; warning: string | null };
   loadLifecycle: (root: string) => ReadonlyMap<string, { id: string; events: { kind: string; at: string }[] }>;
   mergeLifecycle: (path: string, ours: string, theirs: string) => string;
@@ -193,4 +193,18 @@ test("this repository's braids/: every stored Done reads Done, with its PR merge
       assert.equal(read.get(i.id)?.status, i.stored, `${i.id} with ${prs.size === 0 ? "no PRs" : "merged PRs"}`);
     }
   }
+});
+
+test("fix round: a stored Done whose PR wasn't found keeps an open review request (To Do, so the request decides); a merge without mergedAt isn't the braid's", () => {
+  // As before 0075 (0068, 0069/A): the review request holds a stored Done whose PR the lookup missed.
+  assert.deepEqual(life.statusOf("Done", undefined, null, true), { status: "To Do", accepted: null });
+  assert.deepEqual(life.statusOf("Done", undefined, null, false), { status: "Done", accepted: null });
+  assert.deepEqual(life.statusOf("Done", undefined, merged(), true), { status: "Done", accepted: null }, "a merged PR is Done whatever is open");
+  const braid = { number: "0001", brief: { status: "In Progress" }, strands: [{ letter: "A", brief: { status: "To Do" } }] };
+  const reviews = life.braidStatuses({ number: "0002", brief: { status: "Done" }, strands: [] }, new Map(), new Map(), new Set(["0002"]));
+  assert.equal(reviews.get("0002")?.status, "To Do");
+  // A merged braid PR with no merge time can't be placed after its strands' merges: not the braid's Done.
+  const noTime = { ...merged(), mergedAt: undefined };
+  const st = life.braidStatuses(braid, new Map(), new Map<string, object>([["0001/A", merged("2026-11-20T09:00:00Z")], ["0001", noTime]]));
+  assert.deepEqual([st.get("0001/A")?.status, st.get("0001")?.status], ["Done", "In Progress"]);
 });

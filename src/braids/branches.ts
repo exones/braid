@@ -518,7 +518,7 @@ export function braidAt(root: string, ref: string, number: string): Braid | null
   return dir === null ? null : attempt(() => loadBraid(t, dir, number));
 }
 
-/** Every braid whose status is not Done, wherever it lives (`loadKnownBraids`). */
-export function loadOpenBraids(root: string): Braid[] {
-  return loadKnownBraids(root).filter((b) => b.brief.status !== "Done");
+/** Every braid whose status is not Done, wherever it lives (`loadKnownBraids`); `status` reads each braid (default: its stored status). */
+export function loadOpenBraids(root: string, status: (braids: readonly Braid[]) => Braid[] = (b) => [...b]): Braid[] {
+  return status(loadKnownBraids(root)).filter((b) => b.brief.status !== "Done");
 }

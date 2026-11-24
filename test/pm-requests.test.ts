@@ -457,3 +457,12 @@ test("0069/A: a story accepted with its PR open and a review forwarded by the PM
   assert.equal(derive("Done", gh(), t3(), sig([])).lane, "Done");
   assert.equal(derive("Done", gh({ ...PR, state: "merged" }), t3(), sig([forwarded])).lane, "Done");
 });
+
+test("0075/B fix round: a strand stamped Done by an older CLI whose PR the lookup missed keeps its forwarded review: To Review, as before 0075 (0068, 0069/A)", () => {
+  const forwarded = request("review", 5, { pr: 7, to: "user", forwarded: ago(1), note: "live check passed · merge PR #7" });
+  const braid = { number: "0001", folder: "braids/0001-x", source: null, brief: { id: "0001", title: "T", status: "In Progress", labels: [], dependencies: [], related: [], order: null, delivery: "epic", autonomy: null, sections: [] }, strands: [{ letter: "A", folder: "braids/0001-x/A-a", source: null, brief: { id: "0001/A", title: "A", status: "Done", labels: [], dependencies: [], related: [], order: 1, delivery: "epic", autonomy: null, sections: [] } }] };
+  const card = model.toCard(braid, gh(), t3(), sig([forwarded]));
+  assert.deepEqual([card.strands[0].status, card.strands[0].lane], ["To Do", "In Review"]);
+  // Without the request, the stored Done reads Done, as before.
+  assert.equal(model.toCard(braid, gh(), t3(), sig([])).strands[0].lane, "Done");
+});
