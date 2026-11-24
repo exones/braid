@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-24T01:57:21.002Z",
       "by": "coordinator"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-24T02:42:30.421Z",
+      "by": "coordinator",
+      "text": "PM live check found a regression in braid clean; fix strand 0073/G first"
     }
   ]
 }
