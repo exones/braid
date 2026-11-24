@@ -22,7 +22,7 @@ Expected size: about 60 lines in 2 to 4 files, half of them tests.
   - Cursor Models (autoPercentUsed): 61.7% of 97%.
   - Overall (totalPercentUsed): 65.2% of 97%.
   - verdict: pause.
-  
+
   The right verdict is ok for grok-4.6.
 
 ## Change
