@@ -7,7 +7,9 @@ import { braidBranches, loadLiveBraids, type BranchRef } from "../braids/branche
 import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner, type Github } from "../board/github.js";
 import { LANE_LABEL, needLine } from "../board/marks.js";
-import { toCard, type BraidCard, type Lane, type StrandCard } from "../board/model.js";
+import { readInputs, readStartContext } from "../board/inputs.js";
+import { readPlans } from "../board/plans.js";
+import { toCard, type Alarm, type BraidCard, type Lane, type StrandCard } from "../board/model.js";
 import { problemLine, readiness } from "../braids/readiness.js";
 import { readSignals } from "../board/signals.js";
 import { laneNote, statusLine } from "../board/pause.js";
@@ -63,19 +65,27 @@ export interface World {
 }
 
 export async function read(root: string, number: string, command: string, src: Sources, reuse?: World): Promise<World> {
-  const braids = loadLiveBraids(root);
+  // The same inputs as the board reads (src/board/inputs.ts). A command over several braids (`braid clean`) reads GitHub and T3 once and passes that read on.
+  const { braids, github, t3, sig, start } = await readInputs(
+    {
+      braids: () => loadLiveBraids(root),
+      github: () => reuse?.github ?? readGithub(root, src.gh ?? runGh, 0),
+      t3: () => (reuse === undefined ? readT3(root, { ttlMs: 0, run: src.t3 ?? runT3 }) : Promise.resolve(reuse.t3)),
+      signals: (g) => readSignals(root, g),
+      plans: () => readPlans(root),
+      start: () => readStartContext(root),
+    },
+  );
   const braid = braids.find((b) => b.number === number);
   if (braid === undefined) {
     throw new UsageError(`no braid ${number} (braid ${command} takes a braid number)`);
   }
-  // A command over several braids (`braid clean`) reads GitHub and T3 once and passes that read on.
-  const github = reuse?.github ?? readGithub(root, src.gh ?? runGh, 0);
-  const t3 = reuse?.t3 ?? (await readT3(root, { ttlMs: 0, run: src.t3 ?? runT3 }));
-  const sig = readSignals(root, github);
   const cards = new Map<string, { lane: Lane; strand: StrandCard | null }>();
   let card: BraidCard | undefined;
+  const alarms: Alarm[] = [];
   for (const b of braids) {
-    const c = toCard(b, github, t3, sig);
+    const c = toCard(b, github, t3, sig, start);
+    alarms.push(...c.alarms);
     cards.set(c.id, { lane: c.lane, strand: null });
     for (const s of c.strands) {
       cards.set(s.id, { lane: s.lane, strand: s });
@@ -84,7 +94,7 @@ export async function read(root: string, number: string, command: string, src: S
       card = c;
     }
   }
-  sig.commit();
+  sig.commit(alarms);
   return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3, pausesNote: sig.pausesNote ?? null, now: sig.now };
 }
 

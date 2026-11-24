@@ -272,3 +272,48 @@ test("an item with an open request is still ready for next (start closing it is 
   assert.match(await statusCommand(root, ["1"], src()), /0001\/A {2}To Do {2}Needs You \(decision\)/);
   assert.match(await nextCommand(root, ["1"], src()), /^0001\/A {2}T 0001\/A\n/);
 });
+
+test("braid status, the board and the Merge action read the same inputs, so they give the same lane and the same merge", async () => {
+  const root = repo([
+    { letter: "A", status: "In Progress", order: 10 },
+    { letter: "B", status: "To Do", order: 20 },
+  ]);
+  const head = "a".repeat(40);
+  const green = [check("verify (ubuntu-latest)", "SUCCESS"), check("verify (windows-latest)", "SUCCESS")];
+  openRequest(root, { id: "0001/A", kind: "review", text: "review PR #7", at: new Date(Date.now() - 5 * 60_000).toISOString(), thread: "co-1", pr: 7, head });
+  openRequest(root, { id: "0001/B", kind: "question", text: "Which format?", at: new Date(Date.now() - 35 * 60_000).toISOString(), thread: null });
+  const prs = [{ ...pr(7, "braid/0001/A-s", green), headRefOid: head }];
+  const threads = [{ threadId: "co-1", status: "idle" }];
+  const t3 = t3With(threads);
+  // The board's read, and the one Start and Open thread use, are `readInputs` over the same sources as `braid status`.
+  const { repoSources } = (await load("../dist/commands/board.js")) as { repoSources: (root: string, gh: unknown, t3: unknown) => { github(f: boolean): Promise<unknown> } & Record<string, unknown> };
+  const { readSnapshot } = (await load("../dist/board/feed.js")) as { readSnapshot: (src: unknown, fetch: boolean) => Promise<{ ok: boolean; board: { braids: { id: string; lane: string; strands: { id: string; lane: string; merge: { pr: number; reason: string | null } | null }[] }[] } }> };
+  const { mergeAction } = (await load("../dist/commands/board.js")) as { mergeAction: (src: unknown, root: string, t3: unknown) => (body: unknown) => Promise<{ ok: boolean; message: string }> };
+  const { LANE_LABEL } = (await load("../dist/board/marks.js")) as { LANE_LABEL: Record<string, string> };
+  const gh = ghWith(prs);
+  const sources = repoSources(root, gh, t3);
+  const snap = await readSnapshot(sources, false);
+  assert.equal(snap.ok, true);
+  const out = await statusCommand(root, ["1"], { gh, t3 });
+  const lanes = new Map<string, string>();
+  for (const c of snap.board.braids) {
+    lanes.set(c.id, c.lane);
+    for (const s of c.strands) {
+      lanes.set(s.id, s.lane);
+    }
+  }
+  for (const [id, lane] of lanes) {
+    const line = out.split("\n").find((l) => l.trimStart().startsWith(`${id} `)) ?? "";
+    assert.ok(line.includes(`  ${LANE_LABEL[lane]}`), `${id}: status reads ${lane} like the board: ${line}`);
+  }
+  assert.deepEqual([lanes.get("0001/A"), lanes.get("0001/B")], ["In Review", "Waiting"]);
+  // The Merge action reads the same inputs (T3 too): the board's merge button and the action agree on the open review request.
+  const sent: string[][] = [];
+  const merged = await mergeAction(sources, root, (_r: string, args: readonly string[]) => {
+    sent.push([...args]);
+    return Promise.resolve({ status: 0, stdout: "", stderr: "" });
+  })({ id: "0001/A", head: head.slice(0, 7) });
+  assert.equal(merged.ok, true);
+  assert.deepEqual(sent, [["thread", "send", "co-1", `Merge #7 at ${head}, from the board.`]]);
+  assert.equal(snap.board.braids[0]?.strands[0]?.merge?.reason, null, "the board offers the same merge");
+});

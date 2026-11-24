@@ -138,7 +138,7 @@ test("the board API puts each braid in its most urgent strand's lane", async () 
       "0001": "Done",
       "0002": "In Progress",
       "0003": "To Do",
-      "0004": "Done",
+      "0004": "In Progress",
       "0005": "In Progress",
     });
     const mix = data.braids.find((b) => b.id === "0002");
