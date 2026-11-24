@@ -57,12 +57,13 @@ export function loadReviews(root: string): ReviewRecord[] {
   }
 }
 
-/** Records a thread that reviews the item; the same thread twice is kept once (its first time stays). */
+/** Records a thread that reviews the item; the same thread twice is kept once (its first time stays). A PM's checker (`pm/<slug>`) replaces the item's older record: the PM has one checker at a time (0071/E, ozjp). */
 export function recordReview(root: string, id: string, thread: string, at: string = new Date().toISOString(), where: { folder: string; branch: string | null } | null = null): boolean {
   let added = false;
   update(reviewsFile(root), (list) => {
     added = !list.some((r) => r.thread === thread && r.id === id);
-    return added ? [...list, { id, thread, at, ...(where === null ? {} : { folder: where.folder, branch: where.branch }) }] : null;
+    const kept = id.startsWith("pm/") ? list.filter((r) => r.id !== id) : list;
+    return added ? [...kept, { id, thread, at, ...(where === null ? {} : { folder: where.folder, branch: where.branch }) }] : null;
   });
   return added;
 }
@@ -74,6 +75,14 @@ export function dropReviews(root: string, id: string, threads: readonly string[]
   }
   update(reviewsFile(root), (list) => {
     const next = list.filter((r) => !(r.id === id && threads.includes(r.thread)));
+    return next.length === list.length ? null : next;
+  });
+}
+
+/** Drops the records of these threads of every `pm/<slug>` item (the board, once a PM's checker no longer runs). */
+export function dropEndedChecks(root: string, threads: readonly string[]): void {
+  update(reviewsFile(root), (list) => {
+    const next = list.filter((r) => !(r.id.startsWith("pm/") && threads.includes(r.thread)));
     return next.length === list.length ? null : next;
   });
 }

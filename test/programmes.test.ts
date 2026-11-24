@@ -154,12 +154,14 @@ const read = (lines: string[] = []): any => planOf("working-product", "pm/workin
 /** One programme read at `now` with a broke clock that starts from `seen`. */
 function one(opts: { cards?: any[]; t3?: any; lines?: string[]; seen?: Record<string, string>; requests?: any[]; pauses?: Map<string, any>; ghOk?: boolean } = {}): { p: any; seen: Record<string, string> } {
   const clock = signals.brokeClock(opts.seen ?? {}, NOW);
-  const sig = { now: NOW, requests: new Map(), programmes: opts.requests ?? [], pauses: opts.pauses ?? new Map(), alarm: clock.alarm };
+  const sig = { now: NOW, requests: new Map(), programmes: opts.requests ?? [], pauses: opts.pauses ?? new Map(), alarm: clock.alarm, nudged: clock.nudged };
   const [p] = programme.toProgrammes("agento", [read(opts.lines)], opts.cards ?? [card("0001"), card("0002")], opts.t3 ?? t3("idle"), sig, { status: { state: opts.ghOk === false ? "unavailable" : "ok" } });
   return { p, seen: clock.seen() };
 }
 const KEY = "agento/working-product pm stalled";
 const long = { [KEY]: ago(11) };
+/** A stall that was nudged ten minutes ago: the stall shows now (0071/C). */
+const afterNudge = (key: string = KEY): Record<string, string> => ({ [key]: ago(25), [`${key} nudged`]: ago(11) });
 
 test("a programme is Working while its PM runs or one of its braids runs", () => {
   assert.equal(one({ t3: t3("running") }).p.section, "working", "a running PM with no braid running");
@@ -176,14 +178,14 @@ test("a programme with neither its PM nor a braid running reads stalled after te
   assert.equal(first.p.section, "working", "not yet: the clock starts");
   assert.equal(first.seen[KEY], NOW.toISOString());
   for (const pm of ["idle", "failed", "archived", null]) {
-    const late = one({ t3: t3(pm), seen: long });
+    const late = one({ t3: t3(pm), seen: afterNudge() });
     assert.equal(late.p.section, "needs", `PM ${pm}`);
     assert.equal(late.p.need.kind, "stalled");
-    assert.equal(late.p.need.text, "Stalled: the PM stopped and none of its braids is running");
+    assert.equal(late.p.need.text, "Stalled after a nudge: the PM stopped and none of its braids is running");
     assert.equal(late.p.need.link, LINK);
-    assert.equal(late.p.need.since, long[KEY], "the push key keeps its first sighting: pushed once");
+    assert.equal(late.p.need.since, afterNudge()[KEY], "the push key keeps its first sighting: pushed once");
   }
-  assert.match(one({ t3: t3(null), seen: long }).p.seen, /^the PM thread is gone · no braid running/);
+  assert.match(one({ t3: t3(null), seen: afterNudge() }).p.seen, /^the PM thread is gone · no braid running/);
   const back = one({ t3: t3("running"), seen: long });
   assert.equal(back.p.section, "working");
   assert.equal(back.seen[KEY], undefined, "the clock clears");
@@ -201,7 +203,7 @@ test("a PM checker counts only for its own programme: by slug, by braid number, 
   assert.equal(programme.checkerOf([], "b", [], true), false);
   // Two programmes: A's checker runs (it names 0001); B is idle with no braid running and stalls on its own clock.
   const planB = planOf("other", "pm/other", plan(["programme: other", "title: O", "goal: G", `thread: ${PM}`, "state: running", "rows:", "  - P1 | 0003 | Three | running"]));
-  const clock = signals.brokeClock({ "agento/other pm stalled": ago(11), [KEY]: ago(11) }, NOW);
+  const clock = signals.brokeClock({ ...afterNudge("agento/other pm stalled"), [KEY]: ago(11) }, NOW);
   const sig = { now: NOW, requests: new Map(), programmes: [], pauses: new Map(), alarm: clock.alarm };
   const [a, b] = programme.toProgrammes("agento", [read(), planB], [card("0001"), card("0002"), card("0003")], t3("idle", { pmChecks: ["PR #4 of 0001, live"] }), sig, gh());
   assert.equal(a.section, "working");
@@ -266,7 +268,7 @@ test("a held plan holds its braids: they show paused (held by the PM), not stall
 });
 
 test("two projects with one slug stay apart: keys, the filter and the pushes", () => {
-  const board = (repo: string): any => model.toBoard(repo, [], gh(), t3("idle"), { now: NOW, requests: new Map(), alarm: signals.brokeClock({ [`${repo}/working-product pm stalled`]: ago(11) }, NOW).alarm, plans: [read()] });
+  const board = (repo: string): any => model.toBoard(repo, [], gh(), t3("idle"), { now: NOW, requests: new Map(), alarm: signals.brokeClock(afterNudge(`${repo}/working-product pm stalled`), NOW).alarm, plans: [read()] });
   const held = (name: string) => ({ name, repo: name, board: board(name), readAt: NOW.getTime(), failure: null, problems: [] });
   const all = combine([held("app"), held("api")], false, [], NOW.getTime());
   assert.deepEqual(all.programmes.map((p: any) => p.key), ["app/working-product", "api/working-product"]);

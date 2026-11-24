@@ -12,6 +12,9 @@ import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START,
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
 import { steerer, type Steerer } from "../board/steerer.js";
+import { steps, waker } from "../board/wake.js";
+import { nudger } from "../board/nudge.js";
+import { reminder } from "../board/remind.js";
 import { steeringLines } from "../board/steer.js";
 import { LimitsError, readModelLines } from "../braids/limits.js";
 import { STEERING_EMOJI } from "../braids/roles.js";
@@ -1176,12 +1179,13 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const gh = run.gh ?? runGhAsync;
   const t3 = run.t3 ?? runT3;
   const notifierOf = run.notifier ?? boardNotifier;
-  // The limits pause (the click-only rule's one exception): never in the demo, off with --no-pause. Its pushes go through each project's notified.json.
+  // The limits pause and the wake (the click-only rule's exceptions): never in the demo, off with --no-pause. The pause's pushes go through each project's notified.json.
   const pausing = !demo && !args.includes("--no-pause");
   const pushers = new Map<string, ReturnType<typeof limitPusher>>();
   const steer = pausing
     ? steerer({
         t3,
+        wake: steps(waker(t3), reminder(t3), nudger(t3)),
         ...(run.notifier === undefined
           ? {
               push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => {

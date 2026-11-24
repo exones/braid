@@ -21,7 +21,7 @@ import { startCommand } from "./commands/start.js";
 import { acceptCommand } from "./commands/done.js";
 import { waitCommand } from "./commands/wait.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
-import { answerCommand, askCommand, forwardCommand, handoverCommand, requestsCommand, reviewCommand, withdrawCommand } from "./commands/requests.js";
+import { answerCommand, askCommand, etaCommand, forwardCommand, handoverCommand, requestsCommand, reviewCommand, withdrawCommand } from "./commands/requests.js";
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
 import { autonomyCommand } from "./commands/autonomy.js";
 import { limitsCommand } from "./commands/limits.js";
@@ -65,11 +65,12 @@ export function helpText(version: string): string {
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case, and the BRAID.md merge-gate, if any, with whether it runs on this PR's merge",
     "  recap <id>                  A draft recap and braid log line from report.md, the Decided: entries and answered requests, the PR (head, checks) and the facts, to edit",
     "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints its code and the recap draft (--thread, --to pm)",
-    "  ask <id> <text>             Open a request for what the coordinator needs from you and print its code (q-7f3k) (--kind question|decision|plan, --key <stop case>, --thread, --file -; --to pm: the PM answers first, from the braid's PM-run line; --to <braid number>: another braid's coordinator, stored only; --done-when answered|pr:<n>|braid:<number>|time:<iso>: pr:<n> closes it as met when that PR merges, braid: and time: are stored and shown). Finds the item on any branch, on origin/<main> or in the record. The PM's own: --by pm on a braid, or ask pm/<slug> for the programme (--kind action: something only you can do); a PM request shows in Needs You, is pushed and opens the PM thread",
-    "  forward <id>                The PM hands a request addressed to it on to you: it reaches you as the PM's ask (the programme's Needs you; a braid with no programme: its card's Needs You, a handover To Review) and is pushed, opening the PM's thread (the merges one PM forwards are one push listing them), at once or, while the braid is paused or held, after braid resume (--note <text>)",
-    "  answer <code>|<id>          Record the answer on braid-requests, never on a braid branch: the text from --file <file>|- (--log is the same), who answered (--from user, the default, or --from pm --reason <why>); an id with both askers' requests open needs the code or --by coordinator|pm (pm/<slug>: the PM's). An already closed request is refused",
-    "  withdraw <code>|<id> --why <reason>  Withdraw a request no longer needed; it stays on the record as withdrawn with the reason (--by coordinator|pm for an id)",
-    "  requests [<code>]           List the open requests on braid-requests: code, item, kind, age, who asks or whom it is for, done when, text; with a code: that request's whole history (each event's time, who and text); --closed [--since <YYYY-MM-DD>]: the closed ones, newest first, with state, who closed them and the answer",
+    "  ask <id> <text>             Open a request for what the coordinator needs from you and print its code (q-7f3k) (--kind question|decision|plan, --key <stop case>, --thread, --file -; --to pm: the PM answers first, from the braid's PM-run line; --to <braid number>: another braid's coordinator, reminded hourly by the running board; --done-when answered|pr:<n>|braid:<number>|time:<iso>: met when that PR merges, that braid is Done on origin/<main>, that time comes; the running board then wakes the asking thread once). A question replaces its asker's question on the item, a wait its wait to that braid. Finds the item on any branch, on origin/<main> or in the record. The PM's own: --by pm on a braid, or ask pm/<slug> for the programme (--kind action: something only you can do); a PM request shows in Needs You, is pushed and opens the PM thread",
+    "  forward <id>                The PM hands a request addressed to it on to you: it reaches you as the PM's ask (the programme's Needs you; a braid with no programme: its card's Needs You, a handover To Review) and is pushed, opening the PM's thread (the merges one PM forwards are one push listing them), at once or, while the braid is paused or held, after braid resume (--note <text>); a wait to another braid is never forwarded",
+    "  answer <code>|<id>          Record the answer on braid-requests, never on a braid branch: the text from --file <file>|- (--log is the same), who answered (--from user, the default, or --from pm --reason <why>); an id acts on its one open request: with both askers' open it needs the code or --by coordinator|pm (pm/<slug>: the PM's), with a question and a wait open it names the codes and needs the code. An already closed request is refused",
+    "  withdraw <code>|<id> --why <reason>  Withdraw a request no longer needed; it stays on the record as withdrawn with the reason (an id as for answer: --by coordinator|pm, the code when a question and a wait are open)",
+    "  eta <code> <duration|time> [<why>]  The addressee of an open request (another braid's coordinator; the PM for a request to the PM, or with --by pm) says when it expects to get to it: a duration (2h, 90m, 1h30m, 2d) or a time (16:30, today or tomorrow; 2026-11-24T09:00); sets its estimate and records an eta event with the why; a later call moves it; refused on a closed request. The running board reminds no sooner, and reads the wait as stalled once it passes",
+    "  requests [<code>]           List the open requests on braid-requests: code, item, kind, age, who asks or whom it is for, done when, expected by, text; with a code: that request's whole history (each event's time, who and text); --closed [--since <YYYY-MM-DD>]: the closed ones, newest first, with state, who closed them and the answer",
     "  note <text> --from <source>  Capture a leftover on the braid-inbox branch and push it (source: 0012/A, review 0012/A, PR #12 or user; --ref <url> repeats; --file -)",
     "  note --idea <text>          Capture an idea on the braid-inbox branch and push it (from: user unless --from; --file -)",
     "  inbox                       List the open inbox entries: kind, id, age, source, passed, title (--leftovers, --ideas, --all adds taken and dropped, --no-fetch)",
@@ -109,7 +110,7 @@ function fail(code: number, message: string): Output {
 ` };
 }
 
-const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "withdraw", "forward", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
+const BRAID_COMMANDS = new Set(["autonomy", "limits", "pause", "resume", "decisions", "note", "inbox", "ask", "answer", "withdraw", "forward", "eta", "requests", "import-backlog", "check", "list", "view", "new", "strand", "edit", "brief", "log", "report", "title"]);
 
 function dispatch(command: string, args: readonly string[], cwd: string, root: string): string | Said {
   switch (command) {
@@ -137,6 +138,8 @@ function dispatch(command: string, args: readonly string[], cwd: string, root: s
       return forwardCommand(root, args);
     case "requests":
       return requestsCommand(root, args);
+    case "eta":
+      return etaCommand(root, args);
     case "check": {
       if (args[0] === "--plan") {
         if (args.length !== 2) {

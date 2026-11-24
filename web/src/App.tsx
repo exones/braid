@@ -228,6 +228,7 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
       {need.text}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {parts.length > 0 && <small className="mt-px block text-[11px] text-slate-500">{parts.join(" · ")}</small>}
+      {need.also !== undefined && <NeedLine need={need.also} />}
     </div>
   );
 }
@@ -1146,6 +1147,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
           {item.need.code !== undefined && <><CodeChip code={item.need.code} />{" "}</>}
           {item.need.text}
+          {item.need.also !== undefined && <div className={`mt-2 rounded-md border-l-[3px] px-1.5 py-1 ${toneOf(item.need.also)}`}>{item.need.also.text}</div>}
           {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.code}</b> in any thread to refer to it.</span></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
@@ -1253,8 +1255,30 @@ function RequestCard({ row }: { row: RequestRow }) {
         {row.item} · asked {when(row.at)}
         {row.state === "open" ? ` (${row.age} ago)` : ""} · {doneWhenText(row.doneWhen)}
         {row.note !== null && ` · forwarded: ${row.note}`}
+        {row.state === "open" && row.eta !== null && <b className="font-semibold text-slate-700"> · expected by {when(row.eta)}{Date.parse(row.eta) <= Date.now() ? ", missed" : ""}</b>}
       </div>
+      {row.history.length > 1 && <RequestHistory row={row} />}
     </div>
+  );
+}
+
+/** An open request's opening, estimates and reminders, oldest first: who did what when. */
+function RequestHistory({ row }: { row: RequestRow }) {
+  // The estimate comes from the addressee: another braid's coordinator, or the PM.
+  // The same words as `braid requests <code>`: the coordinator is named by its braid.
+  const whoOf = (event: string, by: string): string => (by === "coordinator" ? (event === "eta" && /^\d{4}$/.test(row.to) ? `the ${row.to} coordinator` : `the ${row.item.slice(0, 4)} coordinator`) : (WHO[by] ?? by));
+  return (
+    <ul className="mt-1.5 list-none p-0 text-[12.5px] text-slate-700">
+      {row.history.map((e, i) => (
+        <li key={i} className="border-l-2 border-slate-200 py-0.5 pl-2.5">
+          <span className="inline-block w-24 text-slate-500">{when(e.at)}</span>
+          <b className="font-semibold">{e.event}</b>
+          {e.event === "eta" && e.text !== null && ` ${when(e.text)}`} by {whoOf(e.event, e.by)}
+          {e.event === "reminded" && e.text !== null && ` (${e.text})`}
+          {e.reason !== null && `: ${e.reason}`}
+        </li>
+      ))}
+    </ul>
   );
 }
 

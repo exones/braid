@@ -1,7 +1,7 @@
 ---
 id: '0073/H'
 title: "Merge main after 0071: resolve docs, renumber decisions"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 80
@@ -34,7 +34,11 @@ Expected size: the merge, plus about 20 changed doc lines.
 
 ## Completion
 
-- [ ] `origin/main` is merged in, with every conflict resolved keeping both braids' text
-- [ ] 0073's decisions are D102, D103 and D104 everywhere outside `braids/` and `epics/`, and decisions.md has D100 to D104 once each
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `origin/main` is merged in, with every conflict resolved keeping both braids' text
+- [x] 0073's decisions are D102, D103 and D104 everywhere outside `braids/` and `epics/`, and decisions.md has D100 to D104 once each
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Merge origin/main (done, a934df1e); resolve the four docs keeping both braids; renumber 0073 decisions to D102 to D104 outside braids/ and epics/; run the gate.
