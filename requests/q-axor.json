@@ -1,0 +1,21 @@
+{
+  "code": "q-axor",
+  "item": "0075/G",
+  "kind": "review",
+  "text": "review PR #303 at 65f9232",
+  "by": "coordinator",
+  "thread": "mcp:launch:3e7a675d49e3518b6491791c56cfc91a9781fcac408168337991fb133e7ff590",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:303",
+  "pr": 303,
+  "head": "65f9232375ba6f56bd866d72d0b9fea77db855d0",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T22:38:49.315Z",
+      "by": "coordinator"
+    }
+  ]
+}
