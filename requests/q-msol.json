@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-24T11:28:28.446Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-24T12:17:38.304Z",
+      "by": "pm",
+      "text": "live check passed (682/682; real timeline replayed: record kept between runs, later run counts, idle PM nudged once) · merge PR #296 at 1c92041"
     }
   ]
 }
