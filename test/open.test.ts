@@ -287,3 +287,12 @@ test("braid new and braid edit set related like --dep; none clears it; strands a
   assert.equal(r.status, 0, r.stderr);
   assert.match(readFileSync(join(root, "braids/0005-linked/brief.md"), "utf8"), /\nrelated: \['0002'\]\n/);
 });
+
+test("braid new's count reads each braid as list --open does: a story Done only from its merged PR isn't counted (0075/B)", async () => {
+  const root = fixture();
+  const { openBraidsLine } = (await import(new URL("../dist/commands/braids.js", import.meta.url).href)) as { openBraidsLine: (root: string, gh: (r: string, a: readonly string[]) => { status: number; stdout: string; stderr: string }) => string };
+  const prs = [{ number: 9, url: "u/9", state: "MERGED", headRefName: "braid/0003-b", headRefOid: "a".repeat(40), baseRefName: "main", mergedAt: "2026-11-24T10:00:00Z" }];
+  const gh = () => ({ status: 0, stdout: JSON.stringify(prs), stderr: "" });
+  assert.equal(openBraidsLine(root, gh), "Open braids: 2 (braid list --open)\n");
+  assert.equal(openBraidsLine(root, () => ({ status: 1, stdout: "", stderr: "no gh" })), "Open braids: 3 (braid list --open)\n", "without GitHub, stored statuses");
+});

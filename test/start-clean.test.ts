@@ -236,7 +236,7 @@ test("clean keeps a braid branch whose braid is not Done, even after a merged PR
   git(root, "worktree", "prune");
   const early = [...prs, merged(279, "braid/0001-alpha")];
   const out = await cleanCommand(root, ["--yes"], src(early), env);
-  assert.match(out, /skip 0001: .*branch braid\/0001-alpha \(PR #279 merged\): its braid is not Done on braid\/0001-alpha \(In Progress\); the braid goes on/);
+  assert.match(out, /skip 0001: .*branch braid\/0001-alpha \(PR #279 merged\): its braid is not Done \(In Progress\); the braid goes on/);
   assert.equal(gone(root, "braid/0001-alpha"), false);
   assert.match(out, /removed 0001\/A:/);
 });

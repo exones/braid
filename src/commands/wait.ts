@@ -15,12 +15,10 @@ import { loadBraids } from "../braids/store.js";
 import { runGh, type GhRunner } from "../board/github.js";
 import { UsageError } from "./braids.js";
 import { ciAll, ciChecks } from "./coordinate.js";
-import { commitChecks, git } from "./done.js";
+import { ciCommit, commitChecks, git, LOOKBACK } from "./done.js";
 import { parse, str } from "./edit.js";
 
 const REMOTE = "origin";
-/** How far back the walk looks for a commit CI runs on. */
-const LOOKBACK = 50;
 const POLL_MS = 15_000;
 /** How long a commit may show no run at all before the wait gives up on it. */
 const START_MS = 5 * 60_000;
@@ -40,30 +38,6 @@ export interface WaitResult {
 }
 
 const usage = "usage: braid wait <number> [--timeout <minutes>]  (a braid number like 0008; minutes may be a fraction, e.g. 9)";
-
-/** The newest commit on the first-parent line of `ref` whose diff against its first parent touches a file outside `braids/` and `epics/`, with the braids-only commits skipped on the way. */
-function ciCommit(root: string, ref: string): { sha: string; skipped: string[] } | null {
-  const list = git(root, ["rev-list", "--first-parent", `--max-count=${LOOKBACK}`, "--parents", ref]);
-  if (list.status !== 0) {
-    throw new UsageError(`can't read ${ref}: ${list.stderr.trim()}`);
-  }
-  const skipped: string[] = [];
-  for (const line of list.stdout.split(/\r?\n/).filter((l) => l !== "")) {
-    const [sha = "", parent] = line.split(" ");
-    if (parent === undefined) {
-      return { sha, skipped };
-    }
-    const files = git(root, ["diff", "--name-only", parent, sha]);
-    if (files.status !== 0) {
-      throw new UsageError(`can't read the changes of ${sha.slice(0, 7)}: ${files.stderr.trim()}`);
-    }
-    if (files.stdout.split(/\r?\n/).some((f) => f !== "" && !f.startsWith("braids/") && !f.startsWith("epics/"))) {
-      return { sha, skipped };
-    }
-    skipped.push(sha);
-  }
-  return null;
-}
 
 /** Passing only on success, neutral or skipped; any other finished run (cancelled, timed out, action required, stale) fails. */
 const PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);

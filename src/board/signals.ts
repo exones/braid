@@ -8,6 +8,7 @@ import { doneDate, headOf, prefetchDoneDates } from "./done.js";
 import { gitAsync } from "../braids/gitio.js";
 import type { Braid } from "../braids/store.js";
 import { BROKE_MS, type BrokeReason, type NudgeTarget, type Signals } from "./model.js";
+import { loadLifecycle, type Lifecycle } from "../braids/lifecycle.js";
 import { askerOf, conditionEnding, ensureStateDir, loadRecord, mainCheckout, programmeOf, type PrNow, type Request } from "../braids/requests.js";
 import { toBraid } from "./record.js";
 import { loadPauses, type Pause } from "../braids/pauses.js";
@@ -140,6 +141,7 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
   let file: string | null = null;
   let pauses: readonly Pause[] = [];
   let pausesNote: string | null = null;
+  let lifecycle: ReadonlyMap<string, Lifecycle> = new Map();
   try {
     // A request whose PR just merged or closed, or whose time came, is closed for the board now; the board's wake step (src/board/wake.ts) records it.
     const record = loadRecord(root).requests.map((r) => ended(r, now, (n) => prOf(github, n)));
@@ -148,6 +150,7 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
     const open = record.filter((r) => r.state === "open");
     waits = open.filter(toBraid);
     requests = open.filter((r) => !toBraid(r));
+    lifecycle = loadLifecycle(root);
     file = brokeFile(root);
     ({ pauses, note: pausesNote } = loadPauses(root));
   } catch {
@@ -164,6 +167,7 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
     closed,
     pauses: new Map(pauses.map((p) => [p.braid, p])),
     pausesNote,
+    lifecycle,
     alarm: clock.alarm,
     nudged: clock.nudged,
     nudges: { due: clock.due, escalate: clock.escalate },

@@ -224,20 +224,19 @@ test("braid start closes the request of the item it starts, and only that one", 
   assert.deepEqual([started?.event, started?.by, started?.text], ["answered", "coordinator", "started"]);
 });
 
-test("braid accept closes the request when the item is Done; a refused done leaves it", async () => {
+test("braid accept closes the request when the item is accepted; a refused accept leaves it", async () => {
   const w = world();
   askCommand(w.root, ["0001/A", "Merge?", "--kind", "decision"], { now: w.clock });
   const t3 = async () => ({ status: 1, stdout: "", stderr: "no t3" });
   // No PR for the item: refused.
   await assert.rejects(acceptCommand(w.root, ["0001/A", "--thread", THREAD], { gh: () => ok([]), t3 }) as Promise<string>, /has no PR/);
   assert.equal(loadRequests(w.root).length, 1);
-  // The PR merged: braid done stamps it on the braid branch, where this checkout is.
-  git(w.root, "checkout", "-q", "-b", "braid/0001-alpha", "origin/braid/0001-alpha");
+  // The PR merged: the acceptance is recorded (no log entry asked for, so nothing is committed on any branch).
   const merged = (_r: string, args: readonly string[]) => (args[1] === "list" ? ok([{ number: 5, url: "u/5", state: "MERGED", headRefName: "braid/0001/A-first", statusCheckRollup: [] }]) : ok({ number: 5, headRefOid: "abcdef0123456789" }));
   const out = (await acceptCommand(w.root, ["0001/A", "--thread", THREAD], { gh: merged, t3 })) as string;
-  assert.match(out, /0001\/A done/);
+  assert.match(out, /0001\/A accepted at abcdef0123456789; Done from the merge of PR #5/);
   assert.deepEqual(loadRequests(w.root), []);
-  assert.deepEqual(loadRecord(w.root).requests.map((r) => [r.state, r.events.at(-1)?.text]), [["withdrawn", "the item is Done"]]);
+  assert.deepEqual(loadRecord(w.root).requests.map((r) => [r.state, r.events.at(-1)?.text]), [["withdrawn", "the item is accepted"]]);
 });
 
 test("age is minutes, hours or days", () => {

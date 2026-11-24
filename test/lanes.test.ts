@@ -57,11 +57,14 @@ function sig(requests: object[] = [], held: Record<string, number> = {}) {
 }
 const lane = (status: string, g: unknown, t: unknown, s: Signals, labels: string[] = []) => model.derive(status, labels, KEY, g, t, s);
 
-test("a merged PR or a stored Done with no open PR is Done, whatever else is open", () => {
+test("Done, as statusOf reads it (a merged PR, or a stored Done with no open PR), is Done, whatever else is open", () => {
   const s = sig([request("question")], {});
-  assert.equal(lane("In Progress", gh(pr("merged")), t3([thread()]), s).lane, "Done");
+  assert.equal(lane("Done", gh(pr("merged")), t3([thread()]), s).lane, "Done");
   assert.equal(lane("Done", gh(null), t3(), s).lane, "Done");
-  assert.equal(lane("Done", gh(pr("closed")), t3(), sig()).lane, "To Do", "a closed PR never makes Done");
+  // A card reads it from the PR: a merged strand whose brief still says In Progress is Done.
+  const story = demo.demoBraids().find((b) => (b as unknown as { strands: unknown[] }).strands.length === 0) as unknown as { number: string; brief: object };
+  const merged = model.toCard({ ...story, brief: { ...story.brief, status: "In Progress" } }, { status: { state: "ok" }, prs: new Map([[story.number, pr("merged")]]) }, t3(), sig()) as unknown as { lane: string; status: string };
+  assert.deepEqual([merged.lane, merged.status], ["Done", "Done"]);
 });
 
 test("an open review request is To Review; another open request is Needs You with its text", () => {
@@ -270,7 +273,7 @@ test("the braid-level stall never leaks into wrap-up or a merged final PR", () =
     assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0008 coordinator stalled"), "the braid-level clock is cleared");
   }
   const s = held();
-  const merged = model.toCard(braid("Done"), G(pr("merged")), { status: { state: "ok" }, threads: new Map(), coordinators: new Map() }, s);
+  const merged = model.toCard(braid("Done"), G({ ...pr("merged"), mergedAt: "2026-11-20T10:00:00Z" } as Pr), { status: { state: "ok" }, threads: new Map(), coordinators: new Map() }, s);
   assert.equal(merged.lane, "Done");
   assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0008 coordinator stalled"), "a merged final PR clears it");
 });

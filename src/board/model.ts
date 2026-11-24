@@ -2,6 +2,7 @@ import { type Github, type PullRequest } from "./github.js";
 import type { Problem } from "../braids/readiness.js";
 import { ideaPlanning, NO_T3, type T3, type T3Coordinator, type T3Thread } from "./t3.js";
 import type { Status } from "../braids/brief.js";
+import { braidStatuses, type Lifecycle } from "../braids/lifecycle.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
 import { age, type Request } from "../braids/requests.js";
@@ -296,6 +297,8 @@ export interface Signals {
   readonly pausesNote?: string | null;
   /** The plans of the project's programmes (`pm/*` branches). Absent: none. */
   readonly plans?: readonly PlanRead[];
+  /** Each item's lifecycle events from the record branch (`lifecycle/`), by item id. Absent: none. */
+  readonly lifecycle?: ReadonlyMap<string, Lifecycle>;
 }
 
 export function noSignals(): Signals {
@@ -375,22 +378,19 @@ function requestLane(r: Request, now: Date, routed: Routed, t3: T3): { lane: Lan
 }
 
 /**
- * An item's lane, first match winning: a merged PR, or a stored Done with no open PR, is Done; an open
- * `review` request is To Review; another open request is Needs You with its text; an agent's pending
- * question is Needs You `question`; a stored Done next to an open PR (stamped before the merge) waits
- * for the merge, To Review; a broke alarm (`checks failed`, `stalled`, after ten minutes) is Needs You
- * with its reason; started (stored In Progress, an agent running, or an open PR) is Working; else To Do.
- * A PR closed without merging never makes Done (a stored Done next to one reads To Do). An `ask:<key>`
- * label never sets the lane; it comes back as `ask` (none once the PR is merged) for the flag.
+ * An item's lane, first match winning: Done (its status as `statusOf` reads it: a merged PR, or an old stored
+ * Done); an open `review` request is To Review; another open request is Needs You with its text; an agent's
+ * pending question is Needs You `question`; an item accepted at its open PR's head (`accepted`) waits for the
+ * merge, To Review; a broke alarm (`checks failed`, `stalled`, after ten minutes) is Needs You with its reason;
+ * started (In Progress, an agent running, or an open PR) is Working; else To Do. An `ask:<key>` label never sets
+ * the lane; it comes back as `ask` (none once the PR is merged) for the flag.
  */
-export function derive(status: Status, labels: readonly string[], key: string, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals()): Derived {
-  const pr = gh.prs.get(key) ?? null;
-  const stored = status === "Done" && pr?.state === "closed" ? "To Do" : status;
+export function derive(status: Status, labels: readonly string[], key: string, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), accepted: string | null = null, prOf: PullRequest | null = gh.prs.get(key) ?? null): Derived {
+  const pr = prOf;
   const agents = t3.threads.get(key) ?? [];
   const activity = activityOf(agents, pr);
-  // A review request still open on a stored Done whose PR the lookup didn't find isn't dropped: the merge is the user's one task (0068).
-  const heldReview = stored === "Done" && pr === null && sig.requests.get(key)?.kind === "review";
-  if (pr?.state === "merged" || (stored === "Done" && pr?.state !== "open" && !heldReview)) {
+  const waitsMerge = accepted !== null && pr?.state === "open";
+  if (status === "Done") {
     sig.alarm(key, "checks failed", false);
     sig.alarm(key, "stalled", false);
     if (!key.includes("/")) {
@@ -410,14 +410,14 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const pmAskOf = sig.asks?.get(key);
   const pmAsk = pmAskOf === undefined ? null : needOfAsk(pmAskOf, sig.now, t3);
   const question = agents.some((t) => t.pending > 0);
-  const waiting = asked !== undefined || pmAsk !== null || question || stored === "Done";
+  const waiting = asked !== undefined || pmAsk !== null || question || waitsMerge;
   // The alarms: the condition, only while nothing else already has the user's attention.
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const failing = pr?.state === "open" && pr.checks === "failing";
   const checking = pr?.state === "open" && (pr.checks === "pending" || pr.checks === "failing");
   const failed = sig.alarm(key, "checks failed", waiting ? false : known ? failing && agents.length === 0 : null);
   // An open wait of the braid on another braid is the coordinator waiting on purpose: no item of it reads stalled; a broken one does, on the braid.
-  const stallHolds = waiting || waits(key.slice(0, 4), sig).length > 0 || stored !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
+  const stallHolds = waiting || waits(key.slice(0, 4), sig).length > 0 || status !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
   const broken = key.includes("/") ? null : waitStall(key, sig, t3);
   // A paused braid's items aren't stalled while the pause lasts; once its resume is 25 min overdue they are, at once, naming the pause.
   const paused = sig.pauses?.get(key.slice(0, 4)) ?? null;
@@ -434,7 +434,7 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   if (question) {
     return out("Waiting", "question", { ...plain, kind: "question", text: "An agent asked a question: answer it in its thread", verb: "asked", age: null, since: null, ...(broken === null ? {} : { also: broken }) });
   }
-  if (stored === "Done" && pr !== null) {
+  if (waitsMerge && pr !== null) {
     return out("In Review", null, { ...plain, kind: "review", text: `Merge PR #${pr.number}`, verb: "asked", age: null, since: null, pr: pr.number });
   }
   if (failed !== null) {
@@ -455,9 +455,8 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   if (limit !== null) {
     return out("Waiting", "limit", { ...plain, kind: "limit", text: limit.text, verb: "for", age: age(limit.since, sig.now), since: limit.since });
   }
-  const started = stored === "In Progress" || agents.length > 0 || pr?.state === "open";
-  // A stored Done whose review request is still open (the PR lookup missed) isn't Done: it reads To Do, with the PM line while the PM checks it.
-  return out(started ? "In Progress" : heldReview ? "To Do" : laneOfStatus(stored), null, null);
+  const started = status === "In Progress" || agents.length > 0 || pr?.state === "open";
+  return out(started ? "In Progress" : laneOfStatus(status), null, null);
 }
 
 /** Most urgent first. */
@@ -587,13 +586,23 @@ function planned(number: string, lane: Lane, gh: Github, t3: T3): { readonly lan
   return { lane: "In Progress", activity: plan?.checks === "pending" ? "checks" : null };
 }
 
+/** When an item became Done: the commit that stored its Done, else its PR's merge. */
+function doneAtOf(item: Item, pr: PullRequest | null, sig: Signals): string | null {
+  return (item.brief.status === "Done" ? sig.doneAt?.(item.folder, item.source) : null) ?? (pr?.state === "merged" ? (pr.mergedAt ?? null) : null);
+}
+
 export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), ctx: StartContext = NO_START): BraidCard {
+  // What each item reads as (record, PRs, stored status): the one input of the lanes below.
+  const reviews = new Set([...sig.requests].filter(([, r]) => r.kind === "review").map(([k]) => k));
+  const st = braidStatuses(braid, sig.lifecycle ?? new Map(), gh.prs, reviews);
+  const statusOfItem = (id: string, stored: Status) => st.get(id) ?? { status: stored, accepted: null };
   const strands: StrandCard[] = braid.strands.map((s) => {
-    const d = derive(s.brief.status, s.brief.labels, `${braid.number}/${s.letter}`, gh, t3, sig);
+    const own = statusOfItem(`${braid.number}/${s.letter}`, s.brief.status);
+    const d = derive(own.status, s.brief.labels, `${braid.number}/${s.letter}`, gh, t3, sig, own.accepted);
     return {
       id: s.brief.id,
       title: s.brief.title,
-      status: s.brief.status,
+      status: own.status,
       lane: d.lane,
       branch: s.source?.branch ?? null,
       pr: d.pr,
@@ -605,23 +614,26 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
       thread: openThread(`${braid.number}/${s.letter}`, d.agents, t3, d.lane),
       threadRole: openThreadRole(`${braid.number}/${s.letter}`, d.agents, t3, d.lane),
       merge: mergeOf(`${braid.number}/${s.letter}`, gh, sig, t3),
-      doneAt: d.lane === "Done" && s.brief.status === "Done" ? (sig.doneAt?.(s.folder, s.source) ?? null) : null,
+      doneAt: d.lane === "Done" ? doneAtOf(s, d.pr, sig) : null,
       pause: d.pause,
       pm: d.pm,
       pmAsk: d.pmAsk,
     };
   });
+  const self = statusOfItem(braid.number, braid.brief.status);
   if (strands.length === 0) {
-    const derived = derive(braid.brief.status, braid.brief.labels, braid.number, gh, t3, sig);
+    const derived = derive(self.status, braid.brief.labels, braid.number, gh, t3, sig, self.accepted);
     const lift = planned(braid.number, derived.lane, gh, t3);
     const own = lift === null ? derived : { ...derived, ...lift };
-    return { id: braid.brief.id, title: braid.brief.title, status: braid.brief.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), ...doneLinkOf(braid.number, t3, own.lane), doneAt: own.lane === "Done" && braid.brief.status === "Done" ? (sig.doneAt?.(braid.folder, braid.source) ?? null) : null, pause: own.lane === "Done" ? null : derived.pause, pm: own.lane === "Done" ? null : derived.pm, pmAsk: own.lane === "Done" ? null : derived.pmAsk, programme: null, waits: waitsOf(braid.number, sig, t3) };
+    return { id: braid.brief.id, title: braid.brief.title, status: self.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), ...doneLinkOf(braid.number, t3, own.lane), doneAt: own.lane === "Done" ? doneAtOf(braid, own.pr, sig) : null, pause: own.lane === "Done" ? null : derived.pause, pm: own.lane === "Done" ? null : derived.pm, pmAsk: own.lane === "Done" ? null : derived.pmAsk, programme: null, waits: waitsOf(braid.number, sig, t3) };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
   // strand Done; before that the strands decide. The one alarm it has is the braid-level `stalled`: In Progress, nothing asked,
   // no strand Working, Needs You or To Review, no pending checks, and no coordinator thread running.
-  const pr = gh.prs.get(braid.number) ?? null;
+  // An early PR from the braid branch, merged while strands were open, is shown but isn't the braid's merge (dsyv).
+  const shown = gh.prs.get(braid.number) ?? null;
+  const pr = shown?.state === "merged" && self.status !== "Done" ? null : shown;
   const asked0 = sig.requests.get(braid.number);
   const routed = asked0 === undefined ? undefined : routeOf(asked0, sig.now, t3, sig.pauses?.has(braid.number) === true);
   const toPm = routed?.to === "pm" && !("via" in routed);
@@ -636,7 +648,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   const quiet = strands.every((s) => s.lane === "To Do" || s.lane === "Done");
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const asked = (asked0 !== undefined && pr?.state !== "merged") || pmNeed !== null;
-  const holds = finalPr || asked || waits(braid.number, sig).length > 0 || pr?.state === "merged" || braid.brief.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
+  const holds = finalPr || asked || waits(braid.number, sig).length > 0 || pr?.state === "merged" || self.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
   const paused = sig.pauses?.get(braid.number) ?? null;
   const stalled = sig.alarm(`${braid.number} coordinator`, "stalled", paused === null ? holds : false, nudgeOf(braid.number, braid.number, t3, sig));
   const broken = waitStall(braid.number, sig, t3);
@@ -645,7 +657,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   if (finalPr) {
     // The braid's recorded reviewers (`braid review <n>`) are its agents in wrap-up; the coordinator never counts.
     const reviewers = (t3.threads.get(braid.number) ?? []).filter((t) => t.role === "reviewer");
-    own = derive(braid.brief.status, braid.brief.labels, braid.number, gh, { ...t3, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []) }, sig);
+    own = derive(self.status, braid.brief.labels, braid.number, gh, { ...t3, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []) }, sig, self.accepted, pr);
   } else if (req !== undefined && routed !== undefined && pr?.state !== "merged") {
     own = requestLane(req, sig.now, routed, t3);
   }
@@ -668,17 +680,17 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     ...strands.flatMap((s) => (s.need === null ? [] : [{ lane: s.lane, reason: s.reason, need: s.need, who: s.id as string | null }])),
   ];
   const top = [...candidates].sort((a, b) => URGENCY.indexOf(a.lane) - URGENCY.indexOf(b.lane))[0];
-  const base = braidLane(braid.brief.status, strands, pmNeed === null ? own : { lane: "Waiting" });
+  const base = braidLane(self.status, strands, pmNeed === null ? own : { lane: "Waiting" });
   const lift = planned(braid.number, base, gh, t3);
   const lane = lift?.lane ?? base;
   return {
     id: braid.brief.id,
     title: braid.brief.title,
-    status: braid.brief.status,
+    status: self.status,
     lane,
     labels: braid.brief.labels,
     branch: braid.source?.branch ?? null,
-    pr,
+    pr: shown,
     reason: top !== undefined && top.lane === "Waiting" ? top.reason : null,
     need: top === undefined ? null : { ...top.need, who: top.who, more: candidates.length - 1 },
     ask: null,
@@ -693,7 +705,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
     start: startOf(braid, lane, t3, ctx),
     coordinator: coordinatorOf(braid.number, t3, ctx, lane),
     ...doneLinkOf(braid.number, t3, lane),
-    doneAt: lane === "Done" ? ((braid.brief.status === "Done" ? sig.doneAt?.(braid.folder, braid.source) : null) ?? strands.map((s) => s.doneAt).filter((d) => d !== null).sort().pop() ?? null) : null,
+    doneAt: lane === "Done" ? (doneAtOf(braid, pr, sig) ?? strands.map((s) => s.doneAt).filter((d) => d !== null).sort().pop() ?? null) : null,
     pause: paused === null || lane === "Done" ? null : pauseView(paused, sig.now),
     pm: lane === "Done" ? null : pm,
     pmAsk: lane === "Done" ? null : (pmNeed ?? ((s) => (s?.pmAsk == null ? null : { ...s.pmAsk, who: s.id }))(strands.find((x) => x.pmAsk !== null))),
@@ -753,7 +765,7 @@ export function toDetail(tree: Tree, braid: Braid, item: Item, gh: Github, t3: T
   return {
     id: item.brief.id,
     title: item.brief.title,
-    status: item.brief.status,
+    status: own?.status ?? item.brief.status,
     lane: own?.lane ?? laneOfStatus(item.brief.status),
     labels: item.brief.labels,
     dependencies: item.brief.dependencies,

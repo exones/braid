@@ -267,7 +267,8 @@ export function steerer(opts: SteererOptions): Steerer {
         const pms: PmThread[] = s.good.board.programmes.flatMap((p) => (p.thread === null || p.section === null ? [] : [{ thread: p.thread, braids: p.braids }]));
         const w = overWindow(reading);
         const records = s.good.braids
-          .filter((b) => b.brief.status !== "Done" && !held.has(b.number))
+          // Done as the board reads it (a merged PR too), not only a stored Done.
+          .filter((b) => s.good.board.braids.find((c) => c.id === b.number)?.status !== "Done" && b.brief.status !== "Done" && !held.has(b.number))
           .flatMap((b): Pause[] => {
             const targets = targetsOf(b.number, provider, s.good.t3, pms, s.project.folder());
             return targets.length === 0
