@@ -62,7 +62,32 @@ test("the running rule: T3's running, background work pending, or blocked on a t
   assert.equal(working({ status: "completed", pendingBackgroundTasks: BG }), true);
   assert.equal(working({ status: "waiting", blockedOnThreadWait: true }), true);
   assert.equal(working({ status: "completed", pendingBackgroundTasks: [], blockedOnThreadWait: false }), false);
+  assert.equal(working({ status: "waiting" }), true);
   assert.equal(working({ status: "idle" }), false);
+});
+
+test("dctl-studio 0011/E: a worker T3 shows `waiting` while its turn awaits its local gate counts as running, and is never nudged or stalled", async () => {
+  const w = world();
+  const repo = titleRepoName(w.root);
+  const gate = [{ taskId: "bl9xjm2bz", kind: "command", description: "npm run verify", awaited: true }];
+  const list = [
+    { threadId: "w-wait", status: "waiting", pendingBackgroundTasks: gate, blockedOnThreadWait: false, title: `💻 ${repo} 0007 worker: Seven` },
+    { threadId: CO7, status: "waiting", pendingBackgroundTasks: [], blockedOnThreadWait: false, title: `🧠 ${repo} 0007 coordinator: Seven` },
+  ];
+  const t3 = await readFrom(w.root, list, { "w-wait": { status: "waiting", pendingBackgroundTasks: gate, folder: "0007" }, "r-waiting": { status: "waiting" } }, [{ id: "0007", thread: "r-waiting", at: at(0).toISOString() }]);
+  assert.deepEqual((t3.threads.get("0007") ?? []).map((t: any) => t.id), ["w-wait", "r-waiting"], "the worker and a recorded reviewer T3 shows waiting");
+  assert.equal(t3.coordinators.get("0007")?.id, CO7, "a coordinator T3 shows waiting runs");
+  assert.equal(t3.states.get("w-wait"), "running");
+  const s = sender();
+  const step = nudger(s.t3);
+  for (const m of [0, 10, 20, 30]) {
+    const sig = signals.readSignals(w.root, GH, at(m));
+    const card = model.toCard(lone, GH, t3, sig);
+    sig.commit();
+    await step({ root: w.root, good: { sig } }, at(m), warn);
+    assert.deepEqual([card.reason, card.need, card.running], [null, null, true], `minute ${m}`);
+  }
+  assert.equal(s.sent.length, 0, "never nudged");
 });
 
 test("0010/B: a worker `completed` with a background command, a coordinator blocked on a thread wait, a reviewer and the PM with background work all count as running", async () => {
@@ -144,21 +169,21 @@ test("0012/B: a timed wait shows quietly as waiting until its time, is never pus
     assert.deepEqual(card.waits.map((r: any) => [r.to, r.doneWhen]), [["self", `time:${until.toISOString()}`]], "the card's quiet wait line");
     assert.equal(remindable(sig.waits[0]), false, "nobody to remind");
   }
-  assert.deepEqual(s.sent, [], "no nudge while it waits");
+  assert.equal(s.sent.length, 0, "no nudge while it waits");
   // The time comes: the board's wake ends it, and the asking thread is woken once.
   const woke = await run(15);
   assert.deepEqual(woke.card.waits, []);
   const [r] = Rec.loadRecord(w.root).requests;
   assert.equal(r.state, "met");
   assert.equal(s.sent.length, 1);
-  assert.equal(s.sent[0].thread, CO7);
-  assert.match(s.sent[0].text, /^Wake: q-\w+ is met \(time .* reached\): idle until my wake at 04:15\. Go on where you left off\.$/);
+  assert.equal(s.sent[0]?.thread, CO7);
+  assert.match(s.sent[0]?.text ?? "", /^Wake: q-\w+ is met \(time .* reached\): idle until my wake at 04:15\. Go on where you left off\.$/);
   // Nothing happens after it: the stall clock runs from the time, nudge at ten minutes, the stall ten after, as before.
   await run(24);
   assert.equal(s.sent.length, 1);
   await run(25);
   assert.equal(s.sent.length, 2, "the nudge");
-  assert.equal(s.sent[1].thread, CO7);
+  assert.equal(s.sent[1]?.thread, CO7);
   const late = await run(35);
   assert.deepEqual([late.card.lane, late.card.reason], ["Waiting", "stalled"]);
 });

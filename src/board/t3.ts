@@ -222,14 +222,17 @@ export function readT3(root: string, options: T3Options = {}): Promise<T3> {
   return t3;
 }
 
+/** T3's statuses of a thread whose turn is under way: `running`, or `waiting` (its turn waits on a background task it awaits). */
+const BUSY = new Set(["running", "waiting"]);
+
 /**
- * Whether a thread works: T3 says `running`, or it has background work pending (a background command or a subagent:
+ * Whether a thread works: T3 says `running` or `waiting`, or it has background work pending (a background command or a subagent:
  * `pendingBackgroundTasks`), or it is blocked on a thread wait (`blockedOnThreadWait`). T3 shows such a thread `completed` or
  * `waiting` between turns, yet it is working (0075/G). The one rule for "running" wherever the board decides it.
  */
 export function working(t: Json): boolean {
   const tasks = t["pendingBackgroundTasks"];
-  return str(t["status"])?.toLowerCase() === "running" || (Array.isArray(tasks) && tasks.length > 0) || t["blockedOnThreadWait"] === true;
+  return BUSY.has(str(t["status"])?.toLowerCase() ?? "") || (Array.isArray(tasks) && tasks.length > 0) || t["blockedOnThreadWait"] === true;
 }
 
 /** A thread's status as the board reads it: `archived` for an archived one, `running` for one that works (`working`), else T3's status. */
