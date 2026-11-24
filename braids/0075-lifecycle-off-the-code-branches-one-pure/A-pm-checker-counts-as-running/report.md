@@ -1,18 +1,18 @@
 ## What changed
 
-- `src/board/t3.ts`: a recorded `pm/` checker counts as running while T3 shows `running`, or `completed` (between its runs) until 3 hours after its last update (`updatedAt` of `thread show`, else the record's time). Any other status (idle, failed, archived) or past the cap drops the record; a thread T3 can't be asked about keeps its record, as before. `readT3` takes an optional `now` for tests.
-- `docs/board.md`: the checker rule and the cap.
-- `test/reviews.test.ts`: the real case (completed between runs, runCount 3, activeRunId null) still counts; past the cap and failed drop the record; unknown thread keeps it. The programme side is unchanged: `pmChecks` feeds `checkerOf`/`holds`, already covered in `test/programmes.test.ts`.
+- `src/board/t3.ts`: a recorded `pm/` checker counts as running only while T3 shows `running`. Its record is no longer dropped on `completed` (or any other live status): it is kept, uncounted, so a later run on the same thread counts again. It is dropped only when T3 shows the thread archived (`showThread` now reports `archived` from the archived flags), or 24 h after the record (`CHECKER_CAP_MS`, bounds the `thread show` reads). A thread T3 can't be asked about keeps its record.
+- `docs/board.md`: the rule and the 24 h cap.
+- `test/reviews.test.ts`: the real timeline: recorded at 07:42 while `completed` (not counted, kept); `running` at 08:24 (counted); `completed` at 09:20 (not counted, kept); inside/past the 24 h cap; archived dropped; unknown thread kept. The programme side is unchanged and covered in `test/programmes.test.ts`: `pmChecks` feeds `checkerOf` and `holds`, so a counted checker keeps the programme working and un-nudged.
 
-## Why this signal (open)
+## Cause and signal (from the coordinator's check of the real threads)
 
-The `t3` CLI isn't installed in this worktree, so I couldn't read the real `thread show` output; the fixture is the shape in the brief plus `updatedAt`, which is an assumption. I found no verified "seen finished" field, so I did not use the "PM thread started a run after the checker's last run" idea: I can't confirm what T3 gives for a run start. A checker that really finished while T3 shows `completed` therefore counts until the 3 h cap. Per the brief I added no new command.
+- Each checker run is a separate task the PM starts with `t3_thread_send`. Between runs the checker has really finished (it isn't waiting on background work); each run's completion reaches the PM within about 2 s, which is the "seen finished" signal and already wakes the PM.
+- The bug: the PM recorded the checker at 07:42 while it was `completed` between tasks; the next board read dropped the record at once. When run 3 started at 08:12 nothing counted, so the board nudged the PM at 08:24 and 08:37 during the run.
+- `updatedAt` moves without a run (09:49:57 vs the last run's completion at 09:19:57), so it is no run-end time. My first version (count `completed` for 3 h from `updatedAt`) was wrong: it would have hidden a really idle PM and still dropped the record over the 3 h 24 min gap.
 
 ## Validation
 
-`node --test test/reviews.test.ts test/programmes.test.ts` pass; `npm run verify` passes (682 tests, ~6 min).
+`npm run verify` passes; docs updated: `docs/board.md`.
 
-Docs updated: `docs/board.md`.
-
-For later items: a "seen finished" signal from T3 (PM run after the checker's last run), checked against a real thread; "quiet until <time>" not built.
+For later items: "quiet until <time>" for a PM or coordinator that doesn't land on the user, not built.
 Needs the user: none.

@@ -358,28 +358,32 @@ test("a PM's checker recorded on its programme (pm/<slug>) keeps the programme r
   assert.deepEqual([...read.threads.keys()], [], "a checker is no item's reviewer");
   assert.deepEqual(read.pmChecks, ["pm/working-product"], "it runs");
   assert.equal(loadReviews(root).length, 1, "a running checker's record stays");
-  read = await t3mod.readT3(root, { run: t3({ [child(1)]: { status: "idle" } }), ttlMs: 0, agents: join(scratch, "none"), project: root });
-  assert.deepEqual(read.pmChecks, [], "it ended");
+  read = await t3mod.readT3(root, { run: t3({ [child(1)]: { status: "archived" } }), ttlMs: 0, agents: join(scratch, "none"), project: root });
+  assert.deepEqual(read.pmChecks, [], "it ended (archived)");
   assert.deepEqual(loadReviews(root), [], "the board dropped the record of the ended checker");
 });
 
-// 0075/A (inbox fwoa): the real shape of a PM's checker between two runs, trimmed.
-const BETWEEN = { status: "completed", relationshipToParent: "subagent", parentThreadId: "9b3a8157-f696-45de-ac39-f35a4a90cf9b", runCount: 3, activeRunId: null, updatedAt: "2026-11-24T10:00:00Z" };
+// 0075/A (inbox fwoa): the real timeline of a PM's checker. Each run is a task the PM starts; between runs T3 shows it completed.
+const SHOWN = { relationshipToParent: "subagent", parentThreadId: "9b3a8157-f696-45de-ac39-f35a4a90cf9b", runCount: 3, activeRunId: null };
 
-test("a PM's checker that T3 shows completed between its runs still counts until the cap; past it, or once finished, the record is dropped", async () => {
+test("a PM's checker recorded while completed between runs is kept, counts only while running, and goes at archive or the 24 h cap", async () => {
   const { root } = repo();
-  const at = (iso: string) => ({ run: t3({ [child(1)]: { ...BETWEEN } }), ttlMs: 0, agents: join(scratch, "none"), project: root, now: new Date(iso) });
-  recordReview(root, "pm/working-product", child(1), "2026-11-24T03:00:00Z");
-  let read = await t3mod.readT3(root, at("2026-11-24T12:59:00Z"));
-  assert.deepEqual(read.pmChecks, ["pm/working-product"], "completed between runs, 2h59 after its last update: still counts");
-  assert.equal(loadReviews(root).length, 1);
-  read = await t3mod.readT3(root, at("2026-11-24T13:01:00Z"));
-  assert.deepEqual(read.pmChecks, [], "past the cap");
-  assert.deepEqual(loadReviews(root), [], "its record is dropped");
-  recordReview(root, "pm/working-product", child(1), "2026-11-24T03:00:00Z");
-  read = await t3mod.readT3(root, { ...at("2026-11-24T10:05:00Z"), run: t3({ [child(1)]: { ...BETWEEN, status: "failed" } }) });
-  assert.deepEqual([read.pmChecks, loadReviews(root)], [[], []], "a finished (not running, not completed) checker stops counting");
-  recordReview(root, "pm/working-product", child(1), "2026-11-24T03:00:00Z");
-  read = await t3mod.readT3(root, { ...at("2026-11-24T10:05:00Z"), run: t3({}) });
-  assert.deepEqual([read.pmChecks, loadReviews(root).length], [[], 1], "a thread T3 can't be asked about is kept for a later read, as before");
+  const read = (status: object, iso: string) => t3mod.readT3(root, { run: t3({ [child(1)]: { ...SHOWN, ...status } }), ttlMs: 0, agents: join(scratch, "none"), project: root, now: new Date(iso) });
+  recordReview(root, "pm/working-product", child(1), "2026-11-24T07:42:00Z");
+  let r = await read({ status: "completed" }, "2026-11-24T07:42:30Z");
+  assert.deepEqual([r.pmChecks, loadReviews(root).length], [[], 1], "recorded at 07:42 while completed: not counted, record kept");
+  r = await read({ status: "running", activeRunId: "run-3" }, "2026-11-24T08:24:00Z");
+  assert.deepEqual(r.pmChecks, ["pm/working-product"], "run 3 running at 08:24: counted");
+  r = await read({ status: "completed" }, "2026-11-24T09:20:00Z");
+  assert.deepEqual([r.pmChecks, loadReviews(root).length], [[], 1], "completed at 09:20: not counted, record kept");
+  r = await read({ status: "completed" }, "2026-11-25T07:41:00Z");
+  assert.equal(loadReviews(root).length, 1, "inside the cap");
+  r = await read({ status: "completed" }, "2026-11-25T07:43:00Z");
+  assert.deepEqual([r.pmChecks, loadReviews(root)], [[], []], "past the 24 h cap: dropped");
+  recordReview(root, "pm/working-product", child(1), "2026-11-24T07:42:00Z");
+  r = await read({ status: "idle", archived: true }, "2026-11-24T09:20:00Z");
+  assert.deepEqual([r.pmChecks, loadReviews(root)], [[], []], "archived: dropped");
+  recordReview(root, "pm/working-product", child(1), "2026-11-24T07:42:00Z");
+  r = await t3mod.readT3(root, { run: t3({}), ttlMs: 0, agents: join(scratch, "none"), project: root, now: new Date("2026-11-24T09:20:00Z") });
+  assert.equal(loadReviews(root).length, 1, "a thread T3 can't be asked about keeps its record");
 });

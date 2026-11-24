@@ -138,20 +138,18 @@ export interface Where {
   readonly provider: string | null;
   /** T3's link to the thread (`<base>/<env>/<thread>`). */
   readonly link: string | null;
-  /** When T3 last updated the thread, ISO; null when it gives none. */
-  readonly updatedAt: string | null;
 }
 
-/** How long a recorded PM checker that T3 shows `completed` still counts as running, from its last update (or, without one, its record). Docs: board.md. */
-export const CHECKER_CAP_MS = 3 * 60 * 60_000;
+/** How long after its record a recorded PM checker is read for: each run of it is a separate task the PM starts, and between runs T3 shows it `completed`, so the record stays until the thread is archived or this passes (bounds the `thread show` reads). Docs: board.md. */
+export const CHECKER_CAP_MS = 24 * 60 * 60_000;
 
-/** Whether a recorded PM checker still counts: it runs, or T3 shows it `completed` between its runs (it waits on its own background work) and its last update is within the cap. */
-export function checkerCounts(where: Where, recordedAt: string, now: Date): boolean {
+/** What a recorded PM checker's record becomes: it counts while T3 says it runs; it is dropped once T3 shows it archived or the cap since its record passed; otherwise (idle, completed between runs) it is kept, uncounted. */
+export function checkerRecord(where: Where, recordedAt: string, now: Date): "counts" | "kept" | "drop" {
   if (where.status === "running") {
-    return true;
+    return "counts";
   }
-  const last = Date.parse(where.updatedAt ?? recordedAt);
-  return where.status === "completed" && !Number.isNaN(last) && now.getTime() - last < CHECKER_CAP_MS;
+  const at = Date.parse(recordedAt);
+  return where.status === "archived" || (!Number.isNaN(at) && now.getTime() - at >= CHECKER_CAP_MS) ? "drop" : "kept";
 }
 
 const recent = new Map<string, { at: number; t3: Promise<T3> }>();
@@ -168,14 +166,13 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
     const t = obj(top?.["thread"]) ?? top ?? {};
     const pending = t["pendingRequestCount"];
     return {
-      status: str(t["status"]),
+      status: archived(t) ? "archived" : str(t["status"]),
       worktreePath: str(t["worktreePath"]),
       branch: str(t["branch"]),
       pending: typeof pending === "number" ? pending : 0,
       relationshipToParent: str(t["relationshipToParent"]),
       provider: str(t["providerInstanceId"]),
       link: str(t["link"]),
-      updatedAt: str(t["updatedAt"]),
     };
   } catch {
     return null;
@@ -332,15 +329,16 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) pm check: (.*)$/.exec(str(t["title"]) ?? "");
     return running && m !== null && repos.has(m[1] ?? "") ? [m[2] ?? ""] : [];
   });
-  // A PM's checker is a subagent, which `thread list` leaves out: the PM records it (`braid review pm/<slug> --thread <id>`), and it checks while T3 says it runs, or `completed` between its runs, until the cap (0071/C, 2h98; 0075/A, fwoa).
-  // Once T3 says the thread is neither, or the cap passed, the board drops its record, so a finished checker costs no more reads (0071/E, ozjp).
+  // A PM's checker is a subagent, which `thread list` leaves out: the PM records it (`braid review pm/<slug> --thread <id>`), and it checks while T3 says it runs (0071/C, 2h98).
+  // Each run of it is a task the PM starts and T3 shows it `completed` between runs, so the record is kept (uncounted) until the thread is archived or 24 h pass since the record (0075/A, fwoa).
   const ended: string[] = [];
   const recordedChecks = await pool(reviews.filter((r) => r.id.startsWith("pm/")), async (r) => {
     const where = await showThread(run, root, r.thread);
-    if (where !== null && checkerCounts(where, r.at, now)) {
+    const what = where === null ? "kept" : checkerRecord(where, r.at, now);
+    if (what === "counts") {
       return [r.id];
     }
-    if (where !== null) {
+    if (what === "drop" && where !== null) {
       ended.push(r.thread);
     }
     return [];
