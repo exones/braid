@@ -31,6 +31,16 @@ export function ciChecks(root: string): string[] {
   return list === undefined ? [] : list.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s !== "");
 }
 
+/** Whether `ci: all` is set in BRAID.md: every check reported on the commit must finish green (`ciChecks` is empty then). */
+export function ciAll(root: string): boolean {
+  const file = join(root, "BRAID.md");
+  if (!existsSync(file)) {
+    return false;
+  }
+  const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
+  return /^ci:\s*["']?all["']?\s*$/m.test(front);
+}
+
 function braidNumber(args: readonly string[], command: string): string {
   const [raw, ...extra] = args;
   const match = raw === undefined ? null : /^(\d{1,4})$/.exec(raw);

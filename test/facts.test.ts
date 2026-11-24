@@ -123,6 +123,19 @@ test("braid facts: lines under braids/ are not counted in the size fact", async 
   assert.doesNotMatch(out, /quality or scope/);
 });
 
+test("braid facts: names the merge gate and whether it runs on this PR's merge", async () => {
+  const w = world("about 100 lines", (put) => put("src/a.ts", "a\n"));
+  const out = await factsCommand(w.root, ["7"], { gh: w.gh });
+  assert.doesNotMatch(out, /merge gate/);
+  const gate = (on: string) => writeFileSync(join(w.root, "BRAID.md"), `---\nmain: main\nci: [verify]\nmerge-gate: "python gate.py --pr <pr>"\n${on}---\n`);
+  gate("");
+  assert.match(await factsCommand(w.root, ["7"], { gh: w.gh }), /^merge gate: python gate\.py --pr <pr> \(runs on this merge\)$/m);
+  gate("merge-gate-on: [strand]\n");
+  assert.match(await factsCommand(w.root, ["7"], { gh: w.gh }), /^merge gate: python gate\.py --pr <pr> \(not on this merge: merge-gate-on is \[strand\]\)$/m);
+  gate("merge-gate-on: [main]\n");
+  assert.match(await factsCommand(w.root, ["7"], { gh: w.gh }), /\(runs on this merge\)$/m);
+});
+
 test("braid facts: bad arguments are usage errors", async () => {
   const w = world("about 10 lines", (put) => put("a.txt", "a\n"));
   await assert.rejects(factsCommand(w.root, [], { gh: w.gh }), /usage: braid facts/);
@@ -187,4 +200,15 @@ test("braid recap: carries the item's Decided: entries under Decisions, a final 
   assert.deepEqual(decided, ["- 2026-11-19 0001: Decided: kept the old flag. Second line.", "- 2026-11-20 0001/A: Decided: strand choice", "- 2026-11-21 0001: Decided: braid-level choice"]);
   assert.ok(out.indexOf("**Decisions:**") < out.indexOf("- 2026-11-19 0001"));
   assert.doesNotMatch(out, /Merged strand A/);
+});
+
+test("braid facts: with ci: all, no reported check is not green, and all green is", async () => {
+  const w = world("about 100 lines", (put) => put("src/a.ts", "export const a = 1;\n"));
+  writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: all\n---\n");
+  const none = (_r: string, args: readonly string[]) => {
+    const out = JSON.parse(w.gh(_r, args).stdout) as Record<string, unknown>;
+    return ok(Array.isArray(out) ? out.map((p) => ({ ...p, statusCheckRollup: [] })) : { ...out, statusCheckRollup: [] });
+  };
+  assert.match(await recapCommand(w.root, ["1"], { gh: none }), /^checks: {2}\(ci: all, but no check is reported on [0-9a-f]{7}\)$/m);
+  assert.match(await recapCommand(w.root, ["1"], { gh: w.gh }), /^checks: verify passing \(green on this head\)$/m);
 });
