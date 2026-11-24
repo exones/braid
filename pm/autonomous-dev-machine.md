@@ -7,7 +7,7 @@ limit: 2
 state: running
 hold:
 next: "P6 · 0071 and P20 · 0073 run; P22 · 0075 takes the first freed slot (after 0071 and 0073 are in main, which it overlaps), then P21 · 0074; then P4 · 0072, P5"
-digest: "24 Nov · 5 done · 2 running · 13 PM decisions"
+digest: "24 Nov · 5 done · 1 running · 1 ready to merge (#287) · 15 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | done
@@ -15,7 +15,7 @@ rows:
   - P7 | 0067 | Board as a Windows service, fully usable; PM naming | done
   - P3 | 0070 | Questions on record | done
   - P6 | 0071 | The board wakes, reminds and nudges | running
-  - P20 | 0073 | braid on large repos: CI per PR, merge gate, merge preconditions, path-scoped gates | running
+  - P20 | 0073 | braid on large repos: CI per PR, merge gate, merge preconditions, path-scoped gates | ready to merge
   - P22 | 0075 | Lifecycle off the code branches, one pure lane | planned
   - P21 | 0074 | The board pauses and resumes reliably | planned
   - P4 | 0072 | Questions say what they unblock | planned
@@ -146,6 +146,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 
+- 2026-11-24: re-checks passed: 0071 #290 at ceda4b0 (reads write nothing, one wake, held stays open, eta wording, red line beside a question; 659/659), awaiting its accept head; 0073 #287 at 19c4c2d (clean removes Done-and-merged, keeps live; 636/636): ready to merge, forwarded to the user.
 - 2026-11-24 night: a second board pause for Claude_Everix (session window); the steering thread (mcp:b45f…) gave no Steering line in 15 min, so the board read "Pause failed" (more evidence for P21 · 0074); then the board's resume reached everyone. The PM's 0071 re-check hit the Claude rate limit and was re-sent after the resume. 0071/G merged (#291); #290 at ceda4b0, review clean, CI green.
 - 2026-11-24: PM live check of 0073 #287 at 93cb010 (fake gh/t3): merge gate (pass, fail, timeout tree-kill, [main], presets), ci: all, copy chip on secure and insecure http, colours, docs and skills all work; 633/633. Blocking: the puxp fix makes braid clean keep Done-and-merged branches (reads the local, pre-stamp brief); sent back as a fix. The early-PR "run braid accept" status predates 0073: into 0075.
 - 2026-11-24: PM live check of 0071 #290 at 6b64f9f (throwaway clone, fake t3/gh): wakes, reminder, missed-estimate line, nudge, holds, slim cards, eta all work; 655/655 tests. Blocking: plain `braid requests` closes met waits without a wake and ignores holds (liveRequests); sent back as a fix with two small wording/visibility items. Two boards started at the same instant double-send a wake: to P21 · 0074 (acting-board lock).
