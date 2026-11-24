@@ -4,6 +4,7 @@
 // addressee does.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { load, world } from "./support/done-fixtures.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -241,4 +242,15 @@ test("a wait whose addressee is gone reads stalled after ten minutes, naming the
     assert.ok(!Object.hasOwn(back.clock.seen(), "0007 wait stalled"), "clock cleared");
     assert.equal(model.toCard(b, GH, T3(false, false), sig([wait()], { "0007 wait stalled": 12 })).reason, null, "T3 unread: can't be told");
   }
+});
+
+test("braid eta works through the CLI: sets the estimate on an open request", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const w = world();
+  const code = waitOn2(w.root);
+  const r = spawnSync(process.execPath, [fileURLToPath(new URL("../dist/cli.js", import.meta.url)), "eta", code, "2h", "after 0002/C"], { encoding: "utf8", cwd: w.root });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(r.stdout.startsWith(`${code} (0001, to braid 0002): expected by `), r.stdout);
+  assert.match(r.stdout, /\(in 2h\)/);
+  assert.ok(recordOf(w.root, code).eta, "the estimate is set");
 });
