@@ -108,6 +108,29 @@ test("a new request from the same asker on the same item withdraws the open one;
   assert.deepEqual((all.get(first) as any).events.at(-1), { event: "withdrawn", at: "2026-11-23T11:00:00.000Z", by: "coordinator", text: `replaced by ${second}` });
 });
 
+test("a wait doesn't withdraw its asker's open question on the item, nor a question a wait (rf9z)", () => {
+  const { clones } = world(1);
+  const root = clones[0] as string;
+  const question = R.openRequest(root, q("0003", { to: "pm", pm: "pm-thread-1234" })).code;
+  const wait = R.openRequest(root, q("0003", { to: "0004", doneWhen: "braid:0004", at: "2026-11-23T10:05:00.000Z" })).code;
+  const other = R.openRequest(root, q("0003", { to: "0005", doneWhen: "braid:0005", at: "2026-11-23T10:06:00.000Z" })).code;
+  const user = R.openRequest(root, q("0003", { at: "2026-11-23T10:10:00.000Z" })).code;
+  const state = () => new Map(R.loadRecord(root).requests.map((r: any) => [r.code, r.state]));
+  assert.deepEqual([question, wait, other, user].map((c) => state().get(c)), ["withdrawn", "open", "open", "open"], "the question to the user replaced the one to the PM; both waits stay");
+  assert.equal(R.loadRecord(root).requests.find((r: any) => r.code === question).events.at(-1).text, `replaced by ${user}`);
+});
+
+test("a wait replaces only its asker's wait to the same braid", () => {
+  const { clones } = world(1);
+  const root = clones[0] as string;
+  const question = R.openRequest(root, q("0003")).code;
+  const first = R.openRequest(root, q("0003", { to: "0004", doneWhen: "braid:0004", at: "2026-11-23T10:05:00.000Z" })).code;
+  const second = R.openRequest(root, q("0003", { to: "0004", doneWhen: "time:2026-11-24T00:00:00.000Z", at: "2026-11-23T10:06:00.000Z" })).code;
+  const pmWait = R.openRequest(root, q("0003", { by: "pm", to: "0004", at: "2026-11-23T10:07:00.000Z" })).code;
+  const state = new Map(R.loadRecord(root).requests.map((r: any) => [r.code, r.state]));
+  assert.deepEqual([question, first, second, pmWait].map((c) => state.get(c)), ["open", "withdrawn", "open", "open"]);
+});
+
 test("a refused push is fetched and redone on top: both writes land", () => {
   const { origin, clones } = world(2);
   const [a, b] = clones as [string, string];

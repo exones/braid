@@ -1,6 +1,6 @@
 # Braid workflow
 
-How work is organized in a project that uses braid: what an item is, who writes where, who sets Done, where gaps go, which branches and PRs each case has, the tiers and who merges. Project values (gate, main branch, models) come from `BRAID.md`; this file never overrides them. Fields and commands are in [the brief template](../assets/brief.md); the coordinator's steps are in [the skill](../SKILL.md).
+How work is organized in a project that uses braid: what an item is, who writes where, who sets Done, where gaps go, which branches and PRs each case has, the tiers and who merges. Project values (gate, main branch, models) come from `BRAID.md`; this file never overrides them.
 
 ## Items are braids
 

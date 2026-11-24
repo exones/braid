@@ -40,7 +40,9 @@ A target repository needs a `BRAID.md` at its root with the facts the skills rea
 
 - the `gate` command, run before every PR;
 - the `main` branch;
-- the required `ci` checks (`none` if it has no hosted CI);
+- the required `ci` checks: a list of names means exactly those; `all` means every check reported on the commit (checks that vary with the paths a PR changes); `[]` and `none` name none, so there is nothing to wait for, reported checks must still pass, and no preset merges; `none` also says there is no hosted CI, so the gate is the evidence;
+- optional `merge-gate` and `merge-gate-on`: a command `braid accept --merge` runs before each merge it makes, under every preset, with `<pr>` and `<sha>` (the reviewed head) filled in, for nine minutes at most; it refuses the merge unless it exits 0, and a script that reports failure only in its output needs a wrapper or an exit-code flag; `merge-gate-on` says which merges run it (strands into the braid branch, PRs into `main`, or both, the default);
+- optional `review-bots` and `reviewer-with-bots`: the bots that review PRs (by check name or comment author), whose comments the worker answers and resolves, and whether the braid reviewer still reviews (`always`, the default) or only tier L items (`L-only`);
 - optional `autonomy`: the [autonomy preset](autonomy.md) braids run on unless a braid names its own (`careful` if absent);
 - optional `shell`, `setup` and `test` commands, and how to `run` the app;
 - optional `docs`: the project's docs in two lists, `public` (for its users: README, guides, help text) and `internal` (for its developers: development notes, the decisions record, format references), and `update`, when braid keeps them true (below). Without the lists, agents take `README.md` and `docs/`;
@@ -57,6 +59,33 @@ A target repository needs a `BRAID.md` at its root with the facts the skills rea
 Docs that need your go (`AGENTS.md`, `CLAUDE.md`, `BRAID.md`, the skills) are proposed in the report, not edited, unless the brief allows it.
 
 Start from the [`braid` template](../.agents/skills/braid/assets/braid-md.md). This repository's own [BRAID.md](../BRAID.md) is an example. Agents keep screenshots and scratch files in `~/.braid/artifacts/`, outside every checkout.
+
+## braid on a large repo
+
+A large polyglot monorepo, where a merge into `main` builds everything and deploys shared environments, needs a few more lines. Only the merge gate and `ci: all` are code; the rest are lines in `BRAID.md` and `AGENTS.md` that the agents read. An example:
+
+```yaml
+gate: pwsh -File build/gate.ps1 -local
+ci: all
+review-bots: [coderabbitai]
+reviewer-with-bots: always
+merge-gate: python -I ci/gate.py --pr <pr> --sha <sha>
+merge-gate-on: [main]
+setup: "git submodule update --init; set NUGET_PACKAGES to a folder in the worktree (shared caches are cleaned by other builds); pnpm install --frozen-lockfile"
+```
+
+- **CI that differs per PR.** When the checks a PR gets depend on its paths, `ci: all` makes `braid wait`, `braid accept`, `braid handover` and `braid recap` require every check reported on the commit. Only `braid wait` adds a 2-minute start grace for checks that start late; the others read once. A list of names would wait for a check that never runs or miss one that did.
+- **Partial CI on braid branches.** When the full build runs only for PRs into `main`, say so in the body of `BRAID.md`: "Strand PRs into a `braid/*` branch get only the path checks and the review bots; the full build runs on the final PR into `main`." The worker's local gate is then a strand's full evidence, and its report gives the gate's output summary and duration. The final PR's CI covers everything before it reaches `main`.
+- **Review bots.** List the bots' checks in `ci`, or use `ci: all`, so that green CI means the bots have reviewed. With `review-bots`, the worker reads the bots' threads once at green CI, fixes each comment, answers why not, or marks it a nit; it pushes the fixes in one push, replies on each comment, resolves each thread itself, and lists them in its report, then waits for CI on the new head as usual. A named bot that posted nothing by then is `<bot>: no review` in the report: the worker never waits for a bot. `reviewer-with-bots: always` keeps the braid reviewer, which also reads the bots' threads and the worker's replies; `L-only` gives tier S and M items the bots reviewed no braid reviewer, and the bots' resolved review counts as the independent review for a merge under a preset.
+- **A merge gate for `main`.** `merge-gate` names one command whose exit code decides: 0 merges, anything else refuses with its output and changes nothing, under every preset and when you ask for the merge. It holds the rules braid can't know: a minimum test count, no merge while a run uses the shared staging environment, a required run for a risky path. A script that reports failure only in its output and exits 0 needs a wrapper or an exit-code flag. `merge-gate-on: [main]` runs it only on PRs into `main`, for a gate that reads the full build only those PRs get. `braid facts <pr>` names the gate and whether it runs on that PR's merge.
+- **Path stops.** A rule for certain paths goes in `AGENTS.md`, where every agent reads it:
+
+  ```markdown
+  - `billing/**`: a change that can move prices needs the non-regression run first; ask before merging.
+  ```
+
+  The coordinator treats such a change as a stop case, and the merge gate can refuse a PR into `main` that touches those paths without the run. Path-scoped gates, narrower checks for a PR that touches only docs or the frontend, belong in the project's gate script, which picks the checks from the changed paths; `BRAID.md` lists them for the worker.
+- **Caches and disk.** A shared cache that other builds clean (NuGet, Gradle, a package store) breaks a worktree's build halfway; give each worktree its own folder in `setup`. A large repository's worktrees fill a disk quickly: `braid clean` removes the worktrees of merged items.
 
 ## Set up a repository
 
@@ -77,7 +106,7 @@ A preset is a short Markdown file that says what the coordinator merges by itsel
 - `steady`: it merges strands into the braid branch, starts the next one and decides the small cases; the big decisions and the final PR into `main` are yours.
 - `free`: it merges everything, `main` included, and decides every case, logging each.
 
-Whatever the preset, a merge by the coordinator needs green CI (`ci` not `none`), an independent review with nothing blocking and the reviewed head commit. Each decision it makes is logged as `Decided: <what>, because <why>, instead of <alternative>`; your answers, and the PM's with its reason, are on the request record (below). You read them together in the recap (`braid decisions <number>` lists them).
+Whatever the preset, a merge by the coordinator needs green CI (`ci` a list or `all`, not `none`), an independent review with nothing blocking (with `reviewer-with-bots: L-only`, the review bots' resolved review for tier S and M) and the reviewed head commit. Each decision it makes is logged as `Decided: <what>, because <why>, instead of <alternative>`; your answers, and the PM's with its reason, are on the request record (below). You read them together in the recap (`braid decisions <number>` lists them).
 
 **For a project,** set `autonomy: <name>` in `BRAID.md`. Every braid without its own preset runs on it.
 
@@ -93,7 +122,7 @@ A goal's plan is merged into its braid branch, so `main` gets its briefs with th
 
 ## Questions and answers
 
-When a coordinator or the PM needs you, it opens a request with `braid ask` and then asks in chat, in its turn's last message: the question, the request's code (`q-7f3k`) and the options as lettered answers, the recommended one first. No dialog blocks the thread. The request lives on the branch `braid-requests` with its whole history: who asked and for whom, when it was answered, withdrawn with a reason, or met (its "done when" held, such as a PR merged), the answer, and who answered, you or the PM with its reason. Reply in the asking thread, or name the code in any thread; the agent records your reply with `braid answer <code>`. `braid requests` lists the open ones, `braid requests <code>` one with its history, `--closed` the closed ones; the board shows each with its code and a link to the asking thread, and the item's Requests tab lists the closed ones ([the board](board.md#requests), D96 to D99 in [decisions](decisions.md)). Every coordinator and PM message to you ends with one marker: `✋ <what is needed>`, `⏳ Waiting for <what>` or `🟢`.
+When a coordinator or the PM needs you, it opens a request with `braid ask` and then asks in chat, in its turn's last message: the question, the request's code (`q-7f3k`) and the options as lettered answers, the recommended one first. No dialog blocks the thread. The request lives on the branch `braid-requests` with its whole history: who asked and for whom, when it was answered, withdrawn with a reason, or met (its "done when" held, such as a PR merged), the answer, and who answered, you or the PM with its reason. Reply in the asking thread, or name the code in any thread; the agent records your reply with `braid answer <code>`. `braid requests` lists the open ones, `braid requests <code>` one with its history, `--closed` the closed ones; the board shows each with its code and a link to the asking thread, and the item's Requests tab lists the closed ones ([the board](board.md#requests), D96 to D99 in [decisions](decisions.md)). A coordinator that waits for another braid or for a time opens its request with `--to <braid number>` or `--done-when braid:<n>|time:<iso>` and ends its turn: the running board wakes it once when the condition holds, reminds the one it waits for hourly (that coordinator can say when it expects to get to it with `braid eta <code> 2h "<why>"`; the request's details then show "expected by") and nudges a coordinator that stopped with nothing open ([wakes, reminders and nudges](board.md#wakes)). The request's text is the short line the board shows; the chat message carries the full question. Every coordinator and PM message to you ends with one marker: `✋ <what is needed>`, `⏳ Waiting for <what>` or `🟢`.
 
 ## See the board
 

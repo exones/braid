@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { ROLES } from "../../src/braids/roles.ts";
 import { Md } from "./Md.tsx";
+import { TAG_COLOURS } from "./palette.ts";
+import { copyText, type CopyEnv } from "../../src/board/copy.ts";
 import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
 import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
@@ -226,13 +228,35 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
       {need.text}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {parts.length > 0 && <small className="mt-px block text-[11px] text-slate-500">{parts.join(" · ")}</small>}
+      {need.also !== undefined && <NeedLine need={need.also} />}
     </div>
   );
 }
 
-/** A request's code (`q-7f3k`), the name to use for it in any thread. */
+/** A request's code (`q-7f3k`), the name to use for it in any thread. A click, tap or Enter copies it and says "copied" for a moment; the card under it stays as it is. */
 function CodeChip({ code }: { code: string }) {
-  return <code className="whitespace-nowrap rounded bg-slate-900 px-1.5 font-mono text-[11.5px] font-semibold text-amber-200">{code}</code>;
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const copy = (e: { stopPropagation(): void; preventDefault(): void }) => {
+    e.stopPropagation();
+    e.preventDefault();
+    void copyText(code, { isSecureContext: window.isSecureContext, clipboard: navigator.clipboard, document: document as unknown as CopyEnv["document"] }).then((ok) => {
+      setState(ok ? "copied" : "failed");
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setState("idle"), 1500);
+    });
+  };
+  return (
+    <button type="button" title={`Copy ${code}`} onClick={copy} className="relative cursor-copy whitespace-nowrap rounded border-0 bg-slate-900 p-0 px-1.5 align-baseline font-mono text-[11.5px] font-semibold text-amber-200">
+      {code}
+      {state !== "idle" && (
+        <span role="status" className={`absolute -top-5 left-0 rounded px-1.5 py-px text-[11px] font-medium text-white shadow ${state === "copied" ? "bg-emerald-700" : "bg-red-700"}`}>
+          {state === "copied" ? "copied" : "copy failed"}
+        </span>
+      )}
+    </button>
+  );
 }
 
 /** "Open asking thread": the T3 app link of the thread that asked; nothing when T3 doesn't list it. */
@@ -322,15 +346,6 @@ interface Scope {
 }
 const ScopeContext = createContext<Scope>({ projects: new Map(), several: false, tagged: false });
 
-/** Placeholder tag colours, by position in the project list (the design stays open to a colour per project later). */
-const TAG_COLOURS = [
-  { dot: "bg-indigo-600", text: "text-indigo-700", border: "border-indigo-200" },
-  { dot: "bg-teal-600", text: "text-teal-700", border: "border-teal-200" },
-  { dot: "bg-pink-700", text: "text-pink-800", border: "border-pink-200" },
-  { dot: "bg-orange-600", text: "text-orange-700", border: "border-orange-200" },
-  { dot: "bg-cyan-600", text: "text-cyan-700", border: "border-cyan-200" },
-  { dot: "bg-lime-600", text: "text-lime-800", border: "border-lime-300" },
-] as const;
 const colourOf = (index: number) => TAG_COLOURS[index % TAG_COLOURS.length] ?? TAG_COLOURS[0];
 
 /** How old a snapshot is, as "12 s", "14 min" or "3 h". */
@@ -1132,6 +1147,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
           {item.need.code !== undefined && <><CodeChip code={item.need.code} />{" "}</>}
           {item.need.text}
+          {item.need.also !== undefined && <div className={`mt-2 rounded-md border-l-[3px] px-1.5 py-1 ${toneOf(item.need.also)}`}>{item.need.also.text}</div>}
           {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.code}</b> in any thread to refer to it.</span></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
@@ -1239,8 +1255,30 @@ function RequestCard({ row }: { row: RequestRow }) {
         {row.item} · asked {when(row.at)}
         {row.state === "open" ? ` (${row.age} ago)` : ""} · {doneWhenText(row.doneWhen)}
         {row.note !== null && ` · forwarded: ${row.note}`}
+        {row.state === "open" && row.eta !== null && <b className="font-semibold text-slate-700"> · expected by {when(row.eta)}{Date.parse(row.eta) <= Date.now() ? ", missed" : ""}</b>}
       </div>
+      {row.history.length > 1 && <RequestHistory row={row} />}
     </div>
+  );
+}
+
+/** An open request's opening, estimates and reminders, oldest first: who did what when. */
+function RequestHistory({ row }: { row: RequestRow }) {
+  // The estimate comes from the addressee: another braid's coordinator, or the PM.
+  // The same words as `braid requests <code>`: the coordinator is named by its braid.
+  const whoOf = (event: string, by: string): string => (by === "coordinator" ? (event === "eta" && /^\d{4}$/.test(row.to) ? `the ${row.to} coordinator` : `the ${row.item.slice(0, 4)} coordinator`) : (WHO[by] ?? by));
+  return (
+    <ul className="mt-1.5 list-none p-0 text-[12.5px] text-slate-700">
+      {row.history.map((e, i) => (
+        <li key={i} className="border-l-2 border-slate-200 py-0.5 pl-2.5">
+          <span className="inline-block w-24 text-slate-500">{when(e.at)}</span>
+          <b className="font-semibold">{e.event}</b>
+          {e.event === "eta" && e.text !== null && ` ${when(e.text)}`} by {whoOf(e.event, e.by)}
+          {e.event === "reminded" && e.text !== null && ` (${e.text})`}
+          {e.reason !== null && `: ${e.reason}`}
+        </li>
+      ))}
+    </ul>
   );
 }
 

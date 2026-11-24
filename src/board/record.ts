@@ -29,6 +29,10 @@ export interface RequestRow {
   readonly link: string | null;
   /** The PM's forward note, when the PM handed it to the user. */
   readonly note: string | null;
+  /** The addressee's estimate (ISO), from `braid eta`; null when none. */
+  readonly eta: string | null;
+  /** Its opening, estimates and reminders, oldest first, while it is open: the details panel lists them under a wait. */
+  readonly history: readonly { readonly event: string; readonly at: string; readonly by: Who; readonly text: string | null; readonly reason: string | null }[];
   /** How it ended; null while open. */
   readonly closed: { readonly at: string; readonly by: Who; /** The answer, or the reason it was withdrawn or met. */ readonly text: string | null; /** The PM's reason, when the PM answered. */ readonly reason: string | null } | null;
 }
@@ -57,6 +61,8 @@ export function rowOf(r: Request, now: Date, t3: T3): RequestRow {
     age: age(r.at, now),
     link: linkOfThread(t3, r.thread),
     note: r.note ?? null,
+    eta: r.eta,
+    history: r.state !== "open" ? [] : r.events.filter((e) => e.event === "opened" || e.event === "eta" || e.event === "reminded").map((e) => ({ event: e.event, at: e.at, by: e.by, text: e.text ?? null, reason: e.reason ?? null })),
     closed: end === null ? null : { at: end.at, by: end.by, text: end.text ?? null, reason: end.reason ?? null },
   };
 }
