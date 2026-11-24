@@ -148,6 +148,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-24 ~22:20Z: third 0075 hotfix on the user's "a": false stalls. Count threads with T3's pendingBackgroundTasks or blockedOnThreadWait as working; a timed wait that isn't a question ("waiting until 04:15"). Real cases: everix 0010/B and 0012/A,B. 5gqa and 9fex taken into 0075. Board reads failed for a while under two parallel gates (5p1e).
 - 2026-11-24: the user on escalation under a PM: keep the 20-minute safety net ("This is a nice safety net"); only the wording changes to "Escalated to you" (2026-11-24-s9sr, taken into P4 · 0072).
 - 2026-11-24: P23 is braid 0076; plan approved by the PM (q-5boj): one story, README only, tier M, because it follows the user's request and keeps the README short, instead of several stories. dctl-studio's lost PM answer (q-vvb7, a t3_thread_send cancelled as the coordinator settled) diagnosed for the user; vpml (the PM records its own answers) and 32me (programme cards show their braids' requests) taken into P4 · 0072.
 - 2026-11-24: P23 launched on the user's "a" (start now alongside 0075; merges after 0075 with main merged in), coordinator mcp:launch:20a7ff51….
