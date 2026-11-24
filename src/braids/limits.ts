@@ -16,12 +16,17 @@ export interface Limits {
 
 export const DEFAULT_LIMITS: Limits = { session: 97, weekly: 95, buffer: 5, stale: 10 };
 
+/** Models billed under Cursor's "Cursor Models" (auto) pool; every other Cursor model is billed under "Other Models" (API). */
+const CURSOR_POOL = /grok|composer|auto/;
+
 /**
- * Windows that count only for one model: window id -> a lowercase marker that the model slug must contain.
- * A new model-scoped window is one line here. Every window not listed applies to all models of the instance.
+ * Windows that count only for some models, by window id: `only` (a model counts when its slug matches) or `except` (it counts when the slug does not).
+ * A new model joins a pool by one pattern here. Every window not listed applies to all models of the instance.
  */
-export const SCOPED_WINDOWS: Readonly<Record<string, string>> = {
-  seven_day_fable: "fable",
+export const SCOPED_WINDOWS: Readonly<Record<string, { readonly only?: RegExp; readonly except?: RegExp }>> = {
+  seven_day_fable: { only: /fable/ },
+  autoPercentUsed: { only: CURSOR_POOL },
+  apiPercentUsed: { except: CURSOR_POOL },
 };
 
 /** What the reason of an unmeasurable provider (T3 reports it unsupported, as for cursor) starts with; the board shows it as "not measured". */
@@ -235,10 +240,19 @@ function unknownReading(instanceId: string, roles: string[], models: string[], r
   return { instanceId, roles, models, verdict: "unknown", reason, checkedAt, windows: [], pauseWindow: null, resumeAt: null };
 }
 
-/** Whether a window counts for a model: unscoped windows always, a scoped one only when its marker is in a model slug. */
+/** Whether a window counts for the models of a line: unscoped windows always, a scoped one by its `only` or `except` pattern. */
 function appliesTo(windowId: string, models: readonly string[]): boolean {
-  const marker = SCOPED_WINDOWS[windowId];
-  return marker === undefined || models.some((m) => m.toLowerCase().includes(marker));
+  const scope = SCOPED_WINDOWS[windowId];
+  if (scope === undefined) {
+    return true;
+  }
+  const slugs = models.map((m) => m.toLowerCase());
+  if (scope.only !== undefined) {
+    const only = scope.only;
+    return slugs.some((m) => only.test(m));
+  }
+  const except = scope.except;
+  return except === undefined || slugs.some((m) => !except.test(m));
 }
 
 /** One provider's reading from its cache file (`caches` folder), for the model lines that use it. `now` is passed in so tests fix it. */

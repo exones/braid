@@ -1,0 +1,14 @@
+{
+  "displayName": "Cursor",
+  "enabled": true,
+  "instanceId": "cursor_total_over",
+  "driver": "cursor",
+  "usageLimits": {
+    "checkedAt": "2026-11-21T18:00:00.000Z",
+    "windows": [
+      { "id": "apiPercentUsed", "kind": "weekly", "label": "Other Models", "usedPercent": 100, "resetsAt": "2026-11-26T06:00:00.000Z" },
+      { "id": "autoPercentUsed", "kind": "weekly", "label": "Cursor Models", "usedPercent": 61.7, "resetsAt": "2026-11-26T06:00:00.000Z" },
+      { "id": "totalPercentUsed", "kind": "weekly", "label": "Overall", "usedPercent": 96, "resetsAt": "2026-11-26T06:00:00.000Z" }
+    ]
+  }
+}

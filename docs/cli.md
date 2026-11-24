@@ -68,7 +68,7 @@ Options: `braid --version` prints the version; `braid --help` shows the help.
 
 ## Provider limits
 
-`braid limits` applies these rules to the numbers T3 caches: a cache checked more than `stale` minutes ago, a missing one, one without `usageLimits` and an `unsupported` provider are `unknown`, which never pauses; a window whose reset time is past counts as 0%; a model-scoped window (for example Claude's weekly Fable window) counts only for a `models` line whose model it belongs to. Defaults can be changed with an optional `limits:` key in `BRAID.md`; absent keys keep the default and an invalid value is an error naming the key:
+`braid limits` applies these rules to the numbers T3 caches: a cache checked more than `stale` minutes ago, a missing one, one without `usageLimits` and an `unsupported` provider are `unknown`, which never pauses; a window whose reset time is past counts as 0%; a model-scoped window (for example Claude's weekly Fable window) counts only for a `models` line whose model it belongs to (Cursor too: "Cursor Models" (`autoPercentUsed`) counts for grok, composer and auto models, "Other Models" (`apiPercentUsed`) for the rest; "Overall" counts for all; a new model is mapped by one pattern in `SCOPED_WINDOWS` in `src/braids/limits.ts`). Defaults can be changed with an optional `limits:` key in `BRAID.md`; absent keys keep the default and an invalid value is an error naming the key:
 
 ```yaml
 limits:

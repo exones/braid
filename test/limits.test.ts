@@ -80,6 +80,20 @@ test("a model-scoped weekly window pauses only a line whose model it belongs to"
   assert.equal(none.verdict, "ok", "a line without a model gets only the unscoped windows");
 });
 
+test("cursor: a model is judged only on the windows that bill it", () => {
+  const grok = read("cursor_other_over", "grok-4.6");
+  assert.equal(grok.verdict, "ok", "Other Models at 100% does not stop grok-4.6");
+  assert.deepEqual(grok.windows.map((w: { id: string }) => w.id), ["autoPercentUsed", "totalPercentUsed"]);
+  const other = read("cursor_other_over", "claude-opus-5-5");
+  assert.equal(other.verdict, "pause", "a model billed under Other Models still pauses on it");
+  assert.equal(other.pauseWindow, "apiPercentUsed");
+  assert.deepEqual(other.windows.map((w: { id: string }) => w.id), ["apiPercentUsed", "totalPercentUsed"]);
+  const total = read("cursor_total_over", "grok-4.6");
+  assert.equal(total.verdict, "pause", "Overall over its threshold still pauses grok-4.6");
+  assert.equal(total.pauseWindow, "totalPercentUsed");
+  assert.equal(read("claude_ok").windows.length, 2, "a provider without per-model windows is unchanged");
+});
+
 test("a past resetsAt counts as 0%", () => {
   const r = read("claude_past_reset");
   assert.equal(r.verdict, "ok");
