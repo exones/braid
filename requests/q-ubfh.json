@@ -1,0 +1,20 @@
+{
+  "code": "q-ubfh",
+  "item": "0075/A",
+  "kind": "question",
+  "text": "Approve reworded Completion box 1 of 0075/A, then merge #295 at 9844b65 into the braid branch",
+  "key": "scope",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-24T11:10:19.613Z",
+      "by": "coordinator"
+    }
+  ]
+}
