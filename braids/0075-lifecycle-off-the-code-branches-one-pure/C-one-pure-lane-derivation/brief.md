@@ -1,7 +1,7 @@
 ---
 id: '0075/C'
 title: "One pure lane derivation"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:M"]
 dependencies: ['0075/B']
 order: 30
