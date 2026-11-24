@@ -140,6 +140,18 @@ export interface Where {
   readonly link: string | null;
 }
 
+/** How long after its record a recorded PM checker is read for: each run of it is a separate task the PM starts, and between runs T3 shows it `completed`, so the record stays until the thread is archived or this passes (bounds the `thread show` reads). Docs: board.md. */
+export const CHECKER_CAP_MS = 24 * 60 * 60_000;
+
+/** What a recorded PM checker's record becomes: it counts while T3 says it runs; it is dropped once T3 shows it archived or the cap since its record passed; otherwise (idle, completed between runs) it is kept, uncounted. */
+export function checkerRecord(where: Where, recordedAt: string, now: Date): "counts" | "kept" | "drop" {
+  if (where.status === "running") {
+    return "counts";
+  }
+  const at = Date.parse(recordedAt);
+  return where.status === "archived" || (!Number.isNaN(at) && now.getTime() - at >= CHECKER_CAP_MS) ? "drop" : "kept";
+}
+
 const recent = new Map<string, { at: number; t3: Promise<T3> }>();
 const SHARE_MS = 3000;
 
@@ -154,7 +166,7 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
     const t = obj(top?.["thread"]) ?? top ?? {};
     const pending = t["pendingRequestCount"];
     return {
-      status: str(t["status"]),
+      status: archived(t) ? "archived" : str(t["status"]),
       worktreePath: str(t["worktreePath"]),
       branch: str(t["branch"]),
       pending: typeof pending === "number" ? pending : 0,
@@ -191,6 +203,8 @@ export interface T3Options {
   readonly ttlMs?: number;
   /** The recorded review threads; read from `.braid/reviews.json` of the main checkout when not given. */
   readonly reviews?: readonly ReviewRecord[];
+  /** The clock for the checker cap; now when not given. */
+  readonly now?: Date;
 }
 
 /**
@@ -203,7 +217,7 @@ export function readT3(root: string, options: T3Options = {}): Promise<T3> {
   if (shared !== undefined && Date.now() - shared.at < ttl) {
     return shared.t3;
   }
-  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root));
+  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root), options.now ?? new Date());
   recent.set(root, { at: Date.now(), t3 });
   return t3;
 }
@@ -213,7 +227,7 @@ function archived(t: Json): boolean {
   return t["archived"] === true || (t["archivedAt"] !== undefined && t["archivedAt"] !== null) || t["status"] === "archived";
 }
 
-async function readFresh(root: string, run: T3Runner, agents: string | readonly string[], project: string, reviews: readonly ReviewRecord[]): Promise<T3> {
+async function readFresh(root: string, run: T3Runner, agents: string | readonly string[], project: string, reviews: readonly ReviewRecord[], now: Date): Promise<T3> {
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
   const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
@@ -316,14 +330,15 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     return running && m !== null && repos.has(m[1] ?? "") ? [m[2] ?? ""] : [];
   });
   // A PM's checker is a subagent, which `thread list` leaves out: the PM records it (`braid review pm/<slug> --thread <id>`), and it checks while T3 says it runs (0071/C, 2h98).
-  // Once T3 says the thread isn't running, the board drops its record, so a finished checker costs no more reads (0071/E, ozjp).
+  // Each run of it is a task the PM starts and T3 shows it `completed` between runs, so the record is kept (uncounted) until the thread is archived or 24 h pass since the record (0075/A, fwoa).
   const ended: string[] = [];
   const recordedChecks = await pool(reviews.filter((r) => r.id.startsWith("pm/")), async (r) => {
-    const status = (await showThread(run, root, r.thread))?.status ?? null;
-    if (status === "running") {
+    const where = await showThread(run, root, r.thread);
+    const what = where === null ? "kept" : checkerRecord(where, r.at, now);
+    if (what === "counts") {
       return [r.id];
     }
-    if (status !== null) {
+    if (what === "drop" && where !== null) {
       ended.push(r.thread);
     }
     return [];
