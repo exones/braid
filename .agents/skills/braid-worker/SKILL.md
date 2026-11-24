@@ -50,7 +50,7 @@ The PR goes into the base branch the first message names (`main` for a story, th
    - Green: go to step 5. Make no commit after green and don't set the item Done: the coordinator accepts with `braid accept` after review.
 5. When every required check is green on your latest commit (with `ci: none`, once the gate passed), stop any server or browser you started, call `unwatch_pull_request` if you watched, then write the final report below as your last chat message and send the same text to the coordinator with `t3_thread_send`, adding the head commit. You're done.
 
-If the coordinator later sends review findings, fix them on the same branch and PR, rewrite `report.md` so it describes the PR as it stands (the history goes in your log), and repeat steps 3–5. Step 5 removed the PR watch, so after pushing fixes do step 3 again in full (watch, then check once); don't assume the old watch is still active. Leave the status `In Progress`.
+If the coordinator later sends review findings, fix them on the same branch and PR in one push per round (each push runs CI), rewrite `report.md` so it describes the PR as it stands (history goes in your log), and repeat steps 3–5. Step 5 removed the PR watch, so after pushing do step 3 again in full (watch, then check once). Leave the status `In Progress`.
 
 ## Final report
 

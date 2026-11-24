@@ -2,7 +2,8 @@
 // made itself, where no PR is left to watch (decision D71). It reads only: one fetch of the braid branch, then
 // GitHub's check runs from the branch tip down to the newest commit that changes anything outside `braids/` and
 // `epics/` (the CI commit). A project's CI may skip `braids/`-only pushes or not; every commit above the CI commit
-// tests the same code, so a check is answered by the newest commit in that range that has a run for it. A run
+// tests the same code, so a check is answered by the newest commit in that range that has a run for it; braid
+// branches get no push CI, so when none has and the CI commit is a merge, its second parent answers. A run
 // CANCELLED on a commit that has a newer commit above it (a newer push cancels older runs) stays pending, not failing,
 // for the 5-minute start limit, since the newer commit may still start its run; after that, or when nothing is newer,
 // it fails. The exit code is the answer:
@@ -138,8 +139,11 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
   /** The last state GitHub gave; a failed or empty read never replaces a seen run. */
   let last: { name: string; result: Result; sha: string }[] | null = null;
   let unread = false;
-  // The tip first, the CI commit last: the newest commit with a run for a check answers it.
-  const range = [...found.skipped, sha];
+  // The tip first, the CI commit next: the newest commit with a run for a check answers it. Braid branches get no
+  // push CI, so a merge CI commit has no run of its own: its second parent answers (the merged strand's head, whose
+  // PR run tested it merged onto the braid branch; or main's tip, which has its push run).
+  const second = git(root, ["rev-parse", "--verify", "-q", `${sha}^2`]);
+  const range = [...found.skipped, sha, ...(second.status === 0 && second.stdout.trim() !== "" ? [second.stdout.trim()] : [])];
   /** The commits that answered, as short shas; the CI commit when nothing has a run yet. */
   const at = (state: readonly { sha: string }[]) => [...new Set(state.map((s) => s.sha.slice(0, 7)))].join(", ") || short;
   for (;;) {
