@@ -1,7 +1,7 @@
 ---
 id: '0073/E'
 title: "Board: click a request code to copy it"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:S", "ui"]
 dependencies: ['0073/D']
 order: 50
