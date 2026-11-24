@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-24T18:05:28.106Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-24T18:06:25.757Z",
+      "by": "pm",
+      "text": "checked: per-model windows; on today's real cursor cache braid limits says ok for grok-4.6 (installed CLI: pause); board readings use the same function · merge PR #300 at 161e8be"
     }
   ]
 }
