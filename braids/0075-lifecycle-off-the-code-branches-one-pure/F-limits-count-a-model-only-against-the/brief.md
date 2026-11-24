@@ -1,7 +1,7 @@
 ---
 id: '0075/F'
 title: "Limits count a model only against the windows that bill it"
-status: To Do
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 27
@@ -43,9 +43,9 @@ Expected size: about 60 lines in 2 to 4 files, half of them tests.
 
 ## Completion
 
-- [ ] `braid limits` and the board judge a model only on the windows that bill it: today's real cursor reading gives ok for grok-4.6 (test)
-- [ ] "Overall" still pauses grok-4.6, a model billed under "Other Models" still pauses on it, and a provider without per-model windows is unchanged (tests)
-- [ ] report.md says how a new model gets mapped
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid limits` and the board judge a model only on the windows that bill it: today's real cursor reading gives ok for grok-4.6 (test)
+- [x] "Overall" still pauses grok-4.6, a model billed under "Other Models" still pauses on it, and a provider without per-model windows is unchanged (tests)
+- [x] report.md says how a new model gets mapped
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
