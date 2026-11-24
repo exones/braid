@@ -1,7 +1,7 @@
 ---
 id: '0071/F'
 title: "Fix: braid eta reachable from the CLI"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 60
