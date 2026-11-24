@@ -29,6 +29,13 @@
       "by": "pm",
       "text": "2026-11-24T10:12:12.731Z",
       "reason": "PM's live re-check of 7e215d5 is running (0071+0073 paths together); then the user's merge is relayed"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-24T09:20:21.736Z",
+      "by": "pm",
+      "text": "The user asks: merge #287 at 7e215d5. The user's words: \"Merge both\" (#290 first, which is merged, then #287).",
+      "reason": "relayed the user's merge request after the PM's live re-check of 7e215d5 passed"
     }
   ]
 }
