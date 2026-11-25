@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-25T15:02:57.558Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T15:03:34.595Z",
+      "by": "pm",
+      "text": "a) Not now: record the pass. The programme plans sweeps as its own rows (P15), and don't raise it again in 0072.",
+      "reason": "Sweeps of cross-braid leftovers are planned as programme rows (P15); nothing in 0072 depends on it."
     }
   ]
 }
