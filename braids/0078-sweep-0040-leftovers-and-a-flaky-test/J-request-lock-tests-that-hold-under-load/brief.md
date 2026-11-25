@@ -36,11 +36,20 @@ Expected size: about 60 to 150 lines in 2 to 4 files.
 
 - P24's cap on parallel gate runs per machine. Other flaky tests.
 
+## Plan
+
+Cause (reproduced, no extra load needed on this machine): one write of the record takes 7-9 s here (about 38 git processes), so the 16 writes of the four-writer test take about 2 minutes. A waiter gave up 60 s after it started waiting, although the lock kept changing hands: exit code 1 with `LockError`, no lost update. CI's writes are short, so its queue ends in time. The cause is in the product.
+
+1. `locked` (src/braids/state.ts): restart the wait whenever the lock file is another one; give up only when the same lock stays for `waitMs`.
+2. Regression tests in test/requests.test.ts: a queue longer than the wait that leaves no gap; a stuck lock still gives up.
+3. The two tests stay as they are. Run them 10 times under CPU load; negative checks on a copy of dist/.
+4. Update docs/braids-format.md's lock sentence; gate; report.
+
 ## Completion
 
-- [ ] The cause of the local failures is written in report.md, with how it was reproduced
-- [ ] The two tests pass 10 runs in a row under a CPU load on this machine (report the command and the load), and still fail when an update is lost or a stale lock is not taken over (a negative check shows it)
-- [ ] A product fix, if the cause is in the product, has a regression test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The cause of the local failures is written in report.md, with how it was reproduced
+- [x] The two tests pass 10 runs in a row under a CPU load on this machine (report the command and the load), and still fail when an update is lost or a stale lock is not taken over (a negative check shows it)
+- [x] A product fix, if the cause is in the product, has a regression test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
