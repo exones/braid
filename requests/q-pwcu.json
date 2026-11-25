@@ -21,6 +21,12 @@
       "at": "2026-11-25T20:08:59.722Z",
       "by": "pm",
       "text": "Revised mockup + two optional record fields (q-pwcu) for the user: PM recommends a"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T20:12:50.323Z",
+      "by": "user",
+      "text": "The user: \"E room is for special panel on the right\" - the roomy question card (context, question, option buttons, Custom) belongs to the Questions panel (P25), not the details panel. 0072/B builds the details panel as first approved (q-zctf) without the roomy card; the context/options fields go to P25 with it."
     }
   ]
 }
