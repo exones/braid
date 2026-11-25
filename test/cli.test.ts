@@ -46,7 +46,7 @@ test("every command named in the help is known to run", async () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { run, helpText }: any = await load("../../dist/cli.js");
   // These are handled in `main` before `run`, so they are not in its command list.
-  const skip = new Set(["help", "board", "notify", "projects", "clean", "wait", "status", "next", "start", "accept", "facts", "recap", "handover", "review"]);
+  const skip = new Set(["help", "board", "notify", "projects", "clean", "wait", "status", "next", "start", "accept", "facts", "recap", "handover", "review", "launch"]);
   const lines: string[] = helpText("0").split("\n");
   const section = lines.slice(lines.indexOf("Commands:") + 1, lines.indexOf("Options:"));
   const names = new Set<string>();

@@ -15,7 +15,7 @@ import { ciAll, ciChecks } from "./coordinate.js";
 import { checksProblem, view } from "./done.js";
 import { find, parse, readText, str } from "./edit.js";
 import { mainBranch } from "./start.js";
-import { recordReview } from "../braids/reviews.js";
+import { recordReview, type ChildRole } from "../braids/reviews.js";
 import { recapCommand } from "./facts.js";
 
 /** A push that didn't happen: the request is on the local branch, and the next write pushes it. */
@@ -104,7 +104,7 @@ function doneWhenFlag(values: Parameters<typeof str>[0]): string {
  * The item's id (`0015` or `0015/C`), checked against the braids braid can see (`braidOf`); an id the
  * record already has requests for is known too, though its braid is out of sight here.
  */
-function itemId(root: string, raw: string | undefined, command: string): string {
+export function itemId(root: string, raw: string | undefined, command: string): string {
   const number = raw === undefined ? undefined : /^(\d{1,4})(?:\/|$)/.exec(raw)?.[1]?.padStart(4, "0");
   const braid = number === undefined ? undefined : braidOf(root, number);
   try {
@@ -134,12 +134,17 @@ export async function reviewCommand(root: string, args: readonly string[], opts:
   // A PM's live checker is recorded on its programme (`pm/<slug>`): T3 lists no subagent threads, so this is how the board sees it run (0071/C).
   const pm = /^pm\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(positionals[0] ?? "");
   const id = pm ? (positionals[0] ?? "") : itemId(root, positionals[0], "braid review");
+  return recordChild(root, id, thread, "review", pm, opts);
+}
+
+/** Records a child thread of the item with its role and the checkout T3 gives for it (`braid review`, `braid launch --child`). */
+export async function recordChild(root: string, id: string, thread: string, role: ChildRole, pm: boolean, opts: RequestOptions & { readonly t3?: T3Runner } = {}): Promise<string> {
   const at = (opts.now ?? (() => new Date()))();
   const where = await showThread(opts.t3 ?? runT3, root, thread);
   const folder = pm ? null : (where?.worktreePath ?? null);
-  const added = recordReview(root, id, thread, at.toISOString(), folder === null ? null : { folder, branch: where?.branch ?? null });
+  const added = recordReview(root, id, thread, at.toISOString(), folder === null ? null : { folder, branch: where?.branch ?? null }, role);
   const what = folder === null ? `no checkout yet (${where === null ? "T3 doesn't know the thread or can't be read" : "T3 gives no folder"}); braid clean will ask T3` : `checkout ${folder}${where?.branch == null ? "" : `, branch ${where.branch}`}`;
-  return `${id}: review thread ${thread} ${added ? "recorded" : "already recorded"} (${what})
+  return `${id}: ${role} thread ${thread} ${added ? "recorded" : "already recorded"} (${what})
 `;
 }
 
