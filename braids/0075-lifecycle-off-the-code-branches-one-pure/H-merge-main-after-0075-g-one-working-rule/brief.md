@@ -1,7 +1,7 @@
 ---
 id: '0075/H'
 title: "Merge main after 0075/G: one working rule, one waiting rule"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 50
