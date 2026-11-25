@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-25T18:32:14.062Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T18:34:14.956Z",
+      "by": "pm",
+      "text": "a. Approve, with two changes. 1. D: the lock, two slots by default, not one; still no setting. 2. F: the one-line braid-worker skill change needs the user's ask; the PM asks the user; plan F with the line, drop it if the user says no; do not start F before the PM relays the answer. Order A, B, C, E, D, F.",
+      "reason": "Lock with two slots covers every project's gate while keeping parallel workers moving, instead of one slot (queues workers) or a node-only cap (helps braid's repo only)."
     }
   ]
 }
