@@ -28,6 +28,8 @@ Expected size: about 400 lines in 8 files.
 - **Resume now:** a button on a paused braid's card (PM-run: asks the PM to resume that braid; otherwise resumes it directly) and on a paused programme's card (asks the PM to resume its braids in its order), and `braid resume --limit --all` for every board pause of the repository. It runs on the acting board (0074/B).
 - **Early resume:** at each refresh, a board pause whose provider's fresh reading (checked after the pause began) shows its window under the threshold resumes at once through the same path, without waiting for the resume time.
 - **A pause whose window no longer applies** resumes early too: a record whose window is gone from the fresh reading, or no longer applies to the provider's models (the cursor "Other Models" pause from before #300, still shown as "paused · resumes Dec 3 09:53" for everix4 0011 while Cursor Models is at 67% of 97%). Its old steering banner ("0 of 2 agents answered", Claude_Everix, Nov 24 18:44) goes with the record.
+- **A resume that fails to reach a thread retries until delivered** (the PM, 2026-11-25: T3 was down at the resume time, the sends failed and nothing tried again, so the paused agents stayed idle). A failed send stays pending on the record and is retried at each refresh, with no give-up (today `SEND_TRIES` gives up after 5); the card says "resume pending: T3 unreachable since <time>". This holds for the timer, the buttons, early resume and `braid resume --limit`.
+- The default thresholds move to 90% session and 90% weekly in PR #316 (the user: "it takes quite some time when a lot of agents"). Tests and texts follow main once #316 merges; assume no fixed 97/95.
 - A hold (P5 of the programme: Hold and Go) is not built here; the button and its path take a reason so a later Go reuses them.
 - Tests: Resume now on a braid without a PM sends each thread once and clears the record; on a PM-run braid the PM gets one message and nothing else is sent until `braid resume --limit`; a fresh reading under the threshold resumes early; a hold is never cleared.
 
@@ -48,6 +50,7 @@ Expected size: about 400 lines in 8 files.
 - [ ] PM-run braids resume through one message to the PM and its `braid resume <number> --limit`; braids without a PM resume directly, with tests
 - [ ] A fresh reading under the threshold resumes early, with a test
 - [ ] A pause whose window no longer applies resumes at the next refresh and its old banner goes, with a test
+- [ ] A resume send that fails stays pending, is retried at each refresh until delivered, and the card says "resume pending: T3 unreachable since <time>", with a test
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
