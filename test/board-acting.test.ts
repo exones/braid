@@ -55,12 +55,12 @@ function cache(caches: string, id: string, session: number, at: Date): void {
   writeFileSync(join(caches, `${id}.json`), JSON.stringify({ instanceId: id, usageLimits: { checkedAt: iso(-1, at), windows } }));
 }
 
-/** 0070's coordinator and worker on claude, with the thread ids prefixed; `known` are more threads T3's list names for the project. */
-function threads(prefix: string, known: string[] = []) {
+/** 0070's coordinator and worker on claude, with the thread ids prefixed; `kids` are recorded threads (a reviewer, a subagent) running for 0070. */
+function threads(prefix: string, known: string[] = [], kids: string[] = []) {
   return {
     status: { state: "ok" },
     coordinators: new Map([["0070", { id: `${prefix}coord`, link: null, provider: "claude", model: "claude-opus-5-5" }]]),
-    threads: new Map([["0070", [{ id: `${prefix}work`, role: "worker", pending: 0, link: null, provider: "claude" }]]]),
+    threads: new Map([["0070", [{ id: `${prefix}work`, role: "worker", pending: 0, link: null, provider: "claude" }, ...kids.map((id) => ({ id, role: "reviewer", pending: 0, link: null, provider: "claude" }))]]]),
     idle: new Map(),
     states: new Map(known.map((k) => [k, "running"])),
     providers: new Map(),
@@ -74,20 +74,18 @@ function good(root: string, caches: string, at: Date, t3: ReturnType<typeof thre
   return { braids: braidsOf(), t3, board: { braids: [], limits: readLimitsView(root, t3, pauses, at, caches), programmes: [] } };
 }
 
-/** A fake `t3` shared by the boards: every call is recorded; show answers the Steering line `line()`. */
+/** A fake `t3` shared by the boards: every call is recorded; show answers a stopped thread whose last message is `line()`. */
 function fakeT3(line: () => string = () => "") {
-  const calls: { root: string; args: string[] }[] = [];
-  const run = async (root: string, args: string[]) => {
-    calls.push({ root, args });
-    if (args[1] === "start") {
-      return { status: 0, stdout: JSON.stringify({ threadId: "steer-1", link: null }), stderr: "" };
-    }
+  const calls: { root: string; args: string[]; input?: string }[] = [];
+  const run = async (root: string, args: string[], input?: string) => {
+    calls.push({ root, args, ...(input === undefined ? {} : { input }) });
     if (args[1] === "show") {
-      return { status: 0, stdout: JSON.stringify({ thread: { status: "idle" }, messages: [{ role: "assistant", text: line() }] }), stderr: "" };
+      return { status: 0, stdout: JSON.stringify({ thread: { status: "completed" }, messages: [{ role: "user", text: "Pause for claude Session until 12:55." }, { role: "assistant", text: line() }] }), stderr: "" };
     }
     return { status: 0, stdout: "{}", stderr: "" };
   };
-  return { run, sends: () => calls.filter((c) => c.args[1] === "send"), starts: () => calls.filter((c) => c.args[1] === "start") };
+  const sends = () => calls.filter((c) => c.args[1] === "send");
+  return { run, sends, resumes: () => sends().filter((c) => c.args[3] !== "-"), texts: () => sends().filter((c) => c.args[3] === "-"), starts: () => calls.filter((c) => c.args[1] === "start") };
 }
 
 /** A paused record of 0070 on claude, due at `due`, with the two threads of `prefix` as targets. */
@@ -141,7 +139,7 @@ test("two boards on one repository started at the same instant: one takes each l
     b.s.observe({ name: "p", root, repo: "repo", folder: () => root }, good(root, caches, NOW, threads("")));
   }
   await Promise.all(boards.map((b) => b.s.idle()));
-  assert.deepEqual(t3.sends().map((c) => c.args[2]), ["coord", "work"], "each thread is resumed once");
+  assert.deepEqual(t3.sends().map((c) => c.args[2]), ["coord", "work"], "each thread is resumed once (an older record's steering part reads as its replies)");
   assert.deepEqual(pushes, ["claude resumed"]);
   assert.deepEqual(wakes, [root]);
   assert.deepEqual(retries, [root], "only the acting board sends the pending pushes");
@@ -229,32 +227,50 @@ test("a failed limit push is kept in notified.json and sent after a board restar
   assert.equal(JSON.parse(readFileSync(file, "utf8")).pending, undefined);
 });
 
-test("children are matched by project and braid, and the resume reads each project's own BRAID.md", async () => {
+test("two projects on one provider account are paused once, by the acting board; each keeps its own targets, and the resume reads each project's own BRAID.md", async () => {
   const caches = mkdtempSync(join(scratch, "caches-"));
+  const home = mkdtempSync(join(scratch, "home-"));
   // Project A pauses claude at 50%; B keeps the default (97%).
   const a = project(caches, "limits:\n  session: 50\n  weekly: 95\n  buffer: 5\n  stale: 10\n");
   const b = project(caches);
   cache(caches, "claude", 98, NOW);
   cache(caches, "codex", 10, NOW);
-  const t3 = fakeT3(() => "Steering: claude paused 6/6; children: kid-a:0070, kid-b:0070; no answer: none");
+  const t3 = fakeT3(() => "Paused: 0070 at abc1234");
   const clock = { now: NOW };
-  const s = steerer({ t3: t3.run, now: () => clock.now, caches, warn: () => {} });
+  // Two boards (the service and one started by hand) both serve both projects; they share the leases.
+  const actings = [1, 2].map((n) => actingBoard({ home, staleMs: STALE, now: () => clock.now, port: () => 5000 + n }));
+  const boards = actings.map((acting) => steerer({ t3: t3.run, now: () => clock.now, caches, acting, warn: () => {} }));
   const tick = async () => {
-    s.observe({ name: "a", root: a.root, repo: "ra", folder: () => a.root }, good(a.root, caches, clock.now, threads("a-", ["kid-a"])));
-    s.observe({ name: "b", root: b.root, repo: "rb", folder: () => b.root }, good(b.root, caches, clock.now, threads("b-", ["kid-b"])));
-    await s.idle();
+    for (const s of boards) {
+      s.observe({ name: "a", root: a.root, repo: "ra", folder: () => a.root }, good(a.root, caches, clock.now, threads("a-", ["kid-a"], ["kid-a"])));
+      s.observe({ name: "b", root: b.root, repo: "rb", folder: () => b.root }, good(b.root, caches, clock.now, threads("b-", ["kid-b"], ["kid-b"])));
+    }
+    await Promise.all(boards.map((s) => s.idle()));
   };
   await tick();
-  assert.equal(t3.starts().length, 1, "one steering thread for both projects");
+  assert.deepEqual(t3.starts(), [], "no steering thread");
+  assert.deepEqual(
+    t3.texts().map((c) => [c.args[2], c.root]),
+    [
+      ["a-coord", a.root],
+      ["a-work", a.root],
+      ["kid-a", a.root],
+      ["b-coord", b.root],
+      ["b-work", b.root],
+      ["kid-b", b.root],
+    ],
+    "each thread gets its pause text once, from the board that holds claude's lease, in its own project",
+  );
   await tick();
-  const kids = (root: string) => loadPauses(root).pauses[0].targets.filter((t: { kind: string }) => t.kind === "child").map((t: { thread: string; project: string }) => [t.thread, t.project]);
-  assert.deepEqual(kids(a.root), [["kid-a", a.root]]);
-  assert.deepEqual(kids(b.root), [["kid-b", b.root]]);
+  const targets = (root: string) => loadPauses(root).pauses[0].targets.map((t: { thread: string; project: string }) => [t.thread, t.project]);
+  assert.deepEqual(targets(a.root), [["a-coord", a.root], ["a-work", a.root], ["kid-a", a.root]]);
+  assert.deepEqual(targets(b.root), [["b-coord", b.root], ["b-work", b.root], ["kid-b", b.root]]);
+  assert.deepEqual([a.root, b.root].map((r) => loadPauses(r).pauses[0].replies.outcome), ["paused", "paused"]);
   // After the reset claude reads 60%: over A's threshold, under B's. A keeps its record; B resumes its own threads only.
   clock.now = new Date(NOW.getTime() + 60 * MIN);
   cache(caches, "claude", 60, clock.now);
   await tick();
-  assert.deepEqual(t3.sends().map((c) => [c.args[2], c.root]), [
+  assert.deepEqual(t3.resumes().map((c) => [c.args[2], c.root]), [
     ["b-coord", b.root],
     ["b-work", b.root],
     ["kid-b", b.root],
@@ -262,4 +278,5 @@ test("children are matched by project and braid, and the resume reads each proje
   assert.equal(loadPauses(a.root).pauses.length, 1, "A is still over its own threshold");
   assert.equal(loadPauses(a.root).pauses[0].usedPercent, 60);
   assert.deepEqual(loadPauses(b.root).pauses, []);
+  actings.forEach((x) => x.release());
 });

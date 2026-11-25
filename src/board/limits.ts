@@ -3,7 +3,7 @@
 // which reads BRAID.md and the cache files; the page uses the types. The board only shows this: acting on it is a later step.
 import { join } from "node:path";
 import { DEFAULT_LIMITS, LimitsError, NOT_MEASURED, readLimits, readModelLines, readProvider, t3Home, type Limits, type ModelLine, type ProviderReading, type WindowReading } from "../braids/limits.js";
-import { reasonOf, type Pause, type Steering } from "../braids/pauses.js";
+import { reasonOf, type Pause, type Replies } from "../braids/pauses.js";
 import type { T3 } from "./t3.js";
 import type { ActingLine } from "./acting.js";
 
@@ -43,8 +43,8 @@ export interface ProviderView {
   /** The window the pause waits for (`five_hour`), from the reading; null when under. */
   readonly pauseWindow: string | null;
   readonly agents: readonly LimitAgent[];
-  /** The latest 🚦 steering thread of the board's pause on this provider and its outcome (0064); null when none. */
-  readonly steering: Steering | null;
+  /** The latest board pause on this provider: its sends and replies (0074/C); null when none. */
+  readonly replies: Replies | null;
 }
 
 export interface LimitsView {
@@ -96,10 +96,10 @@ function runningOn(t3: T3): Map<string, LimitAgent[]> {
   return by;
 }
 
-/** The steering thread started last among these records; null when none has one. */
-function latestSteering(records: readonly Pick<ProviderView, "steering">[] | readonly Pause[]): Steering | null {
-  const all = (records as readonly { steering?: Steering | null }[]).flatMap((r) => (r.steering === undefined || r.steering === null ? [] : [r.steering]));
-  return all.reduce<Steering | null>((a, s) => (a === null || s.started > a.started ? s : a), null);
+/** The pause sent last among these records; null when none has one. */
+function latestReplies(records: readonly Pick<ProviderView, "replies">[] | readonly Pause[]): Replies | null {
+  const all = (records as readonly { replies?: Replies | null }[]).flatMap((r) => (r.replies === undefined || r.replies === null ? [] : [r.replies]));
+  return all.reduce<Replies | null>((a, s) => (a === null || s.sent > a.sent ? s : a), null);
 }
 
 /** The providers a running thread uses, in the order met. */
@@ -132,7 +132,7 @@ export function buildView(readings: readonly ProviderReading[], limits: Limits, 
       resumeAt: state === "paused" ? (resumes[0] ?? r.resumeAt) : r.resumeAt,
       pauseWindow: mine.find((p) => p.window !== null)?.window ?? r.pauseWindow,
       agents: [...stopped, ...(running.get(r.instanceId) ?? [])],
-      steering: latestSteering(mine),
+      replies: latestReplies(mine),
     };
   });
   return { limits, readAt: now.toISOString(), providers, note };
@@ -198,7 +198,7 @@ export function mergeLimits(views: readonly { readonly project: string; readonly
       roles: [...new Set(all.flatMap((p) => p.roles))],
       models: [...new Set(all.flatMap((p) => p.models))],
       agents: all.flatMap((p) => p.agents),
-      steering: latestSteering(all),
+      replies: latestReplies(all),
     };
   });
   const first = present[0];

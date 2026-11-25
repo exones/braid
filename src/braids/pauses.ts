@@ -1,6 +1,6 @@
 // Pauses: braids held back for a provider's usage limit, kept in `.braid/pauses.json` of the main checkout
 // (found from any worktree), one record per braid. `braid pause` and `braid resume` write it, and the running board
-// for provider limits (`by: board`, 0064: `claimPauses`, `patchPauses`, `clearPause`); the board and `braid status` read it. A missing file is no pauses; a damaged one also reads as no pauses, with a note.
+// for provider limits (`by: board`, 0064 and 0074/C: `claimPauses`, `patchPauses`, `clearPause`); the board and `braid status` read it. A missing file is no pauses; a damaged one also reads as no pauses, with a note.
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { locked, mainCheckout } from "./requests.js";
@@ -11,7 +11,7 @@ export type Pauser = (typeof PAUSERS)[number];
 export const REASONS = ["limit", "hold"] as const;
 export type Reason = (typeof REASONS)[number];
 
-/** A thread the board's pause reached: a coordinator, worker, reviewer or PM thread from the snapshot, or a child the steering thread found. */
+/** A thread the board's pause reached: a coordinator, worker, reviewer (any recorded thread) or PM thread from the snapshot; `child` only in older records. */
 export interface PauseTarget {
   readonly thread: string;
   readonly kind: "coordinator" | "worker" | "reviewer" | "pm" | "child";
@@ -19,27 +19,44 @@ export interface PauseTarget {
   readonly item: string;
   /** The project (T3's folder) the thread is in, for `t3 thread send`. */
   readonly project?: string;
+  /** The thread's T3 link, when the snapshot had one. */
+  readonly link?: string | null;
 }
 
-/** What became of the board's 🚦 steering thread for a pause. */
-export interface Steering {
-  /** The steering thread; null until `t3 thread start` returned one (or when it failed). */
-  readonly thread: string | null;
+/** A target without its `Paused:` line when the count ended: still working, stopped without the line, its send failed, or T3 couldn't show it. */
+export interface NoAnswer {
+  readonly item: string;
+  readonly thread: string;
   readonly link: string | null;
-  readonly provider: string;
-  readonly model: string | null;
-  /** When it was started (ISO). */
-  readonly started: string;
-  /** `pausing` until its `Steering:` line came; `paused` (every target answered), `partial` (some didn't) or `failed`. */
+  readonly why: "working" | "no line" | "send failed" | "unread";
+}
+
+/** What came of the board's pause texts (0074/C): sent by code, the replies counted from the threads. */
+export interface Replies {
+  /** When the board sent the texts (ISO). */
+  readonly sent: string;
+  /** `pausing` while the board counts (up to 10 min); `paused` (every target answered), `partial` (some didn't) or `failed` (none could be sent). */
   readonly outcome: "pausing" | "paused" | "partial" | "failed";
-  readonly answered: number | null;
+  /** Targets that answered, and the number counted (the PM is told, not counted). */
+  readonly answered: number;
   readonly total: number;
-  readonly children: readonly string[];
-  readonly noAnswer: readonly string[];
+  /** The threads whose `Paused:` line came. */
+  readonly got: readonly string[];
+  /** The threads whose send failed twice. */
+  readonly failed: readonly string[];
+  readonly noAnswer: readonly NoAnswer[];
   /** Why it failed; null otherwise. */
   readonly reason: string | null;
-  /** The steering ran on the provider it pauses: every steering line was over its threshold. */
-  readonly self: boolean;
+}
+
+/** An older record's 🚦 steering part (0064), read into `replies`. */
+interface OldSteering {
+  readonly started: string;
+  readonly outcome: Replies["outcome"];
+  readonly answered?: number | null;
+  readonly total?: number;
+  readonly noAnswer?: readonly string[];
+  readonly reason?: string | null;
 }
 
 export interface Pause {
@@ -67,10 +84,10 @@ export interface Pause {
   readonly by: Pauser;
   /** When it was paused (ISO). */
   readonly at: string;
-  /** `by: board`: the threads it paused (resume sends to each, then to the steering thread's children). */
+  /** `by: board`: the threads it paused (the resume sends to each). */
   readonly targets?: readonly PauseTarget[];
-  /** `by: board`: the steering thread and its outcome. */
-  readonly steering?: Steering;
+  /** `by: board`: the pause texts' replies (an older record's `steering` part is read into it). */
+  readonly replies?: Replies;
   /** `by: board`: the threads already sent their resume message (a failed send is retried for the others only). */
   readonly resumed?: readonly string[];
 }
@@ -110,8 +127,19 @@ function valid(v: unknown): v is Pause {
     (PAUSERS as readonly unknown[]).includes(p.by) &&
     isIso(p.at) &&
     (p.targets === undefined || (Array.isArray(p.targets) && p.targets.every((t: unknown) => typeof t === "object" && t !== null && typeof (t as PauseTarget).thread === "string" && typeof (t as PauseTarget).item === "string"))) &&
-    (p.steering === undefined || (typeof p.steering === "object" && p.steering !== null && typeof (p.steering as Steering).outcome === "string" && isIso((p.steering as Steering).started)))
+    (p.steering === undefined || (typeof p.steering === "object" && p.steering !== null && typeof (p.steering as OldSteering).outcome === "string" && isIso((p.steering as OldSteering).started))) &&
+    (p.replies === undefined || (typeof p.replies === "object" && p.replies !== null && typeof (p.replies as Replies).outcome === "string" && isIso((p.replies as Replies).sent)))
   );
+}
+
+/** A record as stored: an older one's `steering` part becomes `replies` (its counts and its no-answer names). */
+function upgrade(p: Pause & { readonly steering?: OldSteering }): Pause {
+  const { steering, ...rest } = p;
+  if (steering === undefined || rest.replies !== undefined) {
+    return rest;
+  }
+  const noAnswer = (steering.noAnswer ?? []).map((item): NoAnswer => ({ item, thread: "", link: null, why: "working" }));
+  return { ...rest, replies: { sent: steering.started, outcome: steering.outcome, answered: steering.answered ?? 0, total: steering.total ?? 0, got: [], failed: [], noAnswer, reason: steering.reason ?? null } };
 }
 
 /** Reads the file: missing is no pauses; unreadable JSON or not a list is no pauses with a note; bad records are left out with a note. */
@@ -131,7 +159,7 @@ export function readPausesFile(file: string): PausesRead {
   if (!Array.isArray(parsed)) {
     return { pauses: [], note: `${file} is not a list of pauses` };
   }
-  const pauses = parsed.filter(valid);
+  const pauses = parsed.filter(valid).map(upgrade);
   const bad = parsed.length - pauses.length;
   return { pauses, note: bad === 0 ? null : `${file}: ${bad} record${bad === 1 ? "" : "s"} not readable, left out` };
 }

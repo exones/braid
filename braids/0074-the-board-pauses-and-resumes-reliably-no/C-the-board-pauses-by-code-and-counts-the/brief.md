@@ -45,6 +45,14 @@ Expected size: about 450 lines in 7 files (much of it removed steering code).
 
 - The resume (0074/D), the stale-limits warning (0074/E), the skills' prose (0074/G).
 
+## Plan
+
+1. `src/braids/pauses.ts`: the record's `steering` part becomes `replies` (`sent`, `outcome`, `answered`, `total`, `got`, `failed`, `noAnswer` with item, thread, link and why). An old record's `steering` is read into `replies`, so old records stay readable. `PauseTarget` gains `link`.
+2. `src/board/steer.ts`: `targetsOf` takes only threads working now on the provider (running workers and recorded threads from the snapshot, the running coordinator), returns none when there are none, then adds the braid's coordinator even if idle. The PM gets its own `pmSummary` text (no reply) and stays a target only for the resume. The pause texts name no reply thread: the agent ends its turn with its `Paused:` line. `pausedLine` reads a message. `steeringLines`, `pickSteering`, `steeringMessage`, `parseSteeringLine` go; the `pausing` and `nosteer` pushes go; a partial pause pushes `failed`; `escalation` is the PM's (or coordinator's) message.
+3. `src/board/steerer.ts`: `pause` claims the records, then sends each target its text by `t3 thread send <id> -` (text on stdin; one retry), and each PM one summary. `follow` becomes `count`: each refresh for 10 min reads each unanswered target (`t3 thread show <id> --messages 10 --json`): stopped with a `Paused:` line after the board's text is answered. Every target answered or failed, or 10 min passed: the record settles; a partial or failed one pushes `failed` once and messages the PM thread (else the coordinator) with the list.
+4. Views: `src/board/pause.ts` (card text, Needs You `limit` "paused n/m; no answer: …" with links), `limits.ts`/`limits-view.ts` and `web/src/Limits.tsx` (the panel's line), `demo.ts`, `commands/board.ts` start line, `braid limits` says `steering` is unused, `steeringTitle` goes.
+5. Tests: rewrite `test/board-steer.test.ts` and adjust `board-acting`, `board-limits`; the brief's tests. Docs: board.md, cli.md, getting-started.md, braids-format.md, autonomy.md, decisions.md (new D, no LLM in the pause path).
+
 ## Completion
 
 - [ ] The board pauses by `t3 thread send` with ids from T3 and starts no steering thread, with tests
