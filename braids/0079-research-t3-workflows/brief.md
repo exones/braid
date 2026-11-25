@@ -64,7 +64,7 @@ Answer, each with confidence and evidence:
 - [x] report.md says what was read and what, if anything, was run; no Labs switch enabled and no workflow created on the user's T3
 - [x] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected (none expected: no docs changes before the user decides)
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes (on the identical code: see report.md, Validation)
 - [x] report.md written: what changed, why, validation, anything open
 
 ## Autonomy

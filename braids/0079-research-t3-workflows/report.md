@@ -153,7 +153,7 @@ A workflow does make a single chain durable: its steps are journalled and its sl
 
 ## Q5: Recommendation
 
-**Keep. Don't plan a follow-up braid now.** No "try one small thing" is proposed. The only candidate was mirroring requests to the user as T3 `ask` questions, for the mobile "Needs you" view, and it runs straight into D99 and the two-records problem.
+**Keep. Don't plan a follow-up braid now.** No "try one small thing" is proposed. The nearest candidate was mirroring requests to the user as T3 `ask` questions, for the mobile "Needs you" view, and it runs straight into D99 and the two-records problem. The next nearest is a timed digest (part 5); it removes no code today, and revisit trigger 4 covers it.
 
 **Revisit when** one of these holds; each would change a verdict above:
 
@@ -188,13 +188,14 @@ How the user would see the effect: nothing changes; the board, requests and paus
 
 ## Validation
 
-- `npm run verify` (the gate), run locally: 705 tests passed and 2 failed, after 29 minutes (normally about 20 s). The two failures are both `test/requests.test.ts` "overlapping writers in separate processes lose no update" (plain, and "when they start on a stale lock"). Each spawns six writer processes that compete for one lock, and they failed after 150–170 s with the CPU at 100% and about 89 node/claude processes running. A re-run of only those tests failed the same way (371 s). This branch changes only files in `braids/0079-*`, and `main`'s CI passed at the commit it starts from (`90c3d68`). So the failure is load on this machine, not this change. The PR's CI (`verify:full` on Windows and Ubuntu) is the check.
+- `npm run verify` (the gate), run locally: 705 tests passed and 2 failed, after 29 minutes (normally about 20 s). The two failures are both `test/requests.test.ts` "overlapping writers in separate processes lose no update" (plain, and "when they start on a stale lock"). Each spawns six writer processes that compete for one lock, and they failed after 150–170 s with the CPU at 100% and about 89 node/claude processes running. A re-run of only those tests failed the same way (371 s). This branch changes only files in `braids/0079-*`, and `main`'s CI passed at the commit it starts from (`90c3d68`). So the failure is lock contention under load on this machine, unrelated to a change that touches only `braids/`.
+- The evidence that the gate passes: outside `braids/`, this branch is identical to `main` at `90c3d68` (`git diff --stat 90c3d681 HEAD -- . ':!braids'` is empty). `main`'s CI ran its Verify step (`npm run verify:full`, a superset of the gate) green there, on Windows and Ubuntu (Actions run on `90c3d68`). This PR's own CI passed, but by its fast path for `braids/`-only changes, which skips the Verify step, so it doesn't count as gate evidence. The machine was still at about 91% CPU, so I didn't re-run the gate locally.
 - `braid check` prints `braids OK`.
 
 Docs: none affected. This spike changes no product behaviour, and the brief rules out docs changes before the user decides.
 
 Decisions: none from the user. Mine:
-- (a) I proposed no "try one small thing". The one candidate (the request mirror) conflicts with D99.
+- (a) I proposed no "try one small thing". The nearest candidate (the request mirror) conflicts with D99.
 - (b) I didn't start a scratch T3, because no live run would change a verdict.
 
 For later items:
