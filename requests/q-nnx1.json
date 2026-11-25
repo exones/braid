@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-25T18:35:40.001Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T18:39:52.336Z",
+      "by": "pm",
+      "text": "PM (for the user): a. Approve, with 1 = P24 (fresh moves to P24), 2 = D<braid>.<n>, 3 = w5cd (2) stays a leftover for the user. Renumber first: P24 took 0077; this braid is now 0078.",
+      "reason": "decided as recommended: each is cheap to reverse and keeps board reads in the braid that owns them"
     }
   ]
 }
