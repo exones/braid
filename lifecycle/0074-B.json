@@ -6,6 +6,13 @@
       "at": "2026-11-25T11:56:14.557Z",
       "thread": "mcp:launch:26ba11efdb3af7287266920a3acc65fe9e97b7313b3436a84692c265d042342f",
       "branch": "braid/0074/B-one-acting-board-per-provider-account"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-25T13:10:51.702Z",
+      "head": "5e6b201e5b4c0a32345ba64e317e782c6e77f1fe",
+      "review": "https://github.com/exones/braid/pull/312#issuecomment-7163334005",
+      "thread": "mcp:launch:26ba11efdb3af7287266920a3acc65fe9e97b7313b3436a84692c265d042342f"
     }
   ]
 }
