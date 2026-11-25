@@ -1,0 +1,18 @@
+{
+  "code": "q-6qhj",
+  "item": "0072/C",
+  "kind": "question",
+  "text": "Held behind 0072/D (the PM): resumes with a Go after 0072/D merges",
+  "by": "coordinator",
+  "thread": "mcp:launch:a0a03eb409fbc1d18679d8c2659026c14e35ed836aebf5709126e14b27b074a9",
+  "to": "self",
+  "doneWhen": "time:2026-11-26T03:31:28.000Z",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T23:31:34.488Z",
+      "by": "coordinator"
+    }
+  ]
+}
