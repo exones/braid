@@ -1,0 +1,20 @@
+{
+  "code": "q-i0ry",
+  "item": "0074/D",
+  "kind": "decision",
+  "text": "Approve the Resume now mockups (0074/D) or say what to change",
+  "key": "ui",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T16:30:37.149Z",
+      "by": "coordinator"
+    }
+  ]
+}
