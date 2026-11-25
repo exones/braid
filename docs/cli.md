@@ -74,8 +74,8 @@ Options: `braid --version` prints the version; `braid --help` shows the help.
 
 ```yaml
 limits:
-  session: 97   # pause at this percent of a session (5 h) window
-  weekly: 95    # pause at this percent of a weekly window
+  session: 90   # pause at this percent of a session (5 h) window
+  weekly: 90    # pause at this percent of a weekly window
   buffer: 5     # minutes after the reset until work resumes
   stale: 10     # minutes after which a cache reading is unknown
 ```

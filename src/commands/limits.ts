@@ -19,7 +19,7 @@ export function localTime(iso: string): string {
 
 function windowLine(w: WindowReading): string {
   const used = `${w.usedPercent}%${w.reset ? " (reset)" : ""}`;
-  return `  ${w.label} (${w.id})`.padEnd(34) + `${used.padStart(12)} of ${String(w.threshold).padStart(3)}%   resets ${localTime(w.resetsAt)}${w.over ? "   OVER" : ""}`;
+  return `  ${w.label} (${w.id})`.padEnd(34) + `${used.padStart(12)} of ${String(w.threshold).padStart(3)}%   ${w.resetsAt === null ? "no reset shown" : `resets ${localTime(w.resetsAt)}`}${w.over ? "   OVER" : ""}`;
 }
 
 function block(r: ProviderReading): string {

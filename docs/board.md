@@ -103,7 +103,7 @@ A damaged `pauses.json` reads as no pauses, and the header says ".braid/pauses.j
 
 ## Provider limits
 
-The header shows a chip per provider: every instance in `BRAID.md` `models` of the listed projects, and any provider a running thread uses (a worker, reviewer or coordinator; T3's `providerInstanceId`). A chip has a Session and a Weekly meter, each with its threshold (`braid limits`: session 97%, weekly 95%, `limits` in `BRAID.md`) as a tick, and a note by its state:
+The header shows a chip per provider: every instance in `BRAID.md` `models` of the listed projects, and any provider a running thread uses (a worker, reviewer or coordinator; T3's `providerInstanceId`). A chip has a Session and a Weekly meter, each with its threshold (`braid limits`: session 90%, weekly 90%, `limits` in `BRAID.md`) as a tick, and a note by its state:
 
 - **ok** (grey) and **near** (amber, within 10 points of a threshold): the meters only.
 - **over** (red): a window is past its threshold; "pausing…" while the board's steering thread runs.
