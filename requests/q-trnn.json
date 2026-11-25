@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-25T11:52:55.748Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T11:53:26.974Z",
+      "by": "pm",
+      "text": "a. Approve. Notes: keep the live trial box (a real subagent worker on the board with a working Open thread). Put the D77/D69/D75 amendment in decisions.md as one new decision with the reasons from your T3 probe.",
+      "reason": "P8 as the user chose it; the design follows measured T3 behaviour, adds no state file, shrinks the skills, and is agreed with 0074; reversible per strand."
     }
   ]
 }
