@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import childProcess from "node:child_process";
 import { syncBuiltinESMExports } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { after, mock, test } from "node:test";
 import { brief, git, load, scratch, world } from "./support/done-fixtures.ts";
@@ -116,6 +117,36 @@ test("/api/session answers within a second while a read's git calls take seconds
   }
   assert.ok(reads >= 3, `a read ran slow git meanwhile (${reads} calls)`);
   assert.ok(Math.max(...times) < 1000, `slowest /api/session ${Math.round(Math.max(...times))} ms during the read`);
+});
+
+const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
+const note = (cwd: string, ...args: string[]) => {
+  const r = childProcess.spawnSync(process.execPath, [cli, "note", ...args], { cwd, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+};
+
+test("an inbox whose local and origin branches have diverged is read without a synchronous process", async () => {
+  const w = world();
+  const away = join(scratch, "missing.git");
+  const remote = git(w.root, "remote", "get-url", "origin");
+  note(w.root, "first", "--from", "user");
+  // Someone else pushes an idea; this clone writes a note while offline, then fetches: its branch and origin's have diverged.
+  note(w.worker, "--idea", "pushed elsewhere");
+  git(w.root, "remote", "set-url", "origin", away);
+  note(w.root, "written offline", "--from", "user");
+  git(w.root, "remote", "set-url", "origin", remote);
+  git(w.root, "fetch", "-q", "origin", "braid-inbox:refs/remotes/origin/braid-inbox");
+  const src = board.repoSources(w.root, w.opts.gh, w.opts.t3);
+  const watch = watchSync();
+  let inbox: any;
+  try {
+    inbox = await src.inbox(false);
+  } finally {
+    watch.stop();
+  }
+  assert.deepEqual(watch.calls, [], `synchronous processes ran: ${JSON.stringify(watch.calls)}`);
+  const texts = [...inbox.ideas, ...inbox.leftovers].map((e: any) => e.title);
+  assert.ok(texts.includes("pushed elsewhere") && texts.includes("written offline") && texts.includes("first"), `both sides are listed: ${texts.join(", ")}`);
 });
 
 const killed = Object.assign(new Error("Command failed"), { killed: true, signal: "SIGTERM", code: null });

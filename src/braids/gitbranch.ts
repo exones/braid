@@ -236,6 +236,11 @@ export function reading(root: string, b: BranchSpec, t: Tips): Reading {
   return drive(root, readingG(b, t));
 }
 
+/** `reading` without blocking the process. */
+export function readingAsync(root: string, b: BranchSpec, t: Tips): Promise<Reading> {
+  return driveAsync(root, readingG(b, t));
+}
+
 function* currentFilesG(b: BranchSpec, at: Tips): Gen<Map<string, string>> {
   const r = yield* readingG(b, at);
   if (r.commit === null) {
