@@ -20,6 +20,12 @@
       "event": "forwarded",
       "at": "2026-11-25T16:32:19.995Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T16:35:43.126Z",
+      "by": "user",
+      "text": "b) Approved with changes. The user: 'It's good... just don't put as we agreed long words on the buttons because icons work already fine, tool tips will say what it is, so just the play button, and don't change how we access threads because now I like it.' So: icon-only buttons with tooltips (▶ for Resume now / Ask the PM, ↻ for Retry now; no button labels), and leave Open thread and thread links exactly as they are today."
     }
   ]
 }
