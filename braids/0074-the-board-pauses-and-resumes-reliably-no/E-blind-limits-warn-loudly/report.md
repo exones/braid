@@ -7,6 +7,7 @@
 - **The words** (`src/board/limits-view.ts`): "blind since 00:31" on the chip, "cache not updated since 00:31; restart T3" in the tooltip and panel, and that nothing pauses on it while blind.
 - **The page** (`web/src/Limits.tsx`): the orange chip with a thick border and ⚠, no meters, an orange "blind" panel badge and line, and the blind chip first on the phone strip. Built as in `docs/design/board-mockups/blind-chip.html`, approved as shown (q-ex55).
 - **One push per provider and blind spell** (`blindPush` in `src/board/steer.ts`, step 4 of the steerer). Key `pause:blind:<provider>:<cache's last update>`: the same spell keeps its key (the pusher sends it once and keeps it, also across a restart), a later spell has another. Sent only by the acting board for that provider (0074/B). A recovery sends nothing.
+- **Combined board** (`mergeLimits`): `blind` wins over another project's `unknown` or `ok` in either project order (review fix); the push stays one per provider and spell (the steerer sends once per provider per tick and the key is the cache's last update).
 - **`braid limits`** prints `blind since <time>: cache not updated since <time>; restart T3` under the unknown verdict, `blindSince` in `--json`; exit stays 0.
 - **Rounding** (`src/braids/percent.ts`, `percent()`): one pure helper (whole numbers) used by the page (chips, panel), the chip title, `braid limits`, the pause lines and the pushes. State decisions use the raw value.
 
@@ -25,7 +26,7 @@ After the 2026-11-25 T3 process kill the provider caches stopped updating, `brai
 
 ## Open
 
-- A missing cache file and a fresh `checkedAt` with unreadable windows never read blind (no "since" without a first reading, and the clock restarts at each refresh). The mockup drew "file missing" as blind; I chose to stay quiet there (a fresh install). Say if you want it.
+- A missing cache file and a fresh `checkedAt` with unreadable windows never read blind (no "since" without a first reading, and the clock restarts at each refresh). The mockup drew "file missing" as blind; I chose to stay quiet there: there is no time to say "since" (decided, accepted by the coordinator under the preset).
 - The "in use" test is the board's: a role names the provider and a thread runs on it. `braid limits` has no T3 view, so it prints the line for any listed provider that has been unknown for over 30 minutes.
 - Other review bot comments: none yet.
 

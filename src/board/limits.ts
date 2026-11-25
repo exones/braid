@@ -199,7 +199,9 @@ export function mergeLimits(views: readonly { readonly project: string; readonly
     const resumes = paused.map((p) => p.resumeAt).filter((r): r is string => r !== null).sort();
     return {
       ...latest,
-      state: latest.state === "unknown" || latest.state === "unmeasured" || latest.state === "blind" ? (paused.length > 0 ? "paused" : latest.state) : state,
+      // A pause record wins; then blind (0074/E): one project runs a thread on the provider and its reading is blind, whichever project read last.
+      state: latest.state === "unknown" || latest.state === "unmeasured" || latest.state === "blind" ? (paused.length > 0 ? "paused" : state === "blind" ? "blind" : latest.state) : state,
+      blindSince: all.find((p) => p.state === "blind")?.blindSince ?? latest.blindSince,
       ...(paused.length > 0 ? { resumeAt: resumes[0] ?? latest.resumeAt, pauseWindow: paused.find((p) => p.pauseWindow !== null)?.pauseWindow ?? latest.pauseWindow } : {}),
       roles: [...new Set(all.flatMap((p) => p.roles))],
       models: [...new Set(all.flatMap((p) => p.models))],
