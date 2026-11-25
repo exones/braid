@@ -15,6 +15,12 @@
       "event": "opened",
       "at": "2026-11-25T19:24:12.456Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-25T19:25:29.643Z",
+      "by": "pm",
+      "text": "UI mockups (q-ex55) for the user: PM recommends a (orange warning chip, whole numbers, 'blind since <time>')"
     }
   ]
 }
