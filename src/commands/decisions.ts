@@ -1,8 +1,10 @@
 // `braid decisions <number> [--since <date or sha>]`: the `Decided:` log entries of a braid and its
-// strands, oldest first, so the user reads the decisions made under a preset in one place.
+// strands, and the requests the user or the PM answered (from the record), oldest first, so the user reads
+// the decisions made under a preset in one place.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { decidedEntries } from "../braids/decided.js";
+import { answeredRows, loadRecord } from "../braids/requests.js";
 import { BRAID_ID } from "../braids/brief.js";
 import { loadBraids } from "../braids/store.js";
 import { git } from "./done.js";
@@ -52,8 +54,10 @@ export function decisionsCommand(root: string, args: readonly string[]): string 
       }
     }
   }
+  // The answers the user or the PM gave the braid's requests, from the record (no fetch).
+  rows.push(...answeredRows(loadRecord(root).requests, (id) => id.slice(0, 4) === number).filter((r) => keep(r.at)));
   if (rows.length === 0) {
-    return `no Decided: entries for ${number}${from === undefined ? "" : ` since ${from}`}\n`;
+    return `no Decided: entries or answered requests for ${number}${from === undefined ? "" : ` since ${from}`}\n`;
   }
   // Stable: entries of the same minute keep braid-then-strand order.
   rows.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));

@@ -2,7 +2,8 @@
 // made itself, where no PR is left to watch (decision D71). It reads only: one fetch of the braid branch, then
 // GitHub's check runs from the branch tip down to the newest commit that changes anything outside `braids/` and
 // `epics/` (the CI commit). A project's CI may skip `braids/`-only pushes or not; every commit above the CI commit
-// tests the same code, so a check is answered by the newest commit in that range that has a run for it. A run
+// tests the same code, so a check is answered by the newest commit in that range that has a run for it; braid
+// branches get no push CI, so when none has and the CI commit is a merge, its second parent answers. A run
 // CANCELLED on a commit that has a newer commit above it (a newer push cancels older runs) stays pending, not failing,
 // for the 5-minute start limit, since the newer commit may still start its run; after that, or when nothing is newer,
 // it fails. The exit code is the answer:
@@ -13,16 +14,16 @@ import { braidBranches } from "../braids/branches.js";
 import { loadBraids } from "../braids/store.js";
 import { runGh, type GhRunner } from "../board/github.js";
 import { UsageError } from "./braids.js";
-import { ciChecks } from "./coordinate.js";
-import { commitChecks, git } from "./done.js";
+import { ciAll, ciChecks } from "./coordinate.js";
+import { ciCommit, commitChecks, git, LOOKBACK } from "./done.js";
 import { parse, str } from "./edit.js";
 
 const REMOTE = "origin";
-/** How far back the walk looks for a commit CI runs on. */
-const LOOKBACK = 50;
 const POLL_MS = 15_000;
 /** How long a commit may show no run at all before the wait gives up on it. */
 const START_MS = 5 * 60_000;
+/** With `ci: all`: how long after the first check of the commit started (or after the last new one appeared) a green set may still grow. */
+const GRACE_MS = 2 * 60_000;
 
 export interface WaitOptions {
   readonly gh?: GhRunner;
@@ -37,30 +38,6 @@ export interface WaitResult {
 }
 
 const usage = "usage: braid wait <number> [--timeout <minutes>]  (a braid number like 0008; minutes may be a fraction, e.g. 9)";
-
-/** The newest commit on the first-parent line of `ref` whose diff against its first parent touches a file outside `braids/` and `epics/`, with the braids-only commits skipped on the way. */
-function ciCommit(root: string, ref: string): { sha: string; skipped: string[] } | null {
-  const list = git(root, ["rev-list", "--first-parent", `--max-count=${LOOKBACK}`, "--parents", ref]);
-  if (list.status !== 0) {
-    throw new UsageError(`can't read ${ref}: ${list.stderr.trim()}`);
-  }
-  const skipped: string[] = [];
-  for (const line of list.stdout.split(/\r?\n/).filter((l) => l !== "")) {
-    const [sha = "", parent] = line.split(" ");
-    if (parent === undefined) {
-      return { sha, skipped };
-    }
-    const files = git(root, ["diff", "--name-only", parent, sha]);
-    if (files.status !== 0) {
-      throw new UsageError(`can't read the changes of ${sha.slice(0, 7)}: ${files.stderr.trim()}`);
-    }
-    if (files.stdout.split(/\r?\n/).some((f) => f !== "" && !f.startsWith("braids/") && !f.startsWith("epics/"))) {
-      return { sha, skipped };
-    }
-    skipped.push(sha);
-  }
-  return null;
-}
 
 /** Passing only on success, neutral or skipped; any other finished run (cancelled, timed out, action required, stale) fails. */
 const PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);
@@ -114,7 +91,8 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
   }
   const branch = braidBranch(root, number);
   const names = ciChecks(root);
-  if (names.length === 0) {
+  const all = ciAll(root);
+  if (names.length === 0 && !all) {
     return { code: 0, stdout: `BRAID.md names no ci checks; nothing to wait for on ${branch}\n` };
   }
   const fetched = git(root, ["fetch", "-q", REMOTE, `+refs/heads/${branch}:refs/remotes/${REMOTE}/${branch}`]);
@@ -138,14 +116,40 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
   /** The last state GitHub gave; a failed or empty read never replaces a seen run. */
   let last: { name: string; result: Result; sha: string }[] | null = null;
   let unread = false;
-  // The tip first, the CI commit last: the newest commit with a run for a check answers it.
-  const range = [...found.skipped, sha];
+  // The tip first, the CI commit next: the newest commit with a run for a check answers it. Braid branches get no
+  // push CI, so a merge CI commit has no run of its own: its second parent answers (the merged strand's head, whose
+  // PR run tested it merged onto the braid branch; or main's tip, which has its push run).
+  const second = git(root, ["rev-parse", "--verify", "-q", `${sha}^2`]);
+  const range = [...found.skipped, sha, ...(second.status === 0 && second.stdout.trim() !== "" ? [second.stdout.trim()] : [])];
   /** The commits that answered, as short shas; the CI commit when nothing has a run yet. */
   const at = (state: readonly { sha: string }[]) => [...new Set(state.map((s) => s.sha.slice(0, 7)))].join(", ") || short;
+  /** `ci: all`: the names the answering commit reported so far, and when the set last grew (the first run's start, else when this call first saw it). */
+  let known = new Set<string>();
+  let grewAt = 0;
   for (;;) {
     const rollups = new Map<string, ReturnType<typeof commitChecks>>();
     unread = false;
-    const read = names.map((n) => {
+    // `ci: all`: the newest commit in the range with any run answers, with every check it reports.
+    let reported = names;
+    let firstStart = Number.NaN;
+    if (all) {
+      reported = [];
+      for (const c of range) {
+        const rollup = commitChecks({ root, run }, c);
+        rollups.set(c, rollup);
+        unread ||= rollup === null;
+        if (rollup !== null && rollup.length > 0) {
+          reported = [...new Set(rollup.map((r) => r.name))];
+          firstStart = Math.min(...rollup.map((r) => Date.parse(r.startedAt ?? "")));
+          break;
+        }
+      }
+      if (reported.some((n) => !known.has(n))) {
+        grewAt = known.size === 0 && firstStart <= now() ? firstStart : now();
+        known = new Set([...known, ...reported]);
+      }
+    }
+    const read = reported.map((n) => {
       // A commit above that could not be read may hold the real answer: what is found below it is not final.
       let blind = false;
       for (const [i, c] of range.entries()) {
@@ -172,10 +176,12 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
       last = read;
     }
     const state = last ?? read;
-    if (state.every((s) => s.result === "passing")) {
-      return { code: 0, stdout: `${head}green at ${at(state)} on ${branch}: ${names.join(", ")}\n` };
+    // With `ci: all` a green set stays open to a late check until the grace has passed.
+    const settled = !all || now() >= grewAt + GRACE_MS;
+    if (state.length > 0 && state.every((s) => s.result === "passing") && settled) {
+      return { code: 0, stdout: `${head}green at ${at(state)} on ${branch}: ${state.map((s) => s.name).join(", ")}\n` };
     }
-    if (state.every((s) => s.result === "passing" || s.result === "failing")) {
+    if (state.length > 0 && state.every((s) => s.result === "passing" || s.result === "failing") && state.some((s) => s.result === "failing")) {
       const failed = state.filter((s) => s.result === "failing").map((s) => s.name);
       return { code: 1, stdout: `${head}failed at ${at(state.filter((s) => s.result === "failing"))} on ${branch}: ${failed.join(", ")}\n` };
     }
@@ -184,7 +190,7 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
     // A shorter call than the start limit ends as 3 below: the run may still appear, so a later call continues.
     if (last === null && t >= noRunUntil) {
       const why = unread ? "GitHub could not be read" : "no run appeared";
-      return { code: 2, stdout: `${head}${why} for ${names.join(", ")} at ${short} on ${branch} after ${Math.round((t - start) / 60_000)} minutes\n` };
+      return { code: 2, stdout: `${head}${why} for ${all ? "any check" : names.join(", ")} at ${short} on ${branch} after ${Math.round((t - start) / 60_000)} minutes\n` };
     }
     if (t >= until) {
       const of = (r: Result) => state.filter((s) => s.result === r).map((s) => s.name);
@@ -192,6 +198,7 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
         of("failing").length > 0 ? `failed: ${of("failing").join(", ")}` : "",
         of("pending").length > 0 ? `still running: ${of("pending").join(", ")}` : "",
         of("missing").length > 0 ? `not started: ${of("missing").join(", ")}` : "",
+        all && !settled ? "waiting for more checks to appear (start grace)" : "",
         unread ? "GitHub could not be read at the last poll" : "",
       ].filter((p) => p !== "");
       return { code: 3, stdout: `${head}still running after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}\n` };

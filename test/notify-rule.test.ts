@@ -86,7 +86,7 @@ test("a request the PM forwarded is the PM asking: 🧭, high, the PM's thread (
 });
 
 test("the PM's own request and a programme's stall push, opening the PM's thread", () => {
-  const clock = signals.brokeClock({ "agento/working-product pm stalled": ago(30) }, NOW);
+  const clock = signals.brokeClock({ "agento/working-product pm stalled": ago(30), "agento/working-product pm stalled nudged": ago(15) }, NOW);
   const sig = { now: NOW, requests: new Map(), alarm: clock.alarm, plans: [plan()] };
   const board = model.toBoard("agento", [braid()], gh(), t3(), sig);
   const [stall] = pushes(board);

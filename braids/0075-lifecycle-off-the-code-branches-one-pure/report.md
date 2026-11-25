@@ -1,0 +1,19 @@
+0075 moved the lifecycle off the code branches and made the lane one pure derivation, with three hotfixes the user needed on the way, delivered straight into main.
+
+What changed, by strand:
+- 0075/A (#295; in main by the early PR #296): a PM's recorded checker counts while T3 shows it running, and its record is kept between runs. Each run is a task the PM starts, and T3 shows the thread `completed` between runs. The record is dropped when the thread is archived or 24 h after it was recorded. The real cause of inbox fwoa was the record being dropped between runs.
+- 0075/B (#297): `braid start` and `braid accept` write `started` and `accepted` events to `lifecycle/<item>.json` on `braid-requests`, the shape the user chose. `braid accept` commits nothing on a PR's branch, so bookkeeping never moves a PR head. One `statusOf` reads status from the record, the PR and the stored status. Done comes from the merged PR, and a braid is Done only when its PR merged after every strand (the dsyv case). Old stored statuses read as before. One `ciCommit` rule. D105.
+- 0075/C (#298): the lane derivation is pure. Alarms are collected and `ReadSignals.commit(alarms)` writes them. `toCard` reuses `derive`'s routing, stall and limit steps. One `readInputs` serves the board, `braid status`, Start, Open thread and Merge. All strands Done with no merged final PR reads Working or stalled, not Done. D106.
+- 0075/D (#301): the skills drop what only the Done stamp needed: the coordinator's commit on a worker's branch, the second watch after accept, "merged but not stamped" and the worker's In Progress commit. `.agents/skills/` went from 1086 to 1079 lines. Docs: getting-started, board.md, cli.md, decisions, roadmap.
+- 0075/E (#299, hotfix into main): `t3codeUrl` accepts T3's new `/threads/<env>/<thread>` links, which brings back the Open thread buttons.
+- 0075/F (#300, hotfix into main): `braid limits` and the board count a model only against the windows that bill it. Cursor's grok-4.6 is judged on Cursor Models and Overall, not Other Models.
+- 0075/G (#303, hotfix into main): one `working()` rule. A thread runs when T3 shows it running or waiting, it has background tasks pending, or it is blocked on a thread wait. Also a timed wait, `braid ask <id> "<why>" --to self --done-when time:<iso>`, shown quietly and never pushed.
+- 0075/H (#304): merged main (with G) into the braid branch, in 0075/C's shape.
+
+Validation: each strand passed the gate and CI on Ubuntu and Windows, and each had an independent review (tier S strands were read by the coordinator). The PM live-checked #296, #299, #300 and #303. The braid branch is green at 5ee4a82.
+
+All Completion boxes of the braid hold. Skill text on accepting and Done is shorter: 1079 lines against 1086.
+
+Decisions: the plan, the early PR for A and the inbox entries taken in (q-e7ti, the PM). The lifecycle record shape "a" (q-5asx, the user). The reworded box 1 of 0075/A (q-ubfh, the PM). Launching grok reviews despite the wrong limits verdict (q-l0qo, the PM, with the user's words). Hotfixes E, F and G into main (the PM). The merges of #296, #299, #300 and #303 (the user). The coordinator's own decisions are in the log: B's size, D's process case, the route of the hotfixes and the timed-wait shape.
+For later items: leftovers 2026-11-24-sojn (a stored To Do cannot override a started event), 2026-11-24-8wr2 (stale pendingBackgroundTasks, no cap) and 2026-11-24-ob08 (timed-wait wording, board.md braid stall bullet). After this merges, update braid on every machine that runs agents: an older CLI reads started items only by their stored status.
+Needs the user: process: this PR changes the braid skills (.agents/skills/: braid SKILL.md, workflow, autonomy, resuming, brief template, braid-worker SKILL.md). It is the user's merge into main.

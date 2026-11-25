@@ -2,7 +2,7 @@
 // reason shows. Nothing here reads the repository, `gh` or `t3`, and nothing is written.
 import { loadTree, type Braid, type Tree } from "../braids/store.js";
 import { GITHUB_TODO, type Problem } from "../braids/readiness.js";
-import type { Request } from "../braids/requests.js";
+import { newRecord, type NewRequest, type Request } from "../braids/requests.js";
 import type { Pause } from "../braids/pauses.js";
 import type { InboxData } from "./inbox.js";
 import type { Github } from "./github.js";
@@ -231,7 +231,13 @@ export function demoLimits(t3: T3, pauses: ReadonlyMap<string, Pause>, now: Date
 /** The requests and broke alarms of the demo, as of `now`: every kind of request, both alarms. Nothing is read or written. */
 export function demoSignals(now: Date = new Date()): ReadSignals {
   const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
-  const request = (id: string, kind: Request["kind"], text: string, minutes: number, extra: Partial<Request> = {}): Request => ({ id, kind, text, at: at(minutes), thread: null, ...extra });
+  let n = 0;
+  const request = (id: string, kind: Request["kind"], text: string, minutes: number, extra: Partial<NewRequest> = {}): Request => newRecord({ id, kind, text, at: at(minutes), thread: null, code: `q-d${String((n += 1)).padStart(3, "0")}`, ...extra });
+  /** A request that ended `minutes` ago: answered by the user or the PM, withdrawn, or met. */
+  const closed = (id: string, text: string, opened: number, ended: number, end: { state: "answered" | "withdrawn" | "met"; by: "user" | "pm" | "coordinator" | "board"; text?: string; reason?: string }, extra: Partial<NewRequest> = {}): Request => {
+    const r = request(id, "question", text, opened, extra);
+    return { ...r, state: end.state, events: [...r.events, { event: end.state, at: at(ended), by: end.by, ...(end.text === undefined ? {} : { text: end.text }), ...(end.reason === undefined ? {} : { reason: end.reason }) }] };
+  };
   const requests: Request[] = [
     request("0001/B", "review", "review PR #12 at 0000012", 120, { pr: 12, head: demoHead(12), thread: "demo-coordinator" }),
     request("0003/B", "decision", "Decide: approve the PDF layout (approve-layout)", 60, { key: "approve-layout" }),
@@ -243,6 +249,22 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     request("0009/A", "question", "Should the report totals include refunds?", 3, { to: "pm", pm: "demo-pm-1" }),
   ];
   const asks: Request[] = [request("0004/B", "action", "install the runner on the build machine", 8, { by: "pm" })];
+  // A request to another braid's coordinator: not the user's; the asking braid's card shows it quietly, with its "done when".
+  // The wait was reminded once, and 0002's coordinator gave an estimate: the Requests tab lists both.
+  const wait = request("0009", "question", "Can search ship before reports?", 120, { to: "0002", doneWhen: "braid:0002" });
+  const waits: Request[] = [
+    {
+      ...wait,
+      eta: at(-90),
+      events: [...wait.events, { event: "reminded", at: at(60), by: "board", text: "sent to the 0002 coordinator" }, { event: "eta", at: at(50), by: "coordinator", text: at(-90), reason: "after strand 0002/C merges" }],
+    },
+  ];
+  const ended: Request[] = [
+    closed("0004/A", "Which tax table should it load?", 300, 280, { state: "answered", by: "user", text: "B: the 2026 table." }),
+    closed("0009", "Should totals include refunds?", 240, 235, { state: "answered", by: "pm", text: "Yes, net of refunds.", reason: "the goal says totals as the customer sees them" }),
+    closed("0004/B", "Which locale for the invoice dates?", 200, 190, { state: "withdrawn", by: "coordinator", text: "the brief already says en-GB" }),
+    closed("0003/A", "Wait for the search index", 1500, 1400, { state: "met", by: "board", text: "PR #31 merged" }, { to: "0002", doneWhen: "pr:31" }),
+  ];
   const programmes: Request[] = [request("pm/working-product", "decision", "Should the export ship before billing? A. Yes: export first, billing after B. No: billing first C. Both at once, with the limit raised to 3", 12, { by: "pm", thread: "demo-pm-1" })];
   const began: Readonly<Record<string, number>> = { "0002/B": 14, "0004/A": 25, "demo/inbox-sweep pm": 14 };
   return {
@@ -250,6 +272,8 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     requests: new Map(requests.map((r) => [r.id, r])),
     asks: new Map(asks.map((r) => [r.id, r])),
     programmes,
+    waits,
+    closed: ended,
     pauses: new Map(demoPauses(now).map((p) => [p.braid, p])),
     alarm: (id, _reason, holds) => (holds === true && began[id] !== undefined ? at(began[id] ?? 0) : null),
     doneAt: (folder) => {
@@ -374,8 +398,8 @@ export function apiPlans(): PlanRead[] {
 export function apiSignals(now: Date = new Date()): ReadSignals {
   const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
   const requests: Request[] = [
-    { id: "0001/B", kind: "question", text: "Send Retry-After in seconds or as a date?", at: at(15), thread: null },
-    { id: "0002", kind: "review", text: "review PR #43 at 000002b", at: at(50), thread: null, pr: 43, head: demoHead(43) },
+    newRecord({ id: "0001/B", kind: "question", text: "Send Retry-After in seconds or as a date?", at: at(15), thread: null }),
+    newRecord({ id: "0002", kind: "review", text: "review PR #43 at 000002b", at: at(50), thread: null, pr: 43, head: demoHead(43) }),
   ];
   return {
     now,

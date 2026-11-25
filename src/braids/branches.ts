@@ -252,7 +252,7 @@ function prefetchBriefs(root: string, commits: readonly string[]): void {
   });
 }
 
-/** Per braid number or strand id, the branch to read: the newest commit, a local branch on a tie. */
+/** Per braid number or strand id, the branch to read the brief from: the newest commit, a local branch on a tie. Its stored status is only the fallback of `statusOf` (src/braids/lifecycle.ts): the record and the PRs decide first. */
 function winners(refs: readonly BranchRef[]): BranchRef[] {
   const best = new Map<string, BranchRef>();
   for (const ref of refs) {
@@ -507,7 +507,18 @@ export function loadKnownBraids(root: string, only?: string): Braid[] {
   return braids.sort((a, b) => (a.number < b.number ? -1 : a.number > b.number ? 1 : 0));
 }
 
-/** Every braid whose status is not Done, wherever it lives (`loadKnownBraids`). */
-export function loadOpenBraids(root: string): Braid[] {
-  return loadKnownBraids(root).filter((b) => b.brief.status !== "Done");
+/** Braid `number` as a ref (`origin/main`) has it, or null when the ref or the braid isn't there. */
+export function braidAt(root: string, ref: string, number: string): Braid | null {
+  const r = git(root, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+  if (r.status !== 0) {
+    return null;
+  }
+  const t = gitTree(root, { branch: ref, commit: r.stdout.trim() });
+  const dir = braidFolder(t, number);
+  return dir === null ? null : attempt(() => loadBraid(t, dir, number));
+}
+
+/** Every braid whose status is not Done, wherever it lives (`loadKnownBraids`); `status` reads each braid (default: its stored status). */
+export function loadOpenBraids(root: string, status: (braids: readonly Braid[]) => Braid[] = (b) => [...b]): Braid[] {
+  return status(loadKnownBraids(root)).filter((b) => b.brief.status !== "Done");
 }

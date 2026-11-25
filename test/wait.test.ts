@@ -30,9 +30,9 @@ const NAMES = ["verify (ubuntu-latest)", "verify (windows-latest)"];
  * A repository with a bare remote and braid 0001 on braid/0001-alpha: a code commit (the strand's merge) on top
  * of main. `braidsOnlyTip` adds a commit on top that changes only braids/ (the Done stamp), pushed too.
  * `gh` answers each check-runs call for a commit with the next answer in `answers[sha]` (the last one repeats);
- * the clock moves only when the command sleeps.
+ * the clock moves only when the command sleeps. With `merged` the code commit is a merge of a strand branch (its head is `strand`).
  */
-function world(braidsOnlyTip = false) {
+function world(braidsOnlyTip = false, merged = false) {
   const base = mkdtempSync(join(scratch, "w-"));
   const root = join(base, "proj");
   const put = (path: string, text: string) => {
@@ -50,9 +50,20 @@ function world(braidsOnlyTip = false) {
   git(root, "commit", "-q", "-m", "init");
   git(root, "push", "-q", "origin", "main");
   git(root, "checkout", "-q", "-b", "braid/0001-alpha");
-  put("code.txt", "a\n");
-  git(root, "add", "-A");
-  git(root, "commit", "-q", "-m", "Merge PR #5");
+  let strand = "";
+  if (merged) {
+    git(root, "checkout", "-q", "-b", "braid/0001/A-s");
+    put("code.txt", "a\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "feat: strand");
+    strand = git(root, "rev-parse", "HEAD");
+    git(root, "checkout", "-q", "braid/0001-alpha");
+    git(root, "merge", "-q", "--no-ff", "-m", "Merge PR #5", "braid/0001/A-s");
+  } else {
+    put("code.txt", "a\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "Merge PR #5");
+  }
   const code = git(root, "rev-parse", "HEAD");
   let tip = code;
   if (braidsOnlyTip) {
@@ -78,7 +89,7 @@ function world(braidsOnlyTip = false) {
   };
   let clock = 0;
   const opts = { gh, now: () => clock, sleep: async (ms: number) => void (clock += ms) };
-  return { root, code, tip, answers, asked, opts, minutes: () => clock / 60_000 };
+  return { root, code, strand, tip, answers, asked, opts, minutes: () => clock / 60_000 };
 }
 
 test("exit 0 once every ci check has passed, after polling while they run", async () => {
@@ -159,6 +170,31 @@ test("a braids-only tip waits on the commit before it", async () => {
   assert.match(r.stdout, new RegExp(`^tip ${w.tip.slice(0, 7)} of braid/0001-alpha only changes braids/ or epics/; CI runs on ${w.code.slice(0, 7)}\ngreen at ${w.code.slice(0, 7)}`));
   // The tip has no run (CI skips braids-only pushes), so the CI commit answers.
   assert.deepEqual([...new Set(w.asked)].sort(), [w.tip, w.code].sort());
+});
+
+test("a merge commit without runs of its own is answered green by its second parent", async () => {
+  const w = world(true, true);
+  w.answers.set(w.strand, [NAMES.map((n) => done(n, "success"))]);
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, new RegExp(`green at ${w.strand.slice(0, 7)} on braid/0001-alpha`));
+});
+
+test("a merge commit without runs of its own is answered red by its second parent", async () => {
+  const w = world(false, true);
+  w.answers.set(w.strand, [[done(NAMES[0]!, "failure"), done(NAMES[1]!, "success")]]);
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 1);
+  assert.equal(r.stdout, `failed at ${w.strand.slice(0, 7)} on braid/0001-alpha: verify (ubuntu-latest)\n`);
+});
+
+test("a merge commit with runs of its own uses them, not its second parent's", async () => {
+  const w = world(false, true);
+  w.answers.set(w.code, [NAMES.map((n) => done(n, "success"))]);
+  w.answers.set(w.strand, [NAMES.map((n) => done(n, "failure"))]);
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, new RegExp(`green at ${w.code.slice(0, 7)} `));
 });
 
 test("the remote's tip counts, not the local branch", async () => {
@@ -276,4 +312,48 @@ test("a failed read of the newer commit never lets the older commit's cancelled 
   ok.answers.set(ok.code, [NAMES.map(cancelled)]);
   ok.answers.set(ok.tip, [null, null, NAMES.map((n) => done(n, "success"))]);
   assert.equal((await waitCommand(ok.root, ["1"], ok.opts)).code, 0);
+});
+
+test("ci: all waits for every reported check: green after the start grace, failed at once, pending at the timeout, none is exit 2", async () => {
+  const all = (w: ReturnType<typeof world>) => writeFileSync(join(w.root, "BRAID.md"), "---\n@main: main\nci: all\n---\n");
+  const ok = (n: string) => done(n, "success");
+  const green = world();
+  all(green);
+  green.answers.set(green.code, [NAMES.map(ok)]);
+  const r = await waitCommand(green.root, ["1"], green.opts);
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /^green at [0-9a-f]{7} on braid\/0001-alpha: verify \(ubuntu-latest\), verify \(windows-latest\)\n$/);
+  assert.equal(green.minutes(), 2, "green only after the 2-minute start grace");
+
+  const failed = world();
+  all(failed);
+  failed.answers.set(failed.code, [[ok("a"), done("b", "failure")]]);
+  const f = await waitCommand(failed.root, ["1"], failed.opts);
+  assert.equal(f.code, 1);
+  assert.match(f.stdout, /failed at [0-9a-f]{7} on braid\/0001-alpha: b\n$/);
+
+  const pending = world();
+  all(pending);
+  pending.answers.set(pending.code, [[ok("a"), running("b")]]);
+  const p = await waitCommand(pending.root, ["1", "--timeout", "10"], pending.opts);
+  assert.equal(p.code, 3);
+  assert.match(p.stdout, /still running: b/);
+
+  const none = world();
+  all(none);
+  const n = await waitCommand(none.root, ["1"], none.opts);
+  assert.equal(n.code, 2);
+  assert.match(n.stdout, /^no run appeared for any check at/);
+});
+
+test("ci: all: a check that appears inside the grace keeps the wait going", async () => {
+  const w = world();
+  writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: all\n---\n");
+  const a = [done("a", "success")];
+  // Seven polls (0 to 90 seconds) see only a; then b appears at 105 seconds and passes; the grace restarts from b.
+  w.answers.set(w.code, [...Array.from({ length: 7 }, () => a), [...a, running("b")], [...a, done("b", "success")]]);
+  const r = await waitCommand(w.root, ["1"], w.opts);
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /: a, b\n$/);
+  assert.equal(w.minutes(), 3.75);
 });

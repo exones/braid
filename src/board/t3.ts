@@ -7,7 +7,7 @@ import { execFile, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
-import { loadReviews, type ReviewRecord } from "../braids/reviews.js";
+import { dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
 import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { itemOfFolder, repoNameOf } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
@@ -54,7 +54,7 @@ export interface T3 {
   readonly idleCoordinators?: ReadonlyMap<string, T3Coordinator>;
   /** Running threads on a branch `coordinator/idea-<idea id>` (or its `-2`, `-3`), by branch: coordinators planning an idea. */
   readonly ideaThreads?: ReadonlyMap<string, T3Coordinator>;
-  /** The status of every thread `thread list` named, by id exactly as T3 gives it (ids are case-sensitive; `archived` for an archived one). A thread absent from it is unknown to T3. */
+  /** The status of every thread `thread list` named, by id exactly as T3 gives it (ids are case-sensitive; `archived` for an archived one, `running` for one that works in the background: `working`). A thread absent from it is unknown to T3. */
   readonly states?: ReadonlyMap<string, string>;
   /** The T3 link of every thread `thread list` named, by id: where a request addressed by a thread id (the PM's) opens. */
   readonly links?: ReadonlyMap<string, string>;
@@ -140,6 +140,18 @@ export interface Where {
   readonly link: string | null;
 }
 
+/** How long after its record a recorded PM checker is read for: each run of it is a separate task the PM starts, and between runs T3 shows it `completed`, so the record stays until the thread is archived or this passes (bounds the `thread show` reads). Docs: board.md. */
+export const CHECKER_CAP_MS = 24 * 60 * 60_000;
+
+/** What a recorded PM checker's record becomes: it counts while T3 says it runs; it is dropped once T3 shows it archived or the cap since its record passed; otherwise (idle, completed between runs) it is kept, uncounted. */
+export function checkerRecord(where: Where, recordedAt: string, now: Date): "counts" | "kept" | "drop" {
+  if (where.status === "running") {
+    return "counts";
+  }
+  const at = Date.parse(recordedAt);
+  return where.status === "archived" || (!Number.isNaN(at) && now.getTime() - at >= CHECKER_CAP_MS) ? "drop" : "kept";
+}
+
 const recent = new Map<string, { at: number; t3: Promise<T3> }>();
 const SHARE_MS = 3000;
 
@@ -154,7 +166,7 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
     const t = obj(top?.["thread"]) ?? top ?? {};
     const pending = t["pendingRequestCount"];
     return {
-      status: str(t["status"]),
+      status: statusOf(t),
       worktreePath: str(t["worktreePath"]),
       branch: str(t["branch"]),
       pending: typeof pending === "number" ? pending : 0,
@@ -191,6 +203,8 @@ export interface T3Options {
   readonly ttlMs?: number;
   /** The recorded review threads; read from `.braid/reviews.json` of the main checkout when not given. */
   readonly reviews?: readonly ReviewRecord[];
+  /** The clock for the checker cap; now when not given. */
+  readonly now?: Date;
 }
 
 /**
@@ -203,9 +217,27 @@ export function readT3(root: string, options: T3Options = {}): Promise<T3> {
   if (shared !== undefined && Date.now() - shared.at < ttl) {
     return shared.t3;
   }
-  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root));
+  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root), options.now ?? new Date());
   recent.set(root, { at: Date.now(), t3 });
   return t3;
+}
+
+/** T3's statuses of a thread whose turn is under way: `running`, or `waiting` (its turn waits on a background task it awaits). */
+const BUSY = new Set(["running", "waiting"]);
+
+/**
+ * Whether a thread works: T3 says `running` or `waiting`, or it has background work pending (a background command or a subagent:
+ * `pendingBackgroundTasks`), or it is blocked on a thread wait (`blockedOnThreadWait`). T3 shows such a thread `completed` or
+ * `waiting` between turns, yet it is working (0075/G). The one rule for "running" wherever the board decides it.
+ */
+export function working(t: Json): boolean {
+  const tasks = t["pendingBackgroundTasks"];
+  return BUSY.has(str(t["status"])?.toLowerCase() ?? "") || (Array.isArray(tasks) && tasks.length > 0) || t["blockedOnThreadWait"] === true;
+}
+
+/** A thread's status as the board reads it: `archived` for an archived one, `running` for one that works (`working`), else T3's status. */
+function statusOf(t: Json): string | null {
+  return archived(t) ? "archived" : working(t) ? "running" : str(t["status"]);
 }
 
 /** A thread T3 marks archived (`archived: true`, an `archivedAt` time, or the status `archived`): it gets no button. */
@@ -213,7 +245,7 @@ function archived(t: Json): boolean {
   return t["archived"] === true || (t["archivedAt"] !== undefined && t["archivedAt"] !== null) || t["status"] === "archived";
 }
 
-async function readFresh(root: string, run: T3Runner, agents: string | readonly string[], project: string, reviews: readonly ReviewRecord[]): Promise<T3> {
+async function readFresh(root: string, run: T3Runner, agents: string | readonly string[], project: string, reviews: readonly ReviewRecord[], now: Date): Promise<T3> {
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
   const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
@@ -241,7 +273,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
       if (link !== null) {
         links.set(id, link);
       }
-      states.set(id, archived(t) ? "archived" : (str(t["status"]) ?? "unknown").toLowerCase());
+      states.set(id, (statusOf(t) ?? "unknown").toLowerCase());
       const provider = str(t["providerInstanceId"]);
       if (provider !== null) {
         providers.set(id, provider);
@@ -250,9 +282,9 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   }
   const wanted = named
     .filter((t) => !archived(t))
-    .map((t) => ({ t, id: str(t["threadId"]) ?? str(t["id"]), status: str(t["status"]) }))
-    .filter((x): x is { t: Json; id: string; status: string } => x.id !== null)
-    .map((x) => ({ ...x, running: x.status === "running" }));
+    .map((t) => ({ t, id: str(t["threadId"]) ?? str(t["id"]) }))
+    .filter((x): x is { t: Json; id: string } => x.id !== null)
+    .map((x) => ({ ...x, running: working(x.t) }));
 
   const mine = (typeof agents === "string" ? [agents] : agents).map(norm);
   // Only a worker's worktree directly inside the braid worktree folder, named for an item, is an agent's; a leftover `-review` checkout is no one's.
@@ -289,7 +321,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined, provider: str(t["providerInstanceId"]) ?? where?.provider ?? null } satisfies T3Thread };
   });
   // A recorded review thread is its item's reviewer while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
-  const reviewing = await pool(reviews, async (r) => {
+  const reviewing = await pool(reviews.filter((r) => !r.id.startsWith("pm/")), async (r) => {
     const where = await showThread(run, root, r.thread);
     return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: "reviewer", pending: where.pending, link: null, provider: where.provider } satisfies T3Thread } : null;
   });
@@ -311,10 +343,32 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
       into.set(f.key, [...(into.get(f.key) ?? []), f.thread]);
     }
   }
-  const pmChecks = wanted.flatMap(({ t, running }) => {
+  const listedChecks = wanted.flatMap(({ t, running }) => {
     const m = /^(?:[^\x00-\x7F]+\s+)?(\S+) pm check: (.*)$/.exec(str(t["title"]) ?? "");
     return running && m !== null && repos.has(m[1] ?? "") ? [m[2] ?? ""] : [];
   });
+  // A PM's checker is a subagent, which `thread list` leaves out: the PM records it (`braid review pm/<slug> --thread <id>`), and it checks while T3 says it runs (0071/C, 2h98).
+  // Each run of it is a task the PM starts and T3 shows it `completed` between runs, so the record is kept (uncounted) until the thread is archived or 24 h pass since the record (0075/A, fwoa).
+  const ended: string[] = [];
+  const recordedChecks = await pool(reviews.filter((r) => r.id.startsWith("pm/")), async (r) => {
+    const where = await showThread(run, root, r.thread);
+    const what = where === null ? "kept" : checkerRecord(where, r.at, now);
+    if (what === "counts") {
+      return [r.id];
+    }
+    if (what === "drop" && where !== null) {
+      ended.push(r.thread);
+    }
+    return [];
+  });
+  if (ended.length > 0) {
+    try {
+      dropEndedChecks(root, ended);
+    } catch {
+      // A record that can't be rewritten now is dropped at a later refresh.
+    }
+  }
+  const pmChecks = [...listedChecks, ...recordedChecks.flat()];
   return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, providers, pmChecks };
 }
 

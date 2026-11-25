@@ -189,6 +189,15 @@ test("t3codeUrl builds the app link from T3's thread link", () => {
   assert.equal(marks.t3codeUrl("not a url"), null);
 });
 
+test("t3codeUrl accepts the new /threads/<env>/<thread> shape on any host", () => {
+  const child = "thread%3Adelegated-task%3Acommand%3Amcp%3Alaunch%3Aabc";
+  assert.equal(marks.t3codeUrl(`https://app.t3.codes/threads/env-1/${child}`), `t3code://threads/env-1/${child}`);
+  assert.equal(marks.t3codeUrl("https://app.t3.codes/threads/env-1/th1/"), "t3code://threads/env-1/th1");
+  assert.equal(marks.t3codeUrl("http://127.0.0.1:3773/threads/env-1/th1"), "t3code://threads/env-1/th1");
+  assert.equal(marks.t3codeUrl("https://app.t3.codes/threads/a/b/c"), null);
+  assert.equal(marks.t3codeUrl("https://app.t3.codes/threads"), null);
+});
+
 test("the tick marks Done strands only", () => {
   assert.equal(marks.strandMarks(strand("0001/A")).done, true);
   assert.equal(marks.strandMarks(strand("0008/A")).done, true);
@@ -218,4 +227,12 @@ test("the Open thread emoji is the thread's role, 💻 when the role is unknown"
   assert.equal(marks.threadEmoji("worker"), "💻");
   assert.equal(marks.threadEmoji("reviewer"), "👀");
   assert.equal(marks.threadEmoji(null), "💻");
+});
+
+test("linkOfThread builds a link from a new-shape sibling", async () => {
+  const { linkOfThread } = await load("../dist/board/model.js");
+  const t3 = { links: new Map([["a", "https://app.t3.codes/threads/env-1/a"]]) };
+  assert.equal(linkOfThread(t3, "b%3A1"), "https://app.t3.codes/threads/env-1/b%253A1");
+  assert.equal(marks.t3codeUrl(linkOfThread(t3, "b")), "t3code://threads/env-1/b");
+  assert.equal(linkOfThread({ links: new Map() }, "b"), null);
 });

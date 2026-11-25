@@ -21,17 +21,17 @@
 # Artifact upload needs actions: write. contents stays read. This workflow does not publish.
 name: CI
 
-# PR branches are covered by pull_request; push runs only for the shared branches
-# (braid/* is a braid branch; its strands, braid/<n>/<letter>-<slug>, don't match),
-# so one push to a strand's PR branch doesn't run the suite twice (a story's does). A push that only changes
-# epics/ (past records) or braids/ (briefs and logs) skips CI. Pull requests always start the job, so the
+# PR branches are covered by pull_request; push runs only on main. Braid and story branches
+# (braid/<n>-<slug>) get no push run: a strand's PR run already tests the strand merged onto its braid branch,
+# a story's PR run tests its branch, and the final PR into main runs everything (D71, 0073/A).
+# A push to main that only changes epics/ (past records) or braids/ (briefs and logs) skips CI. Pull requests always start the job, so the
 # `verify` checks report on every head, but the "Decide fast path" step lets a braids-only update pass in
 # seconds (D58): when the whole PR diff is under braids/ or epics/, or when the commits since the previous
 # head (github.event.before) are, and that previous head has a successful check run with this job's name.
 # Any error while deciding runs the full suite. checks: read is for that check-run lookup.
 on:
   push:
-    branches: [main, 'braid/*']
+    branches: [main]
     paths-ignore: ['epics/**', 'braids/**']
   pull_request:
 

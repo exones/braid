@@ -12,6 +12,9 @@ import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START,
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
 import { steerer, type Steerer } from "../board/steerer.js";
+import { steps, waker } from "../board/wake.js";
+import { nudger } from "../board/nudge.js";
+import { reminder } from "../board/remind.js";
 import { steeringLines } from "../board/steer.js";
 import { LimitsError, readModelLines } from "../braids/limits.js";
 import { STEERING_EMOJI } from "../braids/roles.js";
@@ -19,10 +22,15 @@ import { limitPusher } from "../notify/notifier.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
+import { readInputs, readStartContext } from "../board/inputs.js";
+
+export { readStartContext };
 import { t3codeUrl } from "../board/marks.js";
 import { problemLine, readiness, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
+import { fetchBranchAsync } from "../braids/gitbranch.js";
+import { REQUESTS } from "../braids/requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
 import type { Pause } from "../braids/pauses.js";
 import { readPlans, type PlanRead } from "../board/plans.js";
@@ -70,6 +78,8 @@ export interface Sources {
   github(fresh: boolean): Github | Promise<Github>;
   t3(fresh: boolean): Promise<T3>;
   signals(github: Github): ReadSignals;
+  /** Fetches `braid-requests` from origin; the board calls it only on a fresh read (the Refresh button), alongside GitHub and T3, and reads the local refs otherwise. Absent: never fetched. */
+  fetchRequests?(): Promise<unknown>;
   /** The plans of the project's programmes (`pm/*` branches); absent: none. A failed read gives none. */
   plans?(): Promise<PlanRead[]>;
   tree(item: Item): Tree;
@@ -116,9 +126,8 @@ export function mergeAction(src: Sources, root: string, t3: T3Runner): Action {
     }
     const id = normaliseId(b["id"]);
     const shown = b["head"];
-    const github = await src.github(true);
-    const sig = src.signals(github);
-    const merge = mergeOf(id, github, sig);
+    const { github, t3: read, sig } = await readInputs(src);
+    const merge = mergeOf(id, github, sig, read);
     if (merge === null) {
       throw new UsageError(`Merge: ${id} has no open review request`);
     }
@@ -141,13 +150,6 @@ export function mergeAction(src: Sources, root: string, t3: T3Runner): Action {
     }
     return { ok: true, id, pr: merge.pr, head: current, message };
   };
-}
-
-/** What BRAID.md says about the main branch and the coordinator (`models.coordinator: <provider> / <model> / effort=…`). */
-export function readStartContext(root: string): StartContext {
-  const text = existsSync(join(root, "BRAID.md")) ? readFileSync(join(root, "BRAID.md"), "utf8") : "";
-  const model = /^\s+coordinator:\s*([^\s/]+)\s*\/\s*([^\s/]+)\s*\//m.exec(text);
-  return { main: /^main:\s*([\w./-]+)\s*$/m.exec(text)?.[1] ?? "main", expected: model === null ? null : { provider: model[1] ?? "", model: model[2] ?? "" } };
 }
 
 const jsonOf = (text: string): Record<string, unknown> | null => {
@@ -215,13 +217,12 @@ export function startAction(src: Sources, root: string, t3: T3Runner, git: GitRu
       throw new UsageError("start needs { id }: the braid to start");
     }
     const id = normaliseId(raw);
-    const braid = (await src.braids()).find((b) => b.number === id);
+    const { braids, github, t3: read, sig, start: ctx } = await readInputs(src);
+    const braid = braids.find((b) => b.number === id);
     if (braid === undefined) {
       throw new UsageError(`Start: no braid ${id}`);
     }
-    const github = await src.github(true);
-    const ctx = src.start();
-    const card = toCard(braid, github, await src.t3(true), src.signals(github), ctx);
+    const card = toCard(braid, github, read, sig, ctx);
     if (card.start.reason !== null) {
       throw new UsageError(`Start: ${card.start.reason}`);
     }
@@ -456,12 +457,12 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
     // A thread's link doesn't change: the snapshot has it. Only when it has none is T3 read again.
     let link = known === undefined ? null : linkOf(known);
     if (link === null) {
-      const braid = loaded ?? (await src.braids()).find((b) => b.number === number);
+      const read = await readInputs(src);
+      const braid = read.braids.find((b) => b.number === number);
       if (braid === undefined) {
         throw new UsageError(`Open thread: no braid ${number}`);
       }
-      const github = await src.github(true);
-      link = linkOf(toCard(braid, github, await src.t3(true), src.signals(github), src.start()));
+      link = linkOf(toCard(braid, read.github, read.t3, read.sig, read.start));
     }
     if (link === null) {
       throw new UsageError(`Open thread: ${id} has no ${want === "coordinator" ? "coordinator " : ""}thread`);
@@ -486,6 +487,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     github: (fresh) => readGithubAsync(root, gh, fresh ? 0 : undefined),
     t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
     signals: (github) => readSignals(root, github),
+    fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
     limits: (threads, pauses) => readLimitsView(root, threads, pauses),
     tree: (item) => treeOf(root, item),
@@ -1171,12 +1173,13 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   const gh = run.gh ?? runGhAsync;
   const t3 = run.t3 ?? runT3;
   const notifierOf = run.notifier ?? boardNotifier;
-  // The limits pause (the click-only rule's one exception): never in the demo, off with --no-pause. Its pushes go through each project's notified.json.
+  // The limits pause and the wake (the click-only rule's exceptions): never in the demo, off with --no-pause. The pause's pushes go through each project's notified.json.
   const pausing = !demo && !args.includes("--no-pause");
   const pushers = new Map<string, ReturnType<typeof limitPusher>>();
   const steer = pausing
     ? steerer({
         t3,
+        wake: steps(waker(t3), reminder(t3), nudger(t3)),
         ...(run.notifier === undefined
           ? {
               push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => {

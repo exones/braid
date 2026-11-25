@@ -234,7 +234,11 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
         const tree = listed.find((t) => t.branch === ref.branch);
         const named = only?.letter !== null && only?.letter !== undefined;
         let skip: string | null = null;
-        if (tree !== undefined && norm(tree.path) === here) {
+        // A braid branch is live until its braid is Done (its PR merged after its strands), whatever earlier PR from it merged (an early PR into main).
+        const live = item.letter === null && w.card.status !== "Done" ? `its braid is not Done (${w.card.status})` : null;
+        if (live !== null) {
+          skip = `${live}; the braid goes on`;
+        } else if (tree !== undefined && norm(tree.path) === here) {
           skip = "checked out in this checkout";
         } else if (git(root, ["merge-base", "--is-ancestor", ref.branch, "HEAD"]).status !== 0) {
           // `git branch -d` also accepts a branch merged into its upstream; that is not enough here.

@@ -1,28 +1,27 @@
-// `braid accept <id> [--head <sha>] [--merge]`: the coordinator marks an item Done, where it holds the
-// base (decision D43). A strand is stamped after its merge, on the braid branch; a story or a braid's
-// final PR in a status-only commit on its own branch, after review and green CI, before the handover.
-// Every refusal names the condition that failed, and nothing is written before all checks pass.
+// `braid accept <id> [--head <sha>] [--merge]`: the coordinator accepts an item at its reviewed head (decision D43).
+// The acceptance is an `accepted` event on the record branch (src/braids/lifecycle.ts); Done itself is read from the
+// merged PR, so nothing is committed on a PR's branch and its head never moves (0075/B). A strand's braid log entry
+// (`--log`) is still committed on the braid branch after its merge. Every refusal names the condition that failed,
+// and nothing is written before all checks pass.
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parsePreset, resolvePreset } from "../braids/autonomy.js";
+import { loadLifecycle, recordEvent } from "../braids/lifecycle.js";
 import { appendLog, now, threadShort } from "../braids/logs.js";
 import { closeRequest } from "../braids/requests.js";
 import { loadBraids } from "../braids/store.js";
 import { runGh, runsOf, type GhRunner } from "../board/github.js";
 import { UsageError } from "./braids.js";
-import { ciChecks, read, type Sources, type World } from "./coordinate.js";
-import { editItem, parse, readText, str } from "./edit.js";
+import { ciAll, ciChecks, read, type Sources, type World } from "./coordinate.js";
+import { parse, readText, str } from "./edit.js";
+import { runMergeGate } from "./mergegate.js";
 import { mainBranch } from "./start.js";
 
 const REMOTE = "origin";
 
 export interface DoneOptions extends Sources {
-  /** Waits between polls of a PR's checks (`--merge` on a story); replaced in tests. */
-  readonly sleep?: (ms: number) => Promise<void>;
-  /** How long `--merge` waits for the checks on the new head, in ms. */
-  readonly waitMs?: number;
+  /** The merge gate's time limit in ms; replaced in tests. */
+  readonly gateMs?: number;
 }
 
 export interface PrView {
@@ -65,11 +64,6 @@ export function view(run: GhRunner, root: string, pr: number): PrView {
   }
 }
 
-/** The stored status in a brief's text. */
-function statusOf(brief: string): string {
-  return /^status:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(brief)?.[1] ?? "";
-}
-
 /** Whether the brief has a box section at all: a brief without one is refused, not passed. */
 export function hasBoxSection(brief: string): boolean {
   return /^##\s+(completion|acceptance|definition of done)\s*$/im.test(brief);
@@ -101,48 +95,92 @@ export interface CheckHistory {
   readonly notes?: string[];
 }
 
-const LOOKBACK = 30;
-
 /** The `ci` checks of one commit as a rollup, or null when GitHub can't say. */
-export function commitChecks(h: CheckHistory, sha: string): PrView["statusCheckRollup"] | null {
+export function commitChecks(h: CheckHistory, sha: string): { name: string; status: string; conclusion: string; startedAt?: string }[] | null {
   const r = h.run(h.root, ["api", `repos/{owner}/{repo}/commits/${sha}/check-runs`]);
   if (r.error !== undefined || r.status !== 0) {
     return null;
   }
   try {
-    const runs = (JSON.parse(r.stdout) as { check_runs?: { name: string; status?: string; conclusion?: string | null }[] }).check_runs ?? [];
-    return runs.map((c) => ({ name: c.name, status: (c.status ?? "completed").toUpperCase(), conclusion: (c.conclusion ?? "").toUpperCase() }));
+    const runs = (JSON.parse(r.stdout) as { check_runs?: { name: string; status?: string; conclusion?: string | null; started_at?: string | null }[] }).check_runs ?? [];
+    // Newest run first, so a name's first entry is its newest run (a re-run replaces the older one).
+    return runs
+      .map((c) => ({ name: c.name, status: (c.status ?? "completed").toUpperCase(), conclusion: (c.conclusion ?? "").toUpperCase(), ...(c.started_at ? { startedAt: c.started_at } : {}) }))
+      .sort((a, b) => Date.parse(b.startedAt ?? "") - Date.parse(a.startedAt ?? "") || 0);
   } catch {
     return null;
   }
 }
 
-/** The newest commit below the head whose `ci` checks are all green, when every commit after it changes only `braids/` (the CI workflow's paths-ignore); else null. */
-function greenBelow(names: readonly string[], pr: PrView, h: CheckHistory): string | null {
-  const shas = git(h.root, ["rev-list", `--max-count=${LOOKBACK}`, "--parents", pr.headRefOid]).stdout.split(/\r?\n/).filter((l) => l !== "");
-  for (const [i, line] of shas.entries()) {
-    const [sha = "", ...parents] = line.split(" ");
-    if (i > 0) {
-      const rollup = commitChecks(h, sha);
-      const runs = runsOf(rollup ?? undefined);
-      if (rollup !== null && names.every((n) => runs.find((r) => r.name === n)?.result === "passing")) {
-        return sha;
-      }
+export const LOOKBACK = 50;
+
+/**
+ * The one definition of "braids-only commits inherit green": the newest commit on the first-parent line of `ref`
+ * whose diff against its first parent touches a file outside `braids/` and `epics/` (the CI commit), and the
+ * braids-only commits above it, newest first. Null when there is none within the look-back. `braid accept` and
+ * `braid wait` both use it; CI's fast path (.github/workflows/ci.yml) is its own copy for the runner.
+ */
+export function ciCommit(root: string, ref: string): { sha: string; skipped: string[] } | null {
+  const list = git(root, ["rev-list", "--first-parent", `--max-count=${LOOKBACK}`, "--parents", ref]);
+  if (list.status !== 0) {
+    throw new UsageError(`can't read ${ref}: ${list.stderr.trim()}`);
+  }
+  const skipped: string[] = [];
+  for (const line of list.stdout.split(/\r?\n/).filter((l) => l !== "")) {
+    const [sha = "", parent] = line.split(" ");
+    if (parent === undefined) {
+      return { sha, skipped };
     }
-    const files = git(h.root, ["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha]);
-    if (parents.length !== 1 || files.status !== 0 || files.stdout.split(/\r?\n/).some((f) => f !== "" && !f.startsWith("braids/"))) {
-      return null;
+    const files = git(root, ["diff", "--name-only", parent, sha]);
+    if (files.status !== 0) {
+      throw new UsageError(`can't read the changes of ${sha.slice(0, 7)}: ${files.stderr.trim()}`);
+    }
+    if (files.stdout.split(/\r?\n/).some((f) => f !== "" && !f.startsWith("braids/") && !f.startsWith("epics/"))) {
+      return { sha, skipped };
+    }
+    skipped.push(sha);
+  }
+  return null;
+}
+
+/** The newest commit below the head, down to its CI commit (`ciCommit`), whose `ci` checks are all green; else null. */
+function greenBelow(names: readonly string[], pr: PrView, h: CheckHistory, all: boolean): string | null {
+  let found: { sha: string; skipped: string[] } | null;
+  try {
+    found = ciCommit(h.root, pr.headRefOid);
+  } catch {
+    return null;
+  }
+  if (found === null) {
+    return null;
+  }
+  for (const sha of [...found.skipped.slice(1), ...(found.skipped.length > 0 ? [found.sha] : [])]) {
+    const rollup = commitChecks(h, sha);
+    const runs = runsOf(rollup ?? undefined);
+    if (rollup !== null && (all ? runs.length > 0 && runs.every((r) => r.result === "passing") : names.every((n) => runs.find((r) => r.name === n)?.result === "passing"))) {
+      return sha;
     }
   }
   return null;
 }
 
 /** Why the `ci` checks of BRAID.md aren't green on this PR's head, or null; `pending` tells waiting from failing. With `history`, a head with missing or pending checks that only adds `braids/` changes on top of a green commit passes, and a line naming that commit goes to `history.notes`. */
-export function checksProblem(names: readonly string[], pr: PrView, history?: CheckHistory): { why: string; pending: boolean } | null {
+export function checksProblem(names: readonly string[], pr: PrView, history?: CheckHistory, all = false): { why: string; pending: boolean } | null {
   const runs = runsOf(pr.statusCheckRollup);
-  if (names.length === 0) {
+  if (all || names.length === 0) {
     const bad = runs.filter((r) => r.result !== "passing");
-    return bad.length === 0 ? null : { why: `checks not green: ${bad.map((r) => `${r.name} ${r.result}`).join(", ")}`, pending: bad.every((r) => r.result === "pending") };
+    // `ci: all` needs at least one reported check; one that hasn't appeared yet is pending, as a pending run is.
+    const problem = all && runs.length === 0
+      ? { why: `ci: all, but no check is reported on ${pr.headRefOid.slice(0, 7)}`, pending: true }
+      : bad.length === 0 ? null : { why: `checks not green: ${bad.map((r) => `${r.name} ${r.result}`).join(", ")}`, pending: bad.every((r) => r.result === "pending") };
+    if (all && problem?.pending === true && history !== undefined) {
+      const green = greenBelow(names, pr, history, true);
+      if (green !== null) {
+        history.notes?.push(`checks skipped on ${pr.headRefOid.slice(0, 7)}: only braids/ changed since ${green.slice(0, 7)}, which is green`);
+        return null;
+      }
+    }
+    return problem;
   }
   const bad = names.map((n) => ({ name: n, result: runs.find((r) => r.name === n)?.result ?? "pending" })).filter((r) => r.result !== "passing");
   if (bad.length === 0) {
@@ -150,7 +188,7 @@ export function checksProblem(names: readonly string[], pr: PrView, history?: Ch
   }
   const problem = { why: `ci checks not green on ${pr.headRefOid.slice(0, 7)}: ${bad.map((r) => `${r.name} ${r.result}`).join(", ")}`, pending: bad.every((r) => r.result === "pending") };
   if (history !== undefined && problem.pending) {
-    const green = greenBelow(names, pr, history);
+    const green = greenBelow(names, pr, history, false);
     if (green !== null) {
       history.notes?.push(`checks skipped on ${pr.headRefOid.slice(0, 7)}: only braids/ changed since ${green.slice(0, 7)}, which is green`);
       return null;
@@ -195,8 +233,10 @@ function ready(root: string, run: GhRunner, w: World, t: Target, pr: PrView, hea
   if (!pr.headRefOid.startsWith(head.toLowerCase())) {
     fail(`PR #${pr.number}'s head is ${pr.headRefOid.slice(0, 7)}, not the reviewed ${head} (show the user what changed)`);
   }
+  // The head's commits are needed below (the braids-only walk, the brief and report at the head).
+  must(root, ["fetch", "-q", REMOTE, `+refs/heads/${pr.headRefName}:refs/remotes/${REMOTE}/${pr.headRefName}`], `can't fetch ${pr.headRefName}`);
   const notes: string[] = [];
-  const checks = checksProblem(ciChecks(root), pr, { root, run, notes });
+  const checks = checksProblem(ciChecks(root), pr, { root, run, notes }, ciAll(root));
   if (checks !== null) {
     fail(checks.why);
   }
@@ -211,7 +251,6 @@ function ready(root: string, run: GhRunner, w: World, t: Target, pr: PrView, hea
   if (running !== undefined) {
     fail(`a ${running.role === "reviewer" ? "review" : "worker"} thread for ${t.key} is still running (${running.id}${running.title === undefined ? "" : `, "${running.title}"`})`);
   }
-  must(root, ["fetch", "-q", REMOTE, `+refs/heads/${pr.headRefName}:refs/remotes/${REMOTE}/${pr.headRefName}`], `can't fetch ${pr.headRefName}`);
   const at = (path: string) => git(root, ["show", `${pr.headRefOid}:${path}`]);
   const brief = at(`${t.folder}/brief.md`);
   if (brief.status !== 0) {
@@ -228,9 +267,10 @@ function ready(root: string, run: GhRunner, w: World, t: Target, pr: PrView, hea
     fail(`no report.md at ${pr.headRefOid.slice(0, 7)}`);
   }
   if (t.letter === null) {
-    const notDone = w.braid.strands.filter((s) => statusOf(at(`${s.folder}/brief.md`).stdout) !== "Done").map((s) => s.brief.id);
+    // A strand is Done once its PR merged (or by an older stored Done), as every reader sees it.
+    const notDone = w.card.strands.filter((s) => s.status !== "Done").map((s) => s.id);
     if (notDone.length > 0) {
-      fail(`strands not Done at ${pr.headRefOid.slice(0, 7)}: ${notDone.join(", ")}`);
+      fail(`strands not Done: ${notDone.join(", ")}`);
     }
   }
   return notes.map((n) => `${n}
@@ -250,36 +290,24 @@ function acceptedLine(a: Acceptance): string {
   return `Accepted: ${a.id} at ${a.head.slice(0, 7)}; review: ${a.review}; coordinator thread ${a.thread}.`;
 }
 
-/** The braid log entry with its "Accepted" line, or null when no entry was asked for. */
-function withAccepted(log: { text: string; thread: string } | null, a: Acceptance): { text: string; thread: string } | null {
-  return log === null ? null : { text: `${log.text}\n\n${acceptedLine(a)}`, thread: log.thread };
-}
-
-/** Posts the acceptance on the PR; a failure is a warning line, since the item is already stamped. */
+/** Posts the acceptance on the PR; a failure is a warning line, since the acceptance is already recorded. */
 function comment(run: GhRunner, root: string, pr: number, a: Acceptance): string {
   const r = run(root, ["pr", "comment", String(pr), "--body", acceptedLine(a)]);
   return r.error !== undefined || r.status !== 0 ? `warning: the PR comment was not posted (${(r.stderr || r.error?.message || "gh failed").trim().split("\n")[0] ?? ""})\n` : "";
 }
 
-/** Sets the item Done in `cwd` (with the optional braid log entry), commits and pushes to `branch`; returns the new commit. */
-function stamp(cwd: string, t: Target, number: string, log: { text: string; thread: string } | null, branch: string): string {
-  editItem(cwd, [t.id, "--status", "Done"]);
-  const paths = [`${t.folder}/brief.md`];
-  if (log !== null) {
-    const braid = loadBraids(cwd).find((b) => b.number === number);
-    if (braid === undefined) {
-      throw new UsageError(`no braid ${number} in ${cwd}`);
-    }
-    paths.push(`${braid.folder}/${appendLog(join(cwd, braid.folder), log.thread, log.text, false, now())}`);
-  }
-  must(cwd, ["add", "--", ...paths], "git add failed");
-  must(cwd, ["commit", "-q", "-m", `docs(braids): ${t.id} done`], "git commit failed");
-  const commit = must(cwd, ["rev-parse", "HEAD"], "can't read the new commit");
-  must(cwd, ["push", "-q", REMOTE, `HEAD:refs/heads/${branch}`], `committed ${commit.slice(0, 7)} but the push to ${branch} failed; push it by hand`);
-  return commit;
+/** Records the `accepted` event on the record branch; a push that failed is a warning line (the next write pushes it). */
+function recordAccepted(root: string, t: Target, a: Acceptance): string {
+  const r = recordEvent(root, t.id, { kind: "accepted", at: new Date().toISOString(), head: a.head, review: a.review, thread: a.thread });
+  return r.warning === null ? "" : `warning: ${r.warning}\n`;
 }
 
-/** The strand stamp is made in this checkout: it must be on the braid branch with no tracked changes. Checked before any merge. */
+/** Whether the item was accepted at this head already (a resumed run). */
+function acceptedAt(root: string, t: Target, head: string): boolean {
+  return (loadLifecycle(root).get(t.id)?.events ?? []).some((e) => e.kind === "accepted" && e.head === head);
+}
+
+/** The braid log entry is committed in this checkout: it must be on the braid branch with no tracked changes. Checked before any merge. */
 function onBraidBranch(root: string, t: Target): void {
   const branch = git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"]).stdout.trim();
   if (branch !== t.braidBranch) {
@@ -290,31 +318,19 @@ function onBraidBranch(root: string, t: Target): void {
   }
 }
 
-/** A strand merged on GitHub: stamp it on the braid branch checked out here. */
-function stampStrand(root: string, t: Target, number: string, log: { text: string; thread: string } | null, prNumber: number): string {
-  onBraidBranch(root, t);
+/** A strand merged: its braid log entry, with the "Accepted" line, committed and pushed on the braid branch checked out here. */
+function strandLog(root: string, t: Target, number: string, log: { text: string; thread: string }, a: Acceptance): string {
   must(root, ["pull", "-q", "--ff-only", REMOTE, t.braidBranch], `can't pull ${t.braidBranch}`);
-  const strand = loadBraids(root).find((b) => b.number === number)?.strands.find((s) => s.brief.id === t.id);
-  if (strand === undefined) {
-    throw new UsageError(`${t.id} not accepted: its folder is not on ${t.braidBranch} after the pull`);
+  const braid = loadBraids(root).find((b) => b.number === number);
+  if (braid === undefined) {
+    throw new UsageError(`no braid ${number} on ${t.braidBranch}`);
   }
-  if (strand.brief.status === "Done") {
-    return `${t.id} is already Done on ${t.braidBranch}; nothing changed${log === null ? "" : " (the log entry was not written: use braid log)"}\n`;
-  }
-  const commit = stamp(root, t, number, log, t.braidBranch);
-  return `${t.id} done: PR #${prNumber} merged; Done on ${t.braidBranch} in ${commit}\n`;
-}
-
-/** A story or a braid's final PR: a status-only commit on its own branch, made in a temporary worktree. */
-function stampBranch(root: string, t: Target, number: string, log: { text: string; thread: string } | null, pr: PrView): string {
-  const dir = mkdtempSync(join(tmpdir(), "braid-done-"));
-  must(root, ["worktree", "add", "-q", "--detach", dir, pr.headRefOid], `can't add a worktree at ${pr.headRefOid.slice(0, 7)}`);
-  try {
-    return stamp(dir, t, number, log, pr.headRefName);
-  } finally {
-    git(root, ["worktree", "remove", "--force", dir]);
-    rmSync(dir, { recursive: true, force: true });
-  }
+  const file = `${braid.folder}/${appendLog(join(root, braid.folder), log.thread, `${log.text}\n\n${acceptedLine(a)}`, false, now())}`;
+  must(root, ["add", "--", file], "git add failed");
+  must(root, ["commit", "-q", "-m", `docs(braids): ${t.id} accepted`], "git commit failed");
+  const commit = must(root, ["rev-parse", "HEAD"], "can't read the new commit");
+  must(root, ["push", "-q", REMOTE, `HEAD:refs/heads/${t.braidBranch}`], `committed ${commit.slice(0, 7)} but the push to ${t.braidBranch} failed; push it by hand`);
+  return `log entry on ${t.braidBranch} in ${commit}\n`;
 }
 
 /** `--merge --preset`: a merge the coordinator makes under the braid's preset; refuses unless that preset allows this PR. */
@@ -329,45 +345,25 @@ function presetAllows(root: string, w: World, t: Target): void {
   if (!allowed) {
     throw new UsageError(`${t.id} not merged: preset ${preset.name} has merge: ${preset.merge}, which does not let the coordinator merge ${kind === "final" ? "a braid's final PR" : `a ${kind}'s PR`}; the user merges it (or run without --preset on their word); nothing changed`);
   }
-  if (ciChecks(root).length === 0) {
+  if (ciChecks(root).length === 0 && !ciAll(root)) {
     throw new UsageError(`${t.id} not merged: preset ${preset.name} allows this merge only with CI to wait for, and ci in BRAID.md is none; nothing changed`);
   }
 }
 
-const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** Polls the PR until the `ci` checks pass on `head`; refuses when one fails, the head moves or time runs out. */
-async function waitGreen(root: string, run: GhRunner, t: Target, pr: number, head: string, opts: DoneOptions): Promise<string> {
-  const sleep = opts.sleep ?? realSleep;
-  const until = Date.now() + (opts.waitMs ?? 30 * 60_000);
-  for (;;) {
-    const v = view(run, root, pr);
-    if (v.headRefOid !== head) {
-      throw new UsageError(`${t.id} is Done in ${head.slice(0, 7)}, but PR #${pr}'s head moved to ${v.headRefOid.slice(0, 7)}; not merged`);
-    }
-    const notes: string[] = [];
-    const problem = checksProblem(ciChecks(root), v, { root, run, notes });
-    if (problem === null) {
-      return notes.map((n) => `${n}
-`).join("");
-    }
-    if (!problem.pending) {
-      throw new UsageError(`${t.id} is Done in ${head.slice(0, 7)}, but ${problem.why}; not merged`);
-    }
-    if (Date.now() >= until) {
-      throw new UsageError(`${t.id} is Done in ${head.slice(0, 7)}, but the checks are still pending; not merged (run braid accept ${t.id} --head ${head.slice(0, 7)} --merge again later)`);
-    }
-    await sleep(15_000);
-  }
-}
-
-/** Marks an item Done; whatever the outcome, an item that is Done has no open request left. */
+/** Accepts an item; whatever the outcome, an accepted item has no open request left. */
 export async function acceptCommand(root: string, args: readonly string[], opts: DoneOptions = {}): Promise<string> {
   const out = await acceptItem(root, args, opts);
   const id = /^(\d{1,4})(?:\/([A-Z]))?$/;
   const m = id.exec(args.find((a) => id.test(a)) ?? "");
   if (m !== null) {
-    closeRequest(root, `${(m[1] ?? "").padStart(4, "0")}${m[2] === undefined ? "" : `/${m[2]}`}`);
+    // A review request is met by the accept; anything else still open is withdrawn.
+    const closed = closeRequest(root, `${(m[1] ?? "").padStart(4, "0")}${m[2] === undefined ? "" : `/${m[2]}`}`, undefined, (r) =>
+      r.kind === "review" ? { state: "met", who: "coordinator", text: "accepted" } : { state: "withdrawn", who: "coordinator", text: "the item is accepted" },
+    );
+    if (closed.warning !== null) {
+      return `${out}warning: ${closed.warning}\n`;
+    }
   }
   return out;
 }
@@ -391,6 +387,10 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
   const thread = threadShort(str(values, "thread"));
   if (thread === null) {
     throw new UsageError(`--thread needs an id with at least 8 letters or digits; got: ${str(values, "thread") ?? ""}`);
+  }
+  if (logFile !== undefined && m[2] === undefined) {
+    // Nothing is committed on a story's or final PR's branch: its log entry goes into the PR before the review.
+    throw new UsageError(`braid accept --log is for a strand (its entry goes on the braid branch after the merge); for ${number}, write the entry with braid log in the PR before the review; nothing changed`);
   }
   const log = logFile === undefined ? null : { text: readText({ file: logFile }), thread };
   const review = str(values, "review") ?? "reviewed by the coordinator";
@@ -420,32 +420,44 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
   if (t.letter !== null) {
     if (found.state === "open") {
       if (!merge || head === undefined) {
-        throw new UsageError(`${t.id} not accepted: PR #${found.number} is open, and a strand is marked Done after its merge; run braid accept ${t.id} --head <reviewed sha> --merge, or merge it first; nothing changed`);
+        throw new UsageError(`${t.id} not accepted: PR #${found.number} is open, and a strand is accepted with its merge; run braid accept ${t.id} --head <reviewed sha> --merge, or merge it first; nothing changed`);
       }
       const pr = view(run, root, found.number);
       if (pr.state !== "OPEN") {
         throw new UsageError(`${t.id} not accepted: PR #${found.number} is ${pr.state.toLowerCase()} now; run braid accept again; nothing changed`);
       }
-      onBraidBranch(root, t);
+      if (log !== null) {
+        onBraidBranch(root, t);
+      }
       const skipped = ready(root, run, w, t, pr, head);
+      await runMergeGate(root, "strand", pr.number, pr.headRefOid, opts.gateMs);
       gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
       const a = accepted(pr.headRefOid);
-      return `${skipped}merged PR #${pr.number} at ${pr.headRefOid}\n${stampStrand(root, t, number, withAccepted(log, a), pr.number)}${comment(run, root, pr.number, a)}`;
+      const warn = recordAccepted(root, t, a);
+      return `${skipped}merged PR #${pr.number} at ${pr.headRefOid}\n${t.id} accepted at ${pr.headRefOid}; Done from the merge\n${warn}${log === null ? "" : strandLog(root, t, number, log, a)}${comment(run, root, pr.number, a)}`;
     }
     if (merge || head !== undefined) {
       throw new UsageError(`${t.id} not accepted: PR #${found.number} is already merged; run braid accept ${t.id} without --head and --merge; nothing changed`);
     }
-    const a = accepted(view(run, root, found.number).headRefOid);
-    const done = stampStrand(root, t, number, withAccepted(log, a), found.number);
-    return done.includes("already Done") ? done : `${done}${comment(run, root, found.number, a)}`;
+    // Merged already (on GitHub, or by a run that stopped after the merge): it is Done; record the acceptance and the log entry.
+    const at = view(run, root, found.number).headRefOid;
+    if (acceptedAt(root, t, at)) {
+      return `${t.id} is already accepted at ${at}; nothing changed${log === null ? "" : " (the log entry was not written: use braid log)"}\n`;
+    }
+    if (log !== null) {
+      onBraidBranch(root, t);
+    }
+    const a = accepted(at);
+    const warn = recordAccepted(root, t, a);
+    return `${t.id} accepted at ${at}; Done from the merge of PR #${found.number}\n${warn}${log === null ? "" : strandLog(root, t, number, log, a)}${comment(run, root, found.number, a)}`;
   }
 
-  // A story or a braid's final PR into main.
+  // A story or a braid's final PR into main: nothing is committed on its branch, so the reviewed head is the one merged.
   if (found.state === "merged") {
-    if (w.braid.brief.status === "Done") {
-      return `${t.id} is already Done; nothing changed\n`;
+    if (w.card.status === "Done") {
+      return `${t.id} is Done: PR #${found.number} is merged; nothing changed\n`;
     }
-    throw new UsageError(`${t.id} not accepted: PR #${found.number} is merged into ${mainBranch(root)} without Done, and braid never commits to ${mainBranch(root)}; set it Done in the next PR into ${mainBranch(root)}`);
+    throw new UsageError(`${t.id} not accepted: PR #${found.number} merged into ${mainBranch(root)} while strands were open (${w.card.strands.filter((s) => s.status !== "Done").map((s) => s.id).join(", ")}), so it doesn't make ${t.id} Done; its final PR does; nothing changed`);
   }
   if (head === undefined) {
     throw new UsageError(`${t.id} not accepted: PR #${found.number} is open; give the reviewed head with --head <sha>; nothing changed`);
@@ -454,26 +466,21 @@ async function acceptItem(root: string, args: readonly string[], opts: DoneOptio
   if (pr.state !== "OPEN") {
     throw new UsageError(`${t.id} not accepted: PR #${found.number} is ${pr.state.toLowerCase()} now; run braid accept again; nothing changed`);
   }
-  must(root, ["fetch", "-q", REMOTE, `+refs/heads/${pr.headRefName}:refs/remotes/${REMOTE}/${pr.headRefName}`], `can't fetch ${pr.headRefName}`);
-  const stored = git(root, ["show", `${pr.headRefOid}:${t.folder}/brief.md`]);
-  if (stored.status === 0 && statusOf(stored.stdout) === "Done" && pr.headRefOid.startsWith(head.toLowerCase())) {
-    // Stamped before (a resumed run): only the merge may be left.
-    if (!merge) {
-      return `${t.id} is already Done at ${pr.headRefOid}; nothing changed\n`;
-    }
-    const waited = await waitGreen(root, run, t, pr.number, pr.headRefOid, opts);
-    const skipped = ready(root, run, w, t, view(run, root, pr.number), head);
-    gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `PR #${pr.number} not merged`);
-    return `${waited}${skipped}${t.id} is already Done at ${pr.headRefOid}\nmerged PR #${pr.number} at ${pr.headRefOid}\n`;
-  }
   const skipped = ready(root, run, w, t, pr, head);
-  const a = accepted(pr.headRefOid);
-  const commit = stampBranch(root, t, number, withAccepted(log, a), pr);
-  let out = `${skipped}${t.id} done: Done on ${pr.headRefName} in ${commit}\nhead ${commit}\n${comment(run, root, pr.number, a)}`;
+  // Before the record: a refused gate changes nothing.
   if (merge) {
-    out += await waitGreen(root, run, t, pr.number, commit, opts);
-    gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", commit], `${t.id} is Done in ${commit.slice(0, 7)}, but PR #${pr.number} not merged`);
-    out += `merged PR #${pr.number} at ${commit}\n`;
+    await runMergeGate(root, "main", pr.number, pr.headRefOid, opts.gateMs);
+  }
+  const a = accepted(pr.headRefOid);
+  let out = skipped;
+  if (acceptedAt(root, t, pr.headRefOid)) {
+    out += `${t.id} is already accepted at ${pr.headRefOid}\n`;
+  } else {
+    out += `${t.id} accepted at ${pr.headRefOid}; the head is unchanged\n${recordAccepted(root, t, a)}${comment(run, root, pr.number, a)}`;
+  }
+  if (merge) {
+    gh(run, root, ["pr", "merge", String(pr.number), "--merge", "--match-head-commit", pr.headRefOid], `${t.id} is accepted at ${pr.headRefOid.slice(0, 7)}, but PR #${pr.number} not merged`);
+    out += `merged PR #${pr.number} at ${pr.headRefOid}\n`;
   }
   return out;
 }

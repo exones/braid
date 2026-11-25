@@ -7,7 +7,9 @@ import { braidBranches, loadLiveBraids, type BranchRef } from "../braids/branche
 import type { Braid } from "../braids/store.js";
 import { readGithub, runGh, type GhRunner, type Github } from "../board/github.js";
 import { LANE_LABEL, needLine } from "../board/marks.js";
-import { toCard, type BraidCard, type Lane, type StrandCard } from "../board/model.js";
+import { readInputs, readStartContext } from "../board/inputs.js";
+import { readPlans } from "../board/plans.js";
+import { toCard, type Alarm, type BraidCard, type Lane, type StrandCard } from "../board/model.js";
 import { problemLine, readiness } from "../braids/readiness.js";
 import { readSignals } from "../board/signals.js";
 import { laneNote, statusLine } from "../board/pause.js";
@@ -29,6 +31,16 @@ export function ciChecks(root: string): string[] {
   const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
   const list = /^ci:\s*\[(.*)\]\s*$/m.exec(front)?.[1];
   return list === undefined ? [] : list.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s !== "");
+}
+
+/** Whether `ci: all` is set in BRAID.md: every check reported on the commit must finish green (`ciChecks` is empty then). */
+export function ciAll(root: string): boolean {
+  const file = join(root, "BRAID.md");
+  if (!existsSync(file)) {
+    return false;
+  }
+  const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
+  return /^ci:\s*["']?all["']?\s*$/m.test(front);
 }
 
 function braidNumber(args: readonly string[], command: string): string {
@@ -53,19 +65,27 @@ export interface World {
 }
 
 export async function read(root: string, number: string, command: string, src: Sources, reuse?: World): Promise<World> {
-  const braids = loadLiveBraids(root);
+  // The same inputs as the board reads (src/board/inputs.ts). A command over several braids (`braid clean`) reads GitHub and T3 once and passes that read on.
+  const { braids, github, t3, sig, start } = await readInputs(
+    {
+      braids: () => loadLiveBraids(root),
+      github: () => reuse?.github ?? readGithub(root, src.gh ?? runGh, 0),
+      t3: () => (reuse === undefined ? readT3(root, { ttlMs: 0, run: src.t3 ?? runT3 }) : Promise.resolve(reuse.t3)),
+      signals: (g) => readSignals(root, g),
+      plans: () => readPlans(root),
+      start: () => readStartContext(root),
+    },
+  );
   const braid = braids.find((b) => b.number === number);
   if (braid === undefined) {
     throw new UsageError(`no braid ${number} (braid ${command} takes a braid number)`);
   }
-  // A command over several braids (`braid clean`) reads GitHub and T3 once and passes that read on.
-  const github = reuse?.github ?? readGithub(root, src.gh ?? runGh, 0);
-  const t3 = reuse?.t3 ?? (await readT3(root, { ttlMs: 0, run: src.t3 ?? runT3 }));
-  const sig = readSignals(root, github);
   const cards = new Map<string, { lane: Lane; strand: StrandCard | null }>();
   let card: BraidCard | undefined;
+  const alarms: Alarm[] = [];
   for (const b of braids) {
-    const c = toCard(b, github, t3, sig);
+    const c = toCard(b, github, t3, sig, start);
+    alarms.push(...c.alarms);
     cards.set(c.id, { lane: c.lane, strand: null });
     for (const s of c.strands) {
       cards.set(s.id, { lane: s.lane, strand: s });
@@ -74,7 +94,7 @@ export async function read(root: string, number: string, command: string, src: S
       card = c;
     }
   }
-  sig.commit();
+  sig.commit(alarms);
   return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3, pausesNote: sig.pausesNote ?? null, now: sig.now };
 }
 
@@ -115,9 +135,7 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
   const pr = card.pr === null ? "-" : `#${card.pr.number} ${card.pr.state}`;
   const lane = card.reason !== null ? `${LANE_LABEL[card.lane]} (${card.reason})` : card.pause !== null ? `${LANE_LABEL[card.lane]} (${laneNote(card.pause)})` : LANE_LABEL[card.lane];
   const ask = card.ask === null ? "" : `  ask:${card.ask}`;
-  // Merged but not stamped (a merge in GitHub's UI, or a run that stopped after the merge): the coordinator's next step.
-  const hint = card.pr?.state === "merged" && card.status !== "Done" ? `  run braid accept ${card.id}` : "";
-  const head = `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}${hint}`;
+  const head = `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}`;
   const pause = letter === null && card.pause !== null && card.reason !== "stalled" ? [`    ${statusLine(card.pause, w.now)}`] : [];
   const pm = card.pm === null ? [] : [`    🧭 ${card.pm.text} (to the PM ${card.pm.age} ago)`];
   // The PM's own request, when the need line is another one (the coordinator's).
