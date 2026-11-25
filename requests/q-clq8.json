@@ -1,0 +1,19 @@
+{
+  "code": "q-clq8",
+  "item": "0074",
+  "kind": "question",
+  "text": "Early PR #310 (0074/A) into main at ed89e41: the user's merge",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T12:05:56.882Z",
+      "by": "coordinator"
+    }
+  ]
+}
