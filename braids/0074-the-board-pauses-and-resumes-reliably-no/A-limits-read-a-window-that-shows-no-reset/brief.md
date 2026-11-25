@@ -37,9 +37,9 @@ Expected size: about 60 lines in 3 files.
 
 ## Completion
 
-- [ ] A cache whose `five_hour` window has no `resetsAt` reads `ok` (or `pause` from another window) instead of `unknown`, with a test on the real cache shape
-- [ ] `windows` as an object keyed "0", "1", "2" reads the same as the array, with a test
-- [ ] `braid limits` and the board's chip show a window with no reset without errors
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A cache whose `five_hour` window has no `resetsAt` reads `ok` (or `pause` from another window) instead of `unknown`, with a test on the real cache shape
+- [x] `windows` as an object keyed "0", "1", "2" reads the same as the array, with a test
+- [x] `braid limits` and the board's chip show a window with no reset without errors
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

@@ -120,7 +120,9 @@ export function pauseCommand(root: string, args: readonly string[], options: Pau
       ? new Date(until).toISOString()
       : str(values, "window") === undefined
         ? (r.resumeAt ?? "")
-        : new Date(Date.parse(window?.resetsAt ?? "") + limits.buffer * 60_000).toISOString();
+        : window?.resetsAt == null
+          ? (r.resumeAt ?? "")
+          : new Date(Date.parse(window.resetsAt) + limits.buffer * 60_000).toISOString();
   const pause: Pause = {
     braid,
     provider,
