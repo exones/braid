@@ -61,7 +61,7 @@ A braid runs its strands with workers launched through `braid launch` and `deleg
 - [x] The braid, braid-worker and braid-reviewer skills and their references are shorter in total than on `main` at the planning commit (line count), with D69, D75 and D77 amended in the decisions record (0060/C, 0060/D)
 - [x] Docs from BRAID.md `docs` are true for subagent workers (0060/D)
 - [x] The docs strand ran as a subagent worker launched with the braid branch's `braid launch`, and showed on the board as running with a working Open thread link
-- [ ] The gate command from BRAID.md passes on the final PR
+- [x] The gate command from BRAID.md passes on the final PR
 
 ## Autonomy
 

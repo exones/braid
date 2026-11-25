@@ -16,7 +16,7 @@ Validation:
   - `braid clean` from the braid branch removed the child's checkout and `t3/` branch.
 
 Open:
-- The final PR's gate box is ticked once CI is green on this PR.
+- The final PR's CI (`verify` on Ubuntu and Windows) passed on ef1d411b; the gate box is ticked.
 - Leftovers:
   - ny2x: tests for `braid start --no-worktree` and research `--child`.
   - v4r2: the pause text's CI-result clause, 0074's.
