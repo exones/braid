@@ -66,7 +66,7 @@ You ask for dark mode. Here is what happens next.
 
    *Illustrative mock-up, not a real thread: the plan, and later the recap.*
 
-2. **A worker builds strand A** on its own branch and worktree, runs the project's gate and opens a PR with CI green.
+2. **A worker builds strand A** on its own branch, runs the project's gate and opens a PR; the coordinator waits for the PR's CI.
 3. **A reviewer checks the PR** against the brief (for a small strand, the coordinator reads the diff); findings go back to the worker.
 4. **You get a recap** and merge or ask for changes. Until then the board shows the item where you can act on it:
 
