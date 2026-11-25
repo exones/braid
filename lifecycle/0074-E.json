@@ -1,0 +1,11 @@
+{
+  "id": "0074/E",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-25T19:21:56.393Z",
+      "thread": "mcp:launch:26ba11efdb3af7287266920a3acc65fe9e97b7313b3436a84692c265d042342f",
+      "branch": "braid/0074/E-blind-limits-warn-loudly"
+    }
+  ]
+}
