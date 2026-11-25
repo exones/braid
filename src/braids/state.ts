@@ -65,14 +65,25 @@ export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): bo
   return false;
 }
 
+/** Names this lock file instance (its inode, creation and change time), or "" when it is gone: another holder's lock has a different one. */
+function lockIdentity(lock: string): string {
+  try {
+    const st = statSync(lock, { bigint: true });
+    return `${st.ino}:${st.birthtimeNs}:${st.mtimeNs}`;
+  } catch {
+    return "";
+  }
+}
+
 /**
- * Runs `fn` holding the lock of `file`: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up after `waitMs` (10 s). Never call GitHub inside `fn`.
+ * Runs `fn` holding the lock of `file`: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up when the lock has not changed hands for `waitMs` (10 s). Never call GitHub inside `fn`.
  * `makeDir` prepares the file's folder (default: a repository's `.braid/`, ignored by Git).
  */
 export function locked<T>(file: string, fn: () => T, what = "the requests store", makeDir: (dir: string) => void = ensureStateDir, waitMs: number = LOCK_WAIT_MS): T {
   makeDir(dirname(file));
   const lock = `${file}.lock`;
-  const give = Date.now() + waitMs;
+  let give = Date.now() + waitMs;
+  let seen = "";
   for (;;) {
     try {
       closeSync(openSync(lock, "wx"));
@@ -83,6 +94,12 @@ export function locked<T>(file: string, fn: () => T, what = "the requests store"
       }
       if (takeOverStale(lock)) {
         continue;
+      }
+      // The wait runs out when the lock has not changed hands for `waitMs`: a queue of writers that each make progress is not a stuck lock.
+      const now = lockIdentity(lock);
+      if (now !== "" && now !== seen) {
+        seen = now;
+        give = Date.now() + waitMs;
       }
       if (Date.now() > give) {
         throw new LockError(`${what} is locked (${lock}); remove it if no braid command is running`);
