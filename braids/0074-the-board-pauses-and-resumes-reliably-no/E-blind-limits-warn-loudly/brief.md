@@ -26,6 +26,7 @@ Expected size: about 200 lines in 5 files.
 - A new chip state `blind` for a provider that is in use (a role in BRAID.md names it and T3 runs one of its threads) and whose reading has been `unknown` for a reason other than "unsupported" for longer than 30 minutes: its text says since when and why ("cache not updated since 00:31; restart T3"). `unmeasured` (cursor) stays grey.
 - One `blind` push per provider and blind spell, sent by the acting board (0074/B); a reading that recovers ends the spell, quietly.
 - `braid limits` prints the same "blind since" line, and its exit stays 0 (unknown never pauses).
+- Round every percent the board shows (the header chip, the limits panel's percent column, pushes) to a whole number or one decimal: cursor sends unrounded values (67.560833…, 70.496946…) that overflow the chip ("S 70.4969465…" over "paused"). The user: "a small thing, absolutely not critical".
 - Tests: a cache 31 minutes stale on a provider in use reads `blind` and pushes once; 9 minutes stale doesn't; an unsupported provider never reads `blind`; recovery ends the spell and a later spell pushes again.
 
 ## Already decided
@@ -42,6 +43,7 @@ Expected size: about 200 lines in 5 files.
 - [ ] Mockups of the blind chip approved before building (log entry with the verdict)
 - [ ] A provider in use with an unknown reading for over 30 minutes reads `blind` on the board and in `braid limits`, with tests
 - [ ] One push per provider and blind spell, with tests
+- [ ] Every percent the board shows is rounded, with a test on an unrounded cursor value
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
