@@ -20,6 +20,12 @@
       "at": "2026-11-25T19:30:31.679Z",
       "by": "pm",
       "text": "UI mockups (q-zctf) for the user: PM recommends approve"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T20:06:23.790Z",
+      "by": "user",
+      "text": "Change: \"All good BUT I guess I need spacier cards in details panel which could contain sufficient context when I uncollapse it (to understand what question is about), question itself, answer buttons, button custom which replaces all buttons with text field\""
     }
   ]
 }
