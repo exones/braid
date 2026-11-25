@@ -14,7 +14,7 @@ The skills now launch every subagent the same way and the coordinator, not the w
 
 **Line count** (the braid skill with its references and `assets/brief.md`, braid-worker and braid-reviewer): 716 before (main at 15da4fd2, unchanged at 677e852d), 698 after.
 
-**Validation**: `npm run verify` locally: build, lint and all tests passed except one, `test/requests.test.ts` "overlapping writers in separate processes lose no update when they start on a stale lock", which failed twice (one of six writer processes exited 1; 70 s and 84 s, while other braids' gates loaded the machine). This PR touches no requests or lock code; the PR's CI on Windows and Ubuntu is the evidence. `test/launch.test.ts` passes. `braid check` passes.
+**Validation**: The gate passed in CI on 5fcf5fe; locally only one test failed, twice, under load from other braids' gates. `npm run verify` locally: build, lint and all tests passed except one, `test/requests.test.ts` "overlapping writers in separate processes lose no update when they start on a stale lock", which failed twice (one of six writer processes exited 1; 70 s and 84 s, while other braids' gates loaded the machine). This PR touches no requests or lock code; the PR's CI on Windows and Ubuntu is the evidence. `test/launch.test.ts` passes. `braid check` passes.
 
 **Docs**: `docs/decisions.md` and `docs/getting-started.md` updated; `docs/cli.md` and `docs/board.md` already describe `braid launch` and recorded worker children (0060/A, 0060/B); README, `docs/autonomy.md`, `docs/braids-format.md`, `docs/roadmap.md` unaffected by this strand. The docs strand 0060/D checks them as a whole.
 

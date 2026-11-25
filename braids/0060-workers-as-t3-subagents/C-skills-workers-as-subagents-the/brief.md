@@ -59,5 +59,5 @@ Expected size: about 150 lines changed in 7 files, a net decrease.
 - [x] The listed skill files total fewer lines than 716, with before and after in report.md
 - [x] The decisions record has a decision amending D69, D75 and D77
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
