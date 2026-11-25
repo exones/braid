@@ -1,7 +1,7 @@
 ---
 id: '0080'
 title: "The board talks to T3 directly"
-status: To Do
+status: In Progress
 labels: []
 dependencies: []
 related: ['0074', '0077', '0072', '0060']
