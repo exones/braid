@@ -6,6 +6,13 @@
       "at": "2026-11-25T11:03:53.515Z",
       "thread": "mcp:launch:26ba11efdb3af7287266920a3acc65fe9e97b7313b3436a84692c265d042342f",
       "branch": "braid/0074/A-limits-read-a-window-that-shows-no-reset"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-25T11:52:38.967Z",
+      "head": "51c837c84eec50604ab2677907840633f0828196",
+      "review": "https://github.com/exones/braid/pull/307#issuecomment-7161592737",
+      "thread": "mcp:launch:26ba11efdb3af7287266920a3acc65fe9e97b7313b3436a84692c265d042342f"
     }
   ]
 }
