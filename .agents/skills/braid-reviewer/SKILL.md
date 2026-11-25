@@ -45,6 +45,6 @@ Review someone else's PR with fresh eyes, report once, and stop.
    **Needs the user:** `none`, or per case `<key>: <what it is about, what is needed, the evidence>`.
    ```
 
-2. End with your report as your last chat message: blocking or not, the Needs the user line, the reviewed commit and the comment's link. Your host returns it to the coordinator; when the first message names a thread for your result, also send it there with `t3_thread_send`. You're done.
+2. End with your report as your last chat message: blocking or not, the Needs the user line, the reviewed commit and the comment's link. Your host returns it to the coordinator; send nothing with `t3_thread_send`. You're done.
 
 Never commit, push, edit, merge or approve.

@@ -79,7 +79,6 @@ export async function launchCommand(root: string, args: readonly string[], opts:
   }
   const model = line[0];
   const thread = str(values, "thread") ?? null;
-  const coordinator = thread === null ? "the thread that launched you" : `thread ${thread}`;
   const need = (what: string, v: string | undefined): string => {
     if (v === undefined || v === "") {
       throw new UsageError(`braid launch --role ${role} needs ${what}; nothing was started`);
@@ -98,7 +97,7 @@ export async function launchCommand(root: string, args: readonly string[], opts:
       `You are the braid worker for ${id}. Use the ${r.skill} skill (sibling folder of the braid skill).`,
       `Brief: \`braid view ${id}\`. Branch: ${b.branch} at ${sha}. Open the PR into ${b.base}.`,
       `Switch T3's checkout to the branch: \`git fetch\`, \`git switch ${b.branch}\`.`,
-      `Send your result to ${coordinator}. Your thread id: \`parentThreadId\` from \`orchestrator_capabilities\`.`,
+      "Your thread id: `parentThreadId` from `orchestrator_capabilities`. Your final message is your report: send nothing with `t3_thread_send`.",
       "End your run with `PR <url>, head <sha>, checks <state>`.",
     ].join("\n");
   } else if (role === "review") {
@@ -110,7 +109,6 @@ export async function launchCommand(root: string, args: readonly string[], opts:
     task = [
       `You are the braid reviewer for ${id}. Use the ${r.skill} skill (sibling folder of the braid skill).`,
       `PR: ${pr.url}, head ${pr.headRefOid.slice(0, 8)}.${str(values, "focus") === undefined ? "" : ` Focus: ${str(values, "focus")}.`}`,
-      `Send your result to ${coordinator}.`,
     ].join("\n");
   } else {
     task = [
