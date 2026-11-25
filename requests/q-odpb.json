@@ -1,0 +1,20 @@
+{
+  "code": "q-odpb",
+  "item": "0074",
+  "kind": "decision",
+  "text": "Pause delivery: t3 thread send only queues for a busy agent; accept, or a steer path?",
+  "key": "architecture",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T14:37:11.560Z",
+      "by": "coordinator"
+    }
+  ]
+}
