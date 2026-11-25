@@ -19,7 +19,7 @@ rows:
   - P22 | 0075 | Lifecycle off the code branches, one pure lane | done
   - P21 | 0074 | The board pauses and resumes reliably | running
   - P25 | - | The Questions panel | planned
-  - P24 | - | The board stays fast under load | running
+  - P24 | 0077 | The board stays fast under load | running
   - P4 | 0072 | Questions say what they unblock | running
   - P5 | - | Board lanes collapse, Held lane, Hold and Go | planned
   - P8 | 0060 | Workers as T3 subagents | running
@@ -154,6 +154,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-25: P24 is 0077. PM approved its plan (q-f2ad): strands A one git runner, B no sync calls in the board, C probe finds a busy board, E running count (1r0o), D `braid gate` machine-wide lock with two slots (PM changed from one: throughput, and B removes the board starvation), F docs; plus cursor chip decimals and the misleading "t3 not installed" on a timeout sent to 0077. F's one-line braid-worker skill change waits on the user's ask. Cleanup helper: nothing left to clean (0074-B/C already gone; 0070-D a 9 MB stray non-worktree folder); C: 171 GB free.
 - 2026-11-25: user: "a" (start P24 and P15 now, 5 at once; limits Claude 39% session, 66% weekly): limit 5; coordinators launched, P24 mcp:launch:90866b96…, P15 mcp:launch:57ba0cc3…; merge order 0074, 0072, 0060, P24, P15. User: the after-compaction reminder for "everyone": a SessionStart "compact" hook in the user's ~/.claude/settings.json (short reminder to reread skill, project instructions, plan or brief); idea j4i2 in P10 is covered by it unless a repo-shipped version is wanted.
 - 2026-11-25: PM reread its skill after a summary; front-matter limit corrected to 3 (the user's "P4 and P8 at the same time"). Drive C: ran full (worktrees ~100 GB, ~/.braid ~31 GB); builds failed machine-wide; the user cleaned it (39 GB free); coordinators told to re-run disk-space failures. Note for P5/P26: T3's MCP thread send has modes `steer` and `restart` (mid-turn), which the board can use once signed in; a full disk belongs with P26 (runaway guard) and `braid clean` (npvd).
 - 2026-11-25: user: a braid whose coordinator is alive (working or waiting on PRs, live checks) counts as running on the programme card; P24's card count fix rewritten to say so.
