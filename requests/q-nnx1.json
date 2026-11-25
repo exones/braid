@@ -1,0 +1,19 @@
+{
+  "code": "q-nnx1",
+  "item": "0077",
+  "kind": "plan",
+  "text": "0077 Sweep: 0040 leftovers and a flaky test: approve the plan (9 strands A to I; fresh to P24; per-braid ids D<braid>.<n>; 0077/E-H wait for the other braids to merge)",
+  "by": "coordinator",
+  "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T18:35:40.001Z",
+      "by": "coordinator"
+    }
+  ]
+}
