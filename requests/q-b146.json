@@ -21,6 +21,12 @@
       "at": "2026-11-25T22:19:22.361Z",
       "by": "pm",
       "text": "Sign-in design + first runtime dependency (q-b146) for the user: PM recommends a"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T22:24:58.981Z",
+      "by": "user",
+      "text": "The user: F1 \"Full Access if it's not worse than what we have now... (confirm please)\" (PM confirmed: on this PC it adds nothing a process running as the user can't already do through `t3`; the one new exposure is that a leaked token also works from wherever T3's address is reachable, for up to 30 days until revoked). F2 \"ok\" (@napi-rs/keyring)."
     }
   ]
 }
