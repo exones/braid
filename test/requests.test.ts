@@ -205,7 +205,7 @@ test("a review request stays when GitHub can't be read; a question never self-cl
   assert.match(out, /0001  decision/);
   const lines = ((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string).trim().split("\n");
   assert.match(lines.find((l) => l.includes(" 0001  decision")) ?? "", /^q-[a-z0-9]{4} {2}0001 {2}decision {2}0m {2}(blocks [^·]+ · )?decide {2}Decide\?$/, "a question never self-closes on a PR");
-  assert.match(lines.find((l) => l.includes("0001/A")) ?? "", /review .*condition holds/, "the merged review stays open for the board");
+  assert.match(lines.find((l) => l.includes(" 0001/A  review")) ?? "", /review .*condition holds/, "the merged review stays open for the board");
 });
 
 test("braid start closes the request of the item it starts, and only that one", async () => {
