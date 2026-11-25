@@ -1,0 +1,20 @@
+{
+  "code": "q-ex55",
+  "item": "0074/E",
+  "kind": "decision",
+  "text": "Approve the blind chip and rounding mockups (0074/E) or say what to change",
+  "key": "ui",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T19:24:12.456Z",
+      "by": "coordinator"
+    }
+  ]
+}
