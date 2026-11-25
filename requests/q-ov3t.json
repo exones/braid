@@ -10,7 +10,7 @@
   "doneWhen": "pr:305",
   "pr": 305,
   "head": "015e7ddf787d565f4992ca076e2bcb66be1080ee",
-  "eta": null,
+  "eta": "2026-11-25T03:35:45.037Z",
   "events": [
     {
       "event": "opened",
@@ -22,6 +22,13 @@
       "at": "2026-11-25T01:35:17.804Z",
       "by": "board",
       "text": "sent to the PM"
+    },
+    {
+      "event": "eta",
+      "at": "2026-11-25T01:35:45.037Z",
+      "by": "pm",
+      "text": "2026-11-25T03:35:45.037Z",
+      "reason": "PM's live check of #305 is running: end-to-end, early-PR case, and a lane-by-lane comparison old vs new CLI on clones of three repos"
     }
   ]
 }
