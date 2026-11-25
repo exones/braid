@@ -1,7 +1,7 @@
 ---
 id: '0072'
 title: "Questions say what they unblock"
-status: To Do
+status: In Progress
 labels: []
 dependencies: []
 related: ['0074', '0060']
