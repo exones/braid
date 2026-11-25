@@ -1,0 +1,18 @@
+{
+  "code": "q-xfdt",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "action",
+  "text": "0075 (lifecycle off the code branches) is installed and the board restarted (0.2.0): have a look. Try: accept a request and see that the PR head doesn't move; a strand shows Done once its PR has merged; lanes agree between the board, braid status and Merge. Update braid on every machine that runs agents.",
+  "by": "pm",
+  "thread": null,
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T10:53:35.967Z",
+      "by": "pm"
+    }
+  ]
+}
