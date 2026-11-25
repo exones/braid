@@ -15,6 +15,13 @@
       "event": "opened",
       "at": "2026-11-25T14:37:11.560Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T14:38:33.631Z",
+      "by": "pm",
+      "text": "a) Accept queued delivery now. Also check, without an LLM, whether the board can reach the same steer the MCP tool uses (T3's server API behind t3_thread_send mode auto) from code; if it can with no new credential, use it, and log it. The request to T3 for a --steer flag is outward: I'm asking the user; make none yourself.",
+      "reason": "Cheap and reversible, keeps the LLM out as the user ruled; busy agents are still named by the escalation; the outward ask goes to the user."
     }
   ]
 }
