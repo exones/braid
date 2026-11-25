@@ -95,7 +95,7 @@ What changed: this report and `sources.md` in the item folder; the brief's Plan.
 
 Why: the user asked how the board would sign in and decides before 0080/D builds it (security, dependency).
 
-Validation: the T3 facts were read from its code at v0.1.12 (the extract and the installed bundle); the keyring library and the Windows tools were run on this machine with dummy secrets in a scratch folder (S22, S35); no live sign-in and no T3 call. `braid check` and `npm run verify` (see the PR).
+Validation: the T3 facts were read from its code at v0.1.12 (the extract and the installed bundle); the keyring library and the Windows tools were run on this machine with dummy secrets in a scratch folder (S22, S35); no live sign-in and no T3 call. `braid check` passes. `npm run verify` locally (1,662 s on the loaded machine): 706 of 707 tests pass; the one failure is `test/requests.test.ts:324` "overlapping writers in separate processes lose no update when they start on a stale lock" (six child processes take a lock; three exit 1 after about 130–157 s), failing again when run alone, unrelated to this braids-only diff and green on main's CI; CI on this PR decides.
 
 Docs: none affected; the spike changes no behaviour (docs/ and the roadmap change only in D and H, as the brief says).
 
