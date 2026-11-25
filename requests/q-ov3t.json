@@ -1,0 +1,21 @@
+{
+  "code": "q-ov3t",
+  "item": "0075",
+  "kind": "review",
+  "text": "review PR #305 at 015e7dd",
+  "by": "coordinator",
+  "thread": "mcp:launch:3e7a675d49e3518b6491791c56cfc91a9781fcac408168337991fb133e7ff590",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:305",
+  "pr": 305,
+  "head": "015e7ddf787d565f4992ca076e2bcb66be1080ee",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T00:35:17.684Z",
+      "by": "coordinator"
+    }
+  ]
+}
