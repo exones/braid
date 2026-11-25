@@ -1,7 +1,7 @@
 ---
 id: '0077'
 title: "The board stays fast under load"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:M"]
 dependencies: []
 related: ['0074', '0072', '0060']
