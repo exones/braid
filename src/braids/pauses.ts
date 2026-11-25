@@ -271,6 +271,55 @@ export function patchPauses(root: string, braids: readonly string[], change: (p:
   );
 }
 
+/** `.braid/resumed.json`: per provider, when a resume was asked for by hand (Resume now, `braid resume --limit`). */
+export function resumedFile(root: string): string {
+  return join(mainCheckout(root), ".braid", "resumed.json");
+}
+
+/** When a resume of `provider` was last asked for by hand (ms), or 0. A file that can't be read is none. */
+export function resumedAt(root: string, provider: string): number {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(resumedFile(root), "utf8"));
+    const v = typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>)[provider] : undefined;
+    return typeof v === "string" && !Number.isNaN(Date.parse(v)) ? Date.parse(v) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Records that a resume of these providers was asked for by hand at `at` (0074/D): the board pauses them again only on a reading
+ * checked after it, so T3's cache from before a reset can't undo the click. A later time only moves it forward.
+ */
+export function markResumed(root: string, providers: readonly string[], at: Date): void {
+  if (providers.length === 0) {
+    return;
+  }
+  const file = resumedFile(root);
+  locked(
+    file,
+    () => {
+      let map: Record<string, unknown> = {};
+      try {
+        const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
+        map = typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+      } catch {
+        // missing or damaged: start over
+      }
+      for (const p of providers) {
+        const old = typeof map[p] === "string" ? Date.parse(map[p]) : 0;
+        if (!(old >= at.getTime())) {
+          map[p] = at.toISOString();
+        }
+      }
+      const tmp = `${file}.${process.pid}.tmp`;
+      writeFileSync(tmp, `${JSON.stringify(map, null, 2)}\n`);
+      renameSync(tmp, file);
+    },
+    "the pauses store",
+  );
+}
+
 /** Changes one braid's limit record of any pauser under the lock (`change` gets it and returns the new one); null when it has none (a hold is never changed). */
 export function patchPause(root: string, braid: string, change: (p: Pause) => Pause): Pause | null {
   const file = pausesFile(root);

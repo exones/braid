@@ -14,7 +14,7 @@
 import { join } from "node:path";
 import { providerKey, repoLease, type ActingBoard } from "./acting.js";
 import { LimitsError, readLimits, readModelLines, readProvider, t3Home, type ModelLine, type ProviderReading } from "../braids/limits.js";
-import { claimPauses, loadPauses, patchPauses, reasonOf, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
+import { claimPauses, loadPauses, patchPauses, reasonOf, resumedAt, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
 import type { Good } from "./feed.js";
 import { clock } from "./pause.js";
 import { resumePauses } from "./resume.js";
@@ -371,6 +371,10 @@ ${c.pause.provider ?? ""}`;
       for (const s of seen) {
         const reading = readingOf(s.project.root, provider, at);
         if (reading?.verdict !== "pause") {
+          continue;
+        }
+        // After a resume by hand (Resume now, braid resume --limit), only a reading checked after it pauses again (0074/D).
+        if (reading.checkedAt === null || Date.parse(reading.checkedAt) <= resumedAt(s.project.root, provider)) {
           continue;
         }
         const held = new Set(loadPauses(s.project.root).pauses.map((p) => p.braid));

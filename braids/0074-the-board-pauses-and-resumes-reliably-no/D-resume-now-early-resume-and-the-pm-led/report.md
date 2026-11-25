@@ -58,10 +58,11 @@
 - docs/cli.md: `braid resume --limit` and `braid resume --limit --all`.
 - docs/braids-format.md: the record's `resuming`.
 - docs/decisions.md: D109 and its log line.
+- `.braid/resumed.json` in docs/board.md, docs/braids-format.md and D109.
 
 ## Open
 
-- While the reading still shows the window over its threshold, Resume now resumes and the same refresh pauses the braid again (the pause step runs after the resume step). The docs say so; the dialog doesn't show the live reading. Decided: the user asks, the board does it, and the threshold still rules.
+- Review finding (fixed): Resume now on a stale over-threshold cache used to resume and then re-pause in the same refresh. Now Resume now and `braid resume --limit` note the time per provider in `.braid/resumed.json` (`markResumed`, read on any board and after a restart), and the pause step skips a provider until T3 has a reading checked after that time; a fresh reading still over pauses as usual. Tests: a stale 98% cache, Resume now, no pause text until a reading checked after the click, then one pause; the same for `braid resume --limit`.
 - The mockup's transient "Resuming: …" line for early resume (case 5) isn't built. The resume happens within one refresh, so the card goes straight from paused to not paused.
 - The confirm dialog shows the paused window and the threads, not the live "Window now" reading of the mockup. The page has the reading in the limits chip.
 - A PM that got its ask but never runs `braid resume --limit` leaves the record with "asked the PM to resume at …". The ▶ button asks again, and the existing due/stalled rules still apply.

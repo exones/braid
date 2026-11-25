@@ -721,3 +721,41 @@ test("braid resume --limit --all resumes every board pause: directly without a P
   assert.equal(records(root).find((p: { braid: string }) => p.braid === "0071")?.reason, "hold");
   await assert.rejects(resumeLimitCommand(root, ["0071"], { t3: t3.run, now: NOW }), /usage: braid resume/);
 });
+
+test("Resume now on a stale over-threshold cache resumes without a new pause until a reading checked after the click; a fresh one still over pauses once", async () => {
+  const { root, caches } = project();
+  // T3's cache still holds the old reading, over the threshold, checked before the click (the usage-reset case).
+  cache(caches, "claude", 98, later(-10));
+  cache(caches, "codex", 20, NOW);
+  boardRecord(root, "0070", later(-5), AGENTS);
+  const t3 = fakeT3();
+  const clock = { now: NOW };
+  const b = board(root, caches, t3, clock, threads, false);
+  await resumeAction(root, () => NOW)({ braid: "0070" });
+  await b.tick();
+  clock.now = later(1);
+  await b.tick();
+  assert.deepEqual(t3.resumes().map((c) => c.args[2]), [COORD, WORK]);
+  assert.equal(t3.texts().length, 0, "no pause text on the stale reading");
+  assert.deepEqual(records(root), []);
+  // A reading checked after the click, still over: the board pauses once.
+  clock.now = later(3);
+  cache(caches, "claude", 98, clock.now);
+  await b.tick();
+  await b.tick();
+  assert.deepEqual(t3.texts().map((c) => c.args[2]).sort(), [COORD, WORK].sort(), "each working thread its pause text once");
+  assert.equal(records(root).length, 1);
+});
+
+test("braid resume --limit also holds off a new pause until a reading checked after it", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 98, later(-10));
+  cache(caches, "codex", 20, NOW);
+  boardRecord(root, "0070", later(-5), AGENTS);
+  const t3 = fakeT3();
+  await resumeLimitCommand(root, ["0070", "--limit"], { t3: t3.run, now: NOW });
+  const b = board(root, caches, t3, { now: later(1) }, threads, false);
+  await b.tick();
+  assert.equal(t3.texts().length, 0);
+  assert.deepEqual(records(root), []);
+});

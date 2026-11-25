@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { loadKnownBraids } from "../braids/branches.js";
 import { LimitsError, readLimits, readModelLines, readProvider, t3Home, type ProviderReading } from "../braids/limits.js";
 import { threadShort } from "../braids/logs.js";
-import { clearPause, loadPauses, PAUSERS, reasonOf, setPause, type Pause, type Pauser } from "../braids/pauses.js";
+import { clearPause, loadPauses, markResumed, PAUSERS, reasonOf, setPause, type Pause, type Pauser } from "../braids/pauses.js";
 import { pauseView, statusLine } from "../board/pause.js";
 import { resumePauses, type ResumeItem } from "../board/resume.js";
 import { runT3, type T3Runner } from "../board/t3.js";
@@ -177,6 +177,8 @@ export async function resumeLimitCommand(root: string, args: readonly string[], 
     }
     items = [{ root, pause: record }];
   }
+  // Like Resume now: no new pause of these providers until a reading checked after now.
+  markResumed(root, [...new Set(items.flatMap((i) => (i.pause.provider === null ? [] : [i.pause.provider])))], now);
   const out = await resumePauses(items, { t3: options.t3 ?? runT3, now, why: "cli", ...(all ? {} : { direct: true }) });
   const lines: string[] = [];
   for (const c of out.cleared) {

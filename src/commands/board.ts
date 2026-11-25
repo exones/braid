@@ -30,7 +30,7 @@ import { readSignals, type ReadSignals } from "../board/signals.js";
 import { fetchBranchAsync } from "../braids/gitbranch.js";
 import { REQUESTS } from "../braids/requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
-import { loadPauses, patchPause, reasonOf, type Pause } from "../braids/pauses.js";
+import { loadPauses, markResumed, patchPause, reasonOf, type Pause } from "../braids/pauses.js";
 import { resumeMode } from "../board/pause.js";
 import { readPlans, type PlanRead } from "../board/plans.js";
 import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
@@ -517,6 +517,8 @@ export function resumeAction(root: string, now: () => Date = () => new Date()): 
     if (marked.length === 0) {
       throw new UsageError(`Resume now: ${braids.join(", ")} ${braids.length === 1 ? "is" : "are"} not paused for a limit`);
     }
+    // The board pauses these providers again only on a reading checked after this click: a cache from before a reset can't undo it.
+    markResumed(root, [...new Set(marked.flatMap((p) => (p.provider === null ? [] : [p.provider])))], new Date(at));
     return { ok: true, braids: marked.map((p) => p.braid), mode: marked.every((p) => p.resuming?.direct === true) ? "direct" : "pm" };
   };
 }
