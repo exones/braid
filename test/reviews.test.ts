@@ -33,7 +33,6 @@ const { loadReviews, reviewsFile, recordReview } = (await load("../dist/braids/r
 };
 const t3mod = (await load("../dist/board/t3.js")) as {
   readT3: (root: string, o: object) => Promise<{ status: { state: string }; threads: Map<string, Thread[]>; idle?: Map<string, Thread[]>; pmChecks?: string[] }>;
-  resetT3Memory: () => void;
 };
 const model = (await load("../dist/board/model.js")) as {
   derive: (status: string, labels: string[], key: string, gh: unknown, t3: unknown, sig: unknown) => { lane: string; reason: string | null; activity: string | null };
@@ -48,7 +47,6 @@ const { resetGithubMemory } = (await load("../dist/board/github.js")) as { reset
 
 beforeEach(() => {
   resetGithubMemory();
-  t3mod.resetT3Memory();
 });
 
 const git = (cwd: string, ...args: string[]) => {
@@ -150,7 +148,7 @@ test("a recorded running review thread is the item's reviewer: review activity, 
     },
     calls,
   );
-  const read = await t3mod.readT3(root, { run, ttlMs: 0, agents: join(scratch, "none"), project: root });
+  const read = await t3mod.readT3(root, { run, agents: join(scratch, "none"), project: root });
   assert.deepEqual(read.threads.get("0001/B"), [{ id: child(1), role: "reviewer", pending: 0, link: null, provider: null }]);
   assert.equal(read.threads.get("0001/C")?.[0]?.pending, 1);
   assert.equal(read.threads.has("0001"), false, "a thread T3 doesn't know counts for nothing");
@@ -189,7 +187,7 @@ test("a recorded thread that has ended, or that T3 doesn't know, changes nothing
     const t = shown[args[2] ?? ""];
     return Promise.resolve(t === undefined ? unknown : ok({ thread: t }));
   };
-  const read = await t3mod.readT3(root, { run, ttlMs: 0, agents, project: root });
+  const read = await t3mod.readT3(root, { run, agents, project: root });
   assert.equal(read.status.state, "ok");
   assert.equal(read.threads.size, 0);
   assert.equal(read.idle?.size ?? 0, 0, "an idle thread titled as a review is no thread of the item");
@@ -354,11 +352,11 @@ test("a PM's checker recorded on its programme (pm/<slug>) keeps the programme r
   assert.deepEqual(loadReviews(root).map((r) => [r.id, r.folder]), [["pm/working-product", undefined]], "the newer record replaces the older one (ozjp)");
   await reviewCommand(root, ["pm/working-product", "--thread", child(1)], { t3: run });
   assert.deepEqual(loadReviews(root).map((r) => r.thread), [child(1)]);
-  let read = await t3mod.readT3(root, { run, ttlMs: 0, agents: join(scratch, "none"), project: root });
+  let read = await t3mod.readT3(root, { run, agents: join(scratch, "none"), project: root });
   assert.deepEqual([...read.threads.keys()], [], "a checker is no item's reviewer");
   assert.deepEqual(read.pmChecks, ["pm/working-product"], "it runs");
   assert.equal(loadReviews(root).length, 1, "a running checker's record stays");
-  read = await t3mod.readT3(root, { run: t3({ [child(1)]: { status: "archived" } }), ttlMs: 0, agents: join(scratch, "none"), project: root });
+  read = await t3mod.readT3(root, { run: t3({ [child(1)]: { status: "archived" } }), agents: join(scratch, "none"), project: root });
   assert.deepEqual(read.pmChecks, [], "it ended (archived)");
   assert.deepEqual(loadReviews(root), [], "the board dropped the record of the ended checker");
 });
@@ -368,7 +366,7 @@ const SHOWN = { relationshipToParent: "subagent", parentThreadId: "9b3a8157-f696
 
 test("a PM's checker recorded while completed between runs is kept, counts only while running, and goes at archive or the 24 h cap", async () => {
   const { root } = repo();
-  const read = (status: object, iso: string) => t3mod.readT3(root, { run: t3({ [child(1)]: { ...SHOWN, ...status } }), ttlMs: 0, agents: join(scratch, "none"), project: root, now: new Date(iso) });
+  const read = (status: object, iso: string) => t3mod.readT3(root, { run: t3({ [child(1)]: { ...SHOWN, ...status } }), agents: join(scratch, "none"), project: root, now: new Date(iso) });
   recordReview(root, "pm/working-product", child(1), "2026-11-24T07:42:00Z");
   let r = await read({ status: "completed" }, "2026-11-24T07:42:30Z");
   assert.deepEqual([r.pmChecks, loadReviews(root).length], [[], 1], "recorded at 07:42 while completed: not counted, record kept");
@@ -384,6 +382,6 @@ test("a PM's checker recorded while completed between runs is kept, counts only 
   r = await read({ status: "idle", archived: true }, "2026-11-24T09:20:00Z");
   assert.deepEqual([r.pmChecks, loadReviews(root)], [[], []], "archived: dropped");
   recordReview(root, "pm/working-product", child(1), "2026-11-24T07:42:00Z");
-  r = await t3mod.readT3(root, { run: t3({}), ttlMs: 0, agents: join(scratch, "none"), project: root, now: new Date("2026-11-24T09:20:00Z") });
+  r = await t3mod.readT3(root, { run: t3({}), agents: join(scratch, "none"), project: root, now: new Date("2026-11-24T09:20:00Z") });
   assert.equal(loadReviews(root).length, 1, "a thread T3 can't be asked about keeps its record");
 });

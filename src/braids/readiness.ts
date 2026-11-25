@@ -3,6 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Github } from "../board/github.js";
+import { withKnownBraids } from "./branches.js";
 import { checkBraids } from "./check.js";
 
 /** What to do about unreadable GitHub, and what it hides (the one message for it, on the board and in `braid status`). */
@@ -82,6 +83,15 @@ export function readiness(folder: string, github: Github | null): Problem[] {
     problems.push({ key: "github", reason: `GitHub can't be read (${github.status.reason})`, todo: GITHUB_TODO });
   }
   return problems;
+}
+
+/** `readiness` for the board: the branches `braid check` looks at are read without blocking the process first. */
+export async function readinessAsync(folder: string, github: Github | null): Promise<Problem[]> {
+  try {
+    return await withKnownBraids(folder, () => readiness(folder, github));
+  } catch (error) {
+    return [{ key: "check", reason: `braids/ can't be read (${error instanceof Error ? error.message : String(error)})`, todo: "run braid check and fix them" }];
+  }
 }
 
 /** One line per problem, for the board's startup and `braid status`. */

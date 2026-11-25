@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { after, beforeEach, test } from "node:test";
+import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
@@ -10,14 +10,13 @@ const fixtures = fileURLToPath(new URL("./fixtures/limits", import.meta.url));
 const { readLimitsView, mergeLimits, buildView } = await load("../dist/board/limits.js");
 const { chipNote, agentsText } = await load("../dist/board/limits-view.js");
 const { DEFAULT_LIMITS } = await load("../dist/braids/limits.js");
-const { readT3, resetT3Memory } = await load("../dist/board/t3.js");
+const { readT3 } = await load("../dist/board/t3.js");
 const { parseSteeringTitle, parseThreadTitle, steeringTitle } = await load("../dist/braids/title.js");
 const { demoLimits, demoT3, demoPauses } = await load("../dist/board/demo.js");
 const { toBoard } = await load("../dist/board/model.js");
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-board-limits-"));
 after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
-beforeEach(() => resetT3Memory());
 
 // The fixtures were checked at 18:00Z; their windows reset between 19:22Z and 26 Nov.
 const NOW = new Date("2026-11-21T18:05:00.000Z");
@@ -133,7 +132,7 @@ test("worker and reviewer threads carry their provider, as coordinators do; a st
     // placed inside an item's worktree, but by its title a steering thread
     s1: { status: "running", worktreePath: join(agents, "0001-B"), providerInstanceId: "Claude_Everix" },
   };
-  const t3 = await readT3(scratch, { run: stub(list, shown), agents, project: scratch, reviews: [{ id: "0001/C", thread: "r1" }], ttlMs: 0 });
+  const t3 = await readT3(scratch, { run: stub(list, shown), agents, project: scratch, reviews: [{ id: "0001/C", thread: "r1" }] });
   assert.equal(t3.threads.get("0001/A")?.[0]?.provider, "codex");
   assert.equal(t3.threads.get("0001/C")?.[0]?.provider, "cursor");
   assert.equal(t3.threads.has("0001/B"), false);

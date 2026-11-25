@@ -93,3 +93,36 @@ export function locked<T>(file: string, fn: () => T, what = "the requests store"
     }
   }
 }
+
+/** `locked` for the board: waiting for the lock doesn't block the process, and `fn` may be asynchronous. */
+export async function lockedAsync<T>(file: string, fn: () => Promise<T>, what = "the requests store", makeDir: (dir: string) => void = ensureStateDir, waitMs: number = LOCK_WAIT_MS): Promise<T> {
+  makeDir(dirname(file));
+  const lock = `${file}.lock`;
+  const give = Date.now() + waitMs;
+  for (;;) {
+    try {
+      closeSync(openSync(lock, "wx"));
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST" && (error as NodeJS.ErrnoException).code !== "EPERM") {
+        throw error;
+      }
+      if (takeOverStale(lock)) {
+        continue;
+      }
+      if (Date.now() > give) {
+        throw new LockError(`${what} is locked (${lock}); remove it if no braid command is running`);
+      }
+      await new Promise((done) => setTimeout(done, 20));
+    }
+  }
+  try {
+    return await fn();
+  } finally {
+    try {
+      unlinkSync(lock);
+    } catch {
+      // already taken over as stale
+    }
+  }
+}

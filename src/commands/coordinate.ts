@@ -70,7 +70,7 @@ export async function read(root: string, number: string, command: string, src: S
     {
       braids: () => loadLiveBraids(root),
       github: () => reuse?.github ?? readGithub(root, src.gh ?? runGh, 0),
-      t3: () => (reuse === undefined ? readT3(root, { ttlMs: 0, run: src.t3 ?? runT3 }) : Promise.resolve(reuse.t3)),
+      t3: () => (reuse === undefined ? readT3(root, { run: src.t3 ?? runT3 }) : Promise.resolve(reuse.t3)),
       signals: (g) => readSignals(root, g),
       plans: () => readPlans(root),
       start: () => readStartContext(root),

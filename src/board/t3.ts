@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
+import { callFailure, CALL_TIMEOUT_MS } from "./timeout.js";
 import { mainCheckout as baseMainCheckout } from "../braids/repo.js";
 import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { itemOfFolder, repoNameOf } from "../braids/worktrees.js";
@@ -104,7 +105,7 @@ export const runT3: T3Runner = (root, args, input) =>
     const child = execFile(
       win ? "cmd.exe" : command,
       win ? ["/d", "/s", "/c", `"${[command, ...args].map(quote).join(" ")}"`] : [...args],
-      { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 30_000, windowsHide: true, windowsVerbatimArguments: win },
+      { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: CALL_TIMEOUT_MS, windowsHide: true, windowsVerbatimArguments: win },
       (error, stdout, stderr) => {
         const code = error !== null && typeof (error as { code?: unknown }).code === "number" ? (error as { code: number }).code : error === null ? 0 : null;
         done({ status: code, stdout, stderr, error: error !== null && code === null ? error : undefined });
@@ -155,9 +156,6 @@ export function checkerRecord(where: Where, recordedAt: string, now: Date): "cou
   return where.status === "archived" || (!Number.isNaN(at) && now.getTime() - at >= CHECKER_CAP_MS) ? "drop" : "kept";
 }
 
-const recent = new Map<string, { at: number; t3: Promise<T3> }>();
-const SHARE_MS = 3000;
-
 /** One thread as T3 shows it; null when T3 doesn't know it or can't be asked. The id reaches the runner as given. */
 export async function showThread(run: T3Runner, root: string, id: string): Promise<Where | null> {
   const r = await run(root, ["thread", "show", id, "--json"]);
@@ -203,7 +201,6 @@ export interface T3Options {
   readonly agents?: string | readonly string[];
   /** The T3 project folder; the main checkout when not given. */
   readonly project?: string;
-  readonly ttlMs?: number;
   /** The recorded review threads; read from `.braid/reviews.json` of the main checkout when not given. */
   readonly reviews?: readonly ReviewRecord[];
   /** The clock for the checker cap; now when not given. */
@@ -215,14 +212,7 @@ export interface T3Options {
  * `unavailable` with the reason, never an error.
  */
 export function readT3(root: string, options: T3Options = {}): Promise<T3> {
-  const ttl = options.ttlMs ?? SHARE_MS;
-  const shared = recent.get(root);
-  if (shared !== undefined && Date.now() - shared.at < ttl) {
-    return shared.t3;
-  }
-  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root), options.now ?? new Date());
-  recent.set(root, { at: Date.now(), t3 });
-  return t3;
+  return readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root), options.now ?? new Date());
 }
 
 /** T3's statuses of a thread whose turn is under way: `running`, or `waiting` (its turn waits on a background task it awaits). */
@@ -252,7 +242,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
   const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
-    return down("t3 is not installed or not on PATH");
+    return down(callFailure("T3", "t3", listed.error));
   }
   if (listed.status !== 0) {
     const first = listed.stderr.trim().split("\n")[0] ?? "";
@@ -373,9 +363,4 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   }
   const pmChecks = [...listedChecks, ...recordedChecks.flat()];
   return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, providers, pmChecks };
-}
-
-/** Forgets what was read, for tests. */
-export function resetT3Memory(): void {
-  recent.clear();
 }

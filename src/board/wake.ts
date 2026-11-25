@@ -8,11 +8,11 @@
 // keeps the commit on the local branch, which the record is read from, so it is never sent again; a record write that throws
 // after a delivered send is retried at the next refresh without sending again (the codes sent are kept for the board's life).
 // The one gap left is a board that dies between the send and the local commit: that wake may come twice.
-import { braidAt } from "../braids/branches.js";
+import { braidAt, braidAtAsync } from "../braids/branches.js";
 import { gitAsync } from "../braids/gitio.js";
-import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
+import { loadLifecycle, loadLifecycleAsync, withStatuses } from "../braids/lifecycle.js";
 import type { PullRequest } from "./github.js";
-import { conditionEnding, endRequest, loadRecord, programmeOf, type Ending, type Request } from "../braids/requests.js";
+import { conditionEnding, endRequestAsync, loadRecordAsync, programmeOf, type Ending, type Request } from "../braids/requests.js";
 import type { PlanRead } from "./plans.js";
 import type { Good } from "./feed.js";
 import { prOf } from "./signals.js";
@@ -31,6 +31,17 @@ export function braidDoneOn(root: string, main: string, prs: () => ReadonlyMap<s
     }
     return memo.get(number) ?? null;
   };
+}
+
+/** `braidDoneOn` for the board: the braids are read first, without blocking, and the answer is then a plain lookup. */
+export async function braidsDoneOn(root: string, main: string, numbers: readonly string[], prs: () => ReadonlyMap<string, PullRequest> | null): Promise<(number: string) => boolean | null> {
+  const done = new Map<string, boolean | null>();
+  const lifecycle = numbers.length === 0 ? new Map() : await loadLifecycleAsync(root);
+  for (const number of new Set(numbers)) {
+    const b = await braidAtAsync(root, `origin/${main}`, number);
+    done.set(number, b === null ? null : withStatuses(b, lifecycle, prs() ?? new Map()).brief.status === "Done");
+  }
+  return (number) => done.get(number) ?? null;
 }
 
 /** The braid a request's asker works on (`0042` of `0042/B`); null for a programme's request. */
@@ -82,7 +93,7 @@ export function waker(t3: T3Runner): Waker {
   const sent = new Set<string>();
   return async ({ root, good }, at, warn) => {
     const held = good.sig.pauses ?? new Map();
-    const open = loadRecord(root).requests.filter((r) => r.state === "open" && !held.has(askingBraid(r) ?? "") && !programmeHeld(r, good.sig.plans, held));
+    const open = (await loadRecordAsync(root)).requests.filter((r) => r.state === "open" && !held.has(askingBraid(r) ?? "") && !programmeHeld(r, good.sig.plans, held));
     if (open.length === 0) {
       return;
     }
@@ -91,7 +102,9 @@ export function waker(t3: T3Runner): Waker {
     if (open.some((r) => r.doneWhen.startsWith("braid:"))) {
       await gitAsync(root, ["fetch", "-q", "origin", main]).catch(() => undefined);
     }
-    const check = { pr: (n: number) => prOf(good.github, n), braidDone: braidDoneOn(root, main, () => (good.github.status.state === "ok" ? good.github.prs : null)), now: at };
+    const waiting = open.flatMap((r) => (r.doneWhen.startsWith("braid:") ? [r.doneWhen.slice("braid:".length).trim()] : []));
+    const braidDone = await braidsDoneOn(root, main, waiting, () => (good.github.status.state === "ok" ? good.github.prs : null));
+    const check = { pr: (n: number) => prOf(good.github, n), braidDone, now: at };
     for (const r of open) {
       const e = conditionEnding(r, check);
       if (e === null) {
@@ -100,7 +113,7 @@ export function waker(t3: T3Runner): Waker {
       const archived = r.thread !== null && good.t3.states?.get(r.thread) === "archived";
       if (e.state === "met" && r.thread !== null && !archived && !sent.has(r.code)) {
         // Right before the send, the record is read again: a second board of the project may have woken it a moment ago.
-        if (loadRecord(root).requests.find((x) => x.code === r.code)?.state !== "open") {
+        if ((await loadRecordAsync(root)).requests.find((x) => x.code === r.code)?.state !== "open") {
           continue;
         }
         const out = await t3(root, ["thread", "send", r.thread, wakeMessage(r, e)]);
@@ -112,7 +125,7 @@ export function waker(t3: T3Runner): Waker {
         sent.add(r.code);
       }
       try {
-        endRequest(root, r.code, { ...e, at: at.toISOString() });
+        await endRequestAsync(root, r.code, { ...e, at: at.toISOString() });
         sent.delete(r.code);
       } catch (error) {
         warn(`${r.code} (${r.id}) couldn't be recorded as ${e.state} (${error instanceof Error ? error.message : String(error)}); retrying at each refresh`, `record ${r.code}`);

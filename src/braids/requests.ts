@@ -5,8 +5,8 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { catBatchSync } from "./gitio.js";
-import { currentFiles, lockedBranch, tips, writeBranchUnlocked, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
+import { catBatch, catBatchSync } from "./gitio.js";
+import { currentFiles, currentFilesAsync, lockedBranch, lockedBranchAsync, tips, tipsAsync, writeBranchUnlocked, writeBranchUnlockedAsync, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
 import { mergeLifecycle } from "./lifecycle.js";
 import { mainCheckout } from "./state.js";
 
@@ -406,6 +406,22 @@ export function loadRecord(root: string, options: { push?: boolean } = {}): { re
   return record;
 }
 
+/** `loadRecord` for the board: the same record, read without blocking the process. */
+export async function loadRecordAsync(root: string, options: { push?: boolean } = {}): Promise<{ requests: Request[]; problems: RecordProblem[] }> {
+  migrate(root, { push: options.push ?? false }); // a no-op unless an old local store is still there, once
+  const at = await tipsAsync(root, REQUESTS);
+  const key = `${at.local ?? "-"} ${at.remote ?? "-"}`;
+  const cached = records.get(root);
+  if (cached !== undefined && cached.key === key) {
+    return cached.record;
+  }
+  const files = [...(await currentFilesAsync(root, REQUESTS, at))].filter(([path]) => isRequestPath(path));
+  const texts = await catBatch(root, files.map(([, blob]) => blob));
+  const record = parseAll(new Map(files.flatMap(([path], i) => (texts[i] === null || texts[i] === undefined ? [] : [[path, texts[i]] as const]))));
+  records.set(root, { key, record });
+  return record;
+}
+
 /** The last record read per root, with the tips it was read at. */
 const records = new Map<string, { key: string; record: { requests: Request[]; problems: RecordProblem[] } }>();
 
@@ -418,6 +434,12 @@ export function loadRequests(root: string): Request[] {
 function writeRecord(root: string, change: (view: BranchView) => { files: Map<string, string>; message: string }): WriteResult {
   migrate(root);
   return lockedBranch(root, REQUESTS, () => writeBranchUnlocked(root, REQUESTS, change));
+}
+
+/** `writeRecord` for the board: waits for the lock and runs every `git` call without blocking the process. */
+function writeRecordAsync(root: string, change: (view: BranchView) => { files: Map<string, string>; message: string }): Promise<WriteResult> {
+  migrate(root);
+  return lockedBranchAsync(root, REQUESTS, () => writeBranchUnlockedAsync(root, REQUESTS, change));
 }
 
 /** An open request with its `opened` event, as `openRequest` writes it; `code` given or empty. Also for demos and tests. */
@@ -487,23 +509,40 @@ export function closeRequest(root: string, id: string, by: Asker | undefined, en
  * someone else meanwhile, too) is left as it is and returned with `ended: false`. Null: no such code.
  */
 export function endRequest(root: string, code: string, end: Ending | ((r: Request) => Ending)): { readonly request: Request; readonly ended: boolean; readonly warning: string | null } | null {
+  const job = endJob(code, end);
+  return job.outcome(writeRecord(root, job.change));
+}
+
+/** `endRequest` for the board: the same write, without blocking the process. */
+export async function endRequestAsync(root: string, code: string, end: Ending | ((r: Request) => Ending)): Promise<{ readonly request: Request; readonly ended: boolean; readonly warning: string | null } | null> {
+  const job = endJob(code, end);
+  return job.outcome(await writeRecordAsync(root, job.change));
+}
+
+type Change = (view: BranchView) => { files: Map<string, string>; message: string };
+
+function endJob(code: string, end: Ending | ((r: Request) => Ending)): { change: Change; outcome: (r: WriteResult) => { readonly request: Request; readonly ended: boolean; readonly warning: string | null } | null } {
   let found: Request | null = null;
   let ended = false;
-  const result = writeRecord(root, (view) => {
-    const text = view.read(pathOf(code));
-    const r = text === null ? null : parseRecord(pathOf(code), text);
-    found = r === null || isRecordProblem(r) ? null : r;
-    ended = found !== null && found.state === "open";
-    if (found === null || !ended) {
-      return { files: new Map(), message: "" };
-    }
-    const e = typeof end === "function" ? end(found) : end;
-    const next = serialise(withEvent(found, endEvent(e, new Date().toISOString())));
-    found = parseRecord(pathOf(code), next) as Request;
-    return { files: new Map([[pathOf(code), next]]), message: `docs(requests): ${found.id} ${code} ${e.state}` };
-  });
-  const request: Request | null = found;
-  return request === null ? null : { request, ended, warning: result.warning };
+  return {
+    change: (view) => {
+      const text = view.read(pathOf(code));
+      const r = text === null ? null : parseRecord(pathOf(code), text);
+      found = r === null || isRecordProblem(r) ? null : r;
+      ended = found !== null && found.state === "open";
+      if (found === null || !ended) {
+        return { files: new Map(), message: "" };
+      }
+      const e = typeof end === "function" ? end(found) : end;
+      const next = serialise(withEvent(found, endEvent(e, new Date().toISOString())));
+      found = parseRecord(pathOf(code), next) as Request;
+      return { files: new Map([[pathOf(code), next]]), message: `docs(requests): ${found.id} ${code} ${e.state}` };
+    },
+    outcome: (result) => {
+      const request: Request | null = found;
+      return request === null ? null : { request, ended, warning: result.warning };
+    },
+  };
 }
 
 /** The event that closed a request, or null while it is open. */
@@ -514,22 +553,37 @@ export const closing = (r: Pick<Request, "events">): RequestEvent | null => r.ev
  * an `eta` event. Checked again inside the write: a closed request is left and returned with `added: false`. Null: no such code.
  */
 export function addEvent(root: string, code: string, event: RequestEvent): { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null {
+  const job = addJob(code, event);
+  return job.outcome(writeRecord(root, job.change));
+}
+
+/** `addEvent` for the board: the same write, without blocking the process. */
+export async function addEventAsync(root: string, code: string, event: RequestEvent): Promise<{ readonly request: Request; readonly added: boolean; readonly warning: string | null } | null> {
+  const job = addJob(code, event);
+  return job.outcome(await writeRecordAsync(root, job.change));
+}
+
+function addJob(code: string, event: RequestEvent): { change: Change; outcome: (r: WriteResult) => { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null } {
   let found: Request | null = null;
   let added = false;
-  const result = writeRecord(root, (view) => {
-    const text = view.read(pathOf(code));
-    const r = text === null ? null : parseRecord(pathOf(code), text);
-    found = r === null || isRecordProblem(r) ? null : r;
-    added = found !== null && found.state === "open";
-    if (found === null || !added) {
-      return { files: new Map(), message: "" };
-    }
-    const next = withEvent(event.event === "eta" && event.text !== undefined ? { ...found, eta: event.text } : found, event);
-    found = next;
-    return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} ${event.event}` };
-  });
-  const request: Request | null = found;
-  return request === null ? null : { request, added, warning: result.warning };
+  return {
+    change: (view) => {
+      const text = view.read(pathOf(code));
+      const r = text === null ? null : parseRecord(pathOf(code), text);
+      found = r === null || isRecordProblem(r) ? null : r;
+      added = found !== null && found.state === "open";
+      if (found === null || !added) {
+        return { files: new Map(), message: "" };
+      }
+      const next = withEvent(event.event === "eta" && event.text !== undefined ? { ...found, eta: event.text } : found, event);
+      found = next;
+      return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} ${event.event}` };
+    },
+    outcome: (result) => {
+      const request: Request | null = found;
+      return request === null ? null : { request, added, warning: result.warning };
+    },
+  };
 }
 
 /** Hands the item's request to the user (`braid forward`): a `forwarded` event with the note. Null when there is no open request. */

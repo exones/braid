@@ -38,9 +38,10 @@ export async function readSnapshot(src: Sources, fetch: boolean): Promise<Snapsh
   try {
     const { braids, github: gh, t3: threads, sig, start } = await readInputs(src, fetch, timed);
     const inbox = await timed("inbox", () => src.inbox(fetch));
+    const problems = await timed("readiness", async () => (await src.readiness?.(gh)) ?? []);
     const board = await timed("board", () => {
       const limits = src.limits?.(threads, sig.pauses ?? new Map()) ?? null;
-      const { board: b, alarms } = deriveBoard(src.repo, braids, gh, threads, sig, start, inbox, src.readiness?.(gh) ?? [], limits);
+      const { board: b, alarms } = deriveBoard(src.repo, braids, gh, threads, sig, start, inbox, problems, limits);
       sig.commit(alarms);
       return b;
     });

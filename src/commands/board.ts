@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { gitSync } from "../braids/gitio.js";
+import { gitAsync } from "../braids/gitio.js";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -27,9 +27,9 @@ import { readInputs, readStartContext } from "../board/inputs.js";
 
 export { readStartContext };
 import { t3codeUrl } from "../board/marks.js";
-import { problemLine, readiness, type Problem } from "../braids/readiness.js";
+import { problemLine, readinessAsync, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
-import { readSignals, type ReadSignals } from "../board/signals.js";
+import { readSignalsAsync, type ReadSignals } from "../board/signals.js";
 import { fetchBranchAsync } from "../braids/gitbranch.js";
 import { REQUESTS } from "../braids/requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
@@ -76,9 +76,9 @@ export interface Sources {
   /** A stored last-good read the feed starts from (the demo's failing `mail` project); the first real read runs after it. */
   readonly seed?: Sources;
   braids(): Braid[] | Promise<Braid[]>;
-  github(fresh: boolean): Github | Promise<Github>;
-  t3(fresh: boolean): Promise<T3>;
-  signals(github: Github): ReadSignals;
+  github(): Github | Promise<Github>;
+  t3(): Promise<T3>;
+  signals(github: Github): ReadSignals | Promise<ReadSignals>;
   /** Fetches `braid-requests` from origin; the board calls it only on a fresh read (the Refresh button), alongside GitHub and T3, and reads the local refs otherwise. Absent: never fetched. */
   fetchRequests?(): Promise<unknown>;
   /** The plans of the project's programmes (`pm/*` branches); absent: none. A failed read gives none. */
@@ -95,7 +95,7 @@ export interface Sources {
   /** The T3 project folder (the main checkout). */
   project(): string;
   /** What stops the folder from working as a braid project, given the GitHub read (null: GitHub unchecked); absent: nothing does (the demo shows its own). */
-  readiness?(github: Github | null): Problem[];
+  readiness?(github: Github | null): Problem[] | Promise<Problem[]>;
   /** The action registered under `name`, or undefined. `POST /api/action/<name>` runs it. */
   action(name: string): Action | undefined;
   /** Hands each complete snapshot to the notifier (docs/board.md, "Notifications"); returns at once. Absent: no pushes (the demo). */
@@ -181,19 +181,19 @@ export interface GitResult {
   readonly stdout: string;
   readonly stderr: string;
 }
-/** Runs `git` in a folder; Start's fetch and branch checks go through it. */
-export type GitRunner = (root: string, args: readonly string[]) => GitResult;
-export const runGit: GitRunner = (root, args) => {
-  const r = gitSync(root, args, { timeout: 60_000 });
-  return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr || r.error?.message || "" };
+/** Runs `git` in a folder; Start's fetch and branch checks go through it. It may answer later: the board keeps serving while `git` runs. */
+export type GitRunner = (root: string, args: readonly string[]) => GitResult | Promise<GitResult>;
+export const runGit: GitRunner = async (root, args) => {
+  const r = await gitAsync(root, args);
+  return { status: r.status, stdout: r.stdout, stderr: r.stderr };
 };
 
 const firstLine = (r: GitResult): string => r.stderr.trim().split("\n")[0] || "git failed";
 
 /** Every branch name, local and on origin. A listing that fails is a `Start: <reason>` refusal: a name is never guessed free. */
-function takenBranches(git: GitRunner, root: string, who = "Start"): Set<string> {
-  const local = git(root, ["branch", "--list", "--format=%(refname:short)"]);
-  const remote = git(root, ["ls-remote", "--heads", "origin"]);
+async function takenBranches(git: GitRunner, root: string, who = "Start"): Promise<Set<string>> {
+  const local = await git(root, ["branch", "--list", "--format=%(refname:short)"]);
+  const remote = await git(root, ["ls-remote", "--heads", "origin"]);
   if (local.status !== 0 || remote.status !== 0) {
     throw new UsageError(`${who}: branches can't be listed (${firstLine(local.status !== 0 ? local : remote)})`);
   }
@@ -227,20 +227,20 @@ export function startAction(src: Sources, root: string, t3: T3Runner, git: GitRu
     if (card.start.reason !== null) {
       throw new UsageError(`Start: ${card.start.reason}`);
     }
-    const fetched = git(root, ["fetch", "origin"]);
+    const fetched = await git(root, ["fetch", "origin"]);
     if (fetched.status !== 0) {
       throw new UsageError(`Start: git fetch failed (${firstLine(fetched)})`);
     }
     // A braid branch only this checkout has can't come from origin; the main branch must.
     let base = card.start.base;
-    if (git(root, ["rev-parse", "--verify", "--quiet", base]).status !== 0) {
+    if ((await git(root, ["rev-parse", "--verify", "--quiet", base])).status !== 0) {
       const local = base.replace(/^origin\//, "");
-      if (!card.start.planned || git(root, ["rev-parse", "--verify", "--quiet", local]).status !== 0) {
+      if (!card.start.planned || (await git(root, ["rev-parse", "--verify", "--quiet", local])).status !== 0) {
         throw new UsageError(`Start: ${base} not found after the fetch`);
       }
       base = local;
     }
-    const taken = takenBranches(git, root);
+    const taken = await takenBranches(git, root);
     let branch = card.start.branch;
     for (let n = 2; taken.has(branch); n++) {
       branch = `${card.start.branch}-${n}`;
@@ -304,7 +304,7 @@ export function promoteAction(src: Sources, root: string, t3: T3Runner, git: Git
     if (idea === undefined) {
       throw new UsageError(`Promote: no open idea ${raw}${inbox.leftovers.some((l) => l.id === raw) ? " (it is a leftover; leftovers go through sweeps)" : ""}`);
     }
-    const state = await src.t3(true);
+    const state = await src.t3();
     if (state.status.state !== "ok") {
       throw new UsageError(`Promote: T3 isn't reachable (${state.status.reason})`);
     }
@@ -313,14 +313,14 @@ export function promoteAction(src: Sources, root: string, t3: T3Runner, git: Git
     }
     const ctx = src.start();
     const base = `origin/${ctx.main}`;
-    const fetched = git(root, ["fetch", "origin"]);
+    const fetched = await git(root, ["fetch", "origin"]);
     if (fetched.status !== 0) {
       throw new UsageError(`Promote: git fetch failed (${firstLine(fetched)})`);
     }
-    if (git(root, ["rev-parse", "--verify", "--quiet", base]).status !== 0) {
+    if ((await git(root, ["rev-parse", "--verify", "--quiet", base])).status !== 0) {
       throw new UsageError(`Promote: ${base} not found after the fetch`);
     }
-    const taken = takenBranches(git, root, "Promote");
+    const taken = await takenBranches(git, root, "Promote");
     const wanted = `${IDEA_BRANCH}${idea.id}`;
     let branch = wanted;
     for (let n = 2; taken.has(branch); n++) {
@@ -384,7 +384,7 @@ async function openIdea(src: Sources, idea: unknown, snapshot: Parameters<Action
   // The link comes from the snapshot, else from T3 read again; a client never passes one.
   let link = (await snapshot?.())?.inbox.ideas.find((i) => i.id === idea)?.planning?.link ?? null;
   if (link === null) {
-    link = ideaPlanning(await src.t3(true), idea)?.link ?? null;
+    link = ideaPlanning(await src.t3(), idea)?.link ?? null;
   }
   if (link === null) {
     throw new UsageError(`Open thread: no coordinator is planning idea ${idea}`);
@@ -482,12 +482,14 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
 }
 
 export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
+  // The main checkout is found with git once per root and cached: asked here, when the project is set up, so no read, wake or action runs that git.
+  mainCheckout(root);
   const src: Sources = {
     repo: titleRepoName(root),
     braids: () => loadLiveBraidsAsync(root),
-    github: (fresh) => readGithubAsync(root, gh, fresh ? 0 : undefined),
-    t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
-    signals: (github) => readSignals(root, github),
+    github: () => readGithubAsync(root, gh),
+    t3: () => readT3(root, { run: t3 }),
+    signals: (github) => readSignalsAsync(root, github),
     fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
     limits: (threads, pauses) => readLimitsView(root, threads, pauses),
@@ -496,7 +498,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     start: () => readStartContext(root),
     inbox: (fetch) => inboxOfAsync(root, fetch),
     project: () => mainCheckout(root),
-    readiness: (github) => readiness(root, github),
+    readiness: (github) => readinessAsync(root, github),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
   const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src) };
@@ -844,7 +846,7 @@ export function startBoardWith(
     }
   };
   sync();
-  const held = (name: string, f: Feed): Held => ({ name, repo: f.src.repo, board: f.good()?.board, readAt: f.readAt(), failure: f.failure(), problems: f.good() === undefined ? (f.src.readiness?.(null) ?? []) : [] });
+  const held = async (name: string, f: Feed): Promise<Held> => ({ name, repo: f.src.repo, board: f.good()?.board, readAt: f.readAt(), failure: f.failure(), problems: f.good() === undefined ? ((await f.src.readiness?.(null)) ?? []) : [] });
   /** Answers `/api/board`, `/api/item`, `/api/all` and `/api/projects` from the snapshots: nothing is read from GitHub or T3 here. */
   const answer = async (url: URL, remote: boolean): Promise<Reply> => {
     const fresh = url.searchParams.get("fresh") === "1";
@@ -859,7 +861,7 @@ export function startBoardWith(
       });
       await Promise.all(chosen.map(([, f]) => f.ready(fresh)));
       const now = Date.now();
-      const all = chosen.map(([n, f]) => held(n, f));
+      const all = await Promise.all(chosen.map(([n, f]) => held(n, f)));
       return url.pathname === "/api/all"
         ? json(200, combine(all, remote, (asked ?? []).filter((n) => !feeds.has(n)), now))
         : json(200, { remote, projects: all.map((h) => projectInfo(h, now)) });
@@ -1208,7 +1210,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
     }
     let found: (problems: Problem[]) => void = () => {};
     firsts.push({ name, problems: new Promise<Problem[]>((done) => (found = done)) });
-    return { ...own, readiness: (github) => { const problems = inner(github); found(problems); return problems; } };
+    return { ...own, readiness: async (github) => { const problems = await inner(github); found(problems); return problems; } };
   };
   let served: Sources | Roster;
   if (!several) {

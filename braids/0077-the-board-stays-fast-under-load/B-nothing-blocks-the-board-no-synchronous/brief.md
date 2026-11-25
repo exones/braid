@@ -45,10 +45,14 @@ Expected size: about 450 lines in 13 files.
 
 ## Completion
 
-- [ ] No sync git or gh call runs in a board read, wake or action, with a test that fails if one is added
-- [ ] A test shows `/api/session` answering within a second while a read's git calls take seconds
-- [ ] A `t3` or `gh` call that times out reads as not answering within its timeout, not as not installed, with a test for each
-- [ ] report.md has the live check's `/api/session` timings while a gate ran
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] No sync git or gh call runs in a board read, wake or action, with a test that fails if one is added
+- [x] A test shows `/api/session` answering within a second while a read's git calls take seconds
+- [x] A `t3` or `gh` call that times out reads as not answering within its timeout, not as not installed, with a test for each
+- [x] report.md has the live check's `/api/session` timings while a gate ran
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+One request-record algorithm, two drivers: gitbranch.ts writes reads and writes of a data branch once, as generators that yield each git call, run by a blocking driver (CLI) or an awaiting one (board); async forms of loadRecord, endRequest, addEvent, loadLifecycle, braidAt, readSignals and readiness (primed caches for the sync branch loader) feed the wake, reminders and the read. Actions' git runner goes async. A timed-out t3/gh reads as "didn't answer within 30 s; retrying" (src/board/timeout.ts). Remove `fresh` and the dead caches (l7dw). Tests: no synchronous child process in a read, wake, reminder, nudge or action; /api/session while git is slow; timeout wording. Live check on a scratch board under a gate.

@@ -6,7 +6,7 @@
 //     event with the cause as its reason.
 // A held or paused braid, asking or waited on, is skipped. Nothing goes to the user. As the wake: send first, record after
 // (the event is the memory); a failed send records nothing and is tried at the next refresh.
-import { addEvent, loadRecord, type Request, type RequestEvent } from "../braids/requests.js";
+import { addEventAsync, loadRecordAsync, type Request, type RequestEvent } from "../braids/requests.js";
 import { clock } from "./pause.js";
 import type { T3Runner } from "./t3.js";
 import { addresseeOf, braidOfId, escalated, missedEta, pmThreadOf, remindable, reminderDue, type Addressee } from "./waits.js";
@@ -60,7 +60,7 @@ export function reminder(t3: T3Runner): Waker {
   return async ({ root, good }, at, warn) => {
     const held = good.sig.pauses ?? new Map();
     const plans = good.sig.plans;
-    for (const r of loadRecord(root).requests.filter(remindable)) {
+    for (const r of (await loadRecordAsync(root)).requests.filter(remindable)) {
       if (held.has(braidOfId(r.id) ?? "") || (r.to !== undefined && held.has(r.to))) {
         continue;
       }
@@ -71,7 +71,7 @@ export function reminder(t3: T3Runner): Waker {
         const key = `${r.code} ${s.event.text ?? ""} ${s.event.reason ?? ""}`;
         if (!sent.has(key)) {
           // Right before the send, the record is read again: a second board of the project may have sent it a moment ago.
-          const now = loadRecord(root).requests.find((x) => x.code === r.code);
+          const now = (await loadRecordAsync(root)).requests.find((x) => x.code === r.code);
           if (now === undefined || !remindersOf(now, addressee, live, at).some((x) => x.event.text === s.event.text && x.event.reason === s.event.reason)) {
             continue;
           }
@@ -84,7 +84,7 @@ export function reminder(t3: T3Runner): Waker {
           sent.add(key);
         }
         try {
-          addEvent(root, r.code, s.event);
+          await addEventAsync(root, r.code, s.event);
           sent.delete(key);
         } catch (error) {
           warn(`the reminder of ${r.code} (${r.id}) couldn't be recorded (${error instanceof Error ? error.message : String(error)}); retrying at each refresh`, `record remind ${r.code}`);

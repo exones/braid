@@ -54,7 +54,7 @@ async function readFrom(root: string, list: object[], shown: Record<string, obje
     const thread = shown[args[2] as string];
     return Promise.resolve(thread === undefined ? { status: 1, stdout: "", stderr: "no such thread" } : ok({ thread: { ...thread, worktreePath: (thread as any).folder === undefined ? null : join(agents, (thread as any).folder) } }));
   };
-  return readT3(root, { run, agents, project: root, reviews, ttlMs: 0 });
+  return readT3(root, { run, agents, project: root, reviews });
 }
 
 test("the running rule: T3's running, background work pending, or blocked on a thread wait", () => {
