@@ -6,7 +6,7 @@
 
 **Validation:** new test in `test/board-nudge.test.ts` (strandless running: not stalled; idle: stalled; with strands idle: stalled, running: not; card `running` stays false). Local `npm run verify` (2026-11-26, under load): 725 of 727 tests pass; the two failures are the multi-process lock tests in `test/requests.test.ts` (known flake, leftover 2026-11-25-01yh). CI on the PR is the gate evidence.
 
-**Docs:** `docs/board.md` stalled bullet updated. No others affected.
+**Docs:** `docs/board.md` (the stalled bullets and the agent-threads paragraph) and `docs/decisions.md` (D46, D53) updated. No others affected.
 
 **Open:** none.
 
