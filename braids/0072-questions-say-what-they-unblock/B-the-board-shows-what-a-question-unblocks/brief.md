@@ -33,6 +33,7 @@ Expected size: about 250 lines in 5 files, tests included.
 
 - The escalation and its 20/60-minute limits stay; only the wording changes (the user).
 - Related to 0074: it adds pause and Resume to cards (`src/board/pause.ts`, `src/board/programme.ts`); keep this strand out of those files.
+- Requests are shown and copied by the one handle 0072/G makes (`yellow-bear-5asx`, or `q-5asx` for an old record), never split in two (the user).
 
 ## Out of scope
 

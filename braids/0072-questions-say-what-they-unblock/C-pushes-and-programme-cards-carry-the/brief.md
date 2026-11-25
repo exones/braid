@@ -33,6 +33,7 @@ Expected size: about 250 lines in 5 files, tests included.
 ## Already decided
 
 - Related to 0074: 0074/D adds a Resume button to the programme card in `src/board/programme.ts` and the web panel. Before starting, merge `main` into the braid branch if 0074 has merged by then, so this strand builds on it; otherwise keep the change there small and expect a merge at the final PR.
+- Requests are shown and copied by the one handle 0072/G makes (`yellow-bear-5asx`, or `q-5asx` for an old record), never split in two (the user).
 
 ## Out of scope
 
