@@ -52,11 +52,20 @@ Expected size: about 300 lines in 6 files, word lists and tests included.
 - Two threads open requests at once: the pick happens inside the write lock against the branch as it is, so they don't get the same words. Tested.
 - The words match two requests (an open one and a race): refused with both suffixes, nothing written. Tested.
 
+## Plan
+
+1. `src/braids/words.ts`: the two lists (adjectives, nouns, plain lowercase words, no homophones or names a speech engine capitalises), `pickWords(code, taken)` (sha256 of the code, then of `<code>#<n>` on a clash, then a scan; none when every pair is open), `handleOf(r)` (`yellow-bear-5asx`, or `q-5asx` without words), and `resolveName(raw, requests)`: everything but letters and digits dropped, lower-cased; the joined handle, the suffix and `q`+suffix match any request, the joined words open ones only; one code, several (ambiguous) or none.
+2. `src/braids/requests.ts`: `words?` on `Request` and `RecordFile` (written after `text`, read when it is two lowercase words); `openRequest` picks inside the write against the open requests in its view and returns the handle too.
+3. `src/commands/requests.ts`: `target`, `braid eta` and `braid requests <code>` resolve through `resolveName` (a strict q-code goes straight through as before; item ids and `pm/<slug>` keep their meaning); every output line shows the handle; ambiguous: refused with the candidates' handles, nothing changed; none: "no request named …".
+4. `Need.handle` beside `code` (`src/board/model.ts`); the wake text and the reminders (`src/board/wake.ts`, `src/board/remind.ts`) name the handle.
+5. Tests: `test/request-words.test.ts` for the lists, the pick, the handle and the resolver, the record (unknown field, clash in the write lock), and the CLI; existing tests' code patterns follow the handle.
+6. Docs: `docs/cli.md`, `docs/braids-format.md` (the field), `docs/board.md` where it names codes, `docs/decisions.md`.
+
 ## Completion
 
-- [ ] New requests get two spoken words, unique among the project's open requests, from short word lists in the repo, and the full name is the words plus the q-code's four characters, with tests
-- [ ] Every command that takes a code resolves the handle, the words plus suffix, the suffix or the q-code (any request) and the words alone (open requests only), in any case and punctuation, and refuses an ambiguous match with its candidates, with tests
-- [ ] The CLI and the wake text show one handle `yellow-bear-5asx`, and records written before show `q-5asx` as before, with tests
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] New requests get two spoken words, unique among the project's open requests, from short word lists in the repo, and the full name is the words plus the q-code's four characters, with tests
+- [x] Every command that takes a code resolves the handle, the words plus suffix, the suffix or the q-code (any request) and the words alone (open requests only), in any case and punctuation, and refuses an ambiguous match with its candidates, with tests
+- [x] The CLI and the wake text show one handle `yellow-bear-5asx`, and records written before show `q-5asx` as before, with tests
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

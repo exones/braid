@@ -57,11 +57,13 @@ test("a request round-trips through its file: fields fixed at opening, every cha
   assert.equal(warning, null);
   assert.deepEqual(onOrigin(origin), [`requests/${code}.json`]);
   const file = fileOn(origin, code);
+  assert.match(file.words, /^[a-z]+ [a-z]+$/, "two spoken words, after the text (0072/G)");
   assert.deepEqual(file, {
     code,
     item: "0001/A",
     kind: "question",
     text: "about 0001/A",
+    words: file.words,
     key: "scope",
     by: "coordinator",
     thread: null,
@@ -200,7 +202,7 @@ test("a request file that doesn't parse is reported and skipped; the others stil
   assert.deepEqual(problems.map((p: any) => p.file), ["requests/q-bad1.json"]);
   const out = (await requestsCommand(root, [], { gh: () => ({ status: 1, stdout: "", stderr: "" }) })) as string;
   assert.match(out, /^warning: skipped requests\/q-bad1\.json: not JSON/m);
-  assert.match(out, new RegExp(`^${good}  0001  question`, "m"));
+  assert.match(out, new RegExp(`^${R.handleOf(requests[0])}  0001  question`, "m"));
   assert.equal(R.openRequest(root, q("0002")).warning, null, "a bad file doesn't stop writes");
 });
 

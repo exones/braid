@@ -30,7 +30,7 @@ const braid = (number: string, strands: string[] = []): any => ({
   brief: { id: number, title: `B${number}`, status: "In Progress", labels: [], dependencies: [], order: null, delivery: null, body: "" },
   strands: strands.map((l) => ({ letter: l, folder: `braids/${number}-a/${l}`, brief: { id: `${number}/${l}`, title: `S${l}`, status: "In Progress", labels: [], dependencies: [] } })),
 });
-const codeOf = (out: string): string => /^(q-[a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`);
+const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})\b/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
 const answerFile = (root: string, text: string): string => {
   const path = join(dirname(root), `a-${Math.random().toString(36).slice(2)}.txt`);
   writeFileSync(path, text);

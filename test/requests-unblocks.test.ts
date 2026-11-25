@@ -47,32 +47,32 @@ test("an act word per kind", () => {
 test("braid ask and braid requests say what the request blocks and decide, do or merge", async () => {
   const w = world();
   const first = askCommand(w.root, ["0001/A", "Which name?", "--kind", "decision"]);
-  assert.match(first, /^q-[a-z0-9]{4} 0001\/A: decision request opened: Which name\?\nblocks 0001\/A · decide\n/);
-  const code = /^(q-[a-z0-9]{4})/.exec(first)?.[1] ?? "";
+  assert.match(first, /^[a-z]+-[a-z]+-[a-z0-9]{4} 0001\/A: decision request opened: Which name\?\nblocks 0001\/A · decide\n/);
+  const handle = /^(\S+)/.exec(first)?.[1] ?? "";
   // A coordinator may ask the user to do something outside braid.
   assert.match(askCommand(w.root, ["0002", "Add secret X", "--kind", "action"]), /action request opened: Add secret X\nblocks 0002 · do\n/);
   const list = (await requestsCommand(w.root, [], { gh: w.opts.gh })) as string;
-  assert.match(list, new RegExp(`^${code} {2}0001/A {2}decision {2}\\d+m {2}blocks 0001/A · decide {2}Which name\\?$`, "m"));
-  assert.match(list, /^q-[a-z0-9]{4} {2}0002 {2}action {2}\d+m {2}blocks 0002 · do {2}Add secret X$/m);
-  const one = (await requestsCommand(w.root, [code.toUpperCase()], { gh: w.opts.gh })) as string;
-  assert.match(one, new RegExp(`^${code} {2}0001/A {2}decision {2}open {2}blocks 0001/A · decide\\n`));
+  assert.match(list, new RegExp(`^${handle} {2}0001/A {2}decision {2}\\d+m {2}blocks 0001/A · decide {2}Which name\\?$`, "m"));
+  assert.match(list, /^[a-z]+-[a-z]+-[a-z0-9]{4} {2}0002 {2}action {2}\d+m {2}blocks 0002 · do {2}Add secret X$/m);
+  const one = (await requestsCommand(w.root, [handle.toUpperCase()], { gh: w.opts.gh })) as string;
+  assert.match(one, new RegExp(`^${handle} {2}0001/A {2}decision {2}open {2}blocks 0001/A · decide\\n`));
 });
 
-test("a request code in any letter case is found, and a malformed one is refused as not a request code", async () => {
+test("a request code in any letter case is found, and a malformed one is refused as no request named so", async () => {
   const w = world();
-  const code = /^(q-[a-z0-9]{4})/.exec(askCommand(w.root, ["0001/A", "Which name?"]))?.[1] ?? "";
-  const upper = code.toUpperCase();
-  assert.match(etaCommand(w.root, [upper, "2h"]), new RegExp(`^${code} `));
-  assert.match((await requestsCommand(w.root, [upper], { gh: w.opts.gh })) as string, new RegExp(`^${code} `));
-  assert.match(answerCommand(w.root, w.root, [upper, "--log", "-"].slice(0, 1)), new RegExp(`^${code} 0001/A: answered`));
+  const handle = /^(\S+)/.exec(askCommand(w.root, ["0001/A", "Which name?"]))?.[1] ?? "";
+  const upper = `Q-${handle.slice(-4).toUpperCase()}`;
+  assert.match(etaCommand(w.root, [upper, "2h"]), new RegExp(`^${handle} `));
+  assert.match((await requestsCommand(w.root, [upper], { gh: w.opts.gh })) as string, new RegExp(`^${handle} `));
+  assert.match(answerCommand(w.root, w.root, [upper, "--log", "-"].slice(0, 1)), new RegExp(`^${handle} 0001/A: answered`));
   const again = askCommand(w.root, ["0001/A", "Another?"]);
-  const second = /^(q-[a-z0-9]{4})/.exec(again)?.[1] ?? "";
-  assert.match(withdrawCommand(w.root, [second.toUpperCase(), "--why", "no"]), new RegExp(`^${second} 0001/A: withdrawn`));
+  const second = /^(\S+)/.exec(again)?.[1] ?? "";
+  assert.match(withdrawCommand(w.root, [`Q-${second.slice(-4).toUpperCase()}`, "--why", "no"]), new RegExp(`^${second} 0001/A: withdrawn`));
   for (const bad of ["Q-!!", "q-ab", "Q-"]) {
-    assert.throws(() => answerCommand(w.root, w.root, [bad]), /is not a request code/);
-    assert.throws(() => withdrawCommand(w.root, [bad, "--why", "x"]), /is not a request code/);
-    assert.throws(() => etaCommand(w.root, [bad, "2h"]), /is not a request code/);
-    await assert.rejects(async () => requestsCommand(w.root, [bad], { gh: w.opts.gh }), /is not a request code/);
+    assert.throws(() => answerCommand(w.root, w.root, [bad]), /no request named/);
+    assert.throws(() => withdrawCommand(w.root, [bad, "--why", "x"]), /no request named/);
+    assert.throws(() => etaCommand(w.root, [bad, "2h"]), /no request named/);
+    await assert.rejects(async () => requestsCommand(w.root, [bad], { gh: w.opts.gh }), /no request named/);
   }
 });
 

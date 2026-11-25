@@ -9,8 +9,10 @@ import { catBatchSync } from "./gitio.js";
 import { currentFiles, lockedBranch, tips, writeBranchUnlocked, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
 import { mergeLifecycle } from "./lifecycle.js";
 import { mainCheckout } from "./state.js";
+import { handleOf, pickWords, WORDS } from "./words.js";
 
 export { ensureStateDir, LockError, locked, mainCheckout, takeOverStale } from "./state.js";
+export { handleOf, resolveName } from "./words.js";
 
 /** `action` is something only the user can do outside braid (an install, a login); the PM or a coordinator opens one. */
 export const KINDS = ["review", "question", "decision", "plan", "action"] as const;
@@ -63,6 +65,8 @@ export interface Request {
   readonly code: string;
   /** The item: `0015` or `0015/C`; for a programme request `pm/<slug>`. */
   readonly id: string;
+  /** Its two spoken words (`yellow bear`), unique among the project's open requests when it opened (src/braids/words.ts); absent on a record written before. */
+  readonly words?: string;
   /** Who asks: a record without it is the coordinator's. An item has at most one open request per asker. */
   readonly by?: Asker;
   readonly kind: Kind;
@@ -94,7 +98,7 @@ export interface Request {
 }
 
 /** What a caller gives to open a request; the rest comes from the record. */
-export type NewRequest = Omit<Request, "code" | "forwarded" | "note" | "doneWhen" | "eta" | "state" | "events"> & { readonly doneWhen?: string };
+export type NewRequest = Omit<Request, "code" | "words" | "forwarded" | "note" | "doneWhen" | "eta" | "state" | "events"> & { readonly doneWhen?: string };
 
 /** A request file that can't be read: reported and skipped. */
 export interface RecordProblem {
@@ -111,6 +115,7 @@ interface RecordFile {
   readonly item: string;
   readonly kind: Kind;
   readonly text: string;
+  readonly words?: string;
   readonly key?: string;
   readonly by: Asker;
   readonly thread: string | null;
@@ -132,6 +137,7 @@ function toFile(r: Request): RecordFile {
     item: r.id,
     kind: r.kind,
     text: r.text,
+    ...(r.words === undefined ? {} : { words: r.words }),
     ...(r.key === undefined ? {} : { key: r.key }),
     by: askerOf(r),
     thread: r.thread,
@@ -183,6 +189,7 @@ export function parseRecord(file: string, text: string): Request | RecordProblem
   return {
     code,
     id: v["item"],
+    ...(typeof v["words"] === "string" && WORDS.test(v["words"]) ? { words: v["words"] } : {}),
     ...(by === "pm" ? { by } : {}),
     kind: v["kind"] as Kind,
     text: v["text"],
@@ -420,33 +427,40 @@ function writeRecord(root: string, change: (view: BranchView) => { files: Map<st
   return lockedBranch(root, REQUESTS, () => writeBranchUnlocked(root, REQUESTS, change));
 }
 
-/** An open request with its `opened` event, as `openRequest` writes it; `code` given or empty. Also for demos and tests. */
-export function newRecord(request: NewRequest & { readonly code?: string }): Request {
-  const { doneWhen, code, ...fields } = request;
-  return { ...fields, code: code ?? "", doneWhen: doneWhen ?? (request.pr === undefined ? "answered" : `pr:${request.pr}`), eta: null, state: "open", events: [{ event: "opened", at: request.at, by: askerOf(request) }] };
+/** An open request with its `opened` event, as `openRequest` writes it; `code` given or empty, `words` when given. Also for demos and tests. */
+export function newRecord(request: NewRequest & { readonly code?: string; readonly words?: string }): Request {
+  const { doneWhen, code, words, ...fields } = request;
+  return { ...fields, code: code ?? "", ...(words === undefined ? {} : { words }), doneWhen: doneWhen ?? (request.pr === undefined ? "answered" : `pr:${request.pr}`), eta: null, state: "open", events: [{ event: "opened", at: request.at, by: askerOf(request) }] };
 }
 
 const withEvent = (r: Request, e: RequestEvent): Request => ({ ...r, events: [...r.events, e] });
 
+/** The words the open requests hold: a new request may not take them; a closed request's words are free again. */
+export const takenWords = (requests: readonly Pick<Request, "words" | "state">[]): Set<string> => new Set(requests.flatMap((r) => (r.state === "open" && r.words !== undefined ? [r.words] : [])));
+
 /**
- * Opens a request and returns its code. The open one on the same item from the same asker is withdrawn,
- * "replaced by q-…", when it is of the same sort: a question (to the user or the PM) replaces a question,
- * a wait (to a braid) replaces the wait to that braid. The other asker's stays.
+ * Opens a request and returns its code and handle (`yellow-bear-5asx`). Its words are picked inside the write, against
+ * the open requests on the branch as it is then, so two requests opened at once never share them. The open one on the
+ * same item from the same asker is withdrawn, "replaced by q-…", when it is of the same sort: a question (to the user or
+ * the PM) replaces a question, a wait (to a braid) replaces the wait to that braid. The other asker's stays.
  */
-export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly warning: string | null } {
+export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly handle: string; readonly warning: string | null } {
   let code = "";
+  let words: string | undefined;
   const result = writeRecord(root, (view) => {
     const all = viewAll(view).requests;
     code = newCode((c) => view.has(pathOf(c)));
+    const open = takenWords(all);
+    words = pickWords(code, (w) => open.has(w));
     const by = askerOf(request);
     const files = new Map<string, string>();
     for (const old of all.filter((r) => r.state === "open" && same(r, request.id, by) && replaces(r, request))) {
       files.set(pathOf(old.code), serialise(withEvent(old, { event: "withdrawn", at: request.at, by, text: `replaced by ${code}` })));
     }
-    files.set(pathOf(code), serialise(newRecord({ ...request, code })));
+    files.set(pathOf(code), serialise(newRecord({ ...request, code, ...(words === undefined ? {} : { words }) })));
     return { files, message: `docs(requests): ${request.id} ${request.kind} ${code}` };
   });
-  return { code, warning: result.warning };
+  return { code, handle: handleOf({ code, ...(words === undefined ? {} : { words }) }), warning: result.warning };
 }
 
 /** How a request ends: its final state, who ended it, and why or the answer. */

@@ -313,8 +313,8 @@ test("braid requests shows the addressee; braid forward hands the request on onc
   askCommand(root, ["0001/A", "Which name?", "--to", "pm"], { now: () => NOW });
   askCommand(root, ["0001", "Approve?", "--kind", "plan"], { now: () => NOW });
   const list = (await requestsCommand(root, [], { now: () => NOW })) as string;
-  assert.match(list, /^q-[a-z0-9]{4} {2}0001 {2}plan {2}0m {2}blocks 0001\/A · decide {2}Approve\?$/m);
-  assert.match(list, /^q-[a-z0-9]{4} {2}0001\/A {2}question {2}0m {2}blocks 0001\/A · decide {2}to the PM {2}Which name\?$/m);
+  assert.match(list, /^[a-z]+-[a-z]+-[a-z0-9]{4} {2}0001 {2}plan {2}0m {2}blocks 0001\/A · decide {2}Approve\?$/m);
+  assert.match(list, /^[a-z]+-[a-z]+-[a-z0-9]{4} {2}0001\/A {2}question {2}0m {2}blocks 0001\/A · decide {2}to the PM {2}Which name\?$/m);
   assert.match(forwardCommand(root, ["0001/A", "--note", "your call: it changes the name"], { now: () => NOW }), /0001\/A: question request forwarded to the user: your call: it changes the name/);
   const f = loadRequests(root).find((x: { id: string }) => x.id === "0001/A");
   assert.deepEqual([f.to, f.forwarded, f.note], ["user", NOW.toISOString(), "your call: it changes the name"]);
