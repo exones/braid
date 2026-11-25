@@ -1,0 +1,21 @@
+{
+  "code": "q-kp6g",
+  "item": "0079",
+  "kind": "review",
+  "text": "review PR #330 at a3dac61",
+  "by": "coordinator",
+  "thread": "mcp:launch:7b2e2923dfc6ed0273e067a582545a73ec8442449e39cbdfa805dc1014a997c9",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:330",
+  "pr": 330,
+  "head": "a3dac61592072efaad4c4e0fca3cf0efaf3fba28",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T23:02:34.555Z",
+      "by": "coordinator"
+    }
+  ]
+}
