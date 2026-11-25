@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { DEFAULT_LIMITS, LimitsError, NOT_MEASURED, readLimits, readModelLines, readProvider, t3Home, type Limits, type ModelLine, type ProviderReading, type WindowReading } from "../braids/limits.js";
 import { reasonOf, type Pause, type Steering } from "../braids/pauses.js";
 import type { T3 } from "./t3.js";
+import type { ActingLine } from "./acting.js";
 
 /** How close to its threshold (percentage points) a window is called near. */
 export const NEAR_POINTS = 10;
@@ -54,6 +55,8 @@ export interface LimitsView {
   readonly providers: readonly ProviderView[];
   /** Why BRAID.md's `models` or `limits` could not be read (the providers are then only those running threads use); null when it read. */
   readonly note: string | null;
+  /** Which board acts for the repository and for each provider account (0074/B); absent when this board pauses nothing. */
+  readonly acting?: readonly ActingLine[];
 }
 
 const fullest = (windows: readonly WindowReading[], kind: WindowReading["kind"]): WindowReading | null =>
@@ -199,5 +202,12 @@ export function mergeLimits(views: readonly { readonly project: string; readonly
     };
   });
   const first = present[0];
-  return { limits: first?.view.limits ?? DEFAULT_LIMITS, readAt: present.map((p) => p.view.readAt).sort().at(-1) ?? "", providers, note: present.flatMap((p) => (p.view.note === null ? [] : [p.view.note]))[0] ?? null };
+  const acting = [...new Map(present.flatMap((p) => p.view.acting ?? []).map((a) => [a.key, a])).values()];
+  return {
+    limits: first?.view.limits ?? DEFAULT_LIMITS,
+    readAt: present.map((p) => p.view.readAt).sort().at(-1) ?? "",
+    providers,
+    note: present.flatMap((p) => (p.view.note === null ? [] : [p.view.note]))[0] ?? null,
+    ...(present.some((p) => p.view.acting !== undefined) ? { acting } : {}),
+  };
 }

@@ -1,6 +1,6 @@
 // The words of the limits chips and panel (docs/board.md, "Provider limits"). Pure (no Node.js), so the page uses it too.
 import { clock } from "./pause.js";
-import type { ChipState, ProviderView } from "./limits.js";
+import type { ChipState, LimitsView, ProviderView } from "./limits.js";
 
 const MIN = 60_000;
 
@@ -81,6 +81,22 @@ export function agentsText(p: ProviderView): { readonly paused: string; readonly
 }
 
 /** The panel's steering line (mockup 3): where the 🚦 thread ran, when, and what came of it; null without one. */
+/**
+ * Which board acts (0074/B): "This board acts for the pauses, resumes and wakes." when it holds every key, else one line per key
+ * another board holds: "Watching: the board on port <p> (pid <n>) acts for <what>." Null when the board pauses nothing.
+ */
+export function actingText(view: LimitsView): string[] | null {
+  const lines = view.acting;
+  if (lines === undefined) {
+    return null;
+  }
+  const watching = lines.filter((l) => l.state === "watching");
+  if (watching.length === 0) {
+    return ["This board acts for the pauses, resumes and wakes."];
+  }
+  return watching.map((l) => `Watching: ${l.by ?? "another board acts"} for ${l.key.startsWith("repo-") ? `the wakes and reminders of ${l.label}` : `the pause and resume of ${l.label}`}.`);
+}
+
 export function steeringText(p: ProviderView, now: Date): string | null {
   const s = p.steering;
   if (s === null) {

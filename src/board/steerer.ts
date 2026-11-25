@@ -4,9 +4,12 @@
 //   2. resume: each `by: board` record whose resume time has passed is re-checked, then its threads get `t3 thread send`;
 //   3. pause: per provider over its threshold, claim a record per braid under the lock, then start one steering thread;
 //   4. wake: each project's open requests whose "done when" holds are closed and their askers woken (src/board/wake.ts).
+// With several boards on one machine, a tick acts only for the keys whose lease this board holds (src/board/acting.ts, 0074/B):
+// steps 1-3 per provider account, step 4 and the pending limit pushes per repository. A board that holds none still reads and shows.
 // Only `.braid/pauses.json`, `notified.json` and (the wake) `braid-requests` are written, and only `t3 thread start` and
 // `t3 thread send` are called.
 import { join } from "node:path";
+import { providerKey, repoLease, type ActingBoard } from "./acting.js";
 import { LimitsError, readLimits, readModelLines, readProvider, t3Home, type ModelLine, type ProviderReading } from "../braids/limits.js";
 import { claimPauses, clearPause, loadPauses, patchPauses, reasonOf, type Pause, type PauseTarget, type Steering } from "../braids/pauses.js";
 import { steeringTitle } from "../braids/title.js";
@@ -43,12 +46,14 @@ export interface SteererOptions {
   readonly caches?: string;
   /** Sends a limit push once per key, through a project's `notified.json`; absent: none. */
   readonly push?: (root: string, push: LimitPush) => void;
-  /** Sends again the limit pushes whose send failed; called at the start of each tick (each refresh). */
-  readonly retry?: () => void;
+  /** Sends again the limit pushes of a project (its `notified.json`'s pending) whose send failed; called at the start of each tick for each project this board acts for. */
+  readonly retry?: (root: string) => void;
   /** Where the steerer reports what it couldn't do: the board's standard error. */
   readonly warn?: (line: string) => void;
   /** The wake step, run for each project after the pause steps; absent: nothing is woken. */
   readonly wake?: Waker;
+  /** The leases of this board (0074/B); absent: it acts for every key (a single board, tests). */
+  readonly acting?: ActingBoard;
 }
 
 export interface Steerer {
@@ -133,10 +138,10 @@ export function steerer(opts: SteererOptions): Steerer {
   };
 
   /** 1. A steering thread that is still pausing: its line, a failed run, or the time limit. */
-  const follow = async (seen: readonly Seen[], at: Date): Promise<void> => {
+  const follow = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean): Promise<void> => {
     const groups = new Map<string, Held[]>();
     const orphans: Held[] = [];
-    for (const h of boardRecords(seen)) {
+    for (const h of boardRecords(seen).filter((x) => acts(x.pause.provider ?? null))) {
       const s = h.pause.steering;
       if (s?.outcome === "pausing" && s.thread !== null) {
         groups.set(s.thread, [...(groups.get(s.thread) ?? []), h]);
@@ -165,17 +170,27 @@ export function steerer(opts: SteererOptions): Steerer {
         push(host.root, "failed", done, at, { click: steering.link });
       };
       if (line !== null) {
-        // A child is resumed through its braid's record; one whose item names no paused braid goes with the first record.
-        const braids = held.map((h) => h.pause.braid);
-        const children = line.children.map((c): PauseTarget => {
-          const item = c.item !== null && braids.includes(c.item.slice(0, 4)) ? c.item : (braids[0] ?? "");
-          return { thread: c.thread, kind: "child", item, project: host.folder() };
-        });
-        const done = patch(held, (p) => ({
-          ...p,
-          targets: [...(p.targets ?? []), ...children.filter((c) => c.item.slice(0, 4) === p.braid && !(p.targets ?? []).some((t) => t.thread === c.thread))],
-          steering: { ...(p.steering as Steering), outcome: line.noAnswer.length > 0 ? "partial" : "paused", answered: line.answered, total: line.total, children: children.map((c) => c.thread), noAnswer: line.noAnswer },
-        }));
+        // A child is resumed through one record: its project's and its braid's (0074/B). Its project is the one whose T3 list knows
+        // the thread, else the first that has its braid paused; one whose item names no paused braid goes with the first record.
+        const owner = new Map<Held, PauseTarget[]>();
+        for (const c of line.children) {
+          const braid = c.item?.slice(0, 4) ?? null;
+          const same = held.filter((h) => h.pause.braid === braid);
+          const known = (same.length > 0 ? same : held).filter((h) => h.at.good.t3.states?.has(c.thread) === true);
+          const h = known[0] ?? same[0] ?? held[0];
+          if (h !== undefined) {
+            const item = c.item !== null && h.pause.braid === braid ? c.item : h.pause.braid;
+            owner.set(h, [...(owner.get(h) ?? []), { thread: c.thread, kind: "child", item, project: h.at.project.folder() }]);
+          }
+        }
+        const children = line.children.map((c) => c.thread);
+        const done = held.flatMap((h) =>
+          patch([h], (p) => ({
+            ...p,
+            targets: [...(p.targets ?? []), ...(owner.get(h) ?? []).filter((c) => !(p.targets ?? []).some((t) => t.thread === c.thread))],
+            steering: { ...(p.steering as Steering), outcome: line.noAnswer.length > 0 ? "partial" : "paused", answered: line.answered, total: line.total, children, noAnswer: line.noAnswer },
+          })),
+        );
         push(host.root, "paused", done, at, { click: steering.link });
       } else if (status === "failed" || status === "interrupted") {
         fail(`stopped (${status}) before every agent answered`);
@@ -188,24 +203,40 @@ export function steerer(opts: SteererOptions): Steerer {
   };
 
   /** 2. Records whose resume time has passed: re-check, then resume (or keep with the new time). */
-  const resume = async (seen: readonly Seen[], at: Date): Promise<void> => {
-    const due = boardRecords(seen).filter((h) => h.pause.resumeAt !== null && Date.parse(h.pause.resumeAt) <= at.getTime() && h.pause.steering?.outcome !== "pausing");
+  const resume = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean): Promise<void> => {
+    const due = boardRecords(seen).filter((h) => acts(h.pause.provider ?? null) && h.pause.resumeAt !== null && Date.parse(h.pause.resumeAt) <= at.getTime() && h.pause.steering?.outcome !== "pausing");
     const byProvider = new Map<string, Held[]>();
     for (const h of due) {
       byProvider.set(h.pause.provider ?? "", [...(byProvider.get(h.pause.provider ?? "") ?? []), h]);
     }
-    for (const [provider, held] of byProvider) {
+    for (const [provider, all] of byProvider) {
+      // Each record is re-checked against its own project's BRAID.md and limits (0074/B): one project may still be over its threshold.
+      const readings = new Map<string, ProviderReading | null>();
+      const readingAt = (root: string): ProviderReading | null => {
+        if (!readings.has(root)) {
+          readings.set(root, readingOf(root, provider, at));
+        }
+        return readings.get(root) ?? null;
+      };
+      const over = all.filter((h) => readingAt(h.at.project.root)?.verdict === "pause");
+      const byRoot = new Map<string, Held[]>();
+      for (const h of over) {
+        byRoot.set(h.at.project.root, [...(byRoot.get(h.at.project.root) ?? []), h]);
+      }
+      const kept = [...byRoot].flatMap(([root, hs]) => {
+        const reading = readingAt(root) as ProviderReading;
+        const w = overWindow(reading);
+        return patch(hs, (p) => ({ ...p, window: w?.id ?? p.window, label: w?.label ?? p.label, usedPercent: w?.usedPercent ?? p.usedPercent, resetsAt: w?.resetsAt ?? p.resetsAt, resumeAt: reading.resumeAt ?? p.resumeAt }));
+      });
+      if (kept.length > 0) {
+        push(over[0]?.at.project.root ?? "", "extended", kept, at);
+      }
+      const held = all.filter((h) => !over.includes(h));
       const host = held[0]?.at;
       if (host === undefined) {
         continue;
       }
-      const reading = readingOf(host.project.root, provider, at);
-      if (reading?.verdict === "pause") {
-        const w = overWindow(reading);
-        const kept = patch(held, (p) => ({ ...p, window: w?.id ?? p.window, label: w?.label ?? p.label, usedPercent: w?.usedPercent ?? p.usedPercent, resetsAt: w?.resetsAt ?? p.resetsAt, resumeAt: reading.resumeAt ?? p.resumeAt }));
-        push(host.project.root, "extended", kept, at);
-        continue;
-      }
+      const reading = readingAt(host.project.root);
       // One message per thread, even when several braids' records name it (a PM, a steering child).
       const sends = new Map<string, { target: PauseTarget; root: string; archived: boolean }>();
       for (const h of held) {
@@ -254,8 +285,8 @@ export function steerer(opts: SteererOptions): Steerer {
   };
 
   /** 3. Providers over their threshold: a record per braid with agents on it and no record yet, then one steering thread. */
-  const pause = async (seen: readonly Seen[], at: Date): Promise<void> => {
-    const over = new Set(seen.flatMap((s) => (s.good.board.limits?.providers ?? []).filter((p) => p.windows.some((w) => w.over)).map((p) => p.instanceId)));
+  const pause = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean): Promise<void> => {
+    const over = new Set(seen.flatMap((s) => (s.good.board.limits?.providers ?? []).filter((p) => p.windows.some((w) => w.over) && acts(p.instanceId)).map((p) => p.instanceId)));
     for (const provider of over) {
       const wanted: { at: Seen; records: Pause[]; reading: ProviderReading }[] = [];
       for (const s of seen) {
@@ -361,23 +392,51 @@ export function steerer(opts: SteererOptions): Steerer {
     }
   };
 
+  /** Takes or renews this board's leases: the repositories it acts for, and a test of the provider accounts it acts for. */
+  const leases = (seen: readonly Seen[]): { repos: Set<string>; acts: (provider: string | null) => boolean } => {
+    const acting = opts.acting;
+    if (acting === undefined) {
+      return { repos: new Set(seen.map((s) => s.project.root)), acts: () => true };
+    }
+    const repos = new Set(
+      seen
+        .filter((s) => {
+          const l = repoLease(s.project.root);
+          return acting.hold(l.key, l.label);
+        })
+        .map((s) => s.project.root),
+    );
+    let records: Held[] = [];
+    try {
+      records = boardRecords(seen);
+    } catch {
+      // a pauses file that can't be read: its providers are taken when it reads again
+    }
+    const ids = new Set([...seen.flatMap((s) => (s.good.board.limits?.providers ?? []).map((p) => p.instanceId)), ...records.flatMap((h) => (h.pause.provider == null ? [] : [h.pause.provider]))]);
+    const mine = new Set([...ids].filter((id) => acting.hold(providerKey(id), id)));
+    return { repos, acts: (provider) => provider !== null && mine.has(provider) };
+  };
+
   const tick = async (): Promise<void> => {
     pending = false;
-    try {
-      opts.retry?.();
-    } catch {
-      // a push never stops the pause
-    }
     const seen = [...latest.values()];
+    const { repos, acts } = leases(seen);
+    for (const root of repos) {
+      try {
+        opts.retry?.(root);
+      } catch {
+        // a push never stops the pause
+      }
+    }
     const at = now();
     try {
-      await follow(seen, at);
-      await resume(seen, at);
-      await pause(seen, at);
+      await follow(seen, at, acts);
+      await resume(seen, at, acts);
+      await pause(seen, at, acts);
     } catch (error) {
       warn(`the limits pause failed this refresh (${error instanceof Error ? error.message : String(error)})`, "tick");
     }
-    for (const s of opts.wake === undefined ? [] : seen) {
+    for (const s of opts.wake === undefined ? [] : seen.filter((x) => repos.has(x.project.root))) {
       try {
         // Read the clock again: the steps above may have taken a while.
         await opts.wake?.({ root: s.project.root, good: s.good }, now(), warn);
