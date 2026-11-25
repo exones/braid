@@ -20,7 +20,7 @@
 
 **Size:** 641 lines in 4 files, against about 350 expected (the added failure cases, the mock's switches and the tests for them).
 
-**Open:** the gate Completion box is unticked until the flaky pair is judged against CI's result.
+**Open:** nothing.
 
 For later items: 0080/D: pass `mcpClient` the stored token through its token function and check the endpoint is local or `https` before calling (this client takes any URL). 0080/F: one `eventsReader` per event type; run one `pollOnce` at a time per reader.
 
