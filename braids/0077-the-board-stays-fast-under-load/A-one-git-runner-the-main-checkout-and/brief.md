@@ -40,9 +40,9 @@ Expected size: about 250 lines in 12 files.
 
 ## Completion
 
-- [ ] One git runner; the other git spawn sites in src/ call it (any left say why in report.md)
-- [ ] Main checkout and repository name are read once per root, with a test counting the git calls of two refreshes
-- [ ] report.md has the `BRAID_BOARD_TIMINGS` read of this repository before and after
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] One git runner; the other git spawn sites in src/ call it (any left say why in report.md)
+- [x] Main checkout and repository name are read once per root, with a test counting the git calls of two refreshes
+- [x] report.md has the `BRAID_BOARD_TIMINGS` read of this repository before and after
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
