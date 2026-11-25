@@ -43,12 +43,16 @@ Expected size: about 250 lines in 6 files, tests included.
 
 ## Completion
 
-- [ ] A running recorded worker child shows on the board and in `braid status` as its item's worker, with T3's link for Open thread (reviewers get their link too), with tests
-- [ ] An item whose worker child finished while its PR's checks are pending doesn't read stalled, with a test
-- [ ] Limits counts and the snapshot the pause targets come from include running recorded workers by provider, with tests
-- [ ] `braid accept` refuses while a recorded worker child runs, with a test
-- [ ] `braid clean` removes a merged item's worker child checkout, `t3/` branch and record, with tests
-- [ ] Worktree workers are still found, with the existing tests passing
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A running recorded worker child shows on the board and in `braid status` as its item's worker, with T3's link for Open thread (reviewers get their link too), with tests
+- [x] An item whose worker child finished while its PR's checks are pending doesn't read stalled, with a test
+- [x] Limits counts and the snapshot the pause targets come from include running recorded workers by provider, with tests
+- [x] `braid accept` refuses while a recorded worker child runs, with a test
+- [x] `braid clean` removes a merged item's worker child checkout, `t3/` branch and record, with tests
+- [x] Worktree workers are still found, with the existing tests passing
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+The snapshot (`readFresh`) already shows recorded children; give them their record's role (`worker` vs `reviewer`) and T3's `link`. Items, limits, pause targets, status and accept all read `t3.threads`, so they follow; `braid clean` already handles records of any role (label only). Tests in `test/reviews.test.ts` and `done-merge.test.ts`.

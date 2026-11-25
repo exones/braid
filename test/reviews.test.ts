@@ -29,7 +29,7 @@ const { reviewCommand } = (await load("../dist/commands/requests.js")) as { revi
 const { loadReviews, reviewsFile, recordReview } = (await load("../dist/braids/reviews.js")) as {
   loadReviews: (root: string) => { id: string; thread: string; at: string; folder?: string; branch?: string | null }[];
   reviewsFile: (root: string) => string;
-  recordReview: (root: string, id: string, thread: string, at?: string, where?: { folder: string; branch: string | null } | null) => boolean;
+  recordReview: (root: string, id: string, thread: string, at?: string, where?: { folder: string; branch: string | null } | null, role?: string) => boolean;
 };
 const t3mod = (await load("../dist/board/t3.js")) as {
   readT3: (root: string, o: object) => Promise<{ status: { state: string }; threads: Map<string, Thread[]>; idle?: Map<string, Thread[]>; pmChecks?: string[] }>;
@@ -386,4 +386,54 @@ test("a PM's checker recorded while completed between runs is kept, counts only 
   recordReview(root, "pm/working-product", child(1), "2026-11-24T07:42:00Z");
   r = await t3mod.readT3(root, { run: t3({}), ttlMs: 0, agents: join(scratch, "none"), project: root, now: new Date("2026-11-24T09:20:00Z") });
   assert.equal(loadReviews(root).length, 1, "a thread T3 can't be asked about keeps its record");
+});
+
+// 0060/B: a recorded `worker` child (`braid launch`) is its item's worker, seen as a worktree worker is.
+const { runningProviders } = (await load("../dist/board/limits.js")) as { runningProviders: (t3: unknown) => string[] };
+const { targetsOf } = (await load("../dist/board/steer.js")) as { targetsOf: (braid: string, provider: string, t3: unknown, pms: unknown[], project: string) => { thread: string; kind: string; item: string }[] };
+
+/** `thread show --json` of a running worker child, in the shape T3 gives (sources.md S10). */
+const kid = (extra: object = {}) => ({ status: "running", relationshipToParent: "subagent", pendingRequestCount: 0, providerInstanceId: "Claude_Everix", link: "t3code://thread/env/kid", worktreePath: null, branch: null, ...extra });
+
+test("a recorded running worker child is its item's worker with T3's link and provider; a reviewer gets its link too; limits and pause targets count it", async () => {
+  const { root } = repo();
+  recordReview(root, "0001/B", child(1), undefined, null, "worker");
+  await reviewCommand(root, ["0001/C", "--thread", child(2)], { t3: t3({}) });
+  const run = t3({ [child(1)]: kid(), [child(2)]: kid({ providerInstanceId: "cursor", link: "t3code://thread/env/rev" }) });
+  const read = await t3mod.readT3(root, { run, ttlMs: 0, agents: join(scratch, "none"), project: root });
+  assert.deepEqual(read.threads.get("0001/B"), [{ id: child(1), role: "worker", pending: 0, link: "t3code://thread/env/kid", provider: "Claude_Everix" }]);
+  assert.deepEqual(read.threads.get("0001/C"), [{ id: child(2), role: "reviewer", pending: 0, link: "t3code://thread/env/rev", provider: "cursor" }]);
+  assert.deepEqual(runningProviders(read).sort(), ["Claude_Everix", "cursor"]);
+  assert.deepEqual(targetsOf("0001", "Claude_Everix", read, [], "proj").map((t) => [t.thread, t.kind, t.item]), [[child(1), "worker", "0001/B"]]);
+  const noPr = { status: { state: "ok" }, prs: new Map() };
+  assert.equal(model.derive("In Progress", [], "0001/B", noPr, read, { now: new Date(), requests: new Map(), alarm: () => null }).activity, "agent");
+  const out = await statusCommand(root, ["1"], { gh: () => ok([]), t3: run });
+  assert.match(out, /0001\/B {2}In Progress {2}Working .* thread running /);
+});
+
+test("an item whose worker child finished while its PR's checks are pending doesn't read stalled", async () => {
+  const { root } = repo();
+  recordReview(root, "0001/B", child(1), undefined, null, "worker");
+  const run = t3({ [child(1)]: kid({ status: "completed" }) });
+  const read = await t3mod.readT3(root, { run, ttlMs: 0, agents: join(scratch, "none"), project: root });
+  assert.equal(read.threads.has("0001/B"), false, "a finished child is no running agent");
+  const NOW = new Date("2026-11-19T12:00:00Z");
+  const held = { "0001/B stalled": new Date(NOW.getTime() - 60 * 60_000).toISOString() };
+  const sig = () => ({ now: NOW, requests: new Map(), alarm: signals.brokeClock(held, NOW).alarm });
+  const gh = (checks: string) => ({ status: { state: "ok" }, prs: new Map([["0001/B", { number: 7, url: "u", state: "open", checks, failed: [] }]]) });
+  const d = model.derive("In Progress", [], "0001/B", gh("pending"), read, sig());
+  assert.deepEqual([d.reason, d.activity], [null, "checks"]);
+  assert.equal(model.derive("In Progress", [], "0001/B", { status: { state: "ok" }, prs: new Map() }, read, sig()).reason, "stalled", "without a PR the same item is stalled");
+});
+
+test("clean removes a merged item's worker child checkout, t3/ branch and record, and says worker thread", async () => {
+  const { root, env, folders, pr } = await mergedWithChildren(["aaa"]);
+  const folder = folders["aaa"] as string;
+  recordReview(root, "0001/B", child(1), undefined, { folder, branch: "t3/aaa" }, "worker");
+  const src = { gh: () => ok([pr]), t3: t3({ [child(1)]: kid({ status: "completed", worktreePath: folder, branch: "t3/aaa" }) }) };
+  const out = await cleanCommand(root, ["--yes"], src, env);
+  assert.match(out, /removed 0001\/B: worker thread .*t3-aaa and branch t3\/aaa/);
+  assert.equal(existsSync(folder), false);
+  assert.equal(git(root, "branch", "--list", "t3/aaa"), "");
+  assert.deepEqual(loadReviews(root), []);
 });

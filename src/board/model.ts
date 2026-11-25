@@ -534,7 +534,7 @@ export function laneOfLanes(lanes: readonly Lane[]): Lane {
   return URGENCY.find((lane) => lanes.includes(lane)) ?? "To Do";
 }
 
-/** The thread to open for an item: a running worker's; a subagent reviewer has no link of its own (it shows inside its coordinator's thread). */
+/** The thread to open for an item: a running worker's, else the first agent's; T3 gives a subagent its own link. */
 export function threadLink(agents: readonly T3Thread[]): string | null {
   return pickThread(agents)?.link ?? null;
 }
