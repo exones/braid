@@ -1,7 +1,7 @@
 ---
 id: '0075'
 title: "Lifecycle off the code branches, one pure lane"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: []
 delivery: epic
