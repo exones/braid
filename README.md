@@ -93,7 +93,7 @@ Away from your desk, the same board fits a phone, and the inbox keeps ideas and 
 
 - **A programme manager** takes a business goal, slices it into braids and runs their coordinators for you.
 - **A coordinator** is the agent you talk to. It plans with you, launches the other agents and reports back.
-- **Workers** each do one item on their own branch and worktree, run the gate and open a PR.
+- **Workers** each do one item on their own branch, run the gate and open a PR. In T3 a worker is a subagent the coordinator launches with `braid launch`, and the coordinator, not the worker, waits for the PR's CI.
 - **Reviewers** check medium and large PRs independently before they reach you.
 - **Braids and strands:** a braid is a story or a goal; a goal is split into strands, its parts, which run in order.
 - **The ledger** is the `braids/` folder: one folder per braid and strand with its brief, logs and report, plain Markdown in Git, managed with the `braid` CLI.
