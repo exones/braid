@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 5
 state: running
 hold:
-next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24, P15 (merge order 0074, 0072, 0060, P24, P15); then P25 (Questions panel, after 0072), P5"
+next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24 · 0077, P15 · 0078 (merge order 0074, 0072, 0060, 0077, 0078); then P25 (Questions panel, after 0072), P5"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -29,7 +29,7 @@ rows:
   - P12 | - | Evidence before the work | planned
   - P13 | - | Learnings and a review that learns | planned
   - P14 | - | Board and CLI polish | planned
-  - P15 | - | Sweep: 0040 leftovers and a flaky test | running
+  - P15 | 0078 | Sweep: 0040 leftovers and a flaky test | running
   - P16 | 0010 | Runs, checkpoints, resuming | planned
   - P18 | - | braid init and braid skills install | planned
   - P19 | - | The update story: braid skills update and updating braid as a whole | planned
@@ -154,6 +154,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-25: P15 renumbered to 0078 (planning PR #320); P24 is 0077 (#319 merged, 0077/A running).
 - 2026-11-25: PM approved P15's sweep plan (q-nnx1): strands A gate to Pester, B release guard as Pester, C CLI fixes, D decisions/autonomy leftovers, E tests off the repo and clock (after 0060), F shim sweep (after 0072), G board/pushes (after 0074, 0072, 0060), H decisions.md current+history with D<braid>.<n> ids, I docs; l7dw `fresh` always true moved to 0077; w5cd(2) stays a leftover for the user. Number clash: both P24 and P15 got 0077 from parallel `braid new` (idea 1hox); P24 keeps 0077 (planning PR #319), P15 renumbers. 0077 D: two gate slots.
 - 2026-11-25: P24 is 0077. PM approved its plan (q-f2ad): strands A one git runner, B no sync calls in the board, C probe finds a busy board, E running count (1r0o), D `braid gate` machine-wide lock with two slots (PM changed from one: throughput, and B removes the board starvation), F docs; plus cursor chip decimals and the misleading "t3 not installed" on a timeout sent to 0077. F's one-line braid-worker skill change waits on the user's ask. Cleanup helper: nothing left to clean (0074-B/C already gone; 0070-D a 9 MB stray non-worktree folder); C: 171 GB free.
 - 2026-11-25: user: "a" (start P24 and P15 now, 5 at once; limits Claude 39% session, 66% weekly): limit 5; coordinators launched, P24 mcp:launch:90866b96…, P15 mcp:launch:57ba0cc3…; merge order 0074, 0072, 0060, P24, P15. User: the after-compaction reminder for "everyone": a SessionStart "compact" hook in the user's ~/.claude/settings.json (short reminder to reread skill, project instructions, plan or brief); idea j4i2 in P10 is covered by it unless a repo-shipped version is wanted.
