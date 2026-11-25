@@ -5,7 +5,7 @@ import type { Status } from "../braids/brief.js";
 import { braidStatuses, type Lifecycle } from "../braids/lifecycle.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
-import { age, isTimedWait, type Request } from "../braids/requests.js";
+import { age, handleOf, isTimedWait, type Request } from "../braids/requests.js";
 import { requestsOf, rowOf, type RequestRow, type RequestsView } from "./record.js";
 import type { Pause } from "../braids/pauses.js";
 import { clock, limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
@@ -53,6 +53,8 @@ export interface Need {
   readonly link?: string | null;
   /** The request's code (`q-7f3k`), to name it in any thread; absent on a broke alarm. */
   readonly code?: string;
+  /** The one handle the request is shown and copied as (`yellow-bear-5asx`, or `q-7f3k` for a record without words); set with `code`. */
+  readonly handle?: string;
   /** The T3 link of the thread that asked (always the asker's, also when the PM forwarded it); null when T3 doesn't list it. Set with `code`. */
   readonly asking?: string | null;
   /** A second need shown under this one: a broken wait (past its estimate, or a gone addressee) on a braid that also has a question open; both need the user. */
@@ -362,15 +364,15 @@ function needOfRequest(r: Request, now: Date, routed: Routed, t3: T3): Need {
   const text = r.kind === "review" && r.pr !== undefined ? `Merge PR #${r.pr}` : r.text;
   if ("via" in routed) {
     const link = linkOfThread(t3, routed.via === "forwarded" ? r.pm : r.thread);
-    return { kind: r.kind, text: `${routed.words} ${text}${viaNote(routed.via, r, now)}`, verb: "asked", age: age(r.at, now), since: routed.since, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: routed.via, link, code: r.code, asking: linkOfThread(t3, r.thread) };
+    return { kind: r.kind, text: `${routed.words} ${text}${viaNote(routed.via, r, now)}`, verb: "asked", age: age(r.at, now), since: routed.since, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: routed.via, link, code: r.code, handle: handleOf(r), asking: linkOfThread(t3, r.thread) };
   }
-  return { kind: r.kind, text, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, link: linkOfThread(t3, r.thread), code: r.code, asking: linkOfThread(t3, r.thread) };
+  return { kind: r.kind, text, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, link: linkOfThread(t3, r.thread), code: r.code, handle: handleOf(r), asking: linkOfThread(t3, r.thread) };
 }
 
 /** A forwarded request as the programmes panel shows it: the PM asking the user, opening the PM's thread. */
 export function needOfForward(r: Request, now: Date, t3: T3): Need {
   const text = r.kind === "review" && r.pr !== undefined ? `${askWords(r.kind)} merge PR #${r.pr}` : `${askWords(r.kind)} ${r.text}`;
-  return { kind: r.kind, text: `${text}${viaNote("forwarded", r, now)}`, verb: "asked", age: age(r.forwarded ?? r.at, now), since: r.forwarded ?? r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: "forwarded", link: linkOfThread(t3, r.pm), code: r.code, asking: linkOfThread(t3, r.thread) };
+  return { kind: r.kind, text: `${text}${viaNote("forwarded", r, now)}`, verb: "asked", age: age(r.forwarded ?? r.at, now), since: r.forwarded ?? r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: "forwarded", link: linkOfThread(t3, r.pm), code: r.code, handle: handleOf(r), asking: linkOfThread(t3, r.thread) };
 }
 
 /** "The PM asks you: …", or "The PM asks you to: …" for something only the user can do. */
@@ -378,7 +380,7 @@ export const askWords = (kind: Request["kind"]): string => (kind === "action" ? 
 
 /** The PM's own request as a need: always on the user's side, pushed at once. */
 export function needOfAsk(r: Request, now: Date, t3: T3, who: string | null = null): Need {
-  return { kind: r.kind === "review" ? "question" : r.kind, text: `${askWords(r.kind)} ${r.text}`, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: null, who, more: 0, by: "pm", link: linkOfThread(t3, r.thread), code: r.code, asking: linkOfThread(t3, r.thread) };
+  return { kind: r.kind === "review" ? "question" : r.kind, text: `${askWords(r.kind)} ${r.text}`, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: null, who, more: 0, by: "pm", link: linkOfThread(t3, r.thread), code: r.code, handle: handleOf(r), asking: linkOfThread(t3, r.thread) };
 }
 
 /** Whether the braid of this item is paused or held (either reason). */

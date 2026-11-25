@@ -26,7 +26,7 @@ const { fetchBranch } = (await load("../../dist/braids/gitbranch.js")) as { fetc
 const { REQUESTS } = (await load("../../dist/braids/requests.js")) as { REQUESTS: object };
 const { readSignals } = (await load("../../dist/board/signals.js")) as { readSignals: (root: string, github: object) => { requests: Map<string, unknown> } };
 
-const codeOf = (out: string): string => /^(q-[a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`);
+const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
 const record = (root: string, code: string) => Rec.loadRecord(root).requests.find((r) => r.code === code) ?? assert.fail(`no ${code}`);
 const file = (root: string, text: string): string => {
   const path = join(dirname(root), `answer-${Math.random().toString(36).slice(2)}.txt`);
@@ -129,9 +129,9 @@ test("an id with two open requests names both codes and changes nothing; withdra
 test("ask --to a braid number and --done-when: stored, shown; a pr: condition is met when its PR merges", () => {
   const w = world();
   const wait = R.askCommand(w.root, ["0001", "Wait for strand A's PR", "--done-when", "pr:#5"]);
-  assert.match(wait, /^q-[a-z0-9]{4} 0001: question request opened \(done when pr:5\): Wait for strand A's PR\nblocks 0001\/A · decide\n$/);
+  assert.match(wait, /^[a-z]+-[a-z]+-[a-z0-9]{4} 0001: question request opened \(done when pr:5\): Wait for strand A's PR\nblocks 0001\/A · decide\n$/);
   const other = R.askCommand(w.root, ["0001/A", "Does 0002 rename the flag?", "--to", "2", "--done-when", "braid:2"]);
-  assert.match(other, /^q-[a-z0-9]{4} 0001\/A: question request to braid 0002 opened \(done when braid:0002\)/);
+  assert.match(other, /^[a-z]+-[a-z]+-[a-z0-9]{4} 0001\/A: question request to braid 0002 opened \(done when braid:0002\)/);
   const later = R.askCommand(w.root, ["0002", "Remind me", "--done-when", "time:2026-12-01T09:00:00+01:00"]);
   assert.match(later, /done when time:2026-12-01T08:00:00\.000Z/);
   assert.deepEqual([record(w.root, codeOf(other)).to, record(w.root, codeOf(other)).doneWhen], ["0002", "braid:0002"]);

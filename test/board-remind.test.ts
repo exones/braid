@@ -21,7 +21,7 @@ const CO2 = "c0002222-aaaa-4bbb-8ccc-333333333333";
 const PM = "pm000000-aaaa-4bbb-8ccc-333333333333";
 const T0 = new Date("2026-11-23T10:00:00.000Z");
 const at = (minutes: number): Date => new Date(T0.getTime() + minutes * 60_000);
-const codeOf = (out: string): string => /^(q-[a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`);
+const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
 const recordOf = (root: string, code: string): any => Rec.loadRecord(root).requests.find((r: any) => r.code === code);
 const FIRST = "Gentle hourly reminder: I'm still waiting for you.";
 

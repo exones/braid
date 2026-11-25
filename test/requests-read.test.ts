@@ -12,7 +12,7 @@ const Rec: any = await load("../../dist/braids/requests.js");
 const { waker }: any = await load("../../dist/board/wake.js");
 
 const ASKER = "22222222-aaaa-4bbb-8ccc-333333333333";
-const codeOf = (out: string): string => /^(q-[a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`);
+const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
 const stateOf = (root: string, code: string): string => Rec.loadRecord(root).requests.find((r: any) => r.code === code).state;
 const list = (root: string): string => {
   const r = spawnSync(process.execPath, [fileURLToPath(new URL("../dist/cli.js", import.meta.url)), "requests"], { encoding: "utf8", cwd: root });

@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, git } from "../braids/gitbranch.js";
-import { actOf, addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { actOf, addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import { readGithub, runGh, type GhRunner, type PullRequest } from "../board/github.js";
@@ -183,7 +183,7 @@ export async function handoverCommand(root: string, args: readonly string[], opt
   const at = (opts.now ?? (() => new Date()))();
   const opened = openRequest(root, { id, kind: "review", text: `review PR #${pr.number} at ${pr.headRefOid.slice(0, 7)}`, at: at.toISOString(), thread, pr: pr.number, head: pr.headRefOid, ...route });
   const recap = await recapCommand(root, [id], { gh: run });
-  return `${notes.map((n) => `${n}\n`).join("")}${opened.code} ${id}: review request ${route.to === "pm" ? "to the PM " : ""}opened for PR #${pr.number} at ${pr.headRefOid}\n${warned(opened.warning)}\n${recap}`;
+  return `${notes.map((n) => `${n}\n`).join("")}${opened.handle} ${id}: review request ${route.to === "pm" ? "to the PM " : ""}opened for PR #${pr.number} at ${pr.headRefOid}\n${warned(opened.warning)}\n${recap}`;
 }
 
 /** Whether the project has this `pm/<slug>` branch, local or on `origin`. */
@@ -240,11 +240,11 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   const at = (opts.now ?? (() => new Date()))();
   const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route, doneWhen });
   if (self) {
-    return `${opened.code} ${id}: timed wait opened, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
+    return `${opened.handle} ${id}: timed wait opened, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
   }
   const gist = unblockLine({ code: opened.code, id, kind: kind as Kind }, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh)));
   const whom = by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : route.to !== undefined ? `to braid ${route.to} ` : "";
-  return `${opened.code} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${gist}\n${warned(opened.warning)}`;
+  return `${opened.handle} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${gist}\n${warned(opened.warning)}`;
 }
 
 const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>|self] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]  (--to self --done-when time:<iso>: a timed wait, nobody asked)';
@@ -287,17 +287,43 @@ function unblockLine(r: Pick<Request, "code" | "id" | "kind">, requests: readonl
   return `${blocked.length === 0 ? "" : `blocks ${blocked.join(", ")} · `}${actOf(r.kind)}`;
 }
 
-/** A request code in any letter case, lower-cased (`Q-L9EN`); null for anything not starting `q-`; a malformed one is refused as not a request code. */
-function codeOf(raw: string, command: string): string | null {
-  if (!/^q-/i.test(raw)) {
+/** A q-code in any letter case, with any punctuation after it (`Q-L9EN.`), lower-cased; null for anything else. */
+function strictCode(raw: string): string | null {
+  const code = raw.trim().toLowerCase().replace(/[^a-z0-9]+$/, "");
+  return CODE.test(code) ? code : null;
+}
+
+/** An item id (`15`, `0015/c`) or a programme (`pm/<slug>`): these keep their meaning, so a suffix of four digits is given as `q-0123` or with its words. */
+const idLike = (raw: string): boolean => /^\d{1,4}(?:\/[A-Za-z])?$/.test(raw) || programmeOf(raw) !== null;
+
+const fail = (message: string): never => {
+  throw new UsageError(message);
+};
+
+/**
+ * The code of the request a name means (src/braids/words.ts `resolveName`): a q-code as given; otherwise the record as
+ * origin has it is read and the handle, the words with the suffix, the suffix (any request) or the words alone (an open
+ * one) looked up, loosely. Several matched: refused with their handles, nothing changed. Null when nothing matched.
+ */
+function codeOf(root: string, raw: string, command: string): string | null {
+  const code = strictCode(raw);
+  if (code !== null) {
+    return code;
+  }
+  fetchBranch(root, REQUESTS);
+  const found = resolveName(raw, loadRecord(root).requests);
+  if (found === null) {
     return null;
   }
-  const code = raw.toLowerCase();
-  if (!CODE.test(code)) {
-    throw new UsageError(`${command}: ${raw} is not a request code (q- and four letters or digits)`);
+  if ("several" in found) {
+    const list = found.several.map((r) => `${handleOf(r)} (${r.id}, ${r.state})`).join(", ");
+    return fail(`${command}: "${raw}" names ${found.several.length} requests: ${list}; give the whole name; nothing changed`);
   }
-  return code;
+  return found.one.code;
 }
+
+/** `codeOf`, refusing a name nothing matched. */
+const namedCode = (root: string, raw: string, command: string): string => codeOf(root, raw, command) ?? fail(`${command}: no request named ${raw}; nothing changed`);
 
 /** The PRs of the project when GitHub can be read, else none: only an item's Done reading needs them. */
 function prsOf(root: string, run: GhRunner): ReadonlyMap<string, PullRequest> {
@@ -306,7 +332,7 @@ function prsOf(root: string, run: GhRunner): ReadonlyMap<string, PullRequest> {
 }
 
 function target(root: string, raw: string, values: Parameters<typeof str>[0], command: string): { code: string; id: string } | { none: string } {
-  const named = codeOf(raw, command);
+  const named = idLike(raw) ? null : namedCode(root, raw, command);
   if (named !== null) {
     if (str(values, "by") !== undefined) {
       throw new UsageError(`${command}: --by is for an id; the code ${raw} names one request`);
@@ -322,7 +348,7 @@ function target(root: string, raw: string, values: Parameters<typeof str>[0], co
   if (open.length > 1) {
     // A question and a wait of one asker are both open: only the code tells them apart.
     const oneAsker = new Set(open.map(askerOf)).size === 1;
-    throw new UsageError(`${id} has ${open.length} open requests: ${[...open].sort((a, b) => Number(askerOf(a) === "pm") - Number(askerOf(b) === "pm")).map((r) => `${r.code} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"}${isWait(r) ? `, waiting on braid ${r.to ?? ""}` : ""})`).join(", ")}; give the code${oneAsker ? "" : ", or --by coordinator|pm"}; nothing changed`);
+    throw new UsageError(`${id} has ${open.length} open requests: ${[...open].sort((a, b) => Number(askerOf(a) === "pm") - Number(askerOf(b) === "pm")).map((r) => `${handleOf(r)} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"}${isWait(r) ? `, waiting on braid ${r.to ?? ""}` : ""})`).join(", ")}; give the code${oneAsker ? "" : ", or --by coordinator|pm"}; nothing changed`);
   }
   const [one] = open;
   if (one !== undefined) {
@@ -332,7 +358,7 @@ function target(root: string, raw: string, values: Parameters<typeof str>[0], co
     itemId(root, id, command);
   }
   const other = by === undefined ? undefined : loadRequests(root).find((r) => r.id === id && askerOf(r) !== by);
-  const hint = other === undefined ? "" : ` (the ${askerOf(other) === "pm" ? "PM's" : "coordinator's"} is open: ${other.code})`;
+  const hint = other === undefined ? "" : ` (the ${askerOf(other) === "pm" ? "PM's" : "coordinator's"} is open: ${handleOf(other)})`;
   return { none: `${id}: no open ${by === "pm" ? "PM " : ""}request${hint}\n` };
 }
 
@@ -344,7 +370,7 @@ function end(root: string, found: { code: string; id: string }, command: string,
   }
   if (!done.ended) {
     const last = closing(done.request);
-    throw new UsageError(`${command}: ${found.code} (${done.request.id}) is already ${done.request.state}${last === null ? "" : ` by ${WHO[last.by] ?? last.by} at ${stamp(last.at)}`}; nothing changed`);
+    throw new UsageError(`${command}: ${handleOf(done.request)} (${done.request.id}) is already ${done.request.state}${last === null ? "" : ` by ${WHO[last.by] ?? last.by} at ${stamp(last.at)}`}; nothing changed`);
   }
   return done;
 }
@@ -367,7 +393,7 @@ function answerText(values: Parameters<typeof str>[0]): string | undefined {
   return text === "" ? undefined : text;
 }
 
-const ANSWER_USAGE = "usage: braid answer <code>|<id>|pm/<slug> [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]";
+const ANSWER_USAGE = "usage: braid answer <name|code>|<id>|pm/<slug> [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]";
 
 /**
  * `braid answer`: records the answer on the request record, with who answered (`--from`, the user by
@@ -397,7 +423,7 @@ export function answerCommand(root: string, _cwd: string, args: readonly string[
     return found.none;
   }
   const done = end(root, found, "braid answer", { state: "answered", who: from, ...(text === undefined ? {} : { text }), ...(reason === undefined ? {} : { reason }) });
-  return `${found.code} ${done.request.id}: answered by ${WHO[from]}${text === undefined ? "" : `: ${oneLine(text)}`}\n${warned(done.warning)}`;
+  return `${handleOf(done.request)} ${done.request.id}: answered by ${WHO[from]}${text === undefined ? "" : `: ${oneLine(text)}`}\n${warned(done.warning)}`;
 }
 
 /** `braid withdraw <code>|<id> --why <reason>`: the asker no longer needs it; it stays on the record as withdrawn. */
@@ -405,19 +431,19 @@ export function withdrawCommand(root: string, args: readonly string[]): string {
   const { positionals, values } = parse("braid withdraw", args, { why: { type: "string" }, by: { type: "string" } });
   const why = str(values, "why")?.replace(/\s+/g, " ").trim();
   if (positionals.length !== 1 || why === undefined || why === "") {
-    throw new UsageError("usage: braid withdraw <code>|<id>|pm/<slug> --why <reason> [--by coordinator|pm]");
+    throw new UsageError("usage: braid withdraw <name|code>|<id>|pm/<slug> --why <reason> [--by coordinator|pm]");
   }
   const found = target(root, positionals[0] ?? "", values, "braid withdraw");
   if ("none" in found) {
     return found.none;
   }
   const done = end(root, found, "braid withdraw", (r) => ({ state: "withdrawn", who: askerOf(r), text: why }));
-  return `${found.code} ${done.request.id}: withdrawn: ${why}\n${warned(done.warning)}`;
+  return `${handleOf(done.request)} ${done.request.id}: withdrawn: ${why}\n${warned(done.warning)}`;
 }
 
 const oneLine = (text: string): string => text.replace(/\s+/g, " ").trim();
 
-const ETA_USAGE = 'usage: braid eta <code> <duration|time> ["<why>"] [--by coordinator|pm]  (a duration: 2h, 90m, 1h30m, 2d; a time: 16:30, or 2026-11-24T09:00)';
+const ETA_USAGE = 'usage: braid eta <name|code> <duration|time> ["<why>"] [--by coordinator|pm]  (a duration: 2h, 90m, 1h30m, 2d; a time: 16:30, or 2026-11-24T09:00)';
 
 /**
  * When an estimate given as `2h`, `90m`, `1h30m`, `2d` (from now), `16:30` (today, or tomorrow once it has passed)
@@ -467,10 +493,7 @@ export function etaCommand(root: string, args: readonly string[], opts: RequestO
   if (given === undefined || raw === undefined || rest.length > 1) {
     throw new UsageError(ETA_USAGE);
   }
-  const code = codeOf(given, "braid eta");
-  if (code === null) {
-    throw new UsageError(`braid eta: ${given} is not a request code (q- and four letters or digits)`);
-  }
+  const code = idLike(given) ? fail(`braid eta: ${given} is an item; give the request's name or code (yellow-bear-5asx, 5asx or q-5asx)`) : namedCode(root, given, "braid eta");
   const now = (opts.now ?? (() => new Date()))();
   const at = etaAt(raw, now);
   if (at === null) {
@@ -492,11 +515,11 @@ export function etaCommand(root: string, args: readonly string[], opts: RequestO
   const r = done.request;
   if (!done.added) {
     const last = closing(r);
-    throw new UsageError(`braid eta: ${code} is ${r.state}${last === null ? "" : ` (closed ${stamp(last.at)})`}; an estimate is only for an open request; nothing changed`);
+    throw new UsageError(`braid eta: ${handleOf(r)} is ${r.state}${last === null ? "" : ` (closed ${stamp(last.at)})`}; an estimate is only for an open request; nothing changed`);
   }
   const before = was?.eta ?? null;
   const whom = whomOf(r).trim();
-  return `${code} (${r.id}${whom === "" ? "" : `, ${whom}`}): expected by ${clock(at, now)} (${inSpan(Date.parse(at) - now.getTime())})${before === null || before === at ? "" : `; was ${clock(before, now)}`}\n${warned(done.warning)}`;
+  return `${handleOf(r)} (${r.id}${whom === "" ? "" : `, ${whom}`}): expected by ${clock(at, now)} (${inSpan(Date.parse(at) - now.getTime())})${before === null || before === at ? "" : `; was ${clock(before, now)}`}\n${warned(done.warning)}`;
 }
 
 /** Whom a request is for, as `braid requests` says it. */
@@ -521,7 +544,7 @@ function history(r: Request, unblocks: string): string {
     ...(r.eta === null ? [] : [`eta ${r.eta}`]),
   ];
   const events = r.events.map((e) => `${stamp(e.at)}  ${e.event.padEnd(9)}  ${whoOf(r, e.event, e.by)}${e.text === undefined ? "" : `: ${oneLine(e.text)}`}${e.reason === undefined ? "" : ` (reason: ${e.reason})`}`);
-  return `${r.code}  ${r.id}  ${r.kind}  ${r.state}${r.state === "open" && !isTimedWait(r) ? `  ${unblocks}` : ""}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
+  return `${handleOf(r)}  ${r.id}  ${r.kind}  ${r.state}${r.state === "open" && !isTimedWait(r) ? `  ${unblocks}` : ""}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
 }
 
 /** One closed request on a line: code, item, kind, state, when, who, the request, and the answer or reason. */
@@ -529,21 +552,20 @@ function closedLine(r: Request): string {
   const last = closing(r);
   const said = last?.text === undefined ? "" : ` -> ${oneLine(last.text)}`;
   const reason = last?.reason === undefined ? "" : ` (reason: ${last.reason})`;
-  return `${r.code}  ${r.id}  ${r.kind}  ${r.state}  ${last === null ? "" : `${stamp(last.at)}  by ${WHO[last.by] ?? last.by}`}  ${r.text}${said}${reason}`;
+  return `${handleOf(r)}  ${r.id}  ${r.kind}  ${r.state}  ${last === null ? "" : `${stamp(last.at)}  by ${WHO[last.by] ?? last.by}`}  ${r.text}${said}${reason}`;
 }
 
-const REQUESTS_USAGE = "usage: braid requests [<code>] [--closed [--since <YYYY-MM-DD>]]";
+const REQUESTS_USAGE = "usage: braid requests [<name|code>] [--closed [--since <YYYY-MM-DD>]]";
 
 export function requestsCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid requests", args, { closed: { type: "boolean" }, since: { type: "string" } });
   const given = positionals[0];
-  const code = given === undefined ? undefined : codeOf(given, "braid requests");
   const closed = values["closed"] === true;
   const since = str(values, "since");
-  if (given !== undefined && code === null) {
-    throw new UsageError(`braid requests: ${given} is not a request code (q- and four letters or digits)`);
+  if (given !== undefined && idLike(given)) {
+    throw new UsageError(`braid requests: ${given} is an item; give the request's name or code (yellow-bear-5asx, 5asx or q-5asx)`);
   }
-  if (positionals.length > 1 || (code !== undefined && closed) || (since !== undefined && !closed)) {
+  if (positionals.length > 1 || (given !== undefined && closed) || (since !== undefined && !closed)) {
     throw new UsageError(REQUESTS_USAGE);
   }
   if (since !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(since)) {
@@ -556,10 +578,11 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
     loadRecord(root)
       .problems.map((p) => `warning: skipped ${p.file}: ${p.message}\n`)
       .join("");
-  if (code !== undefined) {
+  if (given !== undefined) {
+    const code = codeOf(root, given, "braid requests");
     const r = loadRecord(root).requests.find((x) => x.code === code);
     if (r === undefined) {
-      throw new UsageError(`no request ${code} on ${REQUESTS.branch}`);
+      throw new UsageError(`no request ${code ?? `named ${given}`} on ${REQUESTS.branch}`);
     }
     return `${offline}${history(r, unblockLine(r, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh))))}`;
   }
@@ -595,5 +618,5 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
   const eta = (r: Request): string => (r.eta === null ? "" : `expected by ${clock(r.eta, now)}  `);
   // A condition that holds is still open: only the running board's tick closes it (and wakes the asker).
   const holds = (r: Request): string => (ends.get(r.code)?.state === "met" ? "condition holds: the board wakes the asker  " : ends.has(r.code) ? "condition holds: the board withdraws it  " : "");
-  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${age(r.at, now)}  ${isTimedWait(r) ? "" : `${unblockLine(r, list, braids)}  `}${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}`).join("\n")}\n`;
+  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${age(r.at, now)}  ${isTimedWait(r) ? "" : `${unblockLine(r, list, braids)}  `}${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}`).join("\n")}\n`;
 }

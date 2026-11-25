@@ -12,7 +12,7 @@ import { braidAt } from "../braids/branches.js";
 import { gitAsync } from "../braids/gitio.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import type { PullRequest } from "./github.js";
-import { conditionEnding, endRequest, loadRecord, programmeOf, type Ending, type Request } from "../braids/requests.js";
+import { conditionEnding, endRequest, handleOf, loadRecord, programmeOf, type Ending, type Request } from "../braids/requests.js";
 import type { PlanRead } from "./plans.js";
 import type { Good } from "./feed.js";
 import { prOf } from "./signals.js";
@@ -40,9 +40,9 @@ const askingBraid = (r: Pick<Request, "id">): string | null => /^(\d{4})(?:\/|$)
 export const safeText = (text: string): string => text.replace(/["%^&|<>!\r\n]+/g, " ").replace(/\s+/g, " ").trim().replace(/[.\s]+$/, "");
 
 /** What the asking thread is sent. */
-export function wakeMessage(r: Pick<Request, "code" | "text">, e: Ending): string {
+export function wakeMessage(r: Pick<Request, "code" | "words" | "text">, e: Ending): string {
   const text = safeText(r.text);
-  return `Wake: ${r.code} is met (${e.text ?? "its condition holds"}): ${text}. Go on where you left off.`;
+  return `Wake: ${handleOf(r)} is met (${e.text ?? "its condition holds"}): ${text}. Go on where you left off.`;
 }
 
 /** Whether a request on a programme item (`pm/<slug>`) belongs to a held or paused programme: the plan is held, or every braid of it still open is held or paused. */

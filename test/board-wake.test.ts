@@ -15,7 +15,7 @@ const { steerer }: any = await load("../../dist/board/steerer.js");
 
 const ASKER = "22222222-aaaa-4bbb-8ccc-333333333333";
 const NOW = new Date("2026-11-23T12:00:00.000Z");
-const codeOf = (out: string): string => /^(q-[a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`);
+const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
 const recordOf = (root: string, code: string): any => Rec.loadRecord(root).requests.find((r: any) => r.code === code);
 
 /** A board's good read, as far as the wake reads it. */
