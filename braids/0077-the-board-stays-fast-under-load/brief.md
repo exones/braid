@@ -19,6 +19,7 @@ What a user can try at the end: start two gates at once (two worktrees, `braid g
 
 - A: one git runner, with the main checkout and repo name cached per root (part of idea 2026-11-24-l7dw).
 - B: no synchronous git or gh calls left in the board process, on the request path or in the refresh (z45n, leftover 2026-11-23-5bor).
+- G: the board reads `braids/` without blocking (added from 0077/B's profile).
 - C: the probe (`braid board --url`, `braid board service status`) tolerates a busy machine.
 - D: at most two gates at once per machine (5p1e), `braid gate`.
 - E: the programme card's running count (1r0o).

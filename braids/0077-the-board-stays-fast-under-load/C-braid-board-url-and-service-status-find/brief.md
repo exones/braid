@@ -3,7 +3,7 @@ id: '0077/C'
 title: "braid board --url and service status find a busy board"
 status: To Do
 labels: ["kind:story", "tier:S"]
-dependencies: ['0077/B']
+dependencies: ['0077/G']
 order: 30
 ---
 
