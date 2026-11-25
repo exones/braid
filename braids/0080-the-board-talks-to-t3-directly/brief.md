@@ -11,7 +11,7 @@ autonomy: free
 
 ## Goal
 
-Programme pm/autonomous-dev-machine, row P27 (idea 2026-11-25-c92g, the T3 v0.1.10-0.1.12 review; idea 2026-11-25-t4oj). Today the board knows T3 only through the `t3` CLI: `thread list`, `thread show`, `thread start` and `thread send`, which queues a message behind a busy turn and can't stop anything. So a hold or a limit pause reaches a working thread only when its turn ends, and never its delegated children (idea 2026-11-25-b1yb: about 10 threads went on working after every coordinator said "held"); and the board learns that a turn ended only at its next 30 s poll. This braid signs the board in to T3's MCP at "Supervised" so it can stop threads, children included, and hear T3's events; it shows why a thread failed; and PM and coordinator threads are launched with auto-settle off.
+Programme pm/autonomous-dev-machine, row P27 (idea 2026-11-25-c92g, the T3 v0.1.10-0.1.12 review; idea 2026-11-25-t4oj). Today the board knows T3 only through the `t3` CLI: `thread list`, `thread show`, `thread start` and `thread send`, which queues a message behind a busy turn and can't stop anything. So a hold or a limit pause reaches a working thread only when its turn ends, and never its delegated children (idea 2026-11-25-b1yb: about 10 threads went on working after every coordinator said "held"); and the board learns that a turn ended only at its next 30 s poll. This braid signs the board in to T3's MCP (at Full access, the user's decision after 0080/A) so it can stop threads, children included, and hear T3's events; it shows why a thread failed; and PM and coordinator threads are launched with auto-settle off.
 
 What a user can try at the end: sign the board in once; Hold stops every thread of a programme at once, children included; Resume after a T3 restart gets through; the board reacts to a finished turn within seconds; a failed thread's card says why it failed.
 
@@ -46,7 +46,7 @@ A PM helper ran the row's first strand on 2026-11-25 on scratch threads only; it
 ## Already decided
 
 - The user, 2026-11-25: "A. Go for it" (the board connects to T3). "If it's unclear, don't absorb anything, I withdraw": nothing else is absorbed into the sign-in.
-- The board signs in to T3's MCP at "Supervised" (the user's "B: a and explain how board would do it", 2026-11-25). The token goes through the host's secret store only, never files, logs or chat. A security case: the user is asked before the sign-in is built, so 0080/A ends with a report and the user's decision, and 0080/D builds only what was approved.
+- The board signs in to T3's MCP (the user's "B: a and explain how board would do it", 2026-11-25), first planned at "Supervised". After 0080/A showed that T3 refuses an OAuth client acting on a thread that runs above its level, and braid's threads run at the project default (some at Full access), the user chose Full access (q-b146: "Full Access if it's not worse than what we have now", and "ok" to `@napi-rs/keyring`); the PM's conditions are in 0080/D. The token goes through the host's secret store only, never files, logs or chat. A security case: the user is asked before the sign-in is built, so 0080/A ends with a report and the user's decision, and 0080/D builds only what was approved.
 - Events: "C. Would be great to first test on some mock, and if it holds, implement". 0080/B tests on the mock; 0080/F goes live only after the sign-in works; if events don't hold, the board keeps polling.
 - "D. Ok, add": PM and coordinator threads launched with auto-settle off, a skill line the user agreed to (0080/G). It merges with the final PR, the user's merge.
 - "E. Needs checking" (the limit clash: checked in the first pass, fixed in 0080/E) and "G add" (show why a thread failed: 0080/C).
@@ -69,12 +69,12 @@ A PM helper ran the row's first strand on 2026-11-25 on scratch threads only; it
 
 ## Working at the end
 
-The user signs the board in to T3 once, at Supervised; the token lives in the OS secret store and the board warns before the 30-day sign-in ends. A hold or a limit pause stops every working thread of its braids at once, delegated children included, and a resume gets through after a T3 restart. Signed in, the board refreshes within seconds of a finished turn, a question or a PR wake, and reads everything again after a gap. A failed thread's card says why. PM and coordinator threads don't auto-settle.
+The user signs the board in to T3 once, at Full access; the token lives in the OS secret store and the board warns before the 30-day sign-in ends. A hold or a limit pause stops every working thread of its braids at once, delegated children included, and a resume gets through after a T3 restart. Signed in, the board refreshes within seconds of a finished turn, a question or a PR wake, and reads everything again after a gap. A failed thread's card says why. PM and coordinator threads don't auto-settle.
 
 ## Completion
 
 - [ ] The user approved the sign-in design (0080/A) before it was built
-- [ ] The board signs in at Supervised, keeps the token only in the OS secret store and warns before expiry; signed out it works as before (0080/D)
+- [ ] The board signs in at Full access (the user's q-b146), keeps the token only in the OS secret store and warns before expiry; signed out it works as before (0080/D)
 - [ ] Hold and a limit pause stop running threads and their delegated children; a thread whose last run failed on `usage_limit` counts as paused (0080/E)
 - [ ] Signed in, the board refreshes on T3 events, reads everything after `truncated`, and keeps a slow full read (0080/F)
 - [ ] Stalled cards say why a thread failed (0080/C)
