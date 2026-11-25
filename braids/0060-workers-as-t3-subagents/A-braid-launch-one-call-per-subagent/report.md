@@ -7,7 +7,7 @@
 - `braid launch <id> --role <role> --child <thread id>` records the child through `recordChild`, now shared with `braid review` (extracted from `reviewCommand`, same output, same folder and branch from T3). `ReviewRecord` has an optional `role`; `review` records stay without one, and a record without one reads as `review` (`childRole`).
 - `ModelLine` gained `options` (`effort=high, fastMode=false` becomes `{effort: "high", fastMode: false}`), parsed from the BRAID.md line.
 - The reviewer's message takes the PR url and head from `gh pr view` of `--pr <n>`; the researcher's takes `--question`. Messages follow the skill's templates, with the worker's gaining the switch-the-checkout line, `parentThreadId` and the final `PR <url>, head <sha>, checks <state>` line.
-- Docs: `docs/cli.md` (start, new launch rows, review), `docs/braids-format.md` (the record's `role`), `braid help`.
+- Docs: `docs/cli.md` (start, new launch rows, review), `docs/braids-format.md` (`braid start --no-worktree`, which reuses an existing branch instead of refusing, and the record's `role`), `braid help`.
 
 **Why**: the launch prose becomes two calls that fail loudly (limits, branch, model, title) instead of steps the coordinator must remember.
 
