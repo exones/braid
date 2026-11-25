@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 7
 state: running
 hold:
-next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24 · 0077, P15 · 0078, P27, P28 · 0079 (merge order 0074, 0072, 0060, 0077, 0078, P27; P28 report any time); then P25 (after 0072), P5, P26"
+next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24 · 0077, P15 · 0078, P27 · 0080, P28 · 0079 (merge order 0074, 0072, 0060, 0077, 0078, P27; P28 report any time); then P25 (after 0072), P5, P26"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -18,7 +18,7 @@ rows:
   - P20 | 0073 | braid on large repos: CI per PR, merge gate, merge preconditions, path-scoped gates | done
   - P22 | 0075 | Lifecycle off the code branches, one pure lane | done
   - P21 | 0074 | The board pauses and resumes reliably | running
-  - P27 | - | The board talks to T3 directly | running
+  - P27 | 0080 | The board talks to T3 directly | running
   - P25 | - | The Questions panel | planned
   - P24 | 0077 | The board stays fast under load | running
   - P4 | 0072 | Questions say what they unblock | running
@@ -158,6 +158,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-25: P27 is 0080; PM approved its plan (q-9pwn): A sign-in spike (security, for the user before D), B MCP client + events reader on the mock, C why a thread failed (ui, mockups), D sign-in (after A), E Hold/Resume steer (after 0074), F events (after 0077), G auto-settle off (no agent-callable switch in v0.1.12: comes back if absent), H docs. T3 sources kept in ~/.braid/artifacts (not the public repo).
 - 2026-11-25: P28 is 0079; PM approved its plan (q-lcsx): one spike story, tier M, 4 h box, read-only (no Labs switch or workflow on the user's T3).
 - 2026-11-25 ~22:00: user: "I still have a lot of usage which will reset by morning ... add something for the night": P27 (early: plan and the strands that don't touch 0074/0077 files; steering after 0074) and P28 (research spike) launched; limit 7. Limits: Claude session 7%, weekly 72% (resets 07:00).
 - 2026-11-25: P27 first-pass tests done (stop cascade with stop:true holds, events need OAuth, limit clash narrow); results in P27's row; events mock kept at ~/.braid/artifacts/braid/p27-t3-tests.
