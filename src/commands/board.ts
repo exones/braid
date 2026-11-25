@@ -1,4 +1,5 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -183,7 +184,7 @@ export interface GitResult {
 /** Runs `git` in a folder; Start's fetch and branch checks go through it. */
 export type GitRunner = (root: string, args: readonly string[]) => GitResult;
 export const runGit: GitRunner = (root, args) => {
-  const r = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: 60_000 });
+  const r = gitSync(root, args, { timeout: 60_000 });
   return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr || r.error?.message || "" };
 };
 

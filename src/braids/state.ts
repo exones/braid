@@ -1,17 +1,10 @@
 // braid's local state in the main checkout's `.braid/` (found from any worktree), and the lock its writers take turns with.
-import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, mkdirSync, openSync, statSync, unlinkSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
+import { mainCheckout } from "./repo.js";
 
-/** The main checkout's folder, also from inside a worktree. */
-export function mainCheckout(root: string): string {
-  const r = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" });
-  if (r.status !== 0) {
-    throw new Error(`can't read the repository: ${(r.stderr || "").trim()}`);
-  }
-  const dir = resolve(root, r.stdout.trim());
-  return basename(dir) === ".git" ? dirname(dir) : dir;
-}
+export { mainCheckout };
+
 
 /** The folder of braid's local state in the main checkout, created with a `.gitignore` of its own so it never shows as untracked, whether or not the project ignores it. */
 export function ensureStateDir(dir: string): void {

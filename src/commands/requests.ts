@@ -1,6 +1,6 @@
 // `braid handover`, `braid ask`, `braid answer`, `braid withdraw` and `braid requests`: the coordinator
 // records that it needs someone (a request), and closes it again. The record is src/braids/requests.ts.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, git } from "../braids/gitbranch.js";
@@ -187,7 +187,7 @@ export async function handoverCommand(root: string, args: readonly string[], opt
 
 /** Whether the project has this `pm/<slug>` branch, local or on `origin`. */
 function programmeBranch(root: string, slug: string): boolean {
-  return ["refs/heads", "refs/remotes/origin"].some((ns) => spawnSync("git", ["rev-parse", "--verify", "--quiet", `${ns}/pm/${slug}`], { cwd: root }).status === 0);
+  return ["refs/heads", "refs/remotes/origin"].some((ns) => gitSync(root, ["rev-parse", "--verify", "--quiet", `${ns}/pm/${slug}`]).status === 0);
 }
 
 /** `--by coordinator|pm`: who asks. A programme id (`pm/<slug>`) is always the PM's. */

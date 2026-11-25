@@ -1,9 +1,8 @@
 // Live copies: a braid or strand being worked on lives on its own branch, so its brief there
 // is newer than the copy in the working tree. Branch names (docs/braids-format.md):
 // `braid/0006-<slug>` for a braid and `braid/0006/A-<slug>` for a strand, local or on a remote.
-import { spawnSync } from "node:child_process";
 import { FormatError } from "./frontmatter.js";
-import { catBatch, catBatchSync, gitAsync, noteSyncGit, type GitOut } from "./gitio.js";
+import { catBatch, catBatchSync, gitAsync, gitSync, type GitOut } from "./gitio.js";
 import {
   BRAID_FOLDER,
   byRunOrder,
@@ -24,12 +23,7 @@ export const BRAID_BRANCH = /^braid\/(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const STRAND_BRANCH = /^braid\/(\d{4})\/([A-Z])-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function git(root: string, args: readonly string[]) {
-  noteSyncGit(args);
-  return spawnSync("git", ["-c", "core.quotePath=false", ...args], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-  });
+  return gitSync(root, args, { maxBuffer: 256 * 1024 * 1024 });
 }
 
 /** A braid or strand branch, local or remote-tracking. */

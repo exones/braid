@@ -3,11 +3,12 @@
 // running thread whose worktree braid created for it (`braid start`, the worker), or a running thread recorded with `braid review`
 // (the reviewer, a coordinator's subagent, which `thread list` doesn't show); any other thread, a coordinator's included, is not an
 // agent of any item.
-import { execFile, spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
+import { mainCheckout as baseMainCheckout } from "../braids/repo.js";
 import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { itemOfFolder, repoNameOf } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
@@ -119,11 +120,13 @@ const str = (v: unknown): string | null => (typeof v === "string" && v !== "" ? 
 
 const norm = (p: string): string => resolve(p).replaceAll("\\", "/").toLowerCase();
 
-/** The main checkout: the first entry of `git worktree list`, which T3 knows as the project. */
+/** The main checkout, which T3 knows as the project; `root` itself when it is not in a repository. Cached per root. */
 export function mainCheckout(root: string): string {
-  const r = spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: root, encoding: "utf8" });
-  const first = r.status === 0 ? r.stdout.split("\n").find((l) => l.startsWith("worktree ")) : undefined;
-  return first === undefined ? root : first.slice(9).trim();
+  try {
+    return baseMainCheckout(root);
+  } catch {
+    return root;
+  }
 }
 
 /** What `t3 thread show <id> --json` says of a thread. */
