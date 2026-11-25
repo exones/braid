@@ -1,7 +1,7 @@
 ---
 id: '0078'
 title: "Sweep: 0040 leftovers and a flaky test"
-status: To Do
+status: In Progress
 labels: ["kind:task", "tier:M", "sweep"]
 dependencies: []
 related: ['0060', '0072', '0074']
@@ -30,6 +30,7 @@ Each was checked against `main` at 90c3d68 (2026-11-25); all are still open ther
 - 2026-11-23-cbe9 (PR #263): when one merge leaves the PM's group of merges waiting for the user, the board resends the group push under the same sequence id, and the phone alerts again for a shrinking list (src/notify/message.ts:135-152, src/notify/notifier.ts); a shrink-only update should be quiet. → 0078/G.
 - 2026-11-23-cft5 (PR #263): a stored Done whose PR lookup missed, its review with the PM or forwarded under a programme, reads In Progress on the card where docs/board.md:27 (lane rule 1) says To Do (src/board/model.ts: derive, heldReview). → 0078/G.
 - 2026-11-23-mchu (PR #263): `braid notify send` without `--programme` uses the sequence id `braid-<repo>-pm---send` (src/commands/notify.ts:68, `pm/${slug ?? "-"}#send`). → 0078/C.
+- 2026-11-25-2hkx (0072/A, PR #313), added at the PM's request after the plan (2026-11-25): the two multi-process lock tests in test/requests.test.ts fail every loaded local gate on this machine while CI passes them. → 0078/J, run first.
 - 2026-11-24-vwv0 (idea, Fable's review), the part moved here by the user's "a" (2026-11-25): docs/decisions.md is 121 KB with supersession chains inside table cells and a dated log restating the rows; split it into current rules and history; per-braid decision ids end the number clashes (D100/D101 between 0071 and 0073 needed 0073/H). → 0078/H.
 
 ## Already decided

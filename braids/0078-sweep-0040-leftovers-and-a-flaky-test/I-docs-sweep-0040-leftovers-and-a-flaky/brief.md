@@ -3,7 +3,7 @@ id: '0078/I'
 title: "Docs: Sweep: 0040 leftovers and a flaky test"
 status: To Do
 labels: ["kind:task", "tier:S"]
-dependencies: ['0078/A', '0078/B', '0078/C', '0078/D', '0078/E', '0078/F', '0078/G', '0078/H']
+dependencies: ['0078/A', '0078/B', '0078/C', '0078/D', '0078/E', '0078/F', '0078/G', '0078/H', '0078/J']
 order: 90
 ---
 
