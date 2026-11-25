@@ -4,8 +4,8 @@ title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 2
-state: running
-hold:
+state: held
+hold: 2026-11-25T15:20Z T3 restart: the user holds everything at a clean point
 next: "running: P21 · 0074, P4 · 0072, P8 · 0060 (merge order 0074, 0072, 0060); then P25 (Questions panel, after 0072), P24 (board speed), P5"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
@@ -152,6 +152,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-25 ~15:20Z: hold from the user for a T3 restart ("hold at the clean point... I restart T3 and then we restart"): 0074, 0072, 0060 held (braid pause --hold), coordinators told to stop workers at a safe point; the dctl-studio and SFIL PMs and everix 0004 told the same. Also: the user set NODE_OPTIONS=--max-old-space-size=8192 and Defender exclusions for the work folders.
 - 2026-11-25: new P25 · The Questions panel, by the user ("1. b, but on the right and a bit wider, collapsible; 2. a; 3. a"): a ranked cross-project question list on the right, answered in place; takes in P17; next slot after 0072 merges, ahead of P24 and P5.
 - 2026-11-25: 8l01 (pronounceable question codes for voice typing) taken into running P4 · 0072, beside nq6c.
 - 2026-11-25: s5o8 (the user closes a finished programme; a Finished group on the panel) taken into P5, beside its Hold and Go actions.
