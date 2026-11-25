@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>braid board – blind chip and rounded percents (0074/E mockups)</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--track:#e2e8f0;--tick:#334155;--code:#eef0f5;
+ --okb:#e2e8f0;--okbg:#fff;--okfill:#94a3b8;
+ --nearb:#fcd34d;--nearbg:#fffbeb;--nearfill:#d97706;
+ --overb:#fca5a5;--overbg:#fef2f2;--overfg:#7f1d1d;--overfill:#dc2626;
+ --skyb:#7dd3fc;--skybg:#f0f9ff;--skyfg:#0c4a6e;--skyfill:#0284c7;
+ --dashb:#cbd5e1;--dashfg:#64748b;
+ --blindb:#c2410c;--blindbg:#ffedd5;--blindfg:#7c2d12;}
+.dark{--bg:#14171f;--card:#1d222d;--ink:#e6e9f0;--mut:#98a1b5;--line:#2c3342;--track:#2c3342;--tick:#cbd5e1;--code:#2a3040;
+ --okb:#2c3342;--okbg:#1d222d;--okfill:#64748b;
+ --nearb:#92400e;--nearbg:#3a2a0c;--nearfill:#f59e0b;
+ --overb:#991b1b;--overbg:#3b1414;--overfg:#fecaca;--overfill:#ef4444;
+ --skyb:#0369a1;--skybg:#0c2a3d;--skyfg:#bae6fd;--skyfill:#38bdf8;
+ --dashb:#3b4457;--dashfg:#98a1b5;
+ --blindb:#fb923c;--blindbg:#431407;--blindfg:#fed7aa;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#e9ebf0;color:#1d2330;padding:20px}
+h1{font-size:20px;margin-bottom:4px}
+.lead{max-width:110ch;color:#4b5263;margin-bottom:12px}
+code{font:12px ui-monospace,Consolas,monospace;background:#dfe3ea;padding:0 4px;border-radius:4px}
+.theme code{background:var(--code)}
+section{margin:22px 0 8px}
+section>h2{font-size:15px;margin-bottom:2px}
+section>p.n{max-width:110ch;color:#4b5263;font-size:13px;margin-bottom:10px}
+.pair{display:grid;grid-template-columns:1fr;gap:12px}
+.theme{background:var(--bg);color:var(--ink);border-radius:12px;padding:16px;position:relative}
+.theme>.tag{position:absolute;top:8px;right:12px;font-size:11px;color:var(--mut)}
+.hdr{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.lbl{font-size:11px;color:var(--mut);margin:10px 0 2px}
+.chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border-radius:8px;border:1px solid var(--okb);background:var(--okbg);padding:2px 8px;font-size:12px;color:var(--ink)}
+.chip .m{display:flex;flex-direction:column;gap:2px}
+.chip .mt{display:flex;align-items:center;gap:4px;width:64px;font-size:10px;color:var(--mut)}
+.chip .tr{position:relative;flex:1;height:5px;background:var(--track);border-radius:2px}
+.chip .tr i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--okfill)}
+.chip .tr u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--tick);border-radius:1px}
+.chip .mt span{min-width:26px;text-align:right;font-variant-numeric:tabular-nums}
+.chip .nt{font-size:11px}
+.chip.near{border-color:var(--nearb);background:var(--nearbg)}.chip.near .tr i{background:var(--nearfill)}
+.chip.over{border-color:var(--overb);background:var(--overbg);color:var(--overfg)}.chip.over .tr i{background:var(--overfill)}
+.chip.paused{border-color:var(--skyb);background:var(--skybg);color:var(--skyfg)}.chip.paused .tr i{background:var(--skyfill)}
+.chip.dash{border-style:dashed;border-color:var(--dashb);color:var(--dashfg)}
+.chip.blind{border:2px solid var(--blindb);background:var(--blindbg);color:var(--blindfg);font-weight:600;padding:1px 7px}
+.chip.blind .nt{font-weight:600}
+.chip.blind .ic{font-size:13px}
+.tip{display:inline-block;margin-top:6px;background:#1d2330;color:#fff;font-size:12px;border-radius:4px;padding:3px 8px;max-width:60ch}
+.dark .tip{background:#e6e9f0;color:#14171f}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;max-width:420px;font-size:13px}
+.panel .ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge{border-radius:999px;padding:0 8px;font-size:11px;font-weight:600}
+.b-paused{background:#e0f2fe;color:#075985}.dark .b-paused{background:#0c2a3d;color:#bae6fd}
+.b-blind{background:var(--blindbg);color:var(--blindfg);border:1px solid var(--blindb)}
+.wr{display:grid;grid-template-columns:92px 1fr 44px;gap:8px;align-items:center;margin-top:6px;font-size:12px}
+.wr .tr{position:relative;height:7px;background:var(--track);border-radius:3px}.wr .tr i{position:absolute;inset:0 auto 0 0;background:var(--skyfill);border-radius:3px}.wr .tr u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--tick)}
+.wr .p{text-align:right;font-variant-numeric:tabular-nums}
+.sub{font-size:11px;color:var(--mut)}
+.note{margin-top:8px;border-left:3px solid var(--blindb);background:var(--blindbg);color:var(--blindfg);border-radius:6px;padding:4px 8px;font-size:12px}
+.strip{display:flex;gap:6px;overflow-x:auto;padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:8px;max-width:390px}
+pre.msg{white-space:pre-wrap;font:12px/1.45 ui-monospace,Consolas,monospace;background:var(--code);border-radius:6px;padding:8px;max-width:70ch;margin-bottom:10px}
+.cli{background:#0f172a;color:#e2e8f0;border-radius:8px;padding:10px 12px;font:12.5px/1.5 ui-monospace,Consolas,monospace;white-space:pre;overflow-x:auto}
+.cli b{color:#7dd3fc;font-weight:normal}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+</style></head>
+<body>
+<h1>Blind chip and rounded percents — 0074/E mockups</h1>
+<p class="lead">Context: on 2026-11-25 T3's provider caches stopped updating after a process kill; the board read that as a quiet grey “unknown” and nothing paused at a threshold. Item E makes it loud: a provider that is in use and has had no usable reading for over 30 minutes (for a reason other than “unsupported”) gets a <b>blind</b> chip, plus one push per provider and blind spell. It also rounds every percent shown to a whole number (cursor sends 67.560833…). Test data: project <code>braid</code>, now 07:52, providers <code>Claude_Everix</code>, <code>codex</code>, <code>cursor</code>. Light above, dark below. Hover texts are drawn as dark tooltips.</p>
+<div id="cases"></div>
+
+<template id="tpl">
+<section>
+<h2>1 · The blind chip next to today's chips</h2>
+<p class="n">Today's six states, left to right: ok, near (pale amber), over (red), paused (sky), unknown (dashed), unmeasured (dashed). The blind chip is the only one with a <b>thick orange border</b>, a ⚠ and bold text, so it can't be mistaken for near. It reads “⚠ blind since 00:31” (when the cache last updated); the reason and the fix are in the tooltip and the panel. Here codex is blind: its cache stopped at 00:31, 7 h 21 min ago.</p>
+<div class="theme T"><span class="tag">THEME</span>
+<div class="lbl">Today</div>
+<div class="hdr">
+ <span class="chip"><b>Claude_Everix</b><span class="m"><span class="mt">S<span class="tr"><i style="width:34%"></i><u style="left:90%"></u></span><span>34%</span></span><span class="mt">W<span class="tr"><i style="width:52%"></i><u style="left:90%"></u></span><span>52%</span></span></span></span>
+ <span class="chip near"><b>Claude_Everix</b><span class="m"><span class="mt">S<span class="tr"><i style="width:81%"></i><u style="left:90%"></u></span><span>81%</span></span><span class="mt">W<span class="tr"><i style="width:52%"></i><u style="left:90%"></u></span><span>52%</span></span></span></span>
+ <span class="chip over"><b>Claude_Everix</b><span class="m"><span class="mt">S<span class="tr"><i style="width:92%"></i><u style="left:90%"></u></span><span>92%</span></span><span class="mt">W<span class="tr"><i style="width:52%"></i><u style="left:90%"></u></span><span>52%</span></span></span><span class="nt">over</span></span>
+ <span class="chip paused"><b>Claude_Everix</b><span class="m"><span class="mt">S<span class="tr"><i style="width:92%"></i><u style="left:90%"></u></span><span>92%</span></span><span class="mt">W<span class="tr"><i style="width:52%"></i><u style="left:90%"></u></span><span>52%</span></span></span><span class="nt">paused · resumes 21:05</span></span>
+ <span class="chip dash"><b>codex</b><span class="nt">no reading for 12 min</span></span>
+ <span class="chip dash"><b>cursor</b><span class="nt">not measured</span></span>
+</div>
+<div class="lbl">New: blind (codex, in place of its unknown chip)</div>
+<div class="hdr">
+ <span class="chip"><b>Claude_Everix</b><span class="m"><span class="mt">S<span class="tr"><i style="width:34%"></i><u style="left:90%"></u></span><span>34%</span></span><span class="mt">W<span class="tr"><i style="width:52%"></i><u style="left:90%"></u></span><span>52%</span></span></span></span>
+ <span class="chip blind"><span class="ic">⚠</span><b>codex</b><span class="nt">blind since 00:31</span></span>
+ <span class="chip dash"><b>cursor</b><span class="nt">not measured</span></span>
+</div>
+<div><span class="tip">codex: limits blind since 00:31 — cache not updated since 00:31; restart T3. Nothing pauses on codex until it reads again.</span></div>
+<div class="lbl">A blind chip drops its meters: stale numbers would look current.</div>
+</div>
+</section>
+
+<section>
+<h2>2 · The other reasons, and what does not turn blind</h2>
+<p class="n">The chip's words stay short; the reason is in the tooltip and panel. A provider that isn't in use, an <b>unsupported</b> one (cursor), or a reading unknown for under 30 minutes keeps today's grey chip: at 07:52 a 9-minute-old cache is only “no reading for 9 min”.</p>
+<div class="theme T"><span class="tag">THEME</span>
+<div class="hdr">
+ <span class="chip blind"><span class="ic">⚠</span><b>codex</b><span class="nt">blind since 00:31</span></span>
+ <span class="chip blind"><span class="ic">⚠</span><b>Claude_Everix</b><span class="nt">blind since 06:40</span></span>
+ <span class="chip dash"><b>codex</b><span class="nt">no reading for 9 min</span></span>
+ <span class="chip dash"><b>cursor</b><span class="nt">not measured</span></span>
+</div>
+<div class="lbl">Tooltips by reason</div>
+<div><span class="tip">codex: cache not updated since 00:31; restart T3</span></div><br>
+<div><span class="tip">Claude_Everix: usage cache file missing; blind since 06:40 (T3 not started?)</span></div><br>
+<div><span class="tip">Claude_Everix: cache unreadable (invalid JSON); blind since 06:40; check the T3 usage cache</span></div>
+</div>
+</section>
+
+<section>
+<h2>3 · The limits panel</h2>
+<p class="n">The provider's block gets an orange “blind” badge and one orange line with the reason, since when and what to do; it keeps “an unknown reading never pauses anything”. The percent column is rounded (73.21908396946564 now reads 73%).</p>
+<div class="theme T"><span class="tag">THEME</span>
+<div class="row">
+<div class="panel">
+ <div class="ph"><b>codex</b><span class="badge b-blind">blind</span><span style="flex:1"></span><span class="sub">worker, coordinator</span></div>
+ <div class="note">Limits blind since 00:31 (7 h 21 min): cache not updated since 00:31; restart T3. An unknown reading never pauses anything, so nothing pauses on codex until it reads again.<span style="display:block" class="sub">warned once at 01:01 · pushed to the PM</span></div>
+ <p class="sub" style="margin-top:6px">Running on it: 0074/E (worker).</p>
+</div>
+<div class="panel">
+ <div class="ph"><b>cursor</b><span class="badge b-paused">paused · resumes Dec 3 09:53</span><span style="flex:1"></span><span class="sub">worker</span></div>
+ <div class="wr"><span>Session</span><span class="tr"><i style="width:73%"></i><u style="left:90%"></u></span><span class="p">73%</span></div><div class="sub">of 90% · resets 09:53 (in 2 h 1 min)</div>
+ <div class="wr"><span>Weekly</span><span class="tr"><i style="width:68%"></i><u style="left:90%"></u></span><span class="p">68%</span></div><div class="sub">of 90% · resets Dec 3 09:53</div>
+ <div class="sub" style="margin-top:4px">Before: 73.21908396946564% and 67.560833…%; after: 73% and 68%.</div>
+</div>
+</div>
+</div>
+</section>
+
+<section>
+<h2>4 · Rounded percents on the chip (the overflow case)</h2>
+<p class="n">Cursor's raw values, before and after. Every percent rounds to a whole number (header chips, phone strip, panel, push texts, <code>braid limits</code>). The threshold tick keeps its true position, and a value of 89.6% shows 90% but is still decided on the unrounded number.</p>
+<div class="theme T"><span class="tag">THEME</span>
+<div class="lbl">Before (today): the text overflows its box</div>
+<div class="hdr"><span class="chip paused" style="max-width:170px;overflow:hidden"><b>cursor</b><span class="m"><span class="mt" style="width:auto">S<span class="tr" style="width:30px;flex:none"><i style="width:70%"></i></span><span style="min-width:0">70.4969465%</span></span></span><span class="nt">paused · resumes Dec 3 09:53</span></span></div>
+<div class="lbl">After</div>
+<div class="hdr"><span class="chip paused"><b>cursor</b><span class="m"><span class="mt">S<span class="tr"><i style="width:70.5%"></i><u style="left:90%"></u></span><span>70%</span></span><span class="mt">W<span class="tr"><i style="width:67.56%"></i><u style="left:90%"></u></span><span>68%</span></span></span><span class="nt">paused · resumes Dec 3 09:53</span></span></div>
+</div>
+</section>
+
+<section>
+<h2>5 · The phone strip</h2>
+<p class="n">The same chips scroll sideways under the header; the blind chip keeps its thick orange border and sorts first, so it is seen without scrolling.</p>
+<div class="theme T"><span class="tag">THEME</span>
+<div class="strip">
+ <span class="chip blind" style="min-height:44px"><span class="ic">⚠</span><b>codex</b><span class="nt">blind since 00:31</span></span>
+ <span class="chip" style="min-height:44px"><b>Claude_Everix</b><span class="m"><span class="mt">S<span class="tr"><i style="width:34%"></i><u style="left:90%"></u></span><span>34%</span></span><span class="mt">W<span class="tr"><i style="width:52%"></i><u style="left:90%"></u></span><span>52%</span></span></span></span>
+ <span class="chip dash" style="min-height:44px"><b>cursor</b><span class="nt">not measured</span></span>
+</div>
+</div>
+</section>
+
+<section>
+<h2>6 · The push and the CLI</h2>
+<p class="n">One push per provider and blind spell, by the acting board, never repeated while the spell lasts. A reading that recovers ends the spell without a push; a later spell pushes again. <code>braid limits</code> prints the same line and exits 0.</p>
+<div class="theme T"><span class="tag">THEME</span>
+<pre class="msg">Limits blind: codex has had no usable reading since 00:31 (over 30 min): cache not updated since 00:31; restart T3.
+Nothing pauses on codex while it is blind. Agents using it: 0074/E worker.</pre>
+<div class="cli"><b>$ braid limits</b>
+Claude_Everix   Session 34% of 90%   Weekly 52% of 90%   ok
+codex           blind since 00:31: cache not updated since 00:31; restart T3
+cursor          not measured (T3 can't read it)
+<b>$ echo $?</b>
+0</div>
+</div>
+</section>
+</template>
+
+<script>
+const host=document.getElementById('cases');
+host.innerHTML=document.getElementById('tpl').innerHTML;
+for(const t of host.querySelectorAll('.theme')){
+  const wrap=document.createElement('div');wrap.className='pair';
+  t.parentNode.insertBefore(wrap,t);wrap.appendChild(t);
+  const dark=t.cloneNode(true);dark.classList.add('dark');dark.querySelector('.tag').textContent='dark';
+  t.querySelector('.tag').textContent='light';wrap.appendChild(dark);
+}
+</script>
+</body></html>
