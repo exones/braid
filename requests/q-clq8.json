@@ -19,6 +19,12 @@
       "event": "forwarded",
       "at": "2026-11-25T12:08:44.065Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T12:13:27.949Z",
+      "by": "user",
+      "text": "The user asks: merge #310 at ed89e4127de1a46d22c780d137d0aa9ad6d164e7. User's words: 'B, install and spread the word'. Merge with a merge commit pinned by --match-head-commit."
     }
   ]
 }
