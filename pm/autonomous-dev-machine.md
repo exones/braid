@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 7
 state: running
 hold:
-next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24 · 0077, P15 · 0078, P27, P28 (merge order 0074, 0072, 0060, 0077, 0078, P27; P28 report any time); then P25 (after 0072), P5, P26"
+next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24 · 0077, P15 · 0078, P27, P28 · 0079 (merge order 0074, 0072, 0060, 0077, 0078, P27; P28 report any time); then P25 (after 0072), P5, P26"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -36,7 +36,7 @@ rows:
   - P19 | - | The update story: braid skills update and updating braid as a whole | planned
   - P17 | - | Questions carry likely answers; the board offers them | dropped
   - P26 | - | The machine stays healthy | planned
-  - P28 | - | Research: T3 Workflows | running
+  - P28 | 0079 | Research: T3 Workflows | running
   - P23 | 0076 | The README leads with programmes and lists what braid does | done
 ---
 # PM plan: Autonomous dev machine
@@ -158,6 +158,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-25: P28 is 0079; PM approved its plan (q-lcsx): one spike story, tier M, 4 h box, read-only (no Labs switch or workflow on the user's T3).
 - 2026-11-25 ~22:00: user: "I still have a lot of usage which will reset by morning ... add something for the night": P27 (early: plan and the strands that don't touch 0074/0077 files; steering after 0074) and P28 (research spike) launched; limit 7. Limits: Claude session 7%, weekly 72% (resets 07:00).
 - 2026-11-25: P27 first-pass tests done (stop cascade with stop:true holds, events need OAuth, limit clash narrow); results in P27's row; events mock kept at ~/.braid/artifacts/braid/p27-t3-tests.
 - 2026-11-25: user picked from the T3 review: P27 "The board talks to T3 directly" added (A, B, C mock first, D, E, G; tests first), P26 renamed "The machine stays healthy" and takes F, P28 "Research: T3 Workflows" (H), P5 slimmed (steering moved to P27); order after the running five: P27 (after 0074 merges), P25, P5, P26, P28 ("C.a"). The user withdrew "absorb the simple signin". "B. Yes": a PM helper runs P27's first tests now.
