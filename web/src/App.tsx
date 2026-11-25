@@ -224,7 +224,7 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
   ].filter((p) => p !== null);
   return (
     <div className={`mt-1.5 rounded-md border-l-[3px] px-1.5 py-1 text-[12.5px] leading-snug ${toneOf(need)} ${className}`}>
-      {need.code !== undefined && <><CodeChip code={need.code} />{" "}</>}
+      {need.code !== undefined && <><CodeChip code={need.handle ?? need.code} />{" "}<BlockLine blocks={need.blocks} act={need.act} /><br /></>}
       {need.text}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {parts.length > 0 && <small className="mt-px block text-[11px] text-slate-500">{parts.join(" · ")}</small>}
@@ -233,7 +233,20 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
   );
 }
 
-/** A request's code (`q-7f3k`), the name to use for it in any thread. A click, tap or Enter copies it and says "copied" for a moment; the card under it stays as it is. */
+/** What answering a request unblocks and what the user does, on one line: `blocks 0072/B, 0072/C · decide`; just `decide` when nothing waits on it. */
+function BlockLine({ blocks, act }: { blocks: readonly string[] | undefined; act: string | undefined }) {
+  if (act === undefined) {
+    return null;
+  }
+  return (
+    <span className="whitespace-nowrap">
+      {blocks !== undefined && blocks.length > 0 && <b className="font-semibold">blocks {blocks.join(", ")} · </b>}
+      <b className="rounded-full bg-black/10 px-1.5 text-[10.5px] font-bold uppercase">{act}</b>
+    </span>
+  );
+}
+
+/** A request's handle (`yellow-bear-5asx`), the name to use for it in any thread. A click, tap or Enter copies it and says "copied" for a moment; the card under it stays as it is. */
 function CodeChip({ code }: { code: string }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const timer = useRef<number | undefined>(undefined);
@@ -290,7 +303,7 @@ function WaitLine({ row }: { row: RequestRow }) {
   const timed = row.to === "self";
   return (
     <div className="mt-1.5 rounded-md border-l-[3px] border-slate-300 bg-slate-50 px-1.5 py-1 text-[12.5px] leading-snug text-slate-700">
-      {timed ? `Waiting until ${untilText(row.doneWhen)}` : `Waiting on braid ${row.to}`}: <CodeChip code={row.code} /> {row.text}
+      {timed ? `Waiting until ${untilText(row.doneWhen)}` : `Waiting on braid ${row.to}`}: <CodeChip code={row.handle} /> {row.text}
       <small className="mt-px block text-[11px] text-slate-500">
         {timed ? "the board wakes it then" : doneWhenText(row.doneWhen)} · {row.item} {timed ? "waits since" : "asked"} {row.age} ago
         <AskingLink link={row.link} />
@@ -1152,17 +1165,17 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
       {item.need !== null && (
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.need)}`}>
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
-          {item.need.code !== undefined && <><CodeChip code={item.need.code} />{" "}</>}
+          {item.need.code !== undefined && <><CodeChip code={item.need.handle ?? item.need.code} />{" "}<BlockLine blocks={item.need.blocks} act={item.need.act} /><br /></>}
           {item.need.text}
           {item.need.also !== undefined && <div className={`mt-2 rounded-md border-l-[3px] px-1.5 py-1 ${toneOf(item.need.also)}`}>{item.need.also.text}</div>}
-          {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.code}</b> in any thread to refer to it.</span></div>}
+          {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.handle ?? item.need.code}</b> in any thread to refer to it.</span></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
       )}
       {item.pmAsk !== null && item.need?.by !== "pm" && (
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.pmAsk)}`}>
           <b className="mb-0.5 block text-xs uppercase tracking-wide">Needs you · from the PM{ageText(item.pmAsk) === "" ? "" : ` · ${ageText(item.pmAsk)}`}</b>
-          {item.pmAsk.code !== undefined && <><CodeChip code={item.pmAsk.code} />{" "}</>}
+          {item.pmAsk.code !== undefined && <><CodeChip code={item.pmAsk.handle ?? item.pmAsk.code} />{" "}<BlockLine blocks={item.pmAsk.blocks} act={item.pmAsk.act} /><br /></>}
           {item.pmAsk.text}
           {item.pmAsk.code !== undefined && <div className="mt-2"><AskingLink link={item.pmAsk.asking ?? null} /></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">Answer in the PM thread; the card leaves Needs You when the PM closes the request.</div>
@@ -1235,13 +1248,14 @@ const when = (at: string): string => new Date(at).toLocaleString([], { dateStyle
 function RequestCard({ row }: { row: RequestRow }) {
   const end = row.closed;
   const state = REQUEST_STATE[row.state];
-  const label = end !== null && row.state === "answered" ? `answered by ${WHO[end.by] ?? end.by}` : state.label;
+  const label = end !== null && row.state === "answered" ? `decided by ${WHO[end.by] ?? end.by}` : state.label;
   return (
     <div className="my-2 max-w-[75ch] rounded-lg border border-slate-200 px-3 py-2 text-[13.5px]">
       <div className="flex flex-wrap items-center gap-1.5">
-        <CodeChip code={row.code} />
+        <CodeChip code={row.handle} />
         <span className={`rounded-full px-2 py-px text-[11px] font-semibold ${state.tone}`}>{label}</span>
         <Badge>{row.kind}</Badge>
+        {row.state === "open" && !/^\d{4}$/.test(row.to) && row.to !== "self" && <span className="text-xs"><BlockLine blocks={row.blocks} act={row.act} /></span>}
         {/^\d{4}$/.test(row.to) && <Badge>to braid {row.to}</Badge>}
         {row.to === "self" && <Badge>waiting until {untilText(row.doneWhen)}</Badge>}
         <span className="flex-1" />
@@ -1250,13 +1264,13 @@ function RequestCard({ row }: { row: RequestRow }) {
       <div className="mt-1">{row.text}</div>
       {end?.text != null && (
         <div className={`mt-1.5 rounded border-l-[3px] bg-slate-50 px-2 py-1 text-[13px] ${row.state === "answered" ? "border-green-600" : "border-slate-400 text-slate-700"}`}>
-          {row.state !== "answered" && <b>{row.state === "met" ? "Met: " : `Withdrawn by ${WHO[end.by] ?? end.by}: `}</b>}
+          <b>{row.state === "answered" ? "Answer: " : row.state === "met" ? "Met: " : `Withdrawn by ${WHO[end.by] ?? end.by}: `}</b>
           {end.text}
         </div>
       )}
       {end?.reason != null && (
         <div className="mt-1.5 rounded border-l-[3px] border-slate-400 bg-slate-50 px-2 py-1 text-[13px] text-slate-700">
-          <b>Reason:</b> {end.reason}
+          <b>{row.state === "answered" && end.by === "pm" ? "PM's reason:" : "Reason:"}</b> {end.reason}
         </div>
       )}
       <div className="mt-1 text-[11.5px] text-slate-500">
@@ -1290,17 +1304,29 @@ function RequestHistory({ row }: { row: RequestRow }) {
   );
 }
 
-/** The Requests tab: open, waiting on another braid, then the closed ones newest first, ten at first. */
+/** The Requests tab: open, waiting on another braid, decided (answered), then the withdrawn and met ones, newest first, ten at first. */
 function RequestsTab({ view }: { view: RequestsView }) {
   const [shown, setShown] = useState(CLOSED_PAGE);
+  const [decidedShown, setDecidedShown] = useState(CLOSED_PAGE);
   const heading = (text: string) => <h3 className="mb-1 mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">{text}</h3>;
-  if (view.open.length + view.waiting.length + view.closed.length === 0) {
+  if (view.open.length + view.waiting.length + view.decided.length + view.closed.length === 0) {
     return <p className="text-slate-500">No requests yet.</p>;
   }
   return (
     <div>
       {view.open.length > 0 && <>{heading(`Open · ${view.open.length}`)}{view.open.map((r) => <RequestCard key={r.code} row={r} />)}</>}
       {view.waiting.length > 0 && <>{heading(`Waiting · ${view.waiting.length}`)}{view.waiting.map((r) => <RequestCard key={r.code} row={r} />)}</>}
+      {view.decided.length > 0 && (
+        <>
+          {heading(`Decided · ${view.decided.length} · newest first`)}
+          {view.decided.slice(0, decidedShown).map((r) => <RequestCard key={r.code} row={r} />)}
+          {view.decided.length > decidedShown && (
+            <button type="button" onClick={() => setDecidedShown(decidedShown + CLOSED_PAGE)} className="cursor-pointer rounded border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 hover:border-blue-600">
+              Show more ({view.decided.length - decidedShown})
+            </button>
+          )}
+        </>
+      )}
       {view.closed.length > 0 && (
         <>
           {heading(`Closed · ${view.closed.length} · newest first`)}
@@ -1762,7 +1788,7 @@ function OneNeed({ p, need, item }: { p: TaggedProgramme; need: Need; item?: str
   const { head, options } = optionLines(words?.[2] ?? need.text);
   return (
     <div className="mt-1.5 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-2 py-1.5 text-[13px] leading-snug text-amber-950">
-      {need.code !== undefined && <><CodeChip code={need.code} />{" "}</>}
+      {need.code !== undefined && <><CodeChip code={need.handle ?? need.code} />{" "}</>}
       <b>{words?.[1] ?? "The PM asks you:"}</b> {head}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {options.length > 0 && (

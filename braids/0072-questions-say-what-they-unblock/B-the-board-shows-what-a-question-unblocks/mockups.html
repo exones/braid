@@ -51,28 +51,6 @@ code{font-family:ui-monospace,monospace;font-size:12px}
 </div>
 <p class="meta" style="max-width:640px">Wording: a coordinator's action reads "The coordinator asks you to:", the PM's "The PM asks you to:" (the PM's reading of a card also forwarded: "The PM asks you:"). The chip copies the handle on click, as today. When nothing waits on the request only the act word shows (as q-d004). The blocked list and act word are also stored on the need as data (<code>blocks: string[]</code>, <code>act</code>) for the later Questions panel.</p>
 
-<h2>Revised: details panel question card (roomier: Context, question, options, Custom)</h2>
-<div class="big">
-<div class="need" style="border-left:3px solid #f59e0b"><b style="font-size:11px;text-transform:uppercase">Needs you · asked 35 min ago</b><br>
-<span class="chip">yellow-bear-5asx</span> <span class="blk">blocks 0003/D, 0003/E</span> <span class="act">decide</span>
-<small>strand 0003/C · coordinator thread · say <b>yellow-bear-5asx</b> in any thread to refer to it</small></div>
-<details class="ctx" open><summary>Context</summary>
-<p>PDF export rounds each refund line before summing. Finance's sheet rounds half-up; the payment provider rounds banker's. They differ by a cent on about 1 in 200 refunds, and the report totals must match the provider's statement.</p><p>0003/D and 0003/E both build on the number this strand produces.</p></details>
-<details class="ctx"><summary>Context (collapsed state)</summary></details>
-<div class="q">Which rounding rule should refunds use, half-up or banker's?</div>
-<div class="opts">
-<div class="opt"><b>A</b><span>Half-up: matches Finance's sheet; totals can differ from the provider by a cent.</span></div>
-<div class="opt"><b>B</b><span>Banker's: matches the provider's statement; Finance must adjust their sheet.</span></div></div>
-<div class="cust">Custom… (replaces the option buttons with a text field)</div>
-<div class="field">Your answer… <span style="float:right">Send</span></div>
-<p class="later">The option buttons, Custom and the field are drawn for the layout: answering from the board comes with P25 (The Questions panel). The built card in 0072/B shows the context and the question only; the buttons appear when they work.</p>
-</div>
-<h2>Where context and options come from (proposal; a record change, not built until confirmed)</h2>
-<div class="spec"><p>Two added optional fields on the request record, like <code>words</code> in 0072/G; no migration, a record without them shows no Context section and no options:</p>
-<p><code>context</code>: a text, markdown allowed, the background needed to understand the question.<br>
-<code>options</code>: a list of <code>{ letter, text }</code>, letters A, B, C… in order.</p>
-<p>Flags on <code>braid ask</code>: <code>--context &lt;text&gt;</code> (or <code>--context-file &lt;path|-&gt;</code> for long text) and <code>--option &lt;text&gt;</code>, repeatable; the letters follow the order given (<code>--option "Half-up: …" --option "Banker's: …"</code>). The board reads both into <code>RequestRow</code> and the details card; the CLI's <code>braid requests &lt;handle&gt;</code> prints them too. Answers to an option are recorded as the letter plus the text.</p></div>
-
 <h2>Details panel, Needs you box (escalation, unchanged)</h2>
 <div class="need esc panel" style="padding:8px 12px;border-radius:8px"><b style="font-size:11px;text-transform:uppercase">Needs you · asked 24 min ago</b><br>
 <span class="chip">brave-fox-9d3h</span> <b>Escalated to you:</b> Should search match accents?<small>the PM hasn't answered for 20 min</small>

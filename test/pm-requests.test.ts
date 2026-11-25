@@ -77,7 +77,7 @@ test("a question escalates after 20 min and a handover after 60, to Needs You an
   assert.equal(q.lane, "Waiting");
   assert.equal(q.reason, "question");
   assert.equal(q.need.via, "timeout");
-  assert.equal(q.need.text, "Escalated: a question text (the PM hasn't answered for 21 min)");
+  assert.equal(q.need.text, "Escalated to you: a question text (the PM hasn't answered for 21 min)");
   assert.equal(q.pm, null);
   for (const kind of ["decision", "plan"]) {
     assert.equal(derive("In Progress", gh(), t3(), sig([request(kind, 20)])).lane, "Waiting", kind);
@@ -86,7 +86,7 @@ test("a question escalates after 20 min and a handover after 60, to Needs You an
   const h = derive("In Progress", gh(PR), t3(), sig([request("review", 61, { pr: 7 })]));
   assert.equal(h.lane, "In Review");
   assert.equal(h.need.via, "timeout");
-  assert.equal(h.need.text, "Escalated: Merge PR #7 (the PM hasn't answered for 1 h)");
+  assert.equal(h.need.text, "Escalated to you: Merge PR #7 (the PM hasn't answered for 1 h)");
 });
 
 test("a PM thread that is archived, failed or unknown escalates at once; a running or idle one doesn't; unreadable T3 can't tell", () => {
@@ -94,7 +94,7 @@ test("a PM thread that is archived, failed or unknown escalates at once; a runni
     const d = derive("In Progress", gh(), t3(state), sig([request("question", 1)]));
     assert.equal(d.lane, "Waiting", String(state));
     assert.equal(d.need.via, "gone");
-    assert.equal(d.need.text, "Escalated: a question text (the PM thread is gone)");
+    assert.equal(d.need.text, "Escalated to you: a question text (the PM thread is gone)");
   }
   for (const state of ["running", "idle", "ready"]) {
     assert.equal(derive("In Progress", gh(), t3(state), sig([request("question", 1)])).lane, "In Progress", state);
