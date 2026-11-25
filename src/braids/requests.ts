@@ -7,6 +7,7 @@ import { existsSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { catBatchSync } from "./gitio.js";
 import { currentFiles, lockedBranch, tips, writeBranchUnlocked, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
+import { mergeLifecycle } from "./lifecycle.js";
 import { mainCheckout } from "./state.js";
 
 export { ensureStateDir, LockError, locked, mainCheckout, takeOverStale } from "./state.js";
@@ -18,11 +19,14 @@ export type Kind = (typeof KINDS)[number];
 /** Who opened a request: the braid's coordinator, or the programme manager asking the user itself. */
 export type Asker = "coordinator" | "pm";
 
-/** Whom a request is for: the user, the PM, or another braid's coordinator by its four-digit number. */
-export type To = "user" | "pm" | (string & {});
+/** Whom a request is for: the user, the PM, another braid's coordinator by its four-digit number, or `self` (a timed wait: the asker waits until a time, 0075/G). */
+export type To = "user" | "pm" | "self" | (string & {});
 
 /** A braid number as an addressee. */
 export const BRAID_TO = /^\d{4}$/;
+
+/** The addressee of a timed wait: no one is asked; the asker waits on purpose until its `time:` "done when", and the board's time wake ends it. */
+export const SELF = "self";
 
 /** Who did something to a request. */
 export type Who = "user" | "pm" | "coordinator" | "board";
@@ -31,7 +35,8 @@ export const STATES = ["open", "answered", "withdrawn", "met"] as const;
 /** `answered`, `withdrawn` (with a reason) and `met` (its "done when" held) are final. */
 export type State = (typeof STATES)[number];
 
-export const EVENTS = ["opened", "forwarded", "answered", "withdrawn", "met", "eta"] as const;
+/** `eta`: the addressee's estimate (its time in `text`, its why in `reason`); `reminded`: the board sent a reminder (`text`: to whom), or, with a `reason`, escalated a missed estimate. */
+export const EVENTS = ["opened", "forwarded", "answered", "withdrawn", "met", "eta", "reminded"] as const;
 export type EventKind = (typeof EVENTS)[number];
 
 export interface RequestEvent {
@@ -39,15 +44,17 @@ export interface RequestEvent {
   /** ISO time. */
   readonly at: string;
   readonly by: Who;
-  /** The answer, the forward's note, the reason it was withdrawn or met, the estimate. */
+  /** The answer, the forward's note, the reason it was withdrawn or met, the estimate (ISO), to whom a reminder went. */
   readonly text?: string;
-  /** The PM's reason, when the PM answered for the user (filled by 0070/B). */
+  /** The PM's reason, when the PM answered for the user (filled by 0070/B); an estimate's why; an escalation's cause. */
   readonly reason?: string;
 }
 
 /** The record's branch. */
 export const REQUESTS_BRANCH = "braid-requests";
 const FOLDER = "requests";
+/** The items' lifecycle files on the same branch (src/braids/lifecycle.ts). */
+export const LIFECYCLE_FOLDER = "lifecycle";
 /** `q-` and four lowercase letters or digits. */
 export const CODE = /^q-[a-z0-9]{4,}$/;
 
@@ -80,7 +87,7 @@ export interface Request {
   readonly note?: string;
   /** When it is done: `answered` (the default), `pr:<n>` merged, `braid:<number>` merged into main, `time:<iso>`. */
   readonly doneWhen: string;
-  /** The estimate (P6); null until set. */
+  /** The estimate (ISO): the newest `eta` event's, else the field; null until set. */
   readonly eta: string | null;
   readonly state: State;
   readonly events: readonly RequestEvent[];
@@ -172,7 +179,7 @@ export function parseRecord(file: string, text: string): Request | RecordProblem
   const final = list.findLast((e) => FINAL[e.event] !== undefined);
   const by = v["by"] === "pm" ? "pm" : "coordinator";
   // Without `to`, the request is the user's, as before the record.
-  const to = forward !== undefined ? "user" : v["to"] === "pm" || (typeof v["to"] === "string" && BRAID_TO.test(v["to"])) ? (v["to"] as string) : undefined;
+  const to = forward !== undefined ? "user" : v["to"] === "pm" || v["to"] === SELF || (typeof v["to"] === "string" && BRAID_TO.test(v["to"])) ? (v["to"] as string) : undefined;
   return {
     code,
     id: v["item"],
@@ -188,7 +195,7 @@ export function parseRecord(file: string, text: string): Request | RecordProblem
     ...(typeof v["pm"] === "string" ? { pm: v["pm"] } : {}),
     ...(forward === undefined ? {} : { forwarded: forward.at, ...(forward.text === undefined ? {} : { note: forward.text }) }),
     doneWhen: typeof v["doneWhen"] === "string" ? v["doneWhen"] : "answered",
-    eta: typeof v["eta"] === "string" ? v["eta"] : null,
+    eta: list.findLast((e) => e.event === "eta")?.text ?? (typeof v["eta"] === "string" ? v["eta"] : null),
     state: final === undefined ? "open" : (FINAL[final.event] ?? "open"),
     events: list,
   };
@@ -218,7 +225,18 @@ export function mergeRecord(path: string, ours: string, theirs: string): string 
   return serialise({ ...b, events });
 }
 
-export const REQUESTS: BranchSpec = { branch: REQUESTS_BRANCH, folders: [FOLDER], lock: "requests", what: "the requests record", noun: "request", merge: mergeRecord };
+/** The record branch: requests and, beside them, the items' lifecycle (src/braids/lifecycle.ts), with one lock, fetch and replay. */
+export const REQUESTS: BranchSpec = {
+  branch: REQUESTS_BRANCH,
+  folders: [FOLDER, LIFECYCLE_FOLDER],
+  lock: "requests",
+  what: "the requests record",
+  noun: "request",
+  merge: (path, ours, theirs) => (path.startsWith(`${LIFECYCLE_FOLDER}/`) ? mergeLifecycle(path, ours, theirs) : mergeRecord(path, ours, theirs)),
+};
+
+/** A request's file on the record branch (the branch also holds `lifecycle/`). */
+const isRequestPath = (path: string): boolean => path.startsWith(`${FOLDER}/`);
 
 /** Who asked; an old record without `by` is the coordinator's. */
 export const askerOf = (r: Pick<Request, "by">): Asker => r.by ?? "coordinator";
@@ -227,6 +245,15 @@ export const askerOf = (r: Pick<Request, "by">): Asker => r.by ?? "coordinator";
 export const programmeOf = (id: string): string | null => /^pm\/(.+)$/.exec(id)?.[1] ?? null;
 
 const same = (r: Request, id: string, by: Asker | undefined): boolean => r.id === id && (by === undefined || askerOf(r) === by);
+
+/** A wait: a request to another braid's coordinator (`to` a braid number), or a timed wait (`to: self`). Neither asks the user. */
+export const isWait = (r: Pick<Request, "to">): boolean => r.to !== undefined && (BRAID_TO.test(r.to) || r.to === SELF);
+
+/** A timed wait (`braid ask <id> "<why>" --to self --done-when time:<iso>`): the asker waits on purpose until a time. */
+export const isTimedWait = (r: Pick<Request, "to">): boolean => r.to === SELF;
+
+/** Whether a new request replaces an open one of its asker on its item: a question (to the user or the PM) replaces a question, a wait a wait to the same braid, a timed wait a timed wait. */
+const replaces = (r: Request, next: Pick<Request, "to">): boolean => (isWait(next) ? r.to === next.to : !isWait(r));
 
 /** Every request and the files that can't be read, from texts by path. */
 function parseAll(texts: ReadonlyMap<string, string>): { requests: Request[]; problems: RecordProblem[] } {
@@ -246,7 +273,7 @@ function parseAll(texts: ReadonlyMap<string, string>): { requests: Request[]; pr
 
 /** Every file in a write's view of the branch, read with one `git cat-file --batch`. */
 function viewAll(view: BranchView): { requests: Request[]; problems: RecordProblem[] } {
-  const paths = view.paths();
+  const paths = view.paths().filter(isRequestPath);
   const texts = view.readMany(paths);
   return parseAll(new Map(paths.flatMap((p, i) => (texts[i] === null || texts[i] === undefined ? [] : [[p, texts[i]] as const]))));
 }
@@ -372,7 +399,7 @@ export function loadRecord(root: string, options: { push?: boolean } = {}): { re
   if (cached !== undefined && cached.key === key) {
     return cached.record;
   }
-  const files = [...currentFiles(root, REQUESTS, at)];
+  const files = [...currentFiles(root, REQUESTS, at)].filter(([path]) => isRequestPath(path));
   const texts = catBatchSync(root, files.map(([, blob]) => blob));
   const record = parseAll(new Map(files.flatMap(([path], i) => (texts[i] === null || texts[i] === undefined ? [] : [[path, texts[i]] as const]))));
   records.set(root, { key, record });
@@ -403,7 +430,8 @@ const withEvent = (r: Request, e: RequestEvent): Request => ({ ...r, events: [..
 
 /**
  * Opens a request and returns its code. The open one on the same item from the same asker is withdrawn,
- * "replaced by q-…"; the other asker's stays.
+ * "replaced by q-…", when it is of the same sort: a question (to the user or the PM) replaces a question,
+ * a wait (to a braid) replaces the wait to that braid. The other asker's stays.
  */
 export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly warning: string | null } {
   let code = "";
@@ -412,7 +440,7 @@ export function openRequest(root: string, request: NewRequest): { readonly code:
     code = newCode((c) => view.has(pathOf(c)));
     const by = askerOf(request);
     const files = new Map<string, string>();
-    for (const old of all.filter((r) => r.state === "open" && same(r, request.id, by))) {
+    for (const old of all.filter((r) => r.state === "open" && same(r, request.id, by) && replaces(r, request))) {
       files.set(pathOf(old.code), serialise(withEvent(old, { event: "withdrawn", at: request.at, by, text: `replaced by ${code}` })));
     }
     files.set(pathOf(code), serialise(newRecord({ ...request, code })));
@@ -481,11 +509,34 @@ export function endRequest(root: string, code: string, end: Ending | ((r: Reques
 /** The event that closed a request, or null while it is open. */
 export const closing = (r: Pick<Request, "events">): RequestEvent | null => r.events.findLast((e) => FINAL[e.event] !== undefined) ?? null;
 
+/**
+ * Appends an event to one open request by its code (`braid eta`, the board's reminders), the `eta` field following
+ * an `eta` event. Checked again inside the write: a closed request is left and returned with `added: false`. Null: no such code.
+ */
+export function addEvent(root: string, code: string, event: RequestEvent): { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null {
+  let found: Request | null = null;
+  let added = false;
+  const result = writeRecord(root, (view) => {
+    const text = view.read(pathOf(code));
+    const r = text === null ? null : parseRecord(pathOf(code), text);
+    found = r === null || isRecordProblem(r) ? null : r;
+    added = found !== null && found.state === "open";
+    if (found === null || !added) {
+      return { files: new Map(), message: "" };
+    }
+    const next = withEvent(event.event === "eta" && event.text !== undefined ? { ...found, eta: event.text } : found, event);
+    found = next;
+    return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} ${event.event}` };
+  });
+  const request: Request | null = found;
+  return request === null ? null : { request, added, warning: result.warning };
+}
+
 /** Hands the item's request to the user (`braid forward`): a `forwarded` event with the note. Null when there is no open request. */
 export function forwardRequest(root: string, id: string, at: string, note: string | undefined): { readonly request: Request | null; readonly warning: string | null } {
   let out: Request | null = null;
   const result = writeRecord(root, (view) => {
-    const old = viewAll(view).requests.find((r) => r.state === "open" && same(r, id, "coordinator"));
+    const old = viewAll(view).requests.find((r) => r.state === "open" && same(r, id, "coordinator") && !isWait(r));
     if (old === undefined) {
       out = null;
       return { files: new Map(), message: "" };
@@ -530,44 +581,63 @@ export function voidEnding(request: PrFields, pr: NonNullable<PrNow>): Ending {
   return { state: "withdrawn", who: "board", text: `PR #${n} head moved to ${pr.headRefOid.slice(0, 7)}` };
 }
 
-/** The requests still open, given what the PR each one waits on is now. Pure: it writes nothing, so a board can derive lanes from it. */
-export function filterLive<T extends PrFields>(requests: readonly T[], prOf: (number: number) => PrNow): T[] {
-  return requests.filter((r) => {
-    const n = conditionPr(r);
-    return !(n !== undefined && voided(r, prOf(n)));
-  });
+/** What a "done when" is checked against now. */
+export interface Conditions {
+  /** What GitHub says of a PR; null when it can't be read. */
+  readonly pr: (number: number) => PrNow;
+  /** Whether braid `number` is Done on the main branch on origin; null or absent when it can't be told. */
+  readonly braidDone?: (number: string) => boolean | null;
+  /** The time a `time:` condition is compared with; the clock when absent. */
+  readonly now?: Date;
+}
+
+/** The conditions, or only what the PRs are (the rest from the clock). */
+export type Check = Conditions | ((number: number) => PrNow);
+
+const conditionsOf = (check: Check): Conditions => (typeof check === "function" ? { pr: check } : check);
+
+/**
+ * How an open request ends now, by its "done when": `pr:<n>` (and a review's PR) as `voidEnding` says when
+ * the PR is void; `braid:<number>` met when that braid is Done on main; `time:<iso>` met once now is at or
+ * after it. Null while it doesn't hold, can't be told, or the request waits for an answer.
+ */
+export function conditionEnding(request: PrFields, check: Check): Ending | null {
+  const c = conditionsOf(check);
+  const n = conditionPr(request);
+  if (n !== undefined) {
+    const pr = c.pr(n);
+    return pr !== null && voided(request, pr) ? voidEnding(request, pr) : null;
+  }
+  const braid = /^braid:(\d{4})$/.exec(request.doneWhen ?? "")?.[1];
+  if (braid !== undefined) {
+    return c.braidDone?.(braid) === true ? { state: "met", who: "board", text: `braid ${braid} merged into main` } : null;
+  }
+  const time = /^time:(.+)$/.exec(request.doneWhen ?? "")?.[1];
+  const due = time === undefined ? Number.NaN : Date.parse(time);
+  if (!Number.isNaN(due) && (c.now ?? new Date()).getTime() >= due) {
+    return { state: "met", who: "board", text: `time ${time ?? ""} reached` };
+  }
+  return null;
+}
+
+/** The requests still open, given what each one's "done when" is now (`conditionEnding`). Pure: it writes nothing, so a board can derive lanes from it. */
+export function filterLive<T extends PrFields>(requests: readonly T[], check: Check): T[] {
+  return requests.filter((r) => conditionEnding(r, check) === null);
 }
 
 /**
- * The open requests, with each void review request recorded as met (its PR merged) or withdrawn (closed, or
- * its head moved). GitHub is asked without the lock; the write then ends only the requests still open.
+ * The open requests whose "done when" holds now, with how each one will end (`conditionEnding`). A read: it writes
+ * nothing. Only the running board's tick records the ending, with its wake; `braid requests` shows these as still open.
  */
-export function liveRequests(root: string, prOf: (number: number) => PrNow): Request[] {
-  const seen = loadRequests(root);
+export function holding(requests: readonly Request[], check: Check): Map<string, Ending> {
   const ends = new Map<string, Ending>();
-  for (const r of seen) {
-    const n = conditionPr(r);
-    const pr = n === undefined ? null : prOf(n);
-    if (pr !== null && voided(r, pr)) {
-      ends.set(r.code, voidEnding(r, pr));
+  for (const r of requests) {
+    const e = conditionEnding(r, check);
+    if (e !== null) {
+      ends.set(r.code, e);
     }
   }
-  if (ends.size === 0) {
-    return seen;
-  }
-  const at = new Date().toISOString();
-  writeRecord(root, (view) => {
-    const files = new Map<string, string>();
-    for (const r of viewAll(view).requests.filter((x) => x.state === "open")) {
-      const e = ends.get(r.code);
-      if (e !== undefined) {
-        files.set(pathOf(r.code), serialise(withEvent(r, endEvent(e, at))));
-      }
-    }
-    return { files, message: `docs(requests): ${files.size} ${files.size === 1 ? "request" : "requests"} ended by their PR` };
-  });
-  // Read again: another writer may have opened or closed one meanwhile.
-  return loadRequests(root);
+  return ends;
 }
 
 /**

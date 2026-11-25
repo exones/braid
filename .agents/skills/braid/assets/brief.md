@@ -61,7 +61,6 @@ Only what the worker can do and prove; none for the reviewer, coordinator or use
 
 ```sh
 # worker, on its item's branch
-braid edit 0012/A --status 'In Progress'      # first commit
 braid brief 0012/A Plan --file -              # the plan, before coding; or edit brief.md
 'Found X; decided Y.' | braid log 0012/A --thread <your thread id> --file -
                                               # staged, not committed: commit it with the change it explains
@@ -71,15 +70,15 @@ braid report 0012/A --file <path>             # or write report.md directly (tem
 # coordinator, on plan/ or the braid branch, for items that haven't started
 braid edit 0012/B --dep 0012/A --order 20     # --dep and --labels replace the list: repeat the others; `none` clears one
 
-# coordinator: accept an item; <link>: the review comment (not for tier S)
+# coordinator: accept an item; <link>: the review comment (not for tier S); never commits on the PR's branch
 braid accept 0012/A --review <link> --thread <your thread id> --log -
-                                              # strand merged: on the braid branch; pulls, sets Done with the log entry, commits, pushes
-braid accept 0012/A --head <reviewed sha> --review <link> --merge --log -
+                                              # strand merged: on the braid branch; pulls, commits the log entry, pushes
+braid accept 0012/A --head <reviewed sha> --review <link> --thread <your thread id> --merge --log -
                                               # strand on request: merges that head first; --preset: a merge under the braid's preset
 braid accept 0013 --head <reviewed sha> --review <link> --thread <your thread id>
-                                              # story or final PR: checks, a status-only commit on its branch
+                                              # story or final PR: checks, before the handover
 
-# the braid's log entry, on standard input of the braid accept that sets the strand Done
+# the braid's log entry, on standard input of a strand's braid accept
 '0012/A merged: PR #41, abc1234. Done: <short report>. For later items: <notes for later strands, and the ids of the leftovers captured, or none>. Plan changes: <since the last entry, and why, or none>. User decided: <or none>.'
 
 # pass log and report text on standard input (--file -, --log -) whenever it may hold quotes:
