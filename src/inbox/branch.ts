@@ -85,7 +85,24 @@ export function readInbox(root: string, options: { fetch?: boolean } = {}): Inbo
   return { commit: r.commit, entries, problems, fetched };
 }
 
+/** The inboxes read for the board, by root and commit: a commit never changes, so its entries are read once. */
+const atCommit = new Map<string, Inbox>();
+
 async function readInboxAtAsync(root: string, commit: string | null): Promise<Inbox> {
+  const key = `${root}\0${commit ?? ""}`;
+  let inbox = atCommit.get(key);
+  if (inbox === undefined) {
+    inbox = await loadInboxAtAsync(root, commit);
+    // A few commits at most are asked for at once (two when the branches diverged).
+    if (atCommit.size >= 16) {
+      atCommit.clear();
+    }
+    atCommit.set(key, inbox);
+  }
+  return inbox;
+}
+
+async function loadInboxAtAsync(root: string, commit: string | null): Promise<Inbox> {
   if (commit === null) {
     return { commit, entries: [], problems: [] };
   }

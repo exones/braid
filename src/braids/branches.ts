@@ -18,6 +18,7 @@ import {
   type Strand,
   type Tree,
 } from "./store.js";
+import { limited, readWorkingTree } from "./worktree.js";
 
 export const BRAID_BRANCH = /^braid\/(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const STRAND_BRANCH = /^braid\/(\d{4})\/([A-Z])-[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -49,7 +50,7 @@ export function braidBranches(root: string, only?: string): BranchRef[] {
 }
 
 /** What `loadLiveBraidsAsync` already read without blocking (the branch listing and HEAD), for the synchronous loader it then runs in the same turn. */
-let primed: { readonly root: string; readonly only: string | undefined; readonly refs: string; readonly head: string | null; readonly plans?: string } | null = null;
+let primed: { readonly root: string; readonly only: string | undefined; readonly refs: string; readonly head: string | null } | null = null;
 
 function refPatterns(only?: string): string[] {
   return only === undefined
@@ -299,9 +300,9 @@ interface Slot {
  * are skipped, and so is a branch whose copy is missing or malformed. Braids and strands that
  * exist only on a branch are added. With `only`, just that braid number's branches are read.
  */
-export function loadLiveBraids(root: string, only?: string): Braid[] {
+export function loadLiveBraids(root: string, only?: string, working: Tree = fsTree(root)): Braid[] {
   const slots = new Map<string, Slot>();
-  for (const braid of loadTree(fsTree(root))) {
+  for (const braid of loadTree(working)) {
     slots.set(braid.number, { item: braid, strands: new Map(braid.strands.map((s) => [s.letter, s])) });
   }
   const head = primed !== null && primed.root === root && primed.only === only ? primed.head : headOf(root);
@@ -370,18 +371,6 @@ function headOf(root: string): string | null {
   return r.status === 0 ? r.stdout.trim() : null;
 }
 
-/** Runs `work` over `items`, a few at a time. */
-async function limited<T>(items: readonly T[], work: (item: T) => Promise<void>, size = 8): Promise<void> {
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(size, items.length) }, async () => {
-      while (next < items.length) {
-        await work(items[next++] as T);
-      }
-    }),
-  );
-}
-
 async function inHeadAsync(root: string, head: string, commit: string): Promise<boolean> {
   const key = `${commit}:${head}`;
   let value = merged.get(key);
@@ -448,11 +437,30 @@ async function prefetchLive(root: string, only?: string): Promise<typeof primed>
   return { root, only, refs: listed.stdout, head };
 }
 
-/** `loadLiveBraids` without blocking the process while Git runs: the same braids, read through one `git cat-file --batch`. */
-export async function loadLiveBraidsAsync(root: string, only?: string): Promise<Braid[]> {
-  primed = await prefetchLive(root, only);
+/** The last braids `loadLiveBraidsAsync` loaded per root, with what they were loaded from. */
+const loaded = new Map<string, { readonly working: Tree; readonly key: string; readonly braids: readonly Braid[] }>();
+
+/**
+ * `loadLiveBraids` without blocking the process: the same braids, with the working tree read by `readWorkingTree`
+ * (`tree`: a read already made) and Git read through one `git cat-file --batch`. When neither the working tree nor a
+ * branch tip or HEAD changed since the last call, that call's braids are returned and nothing is loaded.
+ */
+export async function loadLiveBraidsAsync(root: string, only?: string, tree: Promise<Tree> = readWorkingTree(root)): Promise<Braid[]> {
+  const working = await tree;
+  const state = await prefetchLive(root, only);
+  const slot = `${root}\0${only ?? ""}`;
+  const key = state === null ? null : `${state.refs}\0${state.head ?? ""}`;
+  const had = loaded.get(slot);
+  if (had !== undefined && had.working === working && had.key === key) {
+    return [...had.braids];
+  }
+  primed = state;
   try {
-    return loadLiveBraids(root, only);
+    const braids = loadLiveBraids(root, only, working);
+    if (key !== null) {
+      loaded.set(slot, { working, key, braids });
+    }
+    return [...braids];
   } finally {
     primed = null;
   }
@@ -462,9 +470,6 @@ const PLAN_PATTERNS = ["refs/heads/plan/", "refs/remotes/*/plan/*"];
 
 /** Local and remote-tracking `plan/<slug>` branches (a planning branch's name holds no braid number). */
 function planBranches(root: string): { branch: string; commit: string; time: number; local: boolean }[] {
-  if (primed !== null && primed.root === root && primed.plans !== undefined) {
-    return parsePlanRefs(primed.plans);
-  }
   const r = git(root, planArgs);
   return r.status !== 0 ? [] : parsePlanRefs(r.stdout);
 }
@@ -531,34 +536,6 @@ export function braidAt(root: string, ref: string, number: string): Braid | null
   const t = gitTree(root, { branch: ref, commit: r.stdout.trim() });
   const dir = braidFolder(t, number);
   return dir === null ? null : attempt(() => loadBraid(t, dir, number));
-}
-
-/**
- * Runs `work` (a synchronous reader that ends in `loadKnownBraids`, such as `checkBraids`) after everything that loader would ask
- * Git for was read without blocking: the branch listings, HEAD, the merge checks and the trees and files of the branches.
- */
-export async function withKnownBraids<T>(root: string, work: () => T): Promise<T> {
-  const live = await prefetchLive(root, undefined);
-  let state: typeof primed = live;
-  if (live !== null) {
-    const listed = await gitAsync(root, planArgs);
-    if (listed.status === 0) {
-      const plans = parsePlanRefs(listed.stdout);
-      const head = live.head;
-      if (head !== null) {
-        await markMergedAsync(root, head, plans.map((r) => r.commit), PLAN_PATTERNS);
-        await limited(plans, (ref) => inHeadAsync(root, head, ref.commit).then(() => undefined));
-      }
-      await prefetchTrees(root, plans.filter((ref) => head === null || merged.get(`${ref.commit}:${head}`) !== true).map((r) => r.commit));
-      state = { ...live, plans: listed.stdout };
-    }
-  }
-  primed = state;
-  try {
-    return work();
-  } finally {
-    primed = null;
-  }
 }
 
 /** `braidAt` without blocking the process: the tree and the files it reads are fetched first, then the synchronous reader runs on the caches. */

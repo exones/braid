@@ -2,13 +2,15 @@ import { spawn } from "node:child_process";
 import { gitAsync } from "../braids/gitio.js";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
+import { stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
-import type { Braid, Item, Tree } from "../braids/store.js";
+import type { Braid, Item, Tree, WorkingFiles } from "../braids/store.js";
+import { readWorkingTree } from "../braids/worktree.js";
 import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
@@ -484,21 +486,26 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
 export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
   // The main checkout is found with git once per root and cached: asked here, when the project is set up, so no read, wake or action runs that git.
   mainCheckout(root);
+  // The working tree as the last read saw it: one read serves the braids, the readiness check and the item pages.
+  let working: Promise<WorkingFiles> | undefined;
+  let seen: WorkingFiles | undefined;
+  const readTree = (): Promise<WorkingFiles> => (working = readWorkingTree(root).then((tree) => (seen = tree)));
   const src: Sources = {
     repo: titleRepoName(root),
-    braids: () => loadLiveBraidsAsync(root),
+    braids: () => loadLiveBraidsAsync(root, undefined, readTree()),
     github: () => readGithubAsync(root, gh),
     t3: () => readT3(root, { run: t3 }),
     signals: (github) => readSignalsAsync(root, github),
     fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
     limits: (threads, pauses) => readLimitsView(root, threads, pauses),
-    tree: (item) => treeOf(root, item),
+    // An item page is asked for only after a good read, so the working tree's files are there already.
+    tree: (item) => (item.source === null && seen !== undefined ? seen : treeOf(root, item)),
     watch: join(root, "braids"),
     start: () => readStartContext(root),
     inbox: (fetch) => inboxOfAsync(root, fetch),
     project: () => mainCheckout(root),
-    readiness: (github) => readinessAsync(root, github),
+    readiness: (github) => readinessAsync(root, github, working ?? readTree()),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
   const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src) };
@@ -714,14 +721,6 @@ function listen(server: Server, address: string, port: number, strict = false): 
 const inUse = (port: number, address: string, e: unknown): Error =>
   (e as NodeJS.ErrnoException).code === "EADDRINUSE" ? new UsageError(`--port ${port} is already in use on ${address}; pick another port`) : e instanceof Error ? e : new Error(String(e));
 
-const isFolder = (path: string): boolean => {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-};
-
 /** One project the board serves: its name (from the project list, else the repository's) and where its data comes from. */
 export interface Member {
   readonly name: string;
@@ -783,14 +782,18 @@ export function startBoardWith(
       return;
     }
     try {
-      const watcher = watch(folder, { recursive: true }, (event, name) => {
-        // Reading the braids can report a change of a folder itself (Windows); that is no edit: an edit also reports its file.
-        if (event === "change" && name !== null && isFolder(join(folder, name))) {
-          return;
-        }
+      const changed = (): void => {
         clearTimeout(entry.debounce);
         entry.debounce = setTimeout(() => void entry.feed.refresh(), 200);
         entry.debounce.unref();
+      };
+      const watcher = watch(folder, { recursive: true }, (event, name) => {
+        // Reading the braids can report a change of a folder itself (Windows); that is no edit: an edit also reports its file.
+        if (event === "change" && name !== null) {
+          void stat(join(folder, name)).then((s) => (s.isDirectory() ? undefined : changed()), changed);
+          return;
+        }
+        changed();
       });
       watcher.on("error", () => {});
       watcher.unref();

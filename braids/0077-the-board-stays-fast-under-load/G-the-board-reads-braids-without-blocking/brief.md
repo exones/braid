@@ -36,11 +36,21 @@ Expected size: about 250 lines in 6 files.
 
 - The probe (C), the gate (D).
 
+## Plan
+
+(Written after the code, late.)
+
+1. `src/braids/worktree.ts`: an async read of `braids/`, `autonomy/` and `BRAID.md` that stats every file, reads only changed ones and returns the same object when nothing changed.
+2. The loaders and `braid check` read through a `Tree`; the board keeps what it loaded while the tree and the branch tips are the same.
+3. Readiness stops computing `related` warnings it never used; plans and inbox are cached by tip.
+4. The legacy `requests.json` migration gets an async form.
+5. Tests that fail on a synchronous read; live timings before and after under a gate.
+
 ## Completion
 
-- [ ] A board read of `braids/` runs no synchronous file-system read on the event loop, with a test that fails if one is added on that path
-- [ ] A read with no change to `braids/` and no moved branch tip skips the tree read
-- [ ] report.md has `/api/session` timings while a gate runs, before and after (target: max under 1 s)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A board read of `braids/` runs no synchronous file-system read on the event loop, with a test that fails if one is added on that path
+- [x] A read with no change to `braids/` and no moved branch tip skips the tree read
+- [x] report.md has `/api/session` timings while a gate runs, before and after (target: max under 1 s)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
