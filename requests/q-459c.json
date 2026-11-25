@@ -10,7 +10,7 @@
   "doneWhen": "pr:324",
   "pr": 324,
   "head": "e4445784787a28d7949287766eb33378dc98ae75",
-  "eta": null,
+  "eta": "2026-11-26T11:02:59.963Z",
   "events": [
     {
       "event": "opened",
@@ -22,6 +22,13 @@
       "at": "2026-11-25T21:02:48.594Z",
       "by": "board",
       "text": "sent to the PM"
+    },
+    {
+      "event": "eta",
+      "at": "2026-11-25T21:02:59.963Z",
+      "by": "pm",
+      "text": "2026-11-26T11:02:59.963Z",
+      "reason": "0060's merge waits for 0074 and 0072 in main, then main merged in, PM live check and the user's merge; expected tomorrow"
     }
   ]
 }
