@@ -42,10 +42,10 @@ Expected size: about 250 lines in 5 files, tests included.
 
 ## Completion
 
-- [ ] Mockups shown and approved before building (log entry with the verdict)
-- [ ] A card's question says what it unblocks and decide, do or merge, with tests
-- [ ] The Requests tab lists answered questions as Decided with the answer, who and when, with tests
-- [ ] An escalation reads "Escalated to you", with tests
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockups shown and approved before building (log entry with the verdict)
+- [x] A card's question says what it unblocks and decide, do or merge, with tests
+- [x] The Requests tab lists answered questions as Decided with the answer, who and when, with tests
+- [x] An escalation reads "Escalated to you", with tests
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

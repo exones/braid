@@ -84,17 +84,19 @@ test("an answered request is listed with who answered, the answer and the PM's r
   const sig = readSignals(w.root, github());
   const all = view.requestsOf(() => true, sig, t3);
   assert.deepEqual(all.open, []);
-  assert.deepEqual(all.closed.map((r: any) => [r.code, r.state, r.closed.by]), [[d, "withdrawn", "coordinator"], [c, "answered", "pm"], [a, "answered", "user"]], "newest first");
-  const byPm = all.closed.find((r: any) => r.code === c);
+  assert.deepEqual(all.closed.map((r: any) => [r.code, r.state, r.closed.by]), [[d, "withdrawn", "coordinator"]]);
+  assert.deepEqual(all.decided.map((r: any) => [r.code, r.state, r.closed.by]), [[c, "answered", "pm"], [a, "answered", "user"]], "answered ones are Decided, newest first");
+  const byPm = all.decided.find((r: any) => r.code === c);
   assert.deepEqual([byPm.closed.text, byPm.closed.reason, byPm.link], ["Yes, net.", "the goal says net", base + ASKER]);
   assert.equal(all.closed.find((r: any) => r.code === d).closed.text, "the brief says en-GB");
   // An item's tab holds its own requests only; a braid's holds its strands' too.
   assert.deepEqual(view.requestsOf((id: string) => id === "0001/A", sig, t3).closed.map((r: any) => r.code), [d]);
-  assert.deepEqual(view.requestsOf((id: string) => id === "0001" || id.startsWith("0001/"), sig, t3).closed.map((r: any) => r.code), [d, c]);
+  assert.deepEqual(view.requestsOf((id: string) => id === "0001" || id.startsWith("0001/"), sig, t3).closed.map((r: any) => r.code), [d]);
+  assert.deepEqual(view.requestsOf((id: string) => id === "0001" || id.startsWith("0001/"), sig, t3).decided.map((r: any) => r.code), [c]);
   // The detail of the item carries the same view.
   const parent = braid("0001", ["A"]);
   const detail = model.toDetail({ read: () => "" }, parent, parent, github(), t3, sig);
-  assert.deepEqual(detail.requests.closed.map((r: any) => r.code), [d, c]);
+  assert.deepEqual([...detail.requests.closed, ...detail.requests.decided].map((r: any) => r.code), [d, c]);
 });
 
 test("a request to another braid shows on the asking braid's card with its done-when, and nowhere as the user's", () => {
