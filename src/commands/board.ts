@@ -30,7 +30,8 @@ import { readSignals, type ReadSignals } from "../board/signals.js";
 import { fetchBranchAsync } from "../braids/gitbranch.js";
 import { REQUESTS } from "../braids/requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
-import type { Pause } from "../braids/pauses.js";
+import { loadPauses, markResumed, patchPause, reasonOf, type Pause } from "../braids/pauses.js";
+import { resumeMode } from "../board/pause.js";
 import { readPlans, type PlanRead } from "../board/plans.js";
 import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
@@ -478,6 +479,50 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
   };
 }
 
+/**
+ * Resume now (0074/D): the button on a paused braid's card (`{ braid }`) or a paused programme's card (`{ programme }`). It marks each
+ * limit record of it with a resume asked for (`resuming`, not yet tried); the acting board sends it through the one resume path at
+ * once (this board is poked) or at its next refresh: a braid without a PM resumes directly, a PM-run braid or a programme asks the
+ * PM. A hold is never touched: the action refuses a braid that is held. A later Go (P5's holds) reuses this action with its reason.
+ */
+export function resumeAction(root: string, now: () => Date = () => new Date()): Action {
+  return async (body, board) => {
+    const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const why = typeof b["reason"] === "string" && b["reason"] !== "" ? b["reason"] : "now";
+    let braids: string[];
+    if (typeof b["braid"] === "string" && /^\d{4}$/.test(b["braid"])) {
+      braids = [b["braid"]];
+    } else if (typeof b["programme"] === "string" && b["programme"] !== "") {
+      const data = board === undefined ? null : await board();
+      const p = data?.programmes.find((x) => x.slug === b["programme"]);
+      if (p === undefined) {
+        throw new UsageError(`Resume now: no programme ${String(b["programme"])}`);
+      }
+      braids = [...p.braids];
+    } else {
+      throw new UsageError("resume needs { braid } (a braid number) or { programme } (a programme's slug)");
+    }
+    const records = loadPauses(root).pauses.filter((p) => braids.includes(p.braid));
+    if (records.some((p) => reasonOf(p) === "hold") && braids.length === 1) {
+      throw new UsageError(`Resume now: ${braids[0] ?? ""} is held, not paused for a limit; a hold is lifted by its own Go`);
+    }
+    const at = now().toISOString();
+    const marked = records
+      .filter((p) => reasonOf(p) === "limit")
+      .flatMap((p) => {
+        const direct = typeof b["programme"] === "string" ? false : resumeMode(p) === "direct";
+        const r = patchPause(root, p.braid, (q) => ({ ...q, resuming: { why, at, direct, askedAt: null, failedSince: q.resuming?.failedSince ?? null, lastTry: null, error: q.resuming?.error ?? null } }));
+        return r === null ? [] : [r];
+      });
+    if (marked.length === 0) {
+      throw new UsageError(`Resume now: ${braids.join(", ")} ${braids.length === 1 ? "is" : "are"} not paused for a limit`);
+    }
+    // The board pauses these providers again only on a reading checked after this click: a cache from before a reset can't undo it.
+    markResumed(root, [...new Set(marked.flatMap((p) => (p.provider === null ? [] : [p.provider])))], new Date(at));
+    return { ok: true, braids: marked.map((p) => p.braid), mode: marked.every((p) => p.resuming?.direct === true) ? "direct" : "pm" };
+  };
+}
+
 export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
   const src: Sources = {
     repo: titleRepoName(root),
@@ -496,7 +541,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     readiness: (github) => readiness(root, github),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src), resume: resumeAction(root) };
   return src;
 }
 
@@ -515,7 +560,18 @@ function acting(name: string, root: string, own: Sources, steer: Steerer, leases
           const repo = repoLease(root);
           return { ...view, acting: leases.lines([{ key: repo.key, label: own.repo }, ...view.providers.map((p) => ({ key: providerKey(p.instanceId), label: p.instanceId }))]) };
         };
-  return { ...own, ...(limits === undefined ? {} : { limits }), act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
+  // Resume now goes out at once: the steerer is poked after the action marks the records (it acts only for the providers it holds).
+  const action = (name: string): Action | undefined => {
+    const a = own.action(name);
+    return a === undefined || name !== "resume"
+      ? a
+      : async (body, board) => {
+          const out = await a(body, board);
+          steer.poke();
+          return out;
+        };
+  };
+  return { ...own, ...(limits === undefined ? {} : { limits }), action, act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
 }
 
 /** The start line of the limits pause: which mode is on. */

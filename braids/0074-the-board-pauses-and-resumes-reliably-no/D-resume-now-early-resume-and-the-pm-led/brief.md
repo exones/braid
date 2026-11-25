@@ -43,14 +43,22 @@ Expected size: about 400 lines in 8 files.
 
 - P5's holds and the Go button themselves; the stale-limits warning (0074/E).
 
+## Plan
+
+1. Mockups (`docs/design/board-mockups/resume-now.html`, `.png`): Resume now on a paused braid's card without a PM and with one, on a paused programme's card, resume pending, early resume and a window that no longer applies, a held card without the button, the CLI. Stop for the verdict.
+2. After the verdict: one `resumeBraid(record, reason)` in the steerer (`src/board/steerer.ts`): no PM, send each recorded thread its resume text and clear the record; PM-run, one PM message per PM listing its paused braids. Failed sends stay as `pending` on the record (with `since`) and are retried at each refresh; no give-up.
+3. Callers: the timer, early resume (a fresh reading after the pause began under the threshold, or the window gone / no longer applying), `POST /api/action` `resume` (braid or programme) on the acting board, and `braid resume <number> --limit` / `--limit --all`. Holds are never cleared.
+4. Views: the button and dialogs in `web/src/App.tsx`, the pending line in `src/board/pause.ts`; docs/board.md "Provider limits", docs/cli.md, decisions.
+5. Tests from the brief, then the gate.
+
 ## Completion
 
-- [ ] Mockups of the Resume now buttons approved before building (log entry with the verdict)
-- [ ] One resume path serves the timer, the buttons and `braid resume --limit` (with `--all`), with tests
-- [ ] PM-run braids resume through one message to the PM and its `braid resume <number> --limit`; braids without a PM resume directly, with tests
-- [ ] A fresh reading under the threshold resumes early, with a test
-- [ ] A pause whose window no longer applies resumes at the next refresh and its old banner goes, with a test
-- [ ] A resume send that fails stays pending, is retried at each refresh until delivered, and the card says "resume pending: T3 unreachable since <time>", with a test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockups of the Resume now buttons approved before building (log entry with the verdict)
+- [x] One resume path serves the timer, the buttons and `braid resume --limit` (with `--all`), with tests
+- [x] PM-run braids resume through one message to the PM and its `braid resume <number> --limit`; braids without a PM resume directly, with tests
+- [x] A fresh reading under the threshold resumes early, with a test
+- [x] A pause whose window no longer applies resumes at the next refresh and its old banner goes, with a test
+- [x] A resume send that fails stays pending, is retried at each refresh until delivered, and the card says "resume pending: T3 unreachable since <time>", with a test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
