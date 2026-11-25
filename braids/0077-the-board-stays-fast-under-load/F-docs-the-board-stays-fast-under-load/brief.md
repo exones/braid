@@ -20,7 +20,7 @@ Expected size: about 80 lines in 6 files.
 
 ## Change
 
-- Read everything the braid changed, from its first strand, and bring the docs from `docs` up to date as a whole: README, docs/getting-started.md, docs/cli.md (`braid gate`, `--url` busy), docs/board.md (refresh without blocking, the probe, the programme card's count), docs/roadmap.md status, docs/decisions.md (no synchronous git or gh in the board process; one gate per machine; and why), help text.
+- Read everything the braid changed, from its first strand, and bring the docs from `docs` up to date as a whole: README, docs/getting-started.md, docs/cli.md (`braid gate`, `--url` busy), docs/board.md (refresh without blocking, the probe, the programme card's count), docs/roadmap.md status, docs/decisions.md (no synchronous git or gh in the board process; at most two gates at once per machine; and why), help text.
 - report.md lists each doc checked as updated or unchanged.
 
 ## Already decided
