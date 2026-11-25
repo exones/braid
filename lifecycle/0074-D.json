@@ -6,6 +6,13 @@
       "at": "2026-11-25T16:24:00.360Z",
       "thread": "mcp:launch:26ba11efdb3af7287266920a3acc65fe9e97b7313b3436a84692c265d042342f",
       "branch": "braid/0074/D-resume-now-early-resume-and-the-pm-led"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-25T19:20:07.002Z",
+      "head": "cea26578435c15f89918145dc59980133bf8ddfb",
+      "review": "https://github.com/exones/braid/pull/318#issuecomment-7172078041",
+      "thread": "mcp:launch:26ba11efdb3af7287266920a3acc65fe9e97b7313b3436a84692c265d042342f"
     }
   ]
 }
