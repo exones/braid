@@ -15,8 +15,9 @@ const { steerer }: any = await load("../../dist/board/steerer.js");
 
 const ASKER = "22222222-aaaa-4bbb-8ccc-333333333333";
 const NOW = new Date("2026-11-23T12:00:00.000Z");
-const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
+const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})\b/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
 const recordOf = (root: string, code: string): any => Rec.loadRecord(root).requests.find((r: any) => r.code === code);
+const nameOf = (root: string, code: string): string => Rec.handleOf(recordOf(root, code));
 
 /** A board's good read, as far as the wake reads it. */
 function good(opts: { prs?: { number: number; state: string }[]; paused?: string[]; archived?: string[] } = {}): any {
@@ -56,7 +57,7 @@ test("a time: wait is met once its time comes: one wake, recorded as met by the 
   const s = sender();
   const wake = waker(s.t3);
   await wake({ root: w.root, good: good() }, NOW, warn);
-  assert.deepEqual(s.sent, [{ thread: ASKER, text: `Wake: ${early} is met (time 2026-11-23T11:00:00.000Z reached): Check the nightly run. Go on where you left off.` }]);
+  assert.deepEqual(s.sent, [{ thread: ASKER, text: `Wake: ${nameOf(w.root, early)} is met (time 2026-11-23T11:00:00.000Z reached): Check the nightly run. Go on where you left off.` }]);
   const r = recordOf(w.root, early);
   assert.deepEqual([r.state, r.events.at(-1).by, r.events.at(-1).at], ["met", "board", NOW.toISOString()]);
   assert.equal(recordOf(w.root, late).state, "open", "a time still to come stays open");
@@ -71,7 +72,7 @@ test("a pr: wait is woken when its PR merges; one whose PR closed unmerged is wi
   const quiet = codeOf(Cmd.askCommand(w.root, ["0002", "Wait for PR 7", "--done-when", "pr:7"]));
   const s = sender();
   await waker(s.t3)({ root: w.root, good: good({ prs: [{ number: 5, state: "MERGED" }, { number: 6, state: "CLOSED" }, { number: 7, state: "MERGED" }] }) }, NOW, warn);
-  assert.deepEqual(s.sent.map((x) => x.text), [`Wake: ${merged} is met (PR #5 merged): Wait for PR 5. Go on where you left off.`]);
+  assert.deepEqual(s.sent.map((x) => x.text), [`Wake: ${nameOf(w.root, merged)} is met (PR #5 merged): Wait for PR 5. Go on where you left off.`]);
   assert.deepEqual([recordOf(w.root, merged).state, recordOf(w.root, closed).state, recordOf(w.root, quiet).state], ["met", "withdrawn", "met"]);
   assert.equal(recordOf(w.root, closed).events.at(-1).text, "PR #6 closed");
 });
@@ -90,7 +91,7 @@ test("a braid: wait is woken once that braid is Done on origin's main, not befor
   git(w.worker, "commit", "-q", "-am", "0002 done");
   git(w.worker, "push", "-q", "origin", "m:main");
   await wake({ root: w.root, good: good() }, NOW, warn);
-  assert.deepEqual(s.sent.map((x) => x.text), [`Wake: ${code} is met (braid 0002 merged into main): Go on after 0002 lands. Go on where you left off.`]);
+  assert.deepEqual(s.sent.map((x) => x.text), [`Wake: ${nameOf(w.root, code)} is met (braid 0002 merged into main): Go on after 0002 lands. Go on where you left off.`]);
   assert.equal(recordOf(w.root, code).state, "met");
   // `braid requests` uses the same check: nothing open is left to list.
   assert.match(Cmd.requestsCommand(w.root, [], { gh: w.opts.gh, now: () => NOW }), /no open requests/);
@@ -212,7 +213,7 @@ test("with a question and a wait open on one item, answer and withdraw by id ref
   writeFileSync(join(w.root, "braids", "0001-alpha", "brief.md"), brief("0001", "In Progress", `\n## Autonomy\n\nPM-run (thread ${ASKER}): security always ask.\n`));
   const question = codeOf(Cmd.askCommand(w.root, ["0001", "Which rounding rule?", "--thread", ASKER, "--to", "pm"]));
   const wait = codeOf(Cmd.askCommand(w.root, ["0001", "Go on after 0002", "--thread", ASKER, "--to", "0002", "--done-when", "braid:0002"]));
-  const both = (e: Error) => e.message === `0001 has 2 open requests: ${question} (the coordinator's), ${wait} (the coordinator's, waiting on braid 0002); give the code; nothing changed`;
+  const both = (e: Error) => e.message === `0001 has 2 open requests: ${nameOf(w.root, question)} (the coordinator's), ${nameOf(w.root, wait)} (the coordinator's, waiting on braid 0002); give the code; nothing changed`;
   assert.throws(() => Cmd.answerCommand(w.root, w.root, ["0001"]), both);
   assert.throws(() => Cmd.withdrawCommand(w.root, ["0001", "--why", "not needed"]), both);
   // `--by coordinator` can't tell them apart: both are the coordinator's.
@@ -222,7 +223,7 @@ test("with a question and a wait open on one item, answer and withdraw by id ref
   assert.match(Cmd.forwardCommand(w.root, ["0001", "--note", "your call"]), /^0001: question request forwarded to the user: your call/);
   assert.deepEqual([recordOf(w.root, question).forwarded !== undefined, recordOf(w.root, wait).forwarded], [true, undefined], "the question is forwarded, the wait isn't");
   // By code, each one closes alone.
-  assert.match(Cmd.withdrawCommand(w.root, [wait, "--why", "0002 is late"]), new RegExp(`^${wait} 0001: withdrawn`));
+  assert.match(Cmd.withdrawCommand(w.root, [wait, "--why", "0002 is late"]), new RegExp(`^${nameOf(w.root, wait)} 0001: withdrawn`));
   assert.equal(recordOf(w.root, question).state, "open");
 });
 

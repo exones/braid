@@ -255,7 +255,7 @@ test("a second board that reads the record again right before a send skips a wak
   // While this board's wake of the first request is on its way, the other board wakes and records the second.
   // (Whichever the board takes first, the other is the one the other board woke.)
   s.onSend((text) => {
-    Rec.endRequest(w.root, text.includes(first) ? second : first, { state: "met", who: "board", text: "its time came", at: at(6).toISOString() });
+    Rec.endRequest(w.root, text.includes(first.slice(2)) ? second : first, { state: "met", who: "board", text: "its time came", at: at(6).toISOString() });
   });
   await waker(s.t3)({ root: w.root, good: wakeGood() }, at(6), warn);
   assert.equal(s.sent.length, 1, "only one: the other was woken by the other board");
@@ -285,7 +285,7 @@ test("a second board that reads the record again right before a reminder skips o
   const b = wait("C", "second?");
   const s = sender();
   s.onSend((text) => {
-    Rec.addEvent(w.root, text.includes(a) ? b : a, { event: "reminded", at: at(60).toISOString(), by: "board", text: "sent to the 0002 coordinator" });
+    Rec.addEvent(w.root, text.includes(a.slice(2)) ? b : a, { event: "reminded", at: at(60).toISOString(), by: "board", text: "sent to the 0002 coordinator" });
   });
   const g = { sig: { pauses: new Map(), plans: [] }, t3: { status: { state: "ok" }, threads: new Map(), coordinators: new Map(), idleCoordinators: new Map([["0002", { id: CO7 }]]), states: new Map([[CO7, "idle"]]) } };
   await reminder(s.t3)({ root: w.root, good: g }, at(60), warn);

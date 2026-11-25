@@ -63,9 +63,9 @@ Expected size: about 300 lines in 6 files, word lists and tests included.
 
 ## Completion
 
-- [ ] New requests get two spoken words, unique among the project's open requests, from short word lists in the repo, and the full name is the words plus the q-code's four characters, with tests
-- [ ] Every command that takes a code resolves the handle, the words plus suffix, the suffix or the q-code (any request) and the words alone (open requests only), in any case and punctuation, and refuses an ambiguous match with its candidates, with tests
-- [ ] The CLI and the wake text show one handle `yellow-bear-5asx`, and records written before show `q-5asx` as before, with tests
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] New requests get two spoken words, unique among the project's open requests, from short word lists in the repo, and the full name is the words plus the q-code's four characters, with tests
+- [x] Every command that takes a code resolves the handle, the words plus suffix, the suffix or the q-code (any request) and the words alone (open requests only), in any case and punctuation, and refuses an ambiguous match with its candidates, with tests
+- [x] The CLI and the wake text show one handle `yellow-bear-5asx`, and records written before show `q-5asx` as before, with tests
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open

@@ -105,12 +105,13 @@ test("ask opens a request that every worktree shares; a new ask replaces it; ans
   const w = world();
   const asked = askCommand(w.root, ["0001/A", "Which   name\nshould it have?", "--kind", "decision", "--key", "scope", "--thread", THREAD], { now: w.clock }) as string;
   assert.match(asked, /^[a-z]+-[a-z]+-[a-z0-9]{4} 0001\/A: decision request opened: Which name should it have\?/);
-  const code = asked.slice(0, 6);
+  const handle = /^(\S+)/.exec(asked)?.[1] ?? "";
+  const code = `q-${handle.slice(-4)}`;
   assert.ok(git(w.root, "ls-tree", "-r", "--name-only", "origin/braid-requests").split("\n").includes(`requests/${code}.json`), "pushed to the record's branch");
   assert.equal(existsSync(join(w.other, ".braid")), false, "nothing is kept in the worktree");
   assert.equal(realpathSync.native(dirname(dirname(legacyFile(w.other)))), realpathSync.native(w.root), "found from any worktree");
   const listed = (await requestsCommand(w.other, [], { gh: w.gh, now: () => new Date("2026-11-15T12:30:00Z") })) as string;
-  assert.equal(listed, `${code}  0001/A  decision  30m  blocks 0001/A · decide  Which name should it have?\n`);
+  assert.equal(listed, `${handle}  0001/A  decision  30m  blocks 0001/A · decide  Which name should it have?\n`);
   askCommand(w.other, ["0001/A", "Plan ok?", "--kind", "plan"], { now: w.clock });
   assert.deepEqual(loadRequests(w.root).map((r) => [r.id, r.kind, r.text]), [["0001/A", "plan", "Plan ok?"]]);
   assert.equal(readdirSync(join(w.root, ".braid")).filter((n) => n.endsWith(".tmp")).length, 0);

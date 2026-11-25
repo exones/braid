@@ -435,11 +435,14 @@ export function newRecord(request: NewRequest & { readonly code?: string; readon
 
 const withEvent = (r: Request, e: RequestEvent): Request => ({ ...r, events: [...r.events, e] });
 
+/** The words the open requests hold: a new request may not take them; a closed request's words are free again. */
+export const takenWords = (requests: readonly Pick<Request, "words" | "state">[]): Set<string> => new Set(requests.flatMap((r) => (r.state === "open" && r.words !== undefined ? [r.words] : [])));
+
 /**
  * Opens a request and returns its code and handle (`yellow-bear-5asx`). Its words are picked inside the write, against
- * the open requests on the branch as it is then, so two requests opened at once never share them. The open one on the same item from the same asker is withdrawn,
- * "replaced by q-…", when it is of the same sort: a question (to the user or the PM) replaces a question,
- * a wait (to a braid) replaces the wait to that braid. The other asker's stays.
+ * the open requests on the branch as it is then, so two requests opened at once never share them. The open one on the
+ * same item from the same asker is withdrawn, "replaced by q-…", when it is of the same sort: a question (to the user or
+ * the PM) replaces a question, a wait (to a braid) replaces the wait to that braid. The other asker's stays.
  */
 export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly handle: string; readonly warning: string | null } {
   let code = "";
@@ -447,7 +450,7 @@ export function openRequest(root: string, request: NewRequest): { readonly code:
   const result = writeRecord(root, (view) => {
     const all = viewAll(view).requests;
     code = newCode((c) => view.has(pathOf(c)));
-    const open = new Set(all.flatMap((r) => (r.state === "open" && r.words !== undefined ? [r.words] : [])));
+    const open = takenWords(all);
     words = pickWords(code, (w) => open.has(w));
     const by = askerOf(request);
     const files = new Map<string, string>();
