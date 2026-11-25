@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-25T10:59:46.509Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T11:01:05.023Z",
+      "by": "pm",
+      "text": "a) Approve. Notes: strand A first and fast (the user is waiting on it). D and E mockups go to the user through me before building. Removing models.steering from BRAID.md stays under Needs the user: BRAID.md changes are the user's.",
+      "reason": "The plan matches the goal, the user's decisions and the routed ideas; nothing expensive to reverse beyond the BRAID.md item, which stays the user's."
     }
   ]
 }
