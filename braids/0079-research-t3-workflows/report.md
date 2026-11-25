@@ -2,11 +2,12 @@
 
 **Research: which parts of braid could run as T3 Workflows (T3 v0.1.12, beta) instead of braid code, what would that simplify, and at what cost?** — answered.
 
-**Answer: keep all six parts in braid.** No part gets simpler as a workflow without adding a second state machine next to braid's records, and three facts get in the way:
+**Answer: keep all six parts in braid.** No part gets simpler as a workflow without adding a second state machine next to braid's records, and two facts get in the way:
 
 - A workflow can't steer braid's running threads. A workflow `agent` step sends with `mode: "queue"`, so it waits behind the whole turn, while the board's wake, pause and resume need a send now and no wait for the result.
 - The threads a workflow starts are left out of every thread list, so the board wouldn't see them.
-- The board's planned "Supervised" MCP sign-in (P27) can read runs but not start, answer, resume or cancel them.
+
+Who may control runs is no longer an obstacle: the user chose a Full access sign-in for the board (q-b146), and the `t3` CLI had full access anyway. The verdict doesn't change; see "After the Full access decision".
 
 Workflows went into a release two days after they merged, with 16 fixes in that same release. They sit behind a Labs switch that is off on this machine. Revisit when they leave beta, and only for a part that has no braid record today.
 
@@ -50,7 +51,7 @@ Overall recommendation: **keep**. No follow-up braid now. The revisit triggers a
   - Reading runs, questions and the store is open to any caller.
   - Starting, answering (`signal`), resuming, cancelling, withdrawing, changing the store and reading hook paths need a caller at the broadest mode: Full access, or a managed policy's maximum. The reason given is that a run's agent steps pick their own modes (`read [S5][S8]`).
   - The `t3` CLI on the host is a full-access client of its own and is not limited (`read [S5][S7]`).
-  - **For P27:** the board's OAuth sign-in at "Supervised" ([S16]) can list and read runs and questions, but can't start, answer, resume or cancel one. Through the CLI it already uses (`src/board/t3.ts`), the board could do all of that as the owner, with no new sign-in (`inferred` from [S5][S7][S14]).
+  - **For P27:** P27 first planned a "Supervised" sign-in ([S16]), which could only read runs. Since q-b146 the board signs in at Full access ([S18]), so over MCP it can start, answer, resume and cancel runs too. Through the CLI it already uses (`src/board/t3.ts`), it could do all of that before, as the owner (`inferred` from [S5][S7][S14]).
   - MCP Events for workflows need the OAuth path, like thread events (P27's first pass: "MCP Events usable only with OAuth (no CLI path)", [S16]).
 
 ## Q2: The six parts
@@ -137,7 +138,7 @@ Line counts are from `wc -l` at `c2b3aa7a` ([S14]).
 - **Beta and churn.**
   - The feature PR merged on 2026-11-23 ([S4]) and the release shipped on 2026-11-25 with "Workflows (beta)", 16 workflow fixes and a test change ([S1]). One fix, #41751, was a core-engine change: saving a workflow file had stalled every workflow call for about 12 minutes on a nightly ([S11]). Another fixed Windows project paths ([S12]), and one changed who may control runs ([S5]).
   - Base rate: 19 workflow PRs (2 features, 16 fixes, 1 test change) in about two days. Treat the API and its behaviour as moving for at least a few releases (`inferred` from [S1]; the reference class is this one feature's first release, so the spread is wide).
-- **Full access.** Every change to a run needs Full access over MCP ([S5]). The CLI path doesn't, because it runs as the owner ([S7]). So a workflow-based braid would either use the CLI, as today, or need a Full-access OAuth sign-in, which is wider than the user's "Supervised" choice for P27 ([S16]).
+- **Full access.** Every change to a run needs Full access over MCP ([S5]). The CLI path doesn't, because it runs as the owner ([S7]). With the board's Full access sign-in (q-b146, [S18]), both paths are open to it, so access is no longer a cost of using workflows.
 - **Lock-in.** Workflow files only run inside T3. They depend on injected `T3` globals and T3's Effect runtime, and runs "live on the server that started them" ([S2][S3]). The docs promise nothing for use without T3 (searched `docs/user/workflows.md`, the skill and `outside-agents.md`). braid today runs its records in Git and talks to T3 only through the `t3` CLI and MCP (S14).
 - **Windows.** Supported. A Windows path bug was fixed in this release ([S12]), and backslash UNC paths stay unsupported ([S12]). The `t3` CLI wrapper on this machine is a `.cmd`, already handled by `t3.ts` (S14).
 - **Persistence across restarts.** Good inside T3: SQLite, replay, redone wakes ([S9]). But runs only advance while T3 runs ([S2]). The braid board has the same limit (D95 puts it on a logon task), so neither is better here.
@@ -170,7 +171,26 @@ How the user would see the effect: nothing changes; the board, requests and paus
 - **Move the launch to a worker workflow (very unlikely, 5–20%, now).** Best case: typed reports and a durable worker → CI → review chain. Against it: hidden threads, models copied into code, Full access, beta churn, and a re-architecture rather than one part.
 - **Try a timed wait as a workflow (very unlikely, 5–20%, to add value).** It is a 2-state record already.
 - **Strongest evidence against "keep":** T3 is clearly investing in workflows (19 PRs in one release), and braid's board duplicates some of what they offer (PR polling, durable timers). If T3 adds steer delivery and listable agent threads, much of the board's steering could move, so revisit at the triggers above.
-- **Assumptions:** (a) the board stays the one actor that acts without a click (D90, D100). (b) P27 keeps the "Supervised" sign-in. (c) The `agent` step's `thread` option keeps `mode: "queue"`. If (c) changes, parts 1 and 4 reopen.
+- **Assumptions:** (a) the board stays the one actor that acts without a click (D90, D100). (b) The board's sign-in level doesn't matter: it is Full access since q-b146 ([S18]), and the CLI is full access anyway. (c) The `agent` step's `thread` option keeps `mode: "queue"`. If (c) changes, parts 1 and 4 reopen.
+
+## After the Full access decision
+
+The user decided on 2026-11-25 (q-b146, on braid 0080) that the board signs in to T3 at **Full access**, not Supervised ([S18]). So the board can start, answer (`signal`), resume and cancel workflow runs over MCP ([S5]).
+
+**The overall verdict doesn't change: keep.** The access rule was never what decided a part. The `t3` CLI that the board already uses was a full-access client all along ([S5][S7]), and Q1 said so. Each verdict rests on reasons that still hold:
+
+| Part | Reasons that still hold | Verdict |
+| --- | --- | --- |
+| 1. Wake, reminders, nudges | An agent step sends to an existing thread only with `mode: "queue"` and then waits for that turn ([S10]); the request record would be doubled ([S15] D96, D100) | keep |
+| 2. Timed waits | Already a 2-state request record; a run would be a second record ([S14]) | keep |
+| 3. Requests | D99 rejected pending questions in T3 ([S15]); two records of one question | keep |
+| 4. Limit pause and resume | Pausing a busy agent needs a steer (`auto`), not a queued send ([S17], [S10]); the steering thread would be hidden ([S10]); a second claim beside `pauses.json`; T3's own auto-resume already clashes ([S16]) | keep |
+| 5. PM digest | No code to remove; event-driven, not timed ([S14]) | keep |
+| 6. Launch | Agent-step threads never show in thread lists ([S10]); models copied into code; a re-architecture | keep |
+
+Beta churn is also unchanged: 16 fixes in the first release, one of them in the engine's core ([S1][S11]).
+
+**Does any part become "try one small thing"? No.** The decision helps the request mirror most, because the board could now answer a T3 `ask` over MCP. But that mirror's blockers were D99 and the doubled record, not access. The timed digest gains nothing from it. Revisit trigger 4 (a part with no braid record) is still the way in.
 
 ## Unknowns
 
