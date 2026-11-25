@@ -3,7 +3,7 @@ id: '0077/F'
 title: "Docs: The board stays fast under load"
 status: To Do
 labels: ["kind:task", "tier:S"]
-dependencies: ['0077/A', '0077/B', '0077/C', '0077/D', '0077/E', '0077/G']
+dependencies: ['0077/A', '0077/B', '0077/C', '0077/D', '0077/E', '0077/G', '0077/H']
 order: 60
 ---
 
