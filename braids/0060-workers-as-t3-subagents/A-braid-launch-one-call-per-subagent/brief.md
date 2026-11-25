@@ -46,11 +46,15 @@ Expected size: about 350 lines in 6 files, tests included.
 
 ## Completion
 
-- [ ] `braid launch --role worker|review|research` prints a `delegate_task` input with the role's model from BRAID.md and the right title, isolation and first message, with tests
-- [ ] On a limits `pause` it exits 3 and starts nothing, with a test
-- [ ] A worker launch creates and pushes the item branch and records `started` without making a worktree, and is safe to run twice, with tests
-- [ ] `braid launch <id> --role <role> --child <thread id>` records the child with its role in `.braid/reviews.json`; `braid review` and old records keep working, with tests
-- [ ] `braid help` and `docs/cli.md` list `braid launch`
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid launch --role worker|review|research` prints a `delegate_task` input with the role's model from BRAID.md and the right title, isolation and first message, with tests
+- [x] On a limits `pause` it exits 3 and starts nothing, with a test
+- [x] A worker launch creates and pushes the item branch and records `started` without making a worktree, and is safe to run twice, with tests
+- [x] `braid launch <id> --role <role> --child <thread id>` records the child with its role in `.braid/reviews.json`; `braid review` and old records keep working, with tests
+- [x] `braid help` and `docs/cli.md` list `braid launch`
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+`startBranch` in start.ts (flag `--no-worktree`); `launch.ts` for the input and the child record; `recordChild` extracted from `reviewCommand`; `role` on the review record; `options` on `ModelLine`; tests in test/launch.test.ts; docs/cli.md and braids-format.md.

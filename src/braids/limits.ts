@@ -41,6 +41,8 @@ export interface ModelLine {
   readonly role: string;
   readonly instanceId: string;
   readonly model: string | null;
+  /** The settings after the model (`effort=high, fastMode=false`), `true` and `false` as booleans; `{}` when none. */
+  readonly options: Readonly<Record<string, string | boolean>>;
 }
 
 function frontMatter(root: string): string {
@@ -115,7 +117,14 @@ function parseModelLine(role: string, value: string): ModelLine | null {
     return null;
   }
   const model = (parts[1] ?? "").replace(/\s.*$/, "");
-  return { role, instanceId, model: model === "" ? null : model };
+  const options: Record<string, string | boolean> = {};
+  for (const item of parts.slice(2).join("/").replace(/[;(].*$/, "").split(",")) {
+    const kv = /^\s*([A-Za-z_][\w-]*)\s*=\s*(\S+)\s*$/.exec(item);
+    if (kv !== null) {
+      options[kv[1] ?? ""] = kv[2] === "true" ? true : kv[2] === "false" ? false : (kv[2] ?? "");
+    }
+  }
+  return { role, instanceId, model: model === "" ? null : model, options };
 }
 
 /** Every line under BRAID.md's `models:`: roles with one line (`coordinator`) and roles keyed by tier or kind (`worker.story`). */
