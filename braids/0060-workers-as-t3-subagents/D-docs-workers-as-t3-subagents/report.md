@@ -19,7 +19,8 @@ Docs brought up to date for workers as T3 subagents and `braid launch`, checked 
 - CLI help text: updated (clean line; launch and review lines were already right)
 - docs/development.md: unchanged
 - docs/decisions.md: unchanged (D107 from 0060/C)
-- docs/braids-format.md: unchanged (0060/A, B cover launch, `role`, clean)
+- docs/braids-format.md: updated (`braid clean` forced delete names any recorded subagent; the `braid start` paragraph counts a worker recorded with `braid launch --child` as an agent)
+- docs/npm-distribution.md: unchanged (about packaging and install; nothing about workers or launch)
 - docs/roadmap.md: updated
 
 ## Validation
