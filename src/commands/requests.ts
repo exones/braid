@@ -242,7 +242,7 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   if (self) {
     return `${opened.code} ${id}: timed wait opened, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
   }
-  const gist = unblockLine({ code: opened.code, id, kind: kind as Kind }, loadRequests(root), statused(root));
+  const gist = unblockLine({ code: opened.code, id, kind: kind as Kind }, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh)));
   const whom = by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : route.to !== undefined ? `to braid ${route.to} ` : "";
   return `${opened.code} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${gist}\n${warned(opened.warning)}`;
 }

@@ -21,7 +21,7 @@ New `test/requests-unblocks.test.ts` (dependents, a Done dependent left out, bra
 
 ## Open
 
-- Status of a dependent reads from the lifecycle record and, for `braid requests`, GitHub's PRs when readable; `braid ask` reads the lifecycle only (no GitHub call), so a just-merged PR's item may still show until the next read.
+- Done reads from the lifecycle and the PRs in both `braid ask` and `braid requests` (`prsOf`); when GitHub can't be read the lifecycle alone is used and the ask never fails.
 
 For later items:
 - 0072/B and 0072/C can call `unblocksOf` with `loadKnownBraids` + `withStatuses` (see `statused` in `src/commands/requests.ts`).

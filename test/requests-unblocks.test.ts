@@ -75,3 +75,18 @@ test("a request code in any letter case is found, and a malformed one is refused
     await assert.rejects(async () => requestsCommand(w.root, [bad], { gh: w.opts.gh }), /is not a request code/);
   }
 });
+
+test("braid ask reads Done from a merged PR, as braid requests does, and still asks when GitHub can't be read", async () => {
+  const { resetGithubMemory }: any = await load("../../dist/board/github.js");
+  const w = world();
+  resetGithubMemory();
+  assert.match(askCommand(w.root, ["0001/A", "Open one", "--kind", "decision"], { gh: w.opts.gh }), /\nblocks 0001\/A · decide\n/);
+  (w.prs[0] as { state: string }).state = "MERGED";
+  resetGithubMemory();
+  const merged = askCommand(w.root, ["0001/A", "After the merge", "--kind", "decision", "--by", "pm"], { gh: w.opts.gh });
+  assert.match(merged, /\ndecide\n/);
+  assert.doesNotMatch(merged, /blocks/);
+  assert.match((await requestsCommand(w.root, [], { gh: w.opts.gh })) as string, /0001\/A {2}decision {2}\d+m {2}decide {2}from the PM {2}After the merge/);
+  resetGithubMemory();
+  assert.match(askCommand(w.root, ["0002", "No GitHub", "--kind", "decision"], { gh: () => ({ status: 1, stdout: "", stderr: "down" }) }), /\nblocks 0002 · decide\n/);
+});
