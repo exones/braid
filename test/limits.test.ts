@@ -196,3 +196,21 @@ test("braid limits --json gives the same data with ISO times; the CLI reads $T3C
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /limits\.weekly/);
 });
+
+test("a window without resetsAt is kept with no reset; the real cache shape reads ok", () => {
+  for (const id of ["claude_no_reset", "claude_keyed"]) {
+    const r = read(id);
+    assert.equal(r.verdict, "ok", id);
+    assert.deepEqual(r.windows.map((w: { id: string }) => w.id), ["five_hour", "seven_day"]);
+    assert.equal(r.windows[0].resetsAt, null);
+    assert.equal(r.windows[0].reset, false);
+    assert.equal(r.windows[1].resetsAt, "2026-11-26T06:00:00.000Z");
+  }
+});
+
+test("a window at 98% without resetsAt pauses, resuming a window length after the check plus the buffer", () => {
+  const r = read("claude_no_reset_over");
+  assert.equal(r.verdict, "pause");
+  assert.equal(r.pauseWindow, "five_hour");
+  assert.equal(r.resumeAt, "2026-11-21T23:05:00.000Z");
+});
