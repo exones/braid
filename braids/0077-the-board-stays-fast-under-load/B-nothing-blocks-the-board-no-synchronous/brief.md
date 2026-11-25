@@ -27,6 +27,7 @@ Expected size: about 450 lines in 13 files.
 
 - Every git and gh call reachable from the board process (refresh, wakes, reminders, nudges, actions, the steerer) goes through the async runner; the request record write from the board (wake, remind) runs async too.
 - A timed-out `t3` or `gh` call reads as "T3 didn't answer within 30 s; retrying" (and the same for gh), not as "not installed"; only a missing command (ENOENT) says not installed. The header and the project's failure line show it.
+- From idea l7dw (handed over by P15's sweep, the PM 2026-11-25): `readInputs` (src/board/inputs.ts) always calls `src.github(true)` and `src.t3(true)`, so `fresh` is always true and the 3-second caches behind them (`readGithubAsync`'s and `readT3`'s ttl, wired in `repoSources`, src/commands/board.ts) never hit. Remove the `fresh` parameter and the dead caches, or make them hit if measuring shows they help; say which in report.md.
 - A test that drives a full board read and fails on any sync git or gh call (the `sync` flag of `spyOnGit`, and the same for gh).
 - A test that runs a read whose git takes seconds (a fake git that sleeps, through the runner's test hook) and asserts `/api/session` answers within a second meanwhile.
 - A live check on a scratch board (temporary `BRAID_HOME`, a port other than 7800, a scratch clone): run a full gate in another worktree at the same time and time `/api/session` every second; report the numbers.
