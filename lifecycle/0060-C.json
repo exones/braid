@@ -1,0 +1,11 @@
+{
+  "id": "0060/C",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-25T16:43:58.688Z",
+      "thread": "mcp:launch:d7c4c2f0481745d20d0010431e63e6cfe8d1df98e0426050c240a6c8a82f35e2",
+      "branch": "braid/0060/C-skills-workers-as-subagents-the"
+    }
+  ]
+}
