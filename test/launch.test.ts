@@ -74,7 +74,8 @@ test("a worker launch starts the branch with no worktree and prints the delegate
   assert.match(task, /braid-worker skill/);
   assert.ok(task.includes(`Branch: braid/0001/B-second-one at ${tipCommit.slice(0, 8)}. Open the PR into braid/0001-alpha.`));
   assert.ok(task.includes("`git fetch`, `git switch braid/0001/B-second-one`"));
-  assert.ok(task.includes("Send your result to thread mcp:launch:coord1234. Your thread id: `parentThreadId` from `orchestrator_capabilities`."));
+  assert.ok(task.includes("Your thread id: `parentThreadId` from `orchestrator_capabilities`. Your final message is your report: send nothing with `t3_thread_send`."));
+  assert.ok(!task.includes("Send your result"), "no second report by t3_thread_send");
   assert.ok(task.includes("PR <url>, head <sha>, checks <state>"));
   assert.equal(git(root, "ls-remote", "--heads", "origin", "braid/0001/B-second-one").split("\t")[0], tipCommit);
   assert.equal(existsSync(join(wt, "proj", "0001-B")), false, "no worktree");

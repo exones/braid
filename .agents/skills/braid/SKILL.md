@@ -13,14 +13,14 @@ Plan the user's goal or story as braids and strands, then deliver them through w
 
 Read `BRAID.md` at the repository root first (`gate`, `main`, `ci`, `run`, `models` (per role; `steering` is the board's), `docs`), and follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
-Models: use `models.<role>.<tier>` (tier key `S`, `M` or `L`) if present, then `models.<role>.<kind>`, then `models.<role>`; if none exists, ask the user. Use any named skill. Use the exact provider, model and options (in T3 they are `instanceId`, `model` and `options`: `effort=high` is `{"effort":"high"}`); if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line.
+Models: `braid launch` resolves them (`models.<role>.<tier>`, then `.<kind>`, then `models.<role>`); if none fits, ask the user. Use the exact provider, model and options; if T3 can't run them, tell the user instead of substituting. When launching, state the model and its settings in one line.
 
 Read these too; this skill names their rules without repeating them:
 
 - [The workflow](references/workflow.md): what an item is, who writes which branch, when an item is Done, branches per case, tiers, who merges, failure modes.
 - [The brief template](assets/brief.md): fields and the exact commands.
 - [Stop cases](references/stop-cases.md): when braid may need the user, and who decides by the braid's preset.
-- [Provider limits](references/limits.md): the check before every launch, and what to do on the board's pause and resume messages when a provider nears its usage limit.
+- [Provider limits](references/limits.md): a launch on a paused provider, and what to do on the board's pause and resume messages when a provider nears its usage limit.
 
 If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRAID.md` is missing, follow [setup problems](references/setup.md) before anything else.
 
@@ -30,7 +30,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 - One writer per branch. Acceptance is yours (`braid accept`); an item is Done once its PR merged.
 - Your commits are `docs(braids): …`, for example `docs(braids): 0012 phases: add 0012/A, 0012/B`.
 - Commit brief changes only at these points: the plan and its review rounds; the braid In Progress, after the planning merge; a growth or plan-change decision; a log entry; an Outline detailed; the braid's report at the end.
-- Name every thread `<emoji> <repo> <id> <role>: <title>`: 🧠 `coordinator`, 💻 `worker`, 👀 `review`, 🧪 `research`; the repo is the GitHub repository's name and the title is the item's name exactly as its brief has it. Never write one by hand (one exception: the provisional title of the thread "Plan" step 0 launches, which has no number yet): launch each thread with the output of `braid title <id> --role <role>`, for example `💻 braid 0021 worker: Board Start: no branch clash`. When a coordinator takes a braid (plan or resume), it sets its own thread's title to `braid title <number> --role coordinator` (`t3_thread_update` in T3, else the host's rename).
+- Name every thread `<emoji> <repo> <id> <role>: <title>`: 🧠 `coordinator`, 💻 `worker`, 👀 `review`, 🧪 `research`; the repo is the GitHub repository's name and the title is the item's name exactly as its brief has it. Never write one by hand (one exception: the provisional title of the thread "Plan" step 0 launches, which has no number yet): `braid launch` gives a subagent its title, and `braid title <id> --role <role>` any other thread's, for example `💻 braid 0021 worker: Board Start: no branch clash`. When a coordinator takes a braid (plan or resume), it sets its own thread's title to `braid title <number> --role coordinator` (`t3_thread_update` in T3, else the host's rename).
 - **One braid per coordinator thread.** A thread that already holds a braid (planned, resumed or taken over) never plans another. A request for another braid, whether a follow-up the user picked from a recap or a new goal sent to this thread, goes to a new coordinator thread ("Plan", step 0). The rule is absolute: the board finds a braid's coordinator by the number in the thread's title, so a thread that switches braids can't be followed. Asking doesn't override it; if the user asks to plan it here, say why in one line and launch. This thread keeps running its own braid, with its watches and waits.
 - The first line of your plan, and of your first message after the user asks to start or resume an existing braid or after you take one over through [resuming](references/resuming.md), names the braid's number and title (`0040 Autonomy presets: …`), so a wrong number is caught at once.
 - **Gaps go by the table.** Route each gap as the workflow's "Gaps and the inbox" says, without asking the user, and capture what goes to the inbox with `braid note` ("Capture"). Never fold anything in silently.
@@ -48,13 +48,7 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
 
 1. Before planning a new braid, propose a sweep if any leftover is open ("Sweep"). When the user asks for an idea to become braids, plan from it as from any goal, and once the plan is approved, `braid inbox take <idea> --into <braid ids>`. Never propose ideas yourself.
 2. Understand the goal. Explore enough to plan without making workers repeat it. Ask the user only what changes scope or the Completion boxes.
-   - **Research.** When the plan needs an answer the code doesn't give (outside facts, a choice between tools, an estimate), launch a researcher subagent per question, after the limits check ([provider limits](references/limits.md), "Check before launch"): `delegate_task` with `role: research`, `isolation: shared`, `mode: async`, the researcher model from `BRAID.md` as `target`, `title` the output of `braid title <id> --role research` (run `braid new` first if the item has no id yet) and the first message below as `task`. Wait as the task's `next` says; never poll it. A follow-up question is a fresh task.
-   - Put its answer and labelled findings into the brief, citing source ids, and its sources into the item's `sources.md`.
-
-   ```text
-   You are a braid researcher for <id>. Use the braid-researcher skill (sibling folder of the braid skill).
-   Question: <one question>. Decision it feeds: <what the answer changes>. Time box: <minutes>. Source ids start at S<n>.
-   ```
+   - **Research.** When the plan needs an answer the code doesn't give (outside facts, a choice between tools, an estimate), launch a researcher per question ("Launch a subagent", `--role research --question "<question>"`; run `braid new` first if the item has no id), setting the decision it feeds, the time box and the first source id in its `task`. Put its answer and labelled findings into the brief, citing source ids, and its sources into the item's `sources.md`.
 3. Look around: `braid list --open` shows every unfinished braid, wherever it lives. Read the brief (`braid view`, which reads it where it lives) of each whose goal touches the same commands, files or decisions, and judge it:
    - **Overlap without conflict:** `related`, and one line under "Already decided" saying what is shared and how the two stay apart (order, which merges first).
    - **One needs the other's result:** a dependency if the id resolves here; otherwise that line says to start after the other braid merges.
@@ -74,32 +68,34 @@ If `braid --version` fails, the project has `backlog/` and no `braids/`, or `BRA
    - **Story:** remove the temporary worktree; the worker starts on that branch.
 8. If the user asked only for a plan, don't start: show the table and open questions, `braid ask --kind plan` for the go (plan options), and resume from `braids/` and GitHub. Otherwise start the first ready strand once the planning PR is merged, without waiting for another go.
 
+## Launch a subagent
+
+Workers, reviewers and researchers are T3 subagents, all launched the same way:
+
+1. `braid launch <id> --role worker|review|research --thread <your thread id>`; a reviewer adds `--pr <n> --focus "<what matters most>"`, a researcher `--question "<one question>"`. For a worker it also creates and pushes the item branch and records the start; it is safe to run again. Exit 3: the provider is paused; launch nothing ([provider limits](references/limits.md), "Check before launch").
+2. `delegate_task` with the JSON it printed; add to its `task` only what the role needs (a re-check line, a research question's decision and time box).
+3. `braid launch <id> --role <role> --child <child thread id>`: the board then shows the child, and `braid clean` removes its checkout after the merge. For a reviewer, then `link_pull_request` with the PR URL and `threadId` the child.
+4. End your turn; the task's result wakes you (as its `next` says). Never poll it. Fixes, answers and verdicts go to a worker's child with `t3_thread_send`, even after its run ended; a reviewer or researcher gets a fresh task instead.
+
 ## Run an item
 
 One implementation worker at a time. The next item is under "Starting the next item" in the workflow; a story has only itself.
 
-1. Check the worker's provider first ([provider limits](references/limits.md), "Check before launch"); on `pause`, launch nothing, say so once and end the turn, as its "Check before launch" says. Then run `braid start <id> --thread <your thread id>` and launch a top-level T3 thread with `t3_thread_launch` on the folder it prints as an existing worktree (`existing_worktree`), with the worker model for the item's tier and kind and `title` the output of `braid title <id> --role worker`. Launch it with no message, so it starts idle.
-2. Send the first message with `t3_thread_send`, filling in the thread id the launch returned, so the worker logs under its own id and not yours. If the worker might not find the skill by name, add the absolute path of its `SKILL.md`.
-
-   ```text
-   You are the braid worker for <id>. Use the braid-worker skill (sibling folder of the braid skill).
-   Brief: `braid view <id>`. Branch: <branch> at <short sha>. Open the PR into <base branch>.
-   Send your result to thread <your thread id>. Your thread id: <worker thread id>.
-   ```
-3. **End the turn** after launching a worker or sending it fixes; its report wakes you. Answer the user, the PM or the board at once. Woken without a report: read the thread's last message and `gh pr checks`:
-   - The worker waits on its own PR watch (CI pending): end your turn; its report wakes you. You never watch an item PR: the worker alone waits on its CI.
-   - Green: take the result from the thread and continue.
-   - The PR is already merged: the item is done.
-   - Failed checks while the worker watches its PR: the worker's; do nothing and end your turn.
-   - Stopped with no watch and no report, or stuck: send it a nudge.
-   - The run failed: read its error, and the item's `report.md`, log and PR. Retry once with the same model and settings; if it fails again, `braid ask --key quality`, naming the error (stop-case options).
-   - The user says it finished: believe them and look at the PR.
+1. Launch the worker ("Launch a subagent", `--role worker`). It works in T3's checkout on its item branch and ends each run with its report, after an open PR with the last line `PR <url>, head <sha>, checks <state>`.
+2. Answer the user, the PM or the board at once while it runs.
+3. **On the worker's result** read its report and `gh pr checks <pr>` (the `ci` names); woken by the PR watch, the checks alone:
+   - Pending: `watch_pull_request` and end your turn; the CI wake brings you back here.
+   - Failed: send the failure to the worker's child and end your turn.
+   - Green: with `review-bots` in `BRAID.md`, once per head, first send the worker "CI green: handle the review bots' threads"; otherwise go to "Accept and hand over".
+   - A question, proposal or blocker instead of a PR: steps 5 and 6, or "Grow and adjust".
+   - The run failed: read its error, and the item's `report.md`, log and PR. Send `continue` once to the same child (or relaunch if it can't continue); if it fails again, `braid ask --key quality`, naming the error (stop-case options).
+   - A wake you didn't start (the user typed in the worker's thread), or the PR already merged: check `gh pr checks` and `braid status`, and act only on a change.
 4. **Coordinator habits.**
-   - After a wake or a resume, check the state first (branches, worktrees, worker threads, `braid next`), then act.
+   - After a wake or a resume, check the state first (branches, worker children, `braid next`), then act.
    - **The board's messages:** `Wake:` your wait or handover is met and closed; go on. `Gentle hourly reminder`: another braid waits on yours; do it, or estimate as it says (`braid eta <code> 2h "<why>"`). `Nudge from the board`: you look idle with nothing open; go on, or open a request or wait and end your turn. A pause: [provider limits](references/limits.md).
    - A "STOP" result is an incoming message, not the user: read it, never say "as you asked".
-   - After "session ended", re-check before retrying; `braid start` is safe to run again and prints "(already started)".
-   - **Watch rule:** you watch a PR (`watch_pull_request`) only while no worker is waiting on it: the planning PR and the final PR. Never an item PR a worker still owns. On a wake the planning PR continues at "Plan", step 7 (merge it when its checks are green); the final PR (watched from "Finish" step 1) continues at "Finish" where you are. A wake is never a merge decision. Unwatch a PR when you hand it to the user, because T3 keeps a watched thread out of their inbox, or after you merge it. After that, the user's "merged", the board's wake or `gh pr list --state all` decides.
+   - After "session ended", re-check before retrying; `braid launch` is safe to run again.
+   - **Watch rule:** watch every PR you wait on (`watch_pull_request`): an item PR while its CI runs, the planning PR (continues at "Plan", step 7), the final PR (at "Finish"). A wake is never a merge decision. Unwatch it at the handover, because T3 keeps a watched thread out of the user's inbox, or after you merge it; then the user's "merged", the board's wake or `gh pr list --state all` decides.
 5. Answer the worker's questions. If the brief must change, tell the worker; it applies the change on its branch.
 6. **Converge loop** (workflow, "Checks and reports"): when the worker stops with a proposal, show it to the user (`braid ask <id> "<what is needed>" --kind decision`, decision options) and send each verdict to the worker. When the user approves, tell the worker to build.
 
@@ -117,32 +113,24 @@ A worker that finds more work stops and sends you one proposal: **absorb** it (s
 
 ## Accept and hand over
 
-When the worker reports green:
+When the item PR's checks are green:
 
 1. **Review** by tier (workflow, "Tiers"), none for S and M items the review bots reviewed under `reviewer-with-bots: L-only` (`BRAID.md`).
    - S: read the diff yourself.
-   - M and L: check the reviewer's provider ([provider limits](references/limits.md), "Check before launch"), then launch an independent reviewer as a subagent: `delegate_task` with `role: review`, `isolation: worktree`, `mode: async`, the reviewer model from `BRAID.md` as `target` (`providerInstanceId`, `model`, `options`), `title` the output of `braid title <id> --role review` and the first message below as `task` (add the `SKILL.md` path if needed). T3 makes its checkout. A model or provider T3 can't run as a child: tell the user; never substitute another.
-   - Right after it, run `braid review <id> --thread <child thread id>`: it records the thread with the checkout T3 gives for it, so the board shows the review and `braid clean` removes that checkout after the merge. Then call `link_pull_request` with the PR URL and `threadId` set to the child thread.
-   - **Wait** as the task's `next` says: end your turn, and take the reviewer's report when T3 delivers the result. Never poll it.
+   - M and L: launch an independent reviewer ("Launch a subagent", `--role review --pr <n> --focus "<what matters most>"`).
    - No result, an empty one, or a failed run: read the PR's newest review comment at that head (`gh pr view <pr> --comments`). Without one, start one fresh task with the same model and settings; if that fails too, `braid ask <id> "<what is needed>" --key quality`, naming the error (stop-case options).
-   - L, when blocking fixes substantially changed failure or recovery behavior: have a reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its first message.
-   - A re-check or a second round is a fresh task, launched and recorded the same way; never resume a delegated reviewer with `t3_thread_send`.
+   - L, when blocking fixes substantially changed failure or recovery behavior: have a reviewer check the fix again, adding `Re-check: review the commits since <sha>.` to its `task`.
    - Send blocking findings, and small factual errors in docs, to the same worker to fix on the same PR; route non-blocking ones by the table (workflow, "Gaps and the inbox").
    - Still blocking after two fix rounds: add the `ask:quality` label to the item (`braid edit <id> --labels`, repeating the others).
-
-   ```text
-   You are the braid reviewer for <id>. Use the braid-reviewer skill (sibling folder of the braid skill).
-   PR: <url>, head commit <sha>. Focus: <what matters most here>.
-   ```
 2. **Facts.** When nothing blocking remains, run `braid facts <pr>` and judge its facts against the [stop cases](references/stop-cases.md) and the braid's preset.
-3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, tell the worker CI isn't finished and end your turn (its report wakes you). For a strand, also run `braid wait <number> --timeout 0.25` on the braid branch: exit 0 or 3 go on, 1 "Fixes", 2 `braid ask <number> "<the output>"`. You don't re-run the gate or download artifacts.
+3. **Checks.** Read the PR's checks once with `gh pr checks <pr>`, limited to the `ci` names in `BRAID.md`. If one failed, send the PR back to its worker; if some are still running, watch the PR and end your turn. For a strand, also run `braid wait <number> --timeout 0.25` on the braid branch: exit 0 or 3 go on, 1 "Fixes", 2 `braid ask <number> "<the output>"`. You don't re-run the gate or download artifacts.
 4. **Capture** before the handover, as leftovers ("Capture"): the non-blocking findings not fixed in the PR (`--from 'review <id>'`, `--ref` the review comment), and the report's unfinished bits and `For later items:` gaps (`--from <id>`, `--ref` the PR). Notes for the braid's later strands (names, interfaces) stay in the log line, which names the entry ids instead of repeating the text.
 5. **Hand over** when the checks are green on the latest commit.
-   - Run `braid handover <id> --head <sha> --thread <your thread id>` (a story or final PR: after `braid accept <id> --head <sha> --review <link> --thread <your thread id>`, which moves no head), edit the recap it prints, give it and ask with the handover options ("Talking to the user").
+   - Run `braid handover <id> --head <sha> --thread <your thread id>` (a story or final PR: after `braid accept <id> --head <sha> --review <link> --thread <your thread id>`, which moves no head), edit the recap it prints, unwatch the PR, give it and ask with the handover options ("Talking to the user").
    - You merge an item only under "Merge on request", or instead of the handover where the braid's preset lets you ("Autonomy").
 6. **After the merge**, once `gh pr list --state all` shows the PR merged:
-   1. Interrupt the worker's thread if still running (`t3_thread_interrupt`), and `task_cancel` a reviewer task that still runs (never `t3_thread_interrupt` on its child thread).
-   2. Run `braid clean --yes` to remove the item's worktree and branch and its reviewers' checkouts. A reviewer's folder still in use is kept and named; run it again later.
+   1. `task_cancel` a worker or reviewer task that still runs (never `t3_thread_interrupt` on a child; a worker in a top-level thread started before subagents: `t3_thread_interrupt`).
+   2. Run `braid clean --yes` to remove the item's branch and its children's checkouts. A folder still in use is kept and named; run it again later.
    3. For a strand, on the braid branch, run `braid accept <id> --review <link> --thread <your thread id> --log -` with the braid's log entry on standard input; it commits as `docs(braids): <id> accepted`. Skip this when the merge ran through `braid accept --merge`, which did it.
    4. Fix any item that hasn't started and that the entry makes wrong, as in "Adjusting the plan".
    5. After a spike, follow-ups that adjust briefs of this braid, or that this braid needs (strands by default, "Grow and adjust"), become or change briefs here; tell the user what the answer changed. A follow-up that becomes a separate braid is not planned here: launch its new coordinator thread now, after the merge ("Plan", step 0). The recap, which comes before the merge, may ask the user which follow-up to plan.
@@ -188,7 +176,7 @@ When your first message names a PM thread (a `braid-pm` programme manager launch
 
 ## Fixes
 
-- The worker that opened a PR fixes it: failed checks, review findings, anything else on that PR. Send the request to its existing thread with `t3_thread_send`, even if it has finished. Start a new worker on the same branch and item only if that thread can't continue.
+- The worker that opened a PR fixes it: failed checks, review findings, anything else on that PR. Send the request to its child with `t3_thread_send`, even if its run has ended. Launch a new worker on the same item only if that child can't continue.
 - CI failing on a braid branch itself, or on its final PR, and review findings on the final PR, belong to no worker, and you don't fix product code yourself. Add a tier S fix strand at the end of the braid, with no dependencies, and run it before the next item; a strand in review merges after it. A second red on the braid branch is a stop (`quality`).
 
 ## Finish
@@ -208,7 +196,7 @@ A goal, when every strand reads Done in `braid status <number>` (the docs strand
 - **Idle on purpose until a time:** `braid ask <id> "<why>" --to self --done-when time:<iso> --thread <your thread id>` asks nobody, shows "Waiting until <time>", holds off the stall until then; the board's `Wake:` resumes you.
 - **`braid ask` never replaces the chat message.** Its text is the board's short version: one line naming the item and what is needed. The full message to the user or the PM goes in the turn's final message, after the last tool call (text before a tool call folds away unseen), never a question tool or dialog: short context (what it is about, why it is asked now, enough to answer without reading anything above), the question (the full recap, plan, proposal or stop with its case and source), what the answer unblocks (items, strands, merges), the code, then the option set of its kind below as lettered answers, recommended first, each 1 to 5 words; any other reply counts too. Under a PM, the message to the PM thread is that message. Steps that say only `braid ask …` (Plan step 8, the Converge loop, the Mandate, "After the merge" step 6, the quality stops) mean all of this. Name the thing itself (the item's title, the file, the PR), never "option 2" of an earlier message; this holds for a recap's "Needs the user" and "You", the `braid ask` text, and a worker's or reviewer's question you pass on. If an answer is a value, say where it will be stored.
 - **A reply to an open request** (a letter, free text, the board's merge message): first record it, `braid answer <code> --file -` with the answer in the user's words, then act; a new question means a new `braid ask`. A request no longer needed: `braid withdraw <code> --why "<reason>"`.
-- **Say "waiting" only when something will wake you:** only the worker's message, a PR watch on the planning or final PR, a `delegate_task` result, or the board. Otherwise say what you will do when the user next writes.
+- **Say "waiting" only when something will wake you:** only a `delegate_task` result, a PR watch, or the board. Otherwise say what you will do when the user next writes.
 - **End markers:** every message to the user ends with one marker on its own last line: `✋ <what is needed>` when the user is needed (`✋ Approve the plan, q-7f3k`), `⏳ Waiting for <what>` when waiting on agents or CI, `🟢` when nothing is needed or pending.
 - **Links:** every worker or reviewer thread (its T3 `link`), PR (its URL) and item brief (its brief.md on GitHub, at the branch you read it from) you name is a link, also in the marker line, e.g. `⏳ Waiting for the [worker](<thread link>)'s report`.
 
