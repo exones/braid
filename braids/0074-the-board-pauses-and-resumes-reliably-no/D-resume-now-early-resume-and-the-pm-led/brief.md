@@ -53,12 +53,12 @@ Expected size: about 400 lines in 8 files.
 
 ## Completion
 
-- [ ] Mockups of the Resume now buttons approved before building (log entry with the verdict)
-- [ ] One resume path serves the timer, the buttons and `braid resume --limit` (with `--all`), with tests
-- [ ] PM-run braids resume through one message to the PM and its `braid resume <number> --limit`; braids without a PM resume directly, with tests
-- [ ] A fresh reading under the threshold resumes early, with a test
-- [ ] A pause whose window no longer applies resumes at the next refresh and its old banner goes, with a test
-- [ ] A resume send that fails stays pending, is retried at each refresh until delivered, and the card says "resume pending: T3 unreachable since <time>", with a test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockups of the Resume now buttons approved before building (log entry with the verdict)
+- [x] One resume path serves the timer, the buttons and `braid resume --limit` (with `--all`), with tests
+- [x] PM-run braids resume through one message to the PM and its `braid resume <number> --limit`; braids without a PM resume directly, with tests
+- [x] A fresh reading under the threshold resumes early, with a test
+- [x] A pause whose window no longer applies resumes at the next refresh and its old banner goes, with a test
+- [x] A resume send that fails stays pending, is retried at each refresh until delivered, and the card says "resume pending: T3 unreachable since <time>", with a test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
