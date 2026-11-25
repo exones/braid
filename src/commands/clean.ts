@@ -1,6 +1,6 @@
 // `braid clean [<number>|<id>] [--yes]`: removes the worktrees and local branches of items whose
 // PR is merged, and of merged planning branches (`plan/<slug>`). A dry run unless `--yes`. It keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
-// changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay. The one exception is a recorded reviewer's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
+// changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay. The one exception is a recorded subagent's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
 import { spawnSync } from "node:child_process";
 import { existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
