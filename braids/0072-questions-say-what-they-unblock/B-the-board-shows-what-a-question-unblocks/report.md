@@ -14,7 +14,7 @@ The user: a question must say what it unblocks and whether to decide or do; "Esc
 
 ## Validation
 
-`test/board-unblocks.test.ts` (six tests: blocks and act, braid-level plan, action words, merge, escalation with blocks, Decided vs closed, row data); `test/pm-requests.test.ts` updated for the words. Gate (`npm run verify`): 727 tests pass; one fails locally, `requests.test.ts` "overlapping writers in separate processes lose no update" (and its stale-lock twin), which times out after 106-167 s on this machine and uses the record lock this item does not touch; CI decides.
+`test/board-unblocks.test.ts` (six tests: blocks and act, braid-level plan, action words, merge, escalation with blocks, Decided vs closed, row data); `test/pm-requests.test.ts` updated for the words. Gate (`npm run verify`): 727 tests pass; one fails locally, `requests.test.ts` "overlapping writers in separate processes lose no update" (and its stale-lock twin), which times out after 106-167 s on this machine and uses the record lock this item does not touch; CI's `verify` job runs the same gate and is green on d35fe725 on ubuntu and windows, which is the gate's evidence (the coordinator's call). Two local runs failed only those two multi-process lock tests (child exit codes `[0, 0, 0, 1]` where all 0 were expected, test/requests.test.ts:270; leftover 2026-11-25-2hkx); the second run: 726 pass, 2 fail; log `~/.braid/artifacts/braid/0072/verify2.log`.
 
 ## Docs
 
