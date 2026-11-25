@@ -41,6 +41,7 @@
   - Resume now on a PM-run braid sends the PM one message and nothing else. A programme's Resume now asks the same PM once more. Only `braid resume 0070 --limit` then sends the agents and clears the record.
   - A fresh reading under the threshold resumes 50 min early; a reading from before the pause doesn't.
   - A pause whose window no longer applies (a cursor-like `other_models` record with an old 0-of-2 steering part) resumes at the next refresh, and the banner is gone.
+  - The user's everix4 record (cursor, window `apiPercentUsed` "Other Models" at 100%, resuming Dec 3, an old 0-of-2 steering banner) with cursor on a Cursor Models model and the reading at 73.2%: it resumes at the next refresh, the record goes, and the chip leaves `paused` (`stateOf` reads paused only from a record naming the provider, so it ends with the record).
   - A failed send stays pending, is retried at 8 refreshes (past the old 5), and the card reads "resume pending: T3 unreachable since …" with "1 of 2 agents reached". Once T3 takes it, only the failed thread is sent and the record clears.
   - `--limit --all` resumes a braid without a PM directly and asks the PM for a PM-run one.
   - A hold is refused by Resume now, left by `--all`, `--limit` and the board.

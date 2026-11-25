@@ -759,3 +759,35 @@ test("braid resume --limit also holds off a new pause until a reading checked af
   assert.equal(t3.texts().length, 0);
   assert.deepEqual(records(root), []);
 });
+
+test("everix4's cursor pause on Other Models (scoped out of its Cursor Models pool since #300) resumes at the next refresh and the chip is no longer paused", async () => {
+  const { root, caches } = project();
+  // BRAID.md runs cursor on a Cursor Models (auto pool) model, so the apiPercentUsed (Other Models) window no longer applies.
+  writeFileSync(join(root, "BRAID.md"), "---\nmain: main\nmodels:\n  coordinator: claude / claude-opus-5-5 / effort=medium\n  worker: cursor / composer-2 / effort=medium\n---\n");
+  cache(caches, "claude", 20, NOW);
+  const cursorAt = iso(-1);
+  writeFileSync(
+    join(caches, "cursor.json"),
+    JSON.stringify({ instanceId: "cursor", usageLimits: { checkedAt: cursorAt, windows: [
+      { id: "apiPercentUsed", kind: "weekly", label: "Other Models", usedPercent: 100, resetsAt: "2026-12-03T08:48:27.000Z" },
+      { id: "autoPercentUsed", kind: "weekly", label: "Cursor Models", usedPercent: 73.2, resetsAt: "2026-12-03T08:48:27.000Z" },
+    ] } }),
+  );
+  // The record as the user's board holds it (everix4 0011, braid number aside): by the board, window apiPercentUsed at 100%,
+  // resuming on Dec 3, with an old steering banner that no agent answered.
+  setPause(root, {
+    braid: "0070", reason: "limit", provider: "cursor", window: "apiPercentUsed", label: "Other Models", usedPercent: 100,
+    resetsAt: "2026-12-03T08:48:27.000Z", resumeAt: "2026-12-03T08:53:27.000Z", task: null, thread: "", by: "board", at: iso(-3 * 24 * 60),
+    targets: [{ thread: "cur-coord", kind: "coordinator", item: "0070", project: root }, { thread: "cur-work", kind: "worker", item: "0070", project: root }],
+    steering: { thread: "steer-0", link: null, provider: "claude", model: "m", started: iso(-3 * 24 * 60), outcome: "partial", answered: 0, total: 2, children: [], noAnswer: ["0070"], reason: null, self: false },
+  });
+  const chip = () => readLimitsView(root, threads(), new Map(records(root).map((p: { braid: string }) => [p.braid, p])), NOW, caches).providers.find((p: { instanceId: string }) => p.instanceId === "cursor")?.state;
+  assert.equal(chip(), "paused", "before: the chip reads paused from the record");
+  const t3 = fakeT3();
+  const b = board(root, caches, t3, { now: NOW }, threads, false);
+  await b.tick();
+  assert.deepEqual(t3.resumes().map((c) => c.args[2]), ["cur-coord", "cur-work"]);
+  assert.deepEqual(records(root), [], "the record and its old banner are gone");
+  assert.equal(chip(), "ok", "the chip's paused state ends");
+  assert.equal(b.pushes.at(-1)?.title, "cursor resumed");
+});
