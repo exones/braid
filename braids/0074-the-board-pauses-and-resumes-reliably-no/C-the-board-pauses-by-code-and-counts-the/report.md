@@ -29,7 +29,7 @@ The LLM steering thread paused 0 of 18 twice on 2026-11-24, retyped its own thre
 - The resume, hold, weekly, restart and push tests were kept and adapted.
 - `test/board-acting.test.ts`: two boards with shared leases, each serving two projects on one provider account: each thread gets its pause text once, in its own project. The resume still reads each project's own BRAID.md. The older-record resume test keeps a `steering` record.
 - `test/pauses.test.ts`: a partial board pause makes the braid's card Needs You (`limit`) with the thread link, and a full pause doesn't.
-- Gate: see below.
+- Gate: local `npm run verify` (22 min on a loaded machine) passed 707 of 711. The 4 failures were in files this item doesn't touch (`github`, `requests`, `start-clean`); run alone, 51 of 52 passed, and the one left is the requests store's multi-process lock test, which 0074/B also saw fail under load. CI's full gate passed on Ubuntu and Windows at 977e872.
 
 ## Docs
 

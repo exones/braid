@@ -60,5 +60,5 @@ Expected size: about 450 lines in 7 files (much of it removed steering code).
 - [x] Replies are counted from the threads within 10 minutes, with tests
 - [x] A partial or failed pause shows Needs You on the card, sends one push and messages the PM or coordinator, with tests
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
