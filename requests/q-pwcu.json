@@ -1,0 +1,20 @@
+{
+  "code": "q-pwcu",
+  "item": "0072/B",
+  "kind": "decision",
+  "text": "0072/B revised mockup (roomy details card) for the user, and a data case: add optional context and options fields to the request record with braid ask --context/--option",
+  "key": "data",
+  "by": "coordinator",
+  "thread": "mcp:launch:a0a03eb409fbc1d18679d8c2659026c14e35ed836aebf5709126e14b27b074a9",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T20:08:09.136Z",
+      "by": "coordinator"
+    }
+  ]
+}
