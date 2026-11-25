@@ -21,6 +21,12 @@
       "at": "2026-11-25T19:25:29.643Z",
       "by": "pm",
       "text": "UI mockups (q-ex55) for the user: PM recommends a (orange warning chip, whole numbers, 'blind since <time>')"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T20:06:15.715Z",
+      "by": "user",
+      "text": "Approve as shown (the user: \"q-ex55 approve as shown\")."
     }
   ]
 }
