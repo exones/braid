@@ -44,8 +44,16 @@ Expected size: a report of about 150 lines and `sources.md`; no product code. Lo
 
 ## Completion
 
-- [ ] `report.md` answers the five questions under Change, each with a recommendation and its alternatives
-- [ ] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] `report.md` answers the five questions under Change, each with a recommendation and its alternatives
+- [x] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open; `Needs the user:` names the security and dependency decisions
+- [x] report.md written: what changed, why, validation, anything open; `Needs the user:` names the security and dependency decisions
+
+## Plan
+
+1. Frame (decision, sub-questions, candidates) and read T3's sign-in: the given v0.1.12 sources plus the installed T3 server bundle for what they leave out (session lifetime, revoke, approval page, runtime file).
+2. Read the board's run modes (board.ts, service.ts, address.ts, tailnet.ts) for where a sign-in can start and land.
+3. Two researcher subagents in parallel: OS secret stores from Node (library vs OS tools, per OS) and the MCP authorization spec with the OAuth RFCs it cites.
+4. Write report.md (five answers, recommendation first, threat model, 0080/D estimate, Needs the user) and sources.md; no product code, no live sign-in.
+5. braid check, the gate once at the end, PR into braid/0080-the-board-talks-to-t3-directly.
