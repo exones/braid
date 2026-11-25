@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-25T21:12:57.560Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T21:14:35.821Z",
+      "by": "pm",
+      "text": "a. Approve. Reason: sign-in designed as a spike the user decides on before D, mock-first events client, and steering only after 0074 matches the user's \"first test on some mock, and if it holds, implement\" and keeps the security decision with the user, instead of building the sign-in straight away. The deviation (T3 sources kept in ~/.braid/artifacts, not the public repo) is right. G as you wrote: if no agent-callable auto-settle switch exists, it comes back to me.",
+      "reason": "Plan matches the user's mock-first and ask-before-sign-in decisions"
     }
   ]
 }
