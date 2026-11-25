@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-25T23:02:34.555Z",
       "by": "coordinator"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-25T23:06:45.403Z",
+      "by": "board",
+      "text": "PR #330 head moved to dacded9"
     }
   ]
 }
