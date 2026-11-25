@@ -5,7 +5,7 @@ import type { Status } from "../braids/brief.js";
 import { braidStatuses, type Lifecycle } from "../braids/lifecycle.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
-import { age, type Request } from "../braids/requests.js";
+import { age, isTimedWait, type Request } from "../braids/requests.js";
 import { requestsOf, rowOf, type RequestRow, type RequestsView } from "./record.js";
 import type { Pause } from "../braids/pauses.js";
 import { clock, limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
@@ -500,7 +500,7 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const checking = pr?.state === "open" && (pr.checks === "pending" || pr.checks === "failing");
   const failed = raise(key, "checks failed", busy ? false : known ? pr?.state === "open" && pr.checks === "failing" && agents.length === 0 : null);
-  // An open wait of the braid on another braid is the coordinator waiting on purpose: no item of it reads stalled; a broken one does, on the braid.
+  // An open wait of the braid on another braid, or a timed wait still ahead, is the coordinator waiting on purpose: no item of it reads stalled; a broken wait on a braid does, on the braid.
   const holds = busy || waits(key.slice(0, 4), sig).length > 0 || status !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
   const stalls = stallsOf({ id: key, key, holds, words: "Stalled: nobody is working and nothing was asked" }, sig, t3, raise);
   const names = pr?.failed ?? [];
@@ -775,8 +775,14 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   };
 }
 
-/** The open waits of braid `number` and its strands on another braid. */
-const waits = (number: string, sig: Signals): Request[] => (sig.waits ?? []).filter((r) => braidOfId(r.id) === number);
+/** Whether a timed wait's time is still to come (0075/G); its time passed, it no longer holds anything off, as when the board's wake closed it. */
+const timeAhead = (r: Request, now: Date): boolean => {
+  const due = Date.parse(/^time:(.+)$/.exec(r.doneWhen)?.[1] ?? "");
+  return !Number.isNaN(due) && now.getTime() < due;
+};
+
+/** The open waits of braid `number` and its strands: on another braid, or a timed wait whose time is still to come. Either is the coordinator waiting on purpose. */
+const waits = (number: string, sig: Signals): Request[] => (sig.waits ?? []).filter((r) => braidOfId(r.id) === number && (!isTimedWait(r) || timeAhead(r, sig.now)));
 
 /**
  * What a broken wait of braid `number` reads as: the stall, with its reason. Past its estimate at once; a gone addressee
@@ -784,7 +790,8 @@ const waits = (number: string, sig: Signals): Request[] => (sig.waits ?? []).fil
  * while the braid, or the braid it waits on, is held or paused.
  */
 function waitStall(number: string, sig: Signals, t3: T3, raise: Raise): Need | null {
-  const live = sig.pauses?.has(number) === true ? [] : waits(number, sig).filter((r) => sig.pauses?.has(r.to ?? "") !== true);
+  // A timed wait has no addressee to be gone or late: only waits on another braid break.
+  const live = sig.pauses?.has(number) === true ? [] : waits(number, sig).filter((r) => !isTimedWait(r) && sig.pauses?.has(r.to ?? "") !== true);
   const gone = live.find((r) => addresseeOf(r, t3, sig.plans)?.to === "gone");
   const since = raise(`${number} wait`, "stalled", live.length === 0 ? false : t3.status.state !== "ok" ? null : gone !== undefined);
   for (const r of live) {
@@ -796,7 +803,7 @@ function waitStall(number: string, sig: Signals, t3: T3, raise: Raise): Need | n
   return since === null || gone === undefined ? null : { ...plain, kind: "stalled", text: `Stalled: waiting on braid ${gone.to ?? ""}, whose coordinator is gone`, verb: "for", age: age(since, sig.now), since };
 }
 
-/** The open requests of a braid and its strands that wait on another braid. */
+/** The open requests of a braid and its strands that wait on another braid, and its timed waits. */
 const waitsOf = (number: string, sig: Signals, t3: T3): RequestRow[] =>
   (sig.waits ?? []).filter((r) => r.id === number || r.id.startsWith(`${number}/`)).map((r) => rowOf(r, sig.now, t3));
 
