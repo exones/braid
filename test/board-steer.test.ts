@@ -724,8 +724,8 @@ test("braid resume --limit --all resumes every board pause: directly without a P
 
 test("Resume now on a stale over-threshold cache resumes without a new pause until a reading checked after the click; a fresh one still over pauses once", async () => {
   const { root, caches } = project();
-  // T3's cache still holds the old reading, over the threshold, checked before the click (the usage-reset case).
-  cache(caches, "claude", 98, later(-10));
+  // T3's cache still holds the old reading, over the threshold, checked after the pause but before the click (the usage-reset case).
+  cache(caches, "claude", 98, later(-2)); // checked 3 min before the click: fresh by the stale rule (10 min), over the threshold
   cache(caches, "codex", 20, NOW);
   boardRecord(root, "0070", later(-5), AGENTS);
   const t3 = fakeT3();
@@ -749,7 +749,7 @@ test("Resume now on a stale over-threshold cache resumes without a new pause unt
 
 test("braid resume --limit also holds off a new pause until a reading checked after it", async () => {
   const { root, caches } = project();
-  cache(caches, "claude", 98, later(-10));
+  cache(caches, "claude", 98, later(-2)); // checked 3 min before the click: fresh by the stale rule (10 min), over the threshold
   cache(caches, "codex", 20, NOW);
   boardRecord(root, "0070", later(-5), AGENTS);
   const t3 = fakeT3();
