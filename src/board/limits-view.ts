@@ -1,5 +1,5 @@
 // The words of the limits chips and panel (docs/board.md, "Provider limits"). Pure (no Node.js), so the page uses it too.
-import { clock } from "./pause.js";
+import { clock, noAnswerItem } from "./pause.js";
 import type { ChipState, LimitsView, ProviderView } from "./limits.js";
 
 const MIN = 60_000;
@@ -39,9 +39,9 @@ export function chipNote(p: ProviderView, now: Date): string {
     case "unknown":
       return p.checkedAt === null ? "no reading yet" : `no reading for ${agoText(p.checkedAt, now)}`;
     case "over":
-      return p.steering?.outcome === "pausing" ? "pausing…" : "over";
+      return p.replies?.outcome === "pausing" ? "pausing…" : "over";
     case "paused": {
-      if (p.steering?.outcome === "pausing") {
+      if (p.replies?.outcome === "pausing") {
         return "pausing…";
       }
       return `${isWeekly(p) ? "weekly · " : "paused · "}resumes ${p.resumeAt === null ? "?" : whenText(p.resumeAt, now)}`;
@@ -80,7 +80,6 @@ export function agentsText(p: ProviderView): { readonly paused: string; readonly
   return { paused: list("paused"), running: list("running") };
 }
 
-/** The panel's steering line (mockup 3): where the 🚦 thread ran, when, and what came of it; null without one. */
 /**
  * Which board acts (0074/B): "This board acts for the pauses, resumes and wakes." when it holds every key, else one line per key
  * another board holds: "Watching: the board on port <p> (pid <n>) acts for <what>." Null when the board pauses nothing.
@@ -97,18 +96,18 @@ export function actingText(view: LimitsView): string[] | null {
   return watching.map((l) => `Watching: ${l.by ?? "another board acts"} for ${l.key.startsWith("repo-") ? `the wakes and reminders of ${l.label}` : `the pause and resume of ${l.label}`}.`);
 }
 
-export function steeringText(p: ProviderView, now: Date): string | null {
-  const s = p.steering;
+/** The panel's pause line: when the board sent its pause texts and what came of them; null without a board pause. */
+export function repliesLine(p: ProviderView, now: Date): string | null {
+  const s = p.replies;
   if (s === null) {
     return null;
   }
-  const on = `${s.provider}${s.model === null ? "" : ` / ${s.model}`}${s.self ? " (in the margin of the provider it pauses)" : ""}`;
-  const started = `started ${whenText(s.started, now)}`;
+  const sent = `sent ${whenText(s.sent, now)}`;
   const what =
     s.outcome === "pausing"
-      ? `pausing ${s.total} agent${s.total === 1 ? "" : "s"}`
+      ? `counting the replies: ${s.got.length} of ${s.total} so far`
       : s.outcome === "failed"
-        ? `failed: ${s.reason ?? "no reason given"}`
-        : `${s.answered ?? 0} of ${s.total} agents answered Paused:${s.noAnswer.length === 0 ? "" : `; no answer: ${s.noAnswer.join(", ")}`}`;
-  return `🚦 Steering thread on ${on}, ${started}: ${what}.`;
+        ? `failed: ${s.reason ?? "no send went through"}`
+        : `${s.answered} of ${s.total} agents answered Paused:${s.noAnswer.length === 0 ? "" : `; no answer: ${s.noAnswer.map(noAnswerItem).join(", ")}`}`;
+  return `Pause ${sent} by the board: ${what}.`;
 }

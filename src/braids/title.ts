@@ -33,12 +33,7 @@ export function titleRepoName(root: string): string {
   return name ?? repoNameOf(root) ?? basename(root);
 }
 
-/** The title of the board's steering thread: `🚦 <repo> steering: <what>`. It has no item id, so no item reads it as one of its agents. */
-export function steeringTitle(repo: string, what: string): string {
-  return `${STEERING_EMOJI} ${repo} steering: ${what}`;
-}
-
-/** A steering thread's title read back; the 🚦 is required, so no other thread with a similar title is taken for it. Null for any other title. */
+/** An older board steering thread's title (`🚦 <repo> steering: <what>`, 0064; none starts since 0074/C) read back, so it is never taken for an item's agent; the 🚦 is required, so no other thread with a similar title is taken for it. Null for any other title. */
 export function parseSteeringTitle(text: string): { readonly repo: string; readonly what: string } | null {
   const m = new RegExp(`^${STEERING_EMOJI}\\s+(\\S+) steering: (.*)$`).exec(text);
   return m === null ? null : { repo: m[1] ?? "", what: m[2] ?? "" };

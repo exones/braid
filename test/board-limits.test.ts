@@ -11,7 +11,7 @@ const { readLimitsView, mergeLimits, buildView } = await load("../dist/board/lim
 const { chipNote, agentsText } = await load("../dist/board/limits-view.js");
 const { DEFAULT_LIMITS } = await load("../dist/braids/limits.js");
 const { readT3, resetT3Memory } = await load("../dist/board/t3.js");
-const { parseSteeringTitle, parseThreadTitle, steeringTitle } = await load("../dist/braids/title.js");
+const { parseSteeringTitle, parseThreadTitle } = await load("../dist/braids/title.js");
 const { demoLimits, demoT3, demoPauses } = await load("../dist/board/demo.js");
 const { toBoard } = await load("../dist/board/model.js");
 
@@ -118,7 +118,7 @@ function stub(list: unknown[], shown: Record<string, unknown>) {
   return (_root: string, args: readonly string[]) => Promise.resolve({ status: 0, stdout: JSON.stringify(args[1] === "list" ? list : { thread: shown[args[2] ?? ""] ?? {} }), stderr: "" });
 }
 
-test("worker and reviewer threads carry their provider, as coordinators do; a steering thread is no agent", async () => {
+test("worker and reviewer threads carry their provider, as coordinators do; an older steering thread is no agent", async () => {
   const agents = join(scratch, "wt");
   mkdirSync(agents, { recursive: true });
   const list = [
@@ -140,9 +140,8 @@ test("worker and reviewer threads carry their provider, as coordinators do; a st
   assert.equal(t3.coordinators.get("0001")?.provider, "Claude_Everix");
 });
 
-test("the steering title has no item id, and nothing but a steering title reads as one", () => {
-  const title = steeringTitle("braid", "pause Claude_Everix Session 97%");
-  assert.equal(title, "🚦 braid steering: pause Claude_Everix Session 97%");
+test("an older steering thread's title has no item id, and nothing but a steering title reads as one", () => {
+  const title = "🚦 braid steering: pause Claude_Everix Session 97%";
   assert.deepEqual(parseSteeringTitle(title), { repo: "braid", what: "pause Claude_Everix Session 97%" });
   assert.equal(parseThreadTitle(title), null);
   assert.equal(parseSteeringTitle("🧠 braid 0064 coordinator: x"), null);

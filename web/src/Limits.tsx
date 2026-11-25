@@ -1,6 +1,6 @@
 // The provider limits on the page (docs/board.md, "Provider limits"): the header chips, the phone strip and the limits panel.
 import { Dialog } from "radix-ui";
-import { actingText, agentsText, badgeText, chipNote, chipTitle, resetText, STATE_TONE, steeringText } from "../../src/board/limits-view.ts";
+import { actingText, agentsText, badgeText, chipNote, chipTitle, resetText, STATE_TONE, repliesLine } from "../../src/board/limits-view.ts";
 import { t3codeUrl } from "../../src/board/marks.ts";
 import type { LimitsView, ProviderView, WindowReading } from "./api.ts";
 
@@ -113,30 +113,30 @@ function ProviderBlock({ p, now }: { p: ProviderView; now: Date }) {
           Running on it: {agents.running}.
         </p>
       )}
-      <SteeringLine p={p} now={now} />
+      <RepliesLine p={p} now={now} />
     </section>
   );
 }
 
-/** The last 🚦 steering thread of the board's pause, with its outcome and a link that opens it in the T3 app. */
-function SteeringLine({ p, now }: { p: ProviderView; now: Date }) {
-  const text = steeringText(p, now);
+/** The board's last pause on this provider: when it sent its texts and what came of them; amber when it didn't reach everyone, with each silent thread's link. */
+function RepliesLine({ p, now }: { p: ProviderView; now: Date }) {
+  const text = repliesLine(p, now);
   if (text === null) {
     return null;
   }
-  const url = p.steering?.link == null ? null : t3codeUrl(p.steering.link);
-  const failed = p.steering?.outcome === "failed" || p.steering?.outcome === "partial";
+  const failed = p.replies?.outcome === "failed" || p.replies?.outcome === "partial";
+  const silent = (p.replies?.noAnswer ?? []).filter((n) => n.link !== null);
   return (
-    <p data-steering={p.steering?.outcome} className={`mt-1.5 rounded-md border-l-[3px] px-2 py-1 text-xs ${failed ? "border-amber-500 bg-amber-50 text-amber-900" : "border-sky-600 bg-sky-50 text-sky-900"}`}>
+    <p data-replies={p.replies?.outcome} className={`mt-1.5 rounded-md border-l-[3px] px-2 py-1 text-xs ${failed ? "border-amber-500 bg-amber-50 text-amber-900" : "border-sky-600 bg-sky-50 text-sky-900"}`}>
       {text}
-      {url !== null && (
-        <>
+      {silent.map((n) => (
+        <span key={n.thread}>
           {" "}
-          <a className="underline" href={url}>
-            Open thread
+          <a className="underline" href={t3codeUrl(n.link ?? "") ?? undefined}>
+            Open {n.item}
           </a>
-        </>
-      )}
+        </span>
+      ))}
     </p>
   );
 }

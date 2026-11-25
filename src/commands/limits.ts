@@ -24,7 +24,9 @@ function windowLine(w: WindowReading): string {
 
 function block(r: ProviderReading): string {
   const models = r.models.length === 0 ? "" : `  models: ${r.models.join(", ")}`;
-  const lines = [`${r.instanceId}  roles: ${r.roles.join(", ")}${models}`];
+  // models.steering is no longer used (0074/C: the board pauses by code); BRAID.md still reads with it.
+  const roles = r.roles.map((role) => (role === "steering" || role.startsWith("steering.") ? `${role} (unused)` : role));
+  const lines = [`${r.instanceId}  roles: ${roles.join(", ")}${models}`];
   if (r.checkedAt !== null) {
     lines.push(`  checked ${localTime(r.checkedAt)}`);
   }

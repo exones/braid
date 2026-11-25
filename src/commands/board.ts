@@ -16,9 +16,6 @@ import { ACTING_STALE_MS, actingBoard, providerKey, repoLease, type ActingBoard 
 import { steps, waker } from "../board/wake.js";
 import { nudger } from "../board/nudge.js";
 import { reminder } from "../board/remind.js";
-import { steeringLines } from "../board/steer.js";
-import { LimitsError, readModelLines } from "../braids/limits.js";
-import { STEERING_EMOJI } from "../braids/roles.js";
 import { limitPusher } from "../notify/notifier.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
@@ -521,27 +518,15 @@ function acting(name: string, root: string, own: Sources, steer: Steerer, leases
   return { ...own, ...(limits === undefined ? {} : { limits }), act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
 }
 
-/** The start line of the limits pause: which mode is on, and the steering lines (or why there are none). */
-export function limitsLine(mode: "demo" | "off" | "on", projects: readonly { readonly name: string; readonly root: string }[]): string {
+/** The start line of the limits pause: which mode is on. */
+export function limitsLine(mode: "demo" | "off" | "on"): string {
   if (mode === "demo") {
     return "Limits: shown only (demo: nothing is paused)";
   }
   if (mode === "off") {
     return "Limits: shown only (--no-pause: the board pauses and resumes nothing)";
   }
-  const parts = projects.map((p) => {
-    let lines: ReturnType<typeof steeringLines> = null;
-    try {
-      lines = steeringLines(readModelLines(p.root));
-    } catch (error) {
-      if (!(error instanceof LimitsError)) {
-        throw error;
-      }
-    }
-    const who = projects.length > 1 ? `${p.name}: ` : "";
-    return lines === null ? `${who}BRAID.md has no models.steering, so nothing is paused` : `${who}steering ${lines.map((l) => `${l.instanceId} / ${l.model ?? "default"}`).join(", then ")}`;
-  });
-  return `Limits: pauses agents over a threshold through a ${STEERING_EMOJI} steering thread and resumes them after the reset (--no-pause turns this off); ${parts.join("; ")}`;
+  return "Limits: pauses the working agents over a threshold by sending each its pause text, counts their replies and resumes them after the reset (--no-pause turns this off)";
 }
 
 export function boardNotifier(root: string): (board: BoardData) => void {
@@ -1331,7 +1316,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
     process.stdout.write(`On Tailscale: ${started.tailnet.url}\nOnly ${tailnet.owner}'s own devices (no tagged nodes) may open it; Open thread there uses the T3 app on the phone.\n`);
   }
   process.stdout.write(demo ? "Notifications: none in the demo\n" : `${notifyLine(readConfig())}\n`);
-  process.stdout.write(`${limitsLine(demo ? "demo" : pausing ? "on" : "off", several ? list.filter((p) => only === undefined || p.name === only).map((p) => ({ name: p.name, root: p.path })) : [{ name: "", root }])}\n`);
+  process.stdout.write(`${limitsLine(demo ? "demo" : pausing ? "on" : "off")}\n`);
   process.stdout.write("Press Ctrl+C to stop.\n");
   if (!args.includes("--no-open")) {
     openBrowser(url);
