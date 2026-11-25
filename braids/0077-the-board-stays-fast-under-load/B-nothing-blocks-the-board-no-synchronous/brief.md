@@ -50,7 +50,7 @@ Expected size: about 450 lines in 13 files.
 - [x] A `t3` or `gh` call that times out reads as not answering within its timeout, not as not installed, with a test for each
 - [x] report.md has the live check's `/api/session` timings while a gate ran
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
