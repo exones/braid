@@ -44,8 +44,8 @@ test("ok: a Claude and a Codex provider under their thresholds list every window
   assert.equal(claude.reason, null);
   assert.deepEqual(claude.windows.map((w: { id: string }) => w.id), ["five_hour", "seven_day"]);
   assert.equal(claude.windows[0].usedPercent, 22);
-  assert.equal(claude.windows[0].threshold, 97);
-  assert.equal(claude.windows[1].threshold, 95);
+  assert.equal(claude.windows[0].threshold, 90);
+  assert.equal(claude.windows[1].threshold, 90);
   const codex = read("codex_ok", "gpt-5");
   assert.equal(codex.verdict, "ok");
   assert.deepEqual(codex.windows.map((w: { id: string }) => w.id), ["primary", "secondary"]);
@@ -155,7 +155,7 @@ test("braid limits: human output, narrowing, and exit 3 only on pause", () => {
   const ok = limitsCommand(root, [], { caches: fixtures, now: NOW });
   assert.equal(ok.code, 0);
   assert.match(ok.stdout, /^claude_ok {2}roles: coordinator, worker\.story, worker\.spike/m);
-  assert.match(ok.stdout, /five_hour\)\s+22% of {2}97%/);
+  assert.match(ok.stdout, /five_hour\)\s+22% of {2}90%/);
   assert.match(ok.stdout, /verdict: ok/);
   assert.match(ok.stdout, /verdict: unknown \(launch as usual\): T3 cannot measure this provider \(unsupported\)/);
   const one = limitsCommand(root, ["codex_ok"], { caches: fixtures, now: NOW });
@@ -169,7 +169,7 @@ test("braid limits: human output, narrowing, and exit 3 only on pause", () => {
   const paused = project("cmd-pause", MODELS.replace("claude_ok / claude-opus-5-5", "claude_session_over / claude-opus-5-5"));
   const p = limitsCommand(paused, ["claude_session_over"], { caches: fixtures, now: NOW });
   assert.equal(p.code, 3);
-  assert.match(p.stdout, /verdict: pause: Session \(five_hour\) is at 98%, threshold 97%; resume at \d{4}-\d\d-\d\d \d\d:\d\d/);
+  assert.match(p.stdout, /verdict: pause: Session \(five_hour\) is at 98%, threshold 90%; resume at \d{4}-\d\d-\d\d \d\d:\d\d/);
   assert.match(p.stdout, /OVER/);
 });
 

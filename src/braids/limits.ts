@@ -14,7 +14,7 @@ export interface Limits {
   readonly stale: number;
 }
 
-export const DEFAULT_LIMITS: Limits = { session: 97, weekly: 95, buffer: 5, stale: 10 };
+export const DEFAULT_LIMITS: Limits = { session: 90, weekly: 90, buffer: 5, stale: 10 };
 
 /** Models billed under Cursor's "Cursor Models" (auto) pool; every other Cursor model is billed under "Other Models" (API). */
 const CURSOR_POOL = /grok|composer|auto/;
