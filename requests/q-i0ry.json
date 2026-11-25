@@ -15,6 +15,11 @@
       "event": "opened",
       "at": "2026-11-25T16:30:37.149Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-25T16:32:19.995Z",
+      "by": "pm"
     }
   ]
 }
