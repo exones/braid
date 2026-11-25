@@ -1,0 +1,19 @@
+{
+  "code": "q-488f",
+  "item": "0072",
+  "kind": "plan",
+  "text": "Approve the plan: 6 strands A-F (unblocks derived, board, pushes and programme cards, PM answers on the record with a wake, skills without growth, docs)",
+  "by": "coordinator",
+  "thread": "mcp:launch:a0a03eb409fbc1d18679d8c2659026c14e35ed836aebf5709126e14b27b074a9",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T11:51:51.491Z",
+      "by": "coordinator"
+    }
+  ]
+}
