@@ -15,6 +15,12 @@
       "event": "opened",
       "at": "2026-11-25T22:18:11.044Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-25T22:19:22.361Z",
+      "by": "pm",
+      "text": "Sign-in design + first runtime dependency (q-b146) for the user: PM recommends a"
     }
   ]
 }
