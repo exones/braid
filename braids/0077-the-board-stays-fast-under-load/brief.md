@@ -22,7 +22,7 @@ What a user can try at the end: start two gates at once (two worktrees, `braid g
 - C: the probe (`braid board --url`, `braid board service status`) tolerates a busy machine.
 - D: at most two gates at once per machine (5p1e), `braid gate`.
 - E: the programme card's running count (1r0o).
-- F: docs.
+- F: docs (no skill changes: the user, "not yet, put in ideas").
 
 ## Already decided
 
