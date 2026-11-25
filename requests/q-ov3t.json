@@ -29,6 +29,12 @@
       "by": "pm",
       "text": "2026-11-25T03:35:45.037Z",
       "reason": "PM's live check of #305 is running: end-to-end, early-PR case, and a lane-by-lane comparison old vs new CLI on clones of three repos"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-25T02:13:03.616Z",
+      "by": "pm",
+      "text": "live check passed: 705/705; heads unchanged on accept, lifecycle files, same lane on board and status at every step; dsyv fixed; 343 rows on clones of 3 repos, no regressions (2 intended changes); wakes, reminders, G, Merge, clean ok · merge PR #305 at 015e7dd"
     }
   ]
 }
