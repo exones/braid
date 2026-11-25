@@ -3,7 +3,7 @@ programme: autonomous-dev-machine
 title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
-limit: 2
+limit: 3
 state: running
 hold:
 next: "running: P21 · 0074, P4 · 0072, P8 · 0060 (merge order 0074, 0072, 0060); then P25 (Questions panel, after 0072), P24 (board speed), P5"
@@ -154,6 +154,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-25: PM reread its skill after a summary; front-matter limit corrected to 3 (the user's "P4 and P8 at the same time"). Drive C: ran full (worktrees ~100 GB, ~/.braid ~31 GB); builds failed machine-wide; the user cleaned it (39 GB free); coordinators told to re-run disk-space failures. Note for P5/P26: T3's MCP thread send has modes `steer` and `restart` (mid-turn), which the board can use once signed in; a full disk belongs with P26 (runaway guard) and `braid clean` (npvd).
 - 2026-11-25: user: a braid whose coordinator is alive (working or waiting on PRs, live checks) counts as running on the programme card; P24's card count fix rewritten to say so.
 - 2026-11-25: user: P24 keeps its order (after P25), "A: b"; the board signs in to T3 at Supervised and steers threads on Hold and Resume, "B: a", taken into P5 (t4oj); the T3 issue was posted by the user; the card's running count (1r0o) goes into P24.
 - 2026-11-25: 0074/D mockups approved by the user with changes (q-i0ry): board buttons are icon-only with the words in the tooltip ("as we agreed"), and Open thread / thread links stay as they are. Applies to every board braid (P25, P5, P14).
