@@ -64,8 +64,8 @@ export function chipTitle(p: ProviderView): string {
 }
 
 /** `resets 13:50 (in 52 min)` for a window. */
-export function resetText(resetsAt: string, reset: boolean, now: Date): string {
-  return reset ? "reset" : `resets ${whenText(resetsAt, now)} (${inText(Date.parse(resetsAt) - now.getTime())})`;
+export function resetText(resetsAt: string | null, reset: boolean, now: Date): string {
+  return resetsAt === null ? "no reset shown" : reset ? "reset" : `resets ${whenText(resetsAt, now)} (${inText(Date.parse(resetsAt) - now.getTime())})`;
 }
 
 /** The state's tone: which colours the chip, bar and badge take. */

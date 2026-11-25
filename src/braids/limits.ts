@@ -14,7 +14,7 @@ export interface Limits {
   readonly stale: number;
 }
 
-export const DEFAULT_LIMITS: Limits = { session: 97, weekly: 95, buffer: 5, stale: 10 };
+export const DEFAULT_LIMITS: Limits = { session: 90, weekly: 90, buffer: 5, stale: 10 };
 
 /** Models billed under Cursor's "Cursor Models" (auto) pool; every other Cursor model is billed under "Other Models" (API). */
 const CURSOR_POOL = /grok|composer|auto/;
@@ -180,8 +180,9 @@ interface RawWindow {
   readonly kind: string;
   readonly label: string;
   readonly usedPercent: number;
-  readonly resetsAt: string;
-  readonly windowDurationMins?: number;
+  /** `null` when T3 shows no valid reset (it leaves it off a window at 0%). */
+  readonly resetsAt: string | null;
+  readonly windowDurationMins: number | null;
 }
 
 export interface WindowReading {
@@ -191,7 +192,8 @@ export interface WindowReading {
   /** Usage after the reading rules: 0 once `resetsAt` is past. */
   readonly usedPercent: number;
   readonly threshold: number;
-  readonly resetsAt: string;
+  /** `null`: the provider shows no reset for this window. */
+  readonly resetsAt: string | null;
   /** True when `resetsAt` is past, so the cached usage was replaced by 0. */
   readonly reset: boolean;
   readonly over: boolean;
@@ -223,15 +225,19 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 function parseWindows(raw: unknown): RawWindow[] | null {
-  if (!Array.isArray(raw)) {
+  // T3 once wrote `windows` as an object keyed "0", "1", ...; read it as the list it stands for.
+  const list = Array.isArray(raw) ? raw : isRecord(raw) && Object.keys(raw).length > 0 && Object.keys(raw).every((k) => /^\d+$/.test(k)) ? Object.keys(raw).sort((x, y) => Number(x) - Number(y)).map((k) => raw[k]) : null;
+  if (list === null) {
     return null;
   }
   const out: RawWindow[] = [];
-  for (const w of raw) {
-    if (!isRecord(w) || typeof w.id !== "string" || typeof w.usedPercent !== "number" || typeof w.resetsAt !== "string" || Number.isNaN(Date.parse(w.resetsAt))) {
+  for (const w of list) {
+    if (!isRecord(w) || typeof w.id !== "string" || typeof w.usedPercent !== "number") {
       return null;
     }
-    out.push({ id: w.id, kind: w.kind === "weekly" ? "weekly" : "session", label: typeof w.label === "string" ? w.label : w.id, usedPercent: w.usedPercent, resetsAt: w.resetsAt });
+    const resetsAt = typeof w.resetsAt === "string" && !Number.isNaN(Date.parse(w.resetsAt)) ? w.resetsAt : null;
+    const mins = typeof w.windowDurationMins === "number" && w.windowDurationMins > 0 ? w.windowDurationMins : null;
+    out.push({ id: w.id, kind: w.kind === "weekly" ? "weekly" : "session", label: typeof w.label === "string" ? w.label : w.id, usedPercent: w.usedPercent, resetsAt, windowDurationMins: mins });
   }
   return out;
 }
@@ -289,30 +295,47 @@ export function readProvider(caches: string, instanceId: string, lines: readonly
   if (raw === null) {
     return unknownReading(instanceId, roles, models, "usageLimits.windows is not a list of windows", checkedAt);
   }
+  const durations = new Map(raw.map((w) => [w.id, w.windowDurationMins]));
   const windows: WindowReading[] = raw
     .filter((w) => appliesTo(w.id, models))
     .map((w) => {
-      const reset = Date.parse(w.resetsAt) <= now.getTime();
+      const reset = w.resetsAt !== null && Date.parse(w.resetsAt) <= now.getTime();
       const usedPercent = reset ? 0 : w.usedPercent;
       const kind = w.kind === "weekly" ? "weekly" : "session";
       const threshold = limits[kind];
-      return { id: w.id, kind, label: w.label, usedPercent, threshold, resetsAt: new Date(w.resetsAt).toISOString(), reset, over: usedPercent >= threshold };
+      return { id: w.id, kind, label: w.label, usedPercent, threshold, resetsAt: w.resetsAt === null ? null : new Date(w.resetsAt).toISOString(), reset, over: usedPercent >= threshold };
     });
   const over = windows.filter((w) => w.over);
   if (over.length === 0) {
     return { instanceId, roles, models, verdict: "ok", reason: null, checkedAt, windows, pauseWindow: null, resumeAt: null };
   }
-  const latest = over.reduce((a, b) => (Date.parse(b.resetsAt) > Date.parse(a.resetsAt) ? b : a));
-  const resumeAt = new Date(Date.parse(latest.resetsAt) + limits.buffer * 60000).toISOString();
+  // A window with no reset shown resumes one window length after the check, when T3 gives the length.
+  const resumeMs = (w: WindowReading): number | null => {
+    if (w.resetsAt !== null) {
+      return Date.parse(w.resetsAt);
+    }
+    const mins = durations.get(w.id) ?? null;
+    return mins === null ? null : Date.parse(checkedAt) + mins * 60000;
+  };
+  const timed = over.flatMap((w) => {
+    const at = resumeMs(w);
+    return at === null ? [] : [{ w, at }];
+  });
+  if (timed.length === 0) {
+    const w = over[0] as WindowReading;
+    return unknownReading(instanceId, roles, models, `${w.label} (${w.id}) is at ${w.usedPercent}% but shows no reset time`, checkedAt);
+  }
+  const latest = timed.reduce((a, b) => (b.at > a.at ? b : a));
+  const resumeAt = new Date(latest.at + limits.buffer * 60000).toISOString();
   return {
     instanceId,
     roles,
     models,
     verdict: "pause",
-    reason: `${latest.label} (${latest.id}) is at ${latest.usedPercent}%, threshold ${latest.threshold}%`,
+    reason: `${latest.w.label} (${latest.w.id}) is at ${latest.w.usedPercent}%, threshold ${latest.w.threshold}%`,
     checkedAt,
     windows,
-    pauseWindow: latest.id,
+    pauseWindow: latest.w.id,
     resumeAt,
   };
 }
