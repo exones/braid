@@ -1,24 +1,40 @@
 <!doctype html><html><head><meta charset="utf-8"><title>0072/B mockups</title>
 <style>
-body{font:13px/1.4 system-ui,sans-serif;margin:0;padding:8px;color:#0f172a}
-h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:18px 0 6px}
+:root{--fg:#0f172a;--bg:#fff;--line:#e2e8f0;--soft:#f8fafc;--mut:#64748b;--chip:#e2e8f0;--amber:#fffbeb;--red:#fef2f2;--ink:#334155}
+@media (prefers-color-scheme:dark){:root{--fg:#e2e8f0;--bg:#0f172a;--line:#334155;--soft:#1e293b;--mut:#94a3b8;--chip:#334155;--amber:#3a2d0b;--red:#3b1517;--ink:#cbd5e1}}
+body{font:13px/1.4 system-ui,sans-serif;margin:0;padding:8px;color:var(--fg);background:var(--bg)}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:18px 0 6px}
 .cards{display:flex;flex-wrap:wrap;gap:10px}
-.card{width:300px;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px}
-.card b.t{font-size:13.5px}.card .id{color:#64748b;font-size:11px}
-.need{margin-top:6px;border-left:3px solid #f59e0b;background:#fffbeb;padding:4px 6px;border-radius:6px;font-size:12.5px}
-.need.esc{border-color:#dc2626;background:#fef2f2}
-.need small{display:block;color:#64748b;font-size:11px;margin-top:1px}
-.chip{font:11px ui-monospace,monospace;background:#e2e8f0;border-radius:4px;padding:0 4px;cursor:pointer}
-.blk{font-weight:600;color:#7c2d12}.act{font-size:10.5px;font-weight:700;text-transform:uppercase;border-radius:9px;padding:0 6px;background:#fde68a;color:#78350f}
+.card{width:300px;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.card b.t{font-size:13.5px}.card .id{color:var(--mut);font-size:11px}
+.need{margin-top:6px;border-left:3px solid #f59e0b;background:var(--amber);padding:4px 6px;border-radius:6px;font-size:12.5px}
+.need.esc{border-color:#dc2626;background:var(--red)}
+.need small{display:block;color:var(--mut);font-size:11px;margin-top:1px}
+.chip{font:11px ui-monospace,monospace;background:var(--chip);border-radius:4px;padding:0 4px;cursor:pointer}
+.blk{font-weight:600}.act{font-size:10.5px;font-weight:700;text-transform:uppercase;border-radius:9px;padding:0 6px;background:#fde68a;color:#78350f}
 .act.do{background:#bfdbfe;color:#1e3a8a}.act.merge{background:#ddd6fe;color:#4c1d95}
 .panel{max-width:640px}
-.req{border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;margin:6px 0}
+.req{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0}
 .req .h{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.req .r{flex:1}
 .pill{font-size:11px;font-weight:600;border-radius:9px;padding:0 7px}
 .green{background:#dcfce7;color:#166534}.grey{background:#f1f5f9;color:#475569}.violet{background:#ede9fe;color:#5b21b6}.amber{background:#fef3c7;color:#92400e}
-.ans{margin-top:5px;border-left:3px solid #16a34a;background:#f8fafc;padding:3px 8px;border-radius:4px}
-.why{margin-top:4px;border-left:3px solid #94a3b8;background:#f8fafc;padding:3px 8px;border-radius:4px;color:#334155}
-.meta{margin-top:4px;font-size:11.5px;color:#64748b}
+.ans{margin-top:5px;border-left:3px solid #16a34a;background:var(--soft);padding:3px 8px;border-radius:4px}
+.why{margin-top:4px;border-left:3px solid #94a3b8;background:var(--soft);padding:3px 8px;border-radius:4px;color:var(--ink)}
+.meta{margin-top:4px;font-size:11.5px;color:var(--mut)}
+.big{max-width:640px;border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin:8px 0;line-height:1.55}
+.big .need{padding:12px 14px;border-radius:8px;margin:0 0 14px}
+.big .q{font-size:15px;font-weight:600;margin:10px 0 14px}
+details.ctx{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0;background:var(--soft)}
+details.ctx summary{cursor:pointer;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+details.ctx p{margin:8px 0 0}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:baseline;border:1px solid var(--line);border-radius:8px;padding:9px 12px;opacity:.85}
+.opt b{font-size:12px;border:1px solid var(--mut);border-radius:5px;padding:0 6px}
+.cust{margin-top:8px;border:1px dashed var(--mut);border-radius:8px;padding:9px 12px;color:var(--mut)}
+.field{margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--mut);min-height:46px}
+.later{font-size:11px;color:var(--mut);margin:6px 0 0}
+.spec{max-width:640px;border:1px solid var(--line);border-radius:8px;padding:8px 14px;background:var(--soft)}
+code{font-family:ui-monospace,monospace;font-size:12px}
 </style></head><body>
 <h2>Cards in Needs You: the need line is "[handle] blocks … · act", then the words</h2>
 <div class="cards">
@@ -35,10 +51,32 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;ma
 </div>
 <p class="meta" style="max-width:640px">Wording: a coordinator's action reads "The coordinator asks you to:", the PM's "The PM asks you to:" (the PM's reading of a card also forwarded: "The PM asks you:"). The chip copies the handle on click, as today. When nothing waits on the request only the act word shows (as q-d004). The blocked list and act word are also stored on the need as data (<code>blocks: string[]</code>, <code>act</code>) for the later Questions panel.</p>
 
-<h2>Details panel, Needs you box</h2>
+<h2>Revised: details panel question card (roomier: Context, question, options, Custom)</h2>
+<div class="big">
+<div class="need" style="border-left:3px solid #f59e0b"><b style="font-size:11px;text-transform:uppercase">Needs you · asked 35 min ago</b><br>
+<span class="chip">yellow-bear-5asx</span> <span class="blk">blocks 0003/D, 0003/E</span> <span class="act">decide</span>
+<small>strand 0003/C · coordinator thread · say <b>yellow-bear-5asx</b> in any thread to refer to it</small></div>
+<details class="ctx" open><summary>Context</summary>
+<p>PDF export rounds each refund line before summing. Finance's sheet rounds half-up; the payment provider rounds banker's. They differ by a cent on about 1 in 200 refunds, and the report totals must match the provider's statement.</p><p>0003/D and 0003/E both build on the number this strand produces.</p></details>
+<details class="ctx"><summary>Context (collapsed state)</summary></details>
+<div class="q">Which rounding rule should refunds use, half-up or banker's?</div>
+<div class="opts">
+<div class="opt"><b>A</b><span>Half-up: matches Finance's sheet; totals can differ from the provider by a cent.</span></div>
+<div class="opt"><b>B</b><span>Banker's: matches the provider's statement; Finance must adjust their sheet.</span></div></div>
+<div class="cust">Custom… (replaces the option buttons with a text field)</div>
+<div class="field">Your answer… <span style="float:right">Send</span></div>
+<p class="later">The option buttons, Custom and the field are drawn for the layout: answering from the board comes with P25 (The Questions panel). The built card in 0072/B shows the context and the question only; the buttons appear when they work.</p>
+</div>
+<h2>Where context and options come from (proposal; a record change, not built until confirmed)</h2>
+<div class="spec"><p>Two added optional fields on the request record, like <code>words</code> in 0072/G; no migration, a record without them shows no Context section and no options:</p>
+<p><code>context</code>: a text, markdown allowed, the background needed to understand the question.<br>
+<code>options</code>: a list of <code>{ letter, text }</code>, letters A, B, C… in order.</p>
+<p>Flags on <code>braid ask</code>: <code>--context &lt;text&gt;</code> (or <code>--context-file &lt;path|-&gt;</code> for long text) and <code>--option &lt;text&gt;</code>, repeatable; the letters follow the order given (<code>--option "Half-up: …" --option "Banker's: …"</code>). The board reads both into <code>RequestRow</code> and the details card; the CLI's <code>braid requests &lt;handle&gt;</code> prints them too. Answers to an option are recorded as the letter plus the text.</p></div>
+
+<h2>Details panel, Needs you box (escalation, unchanged)</h2>
 <div class="need esc panel" style="padding:8px 12px;border-radius:8px"><b style="font-size:11px;text-transform:uppercase">Needs you · asked 24 min ago</b><br>
 <span class="chip">brave-fox-9d3h</span> <b>Escalated to you:</b> Should search match accents?<small>the PM hasn't answered for 20 min</small>
-<div style="margin-top:5px"><span class="blk">Blocks 0005/B</span> · <span class="act">decide</span> · <u>coordinator thread</u> · <span style="color:#64748b;font-size:11px">Say <b>brave-fox-9d3h</b> in any thread to refer to it.</span></div></div>
+<div style="margin-top:5px"><span class="blk">Blocks 0005/B</span> · <span class="act">decide</span> · <u>coordinator thread</u> · <span style="color:var(--mut);font-size:11px">Say <b>brave-fox-9d3h</b> in any thread to refer to it.</span></div></div>
 
 <h2>Details panel, Requests tab (0003/C)</h2>
 <div class="panel">
