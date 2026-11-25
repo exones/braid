@@ -49,15 +49,23 @@ Answer, each with confidence and evidence:
 - Building any workflow or braid code; changing T3 or the user's T3 settings.
 - Re-deciding P27's design (OAuth, Events, Stop cascade).
 
+## Plan
+
+1. Frame: the decision (plan a follow-up braid that moves parts of braid into T3 Workflows, or not); per part the candidates keep / move / try; what would settle each (access rules, where state lives, whether a workflow can reach braid's existing threads, what the board can see).
+2. Read T3 v0.1.12 (tag `v0.1.12`, shallow clone outside the repo): user docs, the `t3-workflows` skill, engine, store, agent steps, MCP tool and its access check, CLI; the release notes and the PRs behind the main risks.
+3. Map braid's six parts (code, states, docs and decisions), with a read-only subagent; spot-check its line counts and quotes.
+4. Read the user's T3 settings read-only (version, `workflowsEnabled`); no Labs switch, no workflow.
+5. Write `report.md` (Q1–Q5, a verdict per part, the overall recommendation) and `sources.md`; run the gate; PR into main.
+
 ## Completion
 
-- [ ] `report.md` answers questions 1 to 5 with confidence and evidence, with a keep / move / try verdict for each of the six parts and one overall recommendation
-- [ ] If the recommendation is "try one small thing": the thing, how to switch it off and what proves it, written as a proposed follow-up
-- [ ] report.md says what was read and what, if anything, was run; no Labs switch enabled and no workflow created on the user's T3
-- [ ] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected (none expected: no docs changes before the user decides)
+- [x] `report.md` answers questions 1 to 5 with confidence and evidence, with a keep / move / try verdict for each of the six parts and one overall recommendation
+- [x] If the recommendation is "try one small thing": the thing, how to switch it off and what proves it, written as a proposed follow-up (not applicable: the recommendation is keep; Q5 gives the revisit triggers instead)
+- [x] report.md says what was read and what, if anything, was run; no Labs switch enabled and no workflow created on the user's T3
+- [x] Research items only: `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected (none expected: no docs changes before the user decides)
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Autonomy
 
