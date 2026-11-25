@@ -10,7 +10,7 @@ import { readGithub, runGh, type Github } from "../board/github.js";
 import { read, type Sources } from "./coordinate.js";
 import { normPath as norm, reviewFolder } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
-import { dropReviews, loadReviews } from "../braids/reviews.js";
+import { childRole, dropReviews, loadReviews } from "../braids/reviews.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
 import { repoName } from "./start.js";
 
@@ -105,7 +105,7 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
   const main = listed[0] === undefined ? null : norm(listed[0].path);
   const drop: string[] = [];
   for (const r of records) {
-    const label = `${id}: review thread ${r.thread}`;
+    const label = `${id}: ${childRole(r) === "worker" ? "worker" : "review"} thread ${r.thread}`;
     if (!t3Ok) {
       lines.push(`skip ${label}: T3 could not be read, so its checkout is kept`);
       continue;

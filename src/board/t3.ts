@@ -7,18 +7,18 @@ import { execFile, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
-import { dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
+import { childRole, dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
 import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { itemOfFolder, repoNameOf } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
 
 export interface T3Thread {
   readonly id: string;
-  /** `worker` in the item's own worktree, `reviewer` for a running thread recorded with `braid review`. */
+  /** `worker` in the item's own worktree or a running worker child recorded by `braid launch`, `reviewer` for any other running thread recorded with `braid review`. */
   readonly role: "worker" | "reviewer";
   /** Questions and approvals the agent waits on. */
   readonly pending: number;
-  /** The T3 link to open; null for a subagent reviewer, which shows inside its coordinator's thread. */
+  /** The T3 link to open (T3's own `link`, also for a recorded subagent); null when T3 gave none. */
   readonly link: string | null;
   /** The thread's title, when T3 lists one. */
   readonly title?: string | undefined;
@@ -320,10 +320,10 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     }
     return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined, provider: str(t["providerInstanceId"]) ?? where?.provider ?? null } satisfies T3Thread };
   });
-  // A recorded review thread is its item's reviewer while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
+  // A recorded child thread is its item's reviewer (or its worker, for a `worker` record) while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
   const reviewing = await pool(reviews.filter((r) => !r.id.startsWith("pm/")), async (r) => {
     const where = await showThread(run, root, r.thread);
-    return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: "reviewer", pending: where.pending, link: null, provider: where.provider } satisfies T3Thread } : null;
+    return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: childRole(r) === "worker" ? "worker" : "reviewer", pending: where.pending, link: where.link, provider: where.provider } satisfies T3Thread } : null;
   });
   const coordinators = new Map<string, T3Coordinator>();
   const idleCoordinators = new Map<string, T3Coordinator>();
