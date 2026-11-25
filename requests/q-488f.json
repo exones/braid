@@ -14,6 +14,13 @@
       "event": "opened",
       "at": "2026-11-25T11:51:51.491Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-25T11:52:18.992Z",
+      "by": "pm",
+      "text": "a) Approve. Note: B and C mockups come to the user through me before building. In D, if a new event kind on the record is needed, ask me before building it, as you planned.",
+      "reason": "The plan covers the goal and every routed idea, keeps unblocks derived (no new state), stays out of 0074's and 0060's sections, and adds no skill words; nothing expensive to reverse."
     }
   ]
 }
