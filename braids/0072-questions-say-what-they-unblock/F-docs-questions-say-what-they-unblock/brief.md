@@ -3,7 +3,7 @@ id: '0072/F'
 title: "Docs: Questions say what they unblock"
 status: To Do
 labels: ["kind:task", "tier:S"]
-dependencies: ['0072/A', '0072/B', '0072/C', '0072/D', '0072/E']
+dependencies: ['0072/A', '0072/B', '0072/C', '0072/D', '0072/E', '0072/G']
 order: 60
 ---
 

@@ -3,7 +3,7 @@ id: '0072/B'
 title: "The board shows what a question unblocks, and what was decided"
 status: To Do
 labels: ["kind:story", "tier:M", "ui"]
-dependencies: ['0072/A']
+dependencies: ['0072/A', '0072/G']
 order: 20
 ---
 

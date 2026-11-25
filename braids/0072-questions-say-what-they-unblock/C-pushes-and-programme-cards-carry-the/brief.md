@@ -3,7 +3,7 @@ id: '0072/C'
 title: "Pushes and programme cards carry the whole question"
 status: To Do
 labels: ["kind:story", "tier:M", "ui"]
-dependencies: ['0072/A']
+dependencies: ['0072/A', '0072/G']
 order: 30
 ---
 
