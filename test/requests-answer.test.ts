@@ -129,7 +129,7 @@ test("an id with two open requests names both codes and changes nothing; withdra
 test("ask --to a braid number and --done-when: stored, shown; a pr: condition is met when its PR merges", () => {
   const w = world();
   const wait = R.askCommand(w.root, ["0001", "Wait for strand A's PR", "--done-when", "pr:#5"]);
-  assert.match(wait, /^q-[a-z0-9]{4} 0001: question request opened \(done when pr:5\): Wait for strand A's PR\n$/);
+  assert.match(wait, /^q-[a-z0-9]{4} 0001: question request opened \(done when pr:5\): Wait for strand A's PR\nblocks 0001\/A · decide\n$/);
   const other = R.askCommand(w.root, ["0001/A", "Does 0002 rename the flag?", "--to", "2", "--done-when", "braid:2"]);
   assert.match(other, /^q-[a-z0-9]{4} 0001\/A: question request to braid 0002 opened \(done when braid:0002\)/);
   const later = R.askCommand(w.root, ["0002", "Remind me", "--done-when", "time:2026-12-01T09:00:00+01:00"]);
@@ -138,8 +138,8 @@ test("ask --to a braid number and --done-when: stored, shown; a pr: condition is
   assert.throws(() => R.askCommand(w.root, ["0001", "x", "--to", "9"]), /--to 9: no braid 0009; nothing changed/);
   assert.throws(() => R.askCommand(w.root, ["0001", "x", "--done-when", "soon"]), /--done-when is answered, pr:<n>, braid:<number> or time:<iso>/);
   const listed = R.requestsCommand(w.root, [], { gh: w.opts.gh });
-  assert.match(listed, /0001  question  \d+[mhd]  done when pr:5  Wait for strand A's PR/);
-  assert.match(listed, /0001\/A  question  \d+[mhd]  to braid 0002  done when braid:0002  Does 0002/);
+  assert.match(listed, /0001  question  \d+[mhd]  blocks 0001\/A · decide  done when pr:5  Wait for strand A's PR/);
+  assert.match(listed, /0001\/A  question  \d+[mhd]  (blocks [^·]+ · )?decide  to braid 0002  done when braid:0002  Does 0002/);
   // Not the user's: the board neither shows it as theirs nor pushes it.
   const sig = readSignals(w.root, { status: { state: "unavailable", reason: "test" }, prs: new Map() });
   assert.deepEqual([sig.requests.has("0001/A"), sig.requests.has("0001")], [false, true]);

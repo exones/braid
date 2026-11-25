@@ -12,7 +12,7 @@ import { mainCheckout } from "./state.js";
 
 export { ensureStateDir, LockError, locked, mainCheckout, takeOverStale } from "./state.js";
 
-/** `action` is something only the user can do (an install, a login); only the PM opens one. */
+/** `action` is something only the user can do outside braid (an install, a login); the PM or a coordinator opens one. */
 export const KINDS = ["review", "question", "decision", "plan", "action"] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -661,4 +661,59 @@ export function answeredRows(requests: readonly Request[], match: (id: string) =
 export function age(at: string, now: Date): string {
   const min = Math.max(0, Math.floor((now.getTime() - new Date(at).getTime()) / 60_000));
   return min < 60 ? `${min}m` : min < 2880 ? `${Math.floor(min / 60)}h` : `${Math.floor(min / 1440)}d`;
+}
+
+/** The act word of a request: `action` is something to `do` outside braid, `review` a PR to `merge`, every other kind something to `decide`. */
+export const actOf = (kind: Kind): "do" | "merge" | "decide" => (kind === "action" ? "do" : kind === "review" ? "merge" : "decide");
+
+/** The part of a braid `unblocksOf` reads; a braid whose statuses went through `withStatuses` fits it. */
+export interface BraidFacts {
+  readonly number: string;
+  readonly brief: { readonly status: string; readonly dependencies: readonly string[] };
+  readonly strands: readonly { readonly letter: string; readonly brief: { readonly status: string; readonly dependencies: readonly string[] } }[];
+}
+
+/**
+ * What answering `request` unblocks, derived from the briefs and the record at each read (never stored): its item,
+ * and every item that depends on it, directly or not, that isn't Done; for a request on a braid with strands, those
+ * strands not Done (a story: the braid itself); plus every other braid with an open wait on the request's braid
+ * (`to` its number, or `--done-when braid:<number>`) that isn't Done. A programme request has no item. Sorted, no duplicates.
+ */
+export function unblocksOf(request: Pick<Request, "code" | "id">, braids: readonly BraidFacts[], requests: readonly Pick<Request, "code" | "id" | "to" | "doneWhen" | "state">[]): string[] {
+  const items = new Map<string, { status: string; dependencies: readonly string[] }>();
+  for (const b of braids) {
+    items.set(b.number, b.brief);
+    for (const s of b.strands) {
+      items.set(`${b.number}/${s.letter}`, s.brief);
+    }
+  }
+  const number = /^(\d{4})(?:\/|$)/.exec(request.id)?.[1];
+  const braid = braids.find((b) => b.number === number);
+  if (number === undefined || braid === undefined) {
+    return [];
+  }
+  const live = (id: string): boolean => items.get(id)?.status !== "Done";
+  const seeds = request.id === number && braid.strands.length > 0 ? braid.strands.map((s) => `${number}/${s.letter}`) : [request.id];
+  const found = new Set<string>();
+  const queue = [...seeds, ...(request.id === number ? [number] : [])];
+  for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
+    if (!live(id) || found.has(id)) {
+      continue;
+    }
+    if (id !== number || braid.strands.length === 0) {
+      found.add(id);
+    }
+    for (const [other, brief] of items) {
+      if (brief.dependencies.includes(id) && !found.has(other) && live(other)) {
+        queue.push(other);
+      }
+    }
+  }
+  for (const w of requests) {
+    const waiter = /^(\d{4})(?:\/|$)/.exec(w.id)?.[1];
+    if (w.state === "open" && w.code !== request.code && waiter !== undefined && waiter !== number && (w.to === number || w.doneWhen === `braid:${number}`) && live(waiter)) {
+      found.add(waiter);
+    }
+  }
+  return [...found].sort();
 }

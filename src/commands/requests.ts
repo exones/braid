@@ -4,9 +4,10 @@ import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, git } from "../braids/gitbranch.js";
-import { addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { actOf, addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
-import { readGithub, runGh, type GhRunner } from "../board/github.js";
+import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
+import { readGithub, runGh, type GhRunner, type PullRequest } from "../board/github.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
 import { clock } from "../board/pause.js";
 import { braidDoneOn } from "../board/wake.js";
@@ -216,9 +217,6 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   const doneWhen = doneWhenFlag(values);
   const slug = programmeOf(positionals[0] ?? "");
   const by = askerFlag(values, slug !== null);
-  if (kind === "action" && by !== "pm") {
-    throw new UsageError("--kind action is something only the user can do, and only the PM asks it: add --by pm, or ask on pm/<slug>");
-  }
   if (by === "pm" && str(values, "to") !== undefined) {
     throw new UsageError("--to is for a coordinator's request; a PM request is already the user's");
   }
@@ -244,8 +242,9 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   if (self) {
     return `${opened.code} ${id}: timed wait opened, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
   }
+  const gist = unblockLine({ code: opened.code, id, kind: kind as Kind }, loadRequests(root), statused(root));
   const whom = by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : route.to !== undefined ? `to braid ${route.to} ` : "";
-  return `${opened.code} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${warned(opened.warning)}`;
+  return `${opened.code} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${gist}\n${warned(opened.warning)}`;
 }
 
 const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>|self] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]  (--to self --done-when time:<iso>: a timed wait, nobody asked)';
@@ -276,12 +275,43 @@ export function forwardCommand(root: string, args: readonly string[], opts: Requ
 const WHO: Readonly<Record<Who, string>> = { user: "the user", pm: "the PM", coordinator: "the coordinator", board: "the board" };
 
 /** The code of the one open request a code or an id names; the id form without `--by` refuses when two askers have one open. */
+/** Every braid braid knows, each item with the status it reads as (from its lifecycle and, when given, the PRs). */
+function statused(root: string, prs: ReadonlyMap<string, PullRequest> = new Map()): Braid[] {
+  const life = loadLifecycle(root);
+  return loadKnownBraids(root).map((b) => withStatuses(b, life, prs));
+}
+
+/** What a request unblocks and its act word on one line: `blocks 0072/B, 0072/C · decide`, or just `decide` when nothing waits on it. */
+function unblockLine(r: Pick<Request, "code" | "id" | "kind">, requests: readonly Request[], braids: readonly Braid[]): string {
+  const blocked = unblocksOf(r, braids, requests);
+  return `${blocked.length === 0 ? "" : `blocks ${blocked.join(", ")} · `}${actOf(r.kind)}`;
+}
+
+/** A request code in any letter case, lower-cased (`Q-L9EN`); null for anything not starting `q-`; a malformed one is refused as not a request code. */
+function codeOf(raw: string, command: string): string | null {
+  if (!/^q-/i.test(raw)) {
+    return null;
+  }
+  const code = raw.toLowerCase();
+  if (!CODE.test(code)) {
+    throw new UsageError(`${command}: ${raw} is not a request code (q- and four letters or digits)`);
+  }
+  return code;
+}
+
+/** The PRs of the project when GitHub can be read, else none: only an item's Done reading needs them. */
+function prsOf(root: string, run: GhRunner): ReadonlyMap<string, PullRequest> {
+  const g = readGithub(root, run);
+  return g.status.state === "ok" ? g.prs : new Map();
+}
+
 function target(root: string, raw: string, values: Parameters<typeof str>[0], command: string): { code: string; id: string } | { none: string } {
-  if (CODE.test(raw)) {
+  const named = codeOf(raw, command);
+  if (named !== null) {
     if (str(values, "by") !== undefined) {
       throw new UsageError(`${command}: --by is for an id; the code ${raw} names one request`);
     }
-    return { code: raw, id: "" };
+    return { code: named, id: "" };
   }
   const slug = programmeOf(raw);
   const by = str(values, "by") === undefined && slug === null ? undefined : askerFlag(values, slug !== null);
@@ -433,12 +463,13 @@ function inSpan(ms: number): string {
  */
 export function etaCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid eta", args, { by: { type: "string" } });
-  const [code, raw, ...rest] = positionals;
-  if (code === undefined || raw === undefined || rest.length > 1) {
+  const [given, raw, ...rest] = positionals;
+  if (given === undefined || raw === undefined || rest.length > 1) {
     throw new UsageError(ETA_USAGE);
   }
-  if (!CODE.test(code)) {
-    throw new UsageError(`braid eta: ${code} is not a request code (q- and four letters or digits)`);
+  const code = codeOf(given, "braid eta");
+  if (code === null) {
+    throw new UsageError(`braid eta: ${given} is not a request code (q- and four letters or digits)`);
   }
   const now = (opts.now ?? (() => new Date()))();
   const at = etaAt(raw, now);
@@ -479,7 +510,7 @@ function whoOf(r: Request, event: string, by: Who): string {
 }
 
 /** One request with every event: `braid requests <code>`. */
-function history(r: Request): string {
+function history(r: Request, unblocks: string): string {
   const facts = [
     `asked by ${WHO[askerOf(r)]}`,
     isTimedWait(r) ? "a timed wait, nobody asked" : `for ${r.to === undefined || r.to === "user" ? "the user" : r.to === "pm" ? "the PM" : `braid ${r.to}`}`,
@@ -490,7 +521,7 @@ function history(r: Request): string {
     ...(r.eta === null ? [] : [`eta ${r.eta}`]),
   ];
   const events = r.events.map((e) => `${stamp(e.at)}  ${e.event.padEnd(9)}  ${whoOf(r, e.event, e.by)}${e.text === undefined ? "" : `: ${oneLine(e.text)}`}${e.reason === undefined ? "" : ` (reason: ${e.reason})`}`);
-  return `${r.code}  ${r.id}  ${r.kind}  ${r.state}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
+  return `${r.code}  ${r.id}  ${r.kind}  ${r.state}${r.state === "open" && !isTimedWait(r) ? `  ${unblocks}` : ""}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
 }
 
 /** One closed request on a line: code, item, kind, state, when, who, the request, and the answer or reason. */
@@ -505,11 +536,15 @@ const REQUESTS_USAGE = "usage: braid requests [<code>] [--closed [--since <YYYY-
 
 export function requestsCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid requests", args, { closed: { type: "boolean" }, since: { type: "string" } });
-  const code = positionals[0];
+  const given = positionals[0];
+  const code = given === undefined ? undefined : codeOf(given, "braid requests");
   const closed = values["closed"] === true;
   const since = str(values, "since");
-  if (positionals.length > 1 || (code !== undefined && (!CODE.test(code) || closed)) || (since !== undefined && !closed)) {
-    throw new UsageError(code !== undefined && !CODE.test(code) ? `braid requests: ${code} is not a request code (q- and four letters or digits)` : REQUESTS_USAGE);
+  if (given !== undefined && code === null) {
+    throw new UsageError(`braid requests: ${given} is not a request code (q- and four letters or digits)`);
+  }
+  if (positionals.length > 1 || (code !== undefined && closed) || (since !== undefined && !closed)) {
+    throw new UsageError(REQUESTS_USAGE);
   }
   if (since !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(since)) {
     throw new UsageError(`--since needs a date (YYYY-MM-DD); got: ${since}`);
@@ -526,7 +561,7 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
     if (r === undefined) {
       throw new UsageError(`no request ${code} on ${REQUESTS.branch}`);
     }
-    return `${offline}${history(r)}`;
+    return `${offline}${history(r, unblockLine(r, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh))))}`;
   }
   if (closed) {
     const done = loadRecord(root)
@@ -550,6 +585,7 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
     git(root, ["fetch", "-q", "origin", main]);
   }
   const list: Request[] = loadRequests(root);
+  const braids = statused(root, prsOf(root, run));
   const ends = holding(list, { pr: prOf, braidDone: braidDoneOn(root, main, () => { const g = readGithub(root, run); return g.status.state === "ok" ? g.prs : null; }), now: (opts.now ?? (() => new Date()))() });
   if (list.length === 0) {
     return `${offline}${skipped()}no open requests\n`;
@@ -559,5 +595,5 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
   const eta = (r: Request): string => (r.eta === null ? "" : `expected by ${clock(r.eta, now)}  `);
   // A condition that holds is still open: only the running board's tick closes it (and wakes the asker).
   const holds = (r: Request): string => (ends.get(r.code)?.state === "met" ? "condition holds: the board wakes the asker  " : ends.has(r.code) ? "condition holds: the board withdraws it  " : "");
-  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${age(r.at, now)}  ${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}`).join("\n")}\n`;
+  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${age(r.at, now)}  ${isTimedWait(r) ? "" : `${unblockLine(r, list, braids)}  `}${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}`).join("\n")}\n`;
 }

@@ -110,7 +110,7 @@ test("ask opens a request that every worktree shares; a new ask replaces it; ans
   assert.equal(existsSync(join(w.other, ".braid")), false, "nothing is kept in the worktree");
   assert.equal(realpathSync.native(dirname(dirname(legacyFile(w.other)))), realpathSync.native(w.root), "found from any worktree");
   const listed = (await requestsCommand(w.other, [], { gh: w.gh, now: () => new Date("2026-11-15T12:30:00Z") })) as string;
-  assert.equal(listed, `${code}  0001/A  decision  30m  Which name should it have?\n`);
+  assert.equal(listed, `${code}  0001/A  decision  30m  blocks 0001/A · decide  Which name should it have?\n`);
   askCommand(w.other, ["0001/A", "Plan ok?", "--kind", "plan"], { now: w.clock });
   assert.deepEqual(loadRequests(w.root).map((r) => [r.id, r.kind, r.text]), [["0001/A", "plan", "Plan ok?"]]);
   assert.equal(readdirSync(join(w.root, ".braid")).filter((n) => n.endsWith(".tmp")).length, 0);
@@ -183,10 +183,10 @@ test("a review request is void after a merge, a close or a moved head", async ()
   for (const change of changes) {
     const w = world();
     await handoverCommand(w.root, ["0001/A", "--head", w.first], { gh: w.gh, now: w.clock });
-    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^q-[a-z0-9]{4}  0001\/A  review  0m  review PR #5/);
+    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^q-[a-z0-9]{4}  0001\/A  review  0m  blocks 0001\/A · merge {2}review PR #5/);
     change(w.pr);
     // A read closes nothing: the request stays open, marked, for the board's tick to record.
-    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^q-[a-z0-9]{4} {2}0001\/A {2}review {2}0m {2}condition holds: the board (wakes the asker|withdraws it) {2}review PR #5/);
+    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^q-[a-z0-9]{4} {2}0001\/A {2}review {2}0m {2}(blocks [^·]+ · )?merge {2}condition holds: the board (wakes the asker|withdraws it) {2}review PR #5/);
     assert.equal(loadRequests(w.root).length, 1, "still open");
     assert.equal(loadRecord(w.root).requests[0]?.events.length, 1, "no ending recorded");
     const ends = holding(loadRequests(w.root), () => ({ state: w.pr.state, headRefOid: w.pr.head }));
@@ -204,7 +204,7 @@ test("a review request stays when GitHub can't be read; a question never self-cl
   assert.match(out, /0001\/A  review/);
   assert.match(out, /0001  decision/);
   const lines = ((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string).trim().split("\n");
-  assert.match(lines.find((l) => l.includes(" 0001  decision")) ?? "", /^q-[a-z0-9]{4} {2}0001 {2}decision {2}0m {2}Decide\?$/, "a question never self-closes on a PR");
+  assert.match(lines.find((l) => l.includes(" 0001  decision")) ?? "", /^q-[a-z0-9]{4} {2}0001 {2}decision {2}0m {2}(blocks [^·]+ · )?decide {2}Decide\?$/, "a question never self-closes on a PR");
   assert.match(lines.find((l) => l.includes("0001/A")) ?? "", /review .*condition holds/, "the merged review stays open for the board");
 });
 
