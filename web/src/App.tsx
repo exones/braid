@@ -11,7 +11,7 @@ import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProj
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
 import { pauseBox, type PauseView } from "../../src/board/pause.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
-import { CLOSED_PAGE, type RequestRow, type RequestsView } from "../../src/board/record.ts";
+import { CLOSED_PAGE, requestCount, type RequestRow, type RequestsView } from "../../src/board/record.ts";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard, type TaggedProgramme } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
@@ -1210,7 +1210,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <Tabs.Trigger value="brief" className={trigger}>Brief</Tabs.Trigger>
           <Tabs.Trigger value="report" className={trigger}>Report</Tabs.Trigger>
           <Tabs.Trigger value="logs" className={trigger}>Logs ({item.logs.length})</Tabs.Trigger>
-          <Tabs.Trigger value="requests" className={trigger}>Requests ({item.requests.open.length + item.requests.waiting.length + item.requests.closed.length})</Tabs.Trigger>
+          <Tabs.Trigger value="requests" className={trigger}>Requests ({requestCount(item.requests)})</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="brief"><Md text={item.brief} empty="This brief has no text." /></Tabs.Content>
         <Tabs.Content value="report"><Md text={item.report} empty="No report yet." /></Tabs.Content>
@@ -1309,7 +1309,7 @@ function RequestsTab({ view }: { view: RequestsView }) {
   const [shown, setShown] = useState(CLOSED_PAGE);
   const [decidedShown, setDecidedShown] = useState(CLOSED_PAGE);
   const heading = (text: string) => <h3 className="mb-1 mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">{text}</h3>;
-  if (view.open.length + view.waiting.length + view.decided.length + view.closed.length === 0) {
+  if (requestCount(view) === 0) {
     return <p className="text-slate-500">No requests yet.</p>;
   }
   return (

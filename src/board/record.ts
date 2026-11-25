@@ -77,6 +77,9 @@ export function rowOf(r: Request, now: Date, t3: T3, blocks: readonly string[] =
   };
 }
 
+/** The number on the Requests tab: all of the item's requests, the decided ones too. */
+export const requestCount = (view: RequestsView): number => view.open.length + view.waiting.length + view.decided.length + view.closed.length;
+
 /** The requests of the items `match` keeps: its open ones, the ones waiting on another braid, and the closed ones, newest first. */
 export function requestsOf(match: (id: string) => boolean, sig: Signals, t3: T3): RequestsView {
   const rows = (rs: readonly Request[]): RequestRow[] => rs.filter((r) => match(r.id) && programmeOf(r.id) === null).map((r) => rowOf(r, sig.now, t3, sig.unblocks?.(r) ?? []));

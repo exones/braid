@@ -71,6 +71,7 @@ test("the Requests tab lists answered questions as Decided with the answer, who 
   assert.deepEqual(tab.decided.map((r: any) => [r.closed.by, r.closed.text, r.closed.reason]), [["pm", "No", "decided in D61"], ["user", "A: half-up", null]]);
   assert.ok(tab.decided.every((r: any) => r.closed.at.length > 0));
   assert.deepEqual(tab.closed.map((r: any) => r.state), ["met", "withdrawn"]);
+  assert.equal(view.requestCount(tab), 4, "the tab's count takes the decided ones too");
 });
 
 test("an open request's row carries blocks and act; a closed one carries none", () => {
@@ -79,4 +80,10 @@ test("an open request's row carries blocks and act; a closed one carries none", 
   assert.deepEqual(tab.open[0].blocks, ["0072/C"]);
   assert.equal(tab.open[0].act, "decide");
   assert.equal(tab.open[0].handle, tab.open[0].code);
+});
+
+test("a strand that reads Done isn't blocked, whatever its brief still says", () => {
+  const merged: any = { status: { state: "ok" }, prs: new Map([["0072/C", { number: 9, url: "u", state: "merged", checks: "passing", base: "main", branch: "b9", head: "a".repeat(40) }]]) };
+  const c = model.toBoard("agento", [braid], merged, t3, sigOf([open("0072/B", "question", "Which rule?", 5)])).braids[0];
+  assert.deepEqual(strand(c, "0072/B").need.blocks, ["0072/B"]);
 });

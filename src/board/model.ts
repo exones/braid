@@ -832,7 +832,7 @@ export function doneNewestFirst<T extends { readonly id: string; readonly doneAt
 
 /** The board of a read, and the broke conditions it saw: nothing is written for them until the step after it (`sig.commit(alarms)`). */
 /** `sig` with what a request unblocks, derived from the braids (as every reader sees their statuses) and the open requests. */
-function withUnblocks(braids: readonly Braid[], gh: Github, sig: Signals): Signals {
+export function withUnblocks(braids: readonly Braid[], gh: Github, sig: Signals): Signals {
   if (sig.unblocks !== undefined) {
     return sig;
   }
