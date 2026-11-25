@@ -1,7 +1,8 @@
 // The title of a braid thread: `<emoji> <repo> <id> <role>: <title>`. One builder, one parser.
-import { spawnSync } from "node:child_process";
-import { basename } from "node:path";
-import { repoNameOf } from "./worktrees.js";
+import { originRepoName } from "./repo.js";
+
+/** The GitHub repository's name from `origin`'s URL; the checkout's folder name when there is no `origin`; cached per root. */
+export const titleRepoName = originRepoName;
 
 import { ROLES, STEERING_EMOJI, type TitleRole } from "./roles.js";
 
@@ -25,13 +26,6 @@ export function parseThreadTitle(text: string): ParsedTitle | null {
   return m === null ? null : { repo: m[1] ?? "", id: m[2] ?? "", role: m[3] as TitleRole, title: m[4] ?? "" };
 }
 
-/** The GitHub repository's name from `origin`'s URL; the checkout's folder name (`repoNameOf`) when there is no `origin`. */
-export function titleRepoName(root: string): string {
-  const r = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
-  const url = r.status === 0 ? r.stdout.trim() : "";
-  const name = /[/:]([^/:]+?)(?:\.git)?\/?$/.exec(url)?.[1];
-  return name ?? repoNameOf(root) ?? basename(root);
-}
 
 /** The title of the board's steering thread: `🚦 <repo> steering: <what>`. It has no item id, so no item reads it as one of its agents. */
 export function steeringTitle(repo: string, what: string): string {

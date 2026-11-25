@@ -1,6 +1,6 @@
 // Asynchronous Git for the board's reads: the server keeps answering requests while `git` runs. The
 // synchronous readers stay for the CLI commands.
-import { execFile, spawn, spawnSync } from "node:child_process";
+import { execFile, spawn, spawnSync, type SpawnSyncReturns } from "node:child_process";
 
 export interface GitOut {
   readonly status: number | null;
@@ -19,6 +19,28 @@ export function spyOnGit(observer: ((args: readonly string[], sync?: boolean) =>
 /** Tells the observer a synchronous `git` process starts (the synchronous readers call this), for tests. */
 export function noteSyncGit(args: readonly string[]): void {
   spy?.(args, true);
+}
+
+/** Options of `gitSync`; the rest (`core.quotePath=false`, `windowsHide`, UTF-8 text) is the same for every caller. */
+export interface GitSyncOptions {
+  readonly input?: string;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly timeout?: number;
+  readonly maxBuffer?: number;
+}
+
+/** The one synchronous `git` runner: runs `git` in `root`, reports it to `spyOnGit`, never throws (a failed start is `status` null). */
+export function gitSync(root: string, args: readonly string[], options: GitSyncOptions = {}): SpawnSyncReturns<string> {
+  noteSyncGit(args);
+  return spawnSync("git", ["-c", "core.quotePath=false", ...args], {
+    cwd: root,
+    encoding: "utf8",
+    windowsHide: true,
+    ...(options.maxBuffer === undefined ? {} : { maxBuffer: options.maxBuffer }),
+    ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
+    ...(options.input === undefined ? {} : { input: options.input }),
+    ...(options.env === undefined ? {} : { env: { ...process.env, ...options.env } }),
+  });
 }
 
 /** How long `git cat-file --batch` may run before it is killed. */

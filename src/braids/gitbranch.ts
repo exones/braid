@@ -2,7 +2,7 @@
 // low-level commands (hash-object, a temporary index, commit-tree, update-ref), so no checkout, index or
 // current branch ever changes. Writes push at once as a fast-forward and never force; a refused push is
 // fetched and redone on top. Offline, the commit stays on the local branch and the next write pushes it.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "./gitio.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -37,14 +37,7 @@ const tracking = (b: BranchSpec): string => `refs/remotes/${REMOTE}/${b.branch}`
 type Options = { input?: string; env?: NodeJS.ProcessEnv };
 
 export function git(root: string, args: readonly string[], options: Options = {}) {
-  return spawnSync("git", ["-c", "core.quotePath=false", ...args], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-    windowsHide: true,
-    ...(options.input === undefined ? {} : { input: options.input }),
-    ...(options.env === undefined ? {} : { env: { ...process.env, ...options.env } }),
-  });
+  return gitSync(root, args, { maxBuffer: 64 * 1024 * 1024, ...options });
 }
 
 export function must(root: string, args: readonly string[], options: Options = {}): string {

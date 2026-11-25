@@ -2,15 +2,14 @@
 // It needs no GitHub, and covers items Done without a PR. A Done date never changes, so a found one is kept
 // for the life of the process, and a miss is kept per commit searched, so an item with no date doesn't run
 // `git log` on every refresh.
-import { spawnSync } from "node:child_process";
-import { catBatch, gitAsync } from "../braids/gitio.js";
+import { catBatch, gitAsync, gitSync } from "../braids/gitio.js";
 import type { Source } from "../braids/store.js";
 
 /** Runs `git` in `root`; replaced in tests. */
 export type DoneGit = (root: string, args: readonly string[]) => { readonly status: number | null; readonly stdout: string };
 
 const runGit: DoneGit = (root, args) => {
-  const r = spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd: root, encoding: "utf8", timeout: 15_000 });
+  const r = gitSync(root, args, { timeout: 15_000 });
   return { status: r.status, stdout: r.stdout };
 };
 
