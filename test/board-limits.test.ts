@@ -35,7 +35,7 @@ test("the view has one provider per BRAID.md models instance, each with its chip
   const view = readLimitsView(project(MODELS), NO_THREADS, new Map(), NOW, fixtures);
   assert.deepEqual(states(view), { claude_ok: "ok", codex_ok: "ok", cursor_unsupported: "unmeasured" });
   const claude = view.providers[0];
-  assert.deepEqual([claude.session.usedPercent, claude.session.threshold, claude.weekly.usedPercent, claude.weekly.threshold], [22, 97, 29, 95]);
+  assert.deepEqual([claude.session.usedPercent, claude.session.threshold, claude.weekly.usedPercent, claude.weekly.threshold], [22, 90, 29, 90]);
   assert.deepEqual(claude.roles, ["coordinator"]);
   assert.equal(view.note, null);
 });
