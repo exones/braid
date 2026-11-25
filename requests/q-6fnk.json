@@ -1,0 +1,19 @@
+{
+  "code": "q-6fnk",
+  "item": "0072",
+  "kind": "decision",
+  "text": "Sweep due: 30 open leftovers in the inbox; plan a sweep braid in the programme, or not now?",
+  "by": "coordinator",
+  "thread": "mcp:launch:a0a03eb409fbc1d18679d8c2659026c14e35ed836aebf5709126e14b27b074a9",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T15:02:57.558Z",
+      "by": "coordinator"
+    }
+  ]
+}
