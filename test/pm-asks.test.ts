@@ -190,10 +190,10 @@ test("--by pm: the thread falls back to the brief's PM-run line; --kind action a
   const root = project();
   askCommand(root, ["0001/A", "Q?", "--by", "pm"], opts);
   assert.equal(loadRequests(root)[0].thread, PM);
-  assert.throws(() => askCommand(root, ["0001", "x", "--kind", "action"], opts), /only the PM asks it/);
+  assert.match(askCommand(root, ["0001", "Create the token", "--kind", "action"], opts), /action request opened/);
   assert.throws(() => askCommand(root, ["0001", "x", "--by", "pm", "--to", "pm"], opts), /already the user's/);
   assert.throws(() => askCommand(root, ["0001", "x", "--by", "me"], opts), /--by is coordinator or pm/);
-  assert.equal(loadRequests(root).length, 1);
+  assert.equal(loadRequests(root).length, 2);
 });
 
 test("braid requests and braid answer name which request; a forward touches only the coordinator's", async () => {
@@ -202,9 +202,9 @@ test("braid requests and braid answer name which request; a forward touches only
   askCommand(root, ["0001/A", "PM asks", "--by", "pm", "--thread", PM], opts);
   askCommand(root, ["pm/working-product", "programme asks", "--thread", PM], opts);
   const list = (await requestsCommand(root, [], opts)) as string;
-  assert.match(list, /^q-[a-z0-9]{4} {2}0001\/A {2}question {2}0m {2}to the PM {2}coordinator asks$/m);
-  assert.match(list, /^q-[a-z0-9]{4} {2}0001\/A {2}question {2}0m {2}from the PM {2}PM asks$/m);
-  assert.match(list, /^q-[a-z0-9]{4} {2}pm\/working-product {2}question {2}0m {2}from the PM {2}programme asks$/m);
+  assert.match(list, /^q-[a-z0-9]{4} {2}0001\/A {2}question {2}0m {2}blocks 0001\/A · decide {2}to the PM {2}coordinator asks$/m);
+  assert.match(list, /^q-[a-z0-9]{4} {2}0001\/A {2}question {2}0m {2}blocks 0001\/A · decide {2}from the PM {2}PM asks$/m);
+  assert.match(list, /^q-[a-z0-9]{4} {2}pm\/working-product {2}question {2}0m {2}decide {2}from the PM {2}programme asks$/m);
   assert.match(forwardCommand(root, ["0001/A"], opts), /question request forwarded to the user/);
   assert.equal(loadRequests(root).find((r: any) => r.by === "pm" && r.id === "0001/A").to, undefined);
   assert.match(answerCommand(root, root, ["0001/A", "--by", "pm"]), /^q-[a-z0-9]{4} 0001\/A: answered by the user/);

@@ -39,11 +39,17 @@ Expected size: about 250 lines in 6 files, tests included.
 
 - The board and pushes (0072/B, 0072/C). The pause, limits and steering code (0074).
 
+## Plan
+
+- `unblocksOf(request, braids, requests)` and `actOf(kind)` in `src/braids/requests.ts`: pure, derived at each read.
+- `src/commands/requests.ts`: `braid ask` prints the line under its first, `braid requests` (list and `<code>`) shows it before whom; `--kind action` no longer needs `--by pm`; `codeOf` lower-cases a `/^q-/i` code for answer, withdraw, eta and requests.
+- Tests in `test/requests-unblocks.test.ts`; existing line expectations updated; docs: braids-format, cli, decisions (D107), the help text.
+
 ## Completion
 
-- [ ] `braid requests` and `braid ask` show what a request unblocks and `decide`, `do` or `merge`, derived from the briefs and the record, with tests
-- [ ] A coordinator can open `--kind action`, with a test
-- [ ] `Q-L9EN` works wherever a code is taken, and a malformed code is refused as not a request code, with tests
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid requests` and `braid ask` show what a request unblocks and `decide`, `do` or `merge`, derived from the briefs and the record, with tests
+- [x] A coordinator can open `--kind action`, with a test
+- [x] `Q-L9EN` works wherever a code is taken, and a malformed code is refused as not a request code, with tests
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
