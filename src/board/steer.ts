@@ -1,5 +1,6 @@
 // The board's pause for provider limits (0064, 0074/C, docs/board.md "Provider limits"), the pure part: which threads a braid's pause
 // reaches, the texts the board sends them by code, how a reply reads, the resume messages and the limit pushes. src/board/steerer.ts runs them.
+import { percent } from "../braids/percent.js";
 import type { ProviderReading } from "../braids/limits.js";
 import type { Pause, PauseTarget, Replies } from "../braids/pauses.js";
 import { clock, noAnswerItem, repliesText } from "./pause.js";
@@ -148,7 +149,7 @@ export function limitPush(event: LimitEvent, records: readonly Pause[], now: Dat
   const key = pauseKey(first);
   const braids = braidsOf(records);
   const resume = first.resumeAt === null ? "?" : clock(first.resumeAt, now);
-  const window = `${first.label ?? first.window ?? ""}${first.usedPercent === null ? "" : ` ${first.usedPercent}%`}`;
+  const window = `${first.label ?? first.window ?? ""}${first.usedPercent === null ? "" : ` ${percent(first.usedPercent)}%`}`;
   const click = extra.click ?? null;
   const answered = records.reduce((n, r) => n + (r.replies?.answered ?? 0), 0);
   const total = records.reduce((n, r) => n + (r.replies?.total ?? 0), 0);
@@ -180,6 +181,15 @@ export function limitPush(event: LimitEvent, records: readonly Pause[], now: Dat
         click,
       };
   }
+}
+
+/** The key of one blind spell (0074/E): the provider and when its cache was last updated, so a spell pushes once and a later spell again. */
+export const blindKey = (provider: string, since: string): string => `${LIMIT_KEY}blind:${provider}:${since}`;
+
+/** The push for a provider that has gone blind: nothing pauses on it until it reads again. `agents` are the braids and items running on it. */
+export function blindPush(provider: string, since: string, why: string, agents: readonly string[], now: Date): LimitPush {
+  const using = agents.length === 0 ? "" : ` Running on it: ${agents.join(", ")}.`;
+  return { key: blindKey(provider, since), title: `${provider}: limits blind since ${clock(since, now)}`, body: `${why}. Nothing pauses on ${provider} while it is blind.${using}`, tags: ["warning"], priority: "high", click: null };
 }
 
 /** Whether a pause waits for a weekly window: by its window id (`seven_day…`) or its label. */

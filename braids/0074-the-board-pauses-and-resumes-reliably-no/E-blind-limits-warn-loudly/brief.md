@@ -40,10 +40,10 @@ Expected size: about 200 lines in 5 files.
 
 ## Completion
 
-- [ ] Mockups of the blind chip approved before building (log entry with the verdict)
-- [ ] A provider in use with an unknown reading for over 30 minutes reads `blind` on the board and in `braid limits`, with tests
-- [ ] One push per provider and blind spell, with tests
-- [ ] Every percent the board shows is rounded, with a test on an unrounded cursor value
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockups of the blind chip approved before building (log entry with the verdict)
+- [x] A provider in use with an unknown reading for over 30 minutes reads `blind` on the board and in `braid limits`, with tests
+- [x] One push per provider and blind spell, with tests
+- [x] Every percent the board shows is rounded, with a test on an unrounded cursor value
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

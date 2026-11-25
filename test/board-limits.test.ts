@@ -159,3 +159,18 @@ test("the demo shows Claude_Everix paused, codex ok and cursor not measured, and
   assert.equal(data.limits.providers.length, 3);
   assert.equal(toBoard("demo", [], { status: { state: "ok" } }, t3).limits, null);
 });
+
+test("0074/E: on the combined board blind wins over another project's unknown, in both orders", () => {
+  const later = new Date("2026-11-21T19:00:00.000Z"); // claude_stale was checked before 18:00Z: over 30 minutes ago
+  const front = "models:\n  coordinator: claude_stale / claude-opus-5-5 / effort=medium";
+  const running = { status: { state: "ok" }, threads: new Map([["0001/A", [{ id: "w", role: "worker", pending: 0, link: null, provider: "claude_stale" }]]]) };
+  const idle = readLimitsView(project(front), NO_THREADS, new Map(), later, fixtures);
+  const busy = readLimitsView(project(front), running, new Map(), later, fixtures);
+  assert.equal(idle.providers[0].state, "unknown");
+  assert.equal(busy.providers[0].state, "blind");
+  for (const order of [[["a", idle], ["b", busy]], [["a", busy], ["b", idle]]] as const) {
+    const merged = mergeLimits(order.map(([project, view]) => ({ project, view })));
+    assert.equal(merged.providers[0].state, "blind");
+    assert.equal(merged.providers[0].blindSince, busy.providers[0].blindSince);
+  }
+});

@@ -1,5 +1,6 @@
 // What a braid's pause looks like on the board and in `braid status`: its phase by the clock and its texts.
 // Pure (no Node.js), so the page uses it too. The record comes from src/braids/pauses.ts.
+import { percent } from "../braids/percent.js";
 import { reasonOf, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
 
 /** Past `resumeAt` by this much with the record still there, the mark says the resume was due. */
@@ -45,7 +46,7 @@ const agentsWord = (n: number): string => `${n} agent${n === 1 ? "" : "s"}`;
 
 /** `Claude_Everix Session 97%`: the provider, the window's label and its usage, as far as they are known. */
 export function usage(p: Pause): string {
-  return [p.provider, p.label, p.usedPercent === null ? null : `${p.usedPercent}%`].filter((s) => s !== null).join(" ");
+  return [p.provider, p.label, p.usedPercent === null ? null : `${percent(p.usedPercent)}%`].filter((s) => s !== null).join(" ");
 }
 
 /** What a card, a strand row and `braid status` show of a pause. */
@@ -187,7 +188,7 @@ export function pauseBox(view: PauseView, now: Date): { readonly head: string; r
   if (reasonOf(p) === "hold") {
     return { head: `Held · since ${clock(p.at, now)}`, text: `${heldText(p)}. It has no resume time and never turns stalled.`, foot: `Held by ${who(p)} (thread ${thread}). Nothing to do: braid resume ${p.braid} clears it.` };
   }
-  const window = p.label === null ? (p.provider ?? "") : `${p.provider} ${p.label} window${p.usedPercent === null ? "" : ` at ${p.usedPercent}%`}`;
+  const window = p.label === null ? (p.provider ?? "") : `${p.provider} ${p.label} window${p.usedPercent === null ? "" : ` at ${percent(p.usedPercent)}%`}`;
   const command = `braid resume ${p.braid}`;
   if (p.by === "board") {
     const s = p.replies;
