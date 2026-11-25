@@ -86,10 +86,11 @@ One implementation worker at a time. The next item is under "Starting the next i
 3. **On the worker's result** read its report and `gh pr checks <pr>` (the `ci` names); woken by the PR watch, the checks alone:
    - Pending: `watch_pull_request` and end your turn; the CI wake brings you back here.
    - Failed: send the failure to the worker's child and end your turn.
-   - Green: with `review-bots` in `BRAID.md`, once per head, first send the worker "CI green: handle the review bots' threads"; otherwise go to "Accept and hand over".
-   - A question, proposal or blocker instead of a PR: steps 5 and 6, or "Grow and adjust".
-   - The run failed: read its error, and the item's `report.md`, log and PR. Send `continue` once to the same child (or relaunch if it can't continue); if it fails again, `braid ask --key quality`, naming the error (stop-case options).
-   - A wake you didn't start (the user typed in the worker's thread), or the PR already merged: check `gh pr checks` and `braid status`, and act only on a change.
+   - Green, or `checks none` (`ci: none`: the gate run is the evidence): with `review-bots` in `BRAID.md`, once per head, first send the worker "CI green: handle the review bots' threads"; otherwise go to "Accept and hand over".
+   - Merged: "After the merge".
+   - A question, proposal or blocker instead of a PR: steps 5 and 6, or "Grow and adjust". A research question: launch the researcher yourself and send its answer to the same child.
+   - The run failed or was cancelled with no report: read its error, if any, and the item's `report.md`, log and PR. Send `continue` once to the same child (it checks `git status` and its checkpoint first; relaunch if it can't continue); if it fails again, `braid ask --key quality`, naming the error (stop-case options).
+   - A wake you didn't start (the user typed in the worker's thread): check `gh pr checks` and `braid status`, and act only on a change.
 4. **Coordinator habits.**
    - After a wake or a resume, check the state first (branches, worker children, `braid next`), then act.
    - **The board's messages:** `Wake:` your wait or handover is met and closed; go on. `Gentle hourly reminder`: another braid waits on yours; do it, or estimate as it says (`braid eta <code> 2h "<why>"`). `Nudge from the board`: you look idle with nothing open; go on, or open a request or wait and end your turn. A pause: [provider limits](references/limits.md).

@@ -30,7 +30,7 @@ You talk to the coordinator by ending your run: T3 hands it your final message. 
 - Make routine decisions yourself. Ask the coordinator only about scope, the Completion boxes, or a real blocker.
 - A [stop case](../braid/references/stop-cases.md) on the preset's "decide yourself" side: decide it and log it as `Decided:` (stop cases, "Who records what"). Your `Needs the user` holds only cases on its "ask me" side, or where unsure.
 - If your item is a spike: answer its question within the time box by the Method in [braid-researcher](../braid-researcher/SKILL.md); experiment as needed, but don't build the feature. Write `report.md` in that skill's Report shape, plus follow-up items, and the sources in `sources.md`, and deliver that through a PR like any other item. If the time box runs out, report what is known and what isn't.
-- A side question your item needs that the code doesn't answer: launch a researcher the way the coordinator does ([braid](../braid/SKILL.md), "Launch a subagent"), with your item's id. Put its findings, citing source ids, into `report.md` or the brief, and its sources into `sources.md`.
+- A side question your item needs that the code doesn't answer: end your run with the question and the decision it feeds; the coordinator launches a researcher and sends you the answer. Put its findings, citing source ids, into `report.md` or the brief, and its sources into `sources.md`.
 - Growth: if you find more work, end your run with one proposal: what you found, the three options (absorb into this PR, a prerequisite, phases) with rough sizes, and your recommendation. On the decision, do your part of the path as the `braid` skill's "Grow and adjust" describes:
   - Absorb: log it and go on.
   - Prerequisite of a strand: log where you stopped, merge the braid branch the coordinator names, add the dependency (`braid edit <id> --dep`, repeating the existing ones) and stop. When the prerequisite is merged, merge the braid branch again and resume.
@@ -67,6 +67,7 @@ PR <url>, head <sha>, checks <pending | green | failed | none>
 
 - Trust what you checked and what the coordinator tells you; check again only when something fails or changes.
 - If you see your first message again, run `gh pr list --state all --head <branch>`. If your PR is merged, you're done: stop without reporting again. If it was closed unmerged (the story went to phases), stop and ask the coordinator; don't commit to the branch. Otherwise carry on from where you are.
+- On `continue` after a failed or cancelled run, check `git status` and your last checkpoint first.
 - If you must stop before finishing, log a checkpoint (`'done: …; next: …; open: …' | braid log <id> --checkpoint --thread <your thread id> --file -`) and commit it with your work.
 - Don't edit braid skills, `AGENTS.md`, `CLAUDE.md` or `BRAID.md` unless your brief says so.
 - Don't merge, publish, or start other items.
