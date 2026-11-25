@@ -222,9 +222,9 @@ export function demoLimits(t3: T3, pauses: ReadonlyMap<string, Pause>, now: Date
   const reading = (instanceId: string, roles: string[], models: string[], windows: WindowReading[]): ProviderReading => {
     const over = windows.filter((w) => w.over);
     const latest = over.at(0);
-    return { instanceId, roles, models, verdict: latest === undefined ? "ok" : "pause", reason: latest === undefined ? null : `${latest.label} (${latest.id}) is at ${latest.usedPercent}%, threshold ${latest.threshold}%`, checkedAt, windows, pauseWindow: latest?.id ?? null, resumeAt: latest === undefined ? null : new Date(Date.parse(latest.resetsAt ?? "") + DEFAULT_LIMITS.buffer * MIN).toISOString() };
+    return { instanceId, roles, models, verdict: latest === undefined ? "ok" : "pause", reason: latest === undefined ? null : `${latest.label} (${latest.id}) is at ${latest.usedPercent}%, threshold ${latest.threshold}%`, checkedAt, windows, pauseWindow: latest?.id ?? null, resumeAt: latest === undefined ? null : new Date(Date.parse(latest.resetsAt ?? "") + DEFAULT_LIMITS.buffer * MIN).toISOString(), blindSince: null };
   };
-  const cursor: ProviderReading = { instanceId: "cursor", roles: ["reviewer"], models: ["grok-4.6"], verdict: "unknown", reason: `${NOT_MEASURED} (unsupported)`, checkedAt: null, windows: [], pauseWindow: null, resumeAt: null };
+  const cursor: ProviderReading = { instanceId: "cursor", roles: ["reviewer"], models: ["grok-4.6"], verdict: "unknown", reason: `${NOT_MEASURED} (unsupported)`, checkedAt: null, windows: [], pauseWindow: null, resumeAt: null, blindSince: null };
   return buildView([reading("Claude_Everix", ["coordinator", "worker.story", "researcher"], ["claude-opus-5-5", "claude-sonnet-5-5"], claude), reading("codex", ["worker.task"], ["gpt-6-luna"], codex), cursor], DEFAULT_LIMITS, t3, pauses, now);
 }
 

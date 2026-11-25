@@ -8,17 +8,19 @@
 //      its text by code (`t3 thread send`, ids from T3's own output) and each PM one summary;
 //   4. wake: each project's open requests whose "done when" holds are closed and their askers woken (src/board/wake.ts).
 // No LLM sits in the path and no thread is started (0074/C). With several boards on one machine, a tick acts only for the keys whose
-// lease this board holds (src/board/acting.ts, 0074/B): steps 1-3 per provider account, step 4 and the pending limit pushes per
+// lease this board holds (src/board/acting.ts, 0074/B): steps 1-3 and the blind push per provider account, step 4 and the pending limit pushes per
 // repository. A board that holds none still reads and shows. Only `.braid/pauses.json`, `notified.json` and (the wake)
 // `braid-requests` are written, and only `t3 thread send` and `t3 thread show` are called.
 import { join } from "node:path";
+import { percent } from "../braids/percent.js";
 import { providerKey, repoLease, type ActingBoard } from "./acting.js";
 import { LimitsError, readLimits, readModelLines, readProvider, t3Home, type ModelLine, type ProviderReading } from "../braids/limits.js";
 import { claimPauses, loadPauses, patchPauses, reasonOf, resumedAt, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
 import type { Good } from "./feed.js";
+import { blindReason } from "./limits-view.js";
 import { clock } from "./pause.js";
 import { resumePauses } from "./resume.js";
-import { coordinatorPause, escalation, limitPush, overWindow, pausedLine, pmsOf, pmSummary, targetsOf, weeklyPause, workerPause, type LimitEvent, type LimitPush, type PmThread } from "./steer.js";
+import { blindPush, coordinatorPause, escalation, limitPush, overWindow, pausedLine, pmsOf, pmSummary, targetsOf, weeklyPause, workerPause, type LimitEvent, type LimitPush, type PmThread } from "./steer.js";
 import { working, type T3Runner } from "./t3.js";
 import type { Waker } from "./wake.js";
 
@@ -335,7 +337,7 @@ ${h.pause.provider ?? ""}`;
     const archived = (thread: string): boolean => seen.some((s) => s.good.t3.states?.get(thread) === "archived");
     const usageOf = (p: Pause, root: string): string | null => {
       const w = readingAt(root, p.provider ?? "")?.windows.find((x) => x.id === p.window);
-      return w === undefined ? null : `${w.label} ${w.usedPercent}%`;
+      return w === undefined ? null : `${w.label} ${percent(w.usedPercent)}%`;
     };
     // One call per reason, so the ask names it; within it one message per thread.
     const whys = [...new Set(go.map((g) => g.why))];
@@ -358,7 +360,7 @@ ${c.pause.provider ?? ""}`;
         const first = e.records[0] as Pause;
         const late = first.resumeAt === null ? 0 : at.getTime() - Date.parse(first.resumeAt);
         const w = readingAt(e.root, first.provider ?? "")?.windows.find((x) => x.id === first.window);
-        push(e.root, "resumed", e.records, at, { due: why === "timer" && late >= MISSED_MS && first.resumeAt !== null ? clock(first.resumeAt, at) : null, usage: w === undefined ? null : `${w.label} at ${w.usedPercent}%` });
+        push(e.root, "resumed", e.records, at, { due: why === "timer" && late >= MISSED_MS && first.resumeAt !== null ? clock(first.resumeAt, at) : null, usage: w === undefined ? null : `${w.label} at ${percent(w.usedPercent)}%` });
       }
     }
   };
@@ -457,6 +459,30 @@ ${c.pause.provider ?? ""}`;
     }
   };
 
+  /**
+   * 4. Blind providers (0074/E): one push per provider and blind spell (a spell is a cache's last update: a later spell is another one),
+   * for a provider this board acts for whose chip reads `blind`. A reading that recovers ends the spell with no push. One push per
+   * provider even when several projects show it; the pusher keeps the key, so a restart sends nothing twice.
+   */
+  const blind = (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean): void => {
+    const sent = new Set<string>();
+    for (const s of seen) {
+      for (const p of s.good.board.limits?.providers ?? []) {
+        if (p.state !== "blind" || p.blindSince === null || !acts(p.instanceId) || sent.has(p.instanceId)) {
+          continue;
+        }
+        sent.add(p.instanceId);
+        const agents = p.agents.filter((a) => a.state === "running").map((a) => `${a.id} ${a.role}`);
+        const out = blindPush(p.instanceId, p.blindSince, blindReason(p, at), agents, at);
+        try {
+          opts.push?.(s.project.root, out);
+        } catch {
+          // a push never stops the pause
+        }
+      }
+    }
+  };
+
   /** Takes or renews this board's leases: the repositories it acts for, and a test of the provider accounts it acts for. */
   const leases = (seen: readonly Seen[]): { repos: Set<string>; acts: (provider: string | null) => boolean } => {
     const acting = opts.acting;
@@ -498,6 +524,7 @@ ${c.pause.provider ?? ""}`;
       await count(seen, at, acts);
       await resume(seen, at, acts);
       await pause(seen, at, acts);
+      blind(seen, at, acts);
     } catch (error) {
       warn(`the limits pause failed this refresh (${error instanceof Error ? error.message : String(error)})`, "tick");
     }

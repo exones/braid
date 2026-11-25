@@ -1,4 +1,5 @@
 // The words of the limits chips and panel (docs/board.md, "Provider limits"). Pure (no Node.js), so the page uses it too.
+import { percent } from "../braids/percent.js";
 import { clock, noAnswerItem } from "./pause.js";
 import type { ChipState, LimitsView, ProviderView } from "./limits.js";
 
@@ -38,6 +39,8 @@ export function chipNote(p: ProviderView, now: Date): string {
       return "not measured";
     case "unknown":
       return p.checkedAt === null ? "no reading yet" : `no reading for ${agoText(p.checkedAt, now)}`;
+    case "blind":
+      return p.blindSince === null ? "blind" : `blind since ${clock(p.blindSince, now)}`;
     case "over":
       return p.replies?.outcome === "pausing" ? "pausing…" : "over";
     case "paused": {
@@ -51,14 +54,22 @@ export function chipNote(p: ProviderView, now: Date): string {
   }
 }
 
+/** Why a blind provider can't be read, and what to do: the cache's last update and the restart. */
+export function blindReason(p: ProviderView, now: Date): string {
+  return p.blindSince === null ? (p.reason ?? "no usable reading") : `cache not updated since ${clock(p.blindSince, now)}; restart T3`;
+}
+
 /** The badge in the panel: the state in words, with the resume time when paused. */
 export function badgeText(p: ProviderView, now: Date): string {
   return p.state === "paused" ? chipNote(p, now) : p.state === "unmeasured" ? "not measured" : p.state === "unknown" ? "unknown" : p.state;
 }
 
 /** The chip's hover text: the numbers in words. */
-export function chipTitle(p: ProviderView): string {
-  const part = (label: string, w: ProviderView["session"]): string => (w === null ? "" : `${label} ${w.usedPercent}% of ${w.threshold}%`);
+export function chipTitle(p: ProviderView, now: Date = new Date()): string {
+  if (p.state === "blind") {
+    return `${p.instanceId}: limits ${chipNote(p, now)}: ${blindReason(p, now)}. Nothing pauses on ${p.instanceId} until it reads again.`;
+  }
+  const part = (label: string, w: ProviderView["session"]): string => (w === null ? "" : `${label} ${percent(w.usedPercent)}% of ${w.threshold}%`);
   const nums = [part("Session", p.session), part("Weekly", p.weekly)].filter((s) => s !== "").join(", ");
   return `${p.instanceId}: ${nums === "" ? (p.reason ?? p.state) : nums}`;
 }
@@ -69,7 +80,7 @@ export function resetText(resetsAt: string | null, reset: boolean, now: Date): s
 }
 
 /** The state's tone: which colours the chip, bar and badge take. */
-export const STATE_TONE: Readonly<Record<ChipState, "slate" | "amber" | "red" | "sky" | "dashed">> = { ok: "slate", near: "amber", over: "red", paused: "sky", unknown: "dashed", unmeasured: "dashed" };
+export const STATE_TONE: Readonly<Record<ChipState, "slate" | "amber" | "red" | "sky" | "dashed" | "orange">> = { ok: "slate", near: "amber", over: "red", paused: "sky", unknown: "dashed", blind: "orange", unmeasured: "dashed" };
 
 /** The agents line of a provider: the paused braids and the running agents, or what is known when none. */
 export function agentsText(p: ProviderView): { readonly paused: string; readonly running: string } {

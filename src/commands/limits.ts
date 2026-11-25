@@ -2,6 +2,7 @@
 // Reads T3's provider caches only. Exit 0 for ok and unknown, PAUSE_EXIT when any listed provider says pause.
 import { join } from "node:path";
 import { LimitsError, readLimits, readModelLines, readProviders, roleLines, t3Home, type ModelLine, type ProviderReading, type WindowReading } from "../braids/limits.js";
+import { percent } from "../braids/percent.js";
 import { parse, str } from "./edit.js";
 import { UsageError } from "./braids.js";
 
@@ -18,7 +19,7 @@ export function localTime(iso: string): string {
 }
 
 function windowLine(w: WindowReading): string {
-  const used = `${w.usedPercent}%${w.reset ? " (reset)" : ""}`;
+  const used = `${percent(w.usedPercent)}%${w.reset ? " (reset)" : ""}`;
   return `  ${w.label} (${w.id})`.padEnd(34) + `${used.padStart(12)} of ${String(w.threshold).padStart(3)}%   ${w.resetsAt === null ? "no reset shown" : `resets ${localTime(w.resetsAt)}`}${w.over ? "   OVER" : ""}`;
 }
 
@@ -35,6 +36,9 @@ function block(r: ProviderReading): string {
     lines.push(`  verdict: pause: ${r.reason ?? ""}; resume at ${localTime(r.resumeAt ?? "")}`);
   } else if (r.verdict === "unknown") {
     lines.push(`  verdict: unknown (launch as usual): ${r.reason ?? ""}`);
+    if (r.blindSince !== null) {
+      lines.push(`  blind since ${localTime(r.blindSince)}: cache not updated since ${localTime(r.blindSince)}; restart T3. Nothing pauses on it until it reads again.`);
+    }
   } else {
     lines.push("  verdict: ok");
   }

@@ -10,8 +10,8 @@ import type { ActingLine } from "./acting.js";
 /** How close to its threshold (percentage points) a window is called near. */
 export const NEAR_POINTS = 10;
 
-/** ok: all under; near: within `NEAR_POINTS` of a threshold; over: past one; paused: a limit pause record names the provider; unknown: no usable reading; unmeasured: T3 can't read this provider (cursor). */
-export type ChipState = "ok" | "near" | "over" | "paused" | "unknown" | "unmeasured";
+/** ok: all under; near: within `NEAR_POINTS` of a threshold; over: past one; paused: a limit pause record names the provider; unknown: no usable reading; blind (0074/E): a provider in use whose reading has been unusable for over 30 minutes; unmeasured: T3 can't read this provider (cursor). */
+export type ChipState = "ok" | "near" | "over" | "paused" | "unknown" | "blind" | "unmeasured";
 
 /** An agent on a provider, as the limits panel lists it. */
 export interface LimitAgent {
@@ -34,6 +34,8 @@ export interface ProviderView {
   readonly reason: string | null;
   /** When T3 last checked this provider (ISO); null when never or unreadable. */
   readonly checkedAt: string | null;
+  /** For `blind`: when the cache was last updated (ISO); null otherwise. */
+  readonly blindSince: string | null;
   readonly windows: readonly WindowReading[];
   /** The session and weekly window the chip's meters show: the fullest of each kind. */
   readonly session: WindowReading | null;
@@ -62,13 +64,16 @@ export interface LimitsView {
 const fullest = (windows: readonly WindowReading[], kind: WindowReading["kind"]): WindowReading | null =>
   windows.filter((w) => w.kind === kind).reduce<WindowReading | null>((a, w) => (a === null || w.usedPercent > a.usedPercent ? w : a), null);
 
-/** The chip state of a reading, given whether a limit pause record names the provider. */
-export function stateOf(reading: ProviderReading, paused: boolean): ChipState {
+/** The chip state of a reading, given whether a limit pause record names the provider and whether the provider is in use (a role names it and a thread runs on it). */
+export function stateOf(reading: ProviderReading, paused: boolean, inUse = false): ChipState {
   // A pause record decides first: after a pause T3 may not refresh the cache for a while, and the braid is paused all the same.
   if (paused) {
     return "paused";
   }
   if (reading.verdict === "unknown") {
+    if (inUse && reading.blindSince !== null) {
+      return "blind";
+    }
     return reading.reason?.startsWith(NOT_MEASURED) === true ? "unmeasured" : "unknown";
   }
   if (reading.verdict === "pause") {
@@ -116,7 +121,7 @@ export function buildView(readings: readonly ProviderReading[], limits: Limits, 
   const records = [...pauses.values()].filter((p) => reasonOf(p) === "limit" && p.provider !== null);
   const providers = readings.map((r): ProviderView => {
     const mine = records.filter((p) => p.provider === r.instanceId);
-    const state = stateOf(r, mine.length > 0);
+    const state = stateOf(r, mine.length > 0, r.roles.length > 0 && (running.get(r.instanceId)?.length ?? 0) > 0);
     const stopped: LimitAgent[] = mine.map((p) => ({ id: p.braid, role: "coordinator", state: "paused", project: null }));
     const resumes = mine.map((p) => p.resumeAt).filter((t): t is string => t !== null).sort();
     return {
@@ -126,6 +131,7 @@ export function buildView(readings: readonly ProviderReading[], limits: Limits, 
       models: r.models,
       reason: r.verdict === "unknown" ? r.reason : null,
       checkedAt: r.checkedAt,
+      blindSince: state === "blind" ? r.blindSince : null,
       windows: r.windows,
       session: fullest(r.windows, "session"),
       weekly: fullest(r.windows, "weekly"),
@@ -182,7 +188,7 @@ export function mergeLimits(views: readonly { readonly project: string; readonly
       byId.set(p.instanceId, [...(byId.get(p.instanceId) ?? []), { ...p, agents: p.agents.map((a) => ({ ...a, project })) }]);
     }
   }
-  const rank: Record<ChipState, number> = { unmeasured: 0, unknown: 1, ok: 2, near: 3, over: 4, paused: 5 };
+  const rank: Record<ChipState, number> = { unmeasured: 0, unknown: 1, ok: 2, near: 3, blind: 4, over: 5, paused: 6 };
   const providers = order.map((id): ProviderView => {
     const all = byId.get(id) ?? [];
     // The reading read last wins; the state shown is the most pressing one any project saw.
@@ -193,7 +199,7 @@ export function mergeLimits(views: readonly { readonly project: string; readonly
     const resumes = paused.map((p) => p.resumeAt).filter((r): r is string => r !== null).sort();
     return {
       ...latest,
-      state: latest.state === "unknown" || latest.state === "unmeasured" ? (paused.length > 0 ? "paused" : latest.state) : state,
+      state: latest.state === "unknown" || latest.state === "unmeasured" || latest.state === "blind" ? (paused.length > 0 ? "paused" : latest.state) : state,
       ...(paused.length > 0 ? { resumeAt: resumes[0] ?? latest.resumeAt, pauseWindow: paused.find((p) => p.pauseWindow !== null)?.pauseWindow ?? latest.pauseWindow } : {}),
       roles: [...new Set(all.flatMap((p) => p.roles))],
       models: [...new Set(all.flatMap((p) => p.models))],

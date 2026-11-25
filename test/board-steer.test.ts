@@ -129,13 +129,15 @@ function fakeT3(o: { shown?: (thread: string) => unknown; failSend?: Set<string>
 /** A steerer at a settable clock, with its pushes collected. */
 function board(root: string, caches: string, t3: ReturnType<typeof fakeT3>, clock: { now: Date }, snapshot: () => ReturnType<typeof threads> = threads, pm = true) {
   const pushes: { key: string; title: string; priority: string; body: string }[] = [];
+  // Blind pushes (0074/E) are collected apart: a test's clock runs past its caches' freshness, which is not what those tests are about.
+  const blinds: typeof pushes = [];
   const warnings: string[] = [];
-  const s = steerer({ t3: t3.run, now: () => clock.now, caches, push: (_r: string, p: (typeof pushes)[number]) => pushes.push(p), warn: (l: string) => warnings.push(l) });
+  const s = steerer({ t3: t3.run, now: () => clock.now, caches, push: (_r: string, p: (typeof pushes)[number]) => (p.key.includes(":blind:") ? blinds : pushes).push(p), warn: (l: string) => warnings.push(l) });
   const tick = async () => {
     s.observe({ name: "p", root, repo: "repo", folder: () => root }, good(root, caches, clock.now, snapshot(), pm));
     await s.idle();
   };
-  return { tick, pushes, warnings };
+  return { tick, pushes, blinds, warnings };
 }
 
 const records = (root: string) => loadPauses(root).pauses;
@@ -790,4 +792,117 @@ test("everix4's cursor pause on Other Models (scoped out of its Cursor Models po
   assert.deepEqual(records(root), [], "the record and its old banner are gone");
   assert.equal(chip(), "ok", "the chip's paused state ends");
   assert.equal(b.pushes.at(-1)?.title, "cursor resumed");
+});
+
+// 0074/E: blind limits warn loudly.
+const { percent } = await load("../dist/braids/percent.js");
+const { chipNote: noteOf, chipTitle, blindReason } = await load("../dist/board/limits-view.js");
+const stateOfProvider = (root: string, caches: string, at: Date, id: string) => readLimitsView(root, threads(), new Map(), at, caches).providers.find((p: { instanceId: string }) => p.instanceId === id);
+
+test("a cache 31 minutes stale on a provider in use reads blind and pushes once per spell; 9 minutes stale doesn't", async () => {
+  const { root, caches } = project();
+  cache(caches, "codex", 20, NOW);
+  cache(caches, "claude", 40, later(-30)); // checked 31 minutes before NOW
+  const p = stateOfProvider(root, caches, NOW, "claude");
+  assert.equal(p.state, "blind");
+  assert.equal(p.blindSince, later(-31).toISOString());
+  assert.match(noteOf(p, NOW), /^blind since /);
+  assert.match(blindReason(p, NOW), /^cache not updated since .*; restart T3$/);
+  assert.match(chipTitle(p, NOW), /Nothing pauses on claude until it reads again/);
+  const b = board(root, caches, fakeT3(), { now: NOW });
+  await b.tick();
+  await b.tick();
+  const blind = b.blinds;
+  assert.deepEqual([...new Set(blind.map((x) => x.key))], [`pause:blind:claude:${later(-31).toISOString()}`], "one key for the spell, so the pusher sends it once");
+  assert.match(blind[0]?.title ?? "", /^claude: limits blind since /);
+  assert.equal(blind[0]?.priority, "high");
+  assert.deepEqual(records(root), [], "unknown never pauses");
+
+  const fresh = project();
+  cache(fresh.caches, "codex", 20, NOW);
+  cache(fresh.caches, "claude", 40, later(-8)); // checked 9 minutes before NOW: still fresh
+  assert.equal(stateOfProvider(fresh.root, fresh.caches, NOW, "claude").state, "ok");
+  cache(fresh.caches, "claude", 40, later(-19)); // 20 minutes: stale, so unknown, but not yet blind
+  assert.equal(stateOfProvider(fresh.root, fresh.caches, NOW, "claude").state, "unknown");
+  const quiet = board(fresh.root, fresh.caches, fakeT3(), { now: NOW });
+  await quiet.tick();
+  assert.deepEqual(quiet.blinds, []);
+});
+
+test("a provider no thread uses, and an unsupported one, never read blind", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 40, NOW);
+  cache(caches, "codex", 20, later(-120)); // stale for two hours, but no thread runs on codex here
+  const idle = { ...threads(), threads: new Map([["0070", [{ id: WORK, role: "worker", pending: 0, link: null, provider: "claude" }]]]) };
+  const view = readLimitsView(root, idle, new Map(), NOW, caches);
+  assert.equal(view.providers.find((p: { instanceId: string }) => p.instanceId === "codex")?.state, "unknown");
+  writeFileSync(join(caches, "codex.json"), JSON.stringify({ instanceId: "codex", usageLimits: { checkedAt: iso(-300), unavailable: { reason: "unsupported" } } }));
+  const cursor = readLimitsView(root, threads(), new Map(), NOW, caches).providers.find((p: { instanceId: string }) => p.instanceId === "codex");
+  assert.equal(cursor.state, "unmeasured");
+  assert.equal(cursor.blindSince, null);
+});
+
+test("a reading that recovers ends the spell quietly, and a later spell pushes again", async () => {
+  const { root, caches } = project();
+  cache(caches, "codex", 20, NOW);
+  cache(caches, "claude", 40, later(-30));
+  const clock = { now: NOW };
+  const b = board(root, caches, fakeT3(), clock);
+  await b.tick();
+  assert.equal(b.blinds.length, 1);
+  cache(caches, "claude", 40, later(5)); // T3 is back
+  clock.now = later(6);
+  await b.tick();
+  assert.equal(b.blinds.length, 1, "recovery sends nothing");
+  clock.now = later(60); // the cache last updated at 12:09 and went stale again
+  cache(caches, "codex", 20, later(60));
+  await b.tick();
+  const keys = new Set(b.blinds.map((x) => x.key));
+  assert.equal(keys.size, 2, "the second spell has its own key");
+});
+
+test("the blind push is sent once through the limit pusher and its key kept across a restart", async () => {
+  const dir = mkdtempSync(join(scratch, "b-"));
+  git(dir, "init", "-q");
+  const file = join(dir, ".braid", "notified.json");
+  const sent: string[] = [];
+  const config = () => ({ enabled: true, server: "https://ntfy.example", topic: "t" });
+  const send = async (_c: unknown, p: { title: string }) => void sent.push(p.title);
+  const out = steer.blindPush("claude", later(-31).toISOString(), "cache not updated since 11:29; restart T3", ["0070 worker"], NOW);
+  for (let i = 0; i < 2; i++) {
+    const push = limitPusher({ file, config, send, token: () => null, warn: () => {} });
+    push(out);
+    await push.idle();
+  }
+  assert.equal(sent.length, 1);
+  assert.match(out.body, /Nothing pauses on claude while it is blind\. Running on it: 0070 worker\./);
+});
+
+test("braid limits prints the blind line for a cache stale over 30 minutes and still exits 0", () => {
+  const { root, caches } = project();
+  cache(caches, "codex", 20, NOW);
+  cache(caches, "claude", 40, later(-30));
+  const r = limitsCommand(root, [], { caches, now: NOW });
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /verdict: unknown \(launch as usual\)[^\n]*\n  blind since \d{4}-\d\d-\d\d \d\d:\d\d: cache not updated since .*; restart T3/);
+  cache(caches, "claude", 40, later(-19));
+  assert.doesNotMatch(limitsCommand(root, [], { caches, now: NOW }).stdout, /blind since/);
+});
+
+test("every percent shown is a whole number, also for cursor's unrounded values", () => {
+  assert.equal(percent(73.21908396946564), "73");
+  assert.equal(percent(67.560833), "68");
+  assert.equal(percent(70.4969465), "70");
+  assert.equal(percent(0), "0");
+  const { root, caches } = project();
+  cache(caches, "codex", 20, NOW);
+  cache(caches, "claude", 70.4969465, NOW, 67.560833);
+  const p = stateOfProvider(root, caches, NOW, "claude");
+  assert.match(chipTitle(p, NOW), /Session 70% of 90%, Weekly 68% of 90%/);
+  const cli = limitsCommand(root, ["claude"], { caches, now: NOW }).stdout;
+  assert.match(cli, /\b70%/);
+  assert.doesNotMatch(cli, /70\.4969/);
+  const record = { braid: "0070", provider: "claude", window: "five_hour", label: "Session", usedPercent: 73.21908396946564, resetsAt: null, resumeAt: iso(30), task: null, thread: "", by: "board", at: iso(0) };
+  assert.equal(pause.usage(record), "claude Session 73%");
+  assert.match(steer.limitPush("extended", [record], NOW)?.body ?? "", /Session 73% at the resume time/);
 });

@@ -1,6 +1,7 @@
 // The provider limits on the page (docs/board.md, "Provider limits"): the header chips, the phone strip and the limits panel.
 import { Dialog } from "radix-ui";
-import { actingText, agentsText, badgeText, chipNote, chipTitle, resetText, STATE_TONE, repliesLine } from "../../src/board/limits-view.ts";
+import { percent } from "../../src/braids/percent.ts";
+import { actingText, agentsText, badgeText, blindReason, chipNote, chipTitle, resetText, STATE_TONE, repliesLine } from "../../src/board/limits-view.ts";
 import { t3codeUrl } from "../../src/board/marks.ts";
 import type { LimitsView, ProviderView, WindowReading } from "./api.ts";
 
@@ -10,14 +11,16 @@ const TONE_CHIP = {
   red: "border-red-300 bg-red-50 text-red-900",
   sky: "border-sky-300 bg-sky-50 text-sky-900",
   dashed: "border-dashed border-slate-200 bg-white text-slate-500",
+  orange: "border-2 border-orange-700 bg-orange-100 font-semibold text-orange-900",
 } as const;
-const TONE_FILL = { slate: "bg-slate-400", amber: "bg-amber-600", red: "bg-red-600", sky: "bg-sky-600", dashed: "bg-slate-400" } as const;
+const TONE_FILL = { slate: "bg-slate-400", amber: "bg-amber-600", red: "bg-red-600", sky: "bg-sky-600", dashed: "bg-slate-400", orange: "bg-orange-600" } as const;
 const TONE_BADGE = {
   slate: "bg-green-100 text-green-800",
   amber: "bg-amber-100 text-amber-800",
   red: "bg-red-100 text-red-800",
   sky: "bg-sky-100 text-sky-800",
   dashed: "bg-slate-100 text-slate-500",
+  orange: "border border-orange-700 bg-orange-100 text-orange-900",
 } as const;
 
 type Tone = keyof typeof TONE_FILL;
@@ -40,7 +43,7 @@ function Meter({ label, w, fill }: { label: string; w: WindowReading | null; fil
     <span className="flex w-[54px] items-center gap-1 text-[10px] text-slate-500">
       {label}
       <Track w={w} fill={fill} height="h-[5px]" />
-      <span className="min-w-[26px] text-right tabular-nums">{w.usedPercent}%</span>
+      <span className="min-w-[26px] text-right tabular-nums">{percent(w.usedPercent)}%</span>
     </span>
   );
 }
@@ -53,11 +56,12 @@ function Chip({ p, now, onOpen }: { p: ProviderView; now: Date; onOpen: () => vo
     <button
       type="button"
       onClick={onOpen}
-      title={chipTitle(p)}
+      title={chipTitle(p, now)}
       aria-label={`${p.instanceId}: ${note === "" ? p.state : note}. Open the limits`}
       data-limits-chip={p.state}
       className={`inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-lg border px-2 py-0.5 text-xs max-md:min-h-11 max-md:px-3 ${TONE_CHIP[tone]}`}
     >
+      {p.state === "blind" && <span aria-hidden="true">⚠</span>}
       <b>{p.instanceId}</b>
       {(p.session !== null || p.weekly !== null) && (
         <span className="flex flex-col gap-0.5">
@@ -77,7 +81,7 @@ export function LimitChips({ view, now, onOpen }: { view: LimitsView; now: Date;
 
 /** On the phone the chips sit in a strip under the header, scrolling sideways; a tap opens the panel full-screen. */
 export function LimitsStrip({ view, now, onOpen }: { view: LimitsView; now: Date; onOpen: () => void }) {
-  return <div className="flex gap-1.5 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2 md:hidden">{view.providers.map((p) => <Chip key={p.instanceId} p={p} now={now} onOpen={onOpen} />)}</div>;
+  return <div className="flex gap-1.5 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2 md:hidden">{[...view.providers].sort((a, b) => Number(b.state === "blind") - Number(a.state === "blind")).map((p) => <Chip key={p.instanceId} p={p} now={now} onOpen={onOpen} />)}</div>;
 }
 
 function WindowRow({ w, tone, now }: { w: WindowReading; tone: Tone; now: Date }) {
@@ -86,7 +90,7 @@ function WindowRow({ w, tone, now }: { w: WindowReading; tone: Tone; now: Date }
       <div className="grid grid-cols-[92px_1fr_40px] items-center gap-2 text-xs max-md:grid-cols-[84px_1fr_36px]">
         <span>{w.label}</span>
         <Track w={w} fill={TONE_FILL[tone]} height="h-[7px]" />
-        <span className="text-right tabular-nums">{w.usedPercent}%</span>
+        <span className="text-right tabular-nums">{percent(w.usedPercent)}%</span>
       </div>
       <div className="text-[11px] text-slate-500">of {w.threshold}% · {resetText(w.resetsAt, w.reset, now)}</div>
     </div>
@@ -106,6 +110,11 @@ function ProviderBlock({ p, now }: { p: ProviderView; now: Date }) {
       </div>
       {p.windows.map((w) => <WindowRow key={w.id} w={w} tone={tone} now={now} />)}
       {p.state === "unmeasured" && <p className="mt-1.5 text-xs text-slate-600">T3 can’t read this provider’s usage; its agents are never paused for it.</p>}
+      {p.state === "blind" && (
+        <p data-blind="" className="mt-1.5 rounded-md border-l-[3px] border-orange-700 bg-orange-100 px-2 py-1 text-xs text-orange-900">
+          Limits {chipNote(p, now)}: {blindReason(p, now)}. An unknown reading never pauses anything, so nothing pauses on {p.instanceId} until it reads again.
+        </p>
+      )}
       {p.state === "unknown" && <p className="mt-1.5 text-xs text-slate-600">{p.reason}. An unknown reading never pauses anything.</p>}
       {p.agents.length > 0 && (
         <p className="mt-1.5 text-xs text-slate-600">
