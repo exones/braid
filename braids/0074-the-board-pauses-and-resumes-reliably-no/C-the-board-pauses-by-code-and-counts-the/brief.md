@@ -55,10 +55,10 @@ Expected size: about 450 lines in 7 files (much of it removed steering code).
 
 ## Completion
 
-- [ ] The board pauses by `t3 thread send` with ids from T3 and starts no steering thread, with tests
-- [ ] Only braids with a working agent on the provider are paused, and only working threads (plus the braid's coordinator, and its PM's summary) are messaged, with tests
-- [ ] Replies are counted from the threads within 10 minutes, with tests
-- [ ] A partial or failed pause shows Needs You on the card, sends one push and messages the PM or coordinator, with tests
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The board pauses by `t3 thread send` with ids from T3 and starts no steering thread, with tests
+- [x] Only braids with a working agent on the provider are paused, and only working threads (plus the braid's coordinator, and its PM's summary) are messaged, with tests
+- [x] Replies are counted from the threads within 10 minutes, with tests
+- [x] A partial or failed pause shows Needs You on the card, sends one push and messages the PM or coordinator, with tests
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open

@@ -266,7 +266,7 @@ test("a silent target at 10 minutes makes the card Needs You, sends one failed p
   clock.now = new Date(NOW.getTime() + COUNT_MS - 1000);
   await b.tick();
   assert.equal(records(root)[0].replies.outcome, "pausing", "still counting before the 10 minutes");
-  assert.deepEqual(b.pushes, []);
+  assert.equal(b.pushes.length, 0);
   clock.now = new Date(NOW.getTime() + COUNT_MS);
   await b.tick();
   const r = records(root)[0];
