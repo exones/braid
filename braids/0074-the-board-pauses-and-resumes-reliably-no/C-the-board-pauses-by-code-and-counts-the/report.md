@@ -41,6 +41,15 @@ The LLM steering thread paused 0 of 18 twice on 2026-11-24, retyped its own thre
 ## Open
 
 - `t3 thread send` reaches a busy thread only as its next turn (the CLI's help: "nothing is interrupted"). An agent in a turn longer than 10 minutes therefore reads "no answer" and is escalated, though it will pause when its turn ends. D90 chose the steering thread partly because an agent's `mode:"auto"` steers a busy turn in a second. D108 records the trade the user accepted.
+- **Can the board steer without an LLM? Not without a new credential, so no code changed** (the PM's q-odpb, checked in T3 Code's bundled CLI, `resources/server.asar`, `apps/server/dist/binCli-*.mjs`, on this machine):
+  - `t3 thread send` calls the same MCP tool, `t3_thread_send`, with `mode: "queue"` hard-coded. No flag changes the mode.
+  - For each call, the CLI mints itself a short MCP session in-process (`environmentAuth.issueMcpClientSession`, read from T3's own auth store under `T3CODE_HOME`). It calls `<origin>/mcp` with that bearer token and revokes it at the end. The token never leaves the CLI.
+  - The server's `/mcp` (origin in `~/.t3/userdata/server-runtime.json`, `http://127.0.0.1:3773` here) answers 401 `invalid_mcp_credential` to a call without a token.
+  - The unlisted `t3 acp-mcp-call <tool> <json>` can call any tool, `mode: "steer"` included. It needs `T3_ACP_MCP_ENDPOINT` and `T3_ACP_MCP_AUTHORIZATION` in its environment, which T3 gives only its own ACP agents.
+  - So the board could steer only in one of two ways:
+    - Hold a bearer token of its own: `t3 session issue --ttl … --token-only` (a new scoped session in T3's auth store) for each pause, pass it to `acp-mcp-call`, then `t3 session revoke` it.
+    - Reach into T3's private auth store and reimplement its token issuing.
+  - The first is a new credential that braid would hold and pass in a child's environment. The second is fragile and reads T3's secrets. Both are on the brief's "ask" side (security), so the pause keeps `t3 thread send`. If the user accepts the first way, it is a small change: one `session issue`, one `acp-mcp-call t3_thread_send {"threadId":…,"message":…,"mode":"auto"}` per target with `thread send` as the fallback, then `session revoke`. It works the same on Windows and Linux because everything goes through the `t3` command. A `--mode` flag on `t3 thread send` from T3 would need no credential at all; the PM is taking that request to the user.
 - T3 lists no subagents, so a child is a target only once it is recorded in `.braid/reviews.json` (the 0060 contract). An unrecorded subagent is not paused directly, but its parent's pause covers it.
 - From 0074/B: the provider lease means a board that doesn't serve a project never pauses it. Two boards serving different projects on one account would pause only the acting board's projects. The test covers boards that both serve both projects.
 - Size: about 730 lines changed in src and tests (355+/377− in code, 289+/227− in tests), against about 450 expected. Much of it is the rewritten steer test file. Within the brief.
