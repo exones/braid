@@ -33,6 +33,7 @@ Expected size: about 250 lines in 5 files, tests included.
 
 - The escalation and its 20/60-minute limits stay; only the wording changes (the user).
 - Related to 0074: it adds pause and Resume to cards (`src/board/pause.ts`, `src/board/programme.ts`); keep this strand out of those files.
+- `Need` carries what a request blocks as data (the list of blocked ids and the act word `decide`, `do` or `merge`), not only as the printed line: the next braid, P25 "The Questions panel", ranks every open question across projects on it without deriving it again (the PM, 2026-11-25).
 - Requests are shown and copied by the one handle 0072/G makes (`yellow-bear-5asx`, or `q-5asx` for an old record), never split in two (the user).
 
 ## Out of scope
