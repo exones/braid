@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { recordReview } from "../dist/braids/reviews.js";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { acceptCommand, brief, git, resetGithubMemory, statusCommand, world } from "./support/done-fixtures.ts";
+
+const { recordReview } = (await import(pathToFileURL(fileURLToPath(new URL("../dist/braids/reviews.js", import.meta.url))).href)) as { recordReview: (root: string, id: string, thread: string, at?: string, where?: null, role?: string) => boolean };
 
 // `braid accept` of strands, and `--merge --preset`. The story and refusal tests are in done.test.ts.
 
