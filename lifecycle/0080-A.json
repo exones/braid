@@ -1,0 +1,11 @@
+{
+  "id": "0080/A",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-25T21:19:38.539Z",
+      "thread": "mcp:launch:dd3b6dc3e3dfa3c9a1515a11da6c5a321a852f1a03d3476d761e87ada6709510",
+      "branch": "braid/0080/A-how-the-board-signs-in-to-t3"
+    }
+  ]
+}
