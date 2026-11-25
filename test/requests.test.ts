@@ -20,7 +20,6 @@ const { handoverCommand, askCommand, requestsCommand, answerCommand } = (await l
 const { startCommand } = (await load("../dist/commands/start.js")) as { startCommand: (root: string, args: string[], src: object, env: object) => Promise<string> };
 const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
-const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
 const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
   loadRecord: (root: string) => { requests: { code: string; id: string; state: string; events: { event: string; at: string; by: string; text?: string }[] }[] };
@@ -32,7 +31,6 @@ const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, 
 };
 beforeEach(() => {
   resetGithubMemory();
-  resetT3Memory();
 });
 
 const git = (cwd: string, ...args: string[]) => {
