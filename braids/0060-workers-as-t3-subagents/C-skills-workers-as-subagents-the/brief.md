@@ -54,10 +54,10 @@ Expected size: about 150 lines changed in 7 files, a net decrease.
 
 ## Completion
 
-- [ ] The braid skill launches workers, reviewers and researchers through `braid launch` and `delegate_task`, and records each child
-- [ ] The coordinator watches an item PR while its CI runs and sends a red result to the same worker child; the worker no longer waits on CI or sends its report with `t3_thread_send`
-- [ ] The listed skill files total fewer lines than 716, with before and after in report.md
-- [ ] The decisions record has a decision amending D69, D75 and D77
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The braid skill launches workers, reviewers and researchers through `braid launch` and `delegate_task`, and records each child
+- [x] The coordinator watches an item PR while its CI runs and sends a red result to the same worker child; the worker no longer waits on CI or sends its report with `t3_thread_send`
+- [x] The listed skill files total fewer lines than 716, with before and after in report.md
+- [x] The decisions record has a decision amending D69, D75 and D77
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
