@@ -39,6 +39,8 @@ Expected size: about 450 lines in 7 files (much of it removed steering code).
 - No LLM in the pause path (the user: "lean more to reliable calls like with requests"). Decided under the `free` preset; record it in docs/decisions.md.
 - `models.steering` in BRAID.md is left as it is; only the user edits BRAID.md. 0074/G proposes removing it.
 
+- Contract with 0060 (Workers as T3 subagents, coordinator thread mcp:launch:d7c4c2f0481745d20d0010431e63e6cfe8d1df98e0426050c240a6c8a82f35e2), agreed 2026-11-25: the pause targets come from the board's T3 snapshot: every agent the snapshot gives an item (worktree workers and every recorded thread in `.braid/reviews.json`, whatever its `role`; a missing role means review), plus the braid's coordinator. The running children are read from that snapshot too, not from a separate T3 list, so 0060/B's recorded subagent workers become targets with no change here. 0074 merges into `main` first; 0060 merges main before its final PR.
+
 ## Out of scope
 
 - The resume (0074/D), the stale-limits warning (0074/E), the skills' prose (0074/G).
