@@ -32,3 +32,7 @@ The service and a hand-started board both paused, resumed, woke and pushed; fail
 For later items: 0074/C can send the pause through `t3 thread send` only on the provider-lease holder (the steerer already filters); the `acting` lines could appear on the chip strip if the user wants them visible without opening the panel.
 
 Needs the user: none
+
+## Gate
+
+`npm run verify` on c59cdaa (with three other agents' gates on the machine): 710 of 711 tests passed in 21 min. The one failure was `requests.test.ts` "overlapping writers in separate processes lose no update when they start on a stale lock" (one of six writer processes exited 1 after 151 s under the load). It tests the requests store's lock, which this item doesn't change, and the file passed 20/20 run alone right after. CI runs the full gate on both platforms.

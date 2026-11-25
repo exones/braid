@@ -52,11 +52,11 @@ Expected size: about 350 lines in 6 files.
 
 ## Completion
 
-- [ ] Two boards on one repository, started at the same instant, send one resume, one wake and one push each, with a test
-- [ ] A board whose lease went stale (heartbeat or pid gone) is taken over, with a test
-- [ ] A failed limit push survives a board restart and is sent by the acting board, with a test
-- [ ] Children are matched by project and braid, and resume reads each project's own BRAID.md, with tests
-- [ ] The board page and `braid board service status` say which board acts
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Two boards on one repository, started at the same instant, send one resume, one wake and one push each, with a test
+- [x] A board whose lease went stale (heartbeat or pid gone) is taken over, with a test
+- [x] A failed limit push survives a board restart and is sent by the acting board, with a test
+- [x] Children are matched by project and braid, and resume reads each project's own BRAID.md, with tests
+- [x] The board page and `braid board service status` say which board acts
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
