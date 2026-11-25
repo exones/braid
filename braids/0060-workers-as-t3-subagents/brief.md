@@ -1,7 +1,7 @@
 ---
 id: '0060'
 title: "Workers as T3 subagents"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: []
 related: ['0011', '0072', '0074']
