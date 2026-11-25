@@ -15,6 +15,12 @@
       "event": "opened",
       "at": "2026-11-25T23:07:51.256Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-25T23:08:36.524Z",
+      "by": "pm",
+      "text": "Mockups for pushes and programme cards + PM note/head in pushes (q-u89t): PM recommends a; for the morning"
     }
   ]
 }
