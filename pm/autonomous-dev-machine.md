@@ -4,8 +4,8 @@ title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 2
-state: held
-hold: 2026-11-25T15:20Z T3 restart: the user holds everything at a clean point
+state: running
+hold:
 next: "running: P21 · 0074, P4 · 0072, P8 · 0060 (merge order 0074, 0072, 0060); then P25 (Questions panel, after 0072), P24 (board speed), P5"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
@@ -152,6 +152,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-25 ~16:10Z: go from the user after the T3 restart ("restart all the work"): holds on 0074, 0072, 0060 lifted; Go sent to the dctl-studio and SFIL PMs and everix 0008. T3 restarted 17:07 local still shows no NODE_OPTIONS in its agents (T3 likely clears it for its children).
 - 2026-11-25: hold audit (subagent): coordinators confirmed before their workers' turns ended; queued and woken work landed after the hold; unlisted everix 0008 was resumed and nudged by the board; delegated reviewers never got it. b1yb taken into P5. The resume after the restart did reach 0008 at 15:35; the no-retry gap (qcf4) stays in 0074/D as a guard.
 - 2026-11-25: qcf4 (lost resume while T3 was off, no retry) taken into P21 · 0074 (D). PR #316 (pause at 90% session and weekly by default, the user's ask) opened for the user's merge.
 - 2026-11-25 ~15:20Z: hold from the user for a T3 restart ("hold at the clean point... I restart T3 and then we restart"): 0074, 0072, 0060 held (braid pause --hold), coordinators told to stop workers at a safe point; the dctl-studio and SFIL PMs and everix 0004 told the same. Also: the user set NODE_OPTIONS=--max-old-space-size=8192 and Defender exclusions for the work folders.
