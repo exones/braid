@@ -3,8 +3,10 @@ import type { Said } from "./inbox.js";
 import { openCounts } from "../inbox/branch.js";
 import { ROLES, threadTitle, titleRepoName, type TitleRole } from "../braids/title.js";
 import { loadKnownBraids, loadOpenBraids } from "../braids/branches.js";
+import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import { fetchRemotes } from "../braids/numbers.js";
 import { loadBraids, type Braid, type Item, type Strand } from "../braids/store.js";
+import { readPrStates, runGh, type GhRunner } from "../board/github.js";
 
 export class UsageError extends Error {
   override name = "UsageError";
@@ -18,8 +20,19 @@ function strandLine(strand: Strand, withDeps = false): string {
   return `  ${strand.brief.id.padEnd(6)}  ${strand.brief.status.padEnd(STATUS_WIDTH)}  ${order.padStart(2)}  ${strand.brief.title}${deps}`;
 }
 
-export function listBraids(root: string): string {
-  const braids = loadBraids(root);
+/**
+ * Each item's status as every reader sees it (src/braids/lifecycle.ts `statusOf`): the record's events, the PRs
+ * when GitHub can be read, and the stored status. Without GitHub, a merged item shows its stored status.
+ */
+export function live(root: string, braids: readonly Braid[], gh: GhRunner = runGh): Braid[] {
+  const github = readPrStates(root, gh);
+  const prs = github.status.state === "ok" ? github.prs : new Map();
+  const life = loadLifecycle(root);
+  return braids.map((b) => withStatuses(b, life, prs));
+}
+
+export function listBraids(root: string, gh: GhRunner = runGh): string {
+  const braids = live(root, loadBraids(root), gh);
   const lines: string[] = [];
   if (braids.length === 0) {
     lines.push("No braids.");
@@ -49,7 +62,7 @@ function goalParagraph(braid: Braid): string {
 }
 
 /** `braid list --open`: every braid that is not Done, wherever it lives, with the start of its goal. */
-export function listOpen(root: string, fetch: boolean): Said {
+export function listOpen(root: string, fetch: boolean, gh: GhRunner = runGh): Said {
   let stderr = "";
   if (fetch) {
     try {
@@ -58,7 +71,7 @@ export function listOpen(root: string, fetch: boolean): Said {
       stderr = `warning: ${error instanceof Error ? error.message : String(error)}; going on with what is local\n`;
     }
   }
-  const braids = loadOpenBraids(root);
+  const braids = live(root, loadKnownBraids(root), gh).filter((b) => b.brief.status !== "Done");
   if (braids.length === 0) {
     return { stdout: "No open braids.\n", stderr };
   }
@@ -80,8 +93,8 @@ export function listOpen(root: string, fetch: boolean): Said {
 }
 
 /** `Open braids: <n> (braid list --open)`, the last line of `braid new`. */
-export function openBraidsLine(root: string): string {
-  return `Open braids: ${loadOpenBraids(root).length} (braid list --open)\n`;
+export function openBraidsLine(root: string, gh: GhRunner = runGh): string {
+  return `Open braids: ${loadOpenBraids(root, (b) => live(root, b, gh)).length} (braid list --open)\n`;
 }
 
 /** Accepts `2`, `0002`, `0002/A` and `2/a`; returns `0002` or `0002/A`. */
@@ -154,22 +167,22 @@ export function titleCommand(root: string, args: readonly string[]): string {
  * `Linked from:` for `braid view --links`: the open braids whose `related` names this braid, with
  * titles, read from every source `braid list --open` reads, since a link is stored one way only.
  */
-function linkedFrom(root: string, braid: Braid): string[] {
-  const from = loadKnownBraids(root).filter(
+function linkedFrom(root: string, braid: Braid, gh: GhRunner): string[] {
+  const from = live(root, loadKnownBraids(root), gh).filter(
     (b) => b.brief.status !== "Done" && b.number !== braid.number && b.brief.related.includes(braid.number),
   );
   return from.length === 0 ? ["Linked from: none"] : ["Linked from:", ...from.map((b) => `  ${b.number}  ${b.brief.title}`)];
 }
 
 /** `braid view <id>`: the item's live copy, read from that braid number's branches and the working tree. */
-export function viewItem(root: string, raw: string | undefined, links = false): string {
+export function viewItem(root: string, raw: string | undefined, links = false, gh: GhRunner = runGh): string {
   if (raw === undefined) {
     throw new UsageError("braid view needs an id, like 0002 or 0002/A");
   }
   const id = normaliseId(raw);
   const [number, letter] = id.split("/");
   // The live copy, as `braid list --open` shows it: a newer one on a branch wins over the working tree's.
-  const braid: Braid | undefined = loadKnownBraids(root, number).find((b) => b.number === number);
+  const braid: Braid | undefined = live(root, loadKnownBraids(root, number), gh).find((b) => b.number === number);
   if (braid === undefined) {
     throw new UsageError(`no braid ${number}`);
   }
@@ -177,7 +190,7 @@ export function viewItem(root: string, raw: string | undefined, links = false): 
     const strands =
       braid.strands.length === 0 ? ["Strands: none"] : ["Strands:", ...braid.strands.map((s) => strandLine(s, true))];
     const related = `Related: ${braid.brief.related.length === 0 ? "none" : braid.brief.related.join(", ")}`;
-    return render(braid, [related, ...(links ? linkedFrom(root, braid) : []), ...strands]);
+    return render(braid, [related, ...(links ? linkedFrom(root, braid, gh) : []), ...strands]);
   }
   if (links) {
     throw new UsageError("--links shows the braids that link to a braid; give a braid id like 0002, not a strand");

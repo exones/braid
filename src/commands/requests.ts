@@ -550,7 +550,7 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
     git(root, ["fetch", "-q", "origin", main]);
   }
   const list: Request[] = loadRequests(root);
-  const ends = holding(list, { pr: prOf, braidDone: braidDoneOn(root, main), now: (opts.now ?? (() => new Date()))() });
+  const ends = holding(list, { pr: prOf, braidDone: braidDoneOn(root, main, () => { const g = readGithub(root, run); return g.status.state === "ok" ? g.prs : null; }), now: (opts.now ?? (() => new Date()))() });
   if (list.length === 0) {
     return `${offline}${skipped()}no open requests\n`;
   }

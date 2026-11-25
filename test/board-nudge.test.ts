@@ -48,7 +48,7 @@ const plans = (state = "running"): any[] => [planOf("p", "pm/p", planText(state)
 function refresh(root: string, now: Date, b: any, t3: any, extra: object = {}): { sig: any; card: any } {
   const sig = { ...signals.readSignals(root, GH, now), ...extra };
   const card = model.toCard(b, GH, t3, sig);
-  sig.commit();
+  sig.commit(card.alarms);
   return { sig, card };
 }
 
@@ -179,8 +179,9 @@ function pmRefresh(root: string, now: Date, pm: string | null, state = "running"
   const read = planOf("p", "pm/p", ["---", "programme: p", "title: P", "goal: G", `thread: ${PM}`, `state: ${state}`, "rows:", "  - P1 | 0001 | One | running", "---", ""].join("\n"));
   const sig = signals.readSignals(root, GH, now);
   const t3 = { status: { state: "ok" }, threads: new Map(), states: new Map(pm === null ? [] : [[PM, pm]]), links: new Map() };
-  const [p] = programme.toProgrammes("agento", [read], [card("0001")], t3, sig, GH);
-  sig.commit();
+  const alarms: unknown[] = [];
+  const [p] = programme.toProgrammes("agento", [read], [card("0001")], t3, sig, GH, alarms);
+  sig.commit(alarms);
   return { sig, p };
 }
 

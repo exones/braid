@@ -1,7 +1,7 @@
 ---
 id: '0075/C'
 title: "One pure lane derivation"
-status: To Do
+status: Done
 labels: ["kind:task", "tier:M"]
 dependencies: ['0075/B']
 order: 30
@@ -37,9 +37,17 @@ Expected size: about 400 lines in 8 files; it should remove more than it adds ou
 
 ## Completion
 
-- [ ] The lane derivation writes nothing; alarms are a separate step (a test derives twice with a recording clock and sees no write until the step runs)
-- [ ] `braid status`, the board and the Merge action build their input with the same function and give the same lane for each fixture braid (test)
-- [ ] All strands Done, no final PR, live coordinator: not Done (test); with the final PR merged: Done
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The lane derivation writes nothing; alarms are a separate step (a test derives twice with a recording clock and sees no write until the step runs)
+- [x] `braid status`, the board and the Merge action build their input with the same function and give the same lane for each fixture braid (test)
+- [x] All strands Done, no final PR, live coordinator: not Done (test); with the final PR merged: Done
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `Signals.alarm` only reads the clock; `derive`, `toCard`, `toProgrammes` return the `Alarm` conditions they saw; `brokeClock.settle` / `ReadSignals.commit(alarms)` is the one step that starts, keeps or drops times and notes nudges.
+2. `routing`, `stallsOf`, `withStalls` shared by `derive` and `toCard` (request routing, stall, broken wait, limit).
+3. `braidLane`: Done only from the braid's own status.
+4. `src/board/inputs.ts` `readInputs`: the one input builder for the board feed, `braid status`, Start, Open thread and Merge.
+5. Tests, docs/board.md.

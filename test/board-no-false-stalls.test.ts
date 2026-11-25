@@ -83,7 +83,7 @@ test("dctl-studio 0011/E: a worker T3 shows `waiting` while its turn awaits its 
   for (const m of [0, 10, 20, 30]) {
     const sig = signals.readSignals(w.root, GH, at(m));
     const card = model.toCard(lone, GH, t3, sig);
-    sig.commit();
+    sig.commit(card.alarms);
     await step({ root: w.root, good: { sig } }, at(m), warn);
     assert.deepEqual([card.reason, card.need, card.running], [null, null, true], `minute ${m}`);
   }
@@ -116,7 +116,7 @@ test("0010/B: a worker `completed` with a background command, a coordinator bloc
   for (const m of [0, 10, 20, 30]) {
     const sig = signals.readSignals(w.root, GH, at(m));
     const card = model.toCard(lone, GH, t3, sig);
-    sig.commit();
+    sig.commit(card.alarms);
     await step({ root: w.root, good: { sig } }, at(m), warn);
     assert.deepEqual([card.reason, card.need, card.running], [null, null, true], `minute ${m}`);
   }
@@ -125,7 +125,7 @@ test("0010/B: a worker `completed` with a background command, a coordinator bloc
   for (const m of [40, 50, 60, 70]) {
     const sig = signals.readSignals(w.root, GH, at(m));
     const card = model.toCard(braided, GH, coordinatorOnly, sig);
-    sig.commit();
+    sig.commit(card.alarms);
     await step({ root: w.root, good: { sig } }, at(m), warn);
     assert.equal(card.reason, null, `minute ${m}`);
   }
@@ -134,8 +134,9 @@ test("0010/B: a worker `completed` with a background command, a coordinator bloc
   const idleCard = { id: "0001", title: "B 0001", lane: "In Progress", running: false, activity: null, pause: null, pm: null };
   for (const m of [80, 90, 100, 110]) {
     const sig = signals.readSignals(w.root, GH, at(m));
-    const [p] = programme.toProgrammes("agento", [read], [idleCard], coordinatorOnly, sig, GH);
-    sig.commit();
+    const alarms: any[] = [];
+    const [p] = programme.toProgrammes("agento", [read], [idleCard], coordinatorOnly, sig, GH, alarms);
+    sig.commit(alarms);
     await step({ root: w.root, good: { sig } }, at(m), warn);
     assert.deepEqual([p.section, p.need], ["working", null], `minute ${m}`);
   }
@@ -157,7 +158,7 @@ test("0012/B: a timed wait shows quietly as waiting until its time, is never pus
   const run = async (m: number) => {
     const sig = signals.readSignals(w.root, GH, at(m));
     const card = model.toCard(lone, GH, T3idle(), sig);
-    sig.commit();
+    sig.commit(card.alarms);
     await wake({ root: w.root, good: { sig, t3: T3idle(), start: { main: "main" }, github: GH } }, at(m), warn);
     await nudge({ root: w.root, good: { sig } }, at(m), warn);
     return { sig, card };

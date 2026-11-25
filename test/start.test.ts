@@ -9,9 +9,13 @@ import { agentsDirs, git, gone, listed, load, repo, scratch, src, startCommand, 
 test("start creates the strand branch from the braid tip, pushes it and adds a worktree", async () => {
   const { root, env, wt } = repo();
   const tipCommit = git(root, "rev-parse", "braid/0001-alpha");
-  const out = await startCommand(root, ["0001/B"], src(), env);
+  const out = await startCommand(root, ["0001/B", "--thread", "mcp:launch:coord1234"], src(), env);
   const folder = join(wt, "proj", "0001-B");
   assert.equal(out, `branch braid/0001/B-second-one\ncommit ${tipCommit}\nfolder ${folder}\n`);
+  // The start is an event on the record branch; no brief is written.
+  const life = JSON.parse(git(root, "show", "origin/braid-requests:lifecycle/0001-B.json")) as { id: string; events: { kind: string; thread: string | null; branch: string }[] };
+  assert.deepEqual([life.id, life.events.map((e) => [e.kind, e.thread, e.branch])], ["0001/B", [["started", "mcp:launch:coord1234", "braid/0001/B-second-one"]]]);
+  assert.equal(git(root, "log", "-1", "--format=%s", "origin/braid-requests"), "docs(record): 0001/B started");
   assert.equal(git(folder, "rev-parse", "--abbrev-ref", "HEAD"), "braid/0001/B-second-one");
   assert.equal(git(folder, "rev-parse", "HEAD"), tipCommit);
   assert.equal(git(root, "ls-remote", "--heads", "origin", "braid/0001/B-second-one").split("\t")[0], tipCommit);
@@ -133,6 +137,24 @@ test("a second start of a strand says already started and creates nothing", asyn
   // Work on the branch is still "at or after" the base.
   git(folder, "commit", "-q", "--allow-empty", "-m", "work");
   assert.equal(await startCommand(root, ["0001/B"], src(), env), `branch braid/0001/B-second-one (already started)\ncommit ${git(folder, "rev-parse", "HEAD")}\nfolder ${folder}\n`);
+});
+
+test("a second start records the start when the first run's record is missing, and only then", async () => {
+  const { root, env, wt } = repo();
+  await startCommand(root, ["0001/B"], src(), env);
+  // As if the first run made the worktree but its record write failed: drop the file from the record branch.
+  const rec = join(wt, "record-edit");
+  git(root, "worktree", "add", "-q", rec, "braid-requests");
+  git(rec, "rm", "-q", "lifecycle/0001-B.json");
+  git(rec, "commit", "-q", "-m", "drop");
+  git(rec, "push", "-q", "origin", "braid-requests");
+  git(root, "worktree", "remove", rec);
+  await startCommand(root, ["0001/B", "--thread", "again"], src(), env);
+  const events = (JSON.parse(git(root, "show", "origin/braid-requests:lifecycle/0001-B.json")) as { events: { kind: string; thread: string | null; branch: string }[] }).events;
+  assert.deepEqual(events.map((e) => [e.kind, e.thread, e.branch]), [["started", "again", "braid/0001/B-second-one"]]);
+  // Recorded now: a third start adds nothing.
+  await startCommand(root, ["0001/B"], src(), env);
+  assert.equal((JSON.parse(git(root, "show", "origin/braid-requests:lifecycle/0001-B.json")) as { events: unknown[] }).events.length, 1);
 });
 
 test("a second start of a planned story says already started", async () => {

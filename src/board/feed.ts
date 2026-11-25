@@ -4,10 +4,10 @@
 import type { Braid } from "../braids/store.js";
 import type { Sources } from "../commands/board.js";
 import type { Github } from "./github.js";
-import { toBoard, type BoardData, type StartContext } from "./model.js";
+import { deriveBoard, type BoardData, type StartContext } from "./model.js";
+import { readInputs } from "./inputs.js";
 import type { ReadSignals } from "./signals.js";
 import type { T3 } from "./t3.js";
-import { heldPauses } from "./programme.js";
 
 /** How long one project's whole read (GitHub, T3, braids, signals, inbox) may take before it counts as failed. */
 export const READ_TIMEOUT_MS = 60_000;
@@ -35,51 +35,19 @@ export async function readSnapshot(src: Sources, fetch: boolean): Promise<Snapsh
       marks.push(`${name} ${Math.round(performance.now() - began)} ms`);
     }
   };
-  // Every source call this read starts settles before it ends, so the next read never overlaps a `gh` or `t3` still running.
-  const github = timed("github", () => src.github(true));
-  const t3 = timed("t3", () => src.t3(true));
-  // A fresh read fetches the requests record too, alongside GitHub and T3; a failed fetch leaves the local copy.
-  const requests = fetch && src.fetchRequests !== undefined ? timed("requests fetch", () => src.fetchRequests?.()).catch(() => {}) : Promise.resolve();
-  github.catch(() => {}); // their failure is reported when they are awaited below
-  t3.catch(() => {});
   try {
-    const [gh, threads] = [await github, await t3];
-    // Briefs the loader can't read (a malformed brief.md, a bad folder name) are readiness problems, and the board is served without them.
-    const braids = await timed("braids", async () => {
-      try {
-        return await src.braids();
-      } catch (error) {
-        if (src.readiness?.(gh).some((p) => p.key === "check") === true) {
-          return [];
-        }
-        throw error;
-      }
-    });
-    const plans = await timed("plans", async () => {
-      try {
-        return (await src.plans?.()) ?? [];
-      } catch {
-        return []; // the programmes are left out, never the board
-      }
-    });
-    await requests;
-    const read = await timed("signals", () => src.signals(gh));
-    // A held plan holds its braids too: those without a pause record of their own read as held by the PM.
-    const sig: ReadSignals = plans.length === 0 ? read : { ...read, plans, pauses: heldPauses(plans, read.pauses ?? new Map(), read.now) };
-    await timed("done dates", () => sig.prepare?.(braids));
+    const { braids, github: gh, t3: threads, sig, start } = await readInputs(src, fetch, timed);
     const inbox = await timed("inbox", () => src.inbox(fetch));
-    const start = src.start();
     const board = await timed("board", () => {
       const limits = src.limits?.(threads, sig.pauses ?? new Map()) ?? null;
-      const b = toBoard(src.repo, braids, gh, threads, sig, start, inbox, src.readiness?.(gh) ?? [], limits);
-      sig.commit();
+      const { board: b, alarms } = deriveBoard(src.repo, braids, gh, threads, sig, start, inbox, src.readiness?.(gh) ?? [], limits);
+      sig.commit(alarms);
       return b;
     });
     return { ok: true, braids, github: gh, t3: threads, sig, start, board };
   } catch (error) {
     return { ok: false, error };
   } finally {
-    await Promise.allSettled([github, t3, requests]);
     if (process.env["BRAID_BOARD_TIMINGS"] === "1") {
       process.stderr.write(`board read${src.repo === "" ? "" : ` (${src.repo})`}: ${marks.join(", ")}\n`);
     }

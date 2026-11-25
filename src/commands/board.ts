@@ -22,6 +22,9 @@ import { limitPusher } from "../notify/notifier.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
+import { readInputs, readStartContext } from "../board/inputs.js";
+
+export { readStartContext };
 import { t3codeUrl } from "../board/marks.js";
 import { problemLine, readiness, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
@@ -123,9 +126,8 @@ export function mergeAction(src: Sources, root: string, t3: T3Runner): Action {
     }
     const id = normaliseId(b["id"]);
     const shown = b["head"];
-    const github = await src.github(true);
-    const sig = src.signals(github);
-    const merge = mergeOf(id, github, sig);
+    const { github, t3: read, sig } = await readInputs(src);
+    const merge = mergeOf(id, github, sig, read);
     if (merge === null) {
       throw new UsageError(`Merge: ${id} has no open review request`);
     }
@@ -148,13 +150,6 @@ export function mergeAction(src: Sources, root: string, t3: T3Runner): Action {
     }
     return { ok: true, id, pr: merge.pr, head: current, message };
   };
-}
-
-/** What BRAID.md says about the main branch and the coordinator (`models.coordinator: <provider> / <model> / effort=…`). */
-export function readStartContext(root: string): StartContext {
-  const text = existsSync(join(root, "BRAID.md")) ? readFileSync(join(root, "BRAID.md"), "utf8") : "";
-  const model = /^\s+coordinator:\s*([^\s/]+)\s*\/\s*([^\s/]+)\s*\//m.exec(text);
-  return { main: /^main:\s*([\w./-]+)\s*$/m.exec(text)?.[1] ?? "main", expected: model === null ? null : { provider: model[1] ?? "", model: model[2] ?? "" } };
 }
 
 const jsonOf = (text: string): Record<string, unknown> | null => {
@@ -222,13 +217,12 @@ export function startAction(src: Sources, root: string, t3: T3Runner, git: GitRu
       throw new UsageError("start needs { id }: the braid to start");
     }
     const id = normaliseId(raw);
-    const braid = (await src.braids()).find((b) => b.number === id);
+    const { braids, github, t3: read, sig, start: ctx } = await readInputs(src);
+    const braid = braids.find((b) => b.number === id);
     if (braid === undefined) {
       throw new UsageError(`Start: no braid ${id}`);
     }
-    const github = await src.github(true);
-    const ctx = src.start();
-    const card = toCard(braid, github, await src.t3(true), src.signals(github), ctx);
+    const card = toCard(braid, github, read, sig, ctx);
     if (card.start.reason !== null) {
       throw new UsageError(`Start: ${card.start.reason}`);
     }
@@ -463,12 +457,12 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
     // A thread's link doesn't change: the snapshot has it. Only when it has none is T3 read again.
     let link = known === undefined ? null : linkOf(known);
     if (link === null) {
-      const braid = loaded ?? (await src.braids()).find((b) => b.number === number);
+      const read = await readInputs(src);
+      const braid = read.braids.find((b) => b.number === number);
       if (braid === undefined) {
         throw new UsageError(`Open thread: no braid ${number}`);
       }
-      const github = await src.github(true);
-      link = linkOf(toCard(braid, github, await src.t3(true), src.signals(github), src.start()));
+      link = linkOf(toCard(braid, read.github, read.t3, read.sig, read.start));
     }
     if (link === null) {
       throw new UsageError(`Open thread: ${id} has no ${want === "coordinator" ? "coordinator " : ""}thread`);

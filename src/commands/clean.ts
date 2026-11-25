@@ -12,7 +12,7 @@ import { normPath as norm, reviewFolder } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
 import { dropReviews, loadReviews } from "../braids/reviews.js";
 import { runT3, showThread, type T3Runner } from "../board/t3.js";
-import { mainBranch, repoName } from "./start.js";
+import { repoName } from "./start.js";
 
 interface Worktree {
   readonly path: string;
@@ -178,27 +178,6 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
   }
 }
 
-/**
- * Why the braid on this branch isn't Done (its status, or that no brief can be read), or null when it is Done.
- * `braid accept` stamps Done in a temporary worktree and pushes it only to origin/<branch>, so the local branch can lag: Done on any of the local branch, origin/<branch>, main or origin/<main> counts.
- */
-function notDone(root: string, branch: string, folder: string): string | null {
-  const main = mainBranch(root);
-  const seen: string[] = [];
-  for (const ref of [branch, `origin/${branch}`, main, `origin/${main}`]) {
-    const shown = git(root, ["show", `${ref}:${folder}/brief.md`]);
-    if (shown.status !== 0) {
-      continue;
-    }
-    const status = /^status:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(shown.stdout)?.[1] ?? "";
-    if (status === "Done") {
-      return null;
-    }
-    seen.push(status === "" ? "no status" : status);
-  }
-  return seen.length === 0 ? `its brief can't be read on ${branch}` : `its braid is not Done on ${branch} (${seen[0]})`;
-}
-
 export async function cleanCommand(root: string, args: readonly string[], src: Sources = {}, env: NodeJS.ProcessEnv = process.env): Promise<string> {
   const yes = args.includes("--yes");
   const ids = args.filter((a) => a !== "--yes");
@@ -255,8 +234,8 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
         const tree = listed.find((t) => t.branch === ref.branch);
         const named = only?.letter !== null && only?.letter !== undefined;
         let skip: string | null = null;
-        // A braid branch is live until its braid is stamped Done there, whatever PR from it merged (an early PR into main).
-        const live = item.letter === null ? notDone(root, ref.branch, w.braid.folder) : null;
+        // A braid branch is live until its braid is Done (its PR merged after its strands), whatever earlier PR from it merged (an early PR into main).
+        const live = item.letter === null && w.card.status !== "Done" ? `its braid is not Done (${w.card.status})` : null;
         if (live !== null) {
           skip = `${live}; the braid goes on`;
         } else if (tree !== undefined && norm(tree.path) === here) {

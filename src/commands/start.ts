@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import type { BranchRef } from "../braids/branches.js";
+import { loadLifecycle, recordEvent } from "../braids/lifecycle.js";
 import { closeRequest, type Ending } from "../braids/requests.js";
 import { normPath, repoNameOf, workFolder, worktreesDir } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
@@ -53,17 +54,19 @@ function tip(refs: readonly BranchRef[]): BranchRef | undefined {
   return [...refs].sort((a, b) => b.time - a.time || Number(b.local) - Number(a.local))[0];
 }
 
-function parse(args: readonly string[]): { number: string; letter: string | null; force: boolean } {
+function parse(args: readonly string[]): { number: string; letter: string | null; force: boolean; thread: string | null } {
   if (args.includes("--review")) {
     // Removed in 0039: a reviewer is a T3 subagent in a checkout T3 makes.
     throw new UsageError("braid start has no --review option: a reviewer runs as a T3 subagent in its own checkout; record its thread with braid review <id> --thread <thread id>. Nothing was created");
   }
-  const ids = args.filter((a) => a !== "--force");
+  const at = args.indexOf("--thread");
+  const thread = at < 0 ? null : (args[at + 1] ?? "");
+  const ids = args.filter((a, i) => a !== "--force" && (at < 0 || (i !== at && i !== at + 1)));
   const m = ids.length === 1 ? /^(\d{1,4})(?:\/([A-Z]))?$/.exec(ids[0] ?? "") : null;
-  if (m === null) {
-    throw new UsageError("usage: braid start <id> [--force]  (a strand like 0008/B, or a braid without strands like 0008)");
+  if (m === null || thread === "" || thread?.startsWith("--") === true) {
+    throw new UsageError("usage: braid start <id> [--force] [--thread <id>]  (a strand like 0008/B, or a braid without strands like 0008)");
   }
-  return { number: (m[1] ?? "").padStart(4, "0"), letter: m[2] ?? null, force: args.includes("--force") };
+  return { number: (m[1] ?? "").padStart(4, "0"), letter: m[2] ?? null, force: args.includes("--force"), thread };
 }
 
 function target(w: World, letter: string | null): { branch: string; slug: string; folder: string; why: string | null } {
@@ -87,7 +90,7 @@ function target(w: World, letter: string | null): { branch: string; slug: string
 }
 
 export async function startCommand(root: string, args: readonly string[], src: Sources = {}, env: NodeJS.ProcessEnv = process.env): Promise<string> {
-  const { number, letter, force } = parse(args);
+  const { number, letter, force, thread } = parse(args);
   const w = await read(root, number, "start", src);
   const t = target(w, letter);
   const id = letter === null ? number : `${number}/${letter}`;
@@ -99,7 +102,9 @@ export async function startCommand(root: string, args: readonly string[], src: S
   // A retry: the item is already started as asked, so say so before the ready check (its branch is pushed now).
   const again = alreadyStarted(root, id, tip(w.refs.filter((r) => r.number === number && r.letter === letter)), folder, earlier, letter === null ? undefined : tip(w.refs.filter((r) => r.number === number && r.letter === null)));
   if (again !== null) {
-    return again;
+    // A first run that made the worktree but couldn't record the start records it now.
+    const has = loadLifecycle(root).get(id)?.events.some((e) => e.kind === "started") ?? false;
+    return has ? again : `${again}${started(root, id, thread, /^branch (\S+)/.exec(again)?.[1] ?? "")}`;
   }
   if (t.why !== null && !force) {
     throw new UsageError(`${id} is not ready: ${t.why} (--force starts it anyway)`);
@@ -111,7 +116,8 @@ export async function startCommand(root: string, args: readonly string[], src: S
     throw new UsageError(`${id} already has the branch ${own1.branch}; nothing was created`);
   }
   if (own1 !== undefined) {
-    return startOnExisting(root, id, own1, folder);
+    const out = startOnExisting(root, id, own1, folder);
+    return `${out}${started(root, id, thread, own1.local ? own1.branch : own1.branch.slice(own1.branch.indexOf("/") + 1))}`;
   }
 
   // The base: a strand starts from its braid's branch tip, a story from main.
@@ -135,7 +141,12 @@ export async function startCommand(root: string, args: readonly string[], src: S
   must(root, ["push", REMOTE, `${commit}:refs/heads/${t.branch}`], `can't push ${t.branch} to ${REMOTE}; nothing was created`);
   must(root, ["worktree", "add", "--track", "-b", t.branch, folder, `${REMOTE}/${t.branch}`], `${t.branch} is pushed but the worktree failed`);
   const closed = closeRequest(root, id, undefined, STARTED);
-  return `branch ${t.branch}\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n${warned(closed.warning)}`;
+  return `branch ${t.branch}\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n${warned(closed.warning)}${started(root, id, thread, t.branch)}`;
+}
+
+/** The `started` event on the record branch (the item reads In Progress from it); a push that failed is a warning line. */
+function started(root: string, id: string, thread: string | null, branch: string): string {
+  return warned(recordEvent(root, id, { kind: "started", at: new Date().toISOString(), thread, branch }).warning);
 }
 
 /** A planned story: its worktree on the branch that already exists, tracking `origin/` when only the remote has it. */

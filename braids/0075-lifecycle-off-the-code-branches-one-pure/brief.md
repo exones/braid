@@ -1,7 +1,7 @@
 ---
 id: '0075'
 title: "Lifecycle off the code branches, one pure lane"
-status: In Progress
+status: Done
 labels: ["kind:story", "tier:L"]
 dependencies: []
 delivery: epic
@@ -37,11 +37,11 @@ Programme requirement (the user): "don't overblow skills, try to see how to make
 
 ## Completion
 
-- [ ] A PM whose only running work is its recorded checker is not nudged or shown stalled (0075/A).
-- [ ] `braid accept` commits nothing on a PR's branch; Done of a story, strand or goal is read from its merged PR (0075/B).
-- [ ] Braids written before this braid (stored In Progress or Done) read the same lanes as before, in this repo's `braids/` and in a fixture of another project's (0075/B).
-- [ ] The lane is one pure function; `braid status`, the board and the Merge action give the same lane for the same braid; a braid with all strands Done, no final PR and a live coordinator does not read Done (0075/C).
-- [ ] The braid skills' text about accepting and Done is no longer than before, and the docs are true (0075/D).
+- [x] A PM whose only running work is its recorded checker is not nudged or shown stalled (0075/A).
+- [x] `braid accept` commits nothing on a PR's branch; Done of a story, strand or goal is read from its merged PR (0075/B).
+- [x] Braids written before this braid (stored In Progress or Done) read the same lanes as before, in this repo's `braids/` and in a fixture of another project's (0075/B).
+- [x] The lane is one pure function; `braid status`, the board and the Merge action give the same lane for the same braid; a braid with all strands Done, no final PR and a live coordinator does not read Done (0075/C).
+- [x] The braid skills' text about accepting and Done is no longer than before, and the docs are true (0075/D).
 
 ## Autonomy
 

@@ -7,6 +7,7 @@ import { existsSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { catBatchSync } from "./gitio.js";
 import { currentFiles, lockedBranch, tips, writeBranchUnlocked, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
+import { mergeLifecycle } from "./lifecycle.js";
 import { mainCheckout } from "./state.js";
 
 export { ensureStateDir, LockError, locked, mainCheckout, takeOverStale } from "./state.js";
@@ -52,6 +53,8 @@ export interface RequestEvent {
 /** The record's branch. */
 export const REQUESTS_BRANCH = "braid-requests";
 const FOLDER = "requests";
+/** The items' lifecycle files on the same branch (src/braids/lifecycle.ts). */
+export const LIFECYCLE_FOLDER = "lifecycle";
 /** `q-` and four lowercase letters or digits. */
 export const CODE = /^q-[a-z0-9]{4,}$/;
 
@@ -222,7 +225,18 @@ export function mergeRecord(path: string, ours: string, theirs: string): string 
   return serialise({ ...b, events });
 }
 
-export const REQUESTS: BranchSpec = { branch: REQUESTS_BRANCH, folders: [FOLDER], lock: "requests", what: "the requests record", noun: "request", merge: mergeRecord };
+/** The record branch: requests and, beside them, the items' lifecycle (src/braids/lifecycle.ts), with one lock, fetch and replay. */
+export const REQUESTS: BranchSpec = {
+  branch: REQUESTS_BRANCH,
+  folders: [FOLDER, LIFECYCLE_FOLDER],
+  lock: "requests",
+  what: "the requests record",
+  noun: "request",
+  merge: (path, ours, theirs) => (path.startsWith(`${LIFECYCLE_FOLDER}/`) ? mergeLifecycle(path, ours, theirs) : mergeRecord(path, ours, theirs)),
+};
+
+/** A request's file on the record branch (the branch also holds `lifecycle/`). */
+const isRequestPath = (path: string): boolean => path.startsWith(`${FOLDER}/`);
 
 /** Who asked; an old record without `by` is the coordinator's. */
 export const askerOf = (r: Pick<Request, "by">): Asker => r.by ?? "coordinator";
@@ -259,7 +273,7 @@ function parseAll(texts: ReadonlyMap<string, string>): { requests: Request[]; pr
 
 /** Every file in a write's view of the branch, read with one `git cat-file --batch`. */
 function viewAll(view: BranchView): { requests: Request[]; problems: RecordProblem[] } {
-  const paths = view.paths();
+  const paths = view.paths().filter(isRequestPath);
   const texts = view.readMany(paths);
   return parseAll(new Map(paths.flatMap((p, i) => (texts[i] === null || texts[i] === undefined ? [] : [[p, texts[i]] as const]))));
 }
@@ -385,7 +399,7 @@ export function loadRecord(root: string, options: { push?: boolean } = {}): { re
   if (cached !== undefined && cached.key === key) {
     return cached.record;
   }
-  const files = [...currentFiles(root, REQUESTS, at)];
+  const files = [...currentFiles(root, REQUESTS, at)].filter(([path]) => isRequestPath(path));
   const texts = catBatchSync(root, files.map(([, blob]) => blob));
   const record = parseAll(new Map(files.flatMap(([path], i) => (texts[i] === null || texts[i] === undefined ? [] : [[path, texts[i]] as const]))));
   records.set(root, { key, record });

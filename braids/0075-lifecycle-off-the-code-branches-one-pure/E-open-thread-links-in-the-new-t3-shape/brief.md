@@ -1,7 +1,7 @@
 ---
 id: '0075/E'
 title: "Open thread links in the new T3 shape"
-status: In Progress
+status: Done
 labels: ["kind:task", "tier:S"]
 dependencies: []
 order: 25

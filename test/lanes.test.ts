@@ -31,11 +31,11 @@ interface Signals {
   alarm: (id: string, reason: "checks failed" | "stalled", holds: boolean | null) => string | null;
 }
 const model = (await load("../dist/board/model.js")) as {
-  derive: (status: string, labels: string[], key: string, gh: unknown, t3: unknown, sig: Signals) => Derived;
-  toCard: (braid: unknown, gh: unknown, t3: unknown, sig: Signals) => { lane: string; running: boolean; activity: string | null; need: { text: string; who: string | null; more: number; age?: string | null; since?: string } | null; reason: string | null; strands: { lane: string }[] };
+  derive: (status: string, labels: string[], key: string, gh: unknown, t3: unknown, sig: Signals) => Derived & { alarms: { id: string; reason: string; holds: boolean | null }[] };
+  toCard: (braid: unknown, gh: unknown, t3: unknown, sig: Signals) => { alarms: readonly unknown[]; lane: string; running: boolean; activity: string | null; need: { text: string; who: string | null; more: number; age?: string | null; since?: string } | null; reason: string | null; strands: { lane: string }[] };
 };
 const signals = (await load("../dist/board/signals.js")) as {
-  brokeClock: (initial: Record<string, string>, now: Date) => { alarm: Signals["alarm"]; seen: () => Record<string, string>; changed: () => boolean };
+  brokeClock: (initial: Record<string, string>, now: Date) => { alarm: Signals["alarm"]; settle: (alarms: readonly unknown[]) => void; seen: () => Record<string, string>; changed: () => boolean };
 };
 const demo = (await load("../dist/board/demo.js")) as { demoBraids: () => { number: string }[] };
 
@@ -55,13 +55,21 @@ function sig(requests: object[] = [], held: Record<string, number> = {}) {
   const s: Signals = { now: NOW, requests: new Map(requests.map((r) => [(r as { id: string }).id, r])), alarm: clock.alarm };
   return Object.assign(s, { clock });
 }
+/** The step after a derivation: the clock starts, keeps or drops its times for the conditions the card saw. */
+const settled = <C extends { alarms: readonly unknown[] }>(c: C, s: Signals): C => {
+  (s as unknown as { clock: { settle: (a: readonly unknown[]) => void } }).clock.settle(c.alarms);
+  return c;
+};
 const lane = (status: string, g: unknown, t: unknown, s: Signals, labels: string[] = []) => model.derive(status, labels, KEY, g, t, s);
 
-test("a merged PR or a stored Done with no open PR is Done, whatever else is open", () => {
+test("Done, as statusOf reads it (a merged PR, or a stored Done with no open PR), is Done, whatever else is open", () => {
   const s = sig([request("question")], {});
-  assert.equal(lane("In Progress", gh(pr("merged")), t3([thread()]), s).lane, "Done");
+  assert.equal(lane("Done", gh(pr("merged")), t3([thread()]), s).lane, "Done");
   assert.equal(lane("Done", gh(null), t3(), s).lane, "Done");
-  assert.equal(lane("Done", gh(pr("closed")), t3(), sig()).lane, "To Do", "a closed PR never makes Done");
+  // A card reads it from the PR: a merged strand whose brief still says In Progress is Done.
+  const story = demo.demoBraids().find((b) => (b as unknown as { strands: unknown[] }).strands.length === 0) as unknown as { number: string; brief: object };
+  const merged = model.toCard({ ...story, brief: { ...story.brief, status: "In Progress" } }, { status: { state: "ok" }, prs: new Map([[story.number, pr("merged")]]) }, t3(), sig()) as unknown as { lane: string; status: string };
+  assert.deepEqual([merged.lane, merged.status], ["Done", "Done"]);
 });
 
 test("an open review request is To Review; another open request is Needs You with its text", () => {
@@ -120,15 +128,38 @@ test("stalled: In Progress, no request, no agent, no checks pending, held for te
 
 test("a condition that stops holding starts again from zero; what can't be told neither starts nor stops", () => {
   const clock = signals.brokeClock({ [`${KEY} stalled`]: ago(30) }, NOW);
+  const alarm = (holds: boolean | null) => ({ id: KEY, reason: "stalled" as const, holds });
   assert.equal(clock.alarm(KEY, "stalled", null), null, "unknown shows nothing");
+  clock.settle([alarm(null)]);
   assert.deepEqual(Object.keys(clock.seen()), [`${KEY} stalled`], "and keeps the time");
-  assert.equal(clock.alarm(KEY, "stalled", false), null);
+  assert.equal(clock.alarm(KEY, "stalled", true), ago(30), "held thirty minutes: shown");
+  clock.settle([alarm(false)]);
   assert.deepEqual(clock.seen(), {});
   assert.equal(clock.alarm(KEY, "stalled", true), null, "back again: first seen now");
+  clock.settle([alarm(true)]);
   assert.equal(clock.seen()[`${KEY} stalled`], NOW.toISOString());
   assert.equal(clock.changed(), true);
   // Nothing written when nothing changed.
   assert.equal(signals.brokeClock({}, NOW).changed(), false);
+});
+
+test("the lane derivation writes nothing: it twice gives the same lane and the clock is untouched until the step after it runs", () => {
+  const writes: string[] = [];
+  const clock = signals.brokeClock({}, NOW);
+  const recording = (id: string, reason: "checks failed" | "stalled", holds: boolean | null) => {
+    writes.push(`${id} ${reason} ${String(holds)}`);
+    return clock.alarm(id, reason, holds);
+  };
+  const s: Signals = { now: NOW, requests: new Map(), alarm: recording };
+  const first = model.derive("In Progress", [], KEY, gh(null), t3(), s);
+  const second = model.derive("In Progress", [], KEY, gh(null), t3(), s);
+  assert.deepEqual([first.lane, second.lane], ["In Progress", "In Progress"]);
+  assert.equal(clock.changed(), false, "nothing was started");
+  assert.deepEqual(clock.seen(), {});
+  assert.ok(first.alarms.some((a: { id: string; reason: string; holds: boolean | null }) => a.id === KEY && a.reason === "stalled" && a.holds === true), "the stall condition came back");
+  clock.settle(first.alarms);
+  assert.equal(clock.changed(), true);
+  assert.equal(clock.seen()[`${KEY} stalled`], NOW.toISOString(), "the step started the clock");
 });
 
 test("without GitHub or T3 no alarm can be told", () => {
@@ -223,7 +254,7 @@ test("a braid whose coordinator stopped is Needs You stalled after ten minutes, 
   const T3 = (running = false, ok = true, threads: [string, Thread[]][] = []) => ({ status: { state: ok ? "ok" : "unavailable", reason: "x" }, threads: new Map(threads), coordinators: new Map(running ? [["0007", { id: "c", link: null, provider: null, model: null }]] : []) });
   const GH = (prs: [string, Pr][] = [], ok = true) => ({ status: { state: ok ? "ok" : "unavailable", reason: "x" }, prs: new Map(prs) });
   const held = (m: number) => sig([], { "0007 coordinator stalled": m });
-  const card = (b: unknown, g: unknown, t: unknown, s: Signals) => model.toCard(b, g, t, s);
+  const card = (b: unknown, g: unknown, t: unknown, s: Signals) => settled(model.toCard(b, g, t, s), s);
 
   const stalled = card(braid(), GH(), T3(), held(14));
   assert.deepEqual([stalled.lane, stalled.reason, stalled.need?.text, stalled.need?.who, stalled.need?.age], ["Waiting", "stalled", "Stalled: the coordinator stopped and nothing was asked", null, "14m"]);
@@ -265,12 +296,31 @@ test("the braid-level stall never leaks into wrap-up or a merged final PR", () =
   const held = () => sig([], { "0008 coordinator stalled": 14 });
   for (const checks of ["passing", "none"]) {
     const s = held();
-    const c = model.toCard(braid("Done"), G(pr("open", checks)), running, s);
+    const c = settled(model.toCard(braid("Done"), G(pr("open", checks)), running, s), s);
     assert.notEqual(c.reason, "stalled", `final PR ${checks}, coordinator running`);
     assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0008 coordinator stalled"), "the braid-level clock is cleared");
   }
   const s = held();
-  const merged = model.toCard(braid("Done"), G(pr("merged")), { status: { state: "ok" }, threads: new Map(), coordinators: new Map() }, s);
+  const merged = settled(model.toCard(braid("Done"), G({ ...pr("merged"), mergedAt: "2026-11-20T10:00:00Z" } as Pr), { status: { state: "ok" }, threads: new Map(), coordinators: new Map() }, s), s);
   assert.equal(merged.lane, "Done");
   assert.ok(!Object.hasOwn((s as unknown as { clock: { seen: () => object } }).clock.seen(), "0008 coordinator stalled"), "a merged final PR clears it");
+});
+
+test("every strand Done is no Done braid: without its final PR merged it reads as its coordinator's state; merged, it is Done", () => {
+  const base = demo.demoBraids().find((b) => b.number === "0008") as unknown as { brief: { status: string } }; // one strand
+  const braid = (status: string) => ({ ...base, brief: { ...base.brief, status }, strands: (base as unknown as { strands: { brief: object }[] }).strands.map((s) => ({ ...s, brief: { ...s.brief, status: "Done" } })) });
+  const live = { status: { state: "ok" }, threads: new Map(), coordinators: new Map([["0008", { id: "c", link: null, provider: null, model: null }]]) };
+  const gone = { status: { state: "ok" }, threads: new Map(), coordinators: new Map() };
+  const strandMerged: [string, unknown] = ["0008/A", { number: 15, url: "u", state: "merged", checks: "passing", mergedAt: "2026-11-20T09:00:00Z" }];
+  const G = (...more: [string, unknown][]) => ({ status: { state: "ok" }, prs: new Map([strandMerged, ...more]) });
+  for (const status of ["In Progress", "To Do"]) {
+    const working = model.toCard(braid(status), G(), live, sig()) as unknown as { lane: string; need: unknown; done: number; total: number };
+    assert.deepEqual([working.lane, working.need, working.done, working.total], ["In Progress", null, 1, 1], `${status}: live coordinator, no final PR`);
+  }
+  const stopped = model.toCard(braid("In Progress"), G(), gone, sig([], { "0008 coordinator stalled": 14 }));
+  assert.deepEqual([stopped.lane, stopped.reason], ["Waiting", "stalled"], "no coordinator: as the stall rules say");
+  const open = model.toCard(braid("In Progress"), G(["0008", { number: 16, url: "u", state: "open", checks: "passing" }]), live, sig());
+  assert.equal(open.lane, "In Progress", "the final PR open is no Done either");
+  const merged = model.toCard(braid("In Progress"), G(["0008", { number: 16, url: "u", state: "merged", checks: "passing", mergedAt: "2026-11-20T11:00:00Z" }]), live, sig());
+  assert.equal(merged.lane, "Done", "the final PR merged: Done");
 });

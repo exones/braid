@@ -7,7 +7,8 @@ import type { Github } from "./github.js";
 import { doneDate, headOf, prefetchDoneDates } from "./done.js";
 import { gitAsync } from "../braids/gitio.js";
 import type { Braid } from "../braids/store.js";
-import { BROKE_MS, type BrokeReason, type NudgeTarget, type Signals } from "./model.js";
+import { BROKE_MS, type Alarm, type BrokeReason, type NudgeTarget, type Signals } from "./model.js";
+import { loadLifecycle, type Lifecycle } from "../braids/lifecycle.js";
 import { askerOf, conditionEnding, ensureStateDir, loadRecord, mainCheckout, programmeOf, type PrNow, type Request } from "../braids/requests.js";
 import { toBraid } from "./record.js";
 import { loadPauses, type Pause } from "../braids/pauses.js";
@@ -15,8 +16,8 @@ import { loadPauses, type Pause } from "../braids/pauses.js";
 export interface ReadSignals extends Signals {
   /** The stalls whose ten minutes ran out and that weren't nudged yet (the board's step nudges them), and those still stalled ten minutes after the nudge with a PM to tell. */
   readonly nudges?: { readonly due: () => readonly Nudge[]; readonly escalate: () => readonly Nudge[] };
-  /** Writes the first-seen times if they changed. */
-  commit(): void;
+  /** The step after a derivation: starts, keeps or drops the first-seen times for the conditions it saw (`alarms`), then writes them if they changed. */
+  commit(alarms: readonly Alarm[]): void;
   /** Reads the Done dates of the Done items of these braids in one batch, without blocking; `doneAt` then answers from them. */
   prepare?(braids: readonly Braid[]): Promise<void>;
 }
@@ -54,50 +55,50 @@ export type Nudge = NudgeTarget & { readonly id: string };
 export const nudgedKey = (id: string): string => `${id} stalled nudged`;
 export const escalatedKey = (id: string): string => `${id} stalled escalated`;
 
-/** The first-seen times of the broke conditions, in memory; `changed` says when they should be written. A nudgeable stall also keeps its nudged and escalated times here. */
-export function brokeClock(initial: Readonly<Record<string, string>>, now: Date): { alarm: Signals["alarm"]; nudged: (id: string) => boolean; due: () => readonly Nudge[]; escalate: () => readonly Nudge[]; seen: () => Record<string, string>; changed: () => boolean } {
+/**
+ * The first-seen times of the broke conditions, in memory. `alarm` only reads them (what an alarm shows now); `settle` is the step after a
+ * derivation: it starts, keeps or drops the times for the conditions the derivation saw, and notes the nudges and escalations now due.
+ * `changed` says when the times should be written. A nudgeable stall also keeps its nudged and escalated times here.
+ */
+export function brokeClock(initial: Readonly<Record<string, string>>, now: Date): { alarm: Signals["alarm"]; settle: (alarms: readonly Alarm[]) => void; nudged: (id: string) => boolean; due: () => readonly Nudge[]; escalate: () => readonly Nudge[]; seen: () => Record<string, string>; changed: () => boolean } {
   const seen: Record<string, string> = { ...initial };
   const due: Nudge[] = [];
   const escalate: Nudge[] = [];
   let dirty = false;
-  const alarm = (id: string, reason: BrokeReason, holds: boolean | null, nudge?: NudgeTarget): string | null => {
-    const key = `${id} ${reason}`;
-    if (holds === false) {
-      for (const k of reason === "stalled" ? [key, nudgedKey(id), escalatedKey(id)] : [key]) {
-        if (k in seen) {
-          delete seen[k];
-          dirty = true;
-        }
-      }
-      return null;
-    }
-    if (holds === true && !(key in seen)) {
-      seen[key] = now.toISOString();
-      dirty = true;
-    }
-    const since = seen[key];
-    // Unknown (null) neither starts nor stops the clock, and shows nothing.
-    if (!(holds === true && since !== undefined && now.getTime() - new Date(since).getTime() >= BROKE_MS)) {
-      return null;
+  const ago = (iso: string): number => now.getTime() - new Date(iso).getTime();
+  /** How far an alarm has come: not held ten minutes (off), a nudgeable stall waiting for its nudge (due) or for ten minutes after it (wait), or shown. */
+  const stage = (id: string, reason: BrokeReason, holds: boolean | null, nudge?: NudgeTarget): "off" | "due" | "wait" | "shown" => {
+    const since = seen[`${id} ${reason}`];
+    if (holds !== true || since === undefined || ago(since) < BROKE_MS) {
+      return "off";
     }
     const nudgedAt = reason === "stalled" ? seen[nudgedKey(id)] : undefined;
-    if (nudge === undefined || reason !== "stalled") {
-      return since;
-    }
-    // A stall that can be nudged shows nothing until it was nudged and still holds ten minutes after.
-    if (nudgedAt === undefined) {
-      due.push({ ...nudge, id });
-      return null;
-    }
-    if (now.getTime() - new Date(nudgedAt).getTime() < BROKE_MS) {
-      return null;
-    }
-    if (nudge.pm !== null && !(escalatedKey(id) in seen)) {
-      escalate.push({ ...nudge, id });
-    }
-    return since;
+    return nudge === undefined || reason !== "stalled" ? "shown" : nudgedAt === undefined ? "due" : ago(nudgedAt) < BROKE_MS ? "wait" : "shown";
   };
-  return { alarm, nudged: (id) => nudgedKey(id) in seen, due: () => due, escalate: () => escalate, seen: () => seen, changed: () => dirty };
+  const alarm: Signals["alarm"] = (id, reason, holds, nudge) => (stage(id, reason, holds, nudge) === "shown" ? (seen[`${id} ${reason}`] ?? null) : null);
+  const settle = (alarms: readonly Alarm[]): void => {
+    for (const { id, reason, holds, nudge } of alarms) {
+      const key = `${id} ${reason}`;
+      if (holds === false) {
+        for (const k of reason === "stalled" ? [key, nudgedKey(id), escalatedKey(id)] : [key]) {
+          if (k in seen) {
+            delete seen[k];
+            dirty = true;
+          }
+        }
+      } else if (holds === true && !(key in seen)) {
+        seen[key] = now.toISOString();
+        dirty = true;
+      }
+      const at = stage(id, reason, holds, nudge);
+      if (at === "due") {
+        due.push({ ...nudge as NudgeTarget, id });
+      } else if (at === "shown" && nudge?.pm != null && !(escalatedKey(id) in seen)) {
+        escalate.push({ ...nudge, id });
+      }
+    }
+  };
+  return { alarm, settle, nudged: (id) => nudgedKey(id) in seen, due: () => due, escalate: () => escalate, seen: () => seen, changed: () => dirty };
 }
 
 function brokeFile(root: string): string {
@@ -140,6 +141,7 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
   let file: string | null = null;
   let pauses: readonly Pause[] = [];
   let pausesNote: string | null = null;
+  let lifecycle: ReadonlyMap<string, Lifecycle> = new Map();
   try {
     // A request whose PR just merged or closed, or whose time came, is closed for the board now; the board's wake step (src/board/wake.ts) records it.
     const record = loadRecord(root).requests.map((r) => ended(r, now, (n) => prOf(github, n)));
@@ -148,6 +150,7 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
     const open = record.filter((r) => r.state === "open");
     waits = open.filter(toBraid);
     requests = open.filter((r) => !toBraid(r));
+    lifecycle = loadLifecycle(root);
     file = brokeFile(root);
     ({ pauses, note: pausesNote } = loadPauses(root));
   } catch {
@@ -164,6 +167,7 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
     closed,
     pauses: new Map(pauses.map((p) => [p.braid, p])),
     pausesNote,
+    lifecycle,
     alarm: clock.alarm,
     nudged: clock.nudged,
     nudges: { due: clock.due, escalate: clock.escalate },
@@ -179,7 +183,8 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
       const done = braids.flatMap((b) => [b, ...b.strands]).filter((i) => i.brief.status === "Done");
       await prefetchDoneDates(root, done, head === "" ? null : head);
     },
-    commit() {
+    commit(alarms) {
+      clock.settle(alarms);
       if (file === null || !clock.changed()) {
         return;
       }

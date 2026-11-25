@@ -1,7 +1,7 @@
 ---
 id: '0075/B'
 title: "Lifecycle events on the record branch, Done from the merged PR"
-status: To Do
+status: Done
 labels: ["kind:story", "tier:L", "ask:architecture", "ask:data"]
 dependencies: []
 order: 20
@@ -60,13 +60,21 @@ Expected size: about 600 lines in 12 files, half of them tests; it should remove
 
 - Moving briefs, reports or logs; the lane function's restructuring (0075/C); skill and docs text (0075/D) beyond `docs/braids-format.md` and the help text this changes.
 
+## Plan
+
+1. `src/braids/lifecycle.ts`: `lifecycle/<item>.json` on `braid-requests` (the shape decided in q-5asx). The record's `BranchSpec` gains the folder `lifecycle` (one spec, one lock and one replay for both folders; its `merge` unions the events of either kind of file); the request reader skips files outside `requests/`. `recordEvent` writes through `writeBranch`; `loadLifecycle` reads like `loadRecord` (local refs, cached by tips).
+2. One status function, `statusOf(stored, events, pr)`: Outline stays; a merged PR is Done; a stored Done is Done, except next to a closed PR (To Do) or an open PR (old stamp before the merge: read as accepted at that head, In Progress); a `started` event or stored In Progress is In Progress; else the stored status. `accepted` at the open PR's head marks it waiting for the merge. A goal (braid with strands) is Done when its newest PR into main merged after every strand's Done (strand merged before it, or stored Done): the dsyv case.
+3. `toCard` applies it to every item before `derive` (via `Signals.lifecycle`); `derive` drops `heldReview`, the closed-PR mapping, "stored Done counts as waiting" and "stored Done + open PR", and reads an `accepted` flag instead. `braid status` drops the "run braid accept" hint. `braid list/view`, `clean` (braid branch live until Done), `wake` (`braid:<n>` conditions), the board's Done dates and `winners` (no longer decides status) follow the same function.
+4. `braid start` writes `started` (optional `--thread`); `braid accept` writes `accepted` and commits nothing on a PR's branch: story/final PR: checks, event, comment, optional merge at the reviewed head; strand: merge, event, and the braid log entry on the braid branch (no `status: Done`). `ready` reads strands' Done from the status function. `greenBelow` goes (no braids/-only stamp commit on PR heads any more); wait.ts keeps its copy as the one definition.
+5. Tests per the brief's failure modes; docs: braids-format.md (status, the record), cli.md and the help text; decisions.md entry.
+
 ## Completion
 
-- [ ] `braid start` and `braid accept` write `started` and `accepted` events to the record branch in the shape the braid's log records as decided; nothing else writes lifecycle into briefs
-- [ ] `braid accept` on a story's or final PR leaves the PR's head unchanged (test)
-- [ ] Done of a strand, story and goal comes from the merged PR; the dsyv case reads right (tests)
-- [ ] Old braids with stored statuses read the same as before, here and in another project's fixture (tests)
-- [ ] One definition of "braids-only commits inherit green" in the CLI; `derive` has no stored-Done special cases left
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (at least `docs/braids-format.md` and the help text), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid start` and `braid accept` write `started` and `accepted` events to the record branch in the shape the braid's log records as decided; nothing else writes lifecycle into briefs
+- [x] `braid accept` on a story's or final PR leaves the PR's head unchanged (test)
+- [x] Done of a strand, story and goal comes from the merged PR; the dsyv case reads right (tests)
+- [x] Old braids with stored statuses read the same as before, here and in another project's fixture (tests)
+- [x] One definition of "braids-only commits inherit green" in the CLI; `derive` has no stored-Done special cases left
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (at least `docs/braids-format.md` and the help text), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

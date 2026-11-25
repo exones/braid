@@ -252,7 +252,7 @@ function prefetchBriefs(root: string, commits: readonly string[]): void {
   });
 }
 
-/** Per braid number or strand id, the branch to read: the newest commit, a local branch on a tie. */
+/** Per braid number or strand id, the branch to read the brief from: the newest commit, a local branch on a tie. Its stored status is only the fallback of `statusOf` (src/braids/lifecycle.ts): the record and the PRs decide first. */
 function winners(refs: readonly BranchRef[]): BranchRef[] {
   const best = new Map<string, BranchRef>();
   for (const ref of refs) {
@@ -518,7 +518,7 @@ export function braidAt(root: string, ref: string, number: string): Braid | null
   return dir === null ? null : attempt(() => loadBraid(t, dir, number));
 }
 
-/** Every braid whose status is not Done, wherever it lives (`loadKnownBraids`). */
-export function loadOpenBraids(root: string): Braid[] {
-  return loadKnownBraids(root).filter((b) => b.brief.status !== "Done");
+/** Every braid whose status is not Done, wherever it lives (`loadKnownBraids`); `status` reads each braid (default: its stored status). */
+export function loadOpenBraids(root: string, status: (braids: readonly Braid[]) => Braid[] = (b) => [...b]): Braid[] {
+  return status(loadKnownBraids(root)).filter((b) => b.brief.status !== "Done");
 }

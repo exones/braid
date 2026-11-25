@@ -22,7 +22,7 @@ Merge a PR yourself only when its kind is in `merge` (`strands`: a strand's PR i
 The evidence is the same in every preset: no preset, exception or tier waives conditions 3, 4 and 7. Then:
 
 1. Post a PR comment with the commit, the review link, the checks, the four sources' cases with how each was decided, and "merged by braid under the `<preset>` preset".
-2. Merge with `braid accept <id> --head <sha> --review <link> --thread <your thread id> --merge --preset` (for a strand add `--log -` with the braid's log entry). It checks the preset's `merge` and conditions 2, 4, 5 and 7 again, merges and stamps Done.
+2. Merge with `braid accept <id> --head <sha> --review <link> --thread <your thread id> --merge --preset` (for a strand add `--log -` with the braid's log entry). It checks the preset's `merge` and conditions 2, 4, 5 and 7 again, merges and records the acceptance.
 3. Tell the user in one line, and do "After the merge" in the skill. A merge you make runs no handover or recap, so check the inbox here: read the `Inbox:` line of `braid list` (or the draft of `braid recap <id>`). At 3 or more open leftovers, propose the sweep as the skill's "Sweep" says, on the braid's number, while the strands go on, in chat ("Talking to the user"), unless a sweep proposal is already open (an open request on the braid) or a sweep story is pending, in which case a later proposal adds to it as the skill's "Sweep" step 4 says.
 4. After a strand's merge, start the next item; the braid branch's CI is read later (the skill's "Accept and hand over" step 3).
 

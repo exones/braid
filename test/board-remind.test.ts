@@ -248,12 +248,16 @@ test("a braid with an open question and a missed estimate or a gone addressee sh
 test("a wait whose addressee is gone reads stalled after ten minutes, naming the braid", () => {
   for (const b of [braid(), braid(false)]) {
     const first = sig([wait()]);
-    assert.equal(model.toCard(b, GH, T3(false), first).lane, "In Progress", "not at once");
+    const firstCard = model.toCard(b, GH, T3(false), first);
+    first.clock.settle(firstCard.alarms);
+    assert.equal(firstCard.lane, "In Progress", "not at once");
     assert.ok(Object.hasOwn(first.clock.seen(), "0007 wait stalled"), "its clock starts");
     const gone = model.toCard(b, GH, T3(false), sig([wait()], { "0007 wait stalled": 12 }));
     assert.deepEqual([gone.lane, gone.reason, gone.need?.text, gone.need?.since], ["Waiting", "stalled", "Stalled: waiting on braid 0002, whose coordinator is gone", ago(12)]);
     const back = sig([wait()], { "0007 wait stalled": 12 });
-    assert.equal(model.toCard(b, GH, T3(true), back).lane, "In Progress", "a coordinator thread again");
+    const backCard = model.toCard(b, GH, T3(true), back);
+    back.clock.settle(backCard.alarms);
+    assert.equal(backCard.lane, "In Progress", "a coordinator thread again");
     assert.ok(!Object.hasOwn(back.clock.seen(), "0007 wait stalled"), "clock cleared");
     assert.equal(model.toCard(b, GH, T3(false, false), sig([wait()], { "0007 wait stalled": 12 })).reason, null, "T3 unread: can't be told");
   }
