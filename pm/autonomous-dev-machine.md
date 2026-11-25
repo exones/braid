@@ -154,6 +154,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-25: 0074/D mockups approved by the user with changes (q-i0ry): board buttons are icon-only with the words in the tooltip ("as we agreed"), and Open thread / thread links stay as they are. Applies to every board braid (P25, P5, P14).
 - 2026-11-25: #316 (pause at 90% session and weekly by default) merged at the user's "yes merge" (head b1b65fd, merge 90c3d68). P26 outline added (runaway-process guard), not scheduled: the user wants to observe first.
 - 2026-11-25 ~16:10Z: go from the user after the T3 restart ("restart all the work"): holds on 0074, 0072, 0060 lifted; Go sent to the dctl-studio and SFIL PMs and everix 0008. T3 restarted 17:07 local still shows no NODE_OPTIONS in its agents (T3 likely clears it for its children).
 - 2026-11-25: hold audit (subagent): coordinators confirmed before their workers' turns ended; queued and woken work landed after the hold; unlisted everix 0008 was resumed and nudged by the board; delegated reviewers never got it. b1yb taken into P5. The resume after the restart did reach 0008 at 15:35; the no-retry gap (qcf4) stays in 0074/D as a guard.
