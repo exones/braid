@@ -15,11 +15,11 @@ const steer = await load("../dist/board/steer.js");
 const { readLimitsView } = await load("../dist/board/limits.js");
 const { repliesLine } = await load("../dist/board/limits-view.js");
 const { loadPauses, setPause } = await load("../dist/braids/pauses.js");
-const { pauseCommand, resumeCommand } = await load("../dist/commands/pauses.js");
+const { pauseCommand, resumeCommand, resumeLimitCommand } = await load("../dist/commands/pauses.js");
 const { limitsCommand } = await load("../dist/commands/limits.js");
 const pause = await load("../dist/board/pause.js");
 const { notifier, limitPusher } = await load("../dist/notify/notifier.js");
-const { limitsLine, demoSources } = await load("../dist/commands/board.js");
+const { limitsLine, demoSources, resumeAction } = await load("../dist/commands/board.js");
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-board-steer-"));
 after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
@@ -247,7 +247,7 @@ test("replies are counted from the threads: a Paused line after the board's text
   assert.deepEqual(b.pushes.map((p) => [p.title, p.priority]), [[`claude paused until ${pause.clock(iso(55), NOW)}`, "low"]]);
   const view = pause.pauseView(r, clock.now);
   assert.equal(view.state, "paused");
-  assert.equal(view.note, "paused by the board 3 min ago · 2 of 2 agents answered");
+  assert.equal(view.note, "paused by the board 3 min ago · 2 of 2 agents answered · the PM resumes it");
   assert.equal(pause.limitNeed(r, clock.now), null);
   assert.equal(t3.texts().length, 3, "no escalation for a full pause");
   await b.tick();
@@ -369,7 +369,7 @@ test("an older record with a steering part still reads, as its replies", () => {
   assert.equal(pause.limitNeed(r, NOW)?.text, "Pause for claude: paused 3/4; no answer: 0070/B. Those may still be running: open their threads, or pause by hand");
 });
 
-test("at the reset plus the buffer the board re-checks: still over keeps the record with the new time; under resumes every thread and clears it", async () => {
+test("at the reset plus the buffer the board re-checks: still over keeps the record with the new time; under, a PM-run braid's PM gets one message and its braid resume --limit resumes each thread", async () => {
   const { root, caches } = project();
   cache(caches, "claude", 98, NOW);
   cache(caches, "codex", 20, NOW);
@@ -387,41 +387,62 @@ test("at the reset plus the buffer the board re-checks: still over keeps the rec
   assert.match(b.pushes.at(-1)?.title ?? "", /^claude still over: resumes /);
   assert.match(b.pushes.at(-1)?.key ?? "", /:extended:/);
   assert.match(b.pushes.at(-1)?.body ?? "", / [0-9]{4} stays paused[.]$/, "one braid: stays paused");
-  // At the new time it is under.
+  // At the new time it is under: 0070 is the PM's, so the PM gets one message and nothing else is sent.
   clock.now = new Date(clock.now.getTime() + 56 * MIN);
   cache(caches, "claude", 3, clock.now);
+  const texts = t3.texts().length;
   await b.tick();
+  await b.tick();
+  assert.equal(t3.resumes().length, 0, "no agent is resumed before the PM runs braid resume --limit");
+  const ask = t3.texts().slice(texts);
+  assert.deepEqual(ask.map((c) => c.args[2]), ["pm-1"], "one message, to the PM, once");
+  assert.equal(ask[0]?.input, "The window is open again (its resume time came): claude reads Session 3%. Paused braid: 0070. Resume each, in your order: braid resume <number> --limit (it clears the board's record and sends each agent its resume text by code). No reply is needed.");
+  assert.equal(records(root).length, 1, "the record stays until the PM resumes it");
+  assert.match(pause.pauseView(records(root)[0], clock.now).note, /^asked the PM to resume at \d\d:\d\d$/);
+  // The PM's braid resume --limit: each thread its resume text by code, the PM none, the record cleared.
+  const out = await resumeLimitCommand(root, ["0070", "--limit"], { t3: t3.run, now: clock.now });
   assert.deepEqual(
     t3.resumes().map((c) => [c.args[2], c.args[3]]),
     [
       [COORD, "Resume: 0070 was paused by the board for claude; go on where you left off"],
       [WORK, "Resume: continue 0070 from your checkpoint"],
-      ["pm-1", "Resume: 0070 were paused by the board for claude; go on where you left off"],
     ],
   );
+  assert.equal(out.split("; cleared ")[0], `0070 resumed: sent the resume text to 0070 coordinator (${COORD}), 0070 worker (${WORK})`);
   assert.deepEqual(records(root), []);
-  assert.deepEqual([b.pushes.at(-1)?.title, b.pushes.at(-1)?.body], ["claude resumed", "Session at 3% after the reset. 0070 goes on."]);
 });
 
-test("a resume missed while no board ran happens at the first refresh after a start; a failed send keeps the record and retries only that thread", async () => {
+test("a resume missed while no board ran happens at the first refresh after a start; a failed send stays pending, is retried at each refresh without giving up, and the card says so", async () => {
   const { root, caches } = project();
   cache(caches, "claude", 98, NOW);
   cache(caches, "codex", 20, NOW);
   const t3 = fakeT3({ shown: () => ANSWERED() });
-  await board(root, caches, t3, { now: NOW }).tick();
-  await board(root, caches, t3, { now: NOW }).tick();
-  // The board was down at the resume time; a new one starts three hours later.
+  await board(root, caches, t3, { now: NOW }, threads, false).tick();
+  await board(root, caches, t3, { now: NOW }, threads, false).tick();
+  // The board was down at the resume time; a new one starts three hours later, and T3 doesn't take the worker's send.
   const later = new Date(NOW.getTime() + 3 * 60 * MIN);
   cache(caches, "claude", 2, later);
   const failSend = new Set([WORK]);
   const t3b = fakeT3({ failSend });
-  const b = board(root, caches, t3b, { now: later });
-  await b.tick();
+  const clock = { now: later };
+  const b = board(root, caches, t3b, clock, threads, false);
+  for (let i = 0; i < 8; i++) {
+    await b.tick();
+    clock.now = new Date(clock.now.getTime() + MIN);
+    cache(caches, "claude", 2, clock.now);
+  }
+  const r = records(root)[0];
   assert.equal(records(root).length, 1, "kept while a send fails");
-  assert.deepEqual(records(root)[0].resumed, [COORD, "pm-1"]);
+  assert.deepEqual(r.resumed, [COORD]);
+  assert.equal(r.resuming.failedSince, later.toISOString(), "pending since the first failure");
+  assert.equal(t3b.resumes().filter((c) => c.args[2] === WORK).length, 8, "retried at each refresh, past the old give-up of 5");
+  const view = pause.pauseView(r, clock.now);
+  assert.equal(view.state, "due");
+  assert.equal(view.text, `Paused: claude Session 98%; resume pending: T3 unreachable since ${pause.clock(later.toISOString(), clock.now)}`);
+  assert.match(view.note, /^retried at each refresh · last try \d\d:\d\d · 1 of 2 agents reached$/);
   failSend.clear();
   await b.tick();
-  assert.deepEqual(t3b.resumes().map((c) => c.args[2]), [COORD, WORK, "pm-1", WORK], "the retry sends only to the one that failed");
+  assert.deepEqual(t3b.resumes().filter((c) => c.args[2] === COORD).length, 1, "the coordinator is sent once");
   assert.deepEqual(records(root), []);
   assert.equal(b.pushes.at(-1)?.title, `claude resumed (was due ${pause.clock(iso(55), later)})`);
 });
@@ -579,4 +600,124 @@ test("0069/A: a limit push whose send fails while a refresh retries stays waitin
   assert.deepEqual(sent, ["claude paused"]);
   assert.equal(pushers[0].pending(), 0);
   assert.ok("pause:claude:five_hour:x:paused" in JSON.parse(readFileSync(files[0] as string, "utf8")).keys);
+});
+
+// ---- 0074/D: one resume path for the timer, early resume, the Resume now buttons and braid resume --limit.
+
+/** A board record of `braid` on claude paused at `at`, with these targets (a PM target makes it PM-run). */
+function boardRecord(root: string, braid: string, at: Date, targets: { thread: string; kind: string; item: string }[], extra: Record<string, unknown> = {}): void {
+  setPause(root, { braid, reason: "limit", provider: "claude", window: "five_hour", label: "Session", usedPercent: 98, resetsAt: iso(50, at), resumeAt: iso(55, at), task: null, thread: "", by: "board", at: at.toISOString(), targets: targets.map((t) => ({ ...t, project: root })), replies: { sent: at.toISOString(), outcome: "paused", answered: 2, total: 2, got: [], failed: [], noAnswer: [], reason: null }, ...extra });
+}
+const AGENTS = [
+  { thread: COORD, kind: "coordinator", item: "0070" },
+  { thread: WORK, kind: "worker", item: "0070" },
+];
+
+test("Resume now on a braid without a PM sends each thread its resume text once and clears the record", async () => {
+  const { root, caches } = project();
+  // The reading is under the threshold but from before the pause began, so only the button resumes it.
+  cache(caches, "claude", 40, later(-10));
+  cache(caches, "codex", 20, NOW);
+  boardRecord(root, "0070", later(-5), AGENTS);
+  const t3 = fakeT3();
+  const b = board(root, caches, t3, { now: NOW }, threads, false);
+  const marked = await resumeAction(root, () => NOW)({ braid: "0070" });
+  assert.deepEqual(marked, { ok: true, braids: ["0070"], mode: "direct" });
+  assert.match(pause.pauseView(records(root)[0], NOW).note, /^resume asked for at \d\d:\d\d · the acting board sends it$/);
+  await b.tick();
+  assert.deepEqual(t3.resumes().map((c) => c.args[2]), [COORD, WORK], "each thread once");
+  assert.equal(t3.texts().length, 0);
+  assert.deepEqual(records(root), []);
+  assert.equal(b.pushes.at(-1)?.title, "claude resumed");
+});
+
+test("Resume now on a PM-run braid sends the PM one message and nothing else until braid resume --limit; a programme's Resume now asks its PM once for all its braids", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 98, NOW);
+  cache(caches, "codex", 20, NOW);
+  boardRecord(root, "0070", later(-5), [...AGENTS, { thread: "pm-1", kind: "pm", item: "0070" }]);
+  const t3 = fakeT3();
+  const b = board(root, caches, t3, { now: NOW });
+  assert.equal((await resumeAction(root, () => NOW)({ braid: "0070" })).mode, "pm");
+  await b.tick();
+  await b.tick();
+  assert.equal(t3.resumes().length, 0, "no agent hears from the board");
+  assert.deepEqual(t3.texts().map((c) => c.args[2]), ["pm-1"]);
+  assert.match(t3.texts()[0]?.input ?? "", /^Resume now, from the board \(the user asked\): claude reads Session 98%\. Paused braid: 0070\. Resume each, in your order: braid resume <number> --limit/);
+  assert.match(pause.pauseView(records(root)[0], NOW).note, /^asked the PM to resume at \d\d:\d\d$/);
+  // Asked again from the programme's card: one more message, still none to the agents.
+  const plan = async () => ({ programmes: [{ slug: "reliability", braids: ["0070", "0071"] }] });
+  assert.deepEqual(await resumeAction(root, () => NOW)({ programme: "reliability" }, plan), { ok: true, braids: ["0070"], mode: "pm" });
+  await b.tick();
+  assert.deepEqual(t3.texts().map((c) => c.args[2]), ["pm-1", "pm-1"]);
+  assert.equal(t3.resumes().length, 0);
+  // The PM resumes it.
+  await resumeLimitCommand(root, ["0070", "--limit"], { t3: t3.run, now: NOW });
+  assert.deepEqual(t3.resumes().map((c) => c.args[2]), [COORD, WORK]);
+  assert.deepEqual(records(root), []);
+});
+
+test("a fresh reading under the threshold resumes early, before the resume time; a reading from before the pause doesn't", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 98, NOW);
+  cache(caches, "codex", 20, NOW);
+  const t3 = fakeT3({ shown: () => ANSWERED() });
+  const clock = { now: NOW };
+  const b = board(root, caches, t3, clock, threads, false);
+  await b.tick();
+  await b.tick();
+  assert.equal(records(root)[0].replies.outcome, "paused");
+  // Two minutes on, a reading under the threshold but checked before the pause began: no resume.
+  clock.now = later(2);
+  cache(caches, "claude", 40, later(-5));
+  await b.tick();
+  assert.equal(t3.resumes().length, 0);
+  // Five minutes on, a fresh reading at 40%: it resumes now, 50 minutes before its resume time.
+  clock.now = later(5);
+  cache(caches, "claude", 40, clock.now);
+  await b.tick();
+  assert.deepEqual(t3.resumes().map((c) => c.args[2]), [COORD, WORK]);
+  assert.deepEqual(records(root), []);
+  assert.deepEqual([b.pushes.at(-1)?.title, b.pushes.at(-1)?.body], ["claude resumed", "Session at 40% after the reset. 0070 goes on."]);
+});
+
+test("a pause whose window no longer applies resumes at the next refresh, and its old steering banner goes with the record", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 30, NOW);
+  cache(caches, "codex", 20, NOW);
+  // The cursor "Other Models" pause from before #300: its window is not in the reading, its resume days away, an old 0-of-2 banner.
+  boardRecord(root, "0070", later(-24 * 60), AGENTS, { window: "other_models", label: "Other Models", resumeAt: iso(8 * 24 * 60), replies: undefined, steering: { thread: "steer-0", link: null, provider: "claude", model: "m", started: later(-24 * 60).toISOString(), outcome: "partial", answered: 0, total: 2, children: [], noAnswer: ["0070"], reason: null, self: false } });
+  assert.equal(records(root)[0].replies.answered, 0);
+  const t3 = fakeT3();
+  const b = board(root, caches, t3, { now: NOW }, threads, false);
+  await b.tick();
+  assert.deepEqual(t3.resumes().map((c) => c.args[2]), [COORD, WORK]);
+  assert.deepEqual(records(root), [], "the record, and the banner read from it, are gone");
+  const view = readLimitsView(root, threads(), new Map(), NOW, caches);
+  assert.ok(!JSON.stringify(view).includes("0 of 2"), "no old banner");
+});
+
+test("braid resume --limit --all resumes every board pause: directly without a PM, by one PM message for a PM-run braid; a hold is never cleared by any resume", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 30, NOW);
+  boardRecord(root, "0070", later(-5), [...AGENTS, { thread: "pm-1", kind: "pm", item: "0070" }]);
+  boardRecord(root, "0071", later(-5), [{ thread: "work-71", kind: "worker", item: "0071" }]);
+  const t3 = fakeT3();
+  const out = await resumeLimitCommand(root, ["--limit", "--all"], { t3: t3.run, now: NOW });
+  assert.deepEqual(t3.resumes().map((c) => c.args[2]), ["work-71"]);
+  assert.deepEqual(t3.texts().map((c) => c.args[2]), ["pm-1"]);
+  assert.match(out, /^0071 resumed: sent the resume text to 0071 worker \(work-71\); cleared /m);
+  assert.match(out, /^0070: asked the PM to resume it$/m);
+  assert.deepEqual(records(root).map((p: { braid: string }) => p.braid), ["0070"]);
+
+  // A hold: Resume now refuses it, --all and the board leave it, braid resume --limit keeps it.
+  const hold = { braid: "0071", reason: "hold", words: "freeze", provider: null, window: null, label: null, usedPercent: null, resetsAt: null, resumeAt: null, task: null, thread: "pm-1", by: "pm", at: NOW.toISOString() };
+  setPause(root, hold);
+  await assert.rejects(resumeAction(root, () => NOW)({ braid: "0071" }), /0071 is held, not paused for a limit/);
+  assert.match(await resumeLimitCommand(root, ["--limit", "--all"], { t3: t3.run, now: NOW }), /^0071: held, left alone$/m);
+  assert.match(await resumeLimitCommand(root, ["0071", "--limit"], { t3: t3.run, now: NOW }), /is held, not paused for a limit/);
+  const b = board(root, caches, t3, { now: later(120) }, threads, false);
+  await b.tick();
+  assert.equal(records(root).find((p: { braid: string }) => p.braid === "0071")?.reason, "hold");
+  await assert.rejects(resumeLimitCommand(root, ["0071"], { t3: t3.run, now: NOW }), /usage: braid resume/);
 });

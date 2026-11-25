@@ -1,7 +1,9 @@
 // The board's pause for provider limits (0064, 0074/C, docs/board.md "Provider limits"): the one exception to the board's click-only
 // rule. Every served project's feed hands its good snapshot to one board-wide steerer, which runs a tick at a time:
 //   1. count: for 10 minutes after a pause's sends, read each target's thread for its `Paused:` line, then settle the record;
-//   2. resume: each `by: board` record whose resume time has passed is re-checked, then its threads get `t3 thread send`;
+//   2. resume (0074/D, src/board/resume.ts): a record whose resume time has passed is re-checked; one whose fresh reading is under
+//      the threshold (or no longer has its window) resumes early; one asked for (Resume now) or pending (a failed send) is tried
+//      again. A braid without a PM: each thread its resume text by code; a PM-run braid: one message to the PM;
 //   3. pause: per provider over its threshold, claim a record per braid with a working agent under the lock, then send each target
 //      its text by code (`t3 thread send`, ids from T3's own output) and each PM one summary;
 //   4. wake: each project's open requests whose "done when" holds are closed and their askers woken (src/board/wake.ts).
@@ -12,10 +14,11 @@
 import { join } from "node:path";
 import { providerKey, repoLease, type ActingBoard } from "./acting.js";
 import { LimitsError, readLimits, readModelLines, readProvider, t3Home, type ModelLine, type ProviderReading } from "../braids/limits.js";
-import { claimPauses, clearPause, loadPauses, patchPauses, reasonOf, type NoAnswer, type Pause, type PauseTarget, type Replies } from "../braids/pauses.js";
+import { claimPauses, loadPauses, patchPauses, reasonOf, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
 import type { Good } from "./feed.js";
 import { clock } from "./pause.js";
-import { coordinatorPause, escalation, limitPush, overWindow, pausedLine, pmsOf, pmSummary, resumeMessage, targetsOf, weeklyPause, workerPause, type LimitEvent, type LimitPush, type PmThread } from "./steer.js";
+import { resumePauses } from "./resume.js";
+import { coordinatorPause, escalation, limitPush, overWindow, pausedLine, pmsOf, pmSummary, targetsOf, weeklyPause, workerPause, type LimitEvent, type LimitPush, type PmThread } from "./steer.js";
 import { working, type T3Runner } from "./t3.js";
 import type { Waker } from "./wake.js";
 
@@ -23,8 +26,6 @@ import type { Waker } from "./wake.js";
 export const COUNT_MS = 10 * 60_000;
 /** A resume this late is reported as missed ("was due …"): no board ran at the time. */
 export const MISSED_MS = 5 * 60_000;
-/** After this many failed sends to one thread, its resume is given up (reported once) so the others' record can clear. */
-export const SEND_TRIES = 5;
 /** A pause text is sent at most this many times to one thread in one refresh; failing them all is a failed send (0074/C). */
 export const PAUSE_TRIES = 2;
 
@@ -59,6 +60,8 @@ export interface SteererOptions {
 export interface Steerer {
   /** Hands a project's good snapshot over and queues a tick; returns at once. */
   observe(project: SteerProject, good: Good): void;
+  /** Queues a tick on the snapshots it has (the Resume now button: a resume asked for goes out now, not at the next refresh). */
+  poke(): void;
   /** Resolves when no tick runs or is queued. */
   idle(): Promise<void>;
 }
@@ -86,6 +89,22 @@ interface Held {
   readonly pause: Pause;
 }
 
+/**
+ * Why a board pause resumes before its resume time (0074/D), from a reading checked after the pause began: `gone` when its window is no
+ * longer in the reading (gone from the cache, or no longer applying to the provider's models), `early` when it is under its threshold
+ * and nothing else is over. Null otherwise (no fresh reading, still over, or the provider over on another window).
+ */
+export function earlyWhy(p: Pause, reading: ProviderReading | null): "early" | "gone" | null {
+  if (reading === null || reading.checkedAt === null || reading.verdict === "unknown" || Date.parse(reading.checkedAt) <= Date.parse(p.at) || p.window === null) {
+    return null;
+  }
+  const w = reading.windows.find((x) => x.id === p.window);
+  if (w === undefined) {
+    return reading.verdict === "pause" ? null : "gone";
+  }
+  return reading.verdict === "ok" && !w.over ? "early" : null;
+}
+
 export function steerer(opts: SteererOptions): Steerer {
   const now = opts.now ?? (() => new Date());
   const caches = opts.caches ?? join(t3Home(), "caches");
@@ -107,7 +126,6 @@ export function steerer(opts: SteererOptions): Steerer {
     }
   };
   const latest = new Map<string, Seen>();
-  const failures = new Map<string, number>();
   let running: Promise<void> = Promise.resolve();
   let pending = false;
 
@@ -251,85 +269,97 @@ export function steerer(opts: SteererOptions): Steerer {
     }
   };
 
-  /** 2. Records whose resume time has passed: re-check, then resume (or keep with the new time). */
+  /**
+   * 2. The resumes (0074/D), all through `resumePauses`: a record whose resume time has passed is re-checked (still over: kept with the
+   * new time); one whose fresh reading (checked after the pause began) shows its window under the threshold, or no longer has it,
+   * resumes early; one with a resume asked for (Resume now) or pending (a send failed) is tried again. Holds are never resumed.
+   */
   const resume = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean): Promise<void> => {
-    const due = boardRecords(seen).filter((h) => acts(h.pause.provider ?? null) && h.pause.resumeAt !== null && Date.parse(h.pause.resumeAt) <= at.getTime() && h.pause.replies?.outcome !== "pausing");
-    const byProvider = new Map<string, Held[]>();
-    for (const h of due) {
-      byProvider.set(h.pause.provider ?? "", [...(byProvider.get(h.pause.provider ?? "") ?? []), h]);
-    }
-    for (const [provider, all] of byProvider) {
-      // Each record is re-checked against its own project's BRAID.md and limits (0074/B): one project may still be over its threshold.
-      const readings = new Map<string, ProviderReading | null>();
-      const readingAt = (root: string): ProviderReading | null => {
-        if (!readings.has(root)) {
-          readings.set(root, readingOf(root, provider, at));
+    const readings = new Map<string, ProviderReading | null>();
+    const readingAt = (root: string, provider: string): ProviderReading | null => {
+      const key = `${root}
+${provider}`;
+      if (!readings.has(key)) {
+        readings.set(key, readingOf(root, provider, at));
+      }
+      return readings.get(key) ?? null;
+    };
+    const all = seen.flatMap((s) => loadPauses(s.project.root).pauses.filter((p) => reasonOf(p) === "limit" && p.provider !== null && acts(p.provider)).map((pause) => ({ at: s, pause })));
+    const go: { held: Held; why: string }[] = [];
+    const over: Held[] = [];
+    for (const h of all) {
+      const p = h.pause;
+      if (p.resuming !== undefined) {
+        // Asked for and not tried, or a send pending: try (again) now. A PM that got its ask resumes it; nothing more here.
+        if (p.resuming.lastTry === null || p.resuming.failedSince !== null) {
+          go.push({ held: h, why: p.resuming.why });
         }
-        return readings.get(root) ?? null;
-      };
-      const over = all.filter((h) => readingAt(h.at.project.root)?.verdict === "pause");
-      const byRoot = new Map<string, Held[]>();
-      for (const h of over) {
-        byRoot.set(h.at.project.root, [...(byRoot.get(h.at.project.root) ?? []), h]);
-      }
-      const kept = [...byRoot].flatMap(([root, hs]) => {
-        const reading = readingAt(root) as ProviderReading;
-        const w = overWindow(reading);
-        return patch(hs, (p) => ({ ...p, window: w?.id ?? p.window, label: w?.label ?? p.label, usedPercent: w?.usedPercent ?? p.usedPercent, resetsAt: w?.resetsAt ?? p.resetsAt, resumeAt: reading.resumeAt ?? p.resumeAt }));
-      });
-      if (kept.length > 0) {
-        push(over[0]?.at.project.root ?? "", "extended", kept, at);
-      }
-      const held = all.filter((h) => !over.includes(h));
-      const host = held[0]?.at;
-      if (host === undefined) {
         continue;
       }
-      const reading = readingAt(host.project.root);
-      // One message per thread, even when several braids' records name it (a PM, a steering child).
-      const sends = new Map<string, { target: PauseTarget; root: string; archived: boolean }>();
-      for (const h of held) {
-        for (const t of h.pause.targets ?? []) {
-          if (!(h.pause.resumed ?? []).includes(t.thread) && !sends.has(t.thread)) {
-            sends.set(t.thread, { target: t, root: h.at.project.root, archived: h.at.good.t3.states?.get(t.thread) === "archived" });
-          }
-        }
+      if (p.by !== "board" || p.replies?.outcome === "pausing") {
+        continue;
       }
-      const sent: string[] = [];
-      for (const [thread, s] of sends) {
-        if (s.archived) {
-          sent.push(thread);
-          continue;
-        }
-        const r = await opts.t3(s.root, ["thread", "send", thread, resumeMessage(s.target, provider)]);
-        if (r.error === undefined && r.status === 0) {
-          sent.push(thread);
-          failures.delete(thread);
-          continue;
-        }
-        const tries = (failures.get(thread) ?? 0) + 1;
-        failures.set(thread, tries);
-        if (tries >= SEND_TRIES) {
-          warn(`the resume of ${s.target.item} (thread ${thread.slice(0, 8)}) failed ${tries} times (${firstLine(r)}); given up, resume it by hand`);
-          sent.push(thread);
+      const reading = readingAt(h.at.project.root, p.provider ?? "");
+      if (p.resumeAt !== null && Date.parse(p.resumeAt) <= at.getTime()) {
+        if (reading?.verdict === "pause") {
+          over.push(h);
         } else {
-          warn(`a resume send failed (${firstLine(r)}); retrying at each refresh`, "resume send");
+          go.push({ held: h, why: "timer" });
         }
-      }
-      const left = [...sends.keys()].filter((t) => !sent.includes(t));
-      if (left.length > 0) {
-        patch(held, (p) => ({ ...p, resumed: [...new Set([...(p.resumed ?? []), ...sent])] }));
         continue;
       }
-      const cleared = held.flatMap((h) => {
-        // Only the board's own limit record: a hold (or another pauser's record) that took its place is never cleared here.
-        const c = clearPause(h.at.project.root, h.pause.braid, (p) => p.by === "board" && reasonOf(p) === "limit");
-        return c === null ? [] : [c];
-      });
-      const first = held[0]?.pause;
-      const late = first?.resumeAt === null || first === undefined ? 0 : at.getTime() - Date.parse(first.resumeAt);
-      const w = reading?.windows.find((x) => x.id === first?.window);
-      push(host.project.root, "resumed", cleared, at, { due: late >= MISSED_MS && first?.resumeAt != null ? clock(first.resumeAt, at) : null, usage: w === undefined ? null : `${w.label} at ${w.usedPercent}%` });
+      const early = earlyWhy(p, reading);
+      if (early !== null) {
+        go.push({ held: h, why: early });
+      }
+    }
+    // Still over at the resume time: each project keeps its records with the new time (0074/B: each against its own BRAID.md).
+    const byKey = new Map<string, Held[]>();
+    for (const h of over) {
+      const key = `${h.at.project.root}
+${h.pause.provider ?? ""}`;
+      byKey.set(key, [...(byKey.get(key) ?? []), h]);
+    }
+    for (const hs of byKey.values()) {
+      const first = hs[0] as Held;
+      const reading = readingAt(first.at.project.root, first.pause.provider ?? "") as ProviderReading;
+      const w = overWindow(reading);
+      const kept = patch(hs, (p) => ({ ...p, window: w?.id ?? p.window, label: w?.label ?? p.label, usedPercent: w?.usedPercent ?? p.usedPercent, resetsAt: w?.resetsAt ?? p.resetsAt, resumeAt: reading.resumeAt ?? p.resumeAt }));
+      if (kept.length > 0) {
+        push(first.at.project.root, "extended", kept, at);
+      }
+    }
+    if (go.length === 0) {
+      return;
+    }
+    const archived = (thread: string): boolean => seen.some((s) => s.good.t3.states?.get(thread) === "archived");
+    const usageOf = (p: Pause, root: string): string | null => {
+      const w = readingAt(root, p.provider ?? "")?.windows.find((x) => x.id === p.window);
+      return w === undefined ? null : `${w.label} ${w.usedPercent}%`;
+    };
+    // One call per reason, so the ask names it; within it one message per thread.
+    const whys = [...new Set(go.map((g) => g.why))];
+    for (const why of whys) {
+      const batch = go.filter((g) => g.why === why);
+      const out = await resumePauses(
+        batch.map((g) => ({ root: g.held.at.project.root, pause: g.held.pause })),
+        { t3: opts.t3, now: at, why, archived, usage: (p) => usageOf(p, batch.find((g) => g.held.pause.braid === p.braid)?.held.at.project.root ?? ""), warn: (l) => warn(l, l) },
+      );
+      // The resumed push, per project and provider: late ones say when they were due.
+      const groups = new Map<string, { root: string; records: Pause[] }>();
+      for (const c of out.cleared) {
+        const key = `${c.root}
+${c.pause.provider ?? ""}`;
+        const e = groups.get(key) ?? { root: c.root, records: [] };
+        e.records.push(c.pause);
+        groups.set(key, e);
+      }
+      for (const e of groups.values()) {
+        const first = e.records[0] as Pause;
+        const late = first.resumeAt === null ? 0 : at.getTime() - Date.parse(first.resumeAt);
+        const w = readingAt(e.root, first.provider ?? "")?.windows.find((x) => x.id === first.window);
+        push(e.root, "resumed", e.records, at, { due: why === "timer" && late >= MISSED_MS && first.resumeAt !== null ? clock(first.resumeAt, at) : null, usage: w === undefined ? null : `${w.label} at ${w.usedPercent}%` });
+      }
     }
   };
 
@@ -480,6 +510,12 @@ export function steerer(opts: SteererOptions): Steerer {
     observe(project, good) {
       latest.set(project.name, { project, good });
       if (!pending) {
+        pending = true;
+        running = running.then(tick);
+      }
+    },
+    poke() {
+      if (!pending && latest.size > 0) {
         pending = true;
         running = running.then(tick);
       }

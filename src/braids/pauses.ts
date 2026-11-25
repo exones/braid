@@ -49,6 +49,27 @@ export interface Replies {
   readonly reason: string | null;
 }
 
+/**
+ * A resume under way (0074/D): asked for (the Resume now button, `braid resume --limit`, the timer, early resume), tried, and
+ * kept while a send fails, so the acting board retries it at each refresh until it is delivered.
+ */
+export interface Resuming {
+  /** Why: `timer` (the resume time came), `early` (a fresh reading is under the threshold), `gone` (the window no longer applies), `now` (the user's button), `cli`. */
+  readonly why: string;
+  /** When the resume began (ISO). */
+  readonly at: string;
+  /** True: the board sends each agent its resume text and clears the record. False: it asks the PM (or the pausing thread), who resumes. */
+  readonly direct: boolean;
+  /** When the PM (or the pausing thread) got the ask; null until then. */
+  readonly askedAt: string | null;
+  /** Since when a send has failed; null while none has. While set, the acting board retries at each refresh. */
+  readonly failedSince: string | null;
+  /** The last try (ISO); null: asked for and not tried yet. */
+  readonly lastTry: string | null;
+  /** The last failure's first line; null when none. */
+  readonly error: string | null;
+}
+
 /** An older record's 🚦 steering part (0064), read into `replies`. */
 interface OldSteering {
   readonly started: string;
@@ -90,6 +111,8 @@ export interface Pause {
   readonly replies?: Replies;
   /** `by: board`: the threads already sent their resume message (a failed send is retried for the others only). */
   readonly resumed?: readonly string[];
+  /** A resume under way (0074/D); absent while none is. */
+  readonly resuming?: Resuming;
 }
 
 export interface PausesRead {
@@ -243,6 +266,25 @@ export function patchPauses(root: string, braids: readonly string[], change: (p:
         writePauses(file, next);
       }
       return out;
+    },
+    "the pauses store",
+  );
+}
+
+/** Changes one braid's limit record of any pauser under the lock (`change` gets it and returns the new one); null when it has none (a hold is never changed). */
+export function patchPause(root: string, braid: string, change: (p: Pause) => Pause): Pause | null {
+  const file = pausesFile(root);
+  return locked(
+    file,
+    () => {
+      const list = readPausesFile(file).pauses;
+      const old = list.find((p) => p.braid === braid && reasonOf(p) === "limit");
+      if (old === undefined) {
+        return null;
+      }
+      const next = change(old);
+      writePauses(file, list.map((p) => (p === old ? next : p)));
+      return next;
     },
     "the pauses store",
   );

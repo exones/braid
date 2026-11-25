@@ -60,6 +60,45 @@ export interface PauseView {
   readonly record: Pause;
 }
 
+/**
+ * How a resume of this record goes (0074/D): `direct`, the board sends each agent its resume text and clears the record; `pm`, the
+ * board asks the PM, who resumes it with `braid resume <number> --limit`; `pauser`, a `braid pause` of a coordinator or PM: that
+ * thread is asked. Null for a hold: Resume now never clears one.
+ */
+export function resumeMode(p: Pause): "direct" | "pm" | "pauser" | null {
+  if (reasonOf(p) === "hold") {
+    return null;
+  }
+  if (p.by !== "board") {
+    return "pauser";
+  }
+  return (p.targets ?? []).some((t) => t.kind === "pm") ? "pm" : "direct";
+}
+
+/** Who a resume asks: `the PM` or `the coordinator`. */
+export const askWho = (p: Pause): string => (resumeMode(p) === "pm" || (p.by === "pm" && resumeMode(p) === "pauser") ? "the PM" : "the coordinator");
+
+/** The card line of a resume under way: pending (a send failed, retried at each refresh), asked (the PM got it), or asked for. Null otherwise. */
+function resumingView(p: Pause, phase: PausePhase, now: Date): PauseView | null {
+  const r = p.resuming;
+  if (r === undefined) {
+    return null;
+  }
+  if (r.failedSince !== null) {
+    const agents = (p.targets ?? []).filter((t) => t.kind !== "pm");
+    const reached = r.direct ? `${agents.filter((t) => (p.resumed ?? []).includes(t.thread)).length} of ${agentsWord(agents.length)} reached` : `${askWho(p)} not reached yet`;
+    return { state: "due", phase, text: `Paused: ${usage(p)}; resume pending: T3 unreachable since ${clock(r.failedSince, now)}`, note: `retried at each refresh${r.lastTry === null ? "" : ` · last try ${clock(r.lastTry, now)}`} · ${reached}`, record: p };
+  }
+  const resumes = p.resumeAt === null ? "" : `, resumes ${at(p.resumeAt, now)}`;
+  if (r.lastTry === null) {
+    return { state: "paused", phase, text: `Paused: ${usage(p)}${resumes}`, note: `resume asked for at ${clock(r.at, now)} · the acting board sends it`, record: p };
+  }
+  if (!r.direct && r.askedAt !== null) {
+    return { state: "paused", phase, text: `Paused: ${usage(p)}${resumes}`, note: `asked ${askWho(p)} to resume at ${clock(r.askedAt, now)}`, record: p };
+  }
+  return null;
+}
+
 /** `Held: “Please freeze work”`: a hold shows the words it was given; with none (a plan's `state: held`) it says so. */
 const heldText = (p: Pause): string => ((p.words ?? "").trim() === "" ? "Held: the plan says held" : `Held: “${p.words}”`);
 
@@ -67,6 +106,10 @@ export function pauseView(p: Pause, now: Date): PauseView {
   const phase = phaseOf(p, now);
   if (reasonOf(p) === "hold") {
     return { state: "paused", phase, text: heldText(p), note: `held by ${who(p)} since ${clock(p.at, now)}`, record: p };
+  }
+  const resuming = resumingView(p, phase, now);
+  if (resuming !== null) {
+    return resuming;
   }
   const s = p.replies;
   if (phase === "paused" && s !== undefined) {
@@ -81,7 +124,7 @@ export function pauseView(p: Pause, now: Date): PauseView {
     if (s.outcome === "failed") {
       return { state: "due", phase, text: `Pause failed: ${s.reason ?? "no send went through"}`, note: `${ago} · agents may still be running on ${p.provider ?? "the provider"}`, record: p };
     }
-    return { state: "paused", phase, text: `Paused: ${usage(p)}, resumes ${at(p.resumeAt, now)}`, note: `${ago} · ${s.answered} of ${agentsWord(s.total)} answered`, record: p };
+    return { state: "paused", phase, text: `Paused: ${usage(p)}, resumes ${at(p.resumeAt, now)}`, note: `${ago} · ${s.answered} of ${agentsWord(s.total)} answered${resumeMode(p) === "pm" ? " · the PM resumes it" : ""}`, record: p };
   }
   if (phase === "paused") {
     return { state: "paused", phase, text: `Paused: ${usage(p)}, resumes ${at(p.resumeAt, now)}`, note: `paused by ${who(p)} ${span(now.getTime() - Date.parse(p.at))} ago`, record: p };
@@ -153,7 +196,7 @@ export function pauseBox(view: PauseView, now: Date): { readonly head: string; r
     return {
       head: view.state === "due" && view.phase !== "paused" ? `Paused · resume was due at ${at(p.resumeAt, now)}` : `Paused · since ${clock(p.at, now)}`,
       text: `${window}${reset}. ${view.text}.`,
-      foot: `Paused by the board${steer}. The board re-checks the limit at ${at(p.resumeAt, now)} and resumes every paused agent; ${command} clears the record by hand (it sends no resume message).`,
+      foot: `Paused by the board${steer}. The board re-checks the limit at ${at(p.resumeAt, now)}, and earlier when a fresh reading is under the threshold, then ${resumeMode(p) === "pm" ? "asks the PM to resume it" : "resumes every paused agent"}; ▶ Resume now does it at once, and ${command} --limit resumes it from a terminal.`,
     };
   }
   if (view.state === "paused") {

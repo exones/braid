@@ -96,6 +96,28 @@ export function resumeMessage(t: PauseTarget, provider: string): string {
   return `Resume: continue ${t.item} from your checkpoint`;
 }
 
+/** Why a resume happens, in the words of the ask: the button, the resume time, a fresh reading under the threshold, a window gone. */
+const RESUME_WHY: Record<string, string> = {
+  now: "Resume now, from the board (the user asked)",
+  timer: "The window is open again (its resume time came)",
+  early: "The window is back under its threshold",
+  gone: "The paused window no longer applies to the provider's models",
+  cli: "Resume asked for with braid resume --limit",
+};
+
+/**
+ * The one message the PM gets when the board resumes braids it runs (0074/D: direct pause, PM-led resume): why, which braids, and
+ * the command that resumes each, in the PM's order. `pauser`: the record is a `braid pause` of the coordinator or PM itself, which
+ * clears it with `braid resume`.
+ */
+export function resumeAsk(braids: readonly string[], provider: string, why: string, usage: string | null, pauser = false): string {
+  const head = `${RESUME_WHY[why] ?? RESUME_WHY["now"] ?? ""}: ${provider}${usage === null ? "" : ` reads ${usage}`}.`;
+  const list = `Paused braid${braids.length === 1 ? "" : "s"}: ${braids.join(", ")}.`;
+  return pauser
+    ? `${head} ${list} Run braid resume ${braids.join(", ")}, delete its resume task if one is set, and go on. No reply is needed.`
+    : `${head} ${list} Resume each, in your order: braid resume <number> --limit (it clears the board's record and sends each agent its resume text by code). No reply is needed.`;
+}
+
 /** A limit push (docs/board.md, "Notifications"): one per event and provider, its key kept in `notified.json`. */
 export interface LimitPush {
   readonly key: string;

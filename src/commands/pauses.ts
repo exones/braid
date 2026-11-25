@@ -6,17 +6,21 @@ import { LimitsError, readLimits, readModelLines, readProvider, t3Home, type Pro
 import { threadShort } from "../braids/logs.js";
 import { clearPause, loadPauses, PAUSERS, reasonOf, setPause, type Pause, type Pauser } from "../braids/pauses.js";
 import { pauseView, statusLine } from "../board/pause.js";
+import { resumePauses, type ResumeItem } from "../board/resume.js";
+import { runT3, type T3Runner } from "../board/t3.js";
 import { UsageError } from "./braids.js";
 import { parse, str } from "./edit.js";
 
 export interface PauseOptions {
+  /** Runs `t3` (the resume sends of `--limit`); the real CLI unless given. */
+  readonly t3?: T3Runner;
   /** T3's caches folder; defaults to `$T3CODE_HOME/caches`, else `~/.t3/caches`. */
   readonly caches?: string;
   readonly now?: Date;
 }
 
 const PAUSE_USAGE = "usage: braid pause <number> --provider <instanceId> --thread <id> [--window <id>] [--until <iso time>] [--task <scheduled task id>] [--by coordinator|pm|board]\n   or: braid pause <number> --hold \"<words>\" --thread <id> [--by coordinator|pm]  (a deliberate hold: no provider, no resume time)";
-const RESUME_USAGE = "usage: braid resume <number> [--limit]  (--limit clears a limit pause only, never a hold)";
+const RESUME_USAGE = "usage: braid resume <number> [--limit]  (--limit resumes a limit pause only, never a hold: the board's record is cleared and each paused agent gets its resume text)\n   or: braid resume --limit --all  (every board pause of the repository; a PM-run braid's PM is asked)";
 
 /** The braid number of `0061` or `61`, checked against the braids `braid view` finds (this checkout's and those that live only on their branch). */
 function braidOf(root: string, raw: string | undefined, usage: string): string {
@@ -142,6 +146,58 @@ export function pauseCommand(root: string, args: readonly string[], options: Pau
 }
 
 /** `braid resume`: clears the braid's pause and prints what it cleared; a braid that isn't paused is left as it is. */
+/**
+ * `braid resume <number> --limit` and `braid resume --limit --all` (0074/D): the board's one resume path. One braid: its limit record
+ * is resumed directly (each paused agent gets its resume text by code, then the record is cleared; the PM runs this for a braid it
+ * runs). `--all`: every board pause of the repository, a PM-run braid by one message to its PM. A send that fails stays pending on
+ * the record and the acting board retries it at each refresh. A hold is never touched.
+ */
+export async function resumeLimitCommand(root: string, args: readonly string[], options: PauseOptions = {}): Promise<string> {
+  const { positionals, values } = parse("braid resume", args, { limit: { type: "boolean" }, all: { type: "boolean" } });
+  const all = values["all"] === true;
+  if (values["limit"] !== true || (all ? positionals.length !== 0 : positionals.length !== 1)) {
+    throw new UsageError(RESUME_USAGE);
+  }
+  const now = options.now ?? new Date();
+  const records = loadPauses(root).pauses;
+  let items: ResumeItem[];
+  if (all) {
+    items = records.filter((p) => p.by === "board" && reasonOf(p) === "limit").map((pause) => ({ root, pause }));
+    if (items.length === 0) {
+      return "no board pause to resume\n";
+    }
+  } else {
+    const braid = braidOf(root, positionals[0], RESUME_USAGE);
+    const record = records.find((p) => p.braid === braid);
+    if (record === undefined) {
+      return `${braid} was not paused; nothing changed\n`;
+    }
+    if (reasonOf(record) === "hold") {
+      return `${braid} is held, not paused for a limit; --limit leaves the hold (braid resume ${braid} lifts it)\n`;
+    }
+    items = [{ root, pause: record }];
+  }
+  const out = await resumePauses(items, { t3: options.t3 ?? runT3, now, why: "cli", ...(all ? {} : { direct: true }) });
+  const lines: string[] = [];
+  for (const c of out.cleared) {
+    const p = c.pause;
+    const to = out.sent.get(p.braid) ?? [];
+    const task = p.task === null ? "" : `; if scheduled task ${p.task} is still set, delete it (delete_scheduled_task) so it doesn't wake ${p.thread.slice(0, 8)} later`;
+    lines.push(`${p.braid} resumed: ${to.length === 0 ? "" : `sent the resume text to ${to.join(", ")}; `}cleared ${statusLine(pauseView(p, now), now)}${task}`);
+  }
+  for (const a of out.asked) {
+    lines.push(`${a.pause.braid}: asked ${a.pause.by === "board" ? "the PM" : `the ${a.pause.by} ${a.pause.thread.slice(0, 8)}`} to resume it`);
+  }
+  for (const n of out.pending) {
+    const p = loadPauses(root).pauses.find((x) => x.braid === n.pause.braid) ?? n.pause;
+    const agents = (p.targets ?? []).filter((t) => t.kind !== "pm");
+    const reached = p.resuming?.direct === true ? ` (${agents.filter((t) => (p.resumed ?? []).includes(t.thread)).length} of ${agents.length} sent)` : "";
+    lines.push(`${p.braid}: resume pending: T3 unreachable${reached}${p.resuming?.error == null ? "" : `: ${p.resuming.error}`}. The board retries at each refresh.`);
+  }
+  const held = all ? records.filter((p) => reasonOf(p) === "hold").map((p) => `${p.braid}: held, left alone`) : [];
+  return `${[...lines, ...held].join("\n")}\n`;
+}
+
 export function resumeCommand(root: string, args: readonly string[], options: PauseOptions = {}): string {
   const { positionals, values } = parse("braid resume", args, { limit: { type: "boolean" } });
   if (positionals.length !== 1) {

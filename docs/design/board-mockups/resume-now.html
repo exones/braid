@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>braid board – Resume now mockups (0074/D)</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>braid board – Resume now mockups (0074/D, approved)</title>
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#2563eb;--chip:#eef0f5;
  --skyb:#0284c7;--skybg:#f0f9ff;--skyfg:#0c4a6e;--ambb:#f59e0b;--ambbg:#fffbeb;--ambfg:#78350f;--tealb:#0f766e;--tealbg:#f0fdfa;--tealfg:#134e4a;
@@ -37,6 +37,7 @@ section>p.n{max-width:110ch;color:#4b5263;font-size:13px;margin-bottom:10px}
 .btn:hover{border-color:var(--acc)}
 .btn.resume{background:var(--rbg);border-color:var(--rbg);color:var(--rfg);font-weight:600}
 .btn.resume:hover{background:var(--rhover)}
+.btn.icon{width:24px;height:24px;padding:0;justify-content:center}
 .btn.off{opacity:.55;cursor:not-allowed}
 .mark{display:inline-flex;width:18px;height:18px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;color:#fff;background:var(--skyb)}
 .asked{font-size:11px;color:var(--tealfg)}
@@ -58,7 +59,8 @@ pre.msg{white-space:pre-wrap;font:12px/1.45 ui-monospace,Consolas,monospace;back
 </style></head>
 <body>
 <h1>Resume now · early resume · resume pending — 0074/D mockups</h1>
-<p class="lead">Test data: project <code>braid</code>, provider <code>Claude_Everix</code> with its Session window at the 90% threshold (#316's default). The board paused at 20:47 when Session read 92%; the window resets at 21:00, so the timer resumes at 21:05 (reset + 5 min buffer). Now is 20:58 unless a case says otherwise. Light on the left, dark on the right. Hover and click states are drawn open next to the card.</p>
+<p class="lead">Test data: project <code>braid</code>, provider <code>Claude_Everix</code> with its Session window at the 90% threshold (#316's default). The board paused at 20:47 when Session read 92%; the window resets at 21:00, so the timer resumes at 21:05 (reset + 5 min buffer). Now is 20:58 unless a case says otherwise. Light above, dark below. Hover and click states are drawn open next to the card.</p>
+<p class="lead"><b>Verdict (the user, through the PM, q-i0ry):</b> approved, with icon-only buttons (▶ Resume now and Ask the PM, ↻ Retry the resume now; the words only in the tooltip) and the thread links and Open thread exactly as today (not drawn here).</p>
 
 <div id="cases"></div>
 
@@ -66,7 +68,7 @@ pre.msg{white-space:pre-wrap;font:12px/1.45 ui-monospace,Consolas,monospace;back
 <!-- 1 -->
 <section>
 <h2>1 · A paused braid without a PM</h2>
-<p class="n">Resume now sits in the card's action row, sky like the paused line it answers. It resumes this braid directly: the confirm dialog shows the fresh reading and the threads that get their resume text. Nothing is retyped: the ids come from the pause record.</p>
+<p class="n">Resume now (▶) sits in the card's action row, sky like the paused line it answers; its words are in the tooltip. It resumes this braid directly: the confirm dialog shows the fresh reading and the threads that get their resume text. Nothing is retyped: the ids come from the pause record.</p>
 <div class="pair">
 <div class="theme T"><span class="tag">THEME</span>
 <div class="row" style="gap:16px;align-items:flex-start">
@@ -75,8 +77,8 @@ pre.msg{white-space:pre-wrap;font:12px/1.45 ui-monospace,Consolas,monospace;back
  <div class="title">Limits panel shows the weekly reset day</div>
  <div class="bar"><div class="t"><i style="width:33%"></i></div><span>1/3</span></div>
  <div class="box sky">Paused: Claude_Everix Session 92%, resumes 21:05<small>paused by the board 11 min ago · 2 of 2 agents answered</small></div>
- <div class="acts"><button class="btn">💬 Thread</button><button class="btn resume">▶ Resume now</button></div>
- <div style="text-align:right"><span class="tip">Resume now: send its 2 agents their resume text and clear the pause</span></div>
+ <div class="acts"><button class="btn resume icon" title="Resume now">▶</button></div>
+ <div style="text-align:right"><span class="tip">Resume now</span></div>
 </div>
 <div class="dlg">
  <h3>Resume 0071 now?</h3>
@@ -97,7 +99,7 @@ pre.msg{white-space:pre-wrap;font:12px/1.45 ui-monospace,Consolas,monospace;back
 <!-- 2 -->
 <section>
 <h2>2 · A paused braid run by a PM</h2>
-<p class="n">Same button and place. It doesn't resume the braid itself: it sends the PM one message, and the PM resumes it with <code>braid resume 0074 --limit</code> when it sees fit. After the click the card says the PM was asked; the button stays, as “Ask again”.</p>
+<p class="n">Same button and place. It doesn't resume the braid itself: it sends the PM one message, and the PM resumes it with <code>braid resume 0074 --limit</code> when it sees fit. After the click the card says the PM was asked; the button stays, the same ▶, its tooltip “Ask the PM again to resume”.</p>
 <div class="pair">
 <div class="theme T"><span class="tag">THEME</span>
 <div class="row" style="gap:16px;align-items:flex-start">
@@ -108,16 +110,17 @@ pre.msg{white-space:pre-wrap;font:12px/1.45 ui-monospace,Consolas,monospace;back
  <div class="ptag">🧭 board-reliability</div>
  <div class="bar"><div class="t"><i style="width:43%"></i></div><span>3/7</span></div>
  <div class="box sky">Paused: Claude_Everix Session 92%, resumes 21:05<small>paused by the board 11 min ago · 3 of 3 agents answered · the PM resumes it</small></div>
- <div class="acts"><button class="btn">▸ strands</button><button class="btn resume">▶ Resume now</button></div>
- <div style="text-align:right"><span class="tip">Resume now: ask the PM to resume 0074</span></div>
+ <div class="acts"><button class="btn resume icon" title="Ask the PM to resume">▶</button></div>
+ <div style="text-align:right"><span class="tip">Ask the PM to resume</span></div>
 </div>
 <div class="card">
  <div class="row"><span class="id">0074</span><span class="badge">tier:L</span><span class="mark">⏸</span></div>
  <div class="title">The board pauses and resumes reliably</div>
  <div class="ptag">🧭 board-reliability</div>
  <div class="bar"><div class="t"><i style="width:43%"></i></div><span>3/7</span></div>
- <div class="box sky">Paused: Claude_Everix Session 92%, resumes 21:05<small>paused by the board 12 min ago · 3 of 3 agents answered · the PM resumes it</small></div>
- <div class="acts"><span class="asked">🧭 asked the PM at 20:59</span><button class="btn">▶ Ask again</button></div>
+ <div class="box sky">Paused: Claude_Everix Session 92%, resumes 21:05<small>asked the PM to resume at 20:59</small></div>
+ <div class="acts"><button class="btn resume icon" title="Ask the PM again to resume">▶</button></div>
+ <div style="text-align:right"><span class="tip">Ask the PM again to resume</span></div>
 </div>
 </div>
 <div class="dlg">
@@ -150,8 +153,8 @@ Resume each, in your order: braid resume &lt;number&gt; --limit</pre>
  <div style="font-size:12px;color:var(--mut);margin-top:2px">The board pauses, resumes and warns without an LLM in the loop</div>
  <div class="bar" style="margin-top:8px"><div class="t"><i style="width:40%"></i></div><span>2/5 done · 0 running</span></div>
  <div class="box sky">⏸ Paused: every braid of it is paused<small>0074, 0075, 0077 · Claude_Everix Session 92% · resumes 21:05</small></div>
- <div class="acts" style="justify-content:flex-start"><button class="btn">💬 PM</button><button class="btn">◎ Only these</button><button class="btn">≡ Plan</button><span style="flex:1"></span><button class="btn resume">▶ Resume now</button></div>
- <div style="text-align:right"><span class="tip">Resume now: ask the PM to resume its 3 braids</span></div>
+ <div class="acts" style="justify-content:flex-start"><button class="btn">💬 PM</button><button class="btn">◎ Only these</button><button class="btn">≡ Plan</button><span style="flex:1"></span><button class="btn resume icon" title="Ask the PM to resume">▶</button></div>
+ <div style="text-align:right"><span class="tip">Ask the PM to resume</span></div>
 </div>
 <div class="dlg">
  <h3>Ask the PM to resume board-reliability?</h3>
@@ -172,7 +175,7 @@ Resume each, in your order: braid resume &lt;number&gt; --limit</pre>
 <!-- 4 -->
 <section>
 <h2>4 · Resume pending: T3 unreachable</h2>
-<p class="n">Now is 21:24. The 21:05 resume (timer, button, early resume or <code>braid resume --limit</code>, all the same path) couldn't reach T3. The record stays, the failed sends stay pending and the board retries them at each refresh, without giving up. The line turns amber; the button reads “Retry now”. Left: nothing went through; right column: one of two threads reached.</p>
+<p class="n">Now is 21:24. The 21:05 resume (timer, button, early resume or <code>braid resume --limit</code>, all the same path) couldn't reach T3. The record stays, the failed sends stay pending and the board retries them at each refresh, without giving up. The line turns amber; the button becomes ↻ (“Retry the resume now”). Left: nothing went through; right column: one of two threads reached.</p>
 <div class="pair">
 <div class="theme T"><span class="tag">THEME</span>
 <div class="row" style="gap:16px;align-items:flex-start">
@@ -181,14 +184,14 @@ Resume each, in your order: braid resume &lt;number&gt; --limit</pre>
  <div class="title">Limits panel shows the weekly reset day</div>
  <div class="bar"><div class="t"><i style="width:33%"></i></div><span>1/3</span></div>
  <div class="box amb">Paused: Claude_Everix Session; resume pending: T3 unreachable since 21:05<small>retried at each refresh · last try 21:23 · 0 of 2 agents reached</small></div>
- <div class="acts"><button class="btn">💬 Thread</button><button class="btn resume">↻ Retry now</button></div>
+ <div class="acts"><button class="btn resume icon" title="Retry the resume now">↻</button></div>
 </div>
 <div class="card">
  <div class="row"><span class="id">0074</span><span class="badge">tier:L</span><span class="mark" style="background:var(--ambb)">⏸</span></div>
  <div class="title">The board pauses and resumes reliably</div>
  <div class="ptag">🧭 board-reliability</div>
  <div class="box amb">Paused: Claude_Everix Session; resume pending: T3 unreachable since 21:05<small>retried at each refresh · last try 21:23 · the PM not reached yet</small></div>
- <div class="acts"><button class="btn">▸ strands</button><button class="btn resume">↻ Retry now</button></div>
+ <div class="acts"><button class="btn resume icon" title="Retry the resume now">↻</button></div>
 </div>
 </div>
 </div>
@@ -227,7 +230,7 @@ Resume each, in your order: braid resume &lt;number&gt; --limit</pre>
  <div class="row"><span class="id">0069</span><span class="badge">tier:M</span><span class="mark">⏸</span></div>
  <div class="title">Phone layout for the inbox</div>
  <div class="box sky">Held: “Please freeze work until the release”<small>held by the PM since 18:10</small></div>
- <div class="acts"><button class="btn">💬 Thread</button></div>
+ <div class="acts"></div>
 </div>
 </div>
 </div>
