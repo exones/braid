@@ -33,7 +33,7 @@ Expected size: about 40 lines in 2 files.
 
 ## Completion
 
-- [ ] A strandless braid whose coordinator is working doesn't read stalled, with tests for both sides
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A strandless braid whose coordinator is working doesn't read stalled, with tests for both sides
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
