@@ -1,0 +1,19 @@
+{
+  "code": "q-en2r",
+  "item": "0074",
+  "kind": "plan",
+  "text": "Approve the plan of 0074 (7 strands A-G; A urgent, early PR into main)",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-25T10:59:46.509Z",
+      "by": "coordinator"
+    }
+  ]
+}
