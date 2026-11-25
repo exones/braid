@@ -6,6 +6,13 @@
       "at": "2026-11-25T18:33:13.288Z",
       "thread": "mcp:launch:d7c4c2f0481745d20d0010431e63e6cfe8d1df98e0426050c240a6c8a82f35e2",
       "branch": "braid/0060/D-docs-workers-as-t3-subagents"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-25T19:38:39.582Z",
+      "head": "08fb1f6ed766c505176601c81fe27e7ad85c32bf",
+      "review": "https://github.com/exones/braid/pull/322#issuecomment-7172349858",
+      "thread": "mcp:launch:d7c4c2f0481745d20d0010431e63e6cfe8d1df98e0426050c240a6c8a82f35e2"
     }
   ]
 }
