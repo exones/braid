@@ -1,7 +1,7 @@
 ---
 id: '0074'
 title: "The board pauses and resumes reliably: no LLM retyping, early resume, the new usage cache"
-status: To Do
+status: In Progress
 labels: []
 dependencies: []
 delivery: epic
