@@ -47,7 +47,7 @@ Expected size: a report of about 150 lines and `sources.md`; no product code. Lo
 - [x] `report.md` answers the five questions under Change, each with a recommendation and its alternatives
 - [x] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open; `Needs the user:` names the security and dependency decisions
 
 ## Plan
