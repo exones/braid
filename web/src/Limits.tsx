@@ -1,6 +1,6 @@
 // The provider limits on the page (docs/board.md, "Provider limits"): the header chips, the phone strip and the limits panel.
 import { Dialog } from "radix-ui";
-import { agentsText, badgeText, chipNote, chipTitle, resetText, STATE_TONE, steeringText } from "../../src/board/limits-view.ts";
+import { actingText, agentsText, badgeText, chipNote, chipTitle, resetText, STATE_TONE, steeringText } from "../../src/board/limits-view.ts";
 import { t3codeUrl } from "../../src/board/marks.ts";
 import type { LimitsView, ProviderView, WindowReading } from "./api.ts";
 
@@ -174,6 +174,11 @@ export function LimitsPanel({ view, now, onClose }: { view: LimitsView; now: Dat
             From <code className={code}>braid limits</code> at each refresh (read {readAge(new Date(view.readAt), now)}). Thresholds: session {view.limits.session}%, weekly {view.limits.weekly}%, buffer {view.limits.buffer} min (BRAID.md <code className={code}>limits</code>).
           </p>
           {view.note !== null && <p className="mb-2 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-2 py-1 text-xs text-amber-900">{view.note}</p>}
+          {(actingText(view) ?? []).map((line) => (
+            <p key={line} data-acting className="mb-2 text-xs text-slate-600">
+              {line}
+            </p>
+          ))}
           {view.providers.map((p) => <ProviderBlock key={p.instanceId} p={p} now={now} />)}
         </Dialog.Content>
       </Dialog.Portal>

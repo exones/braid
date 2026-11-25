@@ -12,6 +12,7 @@ import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START,
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
 import { steerer, type Steerer } from "../board/steerer.js";
+import { ACTING_STALE_MS, actingBoard, providerKey, repoLease, type ActingBoard } from "../board/acting.js";
 import { steps, waker } from "../board/wake.js";
 import { nudger } from "../board/nudge.js";
 import { reminder } from "../board/remind.js";
@@ -503,9 +504,21 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
 }
 
 /** The notifier of a repository's board, with the per-user settings; a no-op when the main checkout can't be found. Only `runBoard` adds it, so tests of the board never read `~/.braid`. */
-/** The board's limits pause of one project: its snapshots go to the board-wide steerer. */
-function acting(name: string, root: string, own: Sources, steer: Steerer): Sources {
-  return { ...own, act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
+/** The board's limits pause of one project: its snapshots go to the board-wide steerer, and its limits say which board acts (0074/B). */
+function acting(name: string, root: string, own: Sources, steer: Steerer, leases: ActingBoard | null): Sources {
+  const inner = own.limits;
+  const limits =
+    inner === undefined || leases === null
+      ? inner
+      : (threads: T3, pauses: ReadonlyMap<string, Pause>): LimitsView | null => {
+          const view = inner(threads, pauses);
+          if (view === null) {
+            return null;
+          }
+          const repo = repoLease(root);
+          return { ...view, acting: leases.lines([{ key: repo.key, label: own.repo }, ...view.providers.map((p) => ({ key: providerKey(p.instanceId), label: p.instanceId }))]) };
+        };
+  return { ...own, ...(limits === undefined ? {} : { limits }), act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
 }
 
 /** The start line of the limits pause: which mode is on, and the steering lines (or why there are none). */
@@ -1073,6 +1086,8 @@ export interface Runners {
   readonly projects?: () => readonly Project[];
   /** A project's notifier, given its main checkout; `boardNotifier` unless given. */
   readonly notifier?: (root: string) => (board: BoardData) => void;
+  /** This board's acting leases (0074/B); `actingBoard` in `~/.braid/acting` unless given. */
+  readonly acting?: ActingBoard;
 }
 
 /** The four sample projects of `braid board --demo`: the full sample (`demo`), a small one (`api`), one whose reads fail after the first (`mail`) and one that isn't ready (`notes`). */
@@ -1176,28 +1191,30 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   // The limits pause and the wake (the click-only rule's exceptions): never in the demo, off with --no-pause. The pause's pushes go through each project's notified.json.
   const pausing = !demo && !args.includes("--no-pause");
   const pushers = new Map<string, ReturnType<typeof limitPusher>>();
+  const pusherOf = (root: string): ReturnType<typeof limitPusher> => {
+    const file = join(mainCheckout(root), ".braid", "notified.json");
+    const pusher = pushers.get(file) ?? limitPusher({ file });
+    pushers.set(file, pusher);
+    return pusher;
+  };
+  // One acting board per provider account and per repository on this machine (0074/B): the leases in ~/.braid/acting.
+  let port: number | null = null;
+  const leases = pausing ? (run.acting ?? actingBoard({ staleMs: ACTING_STALE_MS, port: () => port })) : null;
   const steer = pausing
     ? steerer({
         t3,
         wake: steps(waker(t3), reminder(t3), nudger(t3)),
+        ...(leases === null ? {} : { acting: leases }),
         ...(run.notifier === undefined
           ? {
-              push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => {
-                const file = join(mainCheckout(root), ".braid", "notified.json");
-                const pusher = pushers.get(file) ?? limitPusher({ file });
-                pushers.set(file, pusher);
-                pusher(p);
-              },
-              retry: () => {
-                for (const pusher of pushers.values()) {
-                  pusher.retry();
-                }
-              },
+              push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => pusherOf(root)(p),
+              // The failed pushes wait in each project's notified.json; the repository's acting board sends them (also after a restart).
+              retry: (root: string) => pusherOf(root).retry(),
             }
           : {}),
       })
     : null;
-  const act = (name: string, root: string, own: Sources): Sources => (steer === null ? own : acting(name, root, own, steer));
+  const act = (name: string, root: string, own: Sources): Sources => (steer === null ? own : acting(name, root, own, steer, leases));
   // The problems printed at startup are each first snapshot's own: no second read of GitHub.
   const firsts: { name: string; problems: Promise<Problem[]> }[] = [];
   const printing = (name: string, own: Sources): Sources => {
@@ -1263,7 +1280,41 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
       return current;
     };
   }
-  const started = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  const listening = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  port = Number(new URL(listening.url).port);
+  // A board that stops gives its leases up at once, so another board acts from its next refresh.
+  const started: Started =
+    leases === null
+      ? listening
+      : (() => {
+          const release = (): void => leases.release();
+          // On a stop signal the leases go too; the signal is raised again only when no other handler (keepAddress's) does it.
+          const onSignal = (signal: NodeJS.Signals): void => {
+            detach();
+            release();
+            if (process.listenerCount(signal) === 0) {
+              process.kill(process.pid, signal);
+            }
+          };
+          const detach = (): void => {
+            process.off("exit", release);
+            for (const s of STOP_SIGNALS) {
+              process.off(s, onSignal);
+            }
+          };
+          process.once("exit", release);
+          for (const s of STOP_SIGNALS) {
+            process.once(s, onSignal);
+          }
+          return {
+            ...listening,
+            close: async () => {
+              detach();
+              release();
+              await listening.close();
+            },
+          };
+        })();
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
   // A real run also leaves its address in ~/.braid for a board with no console (D94); the demo writes nothing.

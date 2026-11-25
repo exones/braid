@@ -41,6 +41,15 @@ Expected size: about 350 lines in 6 files.
 - Boards on different machines sharing one provider account (one machine's T3 owns the cache).
 - The pause and resume messages themselves (0074/C, 0074/D).
 
+## Plan
+
+1. `src/board/acting.ts`: lease files in `~/.braid/acting/` (`provider-<id>`, `repo-<hash>`), taken and renewed under `locked()` (create-exclusive lock file), stale after 90 s (three refreshes) or a dead pid, released on stop; `lines()` for the page, `actingLines()` for `braid board service status`.
+2. `steerer.ts`: at each tick take the repo leases of the seen projects and the provider leases of the providers seen (limits view, records); follow, resume and pause act only for held providers; wake and the pending-push retry only for held repositories. Without an acting board (tests, a single board) it acts for all.
+3. `follow`: a child joins the record of its braid in the project whose T3 list knows the thread (else the first with that braid), with that project's folder. `resume`: each record re-checked against its own project's BRAID.md and limits.
+4. `notifier.ts` `limitPusher`: a failed send is kept as `pending` in `notified.json`; `retry()` reads it from the file; the need notifier's writes keep it.
+5. `commands/board.ts`: one acting board per run, its port set once listening, released on close, exit and stop signals; the limits view carries `acting`; `limits-view.ts` `actingText` and the limits panel show it; `service.ts` status prints the lines.
+6. Tests in `test/board-acting.test.ts`; docs: board.md "One acting board", cli.md, cli help, D107.
+
 ## Completion
 
 - [ ] Two boards on one repository, started at the same instant, send one resume, one wake and one push each, with a test

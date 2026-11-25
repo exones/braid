@@ -8,6 +8,7 @@ import { closeSync, mkdirSync, openSync, rmSync, writeFileSync, writeSync } from
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { ACTING_STALE_MS, actingLines } from "../board/acting.js";
 import { liveAddresses, SESSION_PATH, type Address } from "../board/address.js";
 import { mainCheckout } from "../board/t3.js";
 import { findRoot } from "../braids/store.js";
@@ -432,6 +433,7 @@ export async function serviceCommand(args: readonly string[], deps: ServiceDeps 
     `Address: ${address === undefined ? `no board answers on port ${task.port}${state !== null && !taskRunning(state) ? " (the task's board isn't running; see the log)" : ""}` : address.url}`,
     `Version: ${running === null ? "the running board's is unknown" : `running ${running}`}, installed ${version}${running !== null && running !== version ? ": the board runs older code; braid board service restart starts the installed one" : ""}`,
     `Log: ${logFile(task.port, ctx.home)}`,
+    ...actingLines(task.port, ctx.home, new Date(), ACTING_STALE_MS),
   ];
   return { code: address === undefined ? 1 : 0, stdout: `${lines.join("\n")}\n`, stderr: "" };
 }
