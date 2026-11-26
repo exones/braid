@@ -6,7 +6,7 @@ labels: ["kind:story", "tier:L", "ui"]
 dependencies: []
 related: ['0077', '0080']
 delivery: epic
-autonomy: careful
+autonomy: free
 ---
 
 ## Goal
@@ -39,8 +39,17 @@ Expected size: about 1200 lines in 20 files over five strands, tests included.
 - "where can I see the answered questions for the program? I don't see it in the UI": the panel shows Decided for programmes too (the PM's own `pm/<slug>` requests, e.g. tiny-tractor-3i2b).
 - Ranking: stops a braid or programme entirely, then blocks several items (more first), then one item, then nothing (look requests, FYIs; collapsed). Oldest first within a rank; escalated on top. Each row: the handle (0072/G), the question, who asks (a programme's PM or a braid's coordinator, with the project), `blocks … · decide|do` (0072/A), the wait and an escalation mark.
 - UI items: mockups on test data first; the user reviews the design before anything is built.
+- The user approved 0082/A's mockups (shiny-muffin-fqro, 2026-11-26: "Otherwise very good job. Start it."), with these answers, binding on B to F:
+  - 1. A: one click on an option sends at once (no Undo delay).
+  - 2. A: PRs waiting for the user's merge are ranked in the panel too, with the PR link and the Merge button.
+  - 3. A: an older question with no stored context shows no context box, only a link to the item.
+  - 4. b: below about 1600 px, opening one side panel collapses the other.
+  - 5. B: look requests and FYIs get a mark of their own on the request record (0082/C).
+  - 6. B: an open question on a Done braid shows in the panel and on the Done card ("I don't want to lose questions").
+  - "When I open a cart, I think the context has to be open as well, because otherwise how could I answer the question if I don't understand the context.": an opened card shows its context expanded.
+- The user, 2026-11-26, through the PM: "actually build the questions panel to the end if/when I approve of the mockups." After the approval B to F run to the end, one worker at a time, on preset `free` with the PM-run line; 0082/D's `ask:security` and the final PR go to the PM, then main is the user's merge.
 - Takes in leftovers 2026-11-26-03t9 (six gaps from the 0072 live check) and 2026-11-25-1onw (spoken handles), and idea 2026-11-23-wcox (likely answers, P17).
-- Related to 0077 (The board stays fast under load, on `braid/0077-the-board-stays-fast-under-load`) and 0080 (The board talks to T3 directly, on `braid/0080-the-board-talks-to-t3-directly`): both change the board's server and web code. Nothing past the mockups is built in this run, so no merge order is set yet; the building strands start after both have merged into `main`, or merge `main` first.
+- Related to 0077 (The board stays fast under load, on `braid/0077-the-board-stays-fast-under-load`) and 0080 (The board talks to T3 directly, on `braid/0080-the-board-talks-to-t3-directly`): both change the board's server and web code. Both are held with no date, so 0082 builds on `main` as it is now and doesn't wait for them; whichever braid merges into `main` second merges `main` before its final PR (the PM, 2026-11-26).
 - P5 (Held lane, usage meter) is planned in the programme and will change the board layout too; the mockups may show where this panel sits beside the programmes panel.
 
 ## Out of scope
@@ -61,5 +70,3 @@ Expected size: about 1200 lines in 20 files over five strands, tests included.
 ## Autonomy
 
 PM-run (thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b): security, data and outward: always ask. architecture, dependency and scope: ask when expensive to reverse (the platform or technology, the form of the product, a contract with another braid); scope: also ask for any change to the goal or the Completion boxes; otherwise decide and log it. Before merging a story or the final PR into main, send the PM the PR and its head, and merge only on the PM's go.
-
-This run (the user, 2026-11-26, "can you start P25 but just to produce mockups"): only 0082/A runs, up to the user's approval of the mockups; then the braid holds until the PM's go.
