@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 1
 state: running
 hold:
-next: "0060 (#324: merge main in, PM live check, then the user's merge); 0077 working; 0078 and 0080 held (limit 1); then P25, P5, P26"
+next: "finish 0060 (#324, fix E then re-check) and 0077 (Tailscale whois strand, F docs, final PR); then P25 (the Questions panel) as the one running braid; 0078 and 0080 held"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -158,6 +158,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26: user "S. a": P25 starts right after 0060 and 0077 merge, as the one running braid. User reported the Tailscale page often "forbidden" / "couldn't confirm through Tailscale": whois gate caches 5 s and refuses on timeout under load; sent to 0077 as a small strand. Test request tiny-tractor-3i2b opened for the spoken handles.
 - 2026-11-26: user: "Finish seventy-seven and sixty and hold". 0077 and 0060 finish (final PRs, PM live checks, the user's merges); then the programme holds: nothing new launches, 0078 and 0080 stay held, plan state held once both are in main.
 - 2026-11-26 ~11:00: user "merge 72": PM merged #349 at 9d64ebb (merge cf8af70), CI green, pulled, installed. 0072 Done. Skill changes announced to coordinators and other PMs. Thread cleanup (user "a"): 40 threads archived in wave 1 (0074, 0079, PM checks, steering, research helpers) and 0072's 20 threads; 0060, 0077, 0078, 0080 threads go as each braid merges. dctl-studio held by the user ("usage is being drained faster than I expected"); 0077 keeps running (user "P a").
 - 2026-11-26 10:25: user: "Ok, usage is a bit more than expected. Put parallelism to 1 for all except SFIL". Limit 1: 0077 keeps the slot; 0078 and 0080 held (`braid pause --hold`); 0072 only finishes #349 (merge main, renumber); 0060 waits. Told the dctl-studio and both everix4 PMs (not SFIL).
