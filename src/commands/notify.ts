@@ -65,7 +65,7 @@ async function sendLine(args: readonly string[], home: string, env: NodeJS.Proce
         tags: ["compass"],
         priority: "high",
         click,
-        sequence: sequenceOf(repo, `pm/${slug ?? "-"}#send`),
+        sequence: sequenceOf(repo, slug === undefined ? "pm#send" : `pm/${slug}#send`),
       },
       tokenOf(env),
     );

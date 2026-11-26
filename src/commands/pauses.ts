@@ -15,7 +15,7 @@ export interface PauseOptions {
   readonly now?: Date;
 }
 
-const PAUSE_USAGE = "usage: braid pause <number> --provider <instanceId> --thread <id> [--window <id>] [--until <iso time>] [--task <scheduled task id>] [--by coordinator|pm|board]\n   or: braid pause <number> --hold \"<words>\" --thread <id> [--by coordinator|pm]  (a deliberate hold: no provider, no resume time)";
+const PAUSE_USAGE = "usage: braid pause <number> --provider <instanceId> --thread <id> [--window <id>] [--until <iso time>] [--task <scheduled task id>] [--by coordinator|pm|board]  (without --until, with --window too, refused unless braid limits says pause)\n   or: braid pause <number> --hold \"<words>\" --thread <id> [--by coordinator|pm]  (a deliberate hold: no provider, no resume time)";
 const RESUME_USAGE = "usage: braid resume <number> [--limit]  (--limit clears a limit pause only, never a hold)";
 
 /** The braid number of `0061` or `61`, checked against the braids `braid view` finds (this checkout's and those that live only on their branch). */
@@ -48,8 +48,8 @@ function reading(root: string, provider: string, options: PauseOptions, now: Dat
 
 /**
  * `braid pause`: without `--until`, the window and the resume time come from `braid limits` for the provider, and it is refused
- * unless the verdict is `pause`. `--window` picks the window (its reset plus the buffer); `--until` sets the resume time
- * and pauses whatever the verdict. Pausing again with the same values changes nothing; other values replace the record.
+ * unless the verdict is `pause`. `--window` only picks the window (its reset plus the buffer) and lifts no refusal; only
+ * `--until` sets the resume time and pauses whatever the verdict. Pausing again with the same values changes nothing; other values replace the record.
  */
 export function pauseCommand(root: string, args: readonly string[], options: PauseOptions = {}): string {
   const { positionals, values } = parse("braid pause", args, {

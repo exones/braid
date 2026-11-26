@@ -268,7 +268,7 @@ test("braid notify send pushes the PM's line opening its thread, and never print
   assert.equal(p2.title, "agento: the PM");
   assert.equal(p2.click, null);
   assert.equal(p2.body, `${"x".repeat(199)}…\nOpen the board`, "cut at 200 characters; no link: open the board");
-  assert.equal(p2.sequence, "braid-agento-pm---send");
+  assert.equal(p2.sequence, "braid-agento-pm-send", "no programme: no empty slug");
   assert.match(plain.out, /no link/);
 
   const failing = fakeSender();

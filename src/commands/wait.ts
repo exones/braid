@@ -1,4 +1,4 @@
-// `braid wait <number> [--timeout <minutes>]`: waits for the braid branch's CI after a merge the coordinator
+// `braid wait <number> [--timeout <minutes> | --once]`: waits for the braid branch's CI after a merge the coordinator
 // made itself, where no PR is left to watch (decision D71). It reads only: one fetch of the braid branch, then
 // GitHub's check runs from the branch tip down to the newest commit that changes anything outside `braids/` and
 // `epics/` (the CI commit). A project's CI may skip `braids/`-only pushes or not; every commit above the CI commit
@@ -7,8 +7,9 @@
 // CANCELLED on a commit that has a newer commit above it (a newer push cancels older runs) stays pending, not failing,
 // for the 5-minute start limit, since the newer commit may still start its run; after that, or when nothing is newer,
 // it fails. The exit code is the answer:
-// 0 green, 1 a `ci` check failed, 2 no answer (no run within 5 minutes, or an error), 3 still running when the
-// time is up (call again). The coordinator calls it in one short read (--timeout 0.25) before the next strand's
+// 0 green, 1 a `ci` check failed (as soon as one is seen, though others still run), 2 no answer (no run within 5
+// minutes, or an error), 3 still running when the time is up (call again). `--once` reads once and never sleeps.
+// The coordinator calls it in one short read (--timeout 0.25) before the next strand's
 // review or merge and before the final PR, and never waits on it in the foreground (decision D91).
 import { braidBranches } from "../braids/branches.js";
 import { loadBraids } from "../braids/store.js";
@@ -37,7 +38,7 @@ export interface WaitResult {
   readonly stdout: string;
 }
 
-const usage = "usage: braid wait <number> [--timeout <minutes>]  (a braid number like 0008; minutes may be a fraction, e.g. 9)";
+const usage = "usage: braid wait <number> [--timeout <minutes> | --once]  (a braid number like 0008; minutes may be a fraction, e.g. 9; --once reads once and never waits)";
 
 /** Passing only on success, neutral or skipped; any other finished run (cancelled, timed out, action required, stale) fails. */
 const PASSED = new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);
@@ -78,12 +79,16 @@ function braidBranch(root: string, number: string): string {
 const realSleep =(ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export async function waitCommand(root: string, args: readonly string[], opts: WaitOptions = {}): Promise<WaitResult> {
-  const { positionals, values } = parse("braid wait", args, { timeout: { type: "string" } });
+  const { positionals, values } = parse("braid wait", args, { timeout: { type: "string" }, once: { type: "boolean" } });
   const m = positionals.length === 1 ? /^(\d{1,4})$/.exec(positionals[0] ?? "") : null;
   if (m === null) {
     throw new UsageError(usage);
   }
   const number = (m[1] ?? "").padStart(4, "0");
+  const once = values["once"] === true;
+  if (once && str(values, "timeout") !== undefined) {
+    throw new UsageError("--once and --timeout don't go together: --once never waits");
+  }
   const rawTimeout = str(values, "timeout") ?? "30";
   const minutes = Number(rawTimeout);
   if (!/^\d+(\.\d+)?$/.test(rawTimeout) || !(minutes > 0)) {
@@ -181,9 +186,13 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
     if (state.length > 0 && state.every((s) => s.result === "passing") && settled) {
       return { code: 0, stdout: `${head}green at ${at(state)} on ${branch}: ${state.map((s) => s.name).join(", ")}\n` };
     }
-    if (state.length > 0 && state.every((s) => s.result === "passing" || s.result === "failing") && state.some((s) => s.result === "failing")) {
-      const failed = state.filter((s) => s.result === "failing").map((s) => s.name);
-      return { code: 1, stdout: `${head}failed at ${at(state.filter((s) => s.result === "failing"))} on ${branch}: ${failed.join(", ")}\n` };
+    const of = (result: Result) => state.filter((s) => s.result === result).map((s) => s.name);
+    // A visible failure is the answer, whatever else still runs.
+    const failed = state.filter((s) => s.result === "failing");
+    if (failed.length > 0) {
+      const running = of("pending").length > 0 ? `; still running: ${of("pending").join(", ")}` : "";
+      const waiting = of("missing").length > 0 ? `; not started: ${of("missing").join(", ")}` : "";
+      return { code: 1, stdout: `${head}failed at ${at(failed)} on ${branch}: ${of("failing").join(", ")}${running}${waiting}\n` };
     }
     const t = now();
     // Only a commit that never showed a run gives up early; once one was seen, only the timeout ends the wait.
@@ -192,16 +201,16 @@ export async function waitCommand(root: string, args: readonly string[], opts: W
       const why = unread ? "GitHub could not be read" : "no run appeared";
       return { code: 2, stdout: `${head}${why} for ${all ? "any check" : names.join(", ")} at ${short} on ${branch} after ${Math.round((t - start) / 60_000)} minutes\n` };
     }
-    if (t >= until) {
-      const of = (r: Result) => state.filter((s) => s.result === r).map((s) => s.name);
+    if (once || t >= until) {
       const parts = [
-        of("failing").length > 0 ? `failed: ${of("failing").join(", ")}` : "",
         of("pending").length > 0 ? `still running: ${of("pending").join(", ")}` : "",
         of("missing").length > 0 ? `not started: ${of("missing").join(", ")}` : "",
         all && !settled ? "waiting for more checks to appear (start grace)" : "",
         unread ? "GitHub could not be read at the last poll" : "",
+        state.length === 0 && !unread ? "no run yet" : "",
       ].filter((p) => p !== "");
-      return { code: 3, stdout: `${head}still running after ${minutes} minutes at ${short} on ${branch}; ${parts.join("; ")}\n` };
+      const waited = once ? "" : ` after ${minutes} minutes`;
+      return { code: 3, stdout: `${head}still running${waited} at ${short} on ${branch}; ${parts.join("; ")}\n` };
     }
     await sleep(POLL_MS);
   }
