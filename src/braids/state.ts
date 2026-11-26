@@ -22,11 +22,11 @@ const LOCK_STALE_MS = 30_000;
 const LOCK_WAIT_MS = 10_000;
 
 /**
- * Removes the lock when it is older than `staleMs`, for one waiter at a time: the check and the removal
+ * Removes the lock when it is stale (`isStale`; by default older than `staleMs`), for one waiter at a time: the check and the removal
  * happen under a short guard file, so a second waiter that also found the lock stale looks again and
  * leaves the first one's new lock alone. Returns whether this call removed it.
  */
-export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): boolean {
+export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS, isStale: (lock: string) => boolean = (file) => Date.now() - statSync(file).mtimeMs > staleMs): boolean {
   const guard = `${lock}.takeover`;
   try {
     closeSync(openSync(guard, "wx"));
@@ -42,7 +42,7 @@ export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): bo
     return false;
   }
   try {
-    if (Date.now() - statSync(lock).mtimeMs > staleMs) {
+    if (isStale(lock)) {
       unlinkSync(lock);
       return true;
     }

@@ -8,6 +8,7 @@ import { checkBraids } from "./braids/check.js";
 import { boardUrl, runBoard } from "./commands/board.js";
 import { serviceCommand } from "./commands/service.js";
 import { notifyCommand } from "./commands/notify.js";
+import { gateCommand } from "./commands/gate.js";
 import { projectsCommand } from "./commands/projects.js";
 import { ProjectsFileError } from "./projects/list.js";
 import { GitError } from "./braids/numbers.js";
@@ -62,6 +63,7 @@ export function helpText(version: string): string {
     "  decisions <number> [--since <date or sha>]  List the Decided: log entries of a braid and its strands and their requests answered by you or the PM (from braid-requests), oldest first",
     "  accept <id> [--head <sha>] [--merge [--preset]]  Accept an item after checks: records the acceptance on braid-requests and commits nothing on the PR's branch; the item is Done once its PR merged. A strand after its merge (--merge merges the reviewed head first; --preset makes it a merge under the braid's autonomy preset, refused unless the preset's merge value allows this PR; the BRAID.md merge-gate command, if any, runs last and a non-zero exit refuses the merge; --log adds a braid log entry on the braid branch), a story or final PR at its reviewed head (--merge merges that head; --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
     "  wait <number> [--timeout <minutes>]  Wait for the braid branch's CI (reads only): each check is answered by the newest commit from the tip down to the newest one outside braids/ and epics/ that has a run for it (else a merge commit's second parent), and a cancelled run stays pending while a newer commit may still run it: exit 0 green, 1 a ci check failed, 2 no run within 5 minutes or an error, with ci: all every reported check is waited for after a 2-minute start grace, 3 still running when --timeout (minutes, default 30) is up: call again",
+    "  gate [--no-wait]            Run BRAID.md's gate command in this checkout, at most two at once on this machine: with both slots held it says who holds them and waits (--no-wait: exit 75 instead); exits with the command's code",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case, and the BRAID.md merge-gate, if any, with whether it runs on this PR's merge",
     "  recap <id>                  A draft recap and braid log line from report.md, the Decided: entries and answered requests, the PR (head, checks) and the facts, to edit",
     "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints its code and the recap draft (--thread, --to pm)",
@@ -312,6 +314,20 @@ async function main(argv: readonly string[]): Promise<void> {
         process.stderr.write(`error: ${error instanceof FormatError ? `${error.file}: ` : ""}${error.message}
 `);
         process.exitCode = 2;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "gate") {
+    try {
+      process.exitCode = await gateCommand(findRoot(process.cwd()), argv.slice(1));
+    } catch (error) {
+      if (error instanceof UsageError) {
+        process.stderr.write(`error: ${error.message}
+`);
+        process.exitCode = 1;
         return;
       }
       throw error;
