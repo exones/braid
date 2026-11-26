@@ -33,13 +33,13 @@ Expected size: about 20 to 40 lines in 1 to 2 files.
 
 ## Completion
 
-- [ ] The queue test passes 10 runs in a row under a CPU load (report the command and the load), and fails with the old wait-from-start (a negative check shows it)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The queue test passes 10 runs in a row under a CPU load (report the command and the load), and fails with the old wait-from-start (a negative check shows it)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
-- Queue test: holder hands off every ~20 ms for 12 s (by time, not count) against a 4 s wait; retries a rename Windows refuses.
+- Queue test: first a holder handing off every ~20 ms against a 4 s wait; it still failed under load, so `locked` takes a clock and the test hands off from the waiter's pause.
 - `locked` writes a random token into the lock and `lockIdentity` includes it (Linux reuses the inode at once); a small test.
 - Show: 10 runs under a CPU load; negative check on a copy of dist/ with wait-from-start; gate.
