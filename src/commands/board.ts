@@ -43,9 +43,9 @@ import { notifyLine } from "./notify.js";
 import { readConfig } from "../notify/config.js";
 import { readProjects, type Project } from "../projects/list.js";
 import { notifier } from "../notify/notifier.js";
-import { liveAddresses, removeAddress, SESSION_PATH, writeAddress, type Probe } from "../board/address.js";
+import { liveAddresses, PROBE_MS, removeAddress, SESSION_PATH, VERSION_HEADER, writeAddress, type Probe } from "../board/address.js";
 import { readVersion } from "../version.js";
-import { serviceLog, stopWithConsole, VERSION_HEADER } from "./service.js";
+import { serviceLog, stopWithConsole } from "./service.js";
 
 const TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8",
@@ -1459,5 +1459,6 @@ export async function boardUrl(args: readonly string[], home?: string, probe?: P
   if (live.length === 0) {
     return { code: 1, stdout: "", stderr: `no braid board is running${port === undefined ? "" : ` on port ${port}`} for this user; start one with braid board\n` };
   }
-  return { code: 0, stdout: live.map((a) => `${a.url}\n`).join(""), stderr: "" };
+  const slow = live.filter((a) => a.state === "busy").map((a) => `the board on port ${a.port} answers slowly (no answer within ${PROBE_MS / 1000} s)\n`);
+  return { code: 0, stdout: live.map((a) => `${a.url}\n`).join(""), stderr: slow.join("") };
 }
