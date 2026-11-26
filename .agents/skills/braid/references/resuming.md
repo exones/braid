@@ -12,6 +12,6 @@ Read `BRAID.md`, then:
 - Otherwise read the item's log on its branch, then relaunch or `braid ask`.
 - The braid's open waits (`braid requests`) wake the old thread: ask each again with your `--thread`.
 - The preset: `braid autonomy <number>` (the skill, "Autonomy").
-- A paused braid (a `Paused:` line in `braid status`): the board resumes a limit pause itself ([provider limits](limits.md)). Otherwise it is a hold or a hand pause: the user says go.
+- A paused braid (a `Paused:` line in `braid status`): the board resumes a limit pause itself, a PM-run braid through its PM ([provider limits](limits.md)). Otherwise it is a hold or a hand pause: the user says go.
 
 Beyond the log, put notes on the braid only for what a fresh session couldn't work out from these.
