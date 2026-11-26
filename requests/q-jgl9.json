@@ -1,0 +1,20 @@
+{
+  "code": "q-jgl9",
+  "item": "0077/H",
+  "kind": "decision",
+  "text": "data: H's record commits omit Git's encoding header when i18n.commitEncoding is not UTF-8; fix or accept?",
+  "key": "data",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T04:33:14.564Z",
+      "by": "coordinator"
+    }
+  ]
+}
