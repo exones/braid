@@ -13,6 +13,12 @@
       "event": "opened",
       "at": "2026-11-26T06:35:07.311Z",
       "by": "coordinator"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-26T07:41:29.761Z",
+      "by": "board",
+      "text": "sent to the 0074 coordinator"
     }
   ]
 }
