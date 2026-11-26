@@ -2,7 +2,7 @@
 // and the card shows the stall only if it still holds ten minutes after; a stall that ends and comes back is nudged again; a held
 // or paused braid or programme is never nudged; two boards on one record send each wake, reminder and nudge once.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { load, world } from "./support/done-fixtures.ts";
@@ -290,4 +290,17 @@ test("a second board that reads the record again right before a reminder skips o
   const g = { sig: { pauses: new Map(), plans: [] }, t3: { status: { state: "ok" }, threads: new Map(), coordinators: new Map(), idleCoordinators: new Map([["0002", { id: CO7 }]]), states: new Map([[CO7, "idle"]]) } };
   await reminder(s.t3)({ root: w.root, good: g }, at(60), warn);
   assert.equal(s.sent.length, 1, "only one: the other was reminded by the other board");
+});
+
+test("0074/F: a strandless braid with a running coordinator never reads stalled; idle, it still does; a braid with strands is unchanged", () => {
+  for (const [b, co, held] of [[lone, "running", false], [lone, "idle", true], [braided, "idle", true], [braided, "running", false]] as const) {
+    const w = world();
+    const t3 = T3({ coordinator: co });
+    const card = refresh(w.root, at(0), b, t3).card;
+    // An idle coordinator is nudged before the card shows the stall, so the stall clock says whether it holds.
+    const key = b === lone ? "0007" : "0007 coordinator";
+    const clocks = existsSync(join(w.root, ".braid", "broke.json")) ? brokeOf(w.root) : {};
+    assert.equal(`${key} stalled` in clocks, held, `${b === lone ? "strandless" : "with strands"}, coordinator ${co}`);
+    assert.equal(card.running, false, "the coordinator is not an agent of the card");
+  }
 });

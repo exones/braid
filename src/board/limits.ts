@@ -3,14 +3,15 @@
 // which reads BRAID.md and the cache files; the page uses the types. The board only shows this: acting on it is a later step.
 import { join } from "node:path";
 import { DEFAULT_LIMITS, LimitsError, NOT_MEASURED, readLimits, readModelLines, readProvider, t3Home, type Limits, type ModelLine, type ProviderReading, type WindowReading } from "../braids/limits.js";
-import { reasonOf, type Pause, type Steering } from "../braids/pauses.js";
+import { reasonOf, type Pause, type Replies } from "../braids/pauses.js";
 import type { T3 } from "./t3.js";
+import type { ActingLine } from "./acting.js";
 
 /** How close to its threshold (percentage points) a window is called near. */
 export const NEAR_POINTS = 10;
 
-/** ok: all under; near: within `NEAR_POINTS` of a threshold; over: past one; paused: a limit pause record names the provider; unknown: no usable reading; unmeasured: T3 can't read this provider (cursor). */
-export type ChipState = "ok" | "near" | "over" | "paused" | "unknown" | "unmeasured";
+/** ok: all under; near: within `NEAR_POINTS` of a threshold; over: past one; paused: a limit pause record names the provider; unknown: no usable reading; blind (0074/E): a provider in use whose reading has been unusable for over 30 minutes; unmeasured: T3 can't read this provider (cursor). */
+export type ChipState = "ok" | "near" | "over" | "paused" | "unknown" | "blind" | "unmeasured";
 
 /** An agent on a provider, as the limits panel lists it. */
 export interface LimitAgent {
@@ -33,6 +34,8 @@ export interface ProviderView {
   readonly reason: string | null;
   /** When T3 last checked this provider (ISO); null when never or unreadable. */
   readonly checkedAt: string | null;
+  /** For `blind`: when the cache was last updated (ISO); null otherwise. */
+  readonly blindSince: string | null;
   readonly windows: readonly WindowReading[];
   /** The session and weekly window the chip's meters show: the fullest of each kind. */
   readonly session: WindowReading | null;
@@ -42,8 +45,8 @@ export interface ProviderView {
   /** The window the pause waits for (`five_hour`), from the reading; null when under. */
   readonly pauseWindow: string | null;
   readonly agents: readonly LimitAgent[];
-  /** The latest 🚦 steering thread of the board's pause on this provider and its outcome (0064); null when none. */
-  readonly steering: Steering | null;
+  /** The latest board pause on this provider: its sends and replies (0074/C); null when none. */
+  readonly replies: Replies | null;
 }
 
 export interface LimitsView {
@@ -54,18 +57,23 @@ export interface LimitsView {
   readonly providers: readonly ProviderView[];
   /** Why BRAID.md's `models` or `limits` could not be read (the providers are then only those running threads use); null when it read. */
   readonly note: string | null;
+  /** Which board acts for the repository and for each provider account (0074/B); absent when this board pauses nothing. */
+  readonly acting?: readonly ActingLine[];
 }
 
 const fullest = (windows: readonly WindowReading[], kind: WindowReading["kind"]): WindowReading | null =>
   windows.filter((w) => w.kind === kind).reduce<WindowReading | null>((a, w) => (a === null || w.usedPercent > a.usedPercent ? w : a), null);
 
-/** The chip state of a reading, given whether a limit pause record names the provider. */
-export function stateOf(reading: ProviderReading, paused: boolean): ChipState {
+/** The chip state of a reading, given whether a limit pause record names the provider and whether the provider is in use (a role names it and a thread runs on it). */
+export function stateOf(reading: ProviderReading, paused: boolean, inUse = false): ChipState {
   // A pause record decides first: after a pause T3 may not refresh the cache for a while, and the braid is paused all the same.
   if (paused) {
     return "paused";
   }
   if (reading.verdict === "unknown") {
+    if (inUse && reading.blindSince !== null) {
+      return "blind";
+    }
     return reading.reason?.startsWith(NOT_MEASURED) === true ? "unmeasured" : "unknown";
   }
   if (reading.verdict === "pause") {
@@ -93,10 +101,10 @@ function runningOn(t3: T3): Map<string, LimitAgent[]> {
   return by;
 }
 
-/** The steering thread started last among these records; null when none has one. */
-function latestSteering(records: readonly Pick<ProviderView, "steering">[] | readonly Pause[]): Steering | null {
-  const all = (records as readonly { steering?: Steering | null }[]).flatMap((r) => (r.steering === undefined || r.steering === null ? [] : [r.steering]));
-  return all.reduce<Steering | null>((a, s) => (a === null || s.started > a.started ? s : a), null);
+/** The pause sent last among these records; null when none has one. */
+function latestReplies(records: readonly Pick<ProviderView, "replies">[] | readonly Pause[]): Replies | null {
+  const all = (records as readonly { replies?: Replies | null }[]).flatMap((r) => (r.replies === undefined || r.replies === null ? [] : [r.replies]));
+  return all.reduce<Replies | null>((a, s) => (a === null || s.sent > a.sent ? s : a), null);
 }
 
 /** The providers a running thread uses, in the order met. */
@@ -113,7 +121,7 @@ export function buildView(readings: readonly ProviderReading[], limits: Limits, 
   const records = [...pauses.values()].filter((p) => reasonOf(p) === "limit" && p.provider !== null);
   const providers = readings.map((r): ProviderView => {
     const mine = records.filter((p) => p.provider === r.instanceId);
-    const state = stateOf(r, mine.length > 0);
+    const state = stateOf(r, mine.length > 0, r.roles.length > 0 && (running.get(r.instanceId)?.length ?? 0) > 0);
     const stopped: LimitAgent[] = mine.map((p) => ({ id: p.braid, role: "coordinator", state: "paused", project: null }));
     const resumes = mine.map((p) => p.resumeAt).filter((t): t is string => t !== null).sort();
     return {
@@ -123,13 +131,14 @@ export function buildView(readings: readonly ProviderReading[], limits: Limits, 
       models: r.models,
       reason: r.verdict === "unknown" ? r.reason : null,
       checkedAt: r.checkedAt,
+      blindSince: state === "blind" ? r.blindSince : null,
       windows: r.windows,
       session: fullest(r.windows, "session"),
       weekly: fullest(r.windows, "weekly"),
       resumeAt: state === "paused" ? (resumes[0] ?? r.resumeAt) : r.resumeAt,
       pauseWindow: mine.find((p) => p.window !== null)?.window ?? r.pauseWindow,
       agents: [...stopped, ...(running.get(r.instanceId) ?? [])],
-      steering: latestSteering(mine),
+      replies: latestReplies(mine),
     };
   });
   return { limits, readAt: now.toISOString(), providers, note };
@@ -179,7 +188,7 @@ export function mergeLimits(views: readonly { readonly project: string; readonly
       byId.set(p.instanceId, [...(byId.get(p.instanceId) ?? []), { ...p, agents: p.agents.map((a) => ({ ...a, project })) }]);
     }
   }
-  const rank: Record<ChipState, number> = { unmeasured: 0, unknown: 1, ok: 2, near: 3, over: 4, paused: 5 };
+  const rank: Record<ChipState, number> = { unmeasured: 0, unknown: 1, ok: 2, near: 3, blind: 4, over: 5, paused: 6 };
   const providers = order.map((id): ProviderView => {
     const all = byId.get(id) ?? [];
     // The reading read last wins; the state shown is the most pressing one any project saw.
@@ -190,14 +199,23 @@ export function mergeLimits(views: readonly { readonly project: string; readonly
     const resumes = paused.map((p) => p.resumeAt).filter((r): r is string => r !== null).sort();
     return {
       ...latest,
-      state: latest.state === "unknown" || latest.state === "unmeasured" ? (paused.length > 0 ? "paused" : latest.state) : state,
+      // A pause record wins; then blind (0074/E): one project runs a thread on the provider and its reading is blind, whichever project read last.
+      state: latest.state === "unknown" || latest.state === "unmeasured" || latest.state === "blind" ? (paused.length > 0 ? "paused" : state === "blind" ? "blind" : latest.state) : state,
+      blindSince: all.find((p) => p.state === "blind")?.blindSince ?? latest.blindSince,
       ...(paused.length > 0 ? { resumeAt: resumes[0] ?? latest.resumeAt, pauseWindow: paused.find((p) => p.pauseWindow !== null)?.pauseWindow ?? latest.pauseWindow } : {}),
       roles: [...new Set(all.flatMap((p) => p.roles))],
       models: [...new Set(all.flatMap((p) => p.models))],
       agents: all.flatMap((p) => p.agents),
-      steering: latestSteering(all),
+      replies: latestReplies(all),
     };
   });
   const first = present[0];
-  return { limits: first?.view.limits ?? DEFAULT_LIMITS, readAt: present.map((p) => p.view.readAt).sort().at(-1) ?? "", providers, note: present.flatMap((p) => (p.view.note === null ? [] : [p.view.note]))[0] ?? null };
+  const acting = [...new Map(present.flatMap((p) => p.view.acting ?? []).map((a) => [a.key, a])).values()];
+  return {
+    limits: first?.view.limits ?? DEFAULT_LIMITS,
+    readAt: present.map((p) => p.view.readAt).sort().at(-1) ?? "",
+    providers,
+    note: present.flatMap((p) => (p.view.note === null ? [] : [p.view.note]))[0] ?? null,
+    ...(present.some((p) => p.view.acting !== undefined) ? { acting } : {}),
+  };
 }

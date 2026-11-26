@@ -513,8 +513,10 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const checking = pr?.state === "open" && (pr.checks === "pending" || pr.checks === "failing");
   const failed = raise(key, "checks failed", busy ? false : known ? pr?.state === "open" && pr.checks === "failing" && agents.length === 0 : null);
+  // A strandless braid is one item: its running coordinator (`working()`, as in the braid-level stall) holds the stall off. It still isn't an agent of the card (D46).
+  const coordinating = !key.includes("/") && t3.coordinators?.has(key) === true;
   // An open wait of the braid on another braid, or a timed wait still ahead, is the coordinator waiting on purpose: no item of it reads stalled; a broken wait on a braid does, on the braid.
-  const holds = busy || waits(key.slice(0, 4), sig).length > 0 || status !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
+  const holds = busy || waits(key.slice(0, 4), sig).length > 0 || status !== "In Progress" ? false : known ? agents.length === 0 && !checking && !coordinating : null;
   const stalls = stallsOf({ id: key, key, holds, words: "Stalled: nobody is working and nothing was asked" }, sig, t3, raise);
   const names = pr?.failed ?? [];
   const asking: Own | null =
@@ -741,7 +743,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
   if (finalPr) {
     // The braid's recorded reviewers (`braid review <n>`) are its agents in wrap-up; the coordinator never counts.
     const reviewers = (t3.threads.get(braid.number) ?? []).filter((t) => t.role === "reviewer");
-    const d = derive(self.status, braid.brief.labels, braid.number, gh, { ...t3, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []) }, sig, self.accepted, pr);
+    const d = derive(self.status, braid.brief.labels, braid.number, gh, { ...t3, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []), coordinators: new Map() }, sig, self.accepted, pr);
     alarms.push(...d.alarms);
     own = d;
   } else if (req !== undefined && routed !== undefined && pr?.state !== "merged") {

@@ -2,9 +2,10 @@
 // plan's front matter, the braid cards, the programme's open request, T3 and the broke clock. Pure apart from the
 // clock, which the step after the derivation keeps. A programme isn't a braid: it never sits in a lane, it sits in the panel.
 import { age, type Request } from "../braids/requests.js";
-import type { Pause } from "../braids/pauses.js";
+import { reasonOf, type Pause } from "../braids/pauses.js";
 import type { Hold, PlanRow, PlanState } from "../braids/plan.js";
 import { linkOfThread, needOfAsk, needOfForward, raiseTo, type Alarm, type BraidCard, type Lane, type Need, type NudgeTarget, type Raise, type Signals } from "./model.js";
+import { clock as hhmmOf, pauseView, usage } from "./pause.js";
 import { routeOf, throughPm } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import type { T3 } from "./t3.js";
@@ -34,6 +35,8 @@ export interface Programme {
   readonly hold: Hold | null;
   /** True when every braid of it that isn't Done is paused (a limit or a hold). */
   readonly paused: boolean;
+  /** Resume now on its card (0074/D): when every open braid is paused for a limit (none held), those braids and the card's small line; null otherwise. */
+  readonly resume: ProgrammeResume | null;
   readonly next: string | null;
   readonly digest: string | null;
   readonly limit: number | null;
@@ -58,6 +61,16 @@ export interface Programme {
   readonly seen: string | null;
   /** `plan unreadable: line 4: …`; null when the plan parsed. */
   readonly error: string | null;
+}
+
+export interface ProgrammeResume {
+  readonly braids: readonly string[];
+  /** `0074, 0075 · Claude_Everix Session 92% · resumes 21:05`, or the resume under way: asked, pending. */
+  readonly note: string;
+  /** A resume send failed and is retried at each refresh: the card's line reads amber. */
+  readonly pending: boolean;
+  /** The PM got the ask (ISO); null otherwise. */
+  readonly askedAt: string | null;
 }
 
 export interface Forward {
@@ -139,7 +152,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
     raise(clock, "stalled", false);
     return {
       slug: read.slug, branch: read.branch, title: read.slug, goal: null, state: null, section: asked === null ? "working" : "needs", thread: request?.thread ?? null, link: asked?.link ?? null, pmState: null,
-      hold: null, paused: false, next: null, digest: null, limit: null, rows: [], braids: [], done: 0, total: 0, running: 0, need: asked, forwards: [], requests: [],
+      hold: null, paused: false, resume: null, next: null, digest: null, limit: null, rows: [], braids: [], done: 0, total: 0, running: 0, need: asked, forwards: [], requests: [],
       status: `plan unreadable: ${read.error ?? "unknown"}`, handling: [], seen: null, error: `plan unreadable: ${read.error ?? "unknown"}`,
     };
   }
@@ -206,6 +219,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
     pmState,
     hold,
     paused,
+    resume: plan.state === "held" || plan.hold !== null || !paused ? null : resumeOf(open, sig),
     next: plan.next,
     digest: plan.digest,
     limit: plan.limit,
@@ -222,6 +236,27 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
     seen: stall === null ? null : `${pmWords} · no braid running: no agent thread, no check, no PR checks pending`,
     error: null,
   };
+}
+
+/** The programme card's Resume now: its open braids' limit records (null when any is held), with the line under the paused box. */
+function resumeOf(open: readonly BraidCard[], sig: Signals): ProgrammeResume | null {
+  const records = open.flatMap((c) => {
+    const p = sig.pauses?.get(c.id);
+    return p === undefined ? [] : [p];
+  });
+  if (records.length === 0 || records.some((p) => reasonOf(p) === "hold")) {
+    return null;
+  }
+  const braids = records.map((p) => p.braid);
+  const first = records[0] as Pause;
+  const pending = records.find((p) => p.resuming?.failedSince != null);
+  const asked = records.map((p) => p.resuming?.askedAt ?? null).find((a) => a !== null) ?? null;
+  const note = pending !== undefined
+    ? `${pauseView(pending, sig.now).text.replace(/^Paused: [^;]*; /, "")}`
+    : asked !== null
+      ? `${braids.join(", ")} · asked the PM to resume at ${hhmmOf(asked, sig.now)}`
+      : `${braids.join(", ")} · ${usage(first)}${first.resumeAt === null ? "" : ` · resumes ${hhmmOf(first.resumeAt, sig.now)}`}`;
+  return { braids, note, pending: pending !== undefined, askedAt: asked };
 }
 
 /** A hold from the pause records of a programme whose every open braid is paused: the oldest pause, with a hold's words when there are some. */

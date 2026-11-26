@@ -2,6 +2,7 @@
 // Reads T3's provider caches only. Exit 0 for ok and unknown, PAUSE_EXIT when any listed provider says pause.
 import { join } from "node:path";
 import { LimitsError, readLimits, readModelLines, readProviders, roleLines, t3Home, type ModelLine, type ProviderReading, type WindowReading } from "../braids/limits.js";
+import { percent } from "../braids/percent.js";
 import { parse, str } from "./edit.js";
 import { UsageError } from "./braids.js";
 
@@ -18,13 +19,15 @@ export function localTime(iso: string): string {
 }
 
 function windowLine(w: WindowReading): string {
-  const used = `${w.usedPercent}%${w.reset ? " (reset)" : ""}`;
+  const used = `${percent(w.usedPercent)}%${w.reset ? " (reset)" : ""}`;
   return `  ${w.label} (${w.id})`.padEnd(34) + `${used.padStart(12)} of ${String(w.threshold).padStart(3)}%   ${w.resetsAt === null ? "no reset shown" : `resets ${localTime(w.resetsAt)}`}${w.over ? "   OVER" : ""}`;
 }
 
 function block(r: ProviderReading): string {
   const models = r.models.length === 0 ? "" : `  models: ${r.models.join(", ")}`;
-  const lines = [`${r.instanceId}  roles: ${r.roles.join(", ")}${models}`];
+  // models.steering is no longer used (0074/C: the board pauses by code); BRAID.md still reads with it.
+  const roles = r.roles.map((role) => (role === "steering" || role.startsWith("steering.") ? `${role} (unused)` : role));
+  const lines = [`${r.instanceId}  roles: ${roles.join(", ")}${models}`];
   if (r.checkedAt !== null) {
     lines.push(`  checked ${localTime(r.checkedAt)}`);
   }
@@ -33,6 +36,9 @@ function block(r: ProviderReading): string {
     lines.push(`  verdict: pause: ${r.reason ?? ""}; resume at ${localTime(r.resumeAt ?? "")}`);
   } else if (r.verdict === "unknown") {
     lines.push(`  verdict: unknown (launch as usual): ${r.reason ?? ""}`);
+    if (r.blindSince !== null) {
+      lines.push(`  blind since ${localTime(r.blindSince)}: cache not updated since ${localTime(r.blindSince)}; restart T3. Nothing pauses on it until it reads again.`);
+    }
   } else {
     lines.push("  verdict: ok");
   }

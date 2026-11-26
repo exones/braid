@@ -57,10 +57,10 @@ At a threshold the acting board sends every working agent its own pause text by 
 
 ## Completion
 
-- [ ] A cache window without `resetsAt` no longer makes a provider's verdict unknown (0074/A, early in `main`)
-- [ ] One acting board per provider account and repository: no doubled resume, wake or push (0074/B)
-- [ ] The board pauses by code, only braids with working agents and only working threads, counts the replies and shows a failed pause loudly; no steering thread starts (0074/C)
-- [ ] Resume now (board buttons and CLI), early resume after a reset, PM-led resume for PM-run braids (0074/D)
-- [ ] Stale or unreadable limits show an amber blind chip and push once (0074/E)
-- [ ] A strandless braid with a working coordinator doesn't read stalled (0074/F)
-- [ ] Docs are true as a whole, and `.agents/skills/` has fewer lines of limits prose than before (0074/G)
+- [x] A cache window without `resetsAt` no longer makes a provider's verdict unknown (0074/A, early in `main`)
+- [x] One acting board per provider account and repository: no doubled resume, wake or push (0074/B)
+- [x] The board pauses by code, only braids with working agents and only working threads, counts the replies and shows a failed pause loudly; no steering thread starts (0074/C)
+- [x] Resume now (board buttons and CLI), early resume after a reset, PM-led resume for PM-run braids (0074/D)
+- [x] Stale or unreadable limits show an amber blind chip and push once (0074/E)
+- [x] A strandless braid with a working coordinator doesn't read stalled (0074/F)
+- [x] Docs are true as a whole, and `.agents/skills/` has fewer lines of limits prose than before (0074/G)

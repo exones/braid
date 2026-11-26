@@ -13,7 +13,7 @@ You are the programme manager (PM for short) of one project. The user, acting as
 
 Read `BRAID.md` (`gate`, `main`, `ci`, `run`, `models`), the project's agent instructions (`AGENTS.md` or `CLAUDE.md`), and these parts of the [braid skill](../braid/SKILL.md): "Plan" step 0 (how a coordinator thread is launched), "Talking to the user" (asking in chat, the option sets, the end markers), "Autonomy" and "Launched by a PM". The cases you judge are the [stop cases](../braid/references/stop-cases.md); merging under a preset is in [autonomy](../braid/references/autonomy.md).
 
-Models: coordinators and the live checker use `models.coordinator` from `BRAID.md`, with its exact provider, model and options. If it is unavailable, tell the user; never substitute. `models.steering` is the board's, not yours.
+Models: coordinators and the live checker use `models.coordinator` from `BRAID.md`, with its exact provider, model and options. If it is unavailable, tell the user; never substitute.
 
 ## Taking a goal
 
@@ -119,11 +119,11 @@ When the user says something about the work, update the plan file and tell the u
 
 ## Provider limits
 
-The board pauses and resumes your braids' agents ([provider limits](../braid/references/limits.md)); you keep no limits check task, schedule no resume and run no `braid pause` or `braid resume` for a limit.
+The board pauses your braids' agents and asks you to resume them ([provider limits](../braid/references/limits.md)); you keep no limits check task, schedule no resume and run no `braid pause` for a limit.
 
 - **Before launching a coordinator:** `braid limits --role coordinator`. Exit 3: launch nothing on that provider, say so once, and end the turn. A coordinator's `<number>: <provider> … over its threshold` message is the same signal; you answer nothing.
-- **The board's pause message** (`Braids <numbers> are paused by the board for <provider> …`): launch no coordinator on that provider, steer no coordinator, reply `Paused: pm` to the steering thread, note the pause in the plan file, and end the turn. The board has messaged the coordinators and their agents directly.
-- **The board's resume message** (`Resume: <numbers> …`): check `braid status` and the plan file, note the resume, and go on with "Running". Run no `braid resume`: the board cleared its record. A coordinator the board reports under no answer gets `Resume: continue your agents on <provider>.` from you.
+- **The board's summary** (`Direct pause: …`): launch and steer no coordinator on that provider, note the pause in the plan file, end the turn; no reply.
+- **The board's resume ask:** decide the order, then `braid resume <number> --limit` per braid (`--all` for every one); it sends each agent its resume text. Note the resume and go on with "Running".
 - **Weekly windows:** the board shows the braid in Needs You. Never switch providers yourself; the user moves a role in `BRAID.md` `models` and says go, then `braid resume <number> --limit` for each braid and a go to its coordinator.
 - **Without a running board** nothing pauses; the user says go on.
 - **Digest:** name the pause (provider, window, resume time, braids held).

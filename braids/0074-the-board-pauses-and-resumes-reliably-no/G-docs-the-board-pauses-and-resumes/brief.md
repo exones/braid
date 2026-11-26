@@ -36,9 +36,16 @@ Expected size: about 250 lines changed in 10 files, net fewer lines in `.agents/
 
 ## Completion
 
-- [ ] `.agents/skills/braid/references/limits.md` has no steering thread and no quoted pause texts, and is at most about half its length
-- [ ] No file under `.agents/skills/` is longer than before this braid (line counts listed in report.md)
-- [ ] Docs from BRAID.md `docs` brought up to date as a whole, each listed in report.md as updated or unchanged
-- [ ] report.md proposes removing `models.steering` from BRAID.md under "Needs the user"
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `.agents/skills/braid/references/limits.md` has no steering thread and no quoted pause texts, and is at most about half its length
+- [x] No file under `.agents/skills/` is longer than before this braid (line counts listed in report.md)
+- [x] Docs from BRAID.md `docs` brought up to date as a whole, each listed in report.md as updated or unchanged
+- [x] report.md proposes removing `models.steering` from BRAID.md under "Needs the user"
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- Rewrite `.agents/skills/braid/references/limits.md` around the board's self-contained texts: the check before launch, what to do on the pause, the PM's summary, the resume and the PM's resume ask (`braid resume <number> --limit`, `--all`), queued delivery; no steering thread, no quoted texts; about half its length.
+- Trim only the changed lines in the braid, braid-pm and braid-worker skills and resuming.md; no file longer than at the start.
+- Docs: 97% examples to 92% (defaults 90/90) in docs/board.md, docs/cli.md and the pause.ts comments; PM-led and early resume in README, getting-started and autonomy; a 0074 roadmap line; check the rest and list each in report.md.
+- Propose dropping `models.steering` from BRAID.md in report.md; run the gate.

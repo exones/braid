@@ -11,7 +11,7 @@ Plan the user's goal or story as braids and strands, then deliver them through w
 
 ## Project facts
 
-Read `BRAID.md` at the repository root first (`gate`, `main`, `ci`, `run`, `models` (per role; `steering` is the board's), `docs`), and follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
+Read `BRAID.md` at the repository root first (`gate`, `main`, `ci`, `run`, `models` (per role), `docs`), and follow the project's agent instructions (`AGENTS.md` or `CLAUDE.md`).
 
 Models: use `models.<role>.<tier>` (tier key `S`, `M` or `L`) if present, then `models.<role>.<kind>`, then `models.<role>`; if none exists, ask the user. Use any named skill. Use the exact provider, model and options (in T3 they are `instanceId`, `model` and `options`: `effort=high` is `{"effort":"high"}`); if unavailable, tell the user instead of substituting. When launching, state the model and its settings in one line.
 
@@ -184,7 +184,7 @@ When your first message names a PM thread (a `braid-pm` programme manager launch
 - What autonomy says to tell the user (the one line after a merge you made, "Telling") goes to the PM thread, for its digest, not to the user.
 - A new braid ("Plan" step 0, a sweep, a separate follow-up) is a proposal to the PM, not a launch: the PM adds it to its plan.
 - Message the PM when your braid is Done or stopped, and when its PR into `main` waits for the user's merge.
-- **Provider limits:** the board pauses and resumes. Over a threshold at a launch, tell the PM and launch nothing; on the board's pause message, launch nothing on that provider and reply `Paused: <number>`; on its resume message, check the state and go on ([provider limits](references/limits.md), "Under a PM").
+- **Provider limits:** the board pauses and resumes; over a threshold at a launch, tell the PM and launch nothing; follow the board's texts ([provider limits](references/limits.md)).
 
 ## Fixes
 
