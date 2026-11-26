@@ -10,9 +10,9 @@
 # folder, because skills are installed elsewhere and used from other projects.
 # The braid skills (braid and braid-*) are installed together by
 # scripts/Install-Skills.ps1, so they may also link to each other.
-# Text: index blobs and worktree bytes. An empty `git diff --check` is not
-# this check; a clean checkout still has to fail when a blob contains CR
-# or trailing whitespace.
+# Text: `git grep` over index blobs and over the worktree. An empty
+# `git diff --check` is not this check; a clean checkout still has to fail when
+# a blob contains CR or trailing whitespace.
 # Does not call scripts/Verify.ps1 or npm run verify.
 #Requires -Version 7.6
 [CmdletBinding()]
@@ -49,7 +49,7 @@ function Exit-Gate {
 function Invoke-Git {
   param(
     [Parameter(Mandatory = $true)][string[]]$GitArguments,
-    [switch]$Bytes
+    [int[]]$AllowedExitCodes = @(0)
   )
   $start = [System.Diagnostics.ProcessStartInfo]::new()
   $start.FileName = 'git'
@@ -69,50 +69,11 @@ function Invoke-Git {
   $process.StandardOutput.BaseStream.CopyTo($stdout)
   $process.WaitForExit()
   $errorText = $errorTask.GetAwaiter().GetResult()
-  if ($process.ExitCode -ne 0) {
+  if ($process.ExitCode -notin $AllowedExitCodes) {
     Write-GateFailure "git $($GitArguments -join ' ') exited $($process.ExitCode): $errorText"
     Exit-Gate -Code $process.ExitCode
   }
-  if ($Bytes) {
-    return $stdout.ToArray()
-  }
   return [System.Text.Encoding]::UTF8.GetString($stdout.ToArray())
-}
-
-function Read-Exact {
-  param(
-    [Parameter(Mandatory = $true)][System.IO.Stream]$Stream,
-    [Parameter(Mandatory = $true)][int]$Count
-  )
-  $buffer = [byte[]]::new($Count)
-  $offset = 0
-  while ($offset -lt $Count) {
-    $read = $Stream.Read($buffer, $offset, $Count - $offset)
-    if ($read -le 0) {
-      Write-GateFailure "git cat-file ended before $Count bytes"
-      Exit-Gate -Code 1
-    }
-    $offset += $read
-  }
-  return $buffer
-}
-
-function Read-AsciiLine {
-  param([Parameter(Mandatory = $true)][System.IO.Stream]$Stream)
-  $bytes = [System.Collections.Generic.List[byte]]::new()
-  while ($true) {
-    $next = $Stream.ReadByte()
-    if ($next -lt 0) {
-      break
-    }
-    if ($next -eq 10) {
-      break
-    }
-    if ($next -ne 13) {
-      $bytes.Add([byte]$next)
-    }
-  }
-  return [System.Text.Encoding]::ASCII.GetString($bytes.ToArray())
 }
 
 function Get-IndexFiles {
@@ -142,163 +103,28 @@ function Get-IndexFiles {
   return $files
 }
 
-function Add-AttributeRecords {
-  param(
-    [Parameter(Mandatory = $true)][hashtable]$Map,
-    [Parameter(Mandatory = $true)][string]$Text
-  )
-  $parts = @($Text -split "`0" | Where-Object { $_ -ne '' })
-  if (($parts.Count % 3) -ne 0) {
-    Write-GateFailure "git check-attr returned an incomplete record"
-    Exit-Gate -Code 1
+# CR and trailing whitespace in tracked text, found by git itself. -I skips
+# binary files and the pathspec skips files whose text attribute is unset.
+# --cached reads index blobs; without it git reads the worktree bytes.
+function Get-TextFindings {
+  param([string[]]$Source = @())
+  $label = if ($Source -contains '--cached') { 'index blob' } else { 'worktree' }
+  # The --no- flags keep a user's git config out of the output.
+  $grep = @('grep', '--no-color', '--no-column', '--no-recurse-submodules') + $Source + @('-I', '-z', '-P')
+  $paths = @('--', '.', ':(exclude,attr:-text)')
+  # git grep exits 1 when nothing matches.
+  $cr = Invoke-Git -GitArguments ($grep + @('-l', '-e', '\r') + $paths) -AllowedExitCodes 0, 1
+  foreach ($path in ($cr -split "`0" | Where-Object { $_ -ne '' })) {
+    "CR line ending in $label $path"
   }
-  for ($index = 0; $index -lt $parts.Count; $index += 3) {
-    $Map[$parts[$index] -replace '\\', '/'] = $parts[$index + 2]
-  }
-}
-
-function Get-TextAttribute {
-  param([Parameter(Mandatory = $true)][string[]]$Paths)
-  $map = @{}
-  if ($Paths.Count -eq 0) {
-    return $map
-  }
-  for ($offset = 0; $offset -lt $Paths.Count; $offset += 40) {
-    $end = [Math]::Min($offset + 39, $Paths.Count - 1)
-    $batch = @($Paths[$offset..$end])
-    $raw = [string](Invoke-Git -GitArguments (@('check-attr', '-z', 'text', '--') + $batch))
-    Add-AttributeRecords -Map $map -Text $raw
-  }
-  return $map
-}
-
-function Get-BlobMap {
-  param([Parameter(Mandatory = $true)][string[]]$Shas)
-  $map = @{}
-  if ($Shas.Count -eq 0) {
-    return $map
-  }
-  $start = [System.Diagnostics.ProcessStartInfo]::new()
-  $start.FileName = 'git'
-  $start.WorkingDirectory = $script:RepoRoot
-  $start.UseShellExecute = $false
-  $start.RedirectStandardInput = $true
-  $start.RedirectStandardOutput = $true
-  $start.RedirectStandardError = $true
-  $start.CreateNoWindow = $true
-  foreach ($argument in @('-C', $script:RepoRoot, 'cat-file', '--batch')) {
-    $start.ArgumentList.Add($argument)
-  }
-  $process = [System.Diagnostics.Process]::Start($start)
-  $errorTask = $process.StandardError.ReadToEndAsync()
-  $output = $process.StandardOutput.BaseStream
-  foreach ($sha in $Shas) {
-    $process.StandardInput.WriteLine($sha)
-    $process.StandardInput.Flush()
-    $header = Read-AsciiLine -Stream $output
-    if ($header -notmatch "^$sha blob (\d+)$") {
-      Write-GateFailure "git cat-file header for ${sha}: $header"
-      Exit-Gate -Code 1
+  $trailing = Invoke-Git -GitArguments ($grep + @('-n', '-e', '[ \t]\r?$') + $paths) -AllowedExitCodes 0, 1
+  # One record per line, path NUL line number NUL content.
+  $trailing -split "`n" | Where-Object { $_.Contains("`0") } |
+    Group-Object { $_.Split("`0")[0] } -CaseSensitive |
+    ForEach-Object {
+      $suffix = if ($_.Count -eq 1) { '1 line' } else { "$($_.Count) lines" }
+      "trailing whitespace in $label $($_.Name):$($_.Group[0].Split("`0")[1]) ($suffix)"
     }
-    $size = [int]$Matches[1]
-    $body = if ($size -eq 0) { [byte[]]::new(0) } else { Read-Exact -Stream $output -Count $size }
-    $newline = $output.ReadByte()
-    if ($newline -ne 10) {
-      Write-GateFailure "git cat-file blob $sha was not followed by a newline"
-      Exit-Gate -Code 1
-    }
-    $map[$sha] = $body
-  }
-  $process.StandardInput.Close()
-  $process.WaitForExit()
-  $errorText = $errorTask.GetAwaiter().GetResult()
-  if ($process.ExitCode -ne 0) {
-    Write-GateFailure "git cat-file --batch exited $($process.ExitCode): $errorText"
-    Exit-Gate -Code $process.ExitCode
-  }
-  return $map
-}
-
-function Test-SameBytes {
-  param(
-    [Parameter(Mandatory = $true)][byte[]]$Left,
-    [Parameter(Mandatory = $true)][byte[]]$Right
-  )
-  if ($Left.Length -ne $Right.Length) {
-    return $false
-  }
-  for ($index = 0; $index -lt $Left.Length; $index++) {
-    if ($Left[$index] -ne $Right[$index]) {
-      return $false
-    }
-  }
-  return $true
-}
-
-function Get-TextIssue {
-  param([Parameter(Mandatory = $true)][AllowEmptyCollection()][byte[]]$Bytes)
-  $sawNul = $false
-  $sawCr = $false
-  $trailingLine = 0
-  $trailingCount = 0
-  $line = 1
-  $lineStart = 0
-  for ($index = 0; $index -le $Bytes.Length; $index++) {
-    $atEnd = $index -eq $Bytes.Length
-    $byte = if ($atEnd) { [byte]10 } else { $Bytes[$index] }
-    if (-not $atEnd -and $byte -eq 0) {
-      $sawNul = $true
-      break
-    }
-    if (-not $atEnd -and $byte -eq 13) {
-      $sawCr = $true
-    }
-    if ($byte -eq 10) {
-      $end = $index
-      if ($end -gt $lineStart -and $Bytes[$end - 1] -eq 13) {
-        $end--
-      }
-      if ($end -gt $lineStart) {
-        $last = $Bytes[$end - 1]
-        if ($last -eq 32 -or $last -eq 9) {
-          if ($trailingCount -eq 0) {
-            $trailingLine = $line
-          }
-          $trailingCount++
-        }
-      }
-      if ($atEnd) {
-        break
-      }
-      $line++
-      $lineStart = $index + 1
-    }
-  }
-  return [pscustomobject]@{
-    Binary = $sawNul
-    Cr = $sawCr
-    TrailingLine = $trailingLine
-    TrailingCount = $trailingCount
-  }
-}
-
-function Add-TextFindings {
-  param(
-    [Parameter(Mandatory = $true)][AllowEmptyCollection()][System.Collections.Generic.List[string]]$Findings,
-    [Parameter(Mandatory = $true)][string]$Label,
-    [Parameter(Mandatory = $true)][string]$Path,
-    [Parameter(Mandatory = $true)]$Issue
-  )
-  if ($Issue.Binary) {
-    return
-  }
-  if ($Issue.Cr) {
-    $Findings.Add("CR line ending in $Label $Path")
-  }
-  if ($Issue.TrailingCount -gt 0) {
-    $suffix = if ($Issue.TrailingCount -eq 1) { '1 line' } else { "$($Issue.TrailingCount) lines" }
-    $Findings.Add("trailing whitespace in $Label ${Path}:$($Issue.TrailingLine) ($suffix)")
-  }
 }
 
 function Get-RepoRelative {
@@ -525,37 +351,11 @@ for ($index = 0; $index -lt $exclusions.Count; $index++) {
   }
 }
 
-$indexFiles = @(Get-IndexFiles)
-$pathList = @($indexFiles | ForEach-Object { $_.Path })
-$shaList = @($indexFiles | ForEach-Object { $_.Sha } | Select-Object -Unique)
-$attributes = Get-TextAttribute -Paths $pathList
-$blobMap = Get-BlobMap -Shas $shaList
-foreach ($file in $indexFiles) {
-  $attribute = $attributes[$file.Path]
-  if ($attribute -eq 'unset') {
-    continue
-  }
-  if (-not $blobMap.ContainsKey($file.Sha)) {
-    Write-GateFailure "missing blob for $($file.Path)"
-    Exit-Gate -Code 1
-  }
-  $blob = [byte[]]$blobMap[$file.Sha]
-  $blobIssue = Get-TextIssue -Bytes $blob
-  if ($blobIssue.Binary) {
-    continue
-  }
-  $workPath = Join-Path $script:RepoRoot ($file.Path -replace '/', [System.IO.Path]::DirectorySeparatorChar)
-  $workIssue = $null
-  if (Test-Path -LiteralPath $workPath -PathType Leaf) {
-    $workBytes = [System.IO.File]::ReadAllBytes($workPath)
-    if (-not (Test-SameBytes -Left $blob -Right $workBytes)) {
-      $workIssue = Get-TextIssue -Bytes $workBytes
-    }
-  }
-  Add-TextFindings -Findings $failures -Label 'index blob' -Path $file.Path -Issue $blobIssue
-  if ($null -ne $workIssue) {
-    Add-TextFindings -Findings $failures -Label 'worktree' -Path $file.Path -Issue $workIssue
-  }
+$indexFindings = @(Get-TextFindings -Source '--cached')
+# A worktree finding that repeats the index one says nothing new.
+$worktreeFindings = @(Get-TextFindings | Where-Object { $indexFindings -cnotcontains ($_ -replace ' in worktree ', ' in index blob ') })
+foreach ($finding in ($indexFindings + $worktreeFindings)) {
+  $failures.Add($finding)
 }
 
 if ($failures.Count -gt 0) {
@@ -565,5 +365,5 @@ if ($failures.Count -gt 0) {
   Exit-Gate -Code 1
 }
 
-Write-Output "docs-gate: passed suppressed=$($linkFindings.Count) exclusions=$($exclusions.Count) frozen=$($linkConfig.Frozen.Count) text=$($indexFiles.Count)"
+Write-Output "docs-gate: passed suppressed=$($linkFindings.Count) exclusions=$($exclusions.Count) frozen=$($linkConfig.Frozen.Count) text=$(@(Get-IndexFiles).Count)"
 Exit-Gate -Code 0

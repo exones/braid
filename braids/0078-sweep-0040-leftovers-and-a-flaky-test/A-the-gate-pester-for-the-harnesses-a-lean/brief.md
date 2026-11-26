@@ -42,3 +42,11 @@ Expected size: large but mechanical; about 1,800 lines removed and 600 to 900 ad
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/development.md at least), or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Time the quick gate and the docs gate before any change.
+2. Scanner: replace the cat-file reader and byte loop with `git grep` (`--cached` and worktree), `-I` for binaries, an `attr:-text` exclude pathspec; same finding lines.
+3. Harnesses: one Pester suite each. `Install-NodeToolchain.Tests.ps1` already covers launcher shims, so the store fixture becomes `Install-NodeToolchain.Store.Tests.ps1`. Case bodies are carried over mostly as written (their assert helpers now call `Should`).
+4. Parity: run the new docs-gate suite against the old script too.
+5. Verify.ps1 and docs/development.md, gate, report, PR.

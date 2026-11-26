@@ -47,16 +47,16 @@ Both gates run `scripts/Verify.ps1`, which selects the toolchain first.
 `npm run verify` is the quick offline pre-PR gate (about 20 seconds) and the `gate` in [BRAID.md](../BRAID.md):
 
 1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Paths listed as frozen in `scripts/markdown-link-exclusions.json` (closed records kept as written) are not link-checked, but their text still is. A skill under `.agents/skills/<name>/` must not link outside its own folder, except to another braid skill.
-2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
+2. Tracked-text LF line endings and trailing whitespace, with `git grep` over index blobs and over the worktree, so a clean checkout and a local edit are both covered. Binary files and files whose `text` attribute is unset are skipped.
 3. The OIDC release-shape guard.
 4. `npm run typecheck` (`tsc -p tsconfig.json --noEmit` and `tsc -p web/tsconfig.json --noEmit` for the board's web app), `npm run build` (`tsc -p tsconfig.build.json` and `vite build --config web/vite.config.ts`) and `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`).
 
 `npm run verify:full` (`Verify.ps1 -Full`) is what CI and the release workflow run. It adds the tooling tests and the package proof:
 
-- The docs-gate negatives: a disposable repository that must fail for a broken link or anchor, a CR line ending, trailing whitespace and a skill linking outside its folder (a braid skill may link to another braid skill), and must pass for a broken link under a frozen path.
-- The install-policy guard: real installs that `.npmrc` must refuse.
-- The shared Node.js toolchain fixture: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout and interruption, in disposable roots without downloading Node.js.
-- `scripts/Test-Pester.ps1`, which runs the Pester suites under `test/pester/`.
+- `scripts/Test-Pester.ps1`, which runs the Pester suites under `test/pester/`. Among them:
+  - `Test-DocsGate.Tests.ps1`: a disposable repository that must fail for a broken link or anchor, a CR line ending, trailing whitespace and a skill linking outside its folder (a braid skill may link to another braid skill), and must pass for a broken link under a frozen path.
+  - `Install-Policy.Tests.ps1`: real installs that `.npmrc` must refuse, with the scripted package under `test/fixtures/install-policy/`.
+  - `Install-NodeToolchain.Store.Tests.ps1`: PATH precedence, shared-store reuse, checksum and metadata failures, concurrency, lock timeout and interruption, in disposable roots without downloading Node.js.
 - `scripts/Test-Package.ps1`, which rebuilds, runs `npm pack --ignore-scripts`, installs that exact tarball in a temporary directory outside this checkout, and runs `braid --version` and `braid help` through the installed executable.
 
 Run `verify:full` locally when you change those tools, `.npmrc`, packaging or the release workflow. External skill validators are not part of either gate; run them when a change edits skill content.
