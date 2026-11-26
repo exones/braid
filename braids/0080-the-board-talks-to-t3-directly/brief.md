@@ -25,10 +25,10 @@ What a user can try at the end: sign the board in once; Hold stops every thread 
 | 0080/D | The board signs in to T3 (`ui`), as A's approved design says | L | A, B |
 | 0080/E | Hold and Resume reach every thread: interrupt with `stop: true`, children included; the limit clash | L | C, D, and 0074 in `main` |
 | 0080/F | The board hears T3 events instead of the 30 s poll, with a full read as backstop | M | B, D, and 0077 in `main` |
-| 0080/G | PM and coordinator threads launched with auto-settle off (a skill line) | L | 0074, 0072, 0060 in `main` |
+| ~~0080/G~~ | Dropped (the user, q-htgo): T3 offers agents no auto-settle switch; 0080/H notes it as a manual T3 setting | | |
 | 0080/H | Docs: The board talks to T3 directly | S | all |
 
-Run order: A; then B and C while the user reads A's report; D after the user approves A; E once 0074 is in `main` and merged into this braid; F once 0077 is in `main` and merged in; G; H.
+Run order: A; then B and C while the user reads A's report; D after the user approves A; E once 0074 is in `main` and merged into this braid; F once 0077 is in `main` and merged in; H. (G dropped.)
 
 ## First-pass test results (strand 1 of the row, done)
 
@@ -78,7 +78,7 @@ The user signs the board in to T3 once, at Full access; the token lives in the O
 - [ ] Hold and a limit pause stop running threads and their delegated children; a thread whose last run failed on `usage_limit` counts as paused (0080/E)
 - [ ] Signed in, the board refreshes on T3 events, reads everything after `truncated`, and keeps a slow full read (0080/F)
 - [ ] Stalled cards say why a thread failed (0080/C)
-- [ ] PM and coordinator threads are launched with auto-settle off, or the report says why T3 offers no way to (0080/G)
+- [ ] Auto-settle: dropped by the user (q-htgo, "M. B"), since T3 v0.1.12 lets no agent turn it off; the docs say it is a manual T3 setting (0080/H)
 - [ ] Docs are true as a whole (0080/H)
 
 ## Autonomy
