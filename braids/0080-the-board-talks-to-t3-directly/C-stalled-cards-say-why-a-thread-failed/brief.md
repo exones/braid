@@ -31,7 +31,8 @@ Expected size: about 200 lines in 5 files.
 ## Already decided
 
 - Board UI: icon-only, the words in the tooltip; how threads are opened doesn't change.
-- Related to 0077 (The board stays fast under load; it owns the board's T3 read path in src/board/t3.ts): the coordinator agrees this one-field change with 0077's coordinator before this strand starts, and the worker merges `main` (or 0077's branch, as agreed) first; no new T3 calls, `error` comes from the `thread show` the board already runs.
+- Related to 0077 (The board stays fast under load; it owns the board's T3 read path in src/board/t3.ts): the coordinator agrees this one-field change with 0077's coordinator before this strand starts, and the worker merges `main` (or 0077's branch, as agreed) first. The board runs `thread show` only on running threads, so a failed thread needs one more read (the coordinator's decision, agreed with 0077's coordinator): one cached, async `thread show` per new failure, only for idle worker or coordinator threads the list marks failed or interrupted (not archived, open items), in src/board/failure.ts; src/board/t3.ts changes only `showThread`/`Where`.
+- The hook: an optional `failures?(t3)` source on `Sources`/`InputSources`, wired in `repoSources` (src/commands/board.ts) to failure.ts, called in `readInputs` (src/board/inputs.ts) right after the T3 read, wrapped in `timed("failures", …)`; tests and the demo may leave it out. Async only (test/board-async.test.ts), and a failure in it leaves the lanes intact, like `plans`.
 
 ## Out of scope
 
@@ -51,5 +52,5 @@ Expected size: about 200 lines in 5 files.
 1. Mockups (`mockups/1-kinds.html`, `mockups/2-variants.html`, made from the card's own classes on demo braids), then stop for the user's verdict.
 2. `src/board/failure.ts`: `failureOf(error, thread)`. Kind from the text (T3 v0.1.12 gives no class in `thread show` or `thread list`); `stopped` from the thread's status when the run ended without an error text.
 3. `showThread`/`Where`: one `error` field.
-4. Get `Where.error` to the card: open, see the log (the board runs `thread show` only on running threads); needs the coordinator's answer.
+4. The failures read (see Already decided): `failures?(t3)` in src/board/failure.ts, wired through `Sources` and `readInputs`.
 5. The card: the failure on the stall's need; its icon in the marks, the full text in the tooltip. Demo data, tests, docs/board.md.
