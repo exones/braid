@@ -49,10 +49,10 @@ Expected size: about 250 lines in 5 files, tests included.
 
 ## Completion
 
-- [ ] Mockups shown and approved before building (log entry with the verdict)
-- [ ] Need pushes say what the request unblocks and decide or do, and an escalation "Escalated to you", with tests
-- [ ] The forwarded-merge push names the code, braid, title, PR, head and the PM's note, without re-sending an unchanged push, with tests
-- [ ] A programme card shows its braids' requests that are the user's and is in Needs you while one is open, with tests
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] Mockups shown and approved before building (log entry with the verdict)
+- [x] Need pushes say what the request unblocks and decide or do, and an escalation "Escalated to you", with tests
+- [x] The forwarded-merge push names the code, braid, title, PR, head and the PM's note, without re-sending an unchanged push, with tests
+- [x] A programme card shows its braids' requests that are the user's and is in Needs you while one is open, with tests
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
