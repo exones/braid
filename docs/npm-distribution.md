@@ -28,6 +28,8 @@ Until `BRAID_RELEASE` is exactly `enabled`, the publish step is skipped. `npm pu
 
 The publish step publishes the tarball produced by that same job (`npm publish --ignore-scripts <tarball>`). A scoped name also gets `--access public`, which matches the selected public-package route. A paid private npm package is not this workflow. The job uses GitHub-hosted `ubuntu-latest`, `contents: read`, `actions: write`, and `id-token: write`. It does not set `NODE_AUTH_TOKEN` or `registry-url`.
 
+`test/pester/Release-Workflow.Tests.ps1` guards this shape. It runs in `npm run verify:full`, so in CI on every pull request and in the release job before it publishes, and fails when `id-token: write` leaves the publishing job or reaches another job or the workflow level, when the workflow names `NPM_TOKEN` or `NODE_AUTH_TOKEN`, when a trigger other than the `confirm` dispatch is added, or when the confirm word, the `ubuntu-latest` runner, Node.js 26, the npm 11.5.1 gate, the enabled condition or the single-tarball `--ignore-scripts` publish changes. It also keeps `npm publish` in `release.yml` alone.
+
 Trusted publisher settings must name the workflow filename `release.yml` only, including the extension. Keep `npm publish` in this file. npm's trusted publishing notes say that a `workflow_call` or a nested workflow can make npm validate the caller filename instead of the file that contains `npm publish`.
 
 The provenance file next to the tarball is this repository's pack record: version, source revision, dirty flag, and SHA-256. It is not an npm provenance attestation. npm generates registry provenance automatically when a public package is published with trusted publishing from this public repository. Do not pass `--provenance` for that path.

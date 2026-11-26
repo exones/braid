@@ -1,13 +1,12 @@
 # Pre-PR gate. Quick (npm run verify): tracked Markdown links and anchors,
-# tracked-text LF/trailing whitespace, OIDC release shape, typecheck, build,
-# tests. -Full (npm run verify:full, used by CI and releases) also runs the
-# Pester suites under test/pester (docs gate, install policy, Node toolchain and
-# the other tooling) and the packed-install proof.
+# tracked-text LF/trailing whitespace, typecheck, build, tests. -Full (npm run
+# verify:full, used by CI and releases) also runs the Pester suites under
+# test/pester (docs gate, install policy, Node toolchain, the release workflow's
+# trusted-publishing shape and the other tooling) and the packed-install proof.
 # Root dependencies stay on `npm ci`, which reads .npmrc. The install-policy fixture is a
-# separate project and is not a root dependency. The OIDC guard only reads release.yml.
+# separate project and is not a root dependency.
 # Stops on the first failed native command and returns that exit code.
 # Does not call npm run verify. scripts/Test-Package.ps1 does not call this script.
-# test/fixtures/oidc-release/Test-OidcReleaseGuard.ps1 does not call this script.
 # scripts/Test-Pester.ps1 and the suites under test/pester do not call this script.
 #Requires -Version 7.6
 [CmdletBinding()]
@@ -92,7 +91,6 @@ function Invoke-Script {
 
 Write-Host "verify: $(if ($Full) { 'full' } else { 'quick' })"
 Invoke-Script 'docs-gate: tracked Markdown links and tracked text' 'scripts/Test-DocsGate.ps1'
-Invoke-Script 'oidc-release: trusted publishing shape' 'test/fixtures/oidc-release/Test-OidcReleaseGuard.ps1'
 if ($Full) {
   Invoke-Script 'pester: PowerShell suites under test/pester' 'scripts/Test-Pester.ps1'
 }
