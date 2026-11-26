@@ -188,10 +188,23 @@ Two kinds of thread count. The worker's: a running thread whose worktree braid c
 
 - **Files:** each item's `brief.md`, read from its own branch when it has one ([Branches](braids-format.md#branches)).
 - **GitHub:** one `gh pr list` per refresh (state, head commit and checks); a PR belongs to the item named by its head branch (`braid/0006-slug` or `braid/0006/A-slug`). Merged and closed PRs are cached (an open one wins over both, a merged one over a closed one).
-- **T3:** `t3 thread list --project <main checkout>`, plus `t3 thread show` for each running thread (its worktree and pending questions) and for each recorded review thread (whether it runs, and its pending questions). An idle thread (not running, not archived) is placed by its title alone, with no `show`: `<emoji> <repo> <id> <role>: <title>` (built by `braid title`; the emoji may be missing in older titles, the repo is the GitHub repository's name or the checkout folder's) names its item (`0009` or `0009/D`) and its role (`worker`, `coordinator`); a `review` title and any other title drop it. A running thread belongs to an item by its worktree folder, as above. `braid clean` reads T3 the same way, so it shows only running threads.
+- **T3:** `t3 thread list --project <main checkout>`, plus `t3 thread show` for each running thread (its worktree and pending questions) and for each recorded review thread (whether it runs, and its pending questions), and once for each newly failed idle thread of an open item (the list says `failed` or `interrupted`; the item's newest worker, or the braid's coordinator) to read its error ([why](#why-a-thread-failed)), remembered until the list gives that thread another status. An idle thread (not running, not archived) is placed by its title alone, with no `show` for that: `<emoji> <repo> <id> <role>: <title>` (built by `braid title`; the emoji may be missing in older titles, the repo is the GitHub repository's name or the checkout folder's) names its item (`0009` or `0009/D`) and its role (`worker`, `coordinator`); a `review` title and any other title drop it. A running thread belongs to an item by its worktree folder, as above. `braid clean` reads T3 the same way, so it shows only running threads.
 - **Requests, review threads and broke clock:** `.braid/` of the main checkout.
 - **Programmes:** the plan files on the `pm/*` branches ([Programmes](#programmes)).
 - Without `gh` or T3 the board still works on the stored states and requests; without `gh` the banner says why (see [Not ready](#not-ready)), without T3 the header does. Without T3 no agent shows and no alarm can be told.
+
+### Why a thread failed
+
+A stalled card whose thread failed (its last run ended without completing) says why instead of the generic stall sentence: the reason's icon and a few words, "stalled for N min" under it, and T3's whole error on hover. It shows only once the card reads stalled, so after the same ten minutes (and the nudge) as above; with it, the card no longer says "after a nudge". The icon takes the place of the red clock, also with Details off.
+
+| Reason | Words on the card | Read from |
+| --- | --- | --- |
+| usage limit (gauge) | Usage limit, with "· resets <time>" when T3's text says it | "hit your … limit", "usage limit reached", a spend cap or no credits |
+| provider or network error (cloud) | Provider overloaded, Provider rate limit, Provider error (500), Network error | the provider's error text; a temporary 429 ("not your usage limit") is not a usage limit |
+| stopped run (stop) | Run stopped | T3's status `interrupted` or `cancelled`, or the text |
+| anything else (triangle) | T3's own text, cut; "Run failed" when it gives none | |
+
+T3 gives the error's text and no class, so the kind is read from the words (`src/board/failure.ts`). The thread is the stalled item's newest idle worker; when that one didn't fail, and for the braid's own stall, it is the braid's idle coordinator. A paused braid keeps its pause's words, and a broken wait and a stalled programme keep theirs. `braid status` doesn't show the reason. On a phone there is no hover, so the whole error is only in the thread. The board only says why; it acts on no reason.
 
 ## Icons and lines
 
@@ -206,6 +219,7 @@ A card on your side (Needs You, To Review) carries one line saying what is neede
 | amber clipboard | a plan to approve | Plan approval needed |
 | red circle with a cross | checks failed (alarm) | Checks failed: names of the failing checks |
 | red clock | stalled (alarm) | Stalled: nobody is working and nothing was asked |
+| red gauge, cloud, stop or triangle | stalled, and its thread failed ([why](#why-a-thread-failed)) | T3's whole error |
 | scales ⚖ | a board pause that needs you: a weekly window, or a failed pause | Provider limit: a weekly window or a failed pause needs you |
 | sky pause | the braid is paused for a provider limit (also on its strands not Done) | Paused: `<provider> <window> <n>%`, resumes `<time>` |
 | amber pause | paused, and the resume was due more than 15 min ago | Paused: …; resume was due at `<time>` |

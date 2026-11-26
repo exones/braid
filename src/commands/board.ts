@@ -22,6 +22,7 @@ import { limitPusher } from "../notify/notifier.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
+import { failureReader, type Failure } from "../board/failure.js";
 import { readInputs, readStartContext } from "../board/inputs.js";
 
 export { readStartContext };
@@ -78,6 +79,8 @@ export interface Sources {
   github(fresh: boolean): Github | Promise<Github>;
   t3(fresh: boolean): Promise<T3>;
   signals(github: Github): ReadSignals;
+  /** Why idle threads of open items failed, by thread id; absent: none. A failed read gives none. */
+  failures?(t3: T3, braids: readonly Braid[]): Promise<ReadonlyMap<string, Failure>>;
   /** Fetches `braid-requests` from origin; the board calls it only on a fresh read (the Refresh button), alongside GitHub and T3, and reads the local refs otherwise. Absent: never fetched. */
   fetchRequests?(): Promise<unknown>;
   /** The plans of the project's programmes (`pm/*` branches); absent: none. A failed read gives none. */
@@ -489,6 +492,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     signals: (github) => readSignals(root, github),
     fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
+    failures: failureReader(t3, root),
     limits: (threads, pauses) => readLimitsView(root, threads, pauses),
     tree: (item) => treeOf(root, item),
     watch: join(root, "braids"),

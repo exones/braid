@@ -138,6 +138,8 @@ export interface Where {
   readonly provider: string | null;
   /** T3's link to the thread (`<base>/<env>/<thread>`). */
   readonly link: string | null;
+  /** The latest run's error once it ended without completing; null otherwise. */
+  readonly error: string | null;
 }
 
 /** How long after its record a recorded PM checker is read for: each run of it is a separate task the PM starts, and between runs T3 shows it `completed`, so the record stays until the thread is archived or this passes (bounds the `thread show` reads). Docs: board.md. */
@@ -173,6 +175,7 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
       relationshipToParent: str(t["relationshipToParent"]),
       provider: str(t["providerInstanceId"]),
       link: str(t["link"]),
+      error: str(top?.["error"]),
     };
   } catch {
     return null;
