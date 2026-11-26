@@ -1,0 +1,74 @@
+<!doctype html><html><head><meta charset="utf-8"><title>0072/B mockups</title>
+<style>
+:root{--fg:#0f172a;--bg:#fff;--line:#e2e8f0;--soft:#f8fafc;--mut:#64748b;--chip:#e2e8f0;--amber:#fffbeb;--red:#fef2f2;--ink:#334155}
+@media (prefers-color-scheme:dark){:root{--fg:#e2e8f0;--bg:#0f172a;--line:#334155;--soft:#1e293b;--mut:#94a3b8;--chip:#334155;--amber:#3a2d0b;--red:#3b1517;--ink:#cbd5e1}}
+body{font:13px/1.4 system-ui,sans-serif;margin:0;padding:8px;color:var(--fg);background:var(--bg)}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:18px 0 6px}
+.cards{display:flex;flex-wrap:wrap;gap:10px}
+.card{width:300px;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.card b.t{font-size:13.5px}.card .id{color:var(--mut);font-size:11px}
+.need{margin-top:6px;border-left:3px solid #f59e0b;background:var(--amber);padding:4px 6px;border-radius:6px;font-size:12.5px}
+.need.esc{border-color:#dc2626;background:var(--red)}
+.need small{display:block;color:var(--mut);font-size:11px;margin-top:1px}
+.chip{font:11px ui-monospace,monospace;background:var(--chip);border-radius:4px;padding:0 4px;cursor:pointer}
+.blk{font-weight:600}.act{font-size:10.5px;font-weight:700;text-transform:uppercase;border-radius:9px;padding:0 6px;background:#fde68a;color:#78350f}
+.act.do{background:#bfdbfe;color:#1e3a8a}.act.merge{background:#ddd6fe;color:#4c1d95}
+.panel{max-width:640px}
+.req{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0}
+.req .h{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.req .r{flex:1}
+.pill{font-size:11px;font-weight:600;border-radius:9px;padding:0 7px}
+.green{background:#dcfce7;color:#166534}.grey{background:#f1f5f9;color:#475569}.violet{background:#ede9fe;color:#5b21b6}.amber{background:#fef3c7;color:#92400e}
+.ans{margin-top:5px;border-left:3px solid #16a34a;background:var(--soft);padding:3px 8px;border-radius:4px}
+.why{margin-top:4px;border-left:3px solid #94a3b8;background:var(--soft);padding:3px 8px;border-radius:4px;color:var(--ink)}
+.meta{margin-top:4px;font-size:11.5px;color:var(--mut)}
+.big{max-width:640px;border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin:8px 0;line-height:1.55}
+.big .need{padding:12px 14px;border-radius:8px;margin:0 0 14px}
+.big .q{font-size:15px;font-weight:600;margin:10px 0 14px}
+details.ctx{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0;background:var(--soft)}
+details.ctx summary{cursor:pointer;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+details.ctx p{margin:8px 0 0}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:baseline;border:1px solid var(--line);border-radius:8px;padding:9px 12px;opacity:.85}
+.opt b{font-size:12px;border:1px solid var(--mut);border-radius:5px;padding:0 6px}
+.cust{margin-top:8px;border:1px dashed var(--mut);border-radius:8px;padding:9px 12px;color:var(--mut)}
+.field{margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--mut);min-height:46px}
+.later{font-size:11px;color:var(--mut);margin:6px 0 0}
+.spec{max-width:640px;border:1px solid var(--line);border-radius:8px;padding:8px 14px;background:var(--soft)}
+code{font-family:ui-monospace,monospace;font-size:12px}
+</style></head><body>
+<h2>Cards in Needs You: the need line is "[handle] blocks … · act", then the words</h2>
+<div class="cards">
+<div class="card"><b class="t">PDF export</b> <span class="id">0003 · strand C</span>
+ <div class="need"><span class="chip">yellow-bear-5asx</span> <span class="blk">blocks 0003/D, 0003/E</span> <span class="act">decide</span><br>Which rounding rule should refunds use, half-up or banker's?<small>strand 0003/C · asked 35 min ago</small></div></div>
+<div class="card"><b class="t">Report totals</b> <span class="id">0009 · braid</span>
+ <div class="need"><span class="chip">calm-otter-7k2m</span> <span class="blk">blocks 0009/A, 0009/B, 0009/C</span> <span class="act">decide</span><br>Approve the plan: 3 strands, A to C<small>braid, no strand involved · asked 20 min ago</small></div></div>
+<div class="card"><b class="t">Billing</b> <span class="id">0004 · strand B</span>
+ <div class="need"><span class="chip">q-d004</span> <span class="act do">do</span><br>The coordinator asks you to: install the runner on the build machine<small>strand 0004/B · asked 8 min ago</small></div></div>
+<div class="card"><b class="t">Search</b> <span class="id">0005 · strand A</span>
+ <div class="need esc"><span class="chip">brave-fox-9d3h</span> <span class="blk">blocks 0005/B</span> <span class="act">decide</span><br><b>Escalated to you:</b> Should search match accents?<small>the PM hasn't answered for 20 min · asked 24 min ago</small></div></div>
+<div class="card"><b class="t">Rate limits</b> <span class="id">0001 · strand B</span>
+ <div class="need"><span class="chip">q-d001</span> <span class="act merge">merge</span><br>review PR #12 at 0000012: merge it<small>strand 0001/B · asked 2 h ago</small></div></div>
+</div>
+<p class="meta" style="max-width:640px">Wording: a coordinator's action reads "The coordinator asks you to:", the PM's "The PM asks you to:" (the PM's reading of a card also forwarded: "The PM asks you:"). The chip copies the handle on click, as today. When nothing waits on the request only the act word shows (as q-d004). The blocked list and act word are also stored on the need as data (<code>blocks: string[]</code>, <code>act</code>) for the later Questions panel.</p>
+
+<h2>Details panel, Needs you box (escalation, unchanged)</h2>
+<div class="need esc panel" style="padding:8px 12px;border-radius:8px"><b style="font-size:11px;text-transform:uppercase">Needs you · asked 24 min ago</b><br>
+<span class="chip">brave-fox-9d3h</span> <b>Escalated to you:</b> Should search match accents?<small>the PM hasn't answered for 20 min</small>
+<div style="margin-top:5px"><span class="blk">Blocks 0005/B</span> · <span class="act">decide</span> · <u>coordinator thread</u> · <span style="color:var(--mut);font-size:11px">Say <b>brave-fox-9d3h</b> in any thread to refer to it.</span></div></div>
+
+<h2>Details panel, Requests tab (0003/C)</h2>
+<div class="panel">
+<h2 style="margin-top:0">Open · 1</h2>
+<div class="req"><div class="h"><span class="chip">yellow-bear-5asx</span><span class="pill amber">open</span><span class="pill grey">question</span><span class="blk">blocks 0003/D, 0003/E</span><span class="act">decide</span></div>Which rounding rule should refunds use, half-up or banker's?<div class="meta">0003/C · asked 11/25 10:05 (35m ago)</div></div>
+<h2>Decided · 2 · newest first</h2>
+<div class="req"><div class="h"><span class="chip">quiet-lark-2fhn</span><span class="pill green">decided by you</span><span class="pill grey">decision</span><span class="r"></span><span class="meta" style="margin:0">11/25 09:40</span></div>Decide: approve the PDF layout (approve-layout)
+<div class="ans"><b>Answer:</b> Approved, with the logo top left.</div><div class="meta">0003/C · asked 11/24 16:10 · unblocked 0003/D</div></div>
+<div class="req"><div class="h"><span class="chip">q-b1c9</span><span class="pill green">decided by the PM</span><span class="pill grey">question</span><span class="r"></span><span class="meta" style="margin:0">11/25 08:55</span></div>Should the report totals include refunds?
+<div class="ans"><b>Answer:</b> No, refunds are a separate line.</div>
+<div class="why"><b>PM's reason:</b> the brief's totals mean paid orders; the user already decided refunds are reported apart (D61).</div><div class="meta">0003/C · asked 11/25 08:50</div></div>
+<h2>Closed · 2 · newest first</h2>
+<div class="req"><div class="h"><span class="chip">q-d010</span><span class="pill grey">withdrawn</span><span class="pill grey">question</span><span class="r"></span><span class="meta" style="margin:0">11/24 17:00</span></div>Use the old API?<div class="why"><b>Withdrawn by the coordinator:</b> found in the code</div></div>
+<div class="req"><div class="h"><span class="chip">q-d011</span><span class="pill violet">met</span><span class="pill grey">question</span></div>Can search ship before reports?<div class="why"><b>Met:</b> braid 0002 is Done</div></div>
+</div>
+<p class="meta" style="max-width:640px">The Decided group takes the answered requests out of Closed (which keeps withdrawn and met as now); each shows the question, the answer, who answered (you, or the PM with its reason) and when. Open and Waiting cards also get the blocks · act line.</p>
+</body></html>

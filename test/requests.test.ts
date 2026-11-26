@@ -21,7 +21,7 @@ const { startCommand } = (await load("../dist/commands/start.js")) as { startCom
 const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
 const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
-const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age } = (await load("../dist/braids/requests.js")) as {
+const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age, locked } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
   loadRecord: (root: string) => { requests: { code: string; id: string; state: string; events: { event: string; at: string; by: string; text?: string }[] }[] };
   legacyFile: (root: string) => string;
@@ -29,6 +29,7 @@ const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, 
   holding: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => Map<string, { state: string }>;
   filterLive: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => object[];
   age: (at: string, now: Date) => string;
+  locked: <T>(file: string, fn: () => T, what?: string, makeDir?: (dir: string) => void, waitMs?: number, clock?: { now: () => number; pause: () => void }) => T;
 };
 beforeEach(() => {
   resetGithubMemory();
@@ -104,17 +105,18 @@ function world() {
 test("ask opens a request that every worktree shares; a new ask replaces it; answer closes it", async () => {
   const w = world();
   const asked = askCommand(w.root, ["0001/A", "Which   name\nshould it have?", "--kind", "decision", "--key", "scope", "--thread", THREAD], { now: w.clock }) as string;
-  assert.match(asked, /^q-[a-z0-9]{4} 0001\/A: decision request opened: Which name should it have\?/);
-  const code = asked.slice(0, 6);
+  assert.match(asked, /^[a-z]+-[a-z]+-[a-z0-9]{4} 0001\/A: decision request opened: Which name should it have\?/);
+  const handle = /^(\S+)/.exec(asked)?.[1] ?? "";
+  const code = `q-${handle.slice(-4)}`;
   assert.ok(git(w.root, "ls-tree", "-r", "--name-only", "origin/braid-requests").split("\n").includes(`requests/${code}.json`), "pushed to the record's branch");
   assert.equal(existsSync(join(w.other, ".braid")), false, "nothing is kept in the worktree");
   assert.equal(realpathSync.native(dirname(dirname(legacyFile(w.other)))), realpathSync.native(w.root), "found from any worktree");
   const listed = (await requestsCommand(w.other, [], { gh: w.gh, now: () => new Date("2026-11-15T12:30:00Z") })) as string;
-  assert.equal(listed, `${code}  0001/A  decision  30m  Which name should it have?\n`);
+  assert.equal(listed, `${handle}  0001/A  decision  30m  blocks 0001/A · decide  Which name should it have?\n`);
   askCommand(w.other, ["0001/A", "Plan ok?", "--kind", "plan"], { now: w.clock });
   assert.deepEqual(loadRequests(w.root).map((r) => [r.id, r.kind, r.text]), [["0001/A", "plan", "Plan ok?"]]);
   assert.equal(readdirSync(join(w.root, ".braid")).filter((n) => n.endsWith(".tmp")).length, 0);
-  assert.match(answerCommand(w.other, w.other, ["0001/A"]), /^q-[a-z0-9]{4} 0001\/A: answered by the user\n$/);
+  assert.match(answerCommand(w.other, w.other, ["0001/A"]), /^[a-z]+-[a-z]+-[a-z0-9]{4} 0001\/A: answered by the user\n$/);
   assert.equal(await requestsCommand(w.root, [], { gh: w.gh }), "no open requests\n");
   assert.match(answerCommand(w.root, w.root, ["0001/A"]), /no open request/);
   // Nothing is deleted: the first is withdrawn as replaced, the second answered.
@@ -153,7 +155,7 @@ test("answer --log is the answer's text on the record: no braid log, no commit; 
 test("handover opens a review request and prints the recap draft", async () => {
   const w = world();
   const out = (await handoverCommand(w.other, ["0001/A", "--head", w.first.slice(0, 7), "--thread", THREAD], { gh: w.gh, now: w.clock })) as string;
-  assert.match(out, new RegExp(`^q-[a-z0-9]{4} 0001/A: review request opened for PR #5 at ${w.first}`));
+  assert.match(out, new RegExp(`^[a-z]+-[a-z]+-[a-z0-9]{4} 0001/A: review request opened for PR #5 at ${w.first}`));
   assert.match(out, /ready for your merge/);
   assert.match(out, /braid log line:/);
   const [r] = loadRequests(w.root);
@@ -183,10 +185,10 @@ test("a review request is void after a merge, a close or a moved head", async ()
   for (const change of changes) {
     const w = world();
     await handoverCommand(w.root, ["0001/A", "--head", w.first], { gh: w.gh, now: w.clock });
-    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^q-[a-z0-9]{4}  0001\/A  review  0m  review PR #5/);
+    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^[a-z]+-[a-z]+-[a-z0-9]{4}  0001\/A  review  0m  blocks 0001\/A · merge {2}review PR #5/);
     change(w.pr);
     // A read closes nothing: the request stays open, marked, for the board's tick to record.
-    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^q-[a-z0-9]{4} {2}0001\/A {2}review {2}0m {2}condition holds: the board (wakes the asker|withdraws it) {2}review PR #5/);
+    assert.match((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string, /^[a-z]+-[a-z]+-[a-z0-9]{4} {2}0001\/A {2}review {2}0m {2}(blocks [^·]+ · )?merge {2}condition holds: the board (wakes the asker|withdraws it) {2}review PR #5/);
     assert.equal(loadRequests(w.root).length, 1, "still open");
     assert.equal(loadRecord(w.root).requests[0]?.events.length, 1, "no ending recorded");
     const ends = holding(loadRequests(w.root), () => ({ state: w.pr.state, headRefOid: w.pr.head }));
@@ -204,8 +206,8 @@ test("a review request stays when GitHub can't be read; a question never self-cl
   assert.match(out, /0001\/A  review/);
   assert.match(out, /0001  decision/);
   const lines = ((await requestsCommand(w.root, [], { gh: w.gh, now: w.clock })) as string).trim().split("\n");
-  assert.match(lines.find((l) => l.includes(" 0001  decision")) ?? "", /^q-[a-z0-9]{4} {2}0001 {2}decision {2}0m {2}Decide\?$/, "a question never self-closes on a PR");
-  assert.match(lines.find((l) => l.includes("0001/A")) ?? "", /review .*condition holds/, "the merged review stays open for the board");
+  assert.match(lines.find((l) => l.includes(" 0001  decision")) ?? "", /^[a-z]+-[a-z]+-[a-z0-9]{4} {2}0001 {2}decision {2}0m {2}(blocks [^·]+ · )?decide {2}Decide\?$/, "a question never self-closes on a PR");
+  assert.match(lines.find((l) => l.includes(" 0001/A  review")) ?? "", /review .*condition holds/, "the merged review stays open for the board");
 });
 
 test("braid start closes the request of the item it starts, and only that one", async () => {
@@ -268,6 +270,46 @@ for (let i = 0; i < 4; i++) openRequest(root, { id: id + i, kind: "question", te
   const codes = await Promise.all(["0001/A", "0002/B", "0003/C", "0004/D"].map(run));
   assert.deepEqual(codes, [0, 0, 0, 0]);
   assert.equal(loadRequests(w.root).length, 16);
+});
+
+test("a waiter outlasts a queue of holders longer than its wait while the lock keeps changing hands", () => {
+  const file = join(mkdtempSync(join(scratch, "queue-")), "queue.json");
+  const lock = `${file}.lock`;
+  // The test's own clock, so load can't decide it: each pause of the waiter is one second and one hand-off, 20 holders against a 4 s wait.
+  // Every holder leaves the same file with the same times (ahead of now, so never stale): only the token says the lock changed hands.
+  const taken = new Date(Date.now() + 3_600_000);
+  let now = 0;
+  let holder = 0;
+  const hold = () => {
+    writeFileSync(lock, `holder ${holder}`);
+    utimesSync(lock, taken, taken);
+  };
+  const pause = () => {
+    now += 1_000;
+    if (++holder < 20) hold();
+    else rmSync(lock);
+  };
+  hold();
+  assert.equal(locked(file, () => "got", "q", undefined, 4_000, { now: () => now, pause }), "got");
+  assert.equal(now, 20_000, "got only after the whole queue");
+  assert.equal(existsSync(lock), false);
+});
+
+test("every hold of a lock writes its own token, so two holds never look like one", () => {
+  const file = join(mkdtempSync(join(scratch, "token-")), "token.json");
+  const held = () => locked(file, () => readFileSync(`${file}.lock`, "utf8"), "q");
+  const first = held();
+  assert.notEqual(first, "");
+  assert.notEqual(held(), first);
+});
+
+test("a live lock that never changes hands is still given up on after the wait", () => {
+  const file = join(mkdtempSync(join(scratch, "stuck-")), "stuck.json");
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(`${file}.lock`, "");
+  const began = Date.now();
+  assert.throws(() => locked(file, () => 1, "q", undefined, 300), /is locked/);
+  assert.ok(Date.now() - began >= 300);
 });
 
 test("a stale lock is taken over and the lock is released", () => {
@@ -396,7 +438,7 @@ test("ask and answer find a braid that lives only on its branch, from the main c
   git(w.root, "checkout", "-q", "main");
   git(w.root, "branch", "-D", "braid/0002-beta");
   assert.equal(existsSync(join(w.root, "braids", "0002-beta")), false, "not in the working tree");
-  assert.match(askCommand(w.root, ["0002", "Go?", "--kind", "decision"], { now: w.clock }) as string, /^q-[a-z0-9]{4} 0002: decision request opened/);
+  assert.match(askCommand(w.root, ["0002", "Go?", "--kind", "decision"], { now: w.clock }) as string, /^[a-z]+-[a-z]+-[a-z0-9]{4} 0002: decision request opened/);
   assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0002"]);
   assert.match(answerCommand(w.root, w.root, ["0002"]), /answered by the user/);
   assert.throws(() => askCommand(w.root, ["0009", "x"]), /no braid 0009/);

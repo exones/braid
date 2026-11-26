@@ -1,6 +1,6 @@
 // A request as the board shows it: one row per request on an item's Requests tab and on the asking braid's card.
 // Pure: it reads the signals (the open requests and the closed ones) and T3's thread links, and writes nothing.
-import { age, askerOf, closing, isWait, programmeOf, type Asker, type Request, type State, type Who } from "../braids/requests.js";
+import { actOf, age, askerOf, closing, handleOf, isWait, programmeOf, type Asker, type Request, type State, type Who } from "../braids/requests.js";
 import type { Signals } from "./model.js";
 import { linkOfThread } from "./model.js";
 import type { T3 } from "./t3.js";
@@ -12,6 +12,11 @@ export const CLOSED_PAGE = 10;
 
 export interface RequestRow {
   readonly code: string;
+  /** The one handle it is shown and copied as (`yellow-bear-5asx`, or `q-7f3k` for a record without words). */
+  readonly handle: string;
+  /** The items answering it unblocks while it is open (empty once closed), and what the user does about it. */
+  readonly blocks: readonly string[];
+  readonly act: "decide" | "do" | "merge";
   /** The item that asked: `0004/B`. */
   readonly item: string;
   readonly kind: Request["kind"];
@@ -42,14 +47,19 @@ export interface RequestsView {
   readonly open: readonly RequestRow[];
   /** Open, addressed to another braid's coordinator, or a timed wait. */
   readonly waiting: readonly RequestRow[];
-  /** Answered, withdrawn or met, newest first. */
+  /** Answered (waits left out), newest first: the question, the answer, who answered (the PM with its reason) and when. */
+  readonly decided: readonly RequestRow[];
+  /** Withdrawn or met, and answered waits, newest first. */
   readonly closed: readonly RequestRow[];
 }
 
-export function rowOf(r: Request, now: Date, t3: T3): RequestRow {
+export function rowOf(r: Request, now: Date, t3: T3, blocks: readonly string[] = []): RequestRow {
   const end = closing(r);
   return {
     code: r.code,
+    handle: handleOf(r),
+    blocks: r.state === "open" ? blocks : [],
+    act: actOf(r.kind),
     item: r.id,
     kind: r.kind,
     text: r.kind === "review" && r.pr !== undefined ? `Merge PR #${r.pr}` : r.text,
@@ -67,14 +77,20 @@ export function rowOf(r: Request, now: Date, t3: T3): RequestRow {
   };
 }
 
+/** The number on the Requests tab: all of the item's requests, the decided ones too. */
+export const requestCount = (view: RequestsView): number => view.open.length + view.waiting.length + view.decided.length + view.closed.length;
+
 /** The requests of the items `match` keeps: its open ones, the ones waiting on another braid, and the closed ones, newest first. */
 export function requestsOf(match: (id: string) => boolean, sig: Signals, t3: T3): RequestsView {
-  const rows = (rs: readonly Request[]): RequestRow[] => rs.filter((r) => match(r.id) && programmeOf(r.id) === null).map((r) => rowOf(r, sig.now, t3));
-  const closed = rows(sig.closed ?? []).sort((a, b) => (a.closed?.at ?? "") < (b.closed?.at ?? "") ? 1 : -1);
+  const rows = (rs: readonly Request[]): RequestRow[] => rs.filter((r) => match(r.id) && programmeOf(r.id) === null).map((r) => rowOf(r, sig.now, t3, sig.unblocks?.(r) ?? []));
+  const ended = rows(sig.closed ?? []).sort((a, b) => (a.closed?.at ?? "") < (b.closed?.at ?? "") ? 1 : -1);
+  // A wait is nobody's decision, however it ended (an old record may read "answered by the user").
+  const decided = (r: RequestRow): boolean => r.state === "answered" && !isWait(r);
   return {
     open: rows([...sig.requests.values(), ...(sig.asks?.values() ?? [])]).sort((a, b) => (a.at < b.at ? 1 : -1)),
     waiting: rows(sig.waits ?? []).sort((a, b) => (a.at < b.at ? 1 : -1)),
-    closed: closed.slice(0, CLOSED_KEPT),
+    decided: ended.filter(decided).slice(0, CLOSED_KEPT),
+    closed: ended.filter((r) => !decided(r)).slice(0, CLOSED_KEPT),
   };
 }
 

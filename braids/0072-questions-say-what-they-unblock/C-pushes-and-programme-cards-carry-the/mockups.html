@@ -1,0 +1,76 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>0072/C mockups</title>
+<style>
+:root{--fg:#0f172a;--bg:#fff;--line:#e2e8f0;--soft:#f8fafc;--mut:#64748b;--chip:#e2e8f0;--amber:#fffbeb;--phone:#f1f5f9;--note:#fff}
+@media (prefers-color-scheme:dark){:root{--fg:#e2e8f0;--bg:#0f172a;--line:#334155;--soft:#1e293b;--mut:#94a3b8;--chip:#334155;--amber:#3a2d0b;--phone:#020617;--note:#1e293b}}
+body{font:13px/1.4 system-ui,"Segoe UI",sans-serif;margin:0;padding:12px 16px;color:var(--fg);background:var(--bg)}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:18px 0 6px}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.phone{width:330px;max-width:100%;background:var(--phone);border-radius:14px;padding:8px;box-sizing:border-box}
+.cap{font-size:11px;color:var(--mut);margin:0 2px 5px;font-weight:600;max-width:300px}
+.n{background:var(--note);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+.n .app{font-size:11px;color:var(--mut)}.n .t{font-weight:700;margin:2px 0 1px}.n .b{white-space:pre-wrap;overflow-wrap:anywhere}
+.card{width:296px;border:1px solid #fbbf24;background:var(--soft);border-radius:8px;padding:10px;box-shadow:0 1px 2px #0002;box-sizing:border-box}
+.card.before{border-color:var(--line)}
+.head{display:flex;justify-content:space-between;font-weight:600}
+.mark{width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.goal{font-size:12px;color:var(--mut);margin-top:2px}
+.need{margin-top:6px;border-left:3px solid #f59e0b;background:var(--amber);padding:6px 8px;border-radius:6px}
+.need small{display:block;color:var(--mut);font-size:11px;margin-top:2px}
+.chip{font:11px ui-monospace,Consolas,monospace;background:var(--chip);border-radius:4px;padding:0 4px}
+.blk{font-weight:600}.act{font-size:10.5px;font-weight:700;text-transform:uppercase;border-radius:9px;padding:0 6px;background:#0000001f}
+.link{color:#2563eb;font-size:11px;display:block}
+.bar{height:6px;border-radius:3px;background:linear-gradient(90deg,#16a34a 40%,var(--chip) 40%);margin-top:8px}
+.st{font-size:11.5px;color:var(--mut);margin-top:3px}
+.btn{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:12px;margin:8px 3px 0 0;background:var(--bg)}
+p.note{max-width:700px;color:var(--mut)}
+</style></head><body>
+<h2>1. Pushes for one request (test data)</h2>
+<div class="row">
+<div class="phone"><div class="cap">Strand question</div><div class="n"><div class="app">❓ ntfy · braid</div><div class="t">agento 0072/D: Needs You</div><div class="b">yellow-bear-5asx · The PM records its own answers and the board wakes the asker
+blocks 0072/D, 0072/E, 0072/F · decide
+Should a PM answer wake a paused braid? A. on resume (recommended) B. at once</div></div></div>
+<div class="phone"><div class="cap">Escalated (the title says it, the line doesn't repeat it)</div><div class="n"><div class="app">❓ ntfy · braid</div><div class="t">dctl-studio 0011/E: Escalated to you</div><div class="b">amber-fox-vvb7 · Export presets
+blocks 0011/E, 0011/F · decide
+Keep the old preset format readable? A. yes B. no (the PM hasn't answered for 20 min)</div></div></div>
+<div class="phone"><div class="cap">Action (nothing else waits on it)</div><div class="n"><div class="app">🧭 ntfy · braid</div><div class="t">agento 0064: Needs You</div><div class="b">calm-heron-q2ra · Releases publish from CI
+do
+The coordinator asks you to: add the NPM_TOKEN secret in the repository settings</div></div></div>
+<div class="phone"><div class="cap">The PM's own request (same added line)</div><div class="n"><div class="app">🧭 ntfy · braid</div><div class="t">agento 0070: the PM asks</div><div class="b">tidy-lynx-h7p2 · The board pauses and resumes reliably
+blocks 0070/C · decide
+The PM asks you: Ship without the weekly-limit push? A. yes B. wait</div></div></div>
+</div>
+
+<h2>2. Merges the PM forwarded to you</h2>
+<div class="row">
+<div class="phone"><div class="cap">Before (your screenshot)</div><div class="n"><div class="app">👀 ntfy · braid</div><div class="t">agento 0070: merge PR #273</div><div class="b">0070 PR #273</div></div></div>
+<div class="phone"><div class="cap">One merge</div><div class="n"><div class="app">👀 ntfy · braid</div><div class="t">agento 0070: merge PR #273</div><div class="b">quiet-otter-4f2a · 0070 The board pauses and resumes reliably
+PR #273 at 4f16c7f · blocks 0060
+PM: live check passed · merge PR #273 at 4f16c7f</div></div></div>
+<div class="phone"><div class="cap">Two merges (the second blocks nothing and the PM gave no note)</div><div class="n"><div class="app">👀 ntfy · braid</div><div class="t">agento: 2 merges wait for you</div><div class="b">quiet-otter-4f2a · 0070 The board pauses and resumes reliably
+PR #273 at 4f16c7f · blocks 0060
+PM: live check passed · merge PR #273 at 4f16c7f
+
+misty-wren-8kd3 · 0071 The board wakes who waits
+PR #281 at 9b4833a</div></div></div>
+</div>
+
+<h2>3. Programme card in Needs you</h2>
+<div class="row">
+<div><div class="cap">Before: 0011/E is escalated, the programme says nothing and sits in Working</div>
+<div class="card before"><div class="head"><span>🧭 colour-tools</span></div><div class="goal">DCTL Studio exports and shares looks.</div>
+<div class="bar"></div><div class="st">2/5 done · 1 running</div><div class="st">Next: P3 presets</div>
+<span class="btn">🧭 PM thread</span><span class="btn">◎ Only these</span><span class="btn">≡ Plan</span></div></div>
+<div><div class="cap">After: a braid's escalated question</div>
+<div class="card"><div class="head"><span>🧭 colour-tools</span><span class="mark">?</span></div><div class="goal">DCTL Studio exports and shares looks.</div>
+<div class="need"><span class="chip">amber-fox-vvb7</span> <span class="blk">blocks 0011/E, 0011/F ·</span> <span class="act">decide</span><br><b>Escalated to you:</b> Keep the old preset format readable?<br>&nbsp;&nbsp;A. yes<br>&nbsp;&nbsp;B. no (the PM hasn't answered for 20 min)<span class="link">asking thread ↗</span><small>from 0011/E · asked 24 min ago · answer in the PM thread</small></div>
+<div class="bar"></div><div class="st">2/5 done · 1 running</div><div class="st">Next: P3 presets</div>
+<span class="btn">🧭 PM thread</span><span class="btn">◎ Only these</span><span class="btn">≡ Plan</span></div></div>
+<div><div class="cap">After: a request addressed to you, and a forwarded merge</div>
+<div class="card"><div class="head"><span>🧭 dev-machine</span><span class="mark">?</span></div><div class="goal">One machine runs the braids unattended.</div>
+<div class="need"><span class="chip">calm-heron-q2ra</span> <span class="act">do</span><br><b>The coordinator asks you to:</b> add the NPM_TOKEN secret in the repository settings<span class="link">asking thread ↗</span><small>from 0064 · asked 8 min ago · answer in the PM thread</small></div>
+<div class="need"><span class="chip">quiet-otter-4f2a</span> <span class="blk">blocks 0060 ·</span> <span class="act">merge</span><br><b>The PM asks you:</b> merge PR #273 — live check passed<span class="link">asking thread ↗</span><small>from 0070 · asked 1 h ago · answer in the PM thread</small></div>
+<div class="bar"></div><div class="st">4/9 done · 2 running</div><div class="st">Next: P4 questions</div>
+<span class="btn">🧭 PM thread</span><span class="btn">◎ Only these</span><span class="btn">≡ Plan</span></div></div>
+</div>
+<p class="note">A coordinator's question addressed to you reads "<b>The coordinator asks you:</b>". Each request shows once, after the PM's own programme request, oldest first; all of them show (no cap). No new pushes: these requests already push on their own. The PM's note and the head are new text on the ntfy topic (anyone who knows the topic name can read it). The phone strip and the programme details show the same boxes.</p>
+</body></html>

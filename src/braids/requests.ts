@@ -9,10 +9,12 @@ import { catBatchSync } from "./gitio.js";
 import { currentFiles, lockedBranch, tips, writeBranchUnlocked, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
 import { mergeLifecycle } from "./lifecycle.js";
 import { mainCheckout } from "./state.js";
+import { handleOf, pickWords, WORDS } from "./words.js";
 
 export { ensureStateDir, LockError, locked, mainCheckout, takeOverStale } from "./state.js";
+export { handleOf, resolveName } from "./words.js";
 
-/** `action` is something only the user can do (an install, a login); only the PM opens one. */
+/** `action` is something only the user can do outside braid (an install, a login); the PM or a coordinator opens one. */
 export const KINDS = ["review", "question", "decision", "plan", "action"] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -63,6 +65,8 @@ export interface Request {
   readonly code: string;
   /** The item: `0015` or `0015/C`; for a programme request `pm/<slug>`. */
   readonly id: string;
+  /** Its two spoken words (`yellow bear`), unique among the project's open requests when it opened (src/braids/words.ts); absent on a record written before. */
+  readonly words?: string;
   /** Who asks: a record without it is the coordinator's. An item has at most one open request per asker. */
   readonly by?: Asker;
   readonly kind: Kind;
@@ -94,7 +98,7 @@ export interface Request {
 }
 
 /** What a caller gives to open a request; the rest comes from the record. */
-export type NewRequest = Omit<Request, "code" | "forwarded" | "note" | "doneWhen" | "eta" | "state" | "events"> & { readonly doneWhen?: string };
+export type NewRequest = Omit<Request, "code" | "words" | "forwarded" | "note" | "doneWhen" | "eta" | "state" | "events"> & { readonly doneWhen?: string };
 
 /** A request file that can't be read: reported and skipped. */
 export interface RecordProblem {
@@ -111,6 +115,7 @@ interface RecordFile {
   readonly item: string;
   readonly kind: Kind;
   readonly text: string;
+  readonly words?: string;
   readonly key?: string;
   readonly by: Asker;
   readonly thread: string | null;
@@ -132,6 +137,7 @@ function toFile(r: Request): RecordFile {
     item: r.id,
     kind: r.kind,
     text: r.text,
+    ...(r.words === undefined ? {} : { words: r.words }),
     ...(r.key === undefined ? {} : { key: r.key }),
     by: askerOf(r),
     thread: r.thread,
@@ -183,6 +189,7 @@ export function parseRecord(file: string, text: string): Request | RecordProblem
   return {
     code,
     id: v["item"],
+    ...(typeof v["words"] === "string" && WORDS.test(v["words"]) ? { words: v["words"] } : {}),
     ...(by === "pm" ? { by } : {}),
     kind: v["kind"] as Kind,
     text: v["text"],
@@ -420,33 +427,40 @@ function writeRecord(root: string, change: (view: BranchView) => { files: Map<st
   return lockedBranch(root, REQUESTS, () => writeBranchUnlocked(root, REQUESTS, change));
 }
 
-/** An open request with its `opened` event, as `openRequest` writes it; `code` given or empty. Also for demos and tests. */
-export function newRecord(request: NewRequest & { readonly code?: string }): Request {
-  const { doneWhen, code, ...fields } = request;
-  return { ...fields, code: code ?? "", doneWhen: doneWhen ?? (request.pr === undefined ? "answered" : `pr:${request.pr}`), eta: null, state: "open", events: [{ event: "opened", at: request.at, by: askerOf(request) }] };
+/** An open request with its `opened` event, as `openRequest` writes it; `code` given or empty, `words` when given. Also for demos and tests. */
+export function newRecord(request: NewRequest & { readonly code?: string; readonly words?: string }): Request {
+  const { doneWhen, code, words, ...fields } = request;
+  return { ...fields, code: code ?? "", ...(words === undefined ? {} : { words }), doneWhen: doneWhen ?? (request.pr === undefined ? "answered" : `pr:${request.pr}`), eta: null, state: "open", events: [{ event: "opened", at: request.at, by: askerOf(request) }] };
 }
 
 const withEvent = (r: Request, e: RequestEvent): Request => ({ ...r, events: [...r.events, e] });
 
+/** The words the open requests hold: a new request may not take them; a closed request's words are free again. */
+export const takenWords = (requests: readonly Pick<Request, "words" | "state">[]): Set<string> => new Set(requests.flatMap((r) => (r.state === "open" && r.words !== undefined ? [r.words] : [])));
+
 /**
- * Opens a request and returns its code. The open one on the same item from the same asker is withdrawn,
- * "replaced by q-…", when it is of the same sort: a question (to the user or the PM) replaces a question,
- * a wait (to a braid) replaces the wait to that braid. The other asker's stays.
+ * Opens a request and returns its code and handle (`yellow-bear-5asx`). Its words are picked inside the write, against
+ * the open requests on the branch as it is then, so two requests opened at once never share them. The open one on the
+ * same item from the same asker is withdrawn, "replaced by q-…", when it is of the same sort: a question (to the user or
+ * the PM) replaces a question, a wait (to a braid) replaces the wait to that braid. The other asker's stays.
  */
-export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly warning: string | null } {
+export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly handle: string; readonly warning: string | null } {
   let code = "";
+  let words: string | undefined;
   const result = writeRecord(root, (view) => {
     const all = viewAll(view).requests;
     code = newCode((c) => view.has(pathOf(c)));
+    const open = takenWords(all);
+    words = pickWords(code, (w) => open.has(w));
     const by = askerOf(request);
     const files = new Map<string, string>();
     for (const old of all.filter((r) => r.state === "open" && same(r, request.id, by) && replaces(r, request))) {
       files.set(pathOf(old.code), serialise(withEvent(old, { event: "withdrawn", at: request.at, by, text: `replaced by ${code}` })));
     }
-    files.set(pathOf(code), serialise(newRecord({ ...request, code })));
+    files.set(pathOf(code), serialise(newRecord({ ...request, code, ...(words === undefined ? {} : { words }) })));
     return { files, message: `docs(requests): ${request.id} ${request.kind} ${code}` };
   });
-  return { code, warning: result.warning };
+  return { code, handle: handleOf({ code, ...(words === undefined ? {} : { words }) }), warning: result.warning };
 }
 
 /** How a request ends: its final state, who ended it, and why or the answer. */
@@ -527,6 +541,36 @@ export function addEvent(root: string, code: string, event: RequestEvent): { rea
     const next = withEvent(event.event === "eta" && event.text !== undefined ? { ...found, eta: event.text } : found, event);
     found = next;
     return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} ${event.event}` };
+  });
+  const request: Request | null = found;
+  return request === null ? null : { request, added, warning: result.warning };
+}
+
+/** The text of the `reminded` event that says the board delivered an answer's wake to the asking thread (src/board/wake.ts). */
+export const ANSWER_WOKEN = "answer sent to the asking thread";
+
+/** Whether the board already delivered this answered request's wake: a `reminded` event with `ANSWER_WOKEN` after the answer. */
+export const answerWoken = (r: Pick<Request, "events">): boolean => r.events.some((e) => e.event === "reminded" && e.text === ANSWER_WOKEN);
+
+/**
+ * Records that the board delivered an answered request's wake: a `reminded` event by `board` (a kind older braid versions
+ * read; on a closed request nothing but the history reads it). Checked again inside the write: a request that isn't
+ * answered, or already carries the mark, is left and returned with `added: false`. Null: no such code.
+ */
+export function markAnswerWoken(root: string, code: string, at: string): { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null {
+  let found: Request | null = null;
+  let added = false;
+  const result = writeRecord(root, (view) => {
+    const text = view.read(pathOf(code));
+    const r = text === null ? null : parseRecord(pathOf(code), text);
+    found = r === null || isRecordProblem(r) ? null : r;
+    added = found !== null && found.state === "answered" && !answerWoken(found);
+    if (found === null || !added) {
+      return { files: new Map(), message: "" };
+    }
+    const next = withEvent(found, { event: "reminded", at, by: "board", text: ANSWER_WOKEN });
+    found = next;
+    return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} answer woken` };
   });
   const request: Request | null = found;
   return request === null ? null : { request, added, warning: result.warning };
@@ -641,14 +685,14 @@ export function holding(requests: readonly Request[], check: Check): Map<string,
 }
 
 /**
- * The requests of the items `match` keeps that the user or the PM answered, as decision rows: the answer's
+ * The requests of the items `match` keeps that the user or the PM answered (waits left out: they ask neither), as decision rows: the answer's
  * time (`YYYY-MM-DD HH:MM`, as log entries have it), the item, and the request with its answer and the PM's
  * reason. Read for `braid decisions` and the recap draft, next to the `Decided:` log entries.
  */
 export function answeredRows(requests: readonly Request[], match: (id: string) => boolean): { at: string; id: string; text: string }[] {
   return requests.flatMap((r) => {
     const e = r.state === "answered" ? closing(r) : null;
-    if (e === null || (e.by !== "user" && e.by !== "pm") || !match(r.id)) {
+    if (e === null || (e.by !== "user" && e.by !== "pm") || isWait(r) || !match(r.id)) {
       return [];
     }
     const said = e.text === undefined ? "" : ` -> ${e.text.replace(/\s+/g, " ").trim()}`;
@@ -661,4 +705,59 @@ export function answeredRows(requests: readonly Request[], match: (id: string) =
 export function age(at: string, now: Date): string {
   const min = Math.max(0, Math.floor((now.getTime() - new Date(at).getTime()) / 60_000));
   return min < 60 ? `${min}m` : min < 2880 ? `${Math.floor(min / 60)}h` : `${Math.floor(min / 1440)}d`;
+}
+
+/** The act word of a request: `action` is something to `do` outside braid, `review` a PR to `merge`, every other kind something to `decide`. */
+export const actOf = (kind: Kind): "do" | "merge" | "decide" => (kind === "action" ? "do" : kind === "review" ? "merge" : "decide");
+
+/** The part of a braid `unblocksOf` reads; a braid whose statuses went through `withStatuses` fits it. */
+export interface BraidFacts {
+  readonly number: string;
+  readonly brief: { readonly status: string; readonly dependencies: readonly string[] };
+  readonly strands: readonly { readonly letter: string; readonly brief: { readonly status: string; readonly dependencies: readonly string[] } }[];
+}
+
+/**
+ * What answering `request` unblocks, derived from the briefs and the record at each read (never stored): its item,
+ * and every item that depends on it, directly or not, that isn't Done; for a request on a braid with strands, those
+ * strands not Done (a story: the braid itself); plus every other braid with an open wait on the request's braid
+ * (`to` its number, or `--done-when braid:<number>`) that isn't Done. A programme request has no item. Sorted, no duplicates.
+ */
+export function unblocksOf(request: Pick<Request, "code" | "id">, braids: readonly BraidFacts[], requests: readonly Pick<Request, "code" | "id" | "to" | "doneWhen" | "state">[]): string[] {
+  const items = new Map<string, { status: string; dependencies: readonly string[] }>();
+  for (const b of braids) {
+    items.set(b.number, b.brief);
+    for (const s of b.strands) {
+      items.set(`${b.number}/${s.letter}`, s.brief);
+    }
+  }
+  const number = /^(\d{4})(?:\/|$)/.exec(request.id)?.[1];
+  const braid = braids.find((b) => b.number === number);
+  if (number === undefined || braid === undefined) {
+    return [];
+  }
+  const live = (id: string): boolean => items.get(id)?.status !== "Done";
+  const seeds = request.id === number && braid.strands.length > 0 ? braid.strands.map((s) => `${number}/${s.letter}`) : [request.id];
+  const found = new Set<string>();
+  const queue = [...seeds, ...(request.id === number ? [number] : [])];
+  for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
+    if (!live(id) || found.has(id)) {
+      continue;
+    }
+    if (id !== number || braid.strands.length === 0) {
+      found.add(id);
+    }
+    for (const [other, brief] of items) {
+      if (brief.dependencies.includes(id) && !found.has(other) && live(other)) {
+        queue.push(other);
+      }
+    }
+  }
+  for (const w of requests) {
+    const waiter = /^(\d{4})(?:\/|$)/.exec(w.id)?.[1];
+    if (w.state === "open" && w.code !== request.code && waiter !== undefined && waiter !== number && (w.to === number || w.doneWhen === `braid:${number}`) && live(waiter)) {
+      found.add(waiter);
+    }
+  }
+  return [...found].sort();
 }
