@@ -34,10 +34,18 @@ Expected size: about 120 lines in 4 files.
 
 - Making the board itself faster (B).
 
+## Plan
+
+1. `probeBoard` (src/board/address.ts) answers `answers` (with the version header), `busy` or `none`: one request with a 10 s budget (a retry would abandon a board that needs longer than one attempt). Only a timeout is busy; refused, another token (403) and any other error are none.
+2. `liveAddresses` returns the answering and busy boards with their state; `versionAt` and its seam go away.
+3. `--url` prints a busy board's address, says on stderr that it answers slowly, exit 0.
+4. `service status` shows busy for the version and the address note, exit 0; `install` and `restart` count a busy board as up.
+5. Tests (late local server, fake probes) and docs/board.md, docs/cli.md, the help text.
+
 ## Completion
 
-- [ ] A board that answers after 3 s is found by `--url`; a listening board that never answers reads as busy, with its address; no board reads as none
-- [ ] `service status` says busy rather than an unknown version for a slow board
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A board that answers after 3 s is found by `--url`; a listening board that never answers reads as busy, with its address; no board reads as none
+- [x] `service status` says busy rather than an unknown version for a slow board
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
