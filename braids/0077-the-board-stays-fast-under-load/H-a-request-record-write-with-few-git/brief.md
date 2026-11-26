@@ -38,9 +38,13 @@ Expected size: about 200 lines in 4 files.
 
 ## Completion
 
-- [ ] One record write spawns far fewer git processes than today, with a test that counts them; the counts before and after are in report.md
-- [ ] The commits a write makes are the same as before (a test compares trees and messages)
-- [ ] The two lock tests no longer time out under load, or report.md says why they still can
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] One record write spawns far fewer git processes than today, with a test that counts them; the counts before and after are in report.md
+- [x] The commits a write makes are the same as before (a test compares trees and messages)
+- [x] The two lock tests no longer time out under load, or report.md says why they still can
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+In src/braids/gitbranch.ts only, the write path (both drivers): fetch first and ask the remote what is wrong only when it fails (no remote get-url / ls-remote); read local, tracking and checkout of the branch with one for-each-ref (worktree list only when there is no local branch); one rev-list for a branch that is only behind; build blobs, tree and commit with one git fast-import, the identities from git var (as commit-tree resolves them), replacing hash-object, the temporary index, write-tree and commit-tree; move both refs with one update-ref --stdin. Tests: the processes of one write counted by name; each commit's sha equals the same commit rebuilt with the old plumbing. Then time the two lock tests under load.
