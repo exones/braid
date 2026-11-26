@@ -16,6 +16,13 @@
       "event": "opened",
       "at": "2026-11-26T21:38:33.206Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-26T21:39:16.401Z",
+      "by": "pm",
+      "text": "A. Approve as planned",
+      "reason": "approved: additive optional fields that every version since 0070 still reads, and the only loss (an older braid rewriting a new record drops context/options/fyi, keeps the answer) is cheap since one install serves this machine, instead of a new kind that older versions would skip"
     }
   ]
 }
