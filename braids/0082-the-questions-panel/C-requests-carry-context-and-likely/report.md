@@ -31,7 +31,7 @@ Takes in idea 2026-11-23-wcox (P17). The Questions panel (0082/E) can now show a
   - a `look` request opens, lists, shows on the board as `look`, pushes 👁 at default and answers
   - `Need` carries context, options and kind
   - `--context-file -` through the CLI with standard input
-- `npm run verify` on Windows: see "Gate" below.
+- `npm run verify` on Windows: exit 0, 802 tests, all passed (test run about 21 min). An earlier run failed one test in `test/requests.test.ts` that pinned the old `--kind` refusal text. Its expected text now includes `look`. The web change (the eye mark) was not looked at in a running board.
 
 ## Docs
 

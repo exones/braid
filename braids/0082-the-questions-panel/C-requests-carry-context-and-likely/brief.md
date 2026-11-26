@@ -63,5 +63,5 @@ Expected size: about 350 lines in 9 files, tests included.
 - [x] `Need` carries `context`, `options` and the kind
 - [x] The braid and braid-pm skills open requests with `--option` (and `--context-file -` when the context is longer than the board line)
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
