@@ -130,7 +130,7 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
   const b = branchState(w.refs, w.braid.number, letter);
   const key = letter === null ? w.braid.number : `${w.braid.number}/${letter}`;
   const threads = w.t3.threads.get(key) ?? [];
-  const thread = w.t3.status.state !== "ok" ? "?" : threads.some((t) => t.role === "worker") ? "running" : threads.length > 0 ? "review running" : "-";
+  const thread = w.t3.status.state !== "ok" ? "?" : threads.some((t) => t.role === "worker") ? "running" : threads.some((t) => t.role === "reviewer") ? "review running" : threads.length > 0 ? "research running" : "-";
   const where = b.local ? (b.pushed ? "local+pushed" : "local") : b.pushed ? "+pushed" : "-";
   const pr = card.pr === null ? "-" : `#${card.pr.number} ${card.pr.state}`;
   const lane = card.reason !== null ? `${LANE_LABEL[card.lane]} (${card.reason})` : card.pause !== null ? `${LANE_LABEL[card.lane]} (${laneNote(card.pause)})` : LANE_LABEL[card.lane];

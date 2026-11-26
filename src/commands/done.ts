@@ -249,7 +249,7 @@ function ready(root: string, run: GhRunner, w: World, t: Target, pr: PrView, hea
   // Only agents braid started count; the coordinator's own thread is no agent of any item.
   const running = (w.t3.threads.get(t.key) ?? [])[0];
   if (running !== undefined) {
-    fail(`a ${running.role === "reviewer" ? "review" : "worker"} thread for ${t.key} is still running (${running.id}${running.title === undefined ? "" : `, "${running.title}"`})`);
+    fail(`a ${{ worker: "worker", reviewer: "review", researcher: "research" }[running.role]} thread for ${t.key} is still running (${running.id}${running.title === undefined ? "" : `, "${running.title}"`})`);
   }
   const at = (path: string) => git(root, ["show", `${pr.headRefOid}:${path}`]);
   const brief = at(`${t.folder}/brief.md`);
