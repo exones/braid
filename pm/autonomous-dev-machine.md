@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 1
 state: running
 hold:
-next: "finish 0077 (Tailscale strand I, load measurement, final PR) and 0081 (#357, PM check, the user's merge); then P30 (braid clean with submodules), then P5 (Held lane, counters), then P25; 0078 and 0080 held"
+next: "finish 0077 and 0081, then hold (the user, usage limits); after the user's Go: P30, P5, P25; 0078 and 0080 held"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -163,6 +163,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26: user: "Correction due to the usage limits finish 77 and 81 and hold after that". P30 waits for the user's Go like the rest.
 - 2026-11-26: user: P30 "braid clean works in repos with submodules" added (from the SFIL PM: worktrees with submodules never removed, ~70 in everix4, C: at 98%), "W a": next after 0077, ahead of P5; failed cleanups must reach the user as a request. Disk use and shared submodules into P26.
 - 2026-11-26: P29 · 0081 added to the plan (0060's follow-up was created outside the plan, so the board showed no programme tag; the user asked "what is 81?").
 - 2026-11-26: user "purple lantern A": PM merged #324 at 3caa2b88 (merge 53efaed), CI green, pulled, installed. 0060 Done; workers are subagents (no setting, the user asked and accepted). Follow-up 0081 (S): `braid review`/`launch --child` record no other thread's folder. Told 0077, SFIL and the audit PM; held ones (0078, 0080, dctl-studio, Everix Cloud) get the news on Go. 0060's 15 finished threads archived.
