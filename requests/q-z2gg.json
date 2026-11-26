@@ -29,6 +29,12 @@
       "by": "pm",
       "text": "2026-11-26T09:30:00.000Z",
       "reason": "0074/H fixes two live-check findings; then PM re-check and the user's merge in the 10:00 digest"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-26T02:44:04.442Z",
+      "by": "board",
+      "text": "PR #339 head moved to 52d2daa"
     }
   ]
 }
