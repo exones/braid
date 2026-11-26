@@ -24,6 +24,7 @@ What a user can try at the end: start two gates at once (two worktrees, `braid g
 - D: at most two gates at once per machine (5p1e), `braid gate`.
 - E: the programme card's running count (1r0o).
 - H: a request-record write with few git processes (leftovers gprw, x9jg).
+- I: Tailscale keeps its owner answer under load (the user's report, the PM 2026-11-26).
 - F: docs (no skill changes: the user, "not yet, put in ideas").
 
 ## Already decided
