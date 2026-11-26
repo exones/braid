@@ -44,7 +44,7 @@ const at = (iso: string | null, now: Date): string => (iso === null ? "" : clock
 const who = (p: Pause): string => (p.by === "pm" ? "the PM" : p.by === "board" ? "the board" : "the coordinator");
 const agentsWord = (n: number): string => `${n} agent${n === 1 ? "" : "s"}`;
 
-/** `Claude_Everix Session 97%`: the provider, the window's label and its usage, as far as they are known. */
+/** `Claude_Everix Session 92%`: the provider, the window's label and its usage, as far as they are known. */
 export function usage(p: Pause): string {
   return [p.provider, p.label, p.usedPercent === null ? null : `${percent(p.usedPercent)}%`].filter((s) => s !== null).join(" ");
 }
@@ -54,7 +54,7 @@ export interface PauseView {
   /** `paused`: sky; `pausing`: sky, while the board counts the replies; `due` (also once `over`, or an agent that didn't answer): amber. */
   readonly state: "paused" | "pausing" | "due";
   readonly phase: PausePhase;
-  /** `Paused: Claude_Everix Session 97%, resumes 21:05`, or `…; resume was due at 20:27`. */
+  /** `Paused: Claude_Everix Session 92%, resumes 21:05`, or `…; resume was due at 20:27`. */
   readonly text: string;
   /** The smaller line: who paused and when, or when it reads Stalled. */
   readonly note: string;

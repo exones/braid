@@ -85,7 +85,7 @@ A pause holds a whole braid, never one strand. It has one of two reasons: a prov
 
 ```text
 0009  In Progress  Working (paused)  branch local+pushed  PR -  ci -  thread -  Sample reports
-    Paused: Claude_Everix Session 97%, resumes 21:05 (by coordinator 3194eef8 at 20:29, task 9c1e42)
+    Paused: Claude_Everix Session 92%, resumes 21:05 (by coordinator 3194eef8 at 20:29, task 9c1e42)
 ```
 
 A damaged `pauses.json` reads as no pauses, and `braid status` says so in a `note:` line.
