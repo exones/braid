@@ -15,6 +15,13 @@
       "event": "opened",
       "at": "2026-11-26T04:33:14.564Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-26T04:33:57.290Z",
+      "by": "pm",
+      "text": "a. Fix it.",
+      "reason": "Keeps stored commits byte-identical under every git config for one small change and a short review, instead of carrying a known data difference forward."
     }
   ]
 }
