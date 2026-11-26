@@ -13,6 +13,12 @@
       "event": "opened",
       "at": "2026-11-25T23:31:34.488Z",
       "by": "coordinator"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-26T00:33:39.995Z",
+      "by": "coordinator",
+      "text": "0072/D merged; 0072/C resumes now"
     }
   ]
 }
