@@ -1,7 +1,7 @@
 ---
 id: '0082'
 title: "The Questions panel"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ui"]
 dependencies: []
 related: ['0077', '0080']
