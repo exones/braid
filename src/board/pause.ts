@@ -2,6 +2,7 @@
 // Pure (no Node.js), so the page uses it too. The record comes from src/braids/pauses.ts.
 import { percent } from "../braids/percent.js";
 import { reasonOf, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
+import type { Lane } from "./model.js";
 
 /** Past `resumeAt` by this much with the record still there, the mark says the resume was due. */
 export const DUE_MS = 15 * 60_000;
@@ -75,6 +76,9 @@ export function resumeMode(p: Pause): "direct" | "pm" | "pauser" | null {
   }
   return (p.targets ?? []).some((t) => t.kind === "pm") ? "pm" : "direct";
 }
+
+/** Whether a braid's card carries ▶ Resume now: a paused braid in To Do, Working or Needs You (a failed or partial pause keeps its record there). */
+export const resumeOnCard = (pause: PauseView | null, lane: Lane): pause is PauseView => pause !== null && (lane === "In Progress" || lane === "To Do" || lane === "Waiting");
 
 /** Who a resume asks: `the PM` or `the coordinator`. */
 export const askWho = (p: Pause): string => (resumeMode(p) === "pm" || (p.by === "pm" && resumeMode(p) === "pauser") ? "the PM" : "the coordinator");

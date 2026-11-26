@@ -34,10 +34,16 @@ Expected size: about 120 lines in 5 files.
 
 - Anything else in the pause or resume.
 
+## Plan
+
+1. A pure `resumeOnCard` (src/board/pause.ts) says which cards carry ▶ (To Do, Working, Needs You); the page uses it.
+2. The steerer clears the board record of a Done braid first in each tick, before the count, resume and pause steps, with the pause step's own Done rule.
+3. A test for each in test/board-steer.test.ts; docs/board.md.
+
 ## Completion
 
-- [ ] A paused braid in Needs You shows ▶ Resume now, with a test
-- [ ] A Done braid's board pause record is cleared without sends and is never in a PM's resume ask, with a test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A paused braid in Needs You shows ▶ Resume now, with a test
+- [x] A Done braid's board pause record is cleared without sends and is never in a PM's resume ask, with a test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

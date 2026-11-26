@@ -1,5 +1,6 @@
 // The board's pause for provider limits (0064, 0074/C, docs/board.md "Provider limits"): the one exception to the board's click-only
 // rule. Every served project's feed hands its good snapshot to one board-wide steerer, which runs a tick at a time:
+//   0. done (0074/H): a board record of a braid that is Done (as the board reads it) is cleared, with no send;
 //   1. count: for 10 minutes after a pause's sends, read each target's thread for its `Paused:` line, then settle the record;
 //   2. resume (0074/D, src/board/resume.ts): a record whose resume time has passed is re-checked; one whose fresh reading is under
 //      the threshold (or no longer has its window) resumes early; one asked for (Resume now) or pending (a failed send) is tried
@@ -15,7 +16,7 @@ import { join } from "node:path";
 import { percent } from "../braids/percent.js";
 import { providerKey, repoLease, type ActingBoard } from "./acting.js";
 import { LimitsError, readLimits, readModelLines, readProvider, t3Home, type ModelLine, type ProviderReading } from "../braids/limits.js";
-import { claimPauses, loadPauses, patchPauses, reasonOf, resumedAt, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
+import { claimPauses, clearPause, loadPauses, patchPauses, reasonOf, resumedAt, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
 import type { Good } from "./feed.js";
 import { blindReason } from "./limits-view.js";
 import { clock } from "./pause.js";
@@ -236,6 +237,19 @@ export function steerer(opts: SteererOptions): Steerer {
     }
   };
 
+  /** Done as the board reads it (a merged PR too), not only a stored Done. */
+  const isDone = (s: Seen, b: Good["braids"][number]): boolean => b.brief.status === "Done" || s.good.board.braids.find((c) => c.id === b.number)?.status === "Done";
+
+  /** 0. A Done braid has nothing left to pause or resume (0074/H): its board record goes, with no send, so no PM is asked to resume it. */
+  const clearDone = (seen: readonly Seen[], acts: (provider: string | null) => boolean): void => {
+    for (const s of seen) {
+      const done = new Set(s.good.braids.filter((b) => isDone(s, b)).map((b) => b.number));
+      for (const p of loadPauses(s.project.root).pauses.filter((x) => done.has(x.braid) && x.by === "board" && acts(x.provider))) {
+        clearPause(s.project.root, p.braid, (q) => q.by === "board" && reasonOf(q) === "limit");
+      }
+    }
+  };
+
   /** 1. Pauses still counting: read each target that hasn't answered; settle when all answered or failed, or at 10 minutes. */
   const count = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean): Promise<void> => {
     const groups = new Map<string, Held[]>();
@@ -383,8 +397,7 @@ ${c.pause.provider ?? ""}`;
         const pms: PmThread[] = s.good.board.programmes.flatMap((p) => (p.thread === null || p.section === null ? [] : [{ thread: p.thread, braids: p.braids }]));
         const w = overWindow(reading);
         const records = s.good.braids
-          // Done as the board reads it (a merged PR too), not only a stored Done.
-          .filter((b) => s.good.board.braids.find((c) => c.id === b.number)?.status !== "Done" && b.brief.status !== "Done" && !held.has(b.number))
+          .filter((b) => !isDone(s, b) && !held.has(b.number))
           .flatMap((b): Pause[] => {
             const targets = targetsOf(b.number, provider, s.good.t3, s.project.folder());
             if (targets.length === 0) {
@@ -521,6 +534,7 @@ ${c.pause.provider ?? ""}`;
     }
     const at = now();
     try {
+      clearDone(seen, acts);
       await count(seen, at, acts);
       await resume(seen, at, acts);
       await pause(seen, at, acts);
