@@ -47,10 +47,16 @@ Expected size: one self-contained HTML file of about 600 lines, plus `report.md`
 - Any product code, CLI or record change; any other strand.
 - Answering from pushes or the phone strip.
 
+## Plan
+
+1. Write `mockups.html`: self-contained, board look from `web/` (colours, handle chips, need lines, programmes panel and rail), rows and cards rendered by a small inline script from one test-data list, so every frame shows the same questions. Dark theme as in 0072/B's page, plus a toggle.
+2. Frames 1 to 7 as listed, each with a title and a note on what is new; a tooltip drawn open in frame 1.
+3. Check the page renders in both themes, write `report.md` with the design choices and the open questions, run the gate, commit and push. No PR until the user approves.
+
 ## Completion
 
-- [ ] `mockups.html` in this folder shows frames 1 to 7 above, light and dark, on realistic test data
-- [ ] report.md lists the design choices made and the open questions for the user as lettered options
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `mockups.html` in this folder shows frames 1 to 7 above, light and dark, on realistic test data
+- [x] report.md lists the design choices made and the open questions for the user as lettered options
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
