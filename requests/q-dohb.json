@@ -7,7 +7,7 @@
   "thread": "mcp:launch:90866b96cd9d1f3df0e696ca84e6a89e03158132a8a9cd664a6abeada0094837",
   "to": "0074",
   "doneWhen": "braid:0074",
-  "eta": null,
+  "eta": "2026-11-26T10:51:32.647Z",
   "events": [
     {
       "event": "opened",
@@ -19,6 +19,13 @@
       "at": "2026-11-26T06:50:37.277Z",
       "by": "board",
       "text": "sent to the 0074 coordinator"
+    },
+    {
+      "event": "eta",
+      "at": "2026-11-26T06:51:32.647Z",
+      "by": "coordinator",
+      "text": "2026-11-26T10:51:32.647Z",
+      "reason": "PR #339 at 85a95fc is ready (CI green, reviews and the PM's re-check passed); it waits only on the user's merge, relayed by the PM"
     }
   ]
 }
