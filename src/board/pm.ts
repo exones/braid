@@ -9,8 +9,8 @@ export const PM_QUESTION_MS = 20 * 60_000;
 /** A handover (a review) escalates after this long: the PM's live check can take most of an hour. */
 export const PM_REVIEW_MS = 60 * 60_000;
 
-/** The PM's thread states that mean no one is there to answer. */
-const GONE = new Set(["archived", "failed", "error", "errored"]);
+/** The thread states that mean no one is there: a PM that can't answer, a braid's dead coordinator. */
+export const GONE = new Set(["archived", "failed", "error", "errored"]);
 
 export type Via = "timeout" | "gone" | "forwarded";
 

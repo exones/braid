@@ -6,7 +6,7 @@ import { reasonOf, type Pause } from "../braids/pauses.js";
 import type { Hold, PlanRow, PlanState } from "../braids/plan.js";
 import { linkOfThread, needOfAsk, needOfForward, raiseTo, type Alarm, type BraidCard, type Lane, type Need, type NudgeTarget, type Raise, type Signals } from "./model.js";
 import { clock as hhmmOf, pauseView, usage } from "./pause.js";
-import { routeOf, throughPm } from "./pm.js";
+import { GONE, routeOf, throughPm } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import type { T3 } from "./t3.js";
 
@@ -45,7 +45,7 @@ export interface Programme {
   readonly braids: readonly string[];
   readonly done: number;
   readonly total: number;
-  /** Its braids that run now (an agent, a coordinator, checks). */
+  /** Its braids that are live: started, not Done, with an agent, pending checks, a coordinator working or waiting, or the PM handling it. */
   readonly running: number;
   /** The open programme request, or the stall; null otherwise. */
   readonly need: Need | null;
@@ -105,8 +105,26 @@ export function heldPauses(plans: readonly PlanRead[], pauses: ReadonlyMap<strin
   return out;
 }
 
-/** Whether a braid card counts as running for its programme: an agent, its coordinator, or checks pending. */
-const runs = (card: BraidCard, t3: T3): boolean => card.lane !== "Done" && (card.running || card.activity !== null || t3.coordinators?.has(card.id) === true);
+/** Whether something of a braid works right now (an agent, its coordinator, checks pending): what keeps its programme from stalling. */
+const busy = (card: BraidCard, t3: T3): boolean => card.lane !== "Done" && (card.running || card.activity !== null || t3.coordinators?.has(card.id) === true);
+
+/** Whether the PM is handling a request of this braid now (not one it forwarded to you). */
+const handled = (card: BraidCard): boolean => card.pm !== null && card.pm.forwarded !== true;
+
+/**
+ * Whether a braid card counts in its programme's "N running" (0077/E): busy, or started and not Done with a coordinator
+ * that is alive though waiting (idle, neither failed nor archived), or with the PM handling it.
+ */
+function runs(card: BraidCard, t3: T3): boolean {
+  if (busy(card, t3)) {
+    return true;
+  }
+  if (card.lane === "Done" || card.lane === "To Do") {
+    return false;
+  }
+  const waiting = t3.idleCoordinators?.get(card.id);
+  return handled(card) || (waiting !== undefined && !GONE.has(t3.states?.get(waiting.id) ?? ""));
+}
 
 const hhmm = (iso: string): string => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
@@ -184,11 +202,11 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
         const routed = routeOf(r, sig.now, t3, sig.pauses?.has(r.id.slice(0, 4)) === true);
         return braids.includes(r.id.slice(0, 4)) && throughPm(r, routed, [read]) ? [{ id: r.id, title: titleOf(cards, r.id), need: needOfForward(r, sig.now, t3, sig.unblocks?.(r) ?? []), ...(r.head === undefined ? {} : { head: r.head }), ...(r.note === undefined ? {} : { note: r.note }) }] : [];
       });
-  const holds = over || held || asked !== null || forwards.length > 0 ? false : t3ok && ghOk ? !(pmRunning || running > 0 || checking) : null;
+  const holds = over || held || asked !== null || forwards.length > 0 ? false : t3ok && ghOk ? !(pmRunning || mine.some((c) => busy(c, t3)) || checking) : null;
   // The PM thread, known and idle, is nudged once before the stall shows; without one the stall shows after ten minutes as before.
   const nudge: NudgeTarget | undefined = thread !== null && pmState !== null && pmState !== "unknown" && pmState !== "archived" ? { kind: "pm", who: read.slug, thread, pm: null } : undefined;
   const since = raise(clock, "stalled", holds, nudge);
-  const handling = mine.filter((c) => c.pm !== null && c.pm.forwarded !== true).map((c) => `${c.id} ${c.pm?.kind === "review" ? "live check" : (c.pm?.kind ?? "request")} (${c.pm?.age ?? ""})`);
+  const handling = mine.filter(handled).map((c) => `${c.id} ${c.pm?.kind === "review" ? "live check" : (c.pm?.kind ?? "request")} (${c.pm?.age ?? ""})`);
   const stall: Need | null =
     since === null ? null : { kind: "stalled", text: sig.nudged?.(clock) === true ? AFTER_NUDGE_PM : STALLED_TEXT, verb: "for", age: age(since, sig.now), since, key: null, pr: null, who: null, more: 0, by: "pm", link };
   const need = over ? null : (asked ?? stall);
