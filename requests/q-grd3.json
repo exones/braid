@@ -22,6 +22,12 @@
       "by": "pm",
       "text": "A. Approve",
       "reason": "approved as planned, because the strands match P25 and the user's decisions, only A runs now, and D carries ask:security, instead of reshaping strands before the mockups exist"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-26T19:31:47.117Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
