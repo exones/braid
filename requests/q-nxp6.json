@@ -1,0 +1,19 @@
+{
+  "code": "q-nxp6",
+  "item": "0080/D",
+  "kind": "decision",
+  "text": "0080/D mockups: the T3 sign-in button (four states, panel, phone) and four proposals (sign-out from phone, waiting state, T3 down, no push on own sign-out)",
+  "by": "coordinator",
+  "thread": "mcp:launch:dd3b6dc3e3dfa3c9a1515a11da6c5a321a852f1a03d3476d761e87ada6709510",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T00:31:09.563Z",
+      "by": "coordinator"
+    }
+  ]
+}
