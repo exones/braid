@@ -59,6 +59,7 @@ The user adds items as the programme runs; the PM places them ("other things I w
 
 The user's decisions, quoted and dated, then the PM's own.
 
+- 2026-11-26, user, programme rule: subagents get no parent context ("I don't want the sub-agents to know the parent context, it can bias them"): workers, reviewers, researchers and checkers start from their brief only; no forked context; reviewers and checkers get the goal, the brief and the code, not the coordinator's or PM's conclusions.
 - 2026-11-22, user: 0064, 0067 and 0060 are in the programme as its first braids, "order we will discuss".
 - 2026-11-22, user: "ideas from inbox indeed all have to be turned into this programme work except HTML one"; then the HTML one back in as a candidate after T3 v0.1.11 ("If it can show HTML in chat, maybe we can consider it").
 - 2026-11-22, user, priorities: 0 foreground waits; 1 precise notifications; 2 explicit questions; 2.x aeli promoted to a braid; 2.4 lanes, Held, Hold; 2.5 stall nudges; 3 headless board; 4 better output and reports (written "#5"); 5 evidence; 6 learnings.
@@ -158,6 +159,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26: programme rule added (Decisions): subagents get no parent context.
 - 2026-11-26: user: "T. a", then "Actually I change my mind: b": after 0060 and 0077, P5 (Held lane, counters) runs first, then P25.
 - 2026-11-26: user "S. a": P25 starts right after 0060 and 0077 merge, as the one running braid. User reported the Tailscale page often "forbidden" / "couldn't confirm through Tailscale": whois gate caches 5 s and refuses on timeout under load; sent to 0077 as a small strand. Test request tiny-tractor-3i2b opened for the spoken handles.
 - 2026-11-26: user: "Finish seventy-seven and sixty and hold". 0077 and 0060 finish (final PRs, PM live checks, the user's merges); then the programme holds: nothing new launches, 0078 and 0080 stay held, plan state held once both are in main.
