@@ -38,6 +38,12 @@ Expected size: about 80 lines in 3 files, tests included.
 
 - The board's own wake for met waits (0071), which already closes them as met.
 
+## Plan
+
+1. `answerCommand`: a wait (`isWait`) refuses `--from`; `met` by the coordinator when `conditionEnding` says met, else refused. A wait on a braid with no condition (done when answered) is answered by the coordinator: its answer is the only way it ends.
+2. `answeredRows` and the Requests tab's `decided` leave waits out; they stay under Closed, labelled "answered", not "decided by you".
+3. Tests in `test/requests-wait-answer.test.ts`; CLI help, docs/cli.md, docs/braids-format.md, docs/board.md, D112.
+
 ## Completion
 
 - [ ] `braid answer` on a wait records `met` when its condition holds and refuses otherwise, never "answered by the user", with tests

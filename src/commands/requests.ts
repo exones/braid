@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, git } from "../braids/gitbranch.js";
-import { actOf, addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { actOf, addEvent, age, askerOf, BRAID_TO, closing, CODE, conditionEnding, endRequest, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import { readGithub, runGh, type GhRunner, type PullRequest } from "../board/github.js";
@@ -393,14 +393,52 @@ function answerText(values: Parameters<typeof str>[0]): string | undefined {
   return text === "" ? undefined : text;
 }
 
-const ANSWER_USAGE = "usage: braid answer <name|code>|<id>|pm/<slug> [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]";
+const ANSWER_USAGE = "usage: braid answer <name|code>|<id>|pm/<slug> [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]  (a wait takes no --from: met when its condition holds)";
+
+/** What a "done when" is checked against here: GitHub's PRs, and main as origin has it (offline, the last fetched one). */
+function conditions(root: string, requests: readonly Pick<Request, "doneWhen">[], run: GhRunner, now: Date): Conditions {
+  // Only a request waiting on a PR needs GitHub, and only when there is one.
+  const pr = (number: number): PrNow => {
+    try {
+      const found = view(run, root, number);
+      return { state: found.state, headRefOid: found.headRefOid };
+    } catch {
+      return null;
+    }
+  };
+  const main = mainBranch(root);
+  if (requests.some((r) => r.doneWhen.startsWith("braid:"))) {
+    git(root, ["fetch", "-q", "origin", main]);
+  }
+  const prs = () => {
+    const g = readGithub(root, run);
+    return g.status.state === "ok" ? g.prs : null;
+  };
+  return { pr, braidDone: braidDoneOn(root, main, prs), now };
+}
+
+/**
+ * How `braid answer` ends a wait (`isWait`), which asks neither the user nor the PM: `met`, by the coordinator, when its
+ * condition holds now, refused otherwise. A wait on another braid without a condition (done when answered) ends with
+ * that coordinator's answer, recorded as the coordinator's.
+ */
+function waitEnding(root: string, r: Request, text: string | undefined, opts: RequestOptions): Ending {
+  if (r.doneWhen === "answered") {
+    return { state: "answered", who: "coordinator", ...(text === undefined ? {} : { text }) };
+  }
+  const e = conditionEnding(r, conditions(root, [r], opts.gh ?? runGh, (opts.now ?? (() => new Date()))()));
+  if (e?.state !== "met") {
+    return fail(`braid answer: ${handleOf(r)} (${r.id}) is a wait and its condition (done when ${r.doneWhen}) doesn't hold now. A wait ends when its condition holds (the board closes it and wakes the asker); \`braid withdraw ${handleOf(r)} --why <reason>\` ends one no longer needed; nothing changed`);
+  }
+  return { ...e, who: "coordinator" };
+}
 
 /**
  * `braid answer`: records the answer on the request record, with who answered (`--from`, the user by
- * default) and the PM's reason. It writes only to braid-requests, never to a braid branch, so a PR head stays
+ * default; a wait: `waitEnding`) and the PM's reason. It writes only to braid-requests, never to a braid branch, so a PR head stays
  * where it was. `--log` is the old name of `--file`.
  */
-export function answerCommand(root: string, _cwd: string, args: readonly string[]): string {
+export function answerCommand(root: string, _cwd: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid answer", args, { log: { type: "string" }, file: { type: "string" }, thread: { type: "string" }, by: { type: "string" }, from: { type: "string" }, reason: { type: "string" } });
   if (positionals.length !== 1) {
     throw new UsageError(ANSWER_USAGE);
@@ -422,8 +460,18 @@ export function answerCommand(root: string, _cwd: string, args: readonly string[
   if ("none" in found) {
     return found.none;
   }
-  const done = end(root, found, "braid answer", { state: "answered", who: from, ...(text === undefined ? {} : { text }), ...(reason === undefined ? {} : { reason }) });
-  return `${handleOf(done.request)} ${done.request.id}: answered by ${WHO[from]}${text === undefined ? "" : `: ${oneLine(text)}`}\n${warned(done.warning)}`;
+  // A closed wait goes on to `end`, which names who closed it.
+  const wait = loadRecord(root).requests.find((r) => r.code === found.code && r.state === "open" && isWait(r));
+  if (wait !== undefined && str(values, "from") !== undefined) {
+    throw new UsageError(`braid answer: ${handleOf(wait)} (${wait.id}) is a wait, which asks neither the user nor the PM: drop --from; nothing changed`);
+  }
+  const ending: Ending = wait === undefined ? { state: "answered", who: from, ...(text === undefined ? {} : { text }), ...(reason === undefined ? {} : { reason }) } : waitEnding(root, wait, text, opts);
+  const done = end(root, found, "braid answer", ending);
+  const name = `${handleOf(done.request)} ${done.request.id}`;
+  if (ending.state === "met") {
+    return `${name}: met: ${ending.text ?? ""} (the board sends no wake for a wait closed by hand${text === undefined ? "" : "; your text isn't recorded"})\n${warned(done.warning)}`;
+  }
+  return `${name}: answered by ${WHO[ending.who]}${text === undefined ? "" : `: ${oneLine(text)}`}\n${warned(done.warning)}`;
 }
 
 /** `braid withdraw <code>|<id> --why <reason>`: the asker no longer needs it; it stays on the record as withdrawn. */
@@ -593,27 +641,13 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
     return `${offline}${skipped()}${done.length === 0 ? `no closed requests${since === undefined ? "" : ` since ${since}`}\n` : `${done.map(closedLine).join("\n")}\n`}`;
   }
   const run = opts.gh ?? runGh;
-  // Only a request waiting on a PR needs GitHub, and only when there is one.
-  const prOf = (number: number): PrNow => {
-    try {
-      const pr = view(run, root, number);
-      return { state: pr.state, headRefOid: pr.headRefOid };
-    } catch {
-      return null;
-    }
-  };
-  // A `braid:` wait reads main as origin has it; offline, the last fetched one.
-  const main = mainBranch(root);
-  if (loadRequests(root).some((r) => r.doneWhen.startsWith("braid:"))) {
-    git(root, ["fetch", "-q", "origin", main]);
-  }
   const list: Request[] = loadRequests(root);
+  const now = (opts.now ?? (() => new Date()))();
+  const ends = holding(list, conditions(root, list, run, now));
   const braids = statused(root, prsOf(root, run));
-  const ends = holding(list, { pr: prOf, braidDone: braidDoneOn(root, main, () => { const g = readGithub(root, run); return g.status.state === "ok" ? g.prs : null; }), now: (opts.now ?? (() => new Date()))() });
   if (list.length === 0) {
     return `${offline}${skipped()}no open requests\n`;
   }
-  const now = (opts.now ?? (() => new Date()))();
   const when = (r: Request): string => (r.doneWhen === "answered" || r.kind === "review" || isTimedWait(r) ? "" : `done when ${r.doneWhen}  `);
   const eta = (r: Request): string => (r.eta === null ? "" : `expected by ${clock(r.eta, now)}  `);
   // A condition that holds is still open: only the running board's tick closes it (and wakes the asker).

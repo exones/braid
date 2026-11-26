@@ -47,9 +47,9 @@ export interface RequestsView {
   readonly open: readonly RequestRow[];
   /** Open, addressed to another braid's coordinator, or a timed wait. */
   readonly waiting: readonly RequestRow[];
-  /** Answered, newest first: the question, the answer, who answered (the PM with its reason) and when. */
+  /** Answered (waits left out), newest first: the question, the answer, who answered (the PM with its reason) and when. */
   readonly decided: readonly RequestRow[];
-  /** Withdrawn or met, newest first. */
+  /** Withdrawn or met, and answered waits, newest first. */
   readonly closed: readonly RequestRow[];
 }
 
@@ -84,12 +84,13 @@ export const requestCount = (view: RequestsView): number => view.open.length + v
 export function requestsOf(match: (id: string) => boolean, sig: Signals, t3: T3): RequestsView {
   const rows = (rs: readonly Request[]): RequestRow[] => rs.filter((r) => match(r.id) && programmeOf(r.id) === null).map((r) => rowOf(r, sig.now, t3, sig.unblocks?.(r) ?? []));
   const ended = rows(sig.closed ?? []).sort((a, b) => (a.closed?.at ?? "") < (b.closed?.at ?? "") ? 1 : -1);
-  const closed = ended.filter((r) => r.state !== "answered");
+  // A wait is nobody's decision, however it ended (an old record may read "answered by the user").
+  const decided = (r: RequestRow): boolean => r.state === "answered" && !isWait(r);
   return {
     open: rows([...sig.requests.values(), ...(sig.asks?.values() ?? [])]).sort((a, b) => (a.at < b.at ? 1 : -1)),
     waiting: rows(sig.waits ?? []).sort((a, b) => (a.at < b.at ? 1 : -1)),
-    decided: ended.filter((r) => r.state === "answered").slice(0, CLOSED_KEPT),
-    closed: closed.slice(0, CLOSED_KEPT),
+    decided: ended.filter(decided).slice(0, CLOSED_KEPT),
+    closed: ended.filter((r) => !decided(r)).slice(0, CLOSED_KEPT),
   };
 }
 
