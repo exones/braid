@@ -44,6 +44,15 @@ Expected size: about 80 to 150 lines in 2 to 4 files.
 - A holder whose lock was taken over deletes the new holder's lock on release → a third writer gets in: test that release leaves it.
 - A refresh that keeps a dead holder's lock alive (a timer outliving the holder): test or argue why it can't.
 
+## Plan
+
+- Refresh from a worker thread. `locked` starts a small `worker_threads` worker that touches the lock (sets its mtime to now) every 5 s (a sixth of the 30 s stale time) while its token is still ours. Why this one: the slow part of a hold is a synchronous `spawnSync("git", ...)` (a push can take longer than 30 s by itself), and while the main thread sits in it no timer runs and no code runs between git calls; a worker is its own OS thread and keeps running. Counting staleness from the last refresh is the same thing as refreshing (mtime is that clock) and needs the same refresher. A worker can't outlive its process, so a killed holder stops refreshing and its lock goes stale as before.
+- Stop before release: the worker and the main thread share one `Int32Array` state (running, stopping, touching). Release sets "stopping" with a compare-and-swap, waiting out a touch under way, so no touch happens after `locked` lets go. Then it deletes the lock only when the lock still holds our token.
+- Taken over: `checkHeld()` (state.ts) throws a `LockError` when a lock this process holds no longer carries its token. `writeBranchUnlocked` calls it before each push and each move of the local branch, so a holder that lost its lock fails before it writes.
+- A refresh changes the lock's mtime, so the waiter's "has the lock changed hands" identity drops the mtime (inode, birth time and token stay); otherwise a refreshed lock would look like a new holder every 5 s and a waiter would never give up on a live but stuck holder.
+- Tests (test/requests.test.ts): a holder blocked in a synchronous child process past an aged lock gets its lock refreshed and keeps it; a holder that dies (`process.exit` inside the hold, so no `finally`) stops refreshing and its lock is taken over; release leaves a lock that someone else re-created; `checkHeld` and a branch write throw after a takeover, and the branch doesn't move. The separate-process writer tests keep stderr and print it on a non-zero exit.
+- Docs: docs/braids-format.md, the lock lines.
+
 ## Completion
 
 - [ ] A live holder slower than the stale time keeps its lock, tested

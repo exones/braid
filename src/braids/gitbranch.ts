@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GitError } from "./numbers.js";
 import { catBatchSync, gitAsync } from "./gitio.js";
-import { locked, mainCheckout } from "./state.js";
+import { checkHeld, locked, mainCheckout } from "./state.js";
 
 export const REMOTE = "origin";
 /** How many times a refused push is fetched and redone. */
@@ -359,6 +359,8 @@ export function writeBranchUnlocked(root: string, b: BranchSpec, change: (curren
     }
     const blobs = new Map([...next.files].map(([path, text]) => [path, hash(root, text)]));
     const commit = commitOn(root, base, blobs, next.message);
+    // A holder that lost its lock to a takeover stops here, before it pushes or moves the branch beside the new holder (moving it is a compare-and-swap).
+    checkHeld();
     if (fetched.state === "offline") {
       moveLocal(root, b, commit, l);
       return { commit, pushed: false, warning: push ? `can't reach ${REMOTE} (${fetched.why}); the ${b.noun} is on the local ${b.branch} branch and the next write pushes it` : null };
