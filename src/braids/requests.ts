@@ -546,6 +546,36 @@ export function addEvent(root: string, code: string, event: RequestEvent): { rea
   return request === null ? null : { request, added, warning: result.warning };
 }
 
+/** The text of the `reminded` event that says the board delivered an answer's wake to the asking thread (src/board/wake.ts). */
+export const ANSWER_WOKEN = "answer sent to the asking thread";
+
+/** Whether the board already delivered this answered request's wake: a `reminded` event with `ANSWER_WOKEN` after the answer. */
+export const answerWoken = (r: Pick<Request, "events">): boolean => r.events.some((e) => e.event === "reminded" && e.text === ANSWER_WOKEN);
+
+/**
+ * Records that the board delivered an answered request's wake: a `reminded` event by `board` (a kind older braid versions
+ * read; on a closed request nothing but the history reads it). Checked again inside the write: a request that isn't
+ * answered, or already carries the mark, is left and returned with `added: false`. Null: no such code.
+ */
+export function markAnswerWoken(root: string, code: string, at: string): { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null {
+  let found: Request | null = null;
+  let added = false;
+  const result = writeRecord(root, (view) => {
+    const text = view.read(pathOf(code));
+    const r = text === null ? null : parseRecord(pathOf(code), text);
+    found = r === null || isRecordProblem(r) ? null : r;
+    added = found !== null && found.state === "answered" && !answerWoken(found);
+    if (found === null || !added) {
+      return { files: new Map(), message: "" };
+    }
+    const next = withEvent(found, { event: "reminded", at, by: "board", text: ANSWER_WOKEN });
+    found = next;
+    return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} answer woken` };
+  });
+  const request: Request | null = found;
+  return request === null ? null : { request, added, warning: result.warning };
+}
+
 /** Hands the item's request to the user (`braid forward`): a `forwarded` event with the note. Null when there is no open request. */
 export function forwardRequest(root: string, id: string, at: string, note: string | undefined): { readonly request: Request | null; readonly warning: string | null } {
   let out: Request | null = null;

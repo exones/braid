@@ -239,3 +239,134 @@ PM-run (thread ${ASKER}): security always ask.
   assert.equal(Cmd.forwardCommand(w.root, ["0001", "--note", "your call"]), "0001: the question request is for braid 0002's coordinator; nothing changed\n");
   assert.equal(JSON.stringify(recordOf(w.root, wait)), before, "the wait is as it was");
 });
+
+// 0072/D: an answer recorded outside the asking thread (the PM's own, or the user's through the PM) wakes the asker once.
+const { answerWakeMessage, ANSWER_WAKES_FROM }: any = await load("../../dist/board/wake.js");
+const LATER = new Date("2026-11-27T12:00:00.000Z");
+const answered = (root: string, code: string, by: string, text: string, at: string, reason?: string) =>
+  Rec.endRequest(root, code, { state: "answered", who: by, text, at, ...(reason === undefined ? {} : { reason }) });
+const marks = (root: string, code: string): number => recordOf(root, code).events.filter((e: any) => e.event === "reminded" && e.text === Rec.ANSWER_WOKEN).length;
+
+test("a PM's answer recorded with braid answer --from pm wakes the asking thread once, across refreshes and a restarted board", async () => {
+  const w = world();
+  const code = codeOf(Cmd.askCommand(w.root, ["0001", "Which rounding rule?", "--thread", ASKER]));
+  const file = join(mkdtempSync(join(scratch, "ans-")), "answer.txt");
+  writeFileSync(file, "Half-up.\n");
+  Cmd.answerCommand(w.root, w.root, [code, "--from", "pm", "--reason", 'the goal says "as the customer sees it"', "--file", file]);
+  const s = sender();
+  const now = new Date();
+  await waker(s.t3)({ root: w.root, good: good() }, now, warn);
+  assert.deepEqual(s.sent, [{ thread: ASKER, text: `Wake: ${nameOf(w.root, code)} answered by the PM: Half-up (reason: the goal says as the customer sees it). Recap it in one line, then act.` }]);
+  assert.equal(recordOf(w.root, code).state, "answered", "still answered: the mark is not an ending");
+  assert.deepEqual(recordOf(w.root, code).events.at(-1), { event: "reminded", at: now.toISOString(), by: "board", text: "answer sent to the asking thread" });
+  await waker(s.t3)({ root: w.root, good: good() }, now, warn);
+  await waker(s.t3)({ root: w.root, good: good() }, new Date(now.getTime() + 30_000), warn);
+  assert.equal(s.sent.length, 1, "neither a refresh nor a restarted board sends again");
+  assert.equal(marks(w.root, code), 1);
+  // `braid requests <code>` still reads the request, with the mark in its history.
+  assert.match(Cmd.requestsCommand(w.root, [code], { gh: w.opts.gh, now: () => now }), /reminded\s+.*answer sent to the asking thread/);
+});
+
+test("a second board finds the first one's mark and sends nothing; a mark is written only once", async () => {
+  const w = world();
+  const code = codeOf(Cmd.askCommand(w.root, ["0001", "Which rounding rule?", "--thread", ASKER]));
+  answered(w.root, code, "pm", "Half-up.", "2026-11-27T11:00:00.000Z", "the goal");
+  const a = sender();
+  const b = sender();
+  const boardA = waker(a.t3);
+  const boardB = waker(b.t3);
+  await boardB({ root: w.root, good: good() }, LATER, warn);
+  await boardA({ root: w.root, good: good() }, LATER, warn);
+  await boardB({ root: w.root, good: good() }, LATER, warn);
+  assert.equal(a.sent.length + b.sent.length, 1);
+  assert.equal(Rec.markAnswerWoken(w.root, code, LATER.toISOString()).added, false, "a second mark is refused inside the write");
+  assert.equal(marks(w.root, code), 1);
+});
+
+test("a failed answer wake writes no mark and is sent at the next refresh, once", async () => {
+  const w = world();
+  const code = codeOf(Cmd.askCommand(w.root, ["0001", "Which rounding rule?", "--thread", ASKER]));
+  answered(w.root, code, "pm", "Half-up.", "2026-11-27T11:00:00.000Z", "the goal");
+  const s = sender();
+  const wake = waker(s.t3);
+  s.failNext(1);
+  warnings.length = 0;
+  await wake({ root: w.root, good: good() }, LATER, warn);
+  assert.equal(marks(w.root, code), 0, "not marked: the wake isn't delivered");
+  assert.match(warnings.join("\n"), new RegExp(`the wake of ${code} \\(0001\\) failed \\(t3 is not running\\)`));
+  await wake({ root: w.root, good: good() }, LATER, warn);
+  await wake({ root: w.root, good: good() }, LATER, warn);
+  assert.equal(s.sent.length, 1);
+  assert.equal(marks(w.root, code), 1);
+});
+
+test("a mark write that fails after a delivered answer wake is retried without waking again", async () => {
+  const w = world();
+  const code = codeOf(Cmd.askCommand(w.root, ["0001", "Which rounding rule?", "--thread", ASKER]));
+  answered(w.root, code, "pm", "Half-up.", "2026-11-27T11:00:00.000Z", "the goal");
+  const wt = join(mkdtempSync(join(scratch, "wt-")), "requests");
+  git(w.root, "worktree", "add", "-q", wt, "braid-requests");
+  const s = sender();
+  const wake = waker(s.t3);
+  warnings.length = 0;
+  await wake({ root: w.root, good: good() }, LATER, warn);
+  await wake({ root: w.root, good: good() }, LATER, warn);
+  assert.equal(marks(w.root, code), 0);
+  assert.match(warnings.join("\n"), new RegExp(`${code} \\(0001\\) couldn't be recorded as woken`));
+  git(w.root, "worktree", "remove", "--force", wt);
+  await wake({ root: w.root, good: good() }, LATER, warn);
+  assert.equal(marks(w.root, code), 1);
+  assert.equal(s.sent.length, 1, "sent once in all three refreshes");
+});
+
+test("an answer to an archived asker is skipped; a held braid's answer waits until it resumes", async () => {
+  const w = world();
+  const gone = codeOf(Cmd.askCommand(w.root, ["0002", "Later too", "--thread", "archived-thread-1234"]));
+  const held = codeOf(Cmd.askCommand(w.root, ["0001/A", "Which rounding rule?", "--thread", ASKER]));
+  answered(w.root, gone, "pm", "Yes.", "2026-11-27T11:00:00.000Z", "the goal");
+  answered(w.root, held, "pm", "Half-up.", "2026-11-27T11:00:00.000Z", "the goal");
+  const s = sender();
+  const wake = waker(s.t3);
+  await wake({ root: w.root, good: good({ paused: ["0001"], archived: ["archived-thread-1234"] }) }, LATER, warn);
+  assert.equal(s.sent.length, 0);
+  assert.deepEqual([marks(w.root, gone), marks(w.root, held)], [0, 0]);
+  await wake({ root: w.root, good: good({ archived: ["archived-thread-1234"] }) }, LATER, warn);
+  assert.deepEqual(s.sent.map((x) => x.thread), [ASKER], "woken once 0001 resumed; the archived thread never");
+});
+
+test("an answer recorded in the asker's own thread wakes no one; the user's answer through the PM wakes the coordinator", async () => {
+  const w = world();
+  writeFileSync(join(w.root, "braids", "0001-alpha", "brief.md"), brief("0001", "In Progress", `\n## Autonomy\n\nPM-run (thread ${ASKER}): security always ask.\n`));
+  // The coordinator asked the user straight and recorded the user's answer itself.
+  const own = codeOf(Cmd.askCommand(w.root, ["0002", "Which tax table?", "--thread", ASKER]));
+  answered(w.root, own, "user", "B.", "2026-11-27T11:00:00.000Z");
+  // The PM asked the user itself and recorded the user's answer.
+  const pms = codeOf(Cmd.askCommand(w.root, ["0001", "Merge now?", "--by", "pm", "--thread", "pm-thread-1"]));
+  answered(w.root, pms, "user", "Yes.", "2026-11-27T11:00:00.000Z");
+  // A coordinator's question to the PM, forwarded to the user, whose answer the PM records.
+  const fwd = codeOf(Cmd.askCommand(w.root, ["0001/A", "Which rounding rule?", "--thread", "coord-thread-1", "--to", "pm"]));
+  Cmd.forwardCommand(w.root, ["0001/A", "--note", "your call"]);
+  answered(w.root, fwd, "user", "Half-up.", "2026-11-27T11:00:00.000Z");
+  const s = sender();
+  await waker(s.t3)({ root: w.root, good: good() }, LATER, warn);
+  assert.deepEqual(s.sent, [{ thread: "coord-thread-1", text: `Wake: ${nameOf(w.root, fwd)} answered by the user: Half-up. Recap it in one line, then act.` }]);
+  assert.deepEqual([marks(w.root, own), marks(w.root, pms)], [0, 0]);
+});
+
+test("old answers wake no one: before this version, or older than a day", async () => {
+  const w = world();
+  const before = codeOf(Cmd.askCommand(w.root, ["0001", "Which rounding rule?", "--thread", ASKER]));
+  const stale = codeOf(Cmd.askCommand(w.root, ["0002", "Which tax table?", "--thread", ASKER]));
+  answered(w.root, before, "pm", "Half-up.", new Date(Date.parse(ANSWER_WAKES_FROM) - 60_000).toISOString(), "the goal");
+  const s = sender();
+  await waker(s.t3)({ root: w.root, good: good() }, new Date(Date.parse(ANSWER_WAKES_FROM) + 3600_000), warn);
+  answered(w.root, stale, "pm", "B.", new Date(LATER.getTime() - 25 * 3600_000).toISOString(), "the goal");
+  await waker(s.t3)({ root: w.root, good: good() }, LATER, warn);
+  assert.equal(s.sent.length, 0);
+  assert.deepEqual([marks(w.root, before), marks(w.root, stale)], [0, 0]);
+});
+
+test("the answer wake message keeps shell characters out and leaves out what the answer doesn't have", () => {
+  assert.equal(answerWakeMessage({ code: "q-abcd" }, { by: "pm", text: 'Use "x" & <y>.', reason: "100% sure!" }), "Wake: q-abcd answered by the PM: Use x y (reason: 100 sure). Recap it in one line, then act.");
+  assert.equal(answerWakeMessage({ code: "q-abcd", words: "yellow bear" }, { by: "board" }), "Wake: yellow-bear-abcd answered by the board. Recap it in one line, then act.");
+});
