@@ -8,7 +8,8 @@ import { actOf, addEvent, age, askerOf, BRAID_TO, closing, CODE, conditionEnding
 import type { Braid } from "../braids/store.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import { readGithub, runGh, type GhRunner, type PullRequest } from "../board/github.js";
-import { runT3, showThread, type T3Runner } from "../board/t3.js";
+import { mainCheckout, parentsCheckout, runT3, showThread, type T3Runner } from "../board/t3.js";
+import { normPath } from "../braids/worktrees.js";
 import { clock } from "../board/pause.js";
 import { braidDoneOn } from "../board/wake.js";
 import { normaliseId, UsageError } from "./braids.js";
@@ -16,7 +17,7 @@ import { ciAll, ciChecks } from "./coordinate.js";
 import { checksProblem, view } from "./done.js";
 import { find, parse, readText, str } from "./edit.js";
 import { mainBranch } from "./start.js";
-import { recordReview, type ChildRole } from "../braids/reviews.js";
+import { loadReviews, recordReview, type ChildRole } from "../braids/reviews.js";
 import { recapCommand } from "./facts.js";
 
 /** A push that didn't happen: the request is on the local branch, and the next write pushes it. */
@@ -124,6 +125,7 @@ export function itemId(root: string, raw: string | undefined, command: string): 
  * thread with the folder and branch T3 gives for it at that moment (`t3 thread show`: `worktreePath`, `branch`), so the board and
  * `braid status` count it as the item's reviewer while it runs, and `braid clean` removes that checkout after the merge without asking
  * T3 again. When T3 has no folder for it yet, or can't be read, the thread is recorded without one and `braid clean` asks T3 later.
+ * A checkout that isn't the child's own (`notOwn`, or a research child's) is not recorded as one; the thread is, so the board still sees it.
  */
 export async function reviewCommand(root: string, args: readonly string[], opts: RequestOptions & { readonly t3?: T3Runner } = {}): Promise<string> {
   const { positionals, values } = parse("braid review", args, { thread: { type: "string" } });
@@ -138,15 +140,41 @@ export async function reviewCommand(root: string, args: readonly string[], opts:
   return recordChild(root, id, thread, "review", pm, opts);
 }
 
+/** Why a checkout T3 gives for a child isn't its own: it is the main checkout or the caller's, or is on their branch, or is another recorded thread's or its parent's; null when it is. */
+async function notOwn(run: T3Runner, root: string, thread: string, parent: string | null, folder: string, branch: string | null): Promise<string | null> {
+  for (const [dir, name] of [[mainCheckout(root), "the main checkout"], [root, "the caller's own checkout"]] as const) {
+    if (normPath(folder) === normPath(dir)) {
+      return `it is ${name}`;
+    }
+    if (branch !== null && git(dir, ["symbolic-ref", "--short", "-q", "HEAD"]).stdout.trim() === branch) {
+      return `${name} is on its branch ${branch}`;
+    }
+  }
+  const other = loadReviews(root).find((r) => r.thread !== thread && ((r.folder !== undefined && normPath(r.folder) === normPath(folder)) || (branch !== null && r.branch === branch)));
+  return other === undefined ? parentsCheckout(run, root, parent, folder, branch) : `thread ${other.thread} is recorded with that checkout or branch`;
+}
+
 /** Records a child thread of the item with its role and the checkout T3 gives for it (`braid review`, `braid launch --child`). */
 export async function recordChild(root: string, id: string, thread: string, role: ChildRole, pm: boolean, opts: RequestOptions & { readonly t3?: T3Runner } = {}): Promise<string> {
   const at = (opts.now ?? (() => new Date()))();
   // A researcher is launched `shared`: T3 gives the parent's checkout as its folder, which is not the child's to remove.
   const shared = role === "research";
-  const where = shared ? null : await showThread(opts.t3 ?? runT3, root, thread);
+  const run = opts.t3 ?? runT3;
+  const where = await showThread(run, root, thread);
   const folder = pm ? null : (where?.worktreePath ?? null);
-  const added = recordReview(root, id, thread, at.toISOString(), folder === null ? null : { folder, branch: where?.branch ?? null }, role);
-  const what = shared ? "shared checkout: no folder or branch recorded" : folder === null ? `no checkout yet (${where === null ? "T3 doesn't know the thread or can't be read" : "T3 gives no folder"}); braid clean will ask T3` : `checkout ${folder}${where?.branch == null ? "" : `, branch ${where.branch}`}`;
+  const branch = where?.branch ?? null;
+  const why = folder === null ? null : shared ? "a research child shares its parent's checkout" : await notOwn(run, root, thread, where?.parent ?? null, folder, branch);
+  const added = recordReview(root, id, thread, at.toISOString(), folder === null ? null : why === null ? { folder, branch } : { kept: { folder, why } }, role);
+  let what: string;
+  if (shared) {
+    what = "shared checkout: no folder or branch recorded";
+  } else if (folder === null) {
+    what = `no checkout yet (${where === null ? "T3 doesn't know the thread or can't be read" : "T3 gives no folder"}); braid clean will ask T3`;
+  } else if (why !== null) {
+    what = `no folder or branch recorded; braid clean keeps checkout ${folder}: ${why}`;
+  } else {
+    what = `checkout ${folder}${branch === null ? "" : `, branch ${branch}`}`;
+  }
   return `${id}: ${role} thread ${thread} ${added ? "recorded" : "already recorded"} (${what})
 `;
 }

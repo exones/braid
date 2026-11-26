@@ -33,12 +33,18 @@ Expected size: about 60 lines in 3-4 files, tests included.
 
 ## Completion
 
-- [ ] `braid review --thread` records no folder or branch that is another thread's, the caller's or the main checkout, with a regression test
-- [ ] `braid clean`'s line for a research record names the kept folder, with a test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid review --thread` records no folder or branch that is another thread's, the caller's or the main checkout, with a regression test
+- [x] `braid clean`'s line for a research record names the kept folder, with a test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Autonomy
 
 PM-run (thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b): security, data and outward: always ask. architecture, dependency and scope: ask when expensive to reverse (the platform or technology, the form of the product, a contract with another braid); scope: also ask for any change to the goal or the Completion boxes; otherwise decide and log it. Before merging a story or the final PR into main, send the PM the PR and its head, and merge only on the PM's go.
+
+## Plan
+
+1. `braid review` / `braid launch --child` (`recordChild`): when T3's checkout is the main one, the caller's, on either's branch, the parent thread's (`parentThreadId`) or another recorded thread's, record the thread with no folder or branch, plus `kept: {folder, why}`, and say why. Record, do not refuse: the board keeps seeing the thread.
+2. `braid clean`: a research or `kept` record removes only itself and names the folder and why; the same parent check covers older records and records made without a folder.
+3. Tests in `test/reviews.test.ts`; docs `cli.md`, `braids-format.md`, the review help line.

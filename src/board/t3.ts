@@ -9,7 +9,7 @@ import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { childRole, dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
 import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
-import { itemOfFolder, repoNameOf } from "../braids/worktrees.js";
+import { itemOfFolder, normPath, repoNameOf } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
 
 export interface T3Thread {
@@ -136,6 +136,8 @@ export interface Where {
   readonly pending: number;
   /** `subagent` for a delegated task's child thread; null for a top-level thread. */
   readonly relationshipToParent: string | null;
+  /** The thread that delegated a child; null when T3 gives none. */
+  readonly parent: string | null;
   /** The provider instance the thread runs on. */
   readonly provider: string | null;
   /** T3's link to the thread (`<base>/<env>/<thread>`). */
@@ -173,12 +175,23 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
       branch: str(t["branch"]),
       pending: typeof pending === "number" ? pending : 0,
       relationshipToParent: str(t["relationshipToParent"]),
+      parent: str(t["parentThreadId"]),
       provider: str(t["providerInstanceId"]),
       link: str(t["link"]),
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Why a checkout isn't a child's own: T3 gives its folder or branch to the thread that delegated the child too (a `shared` child).
+ * Null when it doesn't, when the child has no parent, or when T3 can't show the parent.
+ */
+export async function parentsCheckout(run: T3Runner, root: string, parent: string | null, folder: string, branch: string | null): Promise<string | null> {
+  const p = parent === null ? null : await showThread(run, root, parent);
+  const same = (p?.worktreePath != null && normPath(p.worktreePath) === normPath(folder)) || (branch !== null && p?.branch === branch);
+  return same ? `its parent thread ${parent} has the same checkout or branch` : null;
 }
 
 /** Runs `work` over `items`, a few at a time. */

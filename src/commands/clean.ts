@@ -11,7 +11,7 @@ import { read, type Sources } from "./coordinate.js";
 import { normPath as norm, reviewFolder } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
 import { childRole, dropReviews, loadReviews } from "../braids/reviews.js";
-import { runT3, showThread, type T3, type T3Runner } from "../board/t3.js";
+import { parentsCheckout, runT3, showThread, type T3, type T3Runner } from "../board/t3.js";
 import { repoName } from "./start.js";
 
 interface Worktree {
@@ -139,7 +139,8 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
  * and T3 doesn't say the thread runs (a thread T3 doesn't know counts as not running); then the record goes. A branch is deleted
  * only when it is a `t3/…` branch: forced when its tip is the merged PR's head or is on a remote-tracking ref of `origin` (no commit is lost), else with `git branch -d`, which keeps one with commits found nowhere else. A record without a folder (T3 gave none when it was recorded, or an older record) falls
  * back to T3: its `worktreePath` and `branch`, only for a subagent's thread; one T3 doesn't know loses its record. When T3 can't be
- * read, everything is kept. A research child ran in its parent's checkout: nothing of it is removed, only its record.
+ * read, everything is kept. A research child ran in its parent's checkout, as did a child whose checkout was recorded as not its own
+ * (`kept`) or is its parent thread's: nothing of it is removed, only its record, and the line names the folder kept and why.
  */
 async function reviewThreads(root: string, yes: boolean, id: string, pr: number, head: string | undefined, t3Ok: boolean, run: T3Runner, listed: readonly Worktree[], held: Held, lines: string[]): Promise<void> {
   const records = loadReviews(root).filter((r) => r.id === id);
@@ -154,8 +155,13 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
     let folder: string | null;
     let rawBranch: string | null;
     let skip: string | null = null;
-    if (childRole(r) === "research") {
-      // Older records hold the parent's checkout and branch: ignore them.
+    let kept = r.kept ?? null;
+    if (childRole(r) === "research" || kept !== null) {
+      // Older research records hold the parent's checkout and branch: ignore them.
+      const shared = r.folder ?? where?.worktreePath;
+      if (kept === null && shared != null) {
+        kept = { folder: shared, why: "a research child shares its parent's checkout" };
+      }
       folder = null;
       rawBranch = null;
     } else if (r.folder !== undefined) {
@@ -173,9 +179,18 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
         skip = "T3 says it is not a subagent's thread";
       }
     }
+    // A record made before this was checked, or without a folder, may still give the parent's checkout.
+    const parents = folder === null ? null : await parentsCheckout(run, root, where?.parent ?? null, folder, rawBranch);
+    if (folder !== null && parents !== null) {
+      kept = { folder, why: parents };
+      folder = null;
+      rawBranch = null;
+      skip = null;
+    }
     const tree = folder === null ? undefined : listed.find((t) => norm(t.path) === norm(folder as string));
     const branch = rawBranch !== null && rawBranch.startsWith("t3/") ? rawBranch : null;
-    const what = `${label}: ${folder === null ? "no checkout" : `checkout ${folder}`}${branch === null ? "" : ` and branch ${branch}`} (PR #${pr} merged)`;
+    const none = kept === null ? "no checkout" : `record only, kept checkout ${kept.folder}: ${kept.why}`;
+    const what = `${label}: ${folder === null ? none : `checkout ${folder}`}${branch === null ? "" : ` and branch ${branch}`} (PR #${pr} merged)`;
     if (skip !== null) {
       // set above
     } else if (where?.status === "running") {
