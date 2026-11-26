@@ -53,7 +53,7 @@ No dependency was added. Neither GitHub runner image ships `powershell-yaml`, an
 
 - `scripts/Test-Pester.ps1 -Path test/pester/Release-Workflow.Tests.ps1`: 27 passed, 0 failed (Windows, about 7 s).
 - The parsed `release.yml` was checked by hand: 8 steps, the decision step id `publication`, the publish step's `if`, the job's permissions, and `on` holding only `workflow_dispatch`.
-- `npm run verify` (the gate), one run on a heavily loaded machine: the docs gate, typecheck and build passed, and every node test passed but one. That one, `test/requests.test.ts` "a waiter outlasts a queue of holders longer than its wait while the lock keeps changing hands", failed with `q is locked` after 3.6 s, then passed when rerun alone (4.2 s). This change touches no TypeScript or test under `test/`. So the gate box stays unticked until CI's `verify:full` is green on both runners.
+- `npm run verify` (the gate): passed on the second run, 709 of 709 node tests, exit 0, about 23 minutes on a loaded machine. The first run failed only on the load-sensitive queue test in `test/requests.test.ts` from 0078/J, "a waiter outlasts a queue of holders longer than its wait while the lock keeps changing hands" (`q is locked` after 3.6 s), which isn't part of this PR; that test passed alone and in the second run.
 
 ## Docs
 

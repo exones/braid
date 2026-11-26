@@ -52,5 +52,5 @@ Expected size: about 550 lines removed and 150 to 250 added in 3 to 5 files.
 - [x] Negative tests show the suite fails on each protected property, and on an unreadable workflow
 - [x] The old 685-line script is gone and the quick gate no longer runs it
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/development.md, docs/npm-distribution.md), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
