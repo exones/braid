@@ -5,7 +5,7 @@ status: To Do
 labels: ["kind:story", "tier:S"]
 dependencies: []
 related: ['0060']
-delivery: story
+delivery: main
 autonomy: free
 ---
 
