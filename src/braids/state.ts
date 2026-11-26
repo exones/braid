@@ -1,6 +1,7 @@
 // braid's local state in the main checkout's `.braid/` (found from any worktree), and the lock its writers take turns with.
 import { spawnSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
 /** The main checkout's folder, also from inside a worktree. */
@@ -27,6 +28,17 @@ export class LockError extends Error {}
 
 const LOCK_STALE_MS = 30_000;
 const LOCK_WAIT_MS = 10_000;
+
+/** How `locked` tells the time and lets it pass between two tries; a test hands the lock over from `pause`, so no timing decides it. */
+export interface LockClock {
+  now(): number;
+  pause(): void;
+}
+
+const LOCK_CLOCK: LockClock = {
+  now: () => Date.now(),
+  pause: () => void Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20),
+};
 
 /**
  * Removes the lock when it is older than `staleMs`, for one waiter at a time: the check and the removal
@@ -65,11 +77,14 @@ export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): bo
   return false;
 }
 
-/** Names this lock file instance (its inode, creation and change time), or "" when it is gone: another holder's lock has a different one. */
+/**
+ * Names this lock file instance (the token its holder wrote, its inode, creation and change time), or "" when it is gone: another
+ * holder's lock has a different one. The token matters where a new lock can reuse the inode within one tick of the file clock.
+ */
 function lockIdentity(lock: string): string {
   try {
     const st = statSync(lock, { bigint: true });
-    return `${st.ino}:${st.birthtimeNs}:${st.mtimeNs}`;
+    return `${st.ino}:${st.birthtimeNs}:${st.mtimeNs}:${readFileSync(lock, "utf8")}`;
   } catch {
     return "";
   }
@@ -79,14 +94,14 @@ function lockIdentity(lock: string): string {
  * Runs `fn` holding the lock of `file`: a lock file made exclusively next to it. A lock older than 30 s is taken over by one waiter; waiting gives up when the lock has not changed hands for `waitMs` (10 s). Never call GitHub inside `fn`.
  * `makeDir` prepares the file's folder (default: a repository's `.braid/`, ignored by Git).
  */
-export function locked<T>(file: string, fn: () => T, what = "the requests store", makeDir: (dir: string) => void = ensureStateDir, waitMs: number = LOCK_WAIT_MS): T {
+export function locked<T>(file: string, fn: () => T, what = "the requests store", makeDir: (dir: string) => void = ensureStateDir, waitMs: number = LOCK_WAIT_MS, clock: LockClock = LOCK_CLOCK): T {
   makeDir(dirname(file));
   const lock = `${file}.lock`;
-  let give = Date.now() + waitMs;
+  let give = clock.now() + waitMs;
   let seen = "";
   for (;;) {
     try {
-      closeSync(openSync(lock, "wx"));
+      writeFileSync(lock, randomUUID(), { flag: "wx" });
       break;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST" && (error as NodeJS.ErrnoException).code !== "EPERM") {
@@ -99,12 +114,12 @@ export function locked<T>(file: string, fn: () => T, what = "the requests store"
       const now = lockIdentity(lock);
       if (now !== "" && now !== seen) {
         seen = now;
-        give = Date.now() + waitMs;
+        give = clock.now() + waitMs;
       }
-      if (Date.now() > give) {
+      if (clock.now() > give) {
         throw new LockError(`${what} is locked (${lock}); remove it if no braid command is running`);
       }
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+      clock.pause();
     }
   }
   try {
