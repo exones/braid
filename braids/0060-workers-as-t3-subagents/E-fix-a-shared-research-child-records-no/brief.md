@@ -29,9 +29,15 @@ Expected size: about 80 lines in 4-5 files, tests included.
 
 ## Completion
 
-- [ ] A shared research child is recorded with no folder or branch, with a test
-- [ ] `braid clean` never removes the main checkout, the caller's checkout or a live thread's folder or branch, with a regression test from the PM's reproduction
-- [ ] Status, the board's limits list and clean label a research child as research, with a test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A shared research child is recorded with no folder or branch, with a test
+- [x] `braid clean` never removes the main checkout, the caller's checkout or a live thread's folder or branch, with a regression test from the PM's reproduction
+- [x] Status, the board's limits list and clean label a research child as research, with a test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `braid launch --role research --child` records no folder or branch and doesn't ask T3 for them.
+- `braid clean` ignores a research record's checkout (older records hold the parent's), and one guard (main checkout, caller's checkout, running threads' checkouts and branches, from the T3 snapshot) covers every removal it makes.
+- The snapshot gives a research child the role `researcher`; status, limits, pause targets, clean and accept's message follow it.

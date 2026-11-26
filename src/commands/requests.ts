@@ -141,10 +141,12 @@ export async function reviewCommand(root: string, args: readonly string[], opts:
 /** Records a child thread of the item with its role and the checkout T3 gives for it (`braid review`, `braid launch --child`). */
 export async function recordChild(root: string, id: string, thread: string, role: ChildRole, pm: boolean, opts: RequestOptions & { readonly t3?: T3Runner } = {}): Promise<string> {
   const at = (opts.now ?? (() => new Date()))();
-  const where = await showThread(opts.t3 ?? runT3, root, thread);
+  // A researcher is launched `shared`: T3 gives the parent's checkout as its folder, which is not the child's to remove.
+  const shared = role === "research";
+  const where = shared ? null : await showThread(opts.t3 ?? runT3, root, thread);
   const folder = pm ? null : (where?.worktreePath ?? null);
   const added = recordReview(root, id, thread, at.toISOString(), folder === null ? null : { folder, branch: where?.branch ?? null }, role);
-  const what = folder === null ? `no checkout yet (${where === null ? "T3 doesn't know the thread or can't be read" : "T3 gives no folder"}); braid clean will ask T3` : `checkout ${folder}${where?.branch == null ? "" : `, branch ${where.branch}`}`;
+  const what = shared ? "shared checkout: no folder or branch recorded" : folder === null ? `no checkout yet (${where === null ? "T3 doesn't know the thread or can't be read" : "T3 gives no folder"}); braid clean will ask T3` : `checkout ${folder}${where?.branch == null ? "" : `, branch ${where.branch}`}`;
   return `${id}: ${role} thread ${thread} ${added ? "recorded" : "already recorded"} (${what})
 `;
 }
