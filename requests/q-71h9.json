@@ -1,0 +1,21 @@
+{
+  "code": "q-71h9",
+  "item": "0072",
+  "kind": "review",
+  "text": "review PR #349 at af35754",
+  "by": "coordinator",
+  "thread": "mcp:launch:a0a03eb409fbc1d18679d8c2659026c14e35ed836aebf5709126e14b27b074a9",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:349",
+  "pr": 349,
+  "head": "af35754006eaba072dcee7d5c576e954e1216e4c",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T06:25:52.023Z",
+      "by": "coordinator"
+    }
+  ]
+}
