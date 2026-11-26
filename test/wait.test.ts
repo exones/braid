@@ -101,13 +101,43 @@ test("exit 0 once every ci check has passed, after polling while they run", asyn
   assert.equal(w.asked.length, 3);
 });
 
-test("exit 1 naming the failed checks, only after all have finished", async () => {
+test("exit 1 naming the failed checks as soon as one is seen, and what still runs", async () => {
   const w = world();
-  w.answers.set(w.code, [[done(NAMES[0]!, "failure"), running(NAMES[1]!)], [done(NAMES[0]!, "failure"), done(NAMES[1]!, "cancelled")]]);
+  w.answers.set(w.code, [[done(NAMES[0]!, "failure"), running(NAMES[1]!)]]);
   const r = await waitCommand(w.root, ["0001"], w.opts);
   assert.equal(r.code, 1);
-  assert.match(r.stdout, /^failed at [0-9a-f]{7} on braid\/0001-alpha: verify \(ubuntu-latest\), verify \(windows-latest\)\n$/);
-  assert.equal(w.asked.length, 2);
+  assert.match(r.stdout, /^failed at [0-9a-f]{7} on braid\/0001-alpha: verify \(ubuntu-latest\); still running: verify \(windows-latest\)\n$/);
+  assert.equal(w.minutes(), 0);
+
+  const both = world();
+  both.answers.set(both.code, [[done(NAMES[0]!, "failure"), done(NAMES[1]!, "cancelled")]]);
+  const finished = await waitCommand(both.root, ["0001"], both.opts);
+  assert.equal(finished.code, 1);
+  assert.match(finished.stdout, /: verify \(ubuntu-latest\), verify \(windows-latest\)\n$/);
+});
+
+test("--once reads once and never sleeps: 0 green, 1 a failure seen, 3 otherwise", async () => {
+  const once = async (answer: Run[] | null) => {
+    const w = world();
+    w.answers.set(w.code, [answer]);
+    const sleep = async () => assert.fail("--once slept");
+    const r = await waitCommand(w.root, ["1", "--once"], { ...w.opts, sleep });
+    assert.equal(w.asked.filter((s) => s === w.code).length, 1);
+    return r;
+  };
+  assert.equal((await once(NAMES.map((n) => done(n, "success")))).code, 0);
+  assert.equal((await once([done(NAMES[0]!, "failure"), running(NAMES[1]!)])).code, 1);
+  const busy = await once([done(NAMES[0]!, "success"), running(NAMES[1]!)]);
+  assert.equal(busy.code, 3);
+  assert.match(busy.stdout, /^still running at [0-9a-f]{7} on braid\/0001-alpha; still running: verify \(windows-latest\)\n$/);
+  const none = await once([]);
+  assert.equal(none.code, 3);
+  assert.match(none.stdout, /not started: verify \(ubuntu-latest\), verify \(windows-latest\)\n$/);
+  const unread = await once(null);
+  assert.equal(unread.code, 3);
+  assert.match(unread.stdout, /GitHub could not be read at the last poll\n$/);
+  const w = world();
+  await assert.rejects(waitCommand(w.root, ["1", "--once", "--timeout", "1"], w.opts), /--once and --timeout don't go together/);
 });
 
 test("exit 3 at the timeout while a check is still running", async () => {
@@ -143,12 +173,12 @@ test("once a run was seen, a GitHub error or an empty answer after five minutes 
   assert.ok(w.minutes() > 5);
 });
 
-test("the timeout names a failed check next to one still running", async () => {
+test("the timeout names a check still running and that GitHub could not be read", async () => {
   const w = world();
-  w.answers.set(w.code, [[done(NAMES[0]!, "failure"), running(NAMES[1]!)], null]);
+  w.answers.set(w.code, [[done(NAMES[0]!, "success"), running(NAMES[1]!)], null]);
   const r = await waitCommand(w.root, ["1", "--timeout", "2"], w.opts);
   assert.equal(r.code, 3);
-  assert.match(r.stdout, /still running after 2 minutes at [0-9a-f]{7} on braid\/0001-alpha; failed: verify \(ubuntu-latest\); still running: verify \(windows-latest\); GitHub could not be read at the last poll\n$/);
+  assert.match(r.stdout, /still running after 2 minutes at [0-9a-f]{7} on braid\/0001-alpha; still running: verify \(windows-latest\); GitHub could not be read at the last poll\n$/);
 });
 
 test("a BRAID.md without ci names ends at once with exit 0", async () => {

@@ -38,9 +38,15 @@ Expected size: about 150 lines in 6 to 8 files.
 
 ## Completion
 
-- [ ] `braid wait --once` answers without sleeping, tested; a read that names a failed check exits 1, tested
-- [ ] `braid pause --window` alone and docs/cli.md agree, tested
-- [ ] `notify send` without `--programme` uses `braid-<repo>-pm-send`, tested; its usage line names exit 0 on a failed send
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid wait --once` answers without sleeping, tested; a read that names a failed check exits 1, tested
+- [x] `braid pause --window` alone and docs/cli.md agree, tested
+- [x] `notify send` without `--programme` uses `braid-<repo>-pm-send`, tested; its usage line names exit 0 on a failed send
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- wait: `--once` (not with `--timeout`) answers after one read, never sleeps; any failing check among the read ones exits 1 at once, naming also what still runs. Update wait tests, usage lines, docs/cli.md, docs/braids-format.md.
+- pause: keep the refusal for `--window` without `--until` (a pause under a verdict `ok` window can have a reset already past, so it would be born overdue); make docs/cli.md and both usage lines say so; add a test.
+- notify send: sequence id `pm#send` without `--programme`; usage line names exit 0 on a failed send.

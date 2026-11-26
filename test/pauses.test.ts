@@ -120,6 +120,7 @@ test("braid pause takes the window, usage and resume time from braid limits, and
 test("braid pause is refused when the verdict isn't pause, unless --until is given; it checks its arguments", () => {
   const root = project();
   assert.throws(() => pauseCommand(root, ["0061", "--provider", "claude_ok", "--thread", THREAD], opts), /not paused: braid limits says ok for claude_ok; give --until/);
+  assert.throws(() => pauseCommand(root, ["0061", "--provider", "claude_ok", "--thread", THREAD, "--window", "seven_day"], opts), /not paused: braid limits says ok for claude_ok; give --until/, "--window alone lifts no refusal");
   assert.deepEqual(loadPauses(root).pauses, []);
   const out = pauseCommand(root, ["0061", "--provider", "claude_ok", "--thread", THREAD, "--until", "2026-11-21T19:00:00Z", "--by", "pm"], opts);
   assert.match(out, /^0061 paused: Paused: claude_ok, resumes .* \(by PM 3194eef8/);
