@@ -100,7 +100,8 @@ function pmAskPush(repo: string, id: string, title: string, need: Need, link: st
     // A programme request has no item to name: its handle leads the act line.
     body: withBoard(slug === undefined ? lines(coded(need, title), askLine(need), need.text) : lines(coded(need, askLine(need) ?? ""), need.text), click),
     tags: ["compass"],
-    priority: "high",
+    // The PM's look or FYI blocks nothing, as a coordinator's.
+    priority: need.kind === "look" ? "default" : "high",
     click,
     sequence: sequenceOf(repo, `${id}#pm`),
   };

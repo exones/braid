@@ -757,9 +757,13 @@ export interface BraidFacts {
  * What answering `request` unblocks, derived from the briefs and the record at each read (never stored): its item,
  * and every item that depends on it, directly or not, that isn't Done; for a request on a braid with strands, those
  * strands not Done (a story: the braid itself); plus every other braid with an open wait on the request's braid
- * (`to` its number, or `--done-when braid:<number>`) that isn't Done. A programme request has no item. Sorted, no duplicates.
+ * (`to` its number, or `--done-when braid:<number>`) that isn't Done. A programme request has no item; a `look` unblocks nothing. Sorted, no duplicates.
  */
-export function unblocksOf(request: Pick<Request, "code" | "id">, braids: readonly BraidFacts[], requests: readonly Pick<Request, "code" | "id" | "to" | "doneWhen" | "state">[]): string[] {
+export function unblocksOf(request: Pick<Request, "code" | "id"> & { readonly kind?: Kind }, braids: readonly BraidFacts[], requests: readonly Pick<Request, "code" | "id" | "to" | "doneWhen" | "state">[]): string[] {
+  // A look request or an FYI blocks nothing.
+  if (request.kind === "look") {
+    return [];
+  }
   const items = new Map<string, { status: string; dependencies: readonly string[] }>();
   for (const b of braids) {
     items.set(b.number, b.brief);

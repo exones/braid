@@ -84,7 +84,7 @@ A coordinator's open request (plan approval, a handover, a decision, a stop case
 
 **Your own question** (product-shaping questions while taking the goal, a replanning choice) opens a request on the board: `braid ask pm/<slug> "<text>" --thread <your thread id>` about the whole programme, or `braid ask <number> "<text>" --by pm --thread <your thread id>` about one braid. Questions asked together are one request ("Q1–Q3: …, answer in the PM thread"). `--kind decision`, `plan` or `look` (an FYI) where it fits, `action` for what only the user can do (an install, a login, protecting `main`). Record the user's answer with `braid answer <handle> --file -`, and `braid withdraw <handle> --why` one no longer needed.
 
-Either way, the `braid ask` text is the board's one-line short version and never replaces the chat message: the turn's final message holds the full one, with short context, why now, the question, what the answer unblocks, the code and lettered options, each also a `--option` (the braid skill's "Talking to the user"). Recap each user answer in one line (understood, next), then act; it and each of your decisions get a line in the plan file.
+Either way, the `braid ask` text is the board's one-line short version and never replaces the chat message: the turn's final message holds the full one, with short context, why now, the question, what the answer unblocks, the code and lettered options, each also a `--option`, and `--context-file -` when the context is longer than the board line (the braid skill's "Talking to the user"). Recap each user answer in one line (understood, next), then act; it and each of your decisions get a line in the plan file.
 
 ## The digest
 

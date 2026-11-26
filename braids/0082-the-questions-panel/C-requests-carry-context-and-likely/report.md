@@ -5,12 +5,12 @@
 Takes in idea 2026-11-23-wcox (P17). The Questions panel (0082/E) can now show a request's context and one button per likely answer, and fold looks and FYIs away.
 
 - The request record has two optional fields, `context` (Markdown, at most 4000 characters) and `options` (one to four strings, lettered A to D). They are written only when given. A malformed one is left out when read, and the request still reads. Old records read unchanged (`src/braids/requests.ts`).
-- `look` is the sixth request kind: a look request or an FYI, which blocks nothing. Its act word is `look`, its lane Needs You with the reason `look`, and its board mark is a grey eye (`src/board/marks.ts`, `web/src/App.tsx`). Its push is tagged 👁 at default priority, not high. The push text doesn't change (D114).
+- `look` is the sixth request kind: a look request or an FYI, which blocks nothing. Its act word is `look`, it unblocks nothing (`unblocksOf` gives no items, so the line reads just `look`), its lane is Needs You with the reason `look`, and its board mark is a grey eye (`src/board/marks.ts`, `web/src/App.tsx`). Its push is tagged 👁 at default priority, not high, and so is the PM's own look (🧭). The push text doesn't change (D114).
 - `braid ask` takes `--option <text>` (repeated, in order; more than four, or an empty one, is refused), `--context <text>`, `--context-file <path|->` (not together with `--file -`) and `--kind look`. It prints the options as `A. …` lines and `context stored (<n> characters)`.
 - `braid requests` prints the options as `A. …` lines under the request and says when context is stored. `braid requests <name>` prints the options and the whole context. There is no `braid show` command; this is the request's show.
 - `braid answer <handle> <answer>` takes the answer after the name, as well as through `--file` (not both). A lone letter of a stored option (`a`, `B.`, any case), from either source, records `A. <text>`. Any other text is recorded as given.
 - `Need` carries `context` and `options` next to its `kind` and an `act` that can be `look`, on a coordinator's request, a forwarded one and the PM's own (`src/board/model.ts`).
-- Skills: braid's "Talking to the user" says each lettered answer is also an `--option`, plus `--context-file -` when the context is longer than the board line. A lone letter answer records its option. braid-pm's request lines say the same and name `look`. That adds about 35 words.
+- Skills: braid's "Talking to the user" says each lettered answer is also an `--option`, plus `--context-file -` when the context is longer than the board line. A lone letter answer records its option. braid-pm's request lines say the same, `--context-file -` included, and name `look`. That adds about 50 words.
 
 ## Choices
 
@@ -31,11 +31,12 @@ Takes in idea 2026-11-23-wcox (P17). The Questions panel (0082/E) can now show a
   - a `look` request opens, lists, shows on the board as `look`, pushes 👁 at default and answers
   - `Need` carries context, options and kind
   - `--context-file -` through the CLI with standard input
-- `npm run verify` on Windows: exit 0, 802 tests, all passed (test run about 21 min). An earlier run failed one test in `test/requests.test.ts` that pinned the old `--kind` refusal text. Its expected text now includes `look`. The web change (the eye mark) was not looked at in a running board.
+- `npm run verify` on Windows, after the review round: exit 0, 802 of 802 passed (test run about 20 min). The first round passed 802 of 802 too. An earlier run had failed one test in `test/requests.test.ts` that pinned the old `--kind` refusal text, whose expected text now includes `look`.
+- Review round (comment 7205548399): the blocking docs finding is fixed. All four suggestions are taken: braid-pm names `--context-file -`; a look unblocks nothing; the PM's look pushes at default; there is a test that a letter on a request with no options stays a letter. The web change (the eye mark) was not looked at in a running board.
 
 ## Docs
 
-Updated `docs/braids-format.md` (the request record: the kinds, `context`, `options` and the older-braid limits), `docs/cli.md` (`ask`, `answer`, `requests`), `docs/board.md` (the act words, the 👁 tag, default priority), `docs/decisions.md` (D119), `README.md` (one line) and the CLI help (`src/cli.ts`). `docs/getting-started.md`, `docs/autonomy.md` and the other internal docs aren't affected.
+Updated `docs/braids-format.md` (the commands catalogue: kinds, `braid ask` flags, the act word, `braid answer` and `braid requests`; and the request record: the kinds, `context`, `options` and the older-braid limits), `docs/getting-started.md` (questions and answers: stored options, `look`, a letter answer), `docs/cli.md` (`ask`, `answer`, `requests`), `docs/board.md` (the act words, also on the programmes panel, the 👁 tag, default priority), `docs/decisions.md` (D119), `README.md` (one line) and the CLI help (`src/cli.ts`). `docs/autonomy.md` and the other internal docs aren't affected.
 
 ## Anything open
 

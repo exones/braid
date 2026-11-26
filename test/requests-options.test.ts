@@ -102,18 +102,20 @@ test("braid answer <handle> <letter> records the stored option's text, in any ca
   const free = codeOf(Cmd.askCommand(w.root, ["0001/A", "Go on?", "--option", "Yes"], w.opts));
   assert.match(Cmd.answerCommand(w.root, w.root, [free, "C"]), /answered by the user: C\n$/, "no option C: recorded as given");
   const text = codeOf(Cmd.askCommand(w.root, ["0001/A", "Name it?"], w.opts));
-  assert.match(Cmd.answerCommand(w.root, w.root, [text, "A short name"]), /answered by the user: A short name\n$/);
-  assert.throws(() => Cmd.answerCommand(w.root, w.root, [text, "x", "--file", "-"]), /as text or with --file, not both/);
+  assert.match(Cmd.answerCommand(w.root, w.root, [text, "A"]), /answered by the user: A\n$/, "no options stored: a letter stays a letter");
+  const named = codeOf(Cmd.askCommand(w.root, ["0001/A", "Name it?"], w.opts));
+  assert.match(Cmd.answerCommand(w.root, w.root, [named, "A short name"]), /answered by the user: A short name\n$/);
+  assert.throws(() => Cmd.answerCommand(w.root, w.root, [named, "x", "--file", "-"]), /as text or with --file, not both/);
 });
 
 test("a look request opens, lists and answers; it reads as a look, never as a decision, and pushes at default priority", () => {
   const w = world();
   const out = Cmd.askCommand(w.root, ["0002", "FYI: the export now runs nightly", "--kind", "look"], w.opts);
   assert.match(out, /: look request opened: FYI: the export now runs nightly\n/);
-  assert.match(out, /\nblocks 0002 · look\n/);
+  assert.match(out, /\nlook\n/, "a look blocks nothing: the act word alone");
   const code = codeOf(out);
   assert.equal(record(w.root, code).kind, "look");
-  assert.match(Cmd.requestsCommand(w.root, [], { gh: w.opts.gh }), new RegExp(`${code.slice(2)}  0002  look  .*· look  FYI`));
+  assert.match(Cmd.requestsCommand(w.root, [], { gh: w.opts.gh }), new RegExp(`${code.slice(2)}  0002  look  \\d+m  look  FYI`));
   assert.equal(Rec.actOf("look"), "look");
   const b = model.toBoard("agento", [braid("0001"), braid("0002")], github, t3, readSignals(w.root, github));
   const card = b.braids.find((c: any) => c.id === "0002");
@@ -121,11 +123,16 @@ test("a look request opens, lists and answers; it reads as a look, never as a de
   assert.equal(card.reason, "look");
   assert.equal(card.need.kind, "look");
   assert.equal(card.need.act, "look");
+  assert.deepEqual(card.need.blocks, []);
   assert.equal(marks.reasonIcon("look").kind, "look");
   const [push] = message.pushesOf(b);
   assert.deepEqual([push.tags, push.priority], [["eye"], "default"]);
   assert.match(Cmd.answerCommand(w.root, w.root, [code, "seen"]), /answered by the user: seen/);
   assert.equal(record(w.root, code).state, "answered");
+  // The PM's own look pushes at default priority too.
+  Cmd.askCommand(w.root, ["0001", "FYI: billing moved", "--by", "pm", "--kind", "look", "--thread", "11111111-aaaa-4bbb-8ccc-222222222222"], w.opts);
+  const pm = message.pushesOf(model.toBoard("agento", [braid("0001"), braid("0002")], github, t3, readSignals(w.root, github))).find((p: any) => p.item === "0001#pm");
+  assert.deepEqual([pm.tags, pm.priority], [["compass"], "default"]);
 });
 
 test("a need carries the request's context, options and kind for the board", () => {
