@@ -49,6 +49,16 @@ Expected size: about 1,100 lines in 12 files (0080/A's estimate: oauth ~250, sec
 
 - Using the sign-in to stop threads (0080/E) or read events (0080/F).
 
+## Plan
+
+1. Mockups (`mockups/t3-button.html`, `t3-button-full.png`) on demo data: the button's place, the four states and tooltips, the click panels on the host, the phone sheet, the two pushes, `braid t3 status`. Stop for the user's verdict.
+2. After approval: `src/t3/settings.ts` (`~/.braid/t3.json`, defaults on any read failure), `src/t3/secret.ts` (lazy `@napi-rs/keyring`, a fake for tests), `src/t3/oauth.ts` (discovery, registration, PKCE, state/iss, loopback callback, exchange, revoke; the URL opened without a shell).
+3. `src/commands/t3.ts`: `login|logout|status|set`, usage lines in `src/cli.ts`.
+4. The board: a sign-in reader (start, at most once a minute, after a 401; token in memory only) feeding 0080/B's client; the state in `/api/all` without the token; the two pushes once per sign-in; the button's POST routes (token-checked, loopback-only for sign-in) and the loopback-only `/t3/callback`.
+5. The page: the button, tooltip and panel (desktop) and sheet (phone), from the approved mockups.
+6. Tests (fake authorization server, fake store, mock MCP 401, token-leak checks) plus leftover 2026-11-26-7wrg in `src/t3mcp` (a refused redirect, a bare 5xx, `token()` read once).
+7. Docs (`docs/cli.md`, `docs/board.md`, `docs/decisions.md`), the gate, the PR; the live check with the user.
+
 ## Completion
 
 - [ ] The user approved the button mockups before building
