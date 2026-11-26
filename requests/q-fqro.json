@@ -1,0 +1,19 @@
+{
+  "code": "q-fqro",
+  "item": "0082/A",
+  "kind": "decision",
+  "text": "Approve the Questions panel mockups (0082/A) or say what to change, and answer its six design questions",
+  "words": "shiny muffin",
+  "by": "coordinator",
+  "thread": "mcp:launch:236ccef074a45cee67da4aac404fd6df9c2bca310db02b79a3789f23e60f7209",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T19:51:25.201Z",
+      "by": "coordinator"
+    }
+  ]
+}
