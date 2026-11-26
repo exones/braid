@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-26T23:23:10.782Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-26T23:23:51.096Z",
+      "by": "pm",
+      "text": "PM recommends A: same owner-only Tailscale guard as Merge already uses; a wrong answer is fixable by a follow-up message"
     }
   ]
 }
