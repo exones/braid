@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-26T09:51:51.157Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-26T09:54:33.360Z",
+      "by": "pm",
+      "text": "live check passed at af35754; diff to 9d64ebb is main + 0074 merged in and decisions renumbered (checked) · merge PR #349 at 9d64ebb"
     }
   ]
 }
