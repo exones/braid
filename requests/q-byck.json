@@ -29,6 +29,13 @@
       "by": "pm",
       "text": "2026-11-26T09:30:00.000Z",
       "reason": "goes in the user's 10:00 digest; the user asked not to be disturbed before 10:00"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-26T00:22:28.144Z",
+      "by": "pm",
+      "text": "79 merge",
+      "reason": "the user's go relayed by the PM"
     }
   ]
 }
