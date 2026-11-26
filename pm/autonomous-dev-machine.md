@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 1
 state: running
 hold:
-next: "finish 0060 (#324, fix E then re-check) and 0077 (Tailscale whois strand, F docs, final PR); then P25 (the Questions panel) as the one running braid; 0078 and 0080 held"
+next: "finish 0060 (#324, fix E then re-check) and 0077 (Tailscale whois strand, F docs, final PR); then P5 (Held lane, counters), then P25 (the Questions panel), one at a time; 0078 and 0080 held"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -19,10 +19,10 @@ rows:
   - P22 | 0075 | Lifecycle off the code branches, one pure lane | done
   - P21 | 0074 | The board pauses and resumes reliably | done
   - P27 | 0080 | The board talks to T3 directly | running
+  - P5 | - | Board lanes collapse, Held lane, Hold all | planned
   - P25 | - | The Questions panel | planned
   - P24 | 0077 | The board stays fast under load | running
   - P4 | 0072 | Questions say what they unblock | done
-  - P5 | - | Board lanes collapse, Held lane, Hold all | planned
   - P8 | 0060 | Workers as T3 subagents | running
   - P9 | - | Per-programme say settings | planned
   - P10 | 0036 | Coordinator polish, reviewed | planned
@@ -158,6 +158,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26: user: "T. a", then "Actually I change my mind: b": after 0060 and 0077, P5 (Held lane, counters) runs first, then P25.
 - 2026-11-26: user "S. a": P25 starts right after 0060 and 0077 merge, as the one running braid. User reported the Tailscale page often "forbidden" / "couldn't confirm through Tailscale": whois gate caches 5 s and refuses on timeout under load; sent to 0077 as a small strand. Test request tiny-tractor-3i2b opened for the spoken handles.
 - 2026-11-26: user: "Finish seventy-seven and sixty and hold". 0077 and 0060 finish (final PRs, PM live checks, the user's merges); then the programme holds: nothing new launches, 0078 and 0080 stay held, plan state held once both are in main.
 - 2026-11-26 ~11:00: user "merge 72": PM merged #349 at 9d64ebb (merge cf8af70), CI green, pulled, installed. 0072 Done. Skill changes announced to coordinators and other PMs. Thread cleanup (user "a"): 40 threads archived in wave 1 (0074, 0079, PM checks, steering, research helpers) and 0072's 20 threads; 0060, 0077, 0078, 0080 threads go as each braid merges. dctl-studio held by the user ("usage is being drained faster than I expected"); 0077 keeps running (user "P a").
