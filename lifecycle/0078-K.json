@@ -6,6 +6,13 @@
       "at": "2026-11-26T06:09:10.378Z",
       "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
       "branch": "braid/0078/K-the-lock-queue-test-holds-under-load"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-26T07:15:53.537Z",
+      "head": "44b02746a341731193589c1fa92d44d36e4d87fd",
+      "review": "https://github.com/exones/braid/pull/350#issuecomment-7185231989",
+      "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317"
     }
   ]
 }
