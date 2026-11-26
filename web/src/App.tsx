@@ -1248,7 +1248,9 @@ const when = (at: string): string => new Date(at).toLocaleString([], { dateStyle
 function RequestCard({ row }: { row: RequestRow }) {
   const end = row.closed;
   const state = REQUEST_STATE[row.state];
-  const label = end !== null && row.state === "answered" ? `decided by ${WHO[end.by] ?? end.by}` : state.label;
+  // A wait (to a braid, or timed) is nobody's decision.
+  const wait = /^\d{4}$/.test(row.to) || row.to === "self";
+  const label = end !== null && row.state === "answered" && !wait ? `decided by ${WHO[end.by] ?? end.by}` : state.label;
   return (
     <div className="my-2 max-w-[75ch] rounded-lg border border-slate-200 px-3 py-2 text-[13.5px]">
       <div className="flex flex-wrap items-center gap-1.5">

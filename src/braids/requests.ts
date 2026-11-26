@@ -685,14 +685,14 @@ export function holding(requests: readonly Request[], check: Check): Map<string,
 }
 
 /**
- * The requests of the items `match` keeps that the user or the PM answered, as decision rows: the answer's
+ * The requests of the items `match` keeps that the user or the PM answered (waits left out: they ask neither), as decision rows: the answer's
  * time (`YYYY-MM-DD HH:MM`, as log entries have it), the item, and the request with its answer and the PM's
  * reason. Read for `braid decisions` and the recap draft, next to the `Decided:` log entries.
  */
 export function answeredRows(requests: readonly Request[], match: (id: string) => boolean): { at: string; id: string; text: string }[] {
   return requests.flatMap((r) => {
     const e = r.state === "answered" ? closing(r) : null;
-    if (e === null || (e.by !== "user" && e.by !== "pm") || !match(r.id)) {
+    if (e === null || (e.by !== "user" && e.by !== "pm") || isWait(r) || !match(r.id)) {
       return [];
     }
     const said = e.text === undefined ? "" : ` -> ${e.text.replace(/\s+/g, " ").trim()}`;
