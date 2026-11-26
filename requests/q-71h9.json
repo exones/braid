@@ -10,7 +10,7 @@
   "doneWhen": "pr:349",
   "pr": 349,
   "head": "af35754006eaba072dcee7d5c576e954e1216e4c",
-  "eta": null,
+  "eta": "2026-11-26T10:30:00.000Z",
   "events": [
     {
       "event": "opened",
@@ -22,6 +22,13 @@
       "at": "2026-11-26T07:25:56.860Z",
       "by": "board",
       "text": "sent to the PM"
+    },
+    {
+      "event": "eta",
+      "at": "2026-11-26T07:26:16.290Z",
+      "by": "pm",
+      "text": "2026-11-26T10:30:00.000Z",
+      "reason": "live check passed; merges after 0074's #339 (the user's merge from 10:00), then main merged in and decisions renumbered"
     }
   ]
 }
