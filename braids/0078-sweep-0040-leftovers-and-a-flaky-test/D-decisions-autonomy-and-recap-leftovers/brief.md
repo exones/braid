@@ -38,11 +38,11 @@ Expected size: about 200 lines in 6 to 9 files.
 
 ## Completion
 
-- [ ] Recap Decisions order fixed, with a strand-only recap test
-- [ ] `braid help` and docs/braids-format.md mention `Decided:` entries
-- [ ] `braid autonomy` and `braid decisions` accept a strand id, tested
-- [ ] `--since` with a time keeps only later entries, tested
-- [ ] The preset a PR is judged by comes from its base, tested, or report.md says what stopped it
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Recap Decisions order fixed, with a strand-only recap test
+- [x] `braid help` and docs/braids-format.md mention `Decided:` entries
+- [x] `braid autonomy` and `braid decisions` accept a strand id, tested
+- [x] `--since` with a time keeps only later entries, tested
+- [x] The preset a PR is judged by comes from its base, tested, or report.md says what stopped it
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
