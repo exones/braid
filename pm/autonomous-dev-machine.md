@@ -4,8 +4,8 @@ title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 1
-state: running
-hold:
+state: held
+hold: 2026-11-26T16:40Z the user: finish 0077 and 0081 and hold (usage limits); 0077 held as is
 next: "finish 0081 (PM check, the user's merge), then hold; held: 0077 (as is, mid-I), 0078, 0080; after the user's Go: 0077, P30, P5, P25"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
@@ -24,7 +24,7 @@ rows:
   - P24 | 0077 | The board stays fast under load | running
   - P4 | 0072 | Questions say what they unblock | done
   - P8 | 0060 | Workers as T3 subagents | done
-  - P29 | 0081 | braid review refuses another thread's checkout | running
+  - P29 | 0081 | braid review refuses another thread's checkout | done
   - P30 | - | braid clean works in repos with submodules | planned
   - P9 | - | Per-programme say settings | planned
   - P10 | 0036 | Coordinator polish, reviewed | planned
@@ -163,6 +163,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26 ~16:40: user "Soft Island A": PM merged #357 at 7fdcfc2 (merge 0945111), CI green, pulled, installed. 0081 Done. Programme held (state: held): 0077, 0078, 0080 held as is; on the user's Go: 0077, then P30, P5, P25.
 - 2026-11-26 16:12: user: "let's pause 77 I mean pause hold not restructure it I will restart it later when we get better usage". 0077 held as is (`braid pause --hold`), mid-strand I. Only 0081 finishes.
 - 2026-11-26: user: "Correction due to the usage limits finish 77 and 81 and hold after that". P30 waits for the user's Go like the rest.
 - 2026-11-26: user: P30 "braid clean works in repos with submodules" added (from the SFIL PM: worktrees with submodules never removed, ~70 in everix4, C: at 98%), "W a": next after 0077, ahead of P5; failed cleanups must reach the user as a request. Disk use and shared submodules into P26.
