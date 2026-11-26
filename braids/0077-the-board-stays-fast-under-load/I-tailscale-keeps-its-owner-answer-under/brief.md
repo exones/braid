@@ -45,6 +45,14 @@ Expected size: about 120 lines in 3 files.
 
 - Anything else in the Tailscale listener (hosts, ports, the gate's callers).
 
+## Plan
+
+- `whoisGate` keeps per IP the time of the last "yes" and of the last "no", and the ask in flight; `ownerOf` and `ask` stay as they are.
+- Windows (constants in tailnet.ts): a "yes" is fresh for 5 min (no ask), and may serve for 30 min after it was given while a new ask runs in the background (stale-while-revalidate). A "no" is kept 5 s as today and drops the "yes" at once.
+- Past fresh, within 30 min: answer yes now, start one background ask; yes refreshes, no refuses from then on, a failure changes nothing. Past 30 min or with no "yes": wait for the ask, a failure refuses.
+- `GateOptions` gets `freshMs`, `staleMs`, `refusalMs` in place of `ttlMs` (tests only).
+- Tests in test/board-tailnet.test.ts for each failure mode with fake runners (slow, failing, changing); docs/board.md "Who" paragraph.
+
 ## Completion
 
 - [ ] Positive answers are kept per IP for the chosen window, and a timeout or failure within the stale window reuses the last positive answer, tested with a slow and a failing fake whois
