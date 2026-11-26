@@ -3,7 +3,7 @@ programme: autonomous-dev-machine
 title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
-limit: 2
+limit: 1
 state: running
 hold:
 next: "0072 (#349, renumber then the user's merge), then 0060 (#324), then 0077, 0078, 0080 (q-nxp6 with the user); then P25, P5, P26"
@@ -158,6 +158,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26 10:25: user: "Ok, usage is a bit more than expected. Put parallelism to 1 for all except SFIL". Limit 1: 0077 keeps the slot; 0078 and 0080 held (`braid pause --hold`); 0072 only finishes #349 (merge main, renumber); 0060 waits. Told the dctl-studio and both everix4 PMs (not SFIL).
 - 2026-11-26 ~09:40: user "Merge 74": PM merged #339 at 85a95fc (merge f3879dd), CI green, pulled, installed (board 0.2.0). 0074 Done. Skills changed: coordinators and the four other PMs told to reread the provider-limits sections. The models.steering lines in BRAID.md are unused now (the user's edit).
 - 2026-11-26 ~09:00: user: "K. A" - PM merged #335 at abb76243 (merge d7f6015), CI green, pulled, installed. "N a" - the user merges #339 themselves. "L. Will have a look later, remind me" - q-nxp6 stays open on 0080/D; PM reminds. "M. B" - auto-settle dropped (0080/G dropped, docs note). "I. Remind when it can be merged" - PM tells the user when 0060 is ready. T3 reopened; usage readings fresh again (Claude session 35%, weekly 9%).
 - 2026-11-26 08:34: user (mobile, relayed by thread 93a24a15, verified): "Tell to all pms that usage is back to normal (not excessive) so everyone should return to 2 parallel workers max". Limit back to 2: no new braid launches until at most two have work running; the running braids finish (0074, 0072, 0060 only wait on merges; 0077 waits on 0074; 0080/D waits on the user; 0078 works).
