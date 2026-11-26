@@ -7,12 +7,13 @@
 - **0074/E** (#325): a provider in use whose reading has been unknown for over 30 minutes shows the orange "⚠ blind since <time>" chip and sends one push per spell. Every displayed percent is a whole number.
 - **0074/F** (#331): a braid with no strands doesn't read stalled while its coordinator works.
 - **0074/G** (#337): docs updated as a whole. `limits.md` shrank from 43 to 23 lines; no skill file grew.
+- **0074/H** (#344, from the PM's live check of #339): a paused braid in Needs You shows ▶ Resume now; a Done braid's board pause record is cleared at the next refresh with no sends and never reaches a PM's resume ask.
 
-Validation: each strand passed the gate (CI `verify` on Ubuntu and Windows) and an independent review. Three PRs needed blocking fixes: D (two rounds), E (one) and F (docs, one). Every Completion box of the braid holds.
+Validation: each strand passed the gate (CI `verify` on Ubuntu and Windows) and an independent review. Three PRs needed blocking fixes: D (two rounds), E (one) and F (docs, one). The PM's live check of the final PR found two gaps, fixed in H. Every Completion box of the braid holds.
 
 Open:
-- Pause delivery to a busy agent is queued (T3 v0.1.11's `t3 thread send` doesn't steer). Steering mid-turn needs T3's MCP server and an OAuth token the board stores. That is a security decision with the user (leftover 2026-11-25-cixz).
-- Leftovers: 2026-11-25-khtk, wwkn, b4ie, afbv, cixz and 01yh. 01yh is the multi-process lock test in `test/requests.test.ts`, which fails under machine load.
+- Pause delivery to a busy agent is queued (T3 v0.1.11's `t3 thread send` doesn't steer). Steering mid-turn through T3's MCP server is braid 0080, which the user approved (leftover 2026-11-25-cixz taken into it).
+- Leftovers: 2026-11-25-khtk, wwkn, b4ie, afbv and 01yh, and 2026-11-26-vm70 (no ▶ in To Review; `braid resume --limit --all` before a refresh). 01yh is the multi-process lock test in `test/requests.test.ts`, which fails under machine load.
 
 Decisions: the user's and the PM's answers: q-en2r (plan approved), q-clq8 (early PR #310 merged), q-odpb (queued delivery now), q-i0ry (Resume now mockups, icon-only, thread access unchanged), q-ex55 (blind chip approved as shown). Mine, under the `free` preset:
 - the lease with a heartbeat (D107);
@@ -26,4 +27,3 @@ For later items: none.
 Needs the user:
 - process: the skill changes in `.agents/skills/` (limits.md and the limits lines of braid, braid-pm, braid-worker, resuming.md) are yours to merge with this PR.
 - process: `models.steering` in BRAID.md has been unused since 0074/C. Remove its `first` and `fallback` lines; BRAID.md is yours to edit.
-- security (open, with the PM): whether the board may hold an OAuth token for T3's MCP server, so pauses can steer busy turns.
