@@ -202,6 +202,24 @@ test("braid recap: carries the item's Decided: entries under Decisions, a final 
   assert.doesNotMatch(out, /Merged strand A/);
 });
 
+test("braid recap: a strand-only recap puts the Decided: lines first under Decisions, never below the placeholder", async () => {
+  const log = "## 2026-11-20 11:30Z\n\nDecided: strand choice\n";
+  const files = (put: (path: string, text: string) => void) => put("braids/0001-alpha/A-first/brief.md", "---\nid: '0001/A'\ntitle: \"A\"\nstatus: Done\nlabels: []\ndependencies: []\n---\n\n## Goal\n\nx\n");
+  const recap = async (report: string) => {
+    resetGithubMemory();
+    const w = world("about 10 lines", (put) => {
+      files(put);
+      put("braids/0001-alpha/A-first/log-2026-11-20-12345678.md", log);
+    }, report);
+    const out = await recapCommand(w.root, ["0001"], { gh: w.gh });
+    return out.slice(out.indexOf("**Decisions:**"), out.indexOf("**Deviations:**"));
+  };
+  const line = "- 2026-11-20 0001/A: Decided: strand choice\n";
+  assert.equal(await recap(""), `**Decisions:**\n${line}`);
+  assert.equal(await recap("# Report\n\nDecisions: None.\n"), `**Decisions:**\n${line}`);
+  assert.equal(await recap("# Report\n\nDecisions: kept the name\n"), `**Decisions:**\n${line}- kept the name\n`);
+});
+
 test("braid facts: with ci: all, no reported check is not green, and all green is", async () => {
   const w = world("about 100 lines", (put) => put("src/a.ts", "export const a = 1;\n"));
   writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: all\n---\n");

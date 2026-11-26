@@ -56,7 +56,9 @@ A braid's preset is set only at your request, in the plan you approve or later i
 
 `braid autonomy --list` names the presets available in the project and marks the default. Agents read a preset only through `braid autonomy <number>`, never by opening a file, so the shipped presets need no copy in the skills. A change under `autonomy/` is a `process` fact in `braid facts`, so an agent's change to a preset always reaches you.
 
-## `braid autonomy <number>`
+## `braid autonomy <id>`
+
+The id is a braid number, or a strand id (`0031/B`), which prints its braid's preset.
 
 ```text
 Preset: steady
@@ -73,6 +75,14 @@ architecture: ask for everything in 0031/B
 ```
 
 `Name from` is `the brief of <number>`, `BRAID.md (the project default)` or `the built-in default`. `Text from` is `shipped with braid`, `autonomy/<name>.md`, or `autonomy/<name>.md (replaces the shipped one)`. `This braid:` appears only when the brief has a `## Autonomy` section. A name that no preset has is an error (exit 1); a broken project file is an error with its file and line (exit 2).
+
+## The base decides
+
+A PR can't loosen the preset it is judged by: `braid autonomy` reads it as `origin/<base>` has it, as last fetched. The base is `main` for a braid number, and the braid branch for a strand id (`main` with `delivery: main`). The preset files, the `BRAID.md` default and the braid's brief come from there, and the output adds `Base: origin/<base>`. When the checkout or the braid's branch says something else, a `Differs here:` line names its preset; it counts once it is on the base. Without that ref (no remote, nothing pushed) the checkout is read.
+
+`braid accept --merge --preset` fetches the PR's base and merges only when both the base's preset and the checkout's allow the merge, so a looser preset waits for the base and a stricter one holds at once.
+
+One gap is left: a goal's braid brief, and a story's, are not on `main` before their own PR into it. Their `autonomy` and `## Autonomy` are then read from the brief that PR brings (the `Base:` line says so); only the preset files and the project default are protected.
 
 ## Checks
 
@@ -130,4 +140,4 @@ A pause for a provider's usage limit is not part of a preset: every preset pause
 - A project's `merge-gate:` in `BRAID.md` ([decision D102](decisions.md)) runs before every merge `braid accept --merge` makes, a strand's into its braid branch and any into `main` unless `merge-gate-on` narrows it. It runs under every preset and when you ask for the merge; no preset or flag skips it, and a failing gate (exit code other than 0, or no answer in 9 minutes) refuses the merge, changing nothing. Merges made elsewhere (GitHub's button) are the project's branch protection's to guard.
 - With `reviewer-with-bots: L-only` in `BRAID.md` ([decision D104](decisions.md)), a tier S or M item the review bots reviewed gets no braid reviewer: the bots' review, with every thread resolved by the worker, is its independent review for a merge under a preset. The default, `always`, keeps the braid reviewer. The CLI doesn't check it: picking the review is the coordinator's step.
 - Whether a stop case needs you stays the coordinator's judgement against the preset's table; the CLI checks only the `merge` value.
-- A decision made under a preset is logged as an ordinary log entry whose text starts with `Decided:` (`braid log <id> "Decided: ..."`). Your answers and the PM's (with its reason) are on [the request record](braids-format.md#the-request-record), recorded with `braid answer <code>`. `braid decisions <number> [--since <date or sha>]` lists both, the `Decided:` entries and the answered requests, and the recap draft carries them under Decisions, so you read them in one place.
+- A decision made under a preset is logged as an ordinary log entry whose text starts with `Decided:` (`braid log <id> "Decided: ..."`). Your answers and the PM's (with its reason) are on [the request record](braids-format.md#the-request-record), recorded with `braid answer <code>`. `braid decisions <id> [--since <date, time or sha>]` lists both, the `Decided:` entries and the answered requests, and the recap draft carries them under Decisions, so you read them in one place.

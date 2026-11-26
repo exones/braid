@@ -185,12 +185,18 @@ export async function recapCommand(root: string, args: readonly string[], opts: 
   const needs = facts.map((f) => `${f.key} (facts): ${f.text}`);
   const needsLine = [quiet ? null : `worker: ${worker}`, ...needs].filter((x) => x !== null).join("; ");
   const ui = /^labels:.*\bui\b/m.test(item?.brief ?? "");
+  // The recorded decisions first; the report's own line follows them, and its placeholder shows only with neither.
+  const decided = item === null ? [] : decidedAt(root, pr.headRefOid, item, m[2] === undefined);
+  const choices = field(report, "Decisions");
+  const decisions =
+    decided.length === 0
+      ? [`**Decisions:** ${choices ?? "<edit: choices the brief didn't settle, or None>"}`]
+      : ["**Decisions:**", ...decided, ...(choices === null || /^`?none`?\.?$/i.test(choices) ? [] : [`- ${choices.replace(/^[-*]\s+/, "")}`])];
   const out = [
     `**${key}: ${title}** — ${pr.state === "MERGED" ? "merged" : "ready for your merge"}. PR: ${pr.url} at ${pr.headRefOid}`,
     "",
     `**Done:** ${section(report, /what changed|done/i) ?? "<edit: 1-5 bullets from report.md>"}`,
-    `**Decisions:** ${field(report, "Decisions") ?? "<edit: choices the brief didn't settle, or None>"}`,
-    ...(item === null ? [] : decidedAt(root, pr.headRefOid, item, m[2] === undefined)),
+    ...decisions,
     "**Deviations:** <edit: only if the work departed from the brief>",
     `**Needs the user:** ${needsLine === "" ? "none" : needsLine}${report === "" ? " (no report.md at the head)" : ""}`,
     `**Screenshots:** ${ui ? "<edit: the final screens, embedded from the artifacts folder>" : "none"}`,

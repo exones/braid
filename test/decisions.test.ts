@@ -64,10 +64,27 @@ test("braid decisions --since cuts by a date (that day included) or by a commit'
   assert.equal(decisionsCommand(root, ["0001", "--since", sha]), "2026-11-21  0001/B  Decided: strand B\n");
 });
 
+test("braid decisions takes a strand id and lists that strand's entries only", () => {
+  const root = repo();
+  assert.equal(decisionsCommand(root, ["1/a"]), "2026-11-19  0001/A  Decided: strand A over two lines\n");
+  assert.equal(decisionsCommand(root, ["0001/B", "--since", "2026-11-22"]), "no Decided: entries or answered requests for 0001/B since 2026-11-22\n");
+});
+
+test("braid decisions --since with a time keeps only entries after that moment", () => {
+  const root = repo();
+  const later = "2026-11-21  0001/B  Decided: strand B\n";
+  // Strand A decided at 2026-11-19 08:00 UTC: the date form repeats it, a time at or after it doesn't.
+  assert.equal(decisionsCommand(root, ["0001", "--since", "2026-11-19T07:59Z"]), `2026-11-19  0001/A  Decided: strand A over two lines\n${later}`);
+  assert.equal(decisionsCommand(root, ["0001", "--since", "2026-11-19T08:00Z"]), later);
+  assert.equal(decisionsCommand(root, ["0001", "--since", "2026-11-19T10:00:30+02:00"]), later);
+  assert.throws(() => decisionsCommand(root, ["0001", "--since", "2026-11-19T08:00"]), /--since needs a date/);
+  assert.throws(() => decisionsCommand(root, ["0001", "--since", "2026-13-19T08:00Z"]), /--since needs a date/);
+});
+
 test("braid decisions refuses bad arguments", () => {
   const root = repo();
   assert.throws(() => decisionsCommand(root, []), /usage: braid decisions/);
-  assert.throws(() => decisionsCommand(root, ["0001/A"]), /give a braid number/);
+  assert.throws(() => decisionsCommand(root, ["0001/C"]), /no strand 0001\/C/);
   assert.throws(() => decisionsCommand(root, ["0009"]), /no braid 0009/);
   assert.throws(() => decisionsCommand(root, ["0001", "--since", "yesterday"]), /--since needs a date/);
   assert.throws(() => decisionsCommand(root, ["0001", "--since", "abcdef0"]), /no commit abcdef0/);

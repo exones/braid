@@ -1,8 +1,10 @@
 // Autonomy presets: one Markdown file each, with front matter for what the CLI can enforce and a
 // table of the stop cases for the agents. The CLI checks the table's shape, never its meaning.
+import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { PRESET_NAME } from "./brief.js";
+import { braidAt } from "./branches.js";
+import { PRESET_NAME, type Brief } from "./brief.js";
 import { FormatError, parseFrontMatter } from "./frontmatter.js";
 import { DEFAULT_PRESET, SHIPPED_PRESETS } from "./presets.js";
 
@@ -155,10 +157,22 @@ export interface PresetSource {
   readonly text: string;
 }
 
-/** The project's preset files, `autonomy/*.md` at the root, by name. Other files are ignored. */
-export function projectPresetFiles(root: string): Map<string, PresetSource> {
+const git = (root: string, args: readonly string[]) => spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd: root, encoding: "utf8" });
+
+/** The project's preset files, `autonomy/*.md` at the root, by name, as the working tree or `ref` has them. Other files are ignored. */
+export function projectPresetFiles(root: string, ref: string | null = null): Map<string, PresetSource> {
   const dir = join(root, "autonomy");
   const found = new Map<string, PresetSource>();
+  if (ref !== null) {
+    for (const line of git(root, ["ls-tree", "-z", ref, "--", "autonomy/"]).stdout.split("\0")) {
+      const entry = /^\d+ blob \w+\tautonomy\/(.+\.md)$/s.exec(line)?.[1];
+      if (entry !== undefined) {
+        const name = entry.slice(0, -3);
+        found.set(name, { name, from: `autonomy/${entry}`, text: git(root, ["show", `${ref}:autonomy/${entry}`]).stdout });
+      }
+    }
+    return found;
+  }
   if (!existsSync(dir) || !statSync(dir).isDirectory()) {
     return found;
   }
@@ -173,8 +187,8 @@ export function projectPresetFiles(root: string): Map<string, PresetSource> {
 }
 
 /** Every preset available here: the shipped ones, each replaced by a project file of the same name, then the project's own. */
-export function availablePresets(root: string): Map<string, PresetSource> {
-  const project = projectPresetFiles(root);
+export function availablePresets(root: string, ref: string | null = null): Map<string, PresetSource> {
+  const project = projectPresetFiles(root, ref);
   const all = new Map<string, PresetSource>();
   for (const [name, text] of SHIPPED_PRESETS) {
     all.set(name, project.get(name) ?? { name, from: "shipped", text });
@@ -186,12 +200,21 @@ export function availablePresets(root: string): Map<string, PresetSource> {
 }
 
 /** The `autonomy` key of BRAID.md's front matter, or null when it has none. */
-export function projectDefault(root: string): string | null {
+export function projectDefault(root: string, ref: string | null = null): string | null {
   const file = join(root, "BRAID.md");
-  if (!existsSync(file)) {
+  let text: string;
+  if (ref !== null) {
+    const shown = git(root, ["show", `${ref}:BRAID.md`]);
+    if (shown.status !== 0) {
+      return null;
+    }
+    text = shown.stdout;
+  } else if (existsSync(file)) {
+    text = readFileSync(file, "utf8");
+  } else {
     return null;
   }
-  const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
+  const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? "";
   const raw = /^autonomy:[ \t]*(.*?)[ \t]*$/m.exec(front)?.[1];
   return raw === undefined ? null : raw.replace(/^(["'])(.*)\1$/, "$2");
 }
@@ -206,9 +229,30 @@ export interface ResolvedPreset {
 }
 
 /** The preset a braid runs on: its brief's `autonomy`, else BRAID.md's, else the built-in default. `source` is null when no such preset exists. */
-export function resolvePreset(root: string, briefAutonomy: string | null): ResolvedPreset {
-  const fromProject = briefAutonomy === null ? projectDefault(root) : null;
+export function resolvePreset(root: string, briefAutonomy: string | null, ref: string | null = null): ResolvedPreset {
+  const fromProject = briefAutonomy === null ? projectDefault(root, ref) : null;
   const name = briefAutonomy ?? fromProject ?? DEFAULT_PRESET;
   const nameFrom = briefAutonomy !== null ? "brief" : fromProject !== null ? "BRAID.md" : "default";
-  return { name, nameFrom, source: availablePresets(root).get(name) ?? null };
+  return { name, nameFrom, source: availablePresets(root, ref).get(name) ?? null };
+}
+
+export interface JudgedPreset {
+  /** `origin/<base>`, or null when there is no such ref here: then everything is the checkout's. */
+  readonly ref: string | null;
+  /** The braid's brief as `ref` has it; `live` when `ref` doesn't have the braid yet. */
+  readonly brief: Brief;
+  readonly onBase: boolean;
+  readonly resolved: ResolvedPreset;
+}
+
+/**
+ * The preset a PR into `base` is judged by: the preset files, the BRAID.md default and the braid's brief as
+ * `origin/<base>` has them, so the PR can't loosen it. A braid that `base` doesn't have yet (a goal's or a
+ * story's first PR into main brings its brief) is read from its live brief.
+ */
+export function judgedPreset(root: string, base: string, number: string, live: Brief): JudgedPreset {
+  const ref = git(root, ["rev-parse", "--verify", "--quiet", `refs/remotes/origin/${base}^{commit}`]).status === 0 ? `origin/${base}` : null;
+  const there = ref === null ? null : braidAt(root, ref, number);
+  const brief = there?.brief ?? live;
+  return { ref, brief, onBase: there !== null, resolved: resolvePreset(root, brief.autonomy, ref) };
 }

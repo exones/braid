@@ -5,7 +5,7 @@
 // and nothing is written before all checks pass.
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
-import { parsePreset, resolvePreset } from "../braids/autonomy.js";
+import { judgedPreset, parsePreset, resolvePreset, type ResolvedPreset } from "../braids/autonomy.js";
 import { loadLifecycle, recordEvent } from "../braids/lifecycle.js";
 import { appendLog, now, threadShort } from "../braids/logs.js";
 import { closeRequest } from "../braids/requests.js";
@@ -333,20 +333,32 @@ function strandLog(root: string, t: Target, number: string, log: { text: string;
   return `log entry on ${t.braidBranch} in ${commit}\n`;
 }
 
-/** `--merge --preset`: a merge the coordinator makes under the braid's preset; refuses unless that preset allows this PR. */
-function presetAllows(root: string, w: World, t: Target): void {
-  const resolved = resolvePreset(root, w.braid.brief.autonomy);
+/** The preset's name, or a refusal unless it lets the coordinator merge this PR; `where` names where it was read, for the message. */
+function mergeAllowed(w: World, t: Target, resolved: ResolvedPreset, where: string): string {
   if (resolved.source === null) {
-    throw new UsageError(`${t.id} not merged: autonomy preset ${resolved.name} does not exist; nothing changed`);
+    throw new UsageError(`${t.id} not merged: autonomy preset ${resolved.name} does not exist${where}; nothing changed`);
   }
   const preset = parsePreset(resolved.source.text, resolved.source.from === "shipped" ? `shipped preset ${resolved.source.name}` : resolved.source.from, resolved.source.name);
   const kind = t.letter !== null ? "strand" : w.braid.strands.length > 0 ? "final" : "story";
   const allowed = preset.merge === "all" || (preset.merge === "strands" && kind === "strand");
   if (!allowed) {
-    throw new UsageError(`${t.id} not merged: preset ${preset.name} has merge: ${preset.merge}, which does not let the coordinator merge ${kind === "final" ? "a braid's final PR" : `a ${kind}'s PR`}; the user merges it (or run without --preset on their word); nothing changed`);
+    throw new UsageError(`${t.id} not merged: preset ${preset.name}${where} has merge: ${preset.merge}, which does not let the coordinator merge ${kind === "final" ? "a braid's final PR" : `a ${kind}'s PR`}; the user merges it (or run without --preset on their word); nothing changed`);
   }
+  return preset.name;
+}
+
+/**
+ * `--merge --preset`: a merge the coordinator makes under the braid's preset. Both the checkout's preset and the
+ * one on the PR's base must allow it: the base's so the PR can't loosen the preset it is judged by, the
+ * checkout's so a stricter preset set there holds at once.
+ */
+function presetAllows(root: string, w: World, t: Target): void {
+  const name = mergeAllowed(w, t, resolvePreset(root, w.braid.brief.autonomy), "");
+  const base = t.letter === null ? mainBranch(root) : t.braidBranch;
+  must(root, ["fetch", "-q", REMOTE, `+refs/heads/${base}:refs/remotes/${REMOTE}/${base}`], `${t.id} not merged: can't fetch ${base} to read its preset`);
+  mergeAllowed(w, t, judgedPreset(root, base, w.braid.number, w.braid.brief).resolved, ` on ${REMOTE}/${base}`);
   if (ciChecks(root).length === 0 && !ciAll(root)) {
-    throw new UsageError(`${t.id} not merged: preset ${preset.name} allows this merge only with CI to wait for, and ci in BRAID.md is none; nothing changed`);
+    throw new UsageError(`${t.id} not merged: preset ${name} allows this merge only with CI to wait for, and ci in BRAID.md is none; nothing changed`);
   }
 }
 
