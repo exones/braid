@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>0082/A mockups: the Questions panel</title>
+<style>
+:root{--page:#e8edf3;--board:#f1f5f9;--fg:#0f172a;--bg:#fff;--line:#e2e8f0;--soft:#f8fafc;--lane:#e2e8f0b3;--mut:#64748b;--ink:#334155;--chip:#e2e8f0;
+--amber:#fffbeb;--amberfg:#78350f;--amberline:#f59e0b;--red:#fef2f2;--redfg:#7f1d1d;--redline:#dc2626;--green:#f0fdf4;--greenline:#16a34a;--blue:#2563eb;--teal:#0f766e}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--page:#020617;--board:#0b1222;--fg:#e2e8f0;--bg:#0f172a;--line:#334155;--soft:#1e293b;--lane:#1e293bcc;--mut:#94a3b8;--ink:#cbd5e1;--chip:#334155;
+--amber:#33280c;--amberfg:#fde68a;--redfg:#fecaca;--red:#3b1517;--green:#0f2a1b;--blue:#60a5fa;--teal:#2dd4bf}}
+:root[data-theme=dark]{--page:#020617;--board:#0b1222;--fg:#e2e8f0;--bg:#0f172a;--line:#334155;--soft:#1e293b;--lane:#1e293bcc;--mut:#94a3b8;--ink:#cbd5e1;--chip:#334155;
+--amber:#33280c;--amberfg:#fde68a;--redfg:#fecaca;--red:#3b1517;--green:#0f2a1b;--blue:#60a5fa;--teal:#2dd4bf}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--page);color:var(--fg);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1{font-size:19px;margin:0 0 4px}
+h2{font-size:15px;margin:34px 0 4px}
+.intro,.note{color:var(--mut);max-width:100ch;font-size:13px;margin:0 0 10px}
+.note b{color:var(--fg)}
+button{font:inherit;color:inherit}
+.theme{float:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 10px;cursor:pointer}
+.fit{overflow:hidden}
+.screen{background:var(--board);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.top{display:flex;gap:10px;align-items:center;background:var(--bg);border-bottom:1px solid var(--line);padding:9px 18px}
+.top .sp,.sp{flex:1}
+.mut{color:var(--mut);font-size:12px}
+.row3{display:flex;align-items:stretch}
+/* programmes panel and rails */
+.prog{width:320px;flex:none;background:var(--bg);border-right:1px solid var(--line);padding:12px}
+.rail{width:56px;flex:none;background:var(--bg);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0}
+.rail.r{border-right:0;border-left:1px solid var(--line)}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:pointer;font-size:13px;position:relative}
+.ib.go{background:var(--blue);border-color:var(--blue);color:#fff}
+.ib.sm{width:22px;height:22px;font-size:11px}
+.tip{position:absolute;bottom:calc(100% + 6px);right:0;white-space:nowrap;background:#1e293b;color:#fff;border-radius:5px;padding:3px 8px;font-size:12px;z-index:5;box-shadow:0 2px 8px #0005}
+.tip.below{bottom:auto;top:calc(100% + 6px)}
+.badge{position:absolute;right:-6px;top:-6px;min-width:16px;height:16px;border-radius:9px;background:var(--amberline);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px}
+.badge.red{background:var(--redline)}
+.head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sec{display:flex;align-items:center;gap:6px;margin:12px 2px 6px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.sec i{width:8px;height:8px;border-radius:50%;background:var(--amberline)}
+.card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;margin-bottom:8px;box-shadow:0 1px 2px #0000000d}
+.card.ask{border-color:#fbbf24}
+.card .t{font-weight:600;margin:3px 0}
+.need{margin-top:6px;border-left:3px solid var(--amberline);background:var(--amber);color:var(--amberfg);border-radius:6px;padding:4px 6px;font-size:12.5px}
+.need.esc{border-color:var(--redline);background:var(--red);color:var(--redfg)}
+.need small{display:block;color:var(--mut);font-size:11px}
+.chip{display:inline-block;background:#0f172a;color:#fde68a;border-radius:4px;padding:0 6px;font:600 11.5px ui-monospace,Consolas,monospace;white-space:nowrap}
+.act{font-size:10.5px;font-weight:700;text-transform:uppercase;border-radius:9px;padding:0 6px;background:#00000018}
+:root[data-theme=dark] .act{background:#ffffff1f}
+.ptag{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:0 6px;font-size:11px;font-weight:600;background:var(--bg)}
+.ptag i{width:8px;height:8px;border-radius:50%}
+.lanes{flex:1;min-width:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 44px;gap:10px;padding:14px;align-items:start}
+.lane{background:var(--lane);border-radius:12px;padding:8px;min-height:560px}
+.lane h3{display:flex;justify-content:space-between;margin:2px 4px 8px;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.lane h3 i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.done{writing-mode:vertical-rl;font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--mut);margin:0 auto}
+.link{display:inline-block;border:1px solid var(--line);background:var(--bg);color:var(--blue);border-radius:5px;padding:0 6px;font-size:11.5px;white-space:nowrap}
+/* the Questions panel */
+.qp{width:416px;flex:none;background:var(--bg);border-left:1px solid var(--line);padding:12px;font-size:13px}
+.qp.solo{border:1px solid var(--line);border-radius:10px}
+.q{border:1px solid var(--line);border-left:3px solid var(--amberline);border-radius:8px;padding:7px 10px;margin-bottom:7px;background:var(--bg);cursor:pointer}
+.q.esc{border-color:var(--redline);background:var(--red)}
+.q.look{border-left-color:var(--mut)}
+.q .h,.big .h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.q .txt{margin:3px 0;font-weight:600;font-size:13.5px}
+.q .who,.meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:var(--mut);font-size:11.5px}
+.wait{margin-left:auto;font-size:11.5px;color:var(--mut);white-space:nowrap}
+.escm{font-size:10.5px;font-weight:700;text-transform:uppercase;border-radius:9px;padding:0 7px;background:var(--redline);color:#fff}
+.blk{font-size:12px;margin-top:2px}.blk b{font-weight:600}
+.fold{display:flex;align-items:center;gap:6px;width:100%;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-top:10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);cursor:pointer;text-align:left}
+/* the roomy card */
+.big{border:1px solid var(--blue);border-radius:12px;padding:14px 16px;margin-bottom:8px;background:var(--bg);box-shadow:0 4px 14px #00000014;line-height:1.5}
+.big.esc{border-color:var(--redline)}
+.big .qq{font-size:15.5px;font-weight:650;margin:10px 0 12px}
+details.ctx{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-top:10px;background:var(--soft)}
+details.ctx summary{cursor:pointer;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+details.ctx p,details.ctx ul{margin:7px 0 2px;color:var(--ink)}details.ctx ul{padding-left:18px}
+.opts{display:flex;flex-direction:column;gap:7px}
+.opt{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:9px 12px;cursor:pointer}
+.opt:hover,.opt.hov{border-color:var(--blue);background:var(--soft)}
+.opt b{font-size:12px;border:1px solid var(--mut);border-radius:5px;padding:0 6px}
+.field{display:flex;gap:6px;align-items:center}
+.field input{flex:1;min-width:0;border:1px solid var(--blue);border-radius:8px;background:var(--bg);color:var(--fg);padding:7px 10px;font:inherit}
+.field .ib{width:34px;height:34px}
+.foot{display:flex;align-items:center;gap:6px;margin-top:10px}
+.sent{display:flex;gap:8px;align-items:center;border:1px solid var(--greenline);background:var(--green);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:12.5px}
+.ans{margin-top:5px;border-left:3px solid var(--greenline);background:var(--soft);border-radius:4px;padding:3px 8px}
+.why{margin-top:4px;border-left:3px solid var(--mut);background:var(--soft);border-radius:4px;padding:3px 8px;color:var(--ink)}
+.pill{font-size:11px;font-weight:600;border-radius:9px;padding:0 7px;background:#dcfce7;color:#166534;white-space:nowrap}
+.pill.pm{background:#ccfbf1;color:#115e59}
+.cols{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.col{width:416px;max-width:100%}
+.col>h4{margin:0 0 6px;font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+/* phone */
+.phone{width:390px;max-width:100%;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--board)}
+.phone .qp{width:100%;border-left:0;border-top:2px solid var(--line)}
+.tabs{display:flex;background:var(--bg);border-bottom:1px solid var(--line)}
+.tabs span{flex:1;text-align:center;font-size:11px;color:var(--mut);padding:6px 0}.tabs b{display:block;color:var(--fg);font-size:15px}
+.tabs span.on{border-bottom:3px solid var(--amberline);color:var(--fg)}
+.phone .opt{min-height:44px;align-items:center}
+</style>
+</head>
+<body>
+<button class="theme" id="theme" type="button" title="Switch light and dark">◐</button>
+<h1>0082/A mockups: the Questions panel</h1>
+<p class="intro">Test data only: three projects (<b>sample</b>, <b>api</b>, <b>shop</b>), eight questions to answer and two that block nothing. Every frame shows the same data. The page follows your system theme; ◐ switches it. The board today is light only, so the dark version shows the design, not a promise of a dark board. The <code>context</code> and <code>options</code> fields come with 0082/C.</p>
+
+<h2>1. The whole board at desktop width: programmes left, lanes, Questions panel right, open</h2>
+<p class="note"><b>New against today:</b> the column on the right, 416 px (programmes: 320 px), always showing every open question of every project, ranked. It scrolls by itself and stays on screen while the lanes scroll. The header, lanes, cards and programmes panel are as today, except that a programme card's footer now says the panel can answer too. Drawn 1600 px wide and scaled to your window. The tooltip on » is drawn open.</p>
+<div class="fit" data-w="1600"><div class="screen" id="f1"></div></div>
+
+<h2>2. The same board with the Questions panel collapsed: its rail</h2>
+<p class="note"><b>New:</b> a 56 px rail on the right, like the programmes rail on the left. It shows the count of questions to answer (8; looks and FYIs aren't counted), and a red <b>!</b> mark while one is escalated. A click on either opens the panel. Open or collapsed is remembered in the browser.</p>
+<div class="fit" data-w="1600"><div class="screen" id="f2"></div></div>
+
+<h2>3. The list, ranked by what each question blocks</h2>
+<p class="note"><b>New:</b> one list instead of need lines spread over cards, programme cards and each item's Requests tab. Order: escalated; stops a braid or programme entirely; blocks several items (more first); blocks one item; then, collapsed, look requests and FYIs (they block nothing, so their line is only the act word). Oldest first within a rank. Each row: handle (click copies, as today), the wait, escalation mark, the question, who asks with the project, <b>blocks … · decide|do</b>. A click on a row opens it in place.</p>
+<div class="cols">
+  <div class="col"><h4>As it opens</h4><div class="qp solo" id="f3a"></div></div>
+  <div class="col"><h4>Looks and FYIs opened</h4><div class="qp solo" id="f3b"></div></div>
+</div>
+
+<h2>4. One question opened in place: the roomy card</h2>
+<p class="note"><b>New:</b> the row grows into the card of 0072's mockup, in the panel: context (collapsed), the question in larger type, one button per option the agent proposed, and ✎ (Custom answer) which swaps the buttons for a one-line field. One click on an option answers; for 5 seconds it can be undone before it is recorded, then the next question in rank order opens by itself.</p>
+<div class="cols">
+  <div class="col"><h4>4a. Context collapsed</h4><div class="qp solo" id="f4a"></div></div>
+  <div class="col"><h4>4b. Context expanded</h4><div class="qp solo" id="f4b"></div></div>
+  <div class="col"><h4>4c. Custom: a text field instead of the buttons</h4><div class="qp solo" id="f4c"></div></div>
+  <div class="col"><h4>4d. Just answered: the next one is open</h4><div class="qp solo" id="f4d"></div></div>
+</div>
+
+<h2>5. A question with no proposed options (an older request)</h2>
+<p class="note"><b>New:</b> a request without <code>options</code> shows only the free-text line with Send. Without <code>context</code> there is no context box; the line under the question links the item instead (open question 3 in the report). A "do" request is answered the same way: say what you did.</p>
+<div class="cols"><div class="col"><div class="qp solo" id="f5"></div></div></div>
+
+<h2>6. Decided: collapsed by default, then opened</h2>
+<p class="note"><b>New:</b> one Decided group for all projects, newest first: answered questions of braids and of programmes (a PM's own request, here <b>tiny-tractor-3i2b</b>, which today shows nowhere). Each shows the question, the answer, who answered (you, or the PM with its reason) and when. Ten at first, then Show more.</p>
+<div class="cols">
+  <div class="col"><h4>Collapsed (bottom of the panel)</h4><div class="qp solo" id="f6a"></div></div>
+  <div class="col"><h4>Opened</h4><div class="qp solo" id="f6b"></div></div>
+</div>
+
+<h2>7. At phone width (390 px): the panel stacks below the board</h2>
+<p class="note"><b>New:</b> the same list under the lane you are looking at, full width, no rail and no collapsing. Answering works the same way, with taller buttons. Pushes and the phone strip don't change.</p>
+<div class="phone" id="f7"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const COLOUR = { sample: "#4f46e5", api: "#0d9488", shop: "#7c3aed" };
+const ptag = (p) => `<span class="ptag" style="color:${COLOUR[p]}"><i style="background:${COLOUR[p]}"></i>${p}</span>`;
+const chip = (h) => `<span class="chip" title="Copy ${h}">${h}</span>`;
+const OPEN = "↗ Open asking thread";
+
+// The ranked questions, already in rank order.
+const Q = [
+  { h: "brave-fox-9d3h", p: "api", who: "coordinator of 0005 Search", blocks: "blocks 0005/B", act: "decide", wait: "24 min", esc: true, rank: "Escalated to you",
+    text: "Should search match accented letters (café finds cafe)?", note: "The PM hasn't answered for 20 min.",
+    options: ["Yes: fold accents in the index and the query", "No: exact letters only", "Only for French and German locales"] },
+  { h: "tidy-heron-6w1c", p: "shop", who: "PM of storefront-launch", blocks: "stops programme storefront-launch", act: "decide", wait: "41 min", rank: "Stops a braid or programme",
+    text: "Should the export ship before billing?", options: ["Yes: export first, billing after", "No: billing first", "Both at once, with the limit raised to 3"] },
+  { h: "calm-otter-7k2m", p: "sample", who: "coordinator of 0009 Report totals", blocks: "blocks 0009/A, 0009/B, 0009/C", act: "decide", wait: "20 min", rank: "Stops a braid or programme",
+    text: "Approve the plan: 3 strands, A to C?", options: ["Approve the plan as it is", "Approve, but drop strand C (CSV export)", "Don't start yet: I want to read the plan"],
+    ctx: `<p>Report totals needs three pieces, in order:</p><ul><li><b>A</b> the totals model (net of refunds, as you said on 11/24)</li><li><b>B</b> the report page</li><li><b>C</b> CSV export of the page</li></ul><p>About 900 lines in 14 files. Nothing runs until you answer. The PM would approve it.</p>` },
+  { h: "amber-lynx-4qpm", p: "shop", who: "coordinator of 0010 Cache layer", blocks: "blocks 0010/B, 0010/C, 0010/D", act: "decide", wait: "9 min", rank: "Blocks several items",
+    text: "Cache in process memory or in Redis?", options: ["In memory, per process", "Redis, one more service to run"] },
+  { h: "yellow-bear-5asx", p: "sample", who: "coordinator of 0003 Export", blocks: "blocks 0003/D, 0003/E", act: "decide", wait: "35 min", rank: "Blocks several items",
+    text: "Which rounding rule should refunds use, half-up or banker's?", options: ["Half-up, as the invoices do", "Banker's rounding"] },
+  { h: "q-d004", p: "sample", who: "PM of working-product, for 0004 Billing", blocks: "blocks 0004/B", act: "do", wait: "2 h", rank: "Blocks one item",
+    text: "Install the self-hosted runner on the build machine.", item: "0004/B Refund rules" },
+  { h: "quiet-lark-2fhn", p: "api", who: "coordinator of 0001 Rate limits", blocks: "blocks 0001/B", act: "decide", wait: "15 min", rank: "Blocks one item",
+    text: "Send Retry-After in seconds or as a date?", options: ["Seconds", "An HTTP date"] },
+  { h: "windy-maple-8h2c", p: "shop", who: "coordinator of 0007 Import", blocks: "blocks 0007/B", act: "decide", wait: "6 min", rank: "Blocks one item",
+    text: "Skip rows with an unknown currency, or stop the import?", options: ["Skip them and list them at the end", "Stop at the first one"] },
+];
+const LOOKS = [
+  { h: "gold-seal-1m9x", p: "api", who: "PM of working-api", act: "decide", wait: "5 h", look: true, text: "FYI: token rotation merged; health check goes next unless you say otherwise." },
+  { h: "plain-wren-3t7d", p: "sample", who: "coordinator of 0006 Audit log", act: "do", wait: "3 h", look: true, text: "Look: the audit log screens, light and dark." },
+];
+
+const row = (q, tip) => `<div class="q ${q.esc ? "esc" : ""} ${q.look ? "look" : ""}">
+  <div class="h">${chip(q.h)}${q.esc ? '<span class="escm">⚠ escalated</span>' : ""}<span class="wait">${q.wait}</span></div>
+  <div class="txt">${q.text}</div>
+  <div class="who">${ptag(q.p)}<span>${q.who}</span></div>
+  <div class="blk">${q.blocks ? `<b>${q.blocks}</b> · ` : ""}<span class="act">${q.act}</span></div></div>`;
+
+const sec = (label, tone = "var(--amberline)") => `<div class="sec"><i style="background:${tone}"></i>${label}</div>`;
+// The list in rank sections; `open` replaces one row with its roomy card.
+const list = (items, open) => {
+  let last = "", out = "";
+  for (const q of items) {
+    if (q.rank !== last) { last = q.rank; out += sec(q.rank, q.esc ? "var(--redline)" : undefined); }
+    out += open && open.h === q.h ? card(q, open) : row(q);
+  }
+  return out;
+};
+const head = (count, tip) => `<div class="head"><span aria-hidden="true">❓</span><b style="font-size:15px">Questions</b><span class="mut">${count}</span><span class="sp"></span>
+  <button class="ib" type="button" aria-label="Collapse the Questions panel">»${tip ? '<span class="tip below">Collapse the Questions panel</span>' : ""}</button></div>`;
+const folds = (looks, decided) => `<button class="fold" type="button">${looks ? "▾" : "▸"} Look and FYI · 2</button>${looks ? '<div style="margin-top:7px">' + LOOKS.map((q) => row(q)).join("") + "</div>" : ""}
+  <button class="fold" type="button">${decided ? "▾" : "▸"} Decided · 23</button>`;
+
+// The roomy card. state: { ctx: context open, custom: text field, typed, hover: option index, tip }
+function card(q, state = {}) {
+  const custom = state.custom || !q.options;
+  const answer = custom
+    ? `<div class="field"><input aria-label="Your answer" placeholder="${q.act === "do" ? "Say what you did, in one line" : "Your answer, in one line"}" value="${state.typed || ""}">
+        <button class="ib go" type="button" aria-label="Send">➤${state.tip ? '<span class="tip">Send</span>' : ""}</button>
+        ${q.options ? '<button class="ib" type="button" aria-label="Back to the options">✕</button>' : ""}</div>`
+    : `<div class="opts">${q.options.map((o, i) => `<button class="opt ${state.hover === i ? "hov" : ""}" type="button"><b>${"ABCD"[i]}</b><span>${o}</span></button>`).join("")}</div>
+      <div class="foot"><button class="ib" type="button" aria-label="Custom answer">✎${state.tip ? '<span class="tip" style="left:34px;right:auto;bottom:2px">Custom answer</span>' : ""}</button></div>`;
+  return `<div class="big ${q.esc ? "esc" : ""}">
+    <div class="h">${chip(q.h)}${q.esc ? '<span class="escm">⚠ escalated</span>' : ""}<span class="wait">${q.wait}</span><button class="ib sm" type="button" aria-label="Close the card">▴</button></div>
+    <div class="meta" style="margin-top:5px">${ptag(q.p)}<span>${q.who}</span></div>
+    <div class="blk"><b>${q.blocks}</b> · <span class="act">${q.act}</span>${q.note ? ` <span class="mut">· ${q.note}</span>` : ""}</div>
+    ${q.ctx ? `<details class="ctx" ${state.ctx ? "open" : ""}><summary>Context</summary>${q.ctx}</details>` : ""}
+    <div class="qq">${q.text}</div>${answer}
+    <div class="foot meta"><span class="link">${OPEN}</span>${q.item ? `<span class="link">${q.item}</span>` : ""}</div></div>`;
+}
+
+const need = (q, small) => `<div class="need ${q.esc ? "esc" : ""}">${chip(q.h)} <b>${q.blocks}</b> · <span class="act">${q.act}</span><br>${q.esc ? "<b>Escalated to you:</b> " : ""}${q.text}<br><span class="link">${OPEN}</span><small>${small}</small></div>`;
+const bcard = (id, title, p, body = "", ask = false) => `<div class="card ${ask ? "ask" : ""}"><div><span class="mut">${id}</span> ${ptag(p)}</div><div class="t">${title}</div>${body}</div>`;
+const lane = (label, dot, count, cards) => `<div class="lane"><h3><span><i style="background:${dot}"></i>${label}</span><span>${count}</span></h3>${cards}</div>`;
+
+const lanes = () => `<div class="lanes">
+  ${lane("Needs You", "#f59e0b", 3,
+    bcard("0005", "Search", "api", need(Q[0], "strand 0005/A · asked 24 min ago"), true) +
+    bcard("0009", "Report totals", "sample", need(Q[2], "braid, no strand involved · asked 20 min ago"), true) +
+    bcard("0003", "Export", "sample", need(Q[4], "strand 0003/C · asked 35 min ago"), true))}
+  ${lane("To Review", "#7c3aed", 1, bcard("0002", "Token rotation", "api", '<div class="mut">PR #43 · checks passed</div>'))}
+  ${lane("Working", "#2563eb", 3, bcard("0010", "Cache layer", "shop", '<div class="mut">🔧 strand A · 1/4</div>') + bcard("0007", "Import", "shop", '<div class="mut">🔧 strand A · 0/3</div>') + bcard("0001", "Rate limits per key", "api", '<div class="mut">🔧 strand B · 1/2</div>'))}
+  ${lane("To Do", "#cbd5e1", 2, bcard("0011", "Notifications", "sample") + bcard("0003", "OpenAPI docs", "api"))}
+  <div class="lane" style="padding:10px 0;text-align:center"><div class="mut">14</div><span class="done">Done</span></div></div>`;
+
+const pcard = (slug, p, goal, body, ask) => `<div class="card ${ask ? "ask" : ""}"><div class="head" style="margin:0">${ptag(p)}<b>🧭 ${slug}</b><span class="sp"></span>${ask ? '<span class="badge" style="position:static">?</span>' : ""}</div><div class="mut">${goal}</div>${body}<div style="margin-top:6px;display:flex;gap:4px"><span class="ib">↗</span><span class="ib">⌖</span><span class="ib">≡</span></div></div>`;
+const programmes = () => `<aside class="prog"><div class="head"><span>🧭</span><b style="font-size:15px">Programmes</b><span class="mut">3</span><span class="sp"></span><span class="ib">«</span></div>
+  ${sec("Needs you · 1")}${pcard("storefront-launch", "shop", "A shop that sells, bills and exports", need(Q[1], "programme · asked 41 min ago · answer in the panel or the PM thread"), true)}
+  ${sec("Working · 2", "var(--teal)")}${pcard("working-product", "sample", "Sign in, search, export and bill", '<div class="mut" style="margin-top:5px">3/6 done · 3 running</div>')}${pcard("working-api", "api", "The public API, limited and documented", '<div class="mut" style="margin-top:5px">1/4 done · 2 running</div>')}</aside>`;
+
+const header = () => `<div class="top"><b style="font-size:16px">braid · attention board</b><span class="mut">Each braid sits in the lane where it needs you most.</span><span class="sp"></span><span class="mut">📥 Inbox 7 · ☑ Details · refreshes every 30 s</span></div>
+  <div class="top" style="padding:5px 18px"><b class="mut" style="color:var(--fg)">Projects</b><span class="mut">3 of 3 shown</span><span class="sp"></span><span class="mut">▸ Show projects</span></div>`;
+
+const qpanel = `<aside class="qp">${head(8, true)}${list(Q.slice(0, 6))}<div class="mut" style="text-align:center;margin:6px 0">… 2 more below (the panel scrolls)</div>${folds(false, false)}</aside>`;
+const rail = `<aside class="rail r"><button class="ib" type="button" aria-label="Open the Questions panel">«</button>
+  <button class="ib" type="button" style="width:36px;height:36px;margin-top:6px;background:var(--amber);border-color:var(--amberline)" aria-label="8 open questions, 1 escalated">❓<span class="badge">8</span></button>
+  <button class="ib" type="button" style="width:36px;height:36px;background:var(--red);border-color:var(--redline);color:var(--redline);font-weight:800" aria-label="1 escalated">!<span class="tip" style="bottom:4px;right:44px">8 open questions · 1 escalated to you</span></button></aside>`;
+
+$("f1").innerHTML = header() + `<div class="row3">${programmes()}${lanes()}${qpanel}</div>`;
+$("f2").innerHTML = header() + `<div class="row3">${programmes()}${lanes()}${rail}</div>`;
+$("f3a").innerHTML = head(8) + list(Q) + folds(false, false);
+$("f3b").innerHTML = '<div class="mut">… the eight questions above …</div>' + folds(true, false);
+
+const [, , plan, cache, , runner] = Q;
+$("f4a").innerHTML = head(8) + sec("Stops a braid or programme") + card(plan, { tip: true }) + row(cache);
+$("f4b").innerHTML = head(8) + sec("Stops a braid or programme") + card(plan, { ctx: true, hover: 0 }) + row(cache);
+$("f4c").innerHTML = head(8) + sec("Stops a braid or programme") + card(plan, { custom: true, tip: true, typed: "Approve A and B; C waits for the new export" }) + row(cache);
+$("f4d").innerHTML = head(7) + `<div class="sent">✓ <span>${chip(plan.h)} <b>A</b> · Approve the plan as it is<br><span class="mut">sends in 4 s</span></span><span class="sp"></span><button class="ib" type="button" aria-label="Undo">↶<span class="tip">Undo</span></button></div>`
+  + sec("Blocks several items") + card(cache) + row(Q[4]);
+$("f5").innerHTML = head(8) + sec("Blocks one item") + card(runner, { tip: true }) + row(Q[6]);
+
+const decided = [
+  { h: "tiny-tractor-3i2b", p: "sample", who: "PM of working-product (programme)", by: "you", when: "today 10:42", text: "Should the export ship before billing?", a: "A · Yes: export first, billing after" },
+  { h: "mellow-ibis-5r8k", p: "sample", who: "coordinator of 0009 Report totals", by: "PM", when: "today 10:05", text: "Should the report totals include refunds?", a: "No, refunds are a separate line.", why: "the brief's totals mean paid orders; you already decided refunds are reported apart (D61)." },
+  { h: "swift-moth-2c4v", p: "api", who: "coordinator of 0002 Token rotation", by: "you", when: "yesterday 17:30", text: "How long does an old token keep working?", a: "Custom · 24 hours, and log each use" },
+  { h: "q-d010", p: "shop", who: "coordinator of 0007 Import", by: "you", when: "11/24 09:40", text: "Which tax table should it load?", a: "B · The 2026 table" },
+];
+const dec = (d) => `<div class="q" style="border-left-color:var(--greenline)"><div class="h">${chip(d.h)}<span class="pill ${d.by === "PM" ? "pm" : ""}">decided by ${d.by === "PM" ? "the PM" : "you"}</span><span class="wait">${d.when}</span></div>
+  <div class="txt">${d.text}</div><div class="ans"><b>Answer:</b> ${d.a}</div>${d.why ? `<div class="why"><b>PM's reason:</b> ${d.why}</div>` : ""}<div class="who" style="margin-top:4px">${ptag(d.p)}<span>${d.who}</span></div></div>`;
+$("f6a").innerHTML = '<div class="mut">… the open questions above …</div>' + folds(false, false);
+$("f6b").innerHTML = `<button class="fold" type="button" style="margin:0 0 8px">▾ Decided · 23 · newest first</button>${decided.map(dec).join("")}<button class="fold" type="button" style="text-transform:none">Show more (19)</button>`;
+
+$("f7").innerHTML = `<div class="top"><b>braid · attention board</b></div><div class="tabs">${[["3", "Needs you"], ["1", "Review"], ["3", "Working"], ["2", "To Do"], ["14", "Done"]].map(([n, l], i) => `<span class="${i ? "" : "on"}"><b>${n}</b>${l}</span>`).join("")}</div>
+  <div style="padding:10px">${bcard("0005", "Search", "api", need(Q[0], "asked 24 min ago"), true)}<div class="mut" style="text-align:center">… the rest of the lane …</div></div>
+  <aside class="qp"><div class="head"><span>❓</span><b style="font-size:15px">Questions</b><span class="mut">8</span></div>${sec("Escalated to you", "var(--redline)")}${card(Q[0])}${sec("Stops a braid or programme")}${row(Q[1])}${row(Q[2])}<div class="mut" style="text-align:center">… 5 more …</div>${folds(false, false)}</aside>`;
+
+// Scale the desktop frames to the window.
+const fit = () => document.querySelectorAll(".fit").forEach((f) => {
+  const s = f.firstElementChild, w = Number(f.dataset.w);
+  s.style.width = w + "px";
+  s.style.zoom = Math.min(1, f.clientWidth / w);
+});
+addEventListener("resize", fit);
+fit();
+$("theme").onclick = () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme:dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+};
+</script>
+</body>
+</html>
