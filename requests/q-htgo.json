@@ -21,6 +21,12 @@
       "at": "2026-11-26T01:46:26.209Z",
       "by": "pm",
       "text": "Pin instead of auto-settle off (q-htgo): PM leans b unless a pinned group of coordinators is fine"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-26T08:50:53.829Z",
+      "by": "user",
+      "text": "Drop it (the user: \"M. B\"): no pin, no skill change; auto-settle stays a manual T3 setting."
     }
   ]
 }
