@@ -39,11 +39,18 @@ Expected size: about 550 lines removed and 150 to 250 added in 3 to 5 files.
 - A release.yml edit that grants `id-token: write` to the wrong job, adds an npm token, or widens the trigger must still fail the suite: one negative test per protected property, on a modified copy of the workflow.
 - A suite that silently passes because it read nothing (file moved, parse failure) must fail: a test for an unreadable workflow.
 
+## Plan
+
+1. Replace the 685-line script with `test/pester/Release-Workflow.Tests.ps1`: a small YAML reader (block maps, sequences, `|` scalars; anything else throws) and one findings function over the parsed workflow, keeping every property the old guard checked.
+2. One negative `It` per protected property on an edited copy under TestDrive, the two positive Node.js variants, and throwing cases for a missing, empty, job-less, tab-indented or flow-style workflow.
+3. Drop the guard from the quick gate in `scripts/Verify.ps1`; it runs in `verify:full` through `scripts/Test-Pester.ps1`.
+4. Update `docs/development.md` and `docs/npm-distribution.md`.
+
 ## Completion
 
-- [ ] Each property the old guard asserted is either a Pester test or named in report.md with why it was dropped
-- [ ] Negative tests show the suite fails on each protected property, and on an unreadable workflow
-- [ ] The old 685-line script is gone and the quick gate no longer runs it
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/development.md, docs/npm-distribution.md), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Each property the old guard asserted is either a Pester test or named in report.md with why it was dropped
+- [x] Negative tests show the suite fails on each protected property, and on an unreadable workflow
+- [x] The old 685-line script is gone and the quick gate no longer runs it
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/development.md, docs/npm-distribution.md), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
