@@ -40,12 +40,12 @@ Expected size: about 200 lines in 5 files.
 
 ## Completion
 
-- [ ] The user approved the mockups before building
-- [ ] A stalled card whose thread failed shows the reason's kind and short words, the full error in the tooltip
-- [ ] `failureOf` is tested on real error texts, including a usage limit
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The user approved the mockups before building
+- [x] A stalled card whose thread failed shows the reason's kind and short words, the full error in the tooltip
+- [x] `failureOf` is tested on real error texts, including a usage limit
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
