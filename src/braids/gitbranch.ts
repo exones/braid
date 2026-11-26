@@ -350,6 +350,13 @@ function* identsG(env: NodeJS.ProcessEnv): Gen<{ author: string; committer: stri
   return { author: yield* mustG(["var", "GIT_AUTHOR_IDENT"], { env: as }), committer: yield* mustG(["var", "GIT_COMMITTER_IDENT"], { env: as }), env: as };
 }
 
+/** The `encoding` line `git commit-tree` writes: `i18n.commitEncoding` as set; none when unset or UTF-8. */
+function* encodingG(env: NodeJS.ProcessEnv): Gen<string> {
+  const r = yield* gitG(["config", "--get", "i18n.commitEncoding"], { env });
+  const name = r.stdout.replace(/\r?\n$/, "");
+  return r.status !== 0 || /^utf-?8$/i.test(name) ? "" : `encoding ${name}\n`;
+}
+
 /** A length-prefixed `data` command of `git fast-import`. */
 const data = (text: string): string => `data ${Buffer.byteLength(text)}\n${text}\n`;
 
@@ -359,10 +366,11 @@ const data = (text: string): string => `data ${Buffer.byteLength(text)}\n${text}
  */
 function* commitOnG(parent: string | null, changes: ReadonlyMap<string, Content>, message: string, env: NodeJS.ProcessEnv = {}): Gen<string> {
   const who = yield* identsG(env);
+  const encoding = yield* encodingG(env);
   const files = [...changes].map(([path, c]) => ("blob" in c ? `M 100644 ${c.blob} ${path}\n` : `M 100644 inline ${path}\n${data(c.text)}`));
   const stream = [
     "feature done\n",
-    `commit ${BUILD_REF}\nmark :1\nauthor ${who.author}\ncommitter ${who.committer}\n`,
+    `commit ${BUILD_REF}\nmark :1\nauthor ${who.author}\ncommitter ${who.committer}\n${encoding}`,
     data(message.endsWith("\n") ? message : `${message}\n`),
     parent === null ? "" : `from ${parent}\n`,
     ...files,

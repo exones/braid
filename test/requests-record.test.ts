@@ -15,6 +15,7 @@ after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retr
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 const R: any = await load("../dist/braids/requests.js");
 const B: any = await load("../dist/braids/gitbranch.js");
+const G: any = await load("../dist/braids/gitio.js");
 const { requestsCommand }: any = await load("../dist/commands/requests.js");
 
 const git = (cwd: string, ...args: string[]) => {
@@ -262,8 +263,6 @@ test("readers list from the local refs without fetching", () => {
   assert.deepEqual(R.loadRequests(b).map((r: any) => r.id), ["0001"]);
 });
 
-const G: any = await load("../dist/braids/gitio.js");
-
 /** The `git` processes `fn` starts, by subcommand. */
 async function processes(fn: () => unknown): Promise<string[]> {
   const seen: string[] = [];
@@ -277,9 +276,9 @@ async function processes(fn: () => unknown): Promise<string[]> {
 }
 
 // If this list grows, every writer holds the record's lock longer (0077/H; 17 processes before it).
-const ONE_WRITE = ["fetch", "for-each-ref", "ls-tree", "cat-file", "var", "var", "fast-import", "push", "update-ref"];
+const ONE_WRITE = ["fetch", "for-each-ref", "ls-tree", "cat-file", "var", "var", "config", "fast-import", "push", "update-ref"];
 
-test("one write to the record starts nine git processes, with either driver", async () => {
+test("one write to the record starts ten git processes, with either driver", async () => {
   const root = world(1).clones[0] as string;
   R.openRequest(root, q("0001")); // the first write also finds the main checkout and has no branch yet
   assert.deepEqual(await processes(() => R.openRequest(root, q("0001", { at: "2026-11-23T11:00:00.000Z" }))), ONE_WRITE);
@@ -310,9 +309,13 @@ function rebuilt(root: string, commit: string): string {
   return run(["commit-tree", run(["write-tree"]), ...(parent === undefined ? [] : ["-p", parent]), "-m", message]);
 }
 
-test("the commits are those of commit-tree: tree, message, parent and identities, also when offline commits are replayed", () => {
+for (const encoding of [null, "ISO-8859-1"]) test(`the commits are those of commit-tree: tree, message, parent and identities, also when offline commits are replayed${encoding === null ? "" : `, with i18n.commitEncoding ${encoding}`}`, () => {
   const { origin, clones } = world(2);
   const [a, b] = clones as [string, string];
+  if (encoding !== null) {
+    git(a, "config", "i18n.commitEncoding", encoding);
+    git(b, "config", "i18n.commitEncoding", encoding);
+  }
   const first = R.openRequest(a, q("0001", { to: "pm", pm: "pm-thread-1234", text: "Which näme — «this»?" })).code;
   git(b, "fetch", "-q", "origin", "+refs/heads/braid-requests:refs/remotes/origin/braid-requests");
   git(a, "remote", "set-url", "origin", join(scratch, "nowhere.git"));
@@ -329,6 +332,9 @@ test("the commits are those of commit-tree: tree, message, parent and identities
   ]);
   for (const commit of commits) {
     assert.equal(rebuilt(a, commit), commit);
+  }
+  if (encoding !== null) {
+    assert.match(git(a, "cat-file", "commit", "braid-requests"), new RegExp(`^encoding ${encoding}$`, "m"));
   }
   assert.equal(git(a, "rev-parse", "braid-requests"), git(a, "rev-parse", "origin/braid-requests"));
   assert.equal(git(a, "for-each-ref", "refs/braid"), "", "no ref is left from building");
