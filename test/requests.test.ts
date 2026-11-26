@@ -21,7 +21,7 @@ const { startCommand } = (await load("../dist/commands/start.js")) as { startCom
 const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
 const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
-const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age } = (await load("../dist/braids/requests.js")) as {
+const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age, locked } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
   loadRecord: (root: string) => { requests: { code: string; id: string; state: string; events: { event: string; at: string; by: string; text?: string }[] }[] };
   legacyFile: (root: string) => string;
@@ -29,6 +29,7 @@ const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, 
   holding: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => Map<string, { state: string }>;
   filterLive: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => object[];
   age: (at: string, now: Date) => string;
+  locked: <T>(file: string, fn: () => T, what?: string, makeDir?: (dir: string) => void, waitMs?: number, clock?: { now: () => number; pause: () => void }) => T;
 };
 beforeEach(() => {
   resetGithubMemory();
@@ -268,6 +269,46 @@ for (let i = 0; i < 4; i++) openRequest(root, { id: id + i, kind: "question", te
   const codes = await Promise.all(["0001/A", "0002/B", "0003/C", "0004/D"].map(run));
   assert.deepEqual(codes, [0, 0, 0, 0]);
   assert.equal(loadRequests(w.root).length, 16);
+});
+
+test("a waiter outlasts a queue of holders longer than its wait while the lock keeps changing hands", () => {
+  const file = join(mkdtempSync(join(scratch, "queue-")), "queue.json");
+  const lock = `${file}.lock`;
+  // The test's own clock, so load can't decide it: each pause of the waiter is one second and one hand-off, 20 holders against a 4 s wait.
+  // Every holder leaves the same file with the same times (ahead of now, so never stale): only the token says the lock changed hands.
+  const taken = new Date(Date.now() + 3_600_000);
+  let now = 0;
+  let holder = 0;
+  const hold = () => {
+    writeFileSync(lock, `holder ${holder}`);
+    utimesSync(lock, taken, taken);
+  };
+  const pause = () => {
+    now += 1_000;
+    if (++holder < 20) hold();
+    else rmSync(lock);
+  };
+  hold();
+  assert.equal(locked(file, () => "got", "q", undefined, 4_000, { now: () => now, pause }), "got");
+  assert.equal(now, 20_000, "got only after the whole queue");
+  assert.equal(existsSync(lock), false);
+});
+
+test("every hold of a lock writes its own token, so two holds never look like one", () => {
+  const file = join(mkdtempSync(join(scratch, "token-")), "token.json");
+  const held = () => locked(file, () => readFileSync(`${file}.lock`, "utf8"), "q");
+  const first = held();
+  assert.notEqual(first, "");
+  assert.notEqual(held(), first);
+});
+
+test("a live lock that never changes hands is still given up on after the wait", () => {
+  const file = join(mkdtempSync(join(scratch, "stuck-")), "stuck.json");
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(`${file}.lock`, "");
+  const began = Date.now();
+  assert.throws(() => locked(file, () => 1, "q", undefined, 300), /is locked/);
+  assert.ok(Date.now() - began >= 300);
 });
 
 test("a stale lock is taken over and the lock is released", () => {
