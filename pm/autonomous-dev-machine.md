@@ -3,7 +3,7 @@ programme: autonomous-dev-machine
 title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
-limit: 7
+limit: 2
 state: running
 hold:
 next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24 · 0077, P15 · 0078, P27 · 0080 (merge order 0074, 0072, 0060, 0077, 0078, P27; P28 report any time); then P25 (after 0072), P5, P26"
@@ -158,6 +158,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26 08:34: user (mobile, relayed by thread 93a24a15, verified): "Tell to all pms that usage is back to normal (not excessive) so everyone should return to 2 parallel workers max". Limit back to 2: no new braid launches until at most two have work running; the running braids finish (0074, 0072, 0060 only wait on merges; 0077 waits on 0074; 0080/D waits on the user; 0078 works).
 - 2026-11-26 ~08:00: #335 at abb76243 re-checked (5/5 under load, gate 710/710, CI 710) - ready for the user's merge; skgh (live lock taken over past 30 s under extreme load) sent to 0078 as a strand. Usage caches stale since ~06:00 (all providers "unknown").
 - 2026-11-26 morning: 0074 final PR #339 at 85a95fc live-checked (two fixes as 0074/H re-checked), forwarded to the user. 0072 final PR #349 at af35754 live-checked (gate 745/745), merges after 0074 with renumbered decisions; leftover 03t9 into P25. PM request q-ewap lists what waits on the user.
 - 2026-11-26 night: #335 held back from the user's merge (0078 found a timing race in its new regression test; fix as 0078/K, then a new head and a PM re-check). 0074 live check: works; two fixes as 0074/H (Resume on a failed-pause card, Done braids' pause records), then re-check. 0077/D merged (#338, `braid gate`, two slots). 0080/G finding: auto-settle off isn't agent-callable; pin is (q-htgo to the user).
