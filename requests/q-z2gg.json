@@ -10,7 +10,7 @@
   "doneWhen": "pr:339",
   "pr": 339,
   "head": "4d92a1b0bd7670cdc6024b355b207f6b3655c9ae",
-  "eta": null,
+  "eta": "2026-11-26T09:30:00.000Z",
   "events": [
     {
       "event": "opened",
@@ -22,6 +22,13 @@
       "at": "2026-11-26T02:42:28.599Z",
       "by": "board",
       "text": "sent to the PM"
+    },
+    {
+      "event": "eta",
+      "at": "2026-11-26T02:42:55.343Z",
+      "by": "pm",
+      "text": "2026-11-26T09:30:00.000Z",
+      "reason": "0074/H fixes two live-check findings; then PM re-check and the user's merge in the 10:00 digest"
     }
   ]
 }
