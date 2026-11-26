@@ -10,7 +10,7 @@
   "doneWhen": "pr:330",
   "pr": 330,
   "head": "dacded961f9cda8fb3a20a377a2c0665f99885a8",
-  "eta": null,
+  "eta": "2026-11-26T09:30:00.000Z",
   "events": [
     {
       "event": "opened",
@@ -22,6 +22,13 @@
       "at": "2026-11-26T00:08:52.931Z",
       "by": "board",
       "text": "sent to the PM"
+    },
+    {
+      "event": "eta",
+      "at": "2026-11-26T00:09:18.539Z",
+      "by": "pm",
+      "text": "2026-11-26T09:30:00.000Z",
+      "reason": "goes in the user's 10:00 digest; the user asked not to be disturbed before 10:00"
     }
   ]
 }
