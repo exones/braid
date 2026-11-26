@@ -17,6 +17,12 @@
       "event": "opened",
       "at": "2026-11-26T12:40:45.537Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-26T13:20:54.864Z",
+      "by": "pm",
+      "text": "live check passed (fix re-checked at 3caa2b88) · merge PR #324 at 3caa2b8 (skills change)"
     }
   ]
 }
