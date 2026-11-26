@@ -20,6 +20,12 @@
       "at": "2026-11-26T00:20:19.077Z",
       "by": "pm",
       "text": "Mockups: stalled cards say why (q-n7xu); PM recommends 1a, 2a; after 10:00"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-26T00:23:04.506Z",
+      "by": "user",
+      "text": "1 a, 2 a (the user: \"q-n7xu J 1 a, 2 a\"): the reason replaces the generic stall sentence; it shows only once the card reads stalled."
     }
   ]
 }
