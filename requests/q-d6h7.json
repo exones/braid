@@ -23,6 +23,12 @@
       "at": "2026-11-26T15:15:43.850Z",
       "by": "pm",
       "text": "live check passed · merge PR #357 at 7fdcfc2"
+    },
+    {
+      "event": "met",
+      "at": "2026-11-26T15:20:38.467Z",
+      "by": "board",
+      "text": "PR #357 merged"
     }
   ]
 }
