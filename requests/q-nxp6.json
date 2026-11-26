@@ -14,6 +14,12 @@
       "event": "opened",
       "at": "2026-11-26T00:31:09.563Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-26T00:39:51.027Z",
+      "by": "pm",
+      "text": "T3 sign-in button mockups (q-nxp6): PM recommends 1a, 2a, 3a"
     }
   ]
 }
