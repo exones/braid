@@ -37,11 +37,18 @@ Expected size: about 40 changed lines in 3 files; net words added to `.agents/sk
 
 - "Run an item", the braid-worker skill and launching (0060). Any skill section not named above.
 
+## Plan
+
+1. braid skill, "A reply to an open request": record, recap in one line (understood, next), act without waiting; name requests by handle.
+2. braid skill, "Launched by a PM": the PM records its answers; the coordinator takes the board's wake (or the PM's message), records nothing, recaps, acts.
+3. braid-pm skill, "Answering coordinators": the PM answers with `braid answer <handle> --from pm --reason …`; a user's answer here is recorded from the user; recap it; fold the duplicate reason-format paragraph.
+4. Count words before and after; report.
+
 ## Completion
 
-- [ ] The braid skill says to recap an answer in one line before acting, and that under a PM the coordinator takes the PM's answer from the board's wake
-- [ ] The braid-pm skill says the PM records its own answers and recaps the user's
-- [ ] `.agents/skills/` has no more words than before this strand (both counts in report.md)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The braid skill says to recap an answer in one line before acting, and that under a PM the coordinator takes the PM's answer from the board's wake
+- [x] The braid-pm skill says the PM records its own answers and recaps the user's
+- [x] `.agents/skills/` has no more words than before this strand (both counts in report.md)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
