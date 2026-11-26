@@ -37,3 +37,9 @@ Expected size: about 20 to 40 lines in 1 to 2 files.
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- Queue test: holder hands off every ~20 ms for 12 s (by time, not count) against a 4 s wait; retries a rename Windows refuses.
+- `locked` writes a random token into the lock and `lockIdentity` includes it (Linux reuses the inode at once); a small test.
+- Show: 10 runs under a CPU load; negative check on a copy of dist/ with wait-from-start; gate.
