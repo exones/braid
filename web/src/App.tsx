@@ -119,6 +119,14 @@ function ReasonMark({ kind, tooltip }: { kind: string; tooltip: string }) {
   if (kind === "limit") {
     return <Icon tip={tooltip} className="text-amber-500">⚖</Icon>;
   }
+  if (kind === "look") {
+    // A look request or an FYI blocks nothing: a quiet eye, not the amber of a question.
+    return (
+      <Icon tip={tooltip} className="text-slate-500">
+        <svg {...svg} strokeWidth={2.2}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+      </Icon>
+    );
+  }
   if (kind === "plan") {
     return (
       <Icon tip={tooltip} className="text-amber-500">

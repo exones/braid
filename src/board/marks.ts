@@ -13,7 +13,7 @@ export const LANE_LABEL: Readonly<Record<Lane, string>> = {
   Done: "Done",
 };
 
-export type ReasonKind = "question" | "checks" | "stalled" | "ask" | "plan" | "limit";
+export type ReasonKind = "question" | "checks" | "stalled" | "ask" | "plan" | "look" | "limit";
 
 export interface ReasonIcon {
   readonly kind: ReasonKind;
@@ -89,6 +89,9 @@ export function reasonIcon(reason: string, failed: readonly string[] = [], key: 
   }
   if (reason === "decision") {
     return { kind: "ask", tooltip: key === null ? "Decision needed" : `Decision needed: ${key}` };
+  }
+  if (reason === "look") {
+    return { kind: "look", tooltip: "Look: for you to see; nothing waits on it" };
   }
   if (reason === "action") {
     return { kind: "ask", tooltip: "The PM asks you to do something" };

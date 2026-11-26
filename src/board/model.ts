@@ -5,7 +5,7 @@ import type { Status } from "../braids/brief.js";
 import { braidStatuses, withStatuses, type Lifecycle } from "../braids/lifecycle.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
-import { actOf, age, handleOf, isTimedWait, unblocksOf, type Request } from "../braids/requests.js";
+import { actOf, age, handleOf, isTimedWait, unblocksOf, type Act, type Request } from "../braids/requests.js";
 import { requestsOf, rowOf, type RequestRow, type RequestsView } from "./record.js";
 import type { Pause } from "../braids/pauses.js";
 import { clock, limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
@@ -20,8 +20,8 @@ import { t3codeUrl } from "./marks.js";
 export const LANES = ["Waiting", "In Review", "In Progress", "To Do", "Done"] as const;
 export type Lane = (typeof LANES)[number];
 
-/** What an item shows as the reason it is on the user's side: a request's kind, or a broke alarm. */
-export type Reason = "question" | "decision" | "plan" | "action" | "checks failed" | "stalled" | "limit";
+/** What an item shows as the reason it is on the user's side: a request's kind (`look`: a look request or an FYI, which blocks nothing), or a broke alarm. */
+export type Reason = "question" | "decision" | "plan" | "action" | "look" | "checks failed" | "stalled" | "limit";
 /** A broke alarm: shown only after its condition has held for ten minutes. */
 export type BrokeReason = "checks failed" | "stalled";
 /** What is going on in Working: a worker agent, a reviewer, or only CI. */
@@ -57,8 +57,12 @@ export interface Need {
   readonly handle?: string;
   /** The items answering it unblocks (`0072/B`, sorted), from `unblocksOf`; empty when nothing waits on it. Set with `code`. */
   readonly blocks?: readonly string[];
-  /** What the user does about it: `decide`, `do` (an action) or `merge` (a review). Set with `code`. */
-  readonly act?: "decide" | "do" | "merge";
+  /** What the user does about it: `decide`, `do` (an action), `merge` (a review) or `look` (a look request or an FYI). Set with `code`. */
+  readonly act?: Act;
+  /** The request's context (Markdown), when it has one. Set with `code`. */
+  readonly context?: string;
+  /** The request's likely answers, lettered A to D in order, when it has them. Set with `code`. */
+  readonly options?: readonly string[];
   /** The T3 link of the thread that asked (always the asker's, also when the PM forwarded it); null when T3 doesn't list it. Set with `code`. */
   readonly asking?: string | null;
   /** A second need shown under this one: a broken wait (past its estimate, or a gone addressee) on a braid that also has a question open; both need the user. */
@@ -366,9 +370,12 @@ export function linkOfThread(t3: T3, thread: string | null | undefined): string 
   return other === undefined ? null : other.replace(/[^/]+\/?$/, encodeURIComponent(thread));
 }
 
+/** The context and options a request carries, as a need has them; nothing for a request without. */
+const said = (r: Request): Pick<Need, "context" | "options"> => ({ ...(r.context === undefined ? {} : { context: r.context }), ...(r.options === undefined ? {} : { options: r.options }) });
+
 function needOfRequest(r: Request, now: Date, routed: Routed, t3: T3, blocks: readonly string[] = []): Need {
   const text = r.kind === "review" && r.pr !== undefined ? `Merge PR #${r.pr}` : r.text;
-  const ids = { code: r.code, handle: handleOf(r), blocks, act: actOf(r.kind) } as const;
+  const ids = { code: r.code, handle: handleOf(r), blocks, act: actOf(r.kind), ...said(r) } as const;
   if ("via" in routed) {
     const link = linkOfThread(t3, routed.via === "forwarded" ? r.pm : r.thread);
     return { kind: r.kind, text: `${routed.words} ${text}${viaNote(routed.via, r, now)}`, verb: "asked", age: age(r.at, now), since: routed.since, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: routed.via, link, ...ids, asking: linkOfThread(t3, r.thread) };
@@ -380,7 +387,7 @@ function needOfRequest(r: Request, now: Date, routed: Routed, t3: T3, blocks: re
 /** A forwarded request as the programmes panel shows it: the PM asking the user, opening the PM's thread. */
 export function needOfForward(r: Request, now: Date, t3: T3, blocks: readonly string[] = []): Need {
   const text = r.kind === "review" && r.pr !== undefined ? `${askWords(r.kind)} merge PR #${r.pr}` : `${askWords(r.kind)} ${r.text}`;
-  return { kind: r.kind, text: `${text}${viaNote("forwarded", r, now)}`, verb: "asked", age: age(r.forwarded ?? r.at, now), since: r.forwarded ?? r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: "forwarded", link: linkOfThread(t3, r.pm), code: r.code, handle: handleOf(r), blocks, act: actOf(r.kind), asking: linkOfThread(t3, r.thread) };
+  return { kind: r.kind, text: `${text}${viaNote("forwarded", r, now)}`, verb: "asked", age: age(r.forwarded ?? r.at, now), since: r.forwarded ?? r.at, key: r.key ?? null, pr: r.pr ?? null, who: null, more: 0, via: "forwarded", link: linkOfThread(t3, r.pm), code: r.code, handle: handleOf(r), blocks, act: actOf(r.kind), ...said(r), asking: linkOfThread(t3, r.thread) };
 }
 
 /** What a coordinator's action starts with on its need line. */
@@ -391,7 +398,7 @@ export const askWords = (kind: Request["kind"]): string => (kind === "action" ? 
 
 /** The PM's own request as a need: always on the user's side, pushed at once. */
 export function needOfAsk(r: Request, now: Date, t3: T3, who: string | null = null, blocks: readonly string[] = []): Need {
-  return { kind: r.kind === "review" ? "question" : r.kind, text: `${askWords(r.kind)} ${r.text}`, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: null, who, more: 0, by: "pm", link: linkOfThread(t3, r.thread), code: r.code, handle: handleOf(r), blocks, act: actOf(r.kind), asking: linkOfThread(t3, r.thread) };
+  return { kind: r.kind === "review" ? "question" : r.kind, text: `${askWords(r.kind)} ${r.text}`, verb: "asked", age: age(r.at, now), since: r.at, key: r.key ?? null, pr: null, who, more: 0, by: "pm", link: linkOfThread(t3, r.thread), code: r.code, handle: handleOf(r), blocks, act: actOf(r.kind), ...said(r), asking: linkOfThread(t3, r.thread) };
 }
 
 /** Whether the braid of this item is paused or held (either reason). */
