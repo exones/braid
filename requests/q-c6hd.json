@@ -22,6 +22,12 @@
       "at": "2026-11-26T04:04:13.814Z",
       "by": "pm",
       "text": "live check passed · merge PR #339 at 85a95fc (skills change; then remove models.steering from BRAID.md)"
+    },
+    {
+      "event": "met",
+      "at": "2026-11-26T09:06:56.758Z",
+      "by": "board",
+      "text": "PR #339 merged"
     }
   ]
 }
