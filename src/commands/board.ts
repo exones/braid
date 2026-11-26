@@ -19,7 +19,7 @@ import { reminder } from "../board/remind.js";
 import { limitPusher } from "../notify/notifier.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
-import { coordinatorWarning, mergeOf, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
+import { coordinatorWarning, mergeOf, toCard, toDetail, withUnblocks, type BoardData, type StartContext } from "../board/model.js";
 import { readInputs, readStartContext } from "../board/inputs.js";
 
 export { readStartContext };
@@ -948,7 +948,7 @@ export function startBoardWith(
       if (braid === undefined || item === undefined) {
         return json(404, { error: `no item ${id}` });
       }
-      return json(200, toDetail(entry.feed.src.tree(item), braid, item, good.github, good.t3, good.sig, good.start));
+      return json(200, toDetail(entry.feed.src.tree(item), braid, item, good.github, good.t3, withUnblocks(good.braids, good.github, good.sig), good.start));
     } catch (error) {
       if (error instanceof UsageError) {
         return json(400, { error: error.message });

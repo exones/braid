@@ -53,6 +53,12 @@ function span(age: string): string {
   return `${age.slice(0, -1)} ${unit === "m" ? "min" : unit}`;
 }
 
+/** The words a programme's need box starts with, and the rest: the need's own lead, else who asks (a PM's, else a coordinator's). */
+export function leadOf(need: Pick<Need, "text" | "by">): { readonly lead: string; readonly rest: string } {
+  const words = /^((?:The (?:PM|coordinator) asks you(?: to)?|Escalated to you):)\s*(.*)$/s.exec(need.text);
+  return { lead: words?.[1] ?? (need.by === "pm" ? "The PM asks you:" : "The coordinator asks you:"), rest: words?.[2] ?? need.text };
+}
+
 /** "asked 35 min ago" for a request, "for 14 min" for a broke alarm; empty when the time isn't known. */
 export function ageText(need: Need): string {
   return need.age === null ? "" : need.verb === "asked" ? `asked ${span(need.age)} ago` : `for ${span(need.age)}`;
