@@ -6,6 +6,13 @@
       "at": "2026-11-26T20:39:03.848Z",
       "thread": "mcp:launch:236ccef074a45cee67da4aac404fd6df9c2bca310db02b79a3789f23e60f7209",
       "branch": "braid/0082/B-question-gaps-after-0072-handles-marks"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-26T21:45:46.681Z",
+      "head": "c26b7a78730fd673870f0e466ba840dca4dd4061",
+      "review": "https://github.com/exones/braid/pull/360#issuecomment-7204003887",
+      "thread": "mcp:launch:236ccef074a45cee67da4aac404fd6df9c2bca310db02b79a3789f23e60f7209"
     }
   ]
 }
