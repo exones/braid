@@ -133,7 +133,7 @@ connection fails the whole start. One retry would cover it.
 | `into` | The braid ids it went to, when taken. |
 | `why` | The reason, when dropped. |
 
-Writers. Only braid commands write `braid-inbox` (`braid note`, and the sweep commands), each change as one commit with the message `docs(inbox): <id> <what>`, pushed at once. This is the one exception to "one writer per branch": distinct file names keep writers from conflicting. A write never touches a checkout, an index or the current branch: it builds the commit with Git's low-level commands (`hash-object`, a temporary index, `commit-tree`, `update-ref`), so it works from any worktree, with uncommitted changes, on any branch.
+Writers. Only braid commands write `braid-inbox` (`braid note`, and the sweep commands), each change as one commit with the message `docs(inbox): <id> <what>`, pushed at once. This is the one exception to "one writer per branch": distinct file names keep writers from conflicting. A write never touches a checkout, an index or the current branch: it builds the commit with Git's low-level commands (`fast-import`, `update-ref`), so it works from any worktree, with uncommitted changes, on any branch.
 
 - It fetches `braid-inbox` from `origin` first and builds on the remote tip, with any local commits the remote lacks replayed on top (their files, messages and authors). The first write anywhere creates the branch.
 - It pushes as a fast-forward and never forces. When the push is refused because someone pushed first, it fetches and redoes the commit on top, up to five times.

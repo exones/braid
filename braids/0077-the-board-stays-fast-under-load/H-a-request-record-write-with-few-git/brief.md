@@ -44,3 +44,7 @@ Expected size: about 200 lines in 4 files.
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+In src/braids/gitbranch.ts only, the write path (both drivers): fetch first and ask the remote what is wrong only when it fails (no remote get-url / ls-remote); read local, tracking and checkout of the branch with one for-each-ref (worktree list only when there is no local branch); one rev-list for a branch that is only behind; build blobs, tree and commit with one git fast-import, the identities from git var (as commit-tree resolves them), replacing hash-object, the temporary index, write-tree and commit-tree; move both refs with one update-ref --stdin. Tests: the processes of one write counted by name; each commit's sha equals the same commit rebuilt with the old plumbing. Then time the two lock tests under load.

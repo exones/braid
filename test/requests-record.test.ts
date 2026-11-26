@@ -261,3 +261,100 @@ test("readers list from the local refs without fetching", () => {
   B.fetchBranch(b, R.REQUESTS);
   assert.deepEqual(R.loadRequests(b).map((r: any) => r.id), ["0001"]);
 });
+
+const G: any = await load("../dist/braids/gitio.js");
+
+/** The `git` processes `fn` starts, by subcommand. */
+async function processes(fn: () => unknown): Promise<string[]> {
+  const seen: string[] = [];
+  G.spyOnGit((args: string[]) => seen.push(args[0] as string));
+  try {
+    await fn();
+  } finally {
+    G.spyOnGit(undefined);
+  }
+  return seen;
+}
+
+// If this list grows, every writer holds the record's lock longer (0077/H; 17 processes before it).
+const ONE_WRITE = ["fetch", "for-each-ref", "ls-tree", "cat-file", "var", "var", "fast-import", "push", "update-ref"];
+
+test("one write to the record starts nine git processes, with either driver", async () => {
+  const root = world(1).clones[0] as string;
+  R.openRequest(root, q("0001")); // the first write also finds the main checkout and has no branch yet
+  assert.deepEqual(await processes(() => R.openRequest(root, q("0001", { at: "2026-11-23T11:00:00.000Z" }))), ONE_WRITE);
+  const [open] = R.loadRequests(root);
+  const event = { event: "eta", at: "2026-11-23T12:00:00.000Z", by: "coordinator", text: "soon" };
+  const seen = await processes(() => R.addEventAsync(root, open.code, event));
+  assert.deepEqual(seen.filter((name) => name !== "rev-parse"), ONE_WRITE);
+});
+
+/** The sha `commit` would have if it were built with an index, `write-tree` and `commit-tree -m`, as before 0077/H. */
+function rebuilt(root: string, commit: string): string {
+  const raw = spawnSync("git", ["cat-file", "commit", commit], { cwd: root, encoding: "utf8" }).stdout;
+  const head = raw.slice(0, raw.indexOf("\n\n"));
+  const message = raw.slice(raw.indexOf("\n\n") + 2).replace(/\n$/, "");
+  const ident = (kind: string) => new RegExp(`^${kind} (.*) <(.*)> (\\d+ [+-]\\d{4})$`, "m").exec(head) as RegExpExecArray;
+  const [, an, ae, ad] = ident("author");
+  const [, cn, ce, cd] = ident("committer");
+  const parent = /^parent (\w+)$/m.exec(head)?.[1];
+  const env = { ...process.env, GIT_INDEX_FILE: join(mkdtempSync(join(scratch, "i-")), "index"), GIT_AUTHOR_NAME: an, GIT_AUTHOR_EMAIL: ae, GIT_AUTHOR_DATE: `@${ad}`, GIT_COMMITTER_NAME: cn, GIT_COMMITTER_EMAIL: ce, GIT_COMMITTER_DATE: `@${cd}` };
+  const run = (args: string[], input = "") => {
+    const r = spawnSync("git", args, { cwd: root, encoding: "utf8", env, input });
+    assert.equal(r.status, 0, `git ${args.join(" ")}: ${r.stderr}`);
+    return r.stdout.trim();
+  };
+  run(["read-tree", ...(parent === undefined ? ["--empty"] : [parent])]);
+  const changed = run(["diff-tree", "-r", "--no-commit-id", "--root", commit]).split("\n").filter((l) => l !== "");
+  run(["update-index", "--index-info"], changed.map((l) => `100644 blob ${l.split(" ")[3]}\t${l.split("\t")[1]}\n`).join(""));
+  return run(["commit-tree", run(["write-tree"]), ...(parent === undefined ? [] : ["-p", parent]), "-m", message]);
+}
+
+test("the commits are those of commit-tree: tree, message, parent and identities, also when offline commits are replayed", () => {
+  const { origin, clones } = world(2);
+  const [a, b] = clones as [string, string];
+  const first = R.openRequest(a, q("0001", { to: "pm", pm: "pm-thread-1234", text: "Which näme — «this»?" })).code;
+  git(b, "fetch", "-q", "origin", "+refs/heads/braid-requests:refs/remotes/origin/braid-requests");
+  git(a, "remote", "set-url", "origin", join(scratch, "nowhere.git"));
+  R.closeRequest(a, "0001", "coordinator", { state: "answered", who: "coordinator", text: "A", at: "2026-11-23T10:20:00.000Z" });
+  R.forwardRequest(b, "0001", "2026-11-23T10:10:00.000Z", "over to you");
+  git(a, "remote", "set-url", "origin", origin);
+  const last = R.openRequest(a, q("0002")).code;
+  const commits = git(a, "rev-list", "--reverse", "braid-requests").split("\n");
+  assert.deepEqual(commits.map((c) => git(a, "log", "-1", "--format=%an %s", c)), [
+    "c0 docs(requests): 0001 question " + first,
+    "c1 docs(requests): 0001 " + first + " forwarded",
+    "c0 docs(requests): 0001 closed",
+    "c0 docs(requests): 0002 question " + last,
+  ]);
+  for (const commit of commits) {
+    assert.equal(rebuilt(a, commit), commit);
+  }
+  assert.equal(git(a, "rev-parse", "braid-requests"), git(a, "rev-parse", "origin/braid-requests"));
+  assert.equal(git(a, "for-each-ref", "refs/braid"), "", "no ref is left from building");
+});
+
+test("with no Git identity the record is written as braid; a branch deleted on the remote is pushed again", () => {
+  const { origin, clones } = world(1);
+  const root = clones[0] as string;
+  R.openRequest(root, q("0001"));
+  git(origin, "update-ref", "-d", "refs/heads/braid-requests");
+  git(root, "config", "--unset", "user.email");
+  git(root, "config", "--unset", "user.name");
+  git(root, "config", "user.useConfigOnly", "true");
+  const empty = join(scratch, "no-config");
+  writeFileSync(empty, "");
+  const saved = { ...process.env };
+  try {
+    for (const name of Object.keys(process.env).filter((n) => /^(GIT_(AUTHOR|COMMITTER)_|EMAIL$)/.test(n))) {
+      delete process.env[name];
+    }
+    process.env.GIT_CONFIG_GLOBAL = empty;
+    process.env.GIT_CONFIG_NOSYSTEM = "1";
+    assert.equal(R.openRequest(root, q("0002")).warning, null);
+  } finally {
+    process.env = saved;
+  }
+  assert.equal(git(origin, "log", "-1", "--format=%an <%ae> %cn <%ce>", "braid-requests"), "braid <braid@localhost> braid <braid@localhost>");
+  assert.equal(onOrigin(origin).length, 2);
+});

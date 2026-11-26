@@ -1,10 +1,8 @@
 // A data branch (`braid-inbox`, `braid-requests`): read without a checkout, and written with Git's
-// low-level commands (hash-object, a temporary index, commit-tree, update-ref), so no checkout, index or
-// current branch ever changes. Writes push at once as a fast-forward and never force; a refused push is
-// fetched and redone on top. Offline, the commit stays on the local branch and the next write pushes it.
+// low-level commands (fast-import, update-ref), so no checkout, index or current branch ever changes.
+// Writes push at once as a fast-forward and never force; a refused push is fetched and redone on top.
+// Offline, the commit stays on the local branch and the next write pushes it.
 import { catBatch, catBatchSync, gitAsync, gitSync } from "./gitio.js";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GitError } from "./numbers.js";
 import { locked, lockedAsync, mainCheckout } from "./state.js";
@@ -330,30 +328,47 @@ function* viewAtG(root: string, b: BranchSpec, commit: string | null): Gen<Branc
   };
 }
 
-/** A new commit on `parent` with `changes` (path to blob) applied, built in a temporary index. */
-function* commitOnG(parent: string | null, changes: ReadonlyMap<string, string>, message: string, env: NodeJS.ProcessEnv = {}): Gen<string> {
-  const dir = mkdtempSync(join(tmpdir(), "braid-branch-"));
-  try {
-    const index = { ...env, GIT_INDEX_FILE: join(dir, "index") };
-    yield* mustG(parent === null ? ["read-tree", "--empty"] : ["read-tree", parent], { env: index });
-    if (changes.size > 0) {
-      yield* mustG(["update-index", "--index-info"], { env: index, input: [...changes].map(([path, blob]) => `100644 blob ${blob}\t${path}\n`).join("") });
-    }
-    const tree = yield* mustG(["write-tree"], { env: index });
-    const args = ["commit-tree", tree, ...(parent === null ? [] : ["-p", parent]), "-m", message];
-    const r = yield* gitG(args, { env: index });
-    if (r.status === 0) {
-      return r.stdout.trim();
-    }
-    // No Git identity on this machine (a fresh CI runner): the record is still written, as braid.
-    if (!/identity unknown|tell me who you are/i.test(r.stderr)) {
-      throw new GitError(`git commit-tree failed: ${r.stderr.trim()}`);
-    }
-    const braid = { GIT_AUTHOR_NAME: "braid", GIT_AUTHOR_EMAIL: "braid@localhost", GIT_COMMITTER_NAME: "braid", GIT_COMMITTER_EMAIL: "braid@localhost" };
-    return yield* mustG(args, { env: { ...braid, ...index } });
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
+/** What a commit puts at a path: new text, or a blob already in the repository. */
+type Content = { readonly text: string } | { readonly blob: string };
+
+/** The ref `git fast-import` wants a commit to be on; reset before the stream ends, so it is never written. */
+const BUILD_REF = "refs/braid/build";
+
+/** The author and committer a commit made now would carry, resolved by `git var` as `git commit-tree` resolves them. */
+function* identsG(env: NodeJS.ProcessEnv): Gen<{ author: string; committer: string; env: NodeJS.ProcessEnv }> {
+  const author = yield* gitG(["var", "GIT_AUTHOR_IDENT"], { env });
+  const committer = author.status === 0 ? yield* gitG(["var", "GIT_COMMITTER_IDENT"], { env }) : author;
+  if (committer.status === 0) {
+    return { author: author.stdout.trim(), committer: committer.stdout.trim(), env };
   }
+  // No Git identity on this machine (a fresh CI runner): the record is still written, as braid.
+  if (!/identity unknown|tell me who you are/i.test(committer.stderr)) {
+    throw new GitError(`git var failed: ${committer.stderr.trim()}`);
+  }
+  const braid = { GIT_AUTHOR_NAME: "braid", GIT_AUTHOR_EMAIL: "braid@localhost", GIT_COMMITTER_NAME: "braid", GIT_COMMITTER_EMAIL: "braid@localhost" };
+  const as = { ...braid, ...env };
+  return { author: yield* mustG(["var", "GIT_AUTHOR_IDENT"], { env: as }), committer: yield* mustG(["var", "GIT_COMMITTER_IDENT"], { env: as }), env: as };
+}
+
+/** A length-prefixed `data` command of `git fast-import`. */
+const data = (text: string): string => `data ${Buffer.byteLength(text)}\n${text}\n`;
+
+/**
+ * A new commit on `parent` with `changes` applied: its blobs, trees and commit are written by one
+ * `git fast-import`, with no index and no ref. It is the commit `git commit-tree -m` would make.
+ */
+function* commitOnG(parent: string | null, changes: ReadonlyMap<string, Content>, message: string, env: NodeJS.ProcessEnv = {}): Gen<string> {
+  const who = yield* identsG(env);
+  const files = [...changes].map(([path, c]) => ("blob" in c ? `M 100644 ${c.blob} ${path}\n` : `M 100644 inline ${path}\n${data(c.text)}`));
+  const stream = [
+    "feature done\n",
+    `commit ${BUILD_REF}\nmark :1\nauthor ${who.author}\ncommitter ${who.committer}\n`,
+    data(message.endsWith("\n") ? message : `${message}\n`),
+    parent === null ? "" : `from ${parent}\n`,
+    ...files,
+    `\nget-mark :1\nreset ${BUILD_REF}\n\ndone\n`,
+  ].join("");
+  return yield* mustG(["fast-import", "--quiet"], { input: stream, env: who.env });
 }
 
 function* hashG(text: string): Gen<string> {
@@ -368,6 +383,11 @@ function* rebaseG(b: BranchSpec, l: string | null, r: string | null): Gen<string
   if (l === null || r === null || l === r) {
     return r ?? l;
   }
+  // One process for the usual case, a local branch that is only behind.
+  const pending = yield* pendingCommitsG(l, r);
+  if (pending.length === 0) {
+    return r;
+  }
   if (yield* isAncestorG(r, l)) {
     return l;
   }
@@ -375,16 +395,17 @@ function* rebaseG(b: BranchSpec, l: string | null, r: string | null): Gen<string
   const mb = b.merge === undefined ? null : yield* gitG(["merge-base", l, r]);
   const since = mb !== null && mb.status === 0 ? mb.stdout.trim() : null;
   let base = r;
-  for (const commit of yield* pendingCommitsG(l, r)) {
+  for (const commit of pending) {
     const [name = "", email = "", date = "", ...message] = (yield* mustG(["log", "-1", "--format=%an%x00%ae%x00%aI%x00%B", commit])).split("\0");
-    const changes = yield* changesOfG(b, commit);
+    const blobs = yield* changesOfG(b, commit);
+    const changes = new Map<string, Content>([...blobs].map(([path, blob]) => [path, { blob }]));
     if (b.merge !== undefined) {
       const theirs = yield* filesAtG(b, base);
       const old = since === null ? new Map<string, string>() : yield* filesAtG(b, since);
-      for (const [path, blob] of changes) {
+      for (const [path, blob] of blobs) {
         const other = theirs.get(path);
         if (other !== undefined && other !== blob && other !== old.get(path)) {
-          changes.set(path, yield* hashG(b.merge(path, yield* mustG(["cat-file", "blob", blob]), yield* mustG(["cat-file", "blob", other]))));
+          changes.set(path, { text: b.merge(path, yield* mustG(["cat-file", "blob", blob]), yield* mustG(["cat-file", "blob", other])) });
         }
       }
     }
@@ -397,22 +418,59 @@ function* moveLocalG(b: BranchSpec, commit: string, old: string | null): Gen<voi
   yield* mustG(["update-ref", "-m", `braid ${b.branch}`, local(b), commit, old ?? "0".repeat(40)]);
 }
 
-/** Refuses a write while a worktree has the branch checked out: moving it would leave that worktree showing newer files as staged deletions. */
-function* refuseCheckedOutG(b: BranchSpec): Gen<void> {
-  const r = yield* gitG(["worktree", "list", "--porcelain"]);
-  if (r.status !== 0) {
-    return;
+/** After a push: the local branch and the remote-tracking ref move together, in one process. */
+function* movePushedG(b: BranchSpec, commit: string, old: string | null): Gen<void> {
+  const input = `update ${local(b)} ${commit} ${old ?? "0".repeat(40)}\nupdate ${tracking(b)} ${commit}\n`;
+  if ((yield* gitG(["update-ref", "-m", `braid ${b.branch}`, "--stdin"], { input })).status !== 0) {
+    // A fetch elsewhere may hold the tracking ref: the local branch must still move, the tracking ref may wait.
+    yield* moveLocalG(b, commit, old);
+    yield* gitG(["update-ref", tracking(b), commit]);
   }
-  for (const block of r.stdout.split(/\r?\n\r?\n/)) {
-    const lines = block.split(/\r?\n/);
-    const path = lines.find((l) => l.startsWith("worktree "))?.slice("worktree ".length);
-    if (path !== undefined && lines.includes(`branch ${local(b)}`)) {
-      throw new GitError(
-        `${b.branch} is checked out in the worktree ${path}; a write would move it under that worktree and leave newer entries staged for deletion. ` +
-          `Leave it first (in that worktree: git switch --detach, or remove it with git worktree remove), then run the command again. Nothing was changed.`,
-      );
+}
+
+const checkedOut = (b: BranchSpec, path: string): GitError =>
+  new GitError(
+    `${b.branch} is checked out in the worktree ${path}; a write would move it under that worktree and leave newer entries staged for deletion. ` +
+      `Leave it first (in that worktree: git switch --detach, or remove it with git worktree remove), then run the command again. Nothing was changed.`,
+  );
+
+/**
+ * The two tips for a write, with one process, refusing the write while a worktree has the branch checked out:
+ * moving it would leave that worktree showing newer files as staged deletions.
+ */
+function* writeTipsG(b: BranchSpec): Gen<Tips> {
+  const out = yield* mustG(["for-each-ref", "--format=%(refname)%00%(objectname)%00%(worktreepath)", local(b), tracking(b)]);
+  const rows = out.split("\n").map((l) => l.trim().split("\0"));
+  const row = (ref: string) => rows.find((r) => r[0] === ref);
+  const mine = row(local(b));
+  if (mine !== undefined && (mine[2] ?? "") !== "") {
+    throw checkedOut(b, mine[2] as string);
+  }
+  if (mine === undefined) {
+    // A worktree on the branch before its first commit (`switch --orphan`) has no ref to list.
+    const list = yield* gitG(["worktree", "list", "--porcelain"]);
+    for (const block of list.status === 0 ? list.stdout.split(/\r?\n\r?\n/) : []) {
+      const lines = block.split(/\r?\n/);
+      const path = lines.find((l) => l.startsWith("worktree "))?.slice("worktree ".length);
+      if (path !== undefined && lines.includes(`branch ${local(b)}`)) {
+        throw checkedOut(b, path);
+      }
     }
   }
+  return { local: mine?.[1] ?? null, remote: row(tracking(b))?.[1] ?? null };
+}
+
+/** `fetchBranchG` for a write: one process when the fetch works; the remote is asked what is wrong only when it fails. */
+function* fetchForWriteG(b: BranchSpec): Gen<FetchResult> {
+  // `LC_ALL=C`: Git's message for a branch the remote doesn't have is matched below.
+  const f = yield* gitG(["fetch", "--quiet", "--no-tags", REMOTE, `+${local(b)}:${tracking(b)}`], { env: { LC_ALL: "C" } });
+  if (f.status === 0) {
+    return { state: "present" };
+  }
+  if ((yield* gitG(["remote", "get-url", REMOTE])).status !== 0) {
+    return { state: "offline", why: `no remote ${REMOTE}` };
+  }
+  return f.stderr.includes("couldn't find remote ref") ? { state: "absent" } : { state: "offline", why: firstLine(f.stderr || String(f.error ?? "") || f.stdout) };
 }
 
 /** How long a writer waits for the branch's lock: a write fetches and pushes, so a queue of them takes longer than a local file's. */
@@ -429,31 +487,25 @@ export function lockedBranchAsync<T>(root: string, b: BranchSpec, fn: () => Prom
 }
 
 function* writeBranchG(root: string, b: BranchSpec, change: (current: BranchView) => BranchChange, options: { push?: boolean }): Gen<WriteResult> {
-  yield* refuseCheckedOutG(b);
   const push = options.push !== false;
   for (let attempt = 1; ; attempt++) {
-    const fetched: FetchResult = push ? yield* fetchBranchG(b) : { state: "offline", why: "not pushed" };
-    const l = yield* refCommitG(local(b));
+    const fetched: FetchResult = push ? yield* fetchForWriteG(b) : { state: "offline", why: "not pushed" };
+    const { local: l, remote } = yield* writeTipsG(b);
     // A branch deleted on the remote is pushed again from the local copy, or the last fetched one.
-    const r = fetched.state === "absent" ? null : yield* refCommitG(tracking(b));
-    const base = yield* rebaseG(b, l ?? (fetched.state === "absent" ? yield* refCommitG(tracking(b)) : null), r);
+    const r = fetched.state === "absent" ? null : remote;
+    const base = yield* rebaseG(b, l ?? (fetched.state === "absent" ? remote : null), r);
     const next = change(yield* viewAtG(root, b, base));
     if (next.files.size === 0) {
       return { commit: null, pushed: false, warning: null };
     }
-    const blobs = new Map<string, string>();
-    for (const [path, text] of next.files) {
-      blobs.set(path, yield* hashG(text));
-    }
-    const commit = yield* commitOnG(base, blobs, next.message);
+    const commit = yield* commitOnG(base, new Map([...next.files].map(([path, text]) => [path, { text }])), next.message);
     if (fetched.state === "offline") {
       yield* moveLocalG(b, commit, l);
       return { commit, pushed: false, warning: push ? `can't reach ${REMOTE} (${fetched.why}); the ${b.noun} is on the local ${b.branch} branch and the next write pushes it` : null };
     }
     const pushed = yield* gitG(["push", "--porcelain", REMOTE, `${commit}:${local(b)}`]);
     if (pushed.status === 0) {
-      yield* moveLocalG(b, commit, l);
-      yield* gitG(["update-ref", tracking(b), commit]);
+      yield* movePushedG(b, commit, l);
       return { commit, pushed: true, warning: null };
     }
     const rejected = pushed.stdout.split(/\r?\n/).some((line) => line.startsWith("!") && line.includes(local(b)));
