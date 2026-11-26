@@ -50,15 +50,24 @@ Tests for 1 to 5 on the model and the commands; the web build passes.
 - The Questions panel, the request fields `context` and `options` (0082/C), answering from the board (0082/D).
 - Changing the escalation or its limits.
 
+## Plan
+
+1. `requests.ts`: `openRequest` writes `replaced by <handle>` and returns the handles it replaced; `answeredRows` names the handle.
+2. `board/record.ts`: `actWord` (`waits for 0077`, `until 21:00`, else `actOf`) for rows and `braid ask`/`braid requests`; a row carries the escalated or forwarded mark (`routeOf`). The Requests tab shows both.
+3. `braid ask`: `opened, replacing <handle>`.
+4. `model.ts`: a Done item keeps its open request as `need`/`pmAsk`/`pm`; lanes and pushes stay as they are. Web: need lines on the Done lane's rows (those rows first, a count on the collapsed lane), and on a live braid's card for a Done strand.
+5. `braid board --help` (new: today it is refused) prints the board's help line; the line and the start line say the wake goes off too.
+6. Tests on model and commands; `Need.handle` and `q-0123`. Docs: `board.md`, `cli.md`, `braids-format.md`.
+
 ## Completion
 
-- [ ] Withdrawn requests' "replaced by" text and `braid decisions` show handles, with tests
-- [ ] The Requests tab marks a request the PM escalated
-- [ ] Waits and timed waits read their own words, not "decide" or "question", with tests
-- [ ] `braid ask` says which request it replaced
-- [ ] An open request on a Done braid stays in the board model and shows on the Done card, with a test
-- [ ] `braid board --help` says `--no-pause` also turns off the wake
-- [ ] Tests pin `Need.handle` and an all-digit q-code
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Withdrawn requests' "replaced by" text and `braid decisions` show handles, with tests
+- [x] The Requests tab marks a request the PM escalated
+- [x] Waits and timed waits read their own words, not "decide" or "question", with tests
+- [x] `braid ask` says which request it replaced
+- [x] An open request on a Done braid stays in the board model and shows on the Done card, with a test
+- [x] `braid board --help` says `--no-pause` also turns off the wake
+- [x] Tests pin `Need.handle` and an all-digit q-code
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

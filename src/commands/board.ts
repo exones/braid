@@ -580,9 +580,9 @@ export function limitsLine(mode: "demo" | "off" | "on"): string {
     return "Limits: shown only (demo: nothing is paused)";
   }
   if (mode === "off") {
-    return "Limits: shown only (--no-pause: the board pauses and resumes nothing)";
+    return "Limits: shown only (--no-pause: the board pauses and resumes nothing, and sends no wake, reminder or nudge)";
   }
-  return "Limits: pauses the working agents over a threshold by sending each its pause text, counts their replies and resumes them after the reset (--no-pause turns this off)";
+  return "Limits: pauses the working agents over a threshold by sending each its pause text, counts their replies and resumes them after the reset (--no-pause turns this off, and the wakes, reminders and nudges)";
 }
 
 export function boardNotifier(root: string): (board: BoardData) => void {

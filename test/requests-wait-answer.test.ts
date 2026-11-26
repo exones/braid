@@ -71,6 +71,6 @@ test("a wait with no condition is answered by the coordinator; a wait answered b
   assert.deepEqual(tab.decided.map((r) => r.code), [question]);
   assert.deepEqual(tab.closed.map((r) => r.code).sort(), [open, old].sort(), "waits stay listed, as closed");
   const decisions = decisionsCommand(w.root, ["0001"]);
-  assert.match(decisions, new RegExp(`${question} answered by the user`));
-  assert.ok(!decisions.includes(old) && !decisions.includes(open), decisions);
+  assert.match(decisions, new RegExp(`-${question.slice(2)} answered by the user`));
+  assert.ok(!decisions.includes(old.slice(2)) && !decisions.includes(open.slice(2)), decisions);
 });

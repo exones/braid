@@ -4,13 +4,14 @@ import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, git } from "../braids/gitbranch.js";
-import { actOf, addEvent, age, askerOf, BRAID_TO, closing, CODE, conditionEnding, endRequest, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { addEvent, age, askerOf, BRAID_TO, closing, CODE, conditionEnding, endRequest, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import { readGithub, runGh, type GhRunner, type PullRequest } from "../board/github.js";
 import { mainCheckout, parentsCheckout, runT3, showThread, type T3Runner } from "../board/t3.js";
 import { normPath } from "../braids/worktrees.js";
 import { clock } from "../board/pause.js";
+import { actWord } from "../board/record.js";
 import { braidDoneOn } from "../board/wake.js";
 import { normaliseId, UsageError } from "./braids.js";
 import { ciAll, ciChecks } from "./coordinate.js";
@@ -274,12 +275,14 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   const pmThread = by === "pm" ? (thread ?? (slug === null ? pmOfBraid(root, id) : null)) : thread;
   const at = (opts.now ?? (() => new Date()))();
   const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route, doneWhen });
+  // "…opened, replacing calm-heron-q2ra": the open one this request withdrew.
+  const replacing = opened.replaced.length === 0 ? "" : `, replacing ${opened.replaced.join(", ")}`;
   if (self) {
-    return `${opened.handle} ${id}: timed wait opened, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
+    return `${opened.handle} ${id}: timed wait opened${replacing}, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
   }
-  const gist = unblockLine({ code: opened.code, id, kind: kind as Kind }, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh)));
+  const gist = unblockLine({ code: opened.code, id, kind: kind as Kind, doneWhen, ...(route.to === undefined ? {} : { to: route.to }) }, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh)));
   const whom = by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : route.to !== undefined ? `to braid ${route.to} ` : "";
-  return `${opened.handle} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${gist}\n${warned(opened.warning)}`;
+  return `${opened.handle} ${id}: ${kind} request ${whom}opened${replacing}${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${gist}\n${warned(opened.warning)}`;
 }
 
 const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>|self] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]  (--to self --done-when time:<iso>: a timed wait, nobody asked)';
@@ -316,10 +319,10 @@ function statused(root: string, prs: ReadonlyMap<string, PullRequest> = new Map(
   return loadKnownBraids(root).map((b) => withStatuses(b, life, prs));
 }
 
-/** What a request unblocks and its act word on one line: `blocks 0072/B, 0072/C · decide`, or just `decide` when nothing waits on it. */
-function unblockLine(r: Pick<Request, "code" | "id" | "kind">, requests: readonly Request[], braids: readonly Braid[]): string {
+/** What a request unblocks and its act word on one line: `blocks 0072/B, 0072/C · decide`, or just `decide` when nothing waits on it; a wait: `waits for 0077`. */
+function unblockLine(r: Pick<Request, "code" | "id" | "kind" | "to" | "doneWhen">, requests: readonly Request[], braids: readonly Braid[]): string {
   const blocked = unblocksOf(r, braids, requests);
-  return `${blocked.length === 0 ? "" : `blocks ${blocked.join(", ")} · `}${actOf(r.kind)}`;
+  return `${blocked.length === 0 ? "" : `blocks ${blocked.join(", ")} · `}${actWord(r, new Date())}`;
 }
 
 /** A q-code in any letter case, with any punctuation after it (`Q-L9EN.`), lower-cased; null for anything else. */
@@ -627,7 +630,7 @@ function history(r: Request, unblocks: string): string {
     ...(r.eta === null ? [] : [`eta ${r.eta}`]),
   ];
   const events = r.events.map((e) => `${stamp(e.at)}  ${e.event.padEnd(9)}  ${whoOf(r, e.event, e.by)}${e.text === undefined ? "" : `: ${oneLine(e.text)}`}${e.reason === undefined ? "" : ` (reason: ${e.reason})`}`);
-  return `${handleOf(r)}  ${r.id}  ${r.kind}  ${r.state}${r.state === "open" && !isTimedWait(r) ? `  ${unblocks}` : ""}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
+  return `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${r.state}${r.state === "open" && !isTimedWait(r) ? `  ${unblocks}` : ""}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
 }
 
 /** One closed request on a line: code, item, kind, state, when, who, the request, and the answer or reason. */
@@ -635,7 +638,7 @@ function closedLine(r: Request): string {
   const last = closing(r);
   const said = last?.text === undefined ? "" : ` -> ${oneLine(last.text)}`;
   const reason = last?.reason === undefined ? "" : ` (reason: ${last.reason})`;
-  return `${handleOf(r)}  ${r.id}  ${r.kind}  ${r.state}  ${last === null ? "" : `${stamp(last.at)}  by ${WHO[last.by] ?? last.by}`}  ${r.text}${said}${reason}`;
+  return `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${r.state}  ${last === null ? "" : `${stamp(last.at)}  by ${WHO[last.by] ?? last.by}`}  ${r.text}${said}${reason}`;
 }
 
 const REQUESTS_USAGE = "usage: braid requests [<name|code>] [--closed [--since <YYYY-MM-DD>]]";

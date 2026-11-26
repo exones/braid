@@ -242,6 +242,10 @@ export function pushesOf(board: BoardData): Push[] {
       out.push(...pushOf(board.repo, card.id, card.title, laneOf(card.need), card.need, coordinator));
     }
     for (const s of card.strands) {
+      // A Done strand's open request stays on the board only: it pushes no more than it did.
+      if (s.lane === "Done") {
+        continue;
+      }
       out.push(...pushOf(board.repo, s.id, s.title, "Waiting", s.pmAsk, coordinator));
       if (s.need !== null && s.need.by === undefined) {
         out.push(...pushOf(board.repo, s.id, s.title, s.lane, s.need, coordinator));

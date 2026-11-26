@@ -441,12 +441,14 @@ export const takenWords = (requests: readonly Pick<Request, "words" | "state">[]
 /**
  * Opens a request and returns its code and handle (`yellow-bear-5asx`). Its words are picked inside the write, against
  * the open requests on the branch as it is then, so two requests opened at once never share them. The open one on the
- * same item from the same asker is withdrawn, "replaced by q-…", when it is of the same sort: a question (to the user or
- * the PM) replaces a question, a wait (to a braid) replaces the wait to that braid. The other asker's stays.
+ * same item from the same asker is withdrawn, "replaced by <handle>", when it is of the same sort: a question (to the user
+ * or the PM) replaces a question, a wait (to a braid) replaces the wait to that braid. The other asker's stays.
+ * `replaced`: the handles of those withdrawn.
  */
-export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly handle: string; readonly warning: string | null } {
+export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly handle: string; readonly replaced: readonly string[]; readonly warning: string | null } {
   let code = "";
   let words: string | undefined;
+  let replaced: string[] = [];
   const result = writeRecord(root, (view) => {
     const all = viewAll(view).requests;
     code = newCode((c) => view.has(pathOf(c)));
@@ -454,13 +456,16 @@ export function openRequest(root: string, request: NewRequest): { readonly code:
     words = pickWords(code, (w) => open.has(w));
     const by = askerOf(request);
     const files = new Map<string, string>();
-    for (const old of all.filter((r) => r.state === "open" && same(r, request.id, by) && replaces(r, request))) {
-      files.set(pathOf(old.code), serialise(withEvent(old, { event: "withdrawn", at: request.at, by, text: `replaced by ${code}` })));
+    const handle = handleOf({ code, ...(words === undefined ? {} : { words }) });
+    const old = all.filter((r) => r.state === "open" && same(r, request.id, by) && replaces(r, request));
+    replaced = old.map(handleOf);
+    for (const r of old) {
+      files.set(pathOf(r.code), serialise(withEvent(r, { event: "withdrawn", at: request.at, by, text: `replaced by ${handle}` })));
     }
     files.set(pathOf(code), serialise(newRecord({ ...request, code, ...(words === undefined ? {} : { words }) })));
     return { files, message: `docs(requests): ${request.id} ${request.kind} ${code}` };
   });
-  return { code, handle: handleOf({ code, ...(words === undefined ? {} : { words }) }), warning: result.warning };
+  return { code, handle: handleOf({ code, ...(words === undefined ? {} : { words }) }), replaced, warning: result.warning };
 }
 
 /** How a request ends: its final state, who ended it, and why or the answer. */
@@ -697,7 +702,7 @@ export function answeredRows(requests: readonly Request[], match: (id: string) =
     }
     const said = e.text === undefined ? "" : ` -> ${e.text.replace(/\s+/g, " ").trim()}`;
     const reason = e.reason === undefined ? "" : ` (reason: ${e.reason})`;
-    return [{ at: e.at.slice(0, 16).replace("T", " "), id: r.id, text: `${r.code} answered by ${e.by === "pm" ? "the PM" : "the user"}: ${r.text}${said}${reason}` }];
+    return [{ at: e.at.slice(0, 16).replace("T", " "), id: r.id, text: `${handleOf(r)} answered by ${e.by === "pm" ? "the PM" : "the user"}: ${r.text}${said}${reason}` }];
   });
 }
 
