@@ -12,12 +12,10 @@ import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START,
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
 import { steerer, type Steerer } from "../board/steerer.js";
+import { ACTING_STALE_MS, actingBoard, providerKey, repoLease, type ActingBoard } from "../board/acting.js";
 import { steps, waker } from "../board/wake.js";
 import { nudger } from "../board/nudge.js";
 import { reminder } from "../board/remind.js";
-import { steeringLines } from "../board/steer.js";
-import { LimitsError, readModelLines } from "../braids/limits.js";
-import { STEERING_EMOJI } from "../braids/roles.js";
 import { limitPusher } from "../notify/notifier.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
@@ -32,7 +30,8 @@ import { readSignals, type ReadSignals } from "../board/signals.js";
 import { fetchBranchAsync } from "../braids/gitbranch.js";
 import { REQUESTS } from "../braids/requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
-import type { Pause } from "../braids/pauses.js";
+import { loadPauses, markResumed, patchPause, reasonOf, type Pause } from "../braids/pauses.js";
+import { resumeMode } from "../board/pause.js";
 import { readPlans, type PlanRead } from "../board/plans.js";
 import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
@@ -480,6 +479,50 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
   };
 }
 
+/**
+ * Resume now (0074/D): the button on a paused braid's card (`{ braid }`) or a paused programme's card (`{ programme }`). It marks each
+ * limit record of it with a resume asked for (`resuming`, not yet tried); the acting board sends it through the one resume path at
+ * once (this board is poked) or at its next refresh: a braid without a PM resumes directly, a PM-run braid or a programme asks the
+ * PM. A hold is never touched: the action refuses a braid that is held. A later Go (P5's holds) reuses this action with its reason.
+ */
+export function resumeAction(root: string, now: () => Date = () => new Date()): Action {
+  return async (body, board) => {
+    const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const why = typeof b["reason"] === "string" && b["reason"] !== "" ? b["reason"] : "now";
+    let braids: string[];
+    if (typeof b["braid"] === "string" && /^\d{4}$/.test(b["braid"])) {
+      braids = [b["braid"]];
+    } else if (typeof b["programme"] === "string" && b["programme"] !== "") {
+      const data = board === undefined ? null : await board();
+      const p = data?.programmes.find((x) => x.slug === b["programme"]);
+      if (p === undefined) {
+        throw new UsageError(`Resume now: no programme ${String(b["programme"])}`);
+      }
+      braids = [...p.braids];
+    } else {
+      throw new UsageError("resume needs { braid } (a braid number) or { programme } (a programme's slug)");
+    }
+    const records = loadPauses(root).pauses.filter((p) => braids.includes(p.braid));
+    if (records.some((p) => reasonOf(p) === "hold") && braids.length === 1) {
+      throw new UsageError(`Resume now: ${braids[0] ?? ""} is held, not paused for a limit; a hold is lifted by its own Go`);
+    }
+    const at = now().toISOString();
+    const marked = records
+      .filter((p) => reasonOf(p) === "limit")
+      .flatMap((p) => {
+        const direct = typeof b["programme"] === "string" ? false : resumeMode(p) === "direct";
+        const r = patchPause(root, p.braid, (q) => ({ ...q, resuming: { why, at, direct, askedAt: null, failedSince: q.resuming?.failedSince ?? null, lastTry: null, error: q.resuming?.error ?? null } }));
+        return r === null ? [] : [r];
+      });
+    if (marked.length === 0) {
+      throw new UsageError(`Resume now: ${braids.join(", ")} ${braids.length === 1 ? "is" : "are"} not paused for a limit`);
+    }
+    // The board pauses these providers again only on a reading checked after this click: a cache from before a reset can't undo it.
+    markResumed(root, [...new Set(marked.flatMap((p) => (p.provider === null ? [] : [p.provider])))], new Date(at));
+    return { ok: true, braids: marked.map((p) => p.braid), mode: marked.every((p) => p.resuming?.direct === true) ? "direct" : "pm" };
+  };
+}
+
 export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
   const src: Sources = {
     repo: titleRepoName(root),
@@ -498,37 +541,48 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     readiness: (github) => readiness(root, github),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src), resume: resumeAction(root) };
   return src;
 }
 
 /** The notifier of a repository's board, with the per-user settings; a no-op when the main checkout can't be found. Only `runBoard` adds it, so tests of the board never read `~/.braid`. */
-/** The board's limits pause of one project: its snapshots go to the board-wide steerer. */
-function acting(name: string, root: string, own: Sources, steer: Steerer): Sources {
-  return { ...own, act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
+/** The board's limits pause of one project: its snapshots go to the board-wide steerer, and its limits say which board acts (0074/B). */
+function acting(name: string, root: string, own: Sources, steer: Steerer, leases: ActingBoard | null): Sources {
+  const inner = own.limits;
+  const limits =
+    inner === undefined || leases === null
+      ? inner
+      : (threads: T3, pauses: ReadonlyMap<string, Pause>): LimitsView | null => {
+          const view = inner(threads, pauses);
+          if (view === null) {
+            return null;
+          }
+          const repo = repoLease(root);
+          return { ...view, acting: leases.lines([{ key: repo.key, label: own.repo }, ...view.providers.map((p) => ({ key: providerKey(p.instanceId), label: p.instanceId }))]) };
+        };
+  // Resume now goes out at once: the steerer is poked after the action marks the records (it acts only for the providers it holds).
+  const action = (name: string): Action | undefined => {
+    const a = own.action(name);
+    return a === undefined || name !== "resume"
+      ? a
+      : async (body, board) => {
+          const out = await a(body, board);
+          steer.poke();
+          return out;
+        };
+  };
+  return { ...own, ...(limits === undefined ? {} : { limits }), action, act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
 }
 
-/** The start line of the limits pause: which mode is on, and the steering lines (or why there are none). */
-export function limitsLine(mode: "demo" | "off" | "on", projects: readonly { readonly name: string; readonly root: string }[]): string {
+/** The start line of the limits pause: which mode is on. */
+export function limitsLine(mode: "demo" | "off" | "on"): string {
   if (mode === "demo") {
     return "Limits: shown only (demo: nothing is paused)";
   }
   if (mode === "off") {
     return "Limits: shown only (--no-pause: the board pauses and resumes nothing)";
   }
-  const parts = projects.map((p) => {
-    let lines: ReturnType<typeof steeringLines> = null;
-    try {
-      lines = steeringLines(readModelLines(p.root));
-    } catch (error) {
-      if (!(error instanceof LimitsError)) {
-        throw error;
-      }
-    }
-    const who = projects.length > 1 ? `${p.name}: ` : "";
-    return lines === null ? `${who}BRAID.md has no models.steering, so nothing is paused` : `${who}steering ${lines.map((l) => `${l.instanceId} / ${l.model ?? "default"}`).join(", then ")}`;
-  });
-  return `Limits: pauses agents over a threshold through a ${STEERING_EMOJI} steering thread and resumes them after the reset (--no-pause turns this off); ${parts.join("; ")}`;
+  return "Limits: pauses the working agents over a threshold by sending each its pause text, counts their replies and resumes them after the reset (--no-pause turns this off)";
 }
 
 export function boardNotifier(root: string): (board: BoardData) => void {
@@ -1073,6 +1127,8 @@ export interface Runners {
   readonly projects?: () => readonly Project[];
   /** A project's notifier, given its main checkout; `boardNotifier` unless given. */
   readonly notifier?: (root: string) => (board: BoardData) => void;
+  /** This board's acting leases (0074/B); `actingBoard` in `~/.braid/acting` unless given. */
+  readonly acting?: ActingBoard;
 }
 
 /** The four sample projects of `braid board --demo`: the full sample (`demo`), a small one (`api`), one whose reads fail after the first (`mail`) and one that isn't ready (`notes`). */
@@ -1176,28 +1232,30 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   // The limits pause and the wake (the click-only rule's exceptions): never in the demo, off with --no-pause. The pause's pushes go through each project's notified.json.
   const pausing = !demo && !args.includes("--no-pause");
   const pushers = new Map<string, ReturnType<typeof limitPusher>>();
+  const pusherOf = (root: string): ReturnType<typeof limitPusher> => {
+    const file = join(mainCheckout(root), ".braid", "notified.json");
+    const pusher = pushers.get(file) ?? limitPusher({ file });
+    pushers.set(file, pusher);
+    return pusher;
+  };
+  // One acting board per provider account and per repository on this machine (0074/B): the leases in ~/.braid/acting.
+  let port: number | null = null;
+  const leases = pausing ? (run.acting ?? actingBoard({ staleMs: ACTING_STALE_MS, port: () => port })) : null;
   const steer = pausing
     ? steerer({
         t3,
         wake: steps(waker(t3), reminder(t3), nudger(t3)),
+        ...(leases === null ? {} : { acting: leases }),
         ...(run.notifier === undefined
           ? {
-              push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => {
-                const file = join(mainCheckout(root), ".braid", "notified.json");
-                const pusher = pushers.get(file) ?? limitPusher({ file });
-                pushers.set(file, pusher);
-                pusher(p);
-              },
-              retry: () => {
-                for (const pusher of pushers.values()) {
-                  pusher.retry();
-                }
-              },
+              push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => pusherOf(root)(p),
+              // The failed pushes wait in each project's notified.json; the repository's acting board sends them (also after a restart).
+              retry: (root: string) => pusherOf(root).retry(),
             }
           : {}),
       })
     : null;
-  const act = (name: string, root: string, own: Sources): Sources => (steer === null ? own : acting(name, root, own, steer));
+  const act = (name: string, root: string, own: Sources): Sources => (steer === null ? own : acting(name, root, own, steer, leases));
   // The problems printed at startup are each first snapshot's own: no second read of GitHub.
   const firsts: { name: string; problems: Promise<Problem[]> }[] = [];
   const printing = (name: string, own: Sources): Sources => {
@@ -1263,7 +1321,41 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
       return current;
     };
   }
-  const started = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  const listening = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  port = Number(new URL(listening.url).port);
+  // A board that stops gives its leases up at once, so another board acts from its next refresh.
+  const started: Started =
+    leases === null
+      ? listening
+      : (() => {
+          const release = (): void => leases.release();
+          // On a stop signal the leases go too; the signal is raised again only when no other handler (keepAddress's) does it.
+          const onSignal = (signal: NodeJS.Signals): void => {
+            detach();
+            release();
+            if (process.listenerCount(signal) === 0) {
+              process.kill(process.pid, signal);
+            }
+          };
+          const detach = (): void => {
+            process.off("exit", release);
+            for (const s of STOP_SIGNALS) {
+              process.off(s, onSignal);
+            }
+          };
+          process.once("exit", release);
+          for (const s of STOP_SIGNALS) {
+            process.once(s, onSignal);
+          }
+          return {
+            ...listening,
+            close: async () => {
+              detach();
+              release();
+              await listening.close();
+            },
+          };
+        })();
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
   // A real run also leaves its address in ~/.braid for a board with no console (D94); the demo writes nothing.
@@ -1280,7 +1372,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
     process.stdout.write(`On Tailscale: ${started.tailnet.url}\nOnly ${tailnet.owner}'s own devices (no tagged nodes) may open it; Open thread there uses the T3 app on the phone.\n`);
   }
   process.stdout.write(demo ? "Notifications: none in the demo\n" : `${notifyLine(readConfig())}\n`);
-  process.stdout.write(`${limitsLine(demo ? "demo" : pausing ? "on" : "off", several ? list.filter((p) => only === undefined || p.name === only).map((p) => ({ name: p.name, root: p.path })) : [{ name: "", root }])}\n`);
+  process.stdout.write(`${limitsLine(demo ? "demo" : pausing ? "on" : "off")}\n`);
   process.stdout.write("Press Ctrl+C to stop.\n");
   if (!args.includes("--no-open")) {
     openBrowser(url);

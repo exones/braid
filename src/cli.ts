@@ -25,7 +25,7 @@ import { answerCommand, askCommand, etaCommand, forwardCommand, handoverCommand,
 import { inboxCommand, noteCommand, type Said } from "./commands/inbox.js";
 import { autonomyCommand } from "./commands/autonomy.js";
 import { limitsCommand } from "./commands/limits.js";
-import { pauseCommand, resumeCommand } from "./commands/pauses.js";
+import { pauseCommand, resumeCommand, resumeLimitCommand } from "./commands/pauses.js";
 import { decisionsCommand } from "./commands/decisions.js";
 import { editItem, newBraid, newStrand, setBriefSection } from "./commands/edit.js";
 import { readVersion } from "./version.js";
@@ -49,7 +49,7 @@ export function helpText(version: string): string {
     "  limits [<instance>]         Whether an agent may be launched on each provider in BRAID.md models, from T3's usage caches: windows, usage, verdict ok|pause|unknown, for pause the resume time (--role <role> [--tier <T>] [--kind <k>] narrows, e.g. --role worker --kind story; --json; exit 3 on pause)",
     "  pause <number> --provider <instance> --thread <id>  Record that a braid waits for a provider's usage window in .braid/pauses.json: window, usage and resume time from braid limits (refused unless its verdict is pause; --window <id> picks the window, --until <iso> sets the resume time and pauses anyway), --task <id> the scheduled resume task, --by coordinator|pm|board; refused on a held braid. The board and status show it",
     "  pause <number> --hold \"<words>\" --thread <id>  Record a deliberate hold (yours or the PM's): no provider, no resume time, never stalled; shows paused with your words until braid resume (--by coordinator|pm)",
-    "  resume <number>             Clear a braid's pause and print what was cleared (--limit: a limit pause only, never a hold)",
+    "  resume <number>             Clear a braid's pause and print what was cleared; --limit resumes a limit pause only, never a hold: the board's record is cleared and each paused agent gets its resume text by code (a send that fails stays pending and the board retries it); --limit --all: every board pause of the repository, a PM-run braid by one message to its PM",
     "  brief <id> <section>       Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
     "  report <id>                 Write report.md from --file <path>, --file - or --text (--append adds)",
@@ -80,8 +80,8 @@ export function helpText(version: string): string {
     "  inbox drop <entry>... --why <reason>  Drop entries with a reason",
     "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
     "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; forces only a recorded reviewer's t3/ branch whose tip is the PR head or on origin)",
-    "  board                       Open the board in the browser (--no-open: only print the address; --no-pause: show the limits but don't pause or resume agents through a steering thread; --demo: sample data, never pauses, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port; --url [--port <n>]: print the running board's address with its token, from ~/.braid/board-<port>.url, or say that none runs; --service: the run of the task below)",
-    "  board service <sub>         Windows: the board as a Task Scheduler task of yours, started at logon, again every 5 minutes if it stopped, no window: install [--port <n>, default 8765] [--host tailscale] (from your checkout), remove, restart [--if-installed: nothing when no task], status (state, last result (the previous run's while it runs, shown as previous run:), port, address, the running board's version against this one, its log ~/.braid/board-<port>.log); elsewhere it points to the systemd recipe in docs/board.md",
+    "  board                       Open the board in the browser (--no-open: only print the address; --no-pause: show the limits but don't pause or resume agents; --demo: sample data, never pauses, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port; --url [--port <n>]: print the running board's address with its token, from ~/.braid/board-<port>.url, or say that none runs; --service: the run of the task below)",
+    "  board service <sub>         Windows: the board as a Task Scheduler task of yours, started at logon, again every 5 minutes if it stopped, no window: install [--port <n>, default 8765] [--host tailscale] (from your checkout), remove, restart [--if-installed: nothing when no task], status (state, last result (the previous run's while it runs, shown as previous run:), port, address, the running board's version against this one, the acting leases it and other boards hold, its log ~/.braid/board-<port>.log); elsewhere it points to the systemd recipe in docs/board.md",
     "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends a push, then one it clears, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
     "  notify send <line> --thread <id>  The PM's own push, sent at once without the board: the line (200 characters at most), opening the thread (--programme <slug>; a newer line of a programme replaces the older; off or not set up: says why, exit 0)",
     "  projects add [<path>]       Add a project to this machine's list in ~/.braid/projects.json (its main checkout; --name <n>, --port <n>) and print its readiness",
@@ -366,6 +366,21 @@ async function main(argv: readonly string[]): Promise<void> {
         process.stderr.write(`error: ${error.file}: ${error.message}
 `);
         process.exitCode = 2;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "resume" && argv.includes("--limit")) {
+    // The board's resume path (0074/D): it sends by `t3`, so it runs here, not in the synchronous dispatch.
+    try {
+      process.stdout.write(await resumeLimitCommand(findRoot(process.cwd()), argv.slice(1)));
+    } catch (error) {
+      if (error instanceof UsageError || error instanceof GitError || error instanceof LockError) {
+        process.stderr.write(`error: ${error.message}
+`);
+        process.exitCode = 1;
         return;
       }
       throw error;

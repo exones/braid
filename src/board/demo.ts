@@ -195,14 +195,14 @@ const MIN = 60_000;
 export function demoPauses(now: Date = new Date()): Pause[] {
   const at = (minutes: number): string => new Date(now.getTime() + minutes * MIN).toISOString();
   const pause = (braid: string, resume: number, task: string): Pause => ({ braid, provider: "Claude_Everix", window: "five_hour", label: "Session", usedPercent: 97, resetsAt: at(resume - 5), resumeAt: at(resume), task, thread: "demo-coordinator-thread", by: "coordinator", at: at(-36) });
-  // 0025: the board's pause (0064), through a steering thread on codex that every agent answered.
+  // 0025: the board's pause (0064, 0074/C): its texts sent by code, and every agent answered.
   const board: Pause = {
     ...pause("0025", 18, ""),
     task: null,
-    thread: "demo-steering-thread",
+    thread: "",
     by: "board",
     targets: [{ thread: "demo-coordinator-thread", kind: "coordinator", item: "0025" }, { thread: "demo-worker-thread", kind: "worker", item: "0025/C" }],
-    steering: { thread: "demo-steering-thread", link: null, provider: "codex", model: "gpt-6-luna", started: at(-36), outcome: "paused", answered: 2, total: 2, children: [], noAnswer: [], reason: null, self: false },
+    replies: { sent: at(-36), outcome: "paused", answered: 2, total: 2, got: ["demo-coordinator-thread", "demo-worker-thread"], failed: [], noAnswer: [], reason: null },
   };
   return [board, pause("0026", -20, "demo-task-2"), pause("0027", -42, "demo-task-3")];
 }
@@ -222,9 +222,9 @@ export function demoLimits(t3: T3, pauses: ReadonlyMap<string, Pause>, now: Date
   const reading = (instanceId: string, roles: string[], models: string[], windows: WindowReading[]): ProviderReading => {
     const over = windows.filter((w) => w.over);
     const latest = over.at(0);
-    return { instanceId, roles, models, verdict: latest === undefined ? "ok" : "pause", reason: latest === undefined ? null : `${latest.label} (${latest.id}) is at ${latest.usedPercent}%, threshold ${latest.threshold}%`, checkedAt, windows, pauseWindow: latest?.id ?? null, resumeAt: latest === undefined ? null : new Date(Date.parse(latest.resetsAt ?? "") + DEFAULT_LIMITS.buffer * MIN).toISOString() };
+    return { instanceId, roles, models, verdict: latest === undefined ? "ok" : "pause", reason: latest === undefined ? null : `${latest.label} (${latest.id}) is at ${latest.usedPercent}%, threshold ${latest.threshold}%`, checkedAt, windows, pauseWindow: latest?.id ?? null, resumeAt: latest === undefined ? null : new Date(Date.parse(latest.resetsAt ?? "") + DEFAULT_LIMITS.buffer * MIN).toISOString(), blindSince: null };
   };
-  const cursor: ProviderReading = { instanceId: "cursor", roles: ["reviewer"], models: ["grok-4.6"], verdict: "unknown", reason: `${NOT_MEASURED} (unsupported)`, checkedAt: null, windows: [], pauseWindow: null, resumeAt: null };
+  const cursor: ProviderReading = { instanceId: "cursor", roles: ["reviewer"], models: ["grok-4.6"], verdict: "unknown", reason: `${NOT_MEASURED} (unsupported)`, checkedAt: null, windows: [], pauseWindow: null, resumeAt: null, blindSince: null };
   return buildView([reading("Claude_Everix", ["coordinator", "worker.story", "researcher"], ["claude-opus-5-5", "claude-sonnet-5-5"], claude), reading("codex", ["worker.task"], ["gpt-6-luna"], codex), cursor], DEFAULT_LIMITS, t3, pauses, now);
 }
 

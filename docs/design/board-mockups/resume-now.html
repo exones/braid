@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>braid board – Resume now mockups (0074/D, approved)</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mut:#6b7385;--line:#e2e5ec;--acc:#2563eb;--chip:#eef0f5;
+ --skyb:#0284c7;--skybg:#f0f9ff;--skyfg:#0c4a6e;--ambb:#f59e0b;--ambbg:#fffbeb;--ambfg:#78350f;--tealb:#0f766e;--tealbg:#f0fdfa;--tealfg:#134e4a;
+ --green:#16a34a;--track:#e2e8f0;--shade:#0f172a66;--code:#eef0f5;--btn:#fff;--rbg:#0284c7;--rfg:#fff;--rhover:#0369a1}
+.dark{--bg:#14171f;--card:#1d222d;--ink:#e6e9f0;--mut:#98a1b5;--line:#2c3342;--acc:#7f9bff;--chip:#2a3040;
+ --skyb:#38bdf8;--skybg:#0c2a3d;--skyfg:#bae6fd;--ambb:#f59e0b;--ambbg:#3a2a0c;--ambfg:#fde68a;--tealb:#2dd4bf;--tealbg:#0d2e2b;--tealfg:#99f6e4;
+ --green:#22c55e;--track:#2c3342;--shade:#000a;--code:#2a3040;--btn:#232938;--rbg:#0ea5e9;--rfg:#04121c;--rhover:#38bdf8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#e9ebf0;color:#1d2330;padding:20px}
+h1{font-size:20px;margin-bottom:4px}
+.lead{max-width:110ch;color:#4b5263;margin-bottom:18px}
+.lead code,.n code{font:12px ui-monospace,Consolas,monospace;background:#dfe3ea;padding:0 4px;border-radius:4px}
+section{margin:22px 0 8px}
+section>h2{font-size:15px;margin-bottom:2px}
+section>p.n{max-width:110ch;color:#4b5263;font-size:13px;margin-bottom:10px}
+.pair{display:grid;grid-template-columns:1fr;gap:12px}
+@media (max-width:900px){.pair{grid-template-columns:1fr}}
+.theme{background:var(--bg);color:var(--ink);border-radius:12px;padding:16px;position:relative}
+.theme>.tag{position:absolute;top:8px;right:12px;font-size:11px;color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;box-shadow:0 1px 2px #0000000d;max-width:360px}
+.row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.id{font-size:12px;color:var(--mut)}
+.badge{font-size:11px;background:var(--chip);color:var(--mut);border-radius:999px;padding:0 7px}
+.title{font-weight:600;margin:4px 0}
+.ptag{display:inline-flex;gap:4px;align-items:center;font-size:11.5px;color:var(--tealfg);background:var(--tealbg);border-radius:999px;padding:0 7px;margin-bottom:4px}
+.bar{display:flex;align-items:center;gap:6px}.bar .t{flex:1;height:6px;background:var(--track);border-radius:4px;overflow:hidden}.bar .t i{display:block;height:100%;background:var(--green)}
+.bar span{font-size:12px;color:var(--mut);white-space:nowrap}
+.box{margin-top:6px;border-left:3px solid;border-radius:6px;padding:4px 6px;font-size:12.5px;line-height:1.35}
+.box small{display:block;margin-top:1px;font-size:11px;color:var(--mut)}
+.sky{border-color:var(--skyb);background:var(--skybg);color:var(--skyfg)}
+.amb{border-color:var(--ambb);background:var(--ambbg);color:var(--ambfg)}
+.teal{border-color:var(--tealb);background:var(--tealbg);color:var(--tealfg)}
+.acts{display:flex;justify-content:flex-end;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--btn);color:var(--ink);border-radius:6px;padding:2px 8px;font-size:12.5px;cursor:pointer}
+.btn:hover{border-color:var(--acc)}
+.btn.resume{background:var(--rbg);border-color:var(--rbg);color:var(--rfg);font-weight:600}
+.btn.resume:hover{background:var(--rhover)}
+.btn.icon{width:24px;height:24px;padding:0;justify-content:center}
+.btn.off{opacity:.55;cursor:not-allowed}
+.mark{display:inline-flex;width:18px;height:18px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;color:#fff;background:var(--skyb)}
+.asked{font-size:11px;color:var(--tealfg)}
+.tip{display:inline-block;margin-top:6px;background:#1d2330;color:#fff;font-size:12px;border-radius:4px;padding:3px 8px}
+.dark .tip{background:#e6e9f0;color:#14171f}
+.dlg{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;max-width:460px;box-shadow:0 12px 32px #0003;font-size:14px}
+.dlg h3{font-size:16px}
+.dlg .sub{color:var(--mut);margin-bottom:10px}
+.dlg dl{display:grid;grid-template-columns:118px 1fr;gap:5px 12px;font-size:13px}
+.dlg dt{color:var(--mut)}
+.dlg p.f{margin-top:10px;font-size:12px;color:var(--mut)}
+.dlg .end{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.dlg .end .btn{padding:4px 12px;font-size:14px}
+code{font:12px ui-monospace,Consolas,monospace;background:var(--code);padding:0 4px;border-radius:4px}
+pre.msg{white-space:pre-wrap;font:12px/1.45 ui-monospace,Consolas,monospace;background:var(--code);border-radius:6px;padding:8px;margin-top:4px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.cli{background:#0f172a;color:#e2e8f0;border-radius:8px;padding:10px 12px;font:12.5px/1.5 ui-monospace,Consolas,monospace;white-space:pre;overflow-x:auto}
+.cli b{color:#7dd3fc;font-weight:normal}
+</style></head>
+<body>
+<h1>Resume now · early resume · resume pending — 0074/D mockups</h1>
+<p class="lead">Test data: project <code>braid</code>, provider <code>Claude_Everix</code> with its Session window at the 90% threshold (#316's default). The board paused at 20:47 when Session read 92%; the window resets at 21:00, so the timer resumes at 21:05 (reset + 5 min buffer). Now is 20:58 unless a case says otherwise. Light above, dark below. Hover and click states are drawn open next to the card.</p>
+<p class="lead"><b>Verdict (the user, through the PM, q-i0ry):</b> approved, with icon-only buttons (▶ Resume now and Ask the PM, ↻ Retry the resume now; the words only in the tooltip) and the thread links and Open thread exactly as today (not drawn here).</p>
+
+<div id="cases"></div>
+
+<template id="tpl">
+<!-- 1 -->
+<section>
+<h2>1 · A paused braid without a PM</h2>
+<p class="n">Resume now (▶) sits in the card's action row, sky like the paused line it answers; its words are in the tooltip. It resumes this braid directly: the confirm dialog shows the fresh reading and the threads that get their resume text. Nothing is retyped: the ids come from the pause record.</p>
+<div class="pair">
+<div class="theme T"><span class="tag">THEME</span>
+<div class="row" style="gap:16px;align-items:flex-start">
+<div class="card">
+ <div class="row"><span class="id">0071</span><span class="badge">tier:M</span><span class="mark" title="Paused">⏸</span></div>
+ <div class="title">Limits panel shows the weekly reset day</div>
+ <div class="bar"><div class="t"><i style="width:33%"></i></div><span>1/3</span></div>
+ <div class="box sky">Paused: Claude_Everix Session 92%, resumes 21:05<small>paused by the board 11 min ago · 2 of 2 agents answered</small></div>
+ <div class="acts"><button class="btn resume icon" title="Resume now">▶</button></div>
+ <div style="text-align:right"><span class="tip">Resume now</span></div>
+</div>
+<div class="dlg">
+ <h3>Resume 0071 now?</h3>
+ <div class="sub">Paused for Claude_Everix Session since 20:47</div>
+ <dl>
+  <dt>Window now</dt><dd>Session 88% at 20:57 (threshold 90%)</dd>
+  <dt>Sends to</dt><dd>0071/B worker · <code>mcp:7c1e09d2…</code><br>0071 coordinator · <code>mcp:launch:3f9a…</code></dd>
+  <dt>Then</dt><dd>clears the board's record for 0071</dd>
+ </dl>
+ <p class="f">Each thread gets “Resume: continue &lt;id&gt; from your checkpoint” by code, the same path as the 21:05 timer and <code>braid resume 0071 --limit</code>. A thread T3 can't reach stays pending and is retried at each refresh.</p>
+ <div class="end"><button class="btn">Cancel</button><button class="btn resume">▶ Resume now</button></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 2 -->
+<section>
+<h2>2 · A paused braid run by a PM</h2>
+<p class="n">Same button and place. It doesn't resume the braid itself: it sends the PM one message, and the PM resumes it with <code>braid resume 0074 --limit</code> when it sees fit. After the click the card says the PM was asked; the button stays, the same ▶, its tooltip “Ask the PM again to resume”.</p>
+<div class="pair">
+<div class="theme T"><span class="tag">THEME</span>
+<div class="row" style="gap:16px;align-items:flex-start">
+<div class="stack">
+<div class="card">
+ <div class="row"><span class="id">0074</span><span class="badge">tier:L</span><span class="mark">⏸</span></div>
+ <div class="title">The board pauses and resumes reliably</div>
+ <div class="ptag">🧭 board-reliability</div>
+ <div class="bar"><div class="t"><i style="width:43%"></i></div><span>3/7</span></div>
+ <div class="box sky">Paused: Claude_Everix Session 92%, resumes 21:05<small>paused by the board 11 min ago · 3 of 3 agents answered · the PM resumes it</small></div>
+ <div class="acts"><button class="btn resume icon" title="Ask the PM to resume">▶</button></div>
+ <div style="text-align:right"><span class="tip">Ask the PM to resume</span></div>
+</div>
+<div class="card">
+ <div class="row"><span class="id">0074</span><span class="badge">tier:L</span><span class="mark">⏸</span></div>
+ <div class="title">The board pauses and resumes reliably</div>
+ <div class="ptag">🧭 board-reliability</div>
+ <div class="bar"><div class="t"><i style="width:43%"></i></div><span>3/7</span></div>
+ <div class="box sky">Paused: Claude_Everix Session 92%, resumes 21:05<small>asked the PM to resume at 20:59</small></div>
+ <div class="acts"><button class="btn resume icon" title="Ask the PM again to resume">▶</button></div>
+ <div style="text-align:right"><span class="tip">Ask the PM again to resume</span></div>
+</div>
+</div>
+<div class="dlg">
+ <h3>Ask the PM to resume 0074?</h3>
+ <div class="sub">Programme board-reliability · paused since 20:47</div>
+ <dl>
+  <dt>Window now</dt><dd>Session 88% at 20:57 (threshold 90%)</dd>
+  <dt>Sends to</dt><dd>the PM · <code>9b3a8157…</code>, one message</dd>
+  <dt>Then</dt><dd>nothing else: the PM resumes it</dd>
+ </dl>
+ <pre class="msg">Resume now, from the board (the user asked): Claude_Everix Session reads 88% (under 90%).
+Paused braids: 0074 (3 agents).
+Resume each, in your order: braid resume &lt;number&gt; --limit</pre>
+ <div class="end"><button class="btn">Cancel</button><button class="btn resume">🧭 Ask the PM</button></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 3 -->
+<section>
+<h2>3 · A paused programme</h2>
+<p class="n">When every open braid of a programme is paused, its card in the Programmes panel gets the same button. One message to the PM names all its paused braids; the PM resumes them in its order. A programme with some braids still running has no button there: the paused braids' own cards carry it.</p>
+<div class="pair">
+<div class="theme T"><span class="tag">THEME</span>
+<div class="row" style="gap:16px;align-items:flex-start">
+<div class="card" style="max-width:300px">
+ <div class="row"><b>🧭 board-reliability</b><span style="flex:1"></span><span class="mark">⏸</span></div>
+ <div style="font-size:12px;color:var(--mut);margin-top:2px">The board pauses, resumes and warns without an LLM in the loop</div>
+ <div class="bar" style="margin-top:8px"><div class="t"><i style="width:40%"></i></div><span>2/5 done · 0 running</span></div>
+ <div class="box sky">⏸ Paused: every braid of it is paused<small>0074, 0075, 0077 · Claude_Everix Session 92% · resumes 21:05</small></div>
+ <div class="acts" style="justify-content:flex-start"><button class="btn">💬 PM</button><button class="btn">◎ Only these</button><button class="btn">≡ Plan</button><span style="flex:1"></span><button class="btn resume icon" title="Ask the PM to resume">▶</button></div>
+ <div style="text-align:right"><span class="tip">Ask the PM to resume</span></div>
+</div>
+<div class="dlg">
+ <h3>Ask the PM to resume board-reliability?</h3>
+ <div class="sub">3 braids paused for Claude_Everix Session since 20:47</div>
+ <dl>
+  <dt>Window now</dt><dd>Session 88% at 20:57 (threshold 90%)</dd>
+  <dt>Paused braids</dt><dd>0074 (3 agents) · 0075 (2) · 0077 (1)</dd>
+  <dt>Sends to</dt><dd>the PM · <code>9b3a8157…</code>, one message</dd>
+ </dl>
+ <p class="f">The PM resumes each with <code>braid resume &lt;number&gt; --limit</code>, in its order. Same text as case 2, listing all three.</p>
+ <div class="end"><button class="btn">Cancel</button><button class="btn resume">🧭 Ask the PM</button></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 4 -->
+<section>
+<h2>4 · Resume pending: T3 unreachable</h2>
+<p class="n">Now is 21:24. The 21:05 resume (timer, button, early resume or <code>braid resume --limit</code>, all the same path) couldn't reach T3. The record stays, the failed sends stay pending and the board retries them at each refresh, without giving up. The line turns amber; the button becomes ↻ (“Retry the resume now”). Left: nothing went through; right column: one of two threads reached.</p>
+<div class="pair">
+<div class="theme T"><span class="tag">THEME</span>
+<div class="row" style="gap:16px;align-items:flex-start">
+<div class="card">
+ <div class="row"><span class="id">0071</span><span class="badge">tier:M</span><span class="mark" style="background:var(--ambb)">⏸</span></div>
+ <div class="title">Limits panel shows the weekly reset day</div>
+ <div class="bar"><div class="t"><i style="width:33%"></i></div><span>1/3</span></div>
+ <div class="box amb">Paused: Claude_Everix Session; resume pending: T3 unreachable since 21:05<small>retried at each refresh · last try 21:23 · 0 of 2 agents reached</small></div>
+ <div class="acts"><button class="btn resume icon" title="Retry the resume now">↻</button></div>
+</div>
+<div class="card">
+ <div class="row"><span class="id">0074</span><span class="badge">tier:L</span><span class="mark" style="background:var(--ambb)">⏸</span></div>
+ <div class="title">The board pauses and resumes reliably</div>
+ <div class="ptag">🧭 board-reliability</div>
+ <div class="box amb">Paused: Claude_Everix Session; resume pending: T3 unreachable since 21:05<small>retried at each refresh · last try 21:23 · the PM not reached yet</small></div>
+ <div class="acts"><button class="btn resume icon" title="Retry the resume now">↻</button></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 5 -->
+<section>
+<h2>5 · Early resume and a window that no longer applies</h2>
+<p class="n">No button needed. Left: at the 20:52 refresh a fresh reading (taken after the pause began) shows Session 61%, under 90%, so the board resumed at once instead of waiting for 21:05; for a moment the card shows the resume being sent, then the paused line is gone. Right: everix4's old Cursor “Other Models” pause (from before #300) whose window is gone from the reading: it resumes at the next refresh, and its old steering banner (“0 of 2 agents answered”) goes with the record.</p>
+<div class="pair">
+<div class="theme T"><span class="tag">THEME</span>
+<div class="row" style="gap:16px;align-items:flex-start">
+<div class="card">
+ <div class="row"><span class="id">0071</span><span class="badge">tier:M</span><span class="mark">⏸</span></div>
+ <div class="title">Limits panel shows the weekly reset day</div>
+ <div class="box sky">Resuming: Claude_Everix Session reads 61%, under 90%<small>early resume at 20:52 · sent to 1 of 2 agents so far</small></div>
+</div>
+<div class="card">
+ <div class="row"><span class="id">0011</span><span class="badge">tier:S</span><span class="badge">everix4</span><span class="mark">⏸</span></div>
+ <div class="title">Export the weekly digest</div>
+ <div class="box sky">Resuming: Cursor “Other Models” no longer applies<small>the reading has no such window · resumed at the 20:52 refresh</small></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 6 -->
+<section>
+<h2>6 · A held braid has no Resume now</h2>
+<p class="n">A hold (the PM's or the user's words, P5) is never cleared by Resume now, the timer or early resume. Its card keeps the held line and no button; the later Go button (P5) reuses this path with its own reason.</p>
+<div class="pair">
+<div class="theme T"><span class="tag">THEME</span>
+<div class="card">
+ <div class="row"><span class="id">0069</span><span class="badge">tier:M</span><span class="mark">⏸</span></div>
+ <div class="title">Phone layout for the inbox</div>
+ <div class="box sky">Held: “Please freeze work until the release”<small>held by the PM since 18:10</small></div>
+ <div class="acts"></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 7 -->
+<section>
+<h2>7 · The CLI</h2>
+<p class="n">The same path from a terminal. Without a PM, <code>--limit</code> resumes; on a PM-run braid the PM runs it. <code>--all</code> covers every board pause of the repository (PM-run braids: one message to their PM).</p>
+<div class="cli"><b>$ braid resume 0071 --limit</b>
+0071: sent the resume text to 0071/B worker (mcp:7c1e09d2…) and 0071 coordinator (mcp:launch:3f9a…); pause record cleared.
+
+<b>$ braid resume --limit --all</b>
+0071: resumed (2 agents).
+0074, 0075, 0077: asked the PM 9b3a8157… to resume them (board-reliability).
+0069: held, left alone.
+
+<b>$ braid resume 0071 --limit</b>   (T3 down)
+0071: resume pending: T3 unreachable (0 of 2 sent). The board retries at each refresh.</div>
+</section>
+</template>
+
+<script>
+const tpl=document.getElementById('tpl').innerHTML;
+// Each case's single .theme becomes a light and a dark copy side by side.
+const host=document.getElementById('cases');
+host.innerHTML=tpl;
+for(const pair of host.querySelectorAll('.pair')){
+  const light=pair.querySelector('.theme');
+  const dark=light.cloneNode(true);
+  light.querySelector('.tag').textContent='light';
+  dark.classList.add('dark');dark.querySelector('.tag').textContent='dark';
+  pair.appendChild(dark);
+}
+</script>
+</body></html>
