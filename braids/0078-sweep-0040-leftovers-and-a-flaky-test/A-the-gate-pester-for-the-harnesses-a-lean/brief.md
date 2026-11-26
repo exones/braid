@@ -36,12 +36,12 @@ Expected size: large but mechanical; about 1,800 lines removed and 600 to 900 ad
 
 ## Completion
 
-- [ ] The docs-gate, install-policy and node-toolchain harnesses run as Pester suites under test/pester/ with their cases, and the old scripts are gone
-- [ ] The CR and trailing-whitespace check is shorter and still fails on a CR and on trailing whitespace (a negative test shows it)
-- [ ] The quick gate is not slower than before (report the before and after time)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/development.md at least), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The docs-gate, install-policy and node-toolchain harnesses run as Pester suites under test/pester/ with their cases, and the old scripts are gone
+- [x] The CR and trailing-whitespace check is shorter and still fails on a CR and on trailing whitespace (a negative test shows it)
+- [x] The quick gate is not slower than before (report the before and after time)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/development.md at least), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
