@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 1
 state: running
 hold:
-next: "finish 0060 (#324, fix E then re-check) and 0077 (Tailscale whois strand, F docs, final PR); then P5 (Held lane, counters), then P25 (the Questions panel), one at a time; 0078 and 0080 held"
+next: "finish 0077 (Tailscale whois strand I, load measurement, final PR) and 0081 (0060 follow-up: review records no other thread's folder); then P5 (Held lane, counters), then P25; 0078 and 0080 held (tell them about 0060 on Go)"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -23,7 +23,7 @@ rows:
   - P25 | - | The Questions panel | planned
   - P24 | 0077 | The board stays fast under load | running
   - P4 | 0072 | Questions say what they unblock | done
-  - P8 | 0060 | Workers as T3 subagents | running
+  - P8 | 0060 | Workers as T3 subagents | done
   - P9 | - | Per-programme say settings | planned
   - P10 | 0036 | Coordinator polish, reviewed | planned
   - P11 | - | Reports that say where we are | planned
@@ -159,6 +159,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26: user "purple lantern A": PM merged #324 at 3caa2b88 (merge 53efaed), CI green, pulled, installed. 0060 Done; workers are subagents (no setting, the user asked and accepted). Follow-up 0081 (S): `braid review`/`launch --child` record no other thread's folder. Told 0077, SFIL and the audit PM; held ones (0078, 0080, dctl-studio, Everix Cloud) get the news on Go. 0060's 15 finished threads archived.
 - 2026-11-26: programme rule added (Decisions): subagents get no parent context.
 - 2026-11-26: user: "T. a", then "Actually I change my mind: b": after 0060 and 0077, P5 (Held lane, counters) runs first, then P25.
 - 2026-11-26: user "S. a": P25 starts right after 0060 and 0077 merge, as the one running braid. User reported the Tailscale page often "forbidden" / "couldn't confirm through Tailscale": whois gate caches 5 s and refuses on timeout under load; sent to 0077 as a small strand. Test request tiny-tractor-3i2b opened for the spoken handles.
