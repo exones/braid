@@ -1,0 +1,19 @@
+{
+  "code": "q-3i2b",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "Test of spoken handles: answer this by its name in the PM thread (any letter: a. it works, b. something's off)",
+  "words": "tiny tractor",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T12:04:08.137Z",
+      "by": "pm"
+    }
+  ]
+}
