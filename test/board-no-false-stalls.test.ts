@@ -131,7 +131,7 @@ test("0010/B: a worker `completed` with a background command, a coordinator bloc
   }
   // The PM, with none of its braids running: it works in the background, so its programme isn't stalled.
   const read = planOf("p", "pm/p", ["---", "programme: p", "title: P", "goal: G", `thread: ${PM}`, "state: running", "rows:", "  - P1 | 0001 | One | running", "---", ""].join("\n"));
-  const idleCard = { id: "0001", title: "B 0001", lane: "In Progress", running: false, activity: null, pause: null, pm: null };
+  const idleCard = { id: "0001", title: "B 0001", lane: "In Progress", running: false, activity: null, pause: null, pm: null, need: null, pmAsk: null, strands: [] };
   for (const m of [80, 90, 100, 110]) {
     const sig = signals.readSignals(w.root, GH, at(m));
     const alarms: any[] = [];

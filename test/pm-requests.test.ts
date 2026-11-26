@@ -165,13 +165,13 @@ test("a request the PM handles is never pushed; an escalation or forward is push
   assert.deepEqual(message.pushesOf(board(cardOf(handled))), []);
   const escalated = derive("In Progress", gh(), t3(), sig([request("question", 30)]));
   const [a] = message.pushesOf(board(cardOf(escalated)));
-  assert.match(a.title, /agento 0001: Needs You \(escalated\)$/);
+  assert.match(a.title, /agento 0001: Escalated to you$/);
   assert.equal(a.priority, "high");
   assert.equal(a.click, "t3code://threads/env1/thread1");
   assert.equal(a.sequence, "braid-agento-0001");
   const review = derive("In Progress", gh(PR), t3(), sig([request("review", 90, { pr: 7 })]));
   const [b] = message.pushesOf(board(cardOf(review)));
-  assert.match(b.title, /To Review \(escalated\)$/);
+  assert.match(b.title, /agento 0001: Escalated to you$/);
   assert.equal(b.priority, "high", "an escalated handover is high; an ordinary review stays default");
   const fwd = derive("In Progress", gh(), t3(), sig([request("question", 1, { to: "user", forwarded: ago(0) })]));
   const [c] = message.pushesOf(board(cardOf(fwd)));
