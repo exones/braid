@@ -13,6 +13,12 @@
       "event": "opened",
       "at": "2026-11-26T05:55:25.020Z",
       "by": "pm"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-26T08:51:18.551Z",
+      "by": "pm",
+      "text": "answered: K merged, N the user merges, M dropped, I reminded later; L stays open as q-nxp6 on 0080/D"
     }
   ]
 }
