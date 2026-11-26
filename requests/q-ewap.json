@@ -1,0 +1,18 @@
+{
+  "code": "q-ewap",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "Morning: merge 0074 (#339 at 85a95fc, checked); answer 0080's sign-in button designs (q-nxp6) and pin-vs-drop (q-htgo); 0060's merge timing; details in the PM thread",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T05:55:25.020Z",
+      "by": "pm"
+    }
+  ]
+}
