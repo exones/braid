@@ -30,7 +30,7 @@ Expected size: about 80 to 150 lines in 2 to 4 files.
 ## Already decided
 
 - Tier L: it is crash and recovery behaviour of the record's lock. The reviewer re-checks after fixes that change it.
-- Runs right after 0078/D, at the PM's request. The coordinator ports the change to `main` (with PR #335 or after it) as the PM decides.
+- Runs right after 0078/D, at the PM's request. The coordinator ports the change to `main` as a follow-up PR from `main` after PR #335 lands, not folded into #335 (the PM, 2026-11-26: #335 is checked and with the user).
 - 0072 doesn't touch src/braids/state.ts or gitbranch.ts.
 
 ## Out of scope
