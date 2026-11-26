@@ -146,7 +146,7 @@ test("readPlans reads each pm/* branch's plan, a local branch before origin's, a
 
 // ---- The panel's sections and the stall
 
-const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, ...extra });
+const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, need: null, pmAsk: null, strands: [], ...extra });
 const t3 = (pm: string | null, extra: object = {}): any => ({ status: { state: "ok" }, threads: new Map(), states: new Map(pm === null ? [] : [[PM, pm]]), links: new Map([[PM, LINK]]), ...extra });
 const gh = (): any => ({ status: { state: "ok" }, prs: new Map() });
 const read = (lines: string[] = []): any => planOf("working-product", "pm/working-product", plan(["programme: working-product", "title: W", "goal: G", `thread: ${PM}`, ...(lines.some((l) => l.startsWith("state:")) ? [] : ["state: running"]), ...lines, "rows:", "  - P1 | 0001 | One | running", "  - P2 | 0002 | Two | running"]));
@@ -300,7 +300,7 @@ test("a programme's request is pushed from the panel; a braid it runs sends no D
   const board = model.toBoard("agento", [braid("0001"), braid("0009")], gh(), t3("idle"), sig);
   const pushes = message.pushesOf(board);
   const ask = pushes.find((p: any) => p.item === "pm/working-product#pm");
-  assert.deepEqual([ask.title, ask.body, ask.priority], ["agento working-product: the PM asks", "The PM asks you to: protect main", "high"]);
+  assert.deepEqual([ask.title, ask.body, ask.priority], ["agento working-product: the PM asks", "do\nThe PM asks you to: protect main", "high"]);
   assert.equal(pushes.find((p: any) => p.item === "0001"), undefined, "run by the programme: the PM handles what follows");
   assert.equal(pushes.find((p: any) => p.item === "0009").priority, "default");
 });

@@ -6,7 +6,7 @@
 //     event with the cause as its reason.
 // A held or paused braid, asking or waited on, is skipped. Nothing goes to the user. As the wake: send first, record after
 // (the event is the memory); a failed send records nothing and is tried at the next refresh.
-import { addEventAsync, loadRecordAsync, type Request, type RequestEvent } from "../braids/requests.js";
+import { addEventAsync, handleOf, loadRecordAsync, type Request, type RequestEvent } from "../braids/requests.js";
 import { clock } from "./pause.js";
 import type { T3Runner } from "./t3.js";
 import { addresseeOf, braidOfId, escalated, missedEta, pmThreadOf, remindable, reminderDue, type Addressee } from "./waits.js";
@@ -26,14 +26,14 @@ export function reminderMessage(r: Request, a: Exclude<Addressee, { to: "gone" }
   const asker = braidOfId(r.id) ?? r.id;
   const to = a.to === "pm" && a.braid !== undefined ? ` to braid ${a.braid}, which has no coordinator yet` : "";
   const missed = missedEta(r, now);
-  const ask = missed === null ? `Say when you expect it: braid eta ${r.code} 2h 'why' (a duration, or a time such as 16:30).` : `Your estimate ${clock(missed, now)} has passed; set a new one: braid eta ${r.code} 2h 'why'.`;
-  return `Gentle hourly reminder: I'm still waiting for you. ${r.code} from the ${asker} coordinator (item ${r.id})${to}: ${sentence(safeText(r.text))} Done when ${doneWords(r.doneWhen, now)}. ${ask}`;
+  const ask = missed === null ? `Say when you expect it: braid eta ${handleOf(r)} 2h 'why' (a duration, or a time such as 16:30).` : `Your estimate ${clock(missed, now)} has passed; set a new one: braid eta ${handleOf(r)} 2h 'why'.`;
+  return `Gentle hourly reminder: I'm still waiting for you. ${handleOf(r)} from the ${asker} coordinator (item ${r.id})${to}: ${sentence(safeText(r.text))} Done when ${doneWords(r.doneWhen, now)}. ${ask}`;
 }
 
 /** The one message the PM gets when a wait of its braid passes its estimate. */
 export function escalationMessage(r: Request, missed: string, now: Date): string {
   const asker = braidOfId(r.id) ?? r.id;
-  return `From the board: ${asker} waits on braid ${r.to ?? ""} (${r.code}: ${safeText(r.text)}) past its estimate ${clock(missed, now)}. The ${r.to ?? ""} coordinator is reminded hourly. See braid requests ${r.code}.`;
+  return `From the board: ${asker} waits on braid ${r.to ?? ""} (${handleOf(r)}: ${safeText(r.text)}) past its estimate ${clock(missed, now)}. The ${r.to ?? ""} coordinator is reminded hourly. See braid requests ${handleOf(r)}.`;
 }
 
 /** What one refresh sends for a request: the thread, the message and the event that records it; none when nothing is due. */

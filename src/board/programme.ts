@@ -51,6 +51,8 @@ export interface Programme {
   readonly need: Need | null;
   /** What the PM forwarded to the user from its braids (a forwarded merge handover too): the PM asking you, each opening the PM's thread. Item, lane its card would sit in, and the need. */
   readonly forwards: readonly Forward[];
+  /** The other open requests of its braids that are the user's (escalated, or addressed to the user, the PM's own too), as their cards push them. */
+  readonly requests: readonly Forward[];
   /** The card's one status line: the hold, what the PM is doing, or next. */
   readonly status: string;
   /** What the PM is handling now, one entry per braid: `0007 plan approval (40 s)`. */
@@ -79,6 +81,8 @@ export interface Forward {
   readonly need: Need;
   /** A merge handover: the head commit handed over; the group's push key holds it, so a moved head sends again. */
   readonly head?: string;
+  /** The PM's note with the forward. */
+  readonly note?: string;
 }
 
 const AFTER_NUDGE_PM = "Stalled after a nudge: the PM stopped and none of its braids is running";
@@ -125,6 +129,15 @@ export function checkerOf(checks: readonly string[], slug: string, braids: reado
   return checks.some((text) => only || text.includes(slug) || braids.some((n) => new RegExp(`(^|\\D)${n}(\\D|$)`).test(text)));
 }
 
+/** The requests on a braid's card and its strands that ask the user: the ones `pushesOf` pushes from the card (a forwarded one is no card need). */
+function requestsOfCard(card: BraidCard): Forward[] {
+  if (card.lane === "Done") {
+    return [];
+  }
+  const items = [{ id: card.id, title: card.title, need: card.need?.who === null ? card.need : null, pmAsk: card.pmAsk?.who === null ? card.pmAsk : null }, ...card.strands];
+  return items.flatMap(({ id, title, need, pmAsk }) => [need?.by === undefined ? need : null, pmAsk].flatMap((n) => (n?.code === undefined ? [] : [{ id, title, need: n }])));
+}
+
 /** The title of an item (a braid or one of its strands) from the board's cards; the id when the card isn't there. */
 const titleOf = (cards: ReadonlyMap<string, BraidCard>, id: string): string => {
   const card = cards.get(id.slice(0, 4));
@@ -139,7 +152,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
     raise(clock, "stalled", false);
     return {
       slug: read.slug, branch: read.branch, title: read.slug, goal: null, state: null, section: asked === null ? "working" : "needs", thread: request?.thread ?? null, link: asked?.link ?? null, pmState: null,
-      hold: null, paused: false, resume: null, next: null, digest: null, limit: null, rows: [], braids: [], done: 0, total: 0, running: 0, need: asked, forwards: [],
+      hold: null, paused: false, resume: null, next: null, digest: null, limit: null, rows: [], braids: [], done: 0, total: 0, running: 0, need: asked, forwards: [], requests: [],
       status: `plan unreadable: ${read.error ?? "unknown"}`, handling: [], seen: null, error: `plan unreadable: ${read.error ?? "unknown"}`,
     };
   }
@@ -169,7 +182,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
     ? []
     : [...sig.requests.values()].flatMap((r) => {
         const routed = routeOf(r, sig.now, t3, sig.pauses?.has(r.id.slice(0, 4)) === true);
-        return braids.includes(r.id.slice(0, 4)) && throughPm(r, routed, [read]) ? [{ id: r.id, title: titleOf(cards, r.id), need: needOfForward(r, sig.now, t3), ...(r.head === undefined ? {} : { head: r.head }) }] : [];
+        return braids.includes(r.id.slice(0, 4)) && throughPm(r, routed, [read]) ? [{ id: r.id, title: titleOf(cards, r.id), need: needOfForward(r, sig.now, t3, sig.unblocks?.(r) ?? []), ...(r.head === undefined ? {} : { head: r.head }), ...(r.note === undefined ? {} : { note: r.note }) }] : [];
       });
   const holds = over || held || asked !== null || forwards.length > 0 ? false : t3ok && ghOk ? !(pmRunning || running > 0 || checking) : null;
   // The PM thread, known and idle, is nudged once before the stall shows; without one the stall shows after ten minutes as before.
@@ -179,6 +192,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
   const stall: Need | null =
     since === null ? null : { kind: "stalled", text: sig.nudged?.(clock) === true ? AFTER_NUDGE_PM : STALLED_TEXT, verb: "for", age: age(since, sig.now), since, key: null, pr: null, who: null, more: 0, by: "pm", link };
   const need = over ? null : (asked ?? stall);
+  const theirs = over ? [] : mine.flatMap(requestsOfCard);
   const pmWords = pmState === null ? "PM thread not known" : pmState === "unknown" ? "the PM thread is gone" : `PM thread ${pmState}`;
   const status = held
     ? plan.hold !== null
@@ -199,7 +213,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
     title: plan.title,
     goal: plan.goal,
     state: plan.state,
-    section: over ? null : need !== null || forwards.length > 0 ? "needs" : "working",
+    section: over ? null : need !== null || forwards.length > 0 || theirs.length > 0 ? "needs" : "working",
     thread,
     link,
     pmState,
@@ -216,6 +230,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
     running,
     need,
     forwards,
+    requests: theirs,
     status,
     handling,
     seen: stall === null ? null : `${pmWords} · no braid running: no agent thread, no check, no PR checks pending`,

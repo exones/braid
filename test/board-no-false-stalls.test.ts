@@ -131,7 +131,7 @@ test("0010/B: a worker `completed` with a background command, a coordinator bloc
   }
   // The PM, with none of its braids running: it works in the background, so its programme isn't stalled.
   const read = planOf("p", "pm/p", ["---", "programme: p", "title: P", "goal: G", `thread: ${PM}`, "state: running", "rows:", "  - P1 | 0001 | One | running", "---", ""].join("\n"));
-  const idleCard = { id: "0001", title: "B 0001", lane: "In Progress", running: false, activity: null, pause: null, pm: null };
+  const idleCard = { id: "0001", title: "B 0001", lane: "In Progress", running: false, activity: null, pause: null, pm: null, need: null, pmAsk: null, strands: [] };
   for (const m of [80, 90, 100, 110]) {
     const sig = signals.readSignals(w.root, GH, at(m));
     const alarms: any[] = [];
@@ -178,7 +178,7 @@ test("0012/B: a timed wait shows quietly as waiting until its time, is never pus
   assert.equal(r.state, "met");
   assert.equal(s.sent.length, 1);
   assert.equal(s.sent[0]?.thread, CO7);
-  assert.match(s.sent[0]?.text ?? "", /^Wake: q-\w+ is met \(time .* reached\): idle until my wake at 04:15\. Go on where you left off\.$/);
+  assert.match(s.sent[0]?.text ?? "", /^Wake: [a-z]+-[a-z]+-\w+ is met \(time .* reached\): idle until my wake at 04:15\. Go on where you left off\.$/);
   // Nothing happens after it: the stall clock runs from the time, nudge at ten minutes, the stall ten after, as before.
   await run(24);
   assert.equal(s.sent.length, 1);
@@ -203,10 +203,10 @@ test("braid ask --to self: a timed wait needs a time, opens as one, and braid re
   assert.throws(() => R.askCommand(w.root, ["0002", "idle", "--to", "self"]), /--to self is a timed wait: give --done-when time:<iso>/);
   assert.throws(() => R.askCommand(w.root, ["0002", "idle", "--to", "self", "--done-when", "pr:3"]), /--to self is a timed wait/);
   const out = R.askCommand(w.root, ["0002", "idle until my wake", "--to", "self", "--done-when", "time:2026-11-24T04:15:00Z"], { now: () => at(0) });
-  assert.match(out, /^q-\w+ 0002: timed wait opened, waiting until .+ \(the board's wake ends it; nobody is asked\): idle until my wake\n$/);
+  assert.match(out, /^[a-z]+-[a-z]+-\w+ 0002: timed wait opened, waiting until .+ \(the board's wake ends it; nobody is asked\): idle until my wake\n$/);
   const [r] = Rec.loadRecord(w.root).requests;
   assert.deepEqual([r.to, r.doneWhen, Rec.isWait(r), Rec.isTimedWait(r)], ["self", "time:2026-11-24T04:15:00.000Z", true, true]);
-  assert.match(R.requestsCommand(w.root, [], { now: () => at(0) }), new RegExp(`^${r.code}  0002  wait  0m  waiting until 2026-11-24 04:15Z  idle until my wake\\n$`));
+  assert.match(R.requestsCommand(w.root, [], { now: () => at(0) }), new RegExp(`^${Rec.handleOf(r)}  0002  wait  0m  waiting until 2026-11-24 04:15Z  idle until my wake\\n$`));
   assert.match(R.requestsCommand(w.root, [r.code]), /a timed wait, nobody asked/);
   // A question to the user beside it doesn't replace it, and a new timed wait does.
   R.askCommand(w.root, ["0002", "Which name?"], { now: () => at(1) });
