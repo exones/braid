@@ -44,7 +44,7 @@ Focused tests: `npm run build && node --test test/<file>.test.ts`. Pester suites
 
 Both gates run `scripts/Verify.ps1`, which selects the toolchain first.
 
-`npm run verify` is the quick offline pre-PR gate (about 20 seconds) and the `gate` in [BRAID.md](../BRAID.md):
+`npm run verify` is the offline pre-PR gate (several minutes, most of it `node --test`) and the `gate` in [BRAID.md](../BRAID.md):
 
 1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Paths listed as frozen in `scripts/markdown-link-exclusions.json` (closed records kept as written) are not link-checked, but their text still is. A skill under `.agents/skills/<name>/` must not link outside its own folder, except to another braid skill.
 2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.

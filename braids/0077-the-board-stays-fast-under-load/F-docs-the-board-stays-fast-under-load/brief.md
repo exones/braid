@@ -36,3 +36,7 @@ Expected size: about 80 lines in 6 files.
 - [ ] Docs from BRAID.md `docs` that this braid made untrue are updated, each listed in report.md as updated or unchanged
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Read the braid's log and reports A, B, G, D, H, C, E, then check each doc in BRAID.md `docs` and the help text against the code; add only what is missing or no longer true; two decisions rows; roadmap line; report; gate; PR. (Written after the edits were made.)
