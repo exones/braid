@@ -1,0 +1,21 @@
+{
+  "code": "q-z2gg",
+  "item": "0074",
+  "kind": "review",
+  "text": "review PR #339 at 4d92a1b",
+  "by": "coordinator",
+  "thread": "mcp:launch:26ba11efdb3af7287266920a3acc65fe9e97b7313b3436a84692c265d042342f",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:339",
+  "pr": 339,
+  "head": "4d92a1b0bd7670cdc6024b355b207f6b3655c9ae",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T01:42:07.588Z",
+      "by": "coordinator"
+    }
+  ]
+}
