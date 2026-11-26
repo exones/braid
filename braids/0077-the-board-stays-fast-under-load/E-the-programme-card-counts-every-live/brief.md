@@ -42,7 +42,7 @@ Expected size: about 80 lines in 3 files.
 
 ## Completion
 
-- [ ] The count follows the rule above, with a test per case
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md, the programme card), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The count follows the rule above, with a test per case
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md, the programme card), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
