@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { acceptCommand, brief, git, resetGithubMemory, statusCommand, world } from "./support/done-fixtures.ts";
@@ -157,6 +157,26 @@ test("--merge --preset: nothing merges under careful (the default) or none; a br
   s.prs.push({ number: 7, branch: "braid/0001-alpha", base: "main", state: "OPEN", checks: "SUCCESS", mergeable: "MERGEABLE" });
   await assert.rejects(acceptCommand(s.root, ["0001", "--head", s.headOf("braid/0001-alpha"), "--merge", "--preset"], s.opts), /preset steady has merge: strands, which does not let the coordinator merge a braid's final PR/);
   assert.equal(w.merges.length + s.merges.length, 0);
+});
+
+test("--merge --preset: a preset loosened off the PR's base merges nothing", async () => {
+  // main says steady; the coordinator's checkout (the PR's content) says free.
+  const w = world("steady");
+  w.prs.push({ number: 7, branch: "braid/0001-alpha", base: "main", state: "OPEN", checks: "SUCCESS", mergeable: "MERGEABLE" });
+  writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: [verify]\nautonomy: free\n---\n");
+  await assert.rejects(
+    acceptCommand(w.root, ["0002", "--head", w.headOf("braid/0002-story"), "--merge", "--preset"], w.opts),
+    /0002 not merged: preset steady on origin\/main has merge: strands/,
+  );
+  mkdirSync(join(w.root, "autonomy"));
+  const rows = ["security", "dependency", "architecture", "data", "process", "outward", "scope", "quality"].map((key) => `| ${key} | always | never |`).join("\n");
+  writeFileSync(join(w.root, "autonomy", "steady.md"), `---\nname: steady\nmerge: all\ncontinue: yes\n---\n# steady\n\n| Case | Decide yourself when | Ask me when |\n| --- | --- | --- |\n${rows}\n`);
+  writeFileSync(join(w.root, "BRAID.md"), "---\nmain: main\nci: [verify]\nautonomy: steady\n---\n");
+  await assert.rejects(
+    acceptCommand(w.root, ["0002", "--head", w.headOf("braid/0002-story"), "--merge", "--preset"], w.opts),
+    /preset steady on origin\/main has merge: strands/,
+  );
+  assert.equal(w.merges.length, 0);
 });
 
 test("--merge --preset: refused when ci is none, and --preset needs --merge", async () => {

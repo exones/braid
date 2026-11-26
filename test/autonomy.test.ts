@@ -106,9 +106,42 @@ test("braid autonomy: the built-in default, the BRAID.md default, the brief's ow
   ok(root, "edit", "1", "--autonomy", "team");
   assert.match(ok(root, "autonomy", "1"), /^Preset: team\nName from: the brief of 0001\nText from: autonomy\/team\.md\n/);
 
-  const strand = braid(root, "autonomy", "0001/A");
-  assert.equal(strand.status, 1);
-  assert.match(strand.stderr, /a preset belongs to a braid/);
+  const missing = braid(root, "autonomy", "0001/A");
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /no strand 0001\/A/);
+  ok(root, "strand", "new", "1", "One", "--no-fetch");
+  assert.equal(ok(root, "autonomy", "1/a"), ok(root, "autonomy", "1"));
+});
+
+test("braid autonomy reads the preset as origin/<the PR's base> has it, so the PR's checkout can't loosen it", () => {
+  const root = repo();
+  const git = (...args: string[]) => assert.equal(spawnSync("git", args, { cwd: root, env }).status, 0, args.join(" "));
+  ok(root, "new", "Alpha", "--no-fetch", "--autonomy", "careful");
+  ok(root, "strand", "new", "1", "One", "--no-fetch");
+  put(root, "BRAID.md", "---\nautonomy: steady\n---\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "plan");
+  // The remote-tracking ref is all a read needs: main has the braid on careful.
+  git("update-ref", "refs/remotes/origin/main", "HEAD");
+  assert.match(ok(root, "autonomy", "1"), /^Preset: careful\nName from: the brief of 0001\nText from: shipped with braid\nBase: origin\/main\n\n/);
+
+  // A branch that loosens it: the brief, and a project file replacing the preset.
+  ok(root, "edit", "1", "--autonomy", "free");
+  put(root, "autonomy/careful.md", preset("careful", ROWS));
+  let out = ok(root, "autonomy", "1");
+  assert.match(out, /^Preset: careful\n.*\nText from: shipped with braid\nBase: origin\/main\nDiffers here: preset free, .*on origin\/main\n/);
+
+  // The braid branch is a strand's base.
+  git("add", "-A");
+  git("commit", "-q", "-m", "loosen");
+  git("update-ref", "refs/remotes/origin/braid/0001-alpha", "HEAD");
+  assert.match(ok(root, "autonomy", "1/A"), /^Preset: free\n.*\nText from: shipped with braid\nBase: origin\/braid\/0001-alpha\n\n/);
+
+  // A braid main doesn't have yet: its brief comes from here, the preset files and the default still from main.
+  ok(root, "new", "Beta", "--no-fetch");
+  put(root, "BRAID.md", "---\nautonomy: free\n---\n");
+  out = ok(root, "autonomy", "2");
+  assert.match(out, /^Preset: steady\nName from: BRAID\.md \(the project default\)\n.*\nBase: origin\/main \(without 0002 yet: [^)]*\)\nDiffers here: preset free/);
 });
 
 test("braid new and braid edit set and clear autonomy; a brief without it keeps its exact text", () => {
