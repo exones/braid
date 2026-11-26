@@ -40,7 +40,7 @@ Expected size: about 250 lines changed in 10 files, net fewer lines in `.agents/
 - [x] No file under `.agents/skills/` is longer than before this braid (line counts listed in report.md)
 - [x] Docs from BRAID.md `docs` brought up to date as a whole, each listed in report.md as updated or unchanged
 - [x] report.md proposes removing `models.steering` from BRAID.md under "Needs the user"
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
 
 ## Plan

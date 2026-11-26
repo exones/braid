@@ -20,7 +20,7 @@ The docs now describe 0074 as a whole, and the agents' limits prose says only wh
 - docs/npm-distribution.md: unchanged (not affected).
 - Product code: only two doc comments in `src/board/pause.ts` (97% → 92%).
 
-**Validation.** Local `npm run verify` (977 s under load): 726 of 727 tests passed. The one failure is the known lock flake under load, "overlapping writers in separate processes lose no update" in test/requests.test.ts (leftover 2026-11-25-01yh), and this PR doesn't touch that code. CI on both platforms is the evidence. `rg` finds no reference left to the removed limits.md sections ("Under a PM", "The board's pause message", `<steering thread id>`, `Paused: pm`) outside braids/, epics/ and docs/design. `braid check` passes.
+**Validation.** Local `npm run verify` (977 s under load): 726 of 727 tests passed. The one failure is the known lock flake under load, "overlapping writers in separate processes lose no update" in test/requests.test.ts (leftover 2026-11-25-01yh), and this PR doesn't touch that code. CI is green on both platforms (verify ubuntu-latest and windows-latest at c86c2e6), so the gate box counts as proved. `rg` finds no reference left to the removed limits.md sections ("Under a PM", "The board's pause message", `<steering thread id>`, `Paused: pm`) outside braids/, epics/ and docs/design. `braid check` passes.
 
 Decisions: none from the user. My own: the PM's two texts are named by their opening words (`Direct pause:`, "Paused braids:"), not quoted. A weekly window became one bullet in limits.md instead of its own section. The user's "pause, limit close" without a board still works: send a pause text like the board's.
 For later items: none.
