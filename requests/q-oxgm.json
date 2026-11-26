@@ -1,0 +1,18 @@
+{
+  "code": "q-oxgm",
+  "item": "0072",
+  "kind": "question",
+  "text": "Waiting for 0074 to merge into main (#339): then merge main into braid/0072, renumber D107-D113, and send the PM the new head",
+  "by": "coordinator",
+  "thread": "mcp:launch:a0a03eb409fbc1d18679d8c2659026c14e35ed836aebf5709126e14b27b074a9",
+  "to": "0074",
+  "doneWhen": "braid:0074",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T06:35:07.311Z",
+      "by": "coordinator"
+    }
+  ]
+}
