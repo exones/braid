@@ -1,6 +1,7 @@
 // The words of the limits chips and panel (docs/board.md, "Provider limits"). Pure (no Node.js), so the page uses it too.
-import { clock } from "./pause.js";
-import type { ChipState, ProviderView } from "./limits.js";
+import { percent } from "../braids/percent.js";
+import { clock, noAnswerItem } from "./pause.js";
+import type { ChipState, LimitsView, ProviderView } from "./limits.js";
 
 const MIN = 60_000;
 
@@ -38,10 +39,12 @@ export function chipNote(p: ProviderView, now: Date): string {
       return "not measured";
     case "unknown":
       return p.checkedAt === null ? "no reading yet" : `no reading for ${agoText(p.checkedAt, now)}`;
+    case "blind":
+      return p.blindSince === null ? "blind" : `blind since ${clock(p.blindSince, now)}`;
     case "over":
-      return p.steering?.outcome === "pausing" ? "pausing…" : "over";
+      return p.replies?.outcome === "pausing" ? "pausing…" : "over";
     case "paused": {
-      if (p.steering?.outcome === "pausing") {
+      if (p.replies?.outcome === "pausing") {
         return "pausing…";
       }
       return `${isWeekly(p) ? "weekly · " : "paused · "}resumes ${p.resumeAt === null ? "?" : whenText(p.resumeAt, now)}`;
@@ -51,14 +54,22 @@ export function chipNote(p: ProviderView, now: Date): string {
   }
 }
 
+/** Why a blind provider can't be read, and what to do: the cache's last update and the restart. */
+export function blindReason(p: ProviderView, now: Date): string {
+  return p.blindSince === null ? (p.reason ?? "no usable reading") : `cache not updated since ${clock(p.blindSince, now)}; restart T3`;
+}
+
 /** The badge in the panel: the state in words, with the resume time when paused. */
 export function badgeText(p: ProviderView, now: Date): string {
   return p.state === "paused" ? chipNote(p, now) : p.state === "unmeasured" ? "not measured" : p.state === "unknown" ? "unknown" : p.state;
 }
 
 /** The chip's hover text: the numbers in words. */
-export function chipTitle(p: ProviderView): string {
-  const part = (label: string, w: ProviderView["session"]): string => (w === null ? "" : `${label} ${w.usedPercent}% of ${w.threshold}%`);
+export function chipTitle(p: ProviderView, now: Date = new Date()): string {
+  if (p.state === "blind") {
+    return `${p.instanceId}: limits ${chipNote(p, now)}: ${blindReason(p, now)}. Nothing pauses on ${p.instanceId} until it reads again.`;
+  }
+  const part = (label: string, w: ProviderView["session"]): string => (w === null ? "" : `${label} ${percent(w.usedPercent)}% of ${w.threshold}%`);
   const nums = [part("Session", p.session), part("Weekly", p.weekly)].filter((s) => s !== "").join(", ");
   return `${p.instanceId}: ${nums === "" ? (p.reason ?? p.state) : nums}`;
 }
@@ -69,7 +80,7 @@ export function resetText(resetsAt: string | null, reset: boolean, now: Date): s
 }
 
 /** The state's tone: which colours the chip, bar and badge take. */
-export const STATE_TONE: Readonly<Record<ChipState, "slate" | "amber" | "red" | "sky" | "dashed">> = { ok: "slate", near: "amber", over: "red", paused: "sky", unknown: "dashed", unmeasured: "dashed" };
+export const STATE_TONE: Readonly<Record<ChipState, "slate" | "amber" | "red" | "sky" | "dashed" | "orange">> = { ok: "slate", near: "amber", over: "red", paused: "sky", unknown: "dashed", blind: "orange", unmeasured: "dashed" };
 
 /** The agents line of a provider: the paused braids and the running agents, or what is known when none. */
 export function agentsText(p: ProviderView): { readonly paused: string; readonly running: string } {
@@ -80,19 +91,34 @@ export function agentsText(p: ProviderView): { readonly paused: string; readonly
   return { paused: list("paused"), running: list("running") };
 }
 
-/** The panel's steering line (mockup 3): where the 🚦 thread ran, when, and what came of it; null without one. */
-export function steeringText(p: ProviderView, now: Date): string | null {
-  const s = p.steering;
+/**
+ * Which board acts (0074/B): "This board acts for the pauses, resumes and wakes." when it holds every key, else one line per key
+ * another board holds: "Watching: the board on port <p> (pid <n>) acts for <what>." Null when the board pauses nothing.
+ */
+export function actingText(view: LimitsView): string[] | null {
+  const lines = view.acting;
+  if (lines === undefined) {
+    return null;
+  }
+  const watching = lines.filter((l) => l.state === "watching");
+  if (watching.length === 0) {
+    return ["This board acts for the pauses, resumes and wakes."];
+  }
+  return watching.map((l) => `Watching: ${l.by ?? "another board acts"} for ${l.key.startsWith("repo-") ? `the wakes and reminders of ${l.label}` : `the pause and resume of ${l.label}`}.`);
+}
+
+/** The panel's pause line: when the board sent its pause texts and what came of them; null without a board pause. */
+export function repliesLine(p: ProviderView, now: Date): string | null {
+  const s = p.replies;
   if (s === null) {
     return null;
   }
-  const on = `${s.provider}${s.model === null ? "" : ` / ${s.model}`}${s.self ? " (in the margin of the provider it pauses)" : ""}`;
-  const started = `started ${whenText(s.started, now)}`;
+  const sent = `sent ${whenText(s.sent, now)}`;
   const what =
     s.outcome === "pausing"
-      ? `pausing ${s.total} agent${s.total === 1 ? "" : "s"}`
+      ? `counting the replies: ${s.got.length} of ${s.total} so far`
       : s.outcome === "failed"
-        ? `failed: ${s.reason ?? "no reason given"}`
-        : `${s.answered ?? 0} of ${s.total} agents answered Paused:${s.noAnswer.length === 0 ? "" : `; no answer: ${s.noAnswer.join(", ")}`}`;
-  return `🚦 Steering thread on ${on}, ${started}: ${what}.`;
+        ? `failed: ${s.reason ?? "no send went through"}`
+        : `${s.answered} of ${s.total} agents answered Paused:${s.noAnswer.length === 0 ? "" : `; no answer: ${s.noAnswer.map(noAnswerItem).join(", ")}`}`;
+  return `Pause ${sent} by the board: ${what}.`;
 }
