@@ -13,6 +13,8 @@ The Questions panel on the board, built as the user approved it in 0082/A's mock
 
 What works at the end:
 
+- A programme's own questions (`id: pm/<slug>`) rank under "stops a braid or programme": `unblocksOf` returns [] for them today, since it knows only braid numbers (the PM, 2026-11-26). `look` requests (0082/C) go in the folded "blocks nothing" group.
+- Each strand's `need` and `pmAsk` is read, not only the card's top one (0082/B); a Done strand's request on a live braid shows on the compact card with Details off as in the Done row.
 - The ranking from the parent brief, computed in the model from `Need` (`blocks`, `act`, `handle`) and the programme requests, with tests.
 - The panel and its rail, remembered open or collapsed in the browser like the programmes panel.
 - The roomy card (collapsible context, the question in larger type, option buttons, Custom swapping them for a text field), answering through 0082/D and moving on to the next question.
