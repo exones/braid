@@ -40,6 +40,15 @@ Expected size: about 350 lines in 9 files, tests included.
 - Known limit, accepted: an older braid that rewrites a new record (answers or withdraws it) serialises only the fields it knows and drops `context` and `options`; the answer itself is kept. Say in report.md whether that can happen with the versions in use, and add nothing to prevent it.
 - Pushes keep their text (D114); whether a push carries the options is left for later.
 
+## Plan
+
+1. `src/braids/requests.ts`: `context?` and `options?` on `Request` and the file, written only when given, read leniently (a malformed field is dropped, the record still reads); `KINDS` gains `look`; `actOf` gives `look` for it; `optionOf(r, text)` turns a lone letter of a stored option into `A. <text>`.
+2. `src/commands/requests.ts`: `braid ask --context`, `--context-file <path|->` (not with `--file -`), `--option` (repeated, one to four, one line each), `--kind look`; `braid answer <handle> [<text>]` (a lone letter from it or `--file` becomes the option); `braid requests` prints `A. …` lines under a request and `context stored`, `braid requests <name>` prints the options and the context.
+3. `src/board/model.ts`: `Need` gets `context` and `options` (kind is there); `Reason` and `act` gain `look`. `marks.ts` a `look` reason mark, `notify/message.ts` its tag and `default` priority (nothing waits on it), `web/src/App.tsx` an eye for the mark.
+4. Skills: braid's "Talking to the user" and braid-pm's request lines say `--option` per lettered answer and `--context-file -` when the context is longer than the board line.
+5. Docs: braids-format "The request record", cli.md, decisions (D119), the CLI help.
+6. Tests in `test/requests-options.test.ts`.
+
 ## Out of scope
 
 - Showing the fields on the board (0082/E) and answering from the board (0082/D).
@@ -47,12 +56,12 @@ Expected size: about 350 lines in 9 files, tests included.
 
 ## Completion
 
-- [ ] `context` and `options` are optional record fields, round-trip, and old records read unchanged, with tests
-- [ ] `look` is a request kind (`braid ask --kind look`), read as blocking nothing, with tests
-- [ ] `braid ask --context/--context-file/--option` write them; `braid requests` and `braid show` print them
-- [ ] `braid answer <handle> <letter>` records the stored option's text, with a test
-- [ ] `Need` carries `context`, `options` and the kind
-- [ ] The braid and braid-pm skills open requests with `--option` (and `--context-file -` when the context is longer than the board line)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] `context` and `options` are optional record fields, round-trip, and old records read unchanged, with tests
+- [x] `look` is a request kind (`braid ask --kind look`), read as blocking nothing, with tests
+- [x] `braid ask --context/--context-file/--option` write them; `braid requests` and `braid show` print them
+- [x] `braid answer <handle> <letter>` records the stored option's text, with a test
+- [x] `Need` carries `context`, `options` and the kind
+- [x] The braid and braid-pm skills open requests with `--option` (and `--context-file -` when the context is longer than the board line)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
