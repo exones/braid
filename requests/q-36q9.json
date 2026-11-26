@@ -17,6 +17,12 @@
       "event": "opened",
       "at": "2026-11-26T11:01:20.409Z",
       "by": "coordinator"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-26T11:28:59.486Z",
+      "by": "board",
+      "text": "PR #324 head moved to 10070ec"
     }
   ]
 }
