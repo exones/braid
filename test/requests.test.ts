@@ -130,7 +130,7 @@ test("ask opens a request that every worktree shares; a new ask replaces it; ans
 
 test("ask refuses a bad kind, an empty text, an unknown item and a bad thread", () => {
   const w = world();
-  assert.throws(() => askCommand(w.root, ["0001/A", "x", "--kind", "review"]), /--kind is question, decision, plan or action/);
+  assert.throws(() => askCommand(w.root, ["0001/A", "x", "--kind", "review"]), /--kind is question, decision, plan, action or look/);
   assert.throws(() => askCommand(w.root, ["0001/A", "  "]), /must not be empty/);
   assert.throws(() => askCommand(w.root, ["0009", "x"]), /no braid 0009/);
   assert.throws(() => askCommand(w.root, ["0001/A", "x", "--thread", "abc"]), /--thread needs an id/);
