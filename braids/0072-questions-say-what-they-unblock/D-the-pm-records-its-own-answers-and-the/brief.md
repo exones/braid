@@ -43,10 +43,18 @@ Expected size: about 200 lines in 4 files, tests included.
 - A wake marked delivered whose send failed: the mark is written only after a successful send, tested.
 - Old answers flooding threads on the first run: tested with a record holding older answers.
 
+## Plan
+
+1. `src/braids/requests.ts`: `markAnswerWoken(root, code, event)`: appends a `reminded` event (by `board`, text `answer sent to the asking thread`) to an *answered* request inside the write, once (a second mark is refused inside the write). No new event kind, no new field: `reminded` is a kind every braid version since 0071 reads, and on a closed request nothing reads it but the history (`braid requests <code>`).
+2. `src/board/wake.ts`, inside the wake step: after the met loop, each request answered (state `answered`) by someone outside the asker's own thread, at or after the cut-off and within a day, with an asking thread that isn't archived and a braid not held or paused, and with no wake mark yet, gets one `t3 thread send`: `Wake: <handle> answered by the PM: <answer> (reason: <reason>). Recap it in one line, then act.`; only after a successful send the mark is written. The same memory as the met wake: the record is read again right before the send (a second board), a failed send writes nothing, a mark write that throws is retried without sending (the codes sent are kept for the board's life).
+3. Who is "outside the asker's thread": the asker's role never wakes itself (`by` = asker); the user's answer wakes a coordinator only when the request went through the PM (`to: pm` or forwarded), where the PM records it; a request straight to the user is answered in the asker's own thread. Anything else (the PM, the board) wakes.
+4. Cut-off: answers before `ANSWER_WAKES_FROM` (this version's date) or older than a day are never woken.
+5. Tests in `test/board-wake.test.ts`; docs: `docs/board.md` (Wakes), `docs/braids-format.md`, `docs/cli.md` (`braid answer`), `docs/decisions.md` (D110).
+
 ## Completion
 
-- [ ] An answer by the PM (or by anyone but the asker) wakes the asking thread once with the answer and the recap line, with the tests above
-- [ ] Older braid versions still read the record, or the coordinator approved the format change (log entry)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] An answer by the PM (or by anyone but the asker) wakes the asking thread once with the answer and the recap line, with the tests above
+- [x] Older braid versions still read the record, or the coordinator approved the format change (log entry)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
