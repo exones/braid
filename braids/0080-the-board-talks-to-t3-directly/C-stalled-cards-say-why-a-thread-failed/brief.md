@@ -45,3 +45,11 @@ Expected size: about 200 lines in 5 files.
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Mockups (`mockups/1-kinds.html`, `mockups/2-variants.html`, made from the card's own classes on demo braids), then stop for the user's verdict.
+2. `src/board/failure.ts`: `failureOf(error, thread)`. Kind from the text (T3 v0.1.12 gives no class in `thread show` or `thread list`); `stopped` from the thread's status when the run ended without an error text.
+3. `showThread`/`Where`: one `error` field.
+4. Get `Where.error` to the card: open, see the log (the board runs `thread show` only on running threads); needs the coordinator's answer.
+5. The card: the failure on the stall's need; its icon in the marks, the full text in the tooltip. Demo data, tests, docs/board.md.
