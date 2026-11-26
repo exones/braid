@@ -1,0 +1,21 @@
+{
+  "code": "q-3sgm",
+  "item": "0060",
+  "kind": "review",
+  "text": "review PR #324 at d1668cf",
+  "by": "coordinator",
+  "thread": "mcp:launch:d7c4c2f0481745d20d0010431e63e6cfe8d1df98e0426050c240a6c8a82f35e2",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:324",
+  "pr": 324,
+  "head": "d1668cf5833c6ddd136be433c5a5eb25e60e7200",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T01:55:46.501Z",
+      "by": "coordinator"
+    }
+  ]
+}
