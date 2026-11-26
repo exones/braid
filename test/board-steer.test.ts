@@ -20,6 +20,7 @@ const { limitsCommand } = await load("../dist/commands/limits.js");
 const pause = await load("../dist/board/pause.js");
 const { notifier, limitPusher } = await load("../dist/notify/notifier.js");
 const { limitsLine, demoSources, resumeAction } = await load("../dist/commands/board.js");
+const { toCard } = await load("../dist/board/model.js");
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-board-steer-"));
 after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
@@ -905,4 +906,49 @@ test("every percent shown is a whole number, also for cursor's unrounded values"
   const record = { braid: "0070", provider: "claude", window: "five_hour", label: "Session", usedPercent: 73.21908396946564, resetsAt: null, resumeAt: iso(30), task: null, thread: "", by: "board", at: iso(0) };
   assert.equal(pause.usage(record), "claude Session 73%");
   assert.match(steer.limitPush("extended", [record], NOW)?.body ?? "", /Session 73% at the resume time/);
+});
+
+// ---- 0074/H: a failed pause's Needs You card has Resume now; a Done braid's board record goes with no send.
+
+test("a failed pause puts the card in Needs You, and it still has Resume now", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 98, NOW);
+  cache(caches, "codex", 20, NOW);
+  const t3 = fakeT3({ failSend: new Set([COORD, WORK, "pm-1"]) });
+  await board(root, caches, t3, { now: NOW }).tick();
+  const [r] = records(root);
+  assert.equal(r.replies.outcome, "failed");
+  const card = toCard(braidsOf()[0], { status: { state: "ok" }, prs: new Map() }, undefined, { now: NOW, requests: new Map(), alarm: () => null, pauses: new Map([["0070", r]]) });
+  assert.equal(card.lane, "Waiting");
+  assert.equal(pause.resumeOnCard(card.pause, card.lane), true);
+  assert.equal(pause.resumeOnCard(card.pause, "Done"), false);
+  assert.equal(pause.resumeOnCard(null, "Waiting"), false);
+});
+
+test("a braid that turns Done during a pause loses its board record with no send and is left out of the PM's resume ask", async () => {
+  const { root, caches } = project();
+  cache(caches, "claude", 98, NOW);
+  cache(caches, "codex", 20, NOW);
+  const pm = { thread: "pm-1", kind: "pm", item: "0070,0071" };
+  boardRecord(root, "0070", later(-5), [...AGENTS, pm]);
+  boardRecord(root, "0071", later(-5), [{ thread: "work-71", kind: "worker", item: "0071" }, pm]);
+  const t3 = fakeT3();
+  const clock = { now: NOW };
+  const s = steerer({ t3: t3.run, now: () => clock.now, caches, warn: () => {} });
+  // 0070 reads Done on the board (its PR merged); its brief doesn't say so yet.
+  const tick = async () => {
+    const seen = good(root, caches, clock.now);
+    s.observe({ name: "p", root, repo: "repo", folder: () => root }, { ...seen, board: { ...seen.board, braids: [{ id: "0070", status: "Done" }] } });
+    await s.idle();
+  };
+  await tick();
+  assert.deepEqual(records(root).map((p: { braid: string }) => p.braid), ["0071"]);
+  assert.deepEqual(t3.sends(), [], "cleared with no send");
+  // A fresh reading under the threshold: the PM is asked for 0071 only.
+  clock.now = later(5);
+  cache(caches, "claude", 40, clock.now);
+  await tick();
+  assert.deepEqual(t3.texts().map((c) => c.args[2]), ["pm-1"]);
+  assert.match(t3.texts()[0]?.input ?? "", /Paused braid: 0071\./);
+  assert.deepEqual(t3.resumes(), []);
 });

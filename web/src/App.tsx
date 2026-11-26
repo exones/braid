@@ -9,7 +9,7 @@ import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, thread
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
-import { askWho, clock as clockAt, pauseBox, resumeMode, usage, type PauseView } from "../../src/board/pause.ts";
+import { askWho, clock as clockAt, pauseBox, resumeMode, resumeOnCard, usage,type PauseView } from "../../src/board/pause.ts";
 import type { ProgrammeResume } from "../../src/board/programme.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
 import { CLOSED_PAGE, type RequestRow, type RequestsView } from "../../src/board/record.ts";
@@ -903,7 +903,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
       )}
       {(braid.coordinator?.warning ?? launched?.warning ?? null) !== null && <Warn>{braid.coordinator?.warning ?? launched?.warning}</Warn>}
       <div className="mt-2 flex min-h-6 items-center justify-end gap-1.5">
-        {braid.pause !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <span onClick={(e) => e.stopPropagation()}><BraidResume id={braid.id} pause={braid.pause} /></span>}
+        {resumeOnCard(braid.pause, braid.lane) && <span onClick={(e) => e.stopPropagation()}><BraidResume id={braid.id} pause={braid.pause} /></span>}
         <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.total === 0 ? braid.thread : null} threadRole={braid.threadRole} coordinator={braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
       </div>
     </div>
