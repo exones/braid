@@ -177,7 +177,7 @@ test("a request the PM handles is never pushed; an escalation or forward is push
   const [c] = message.pushesOf(board(cardOf(fwd)));
   assert.match(c.title, /agento 0001: the PM asks$/);
   assert.equal(c.tags[0], "compass");
-  assert.equal(c.body, "T\nThe PM asks you: a question text");
+  assert.equal(c.body, "T\ndecide\nThe PM asks you: a question text");
   assert.notEqual(c.key, a.key);
   const ordinary = derive("In Progress", gh(PR), t3(), sig([{ id: KEY, kind: "review", text: "r", at: ago(5), thread: null, pr: 7 }]));
   assert.equal(message.pushesOf(board(cardOf(ordinary)))[0].priority, "default");
