@@ -29,6 +29,12 @@
       "by": "pm",
       "text": "2026-11-26T13:00:00.000Z",
       "reason": "0060 merges after 0074 and 0072 are in main, then main merged in, PM live check, the user's merge"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-26T10:29:33.479Z",
+      "by": "board",
+      "text": "PR #324 head moved to d8e4d78"
     }
   ]
 }
