@@ -29,6 +29,12 @@
       "by": "pm",
       "text": "2026-11-26T10:30:00.000Z",
       "reason": "live check passed; merges after 0074's #339 (the user's merge from 10:00), then main merged in and decisions renumbered"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-26T09:36:34.447Z",
+      "by": "board",
+      "text": "PR #349 head moved to 3217744"
     }
   ]
 }
