@@ -46,8 +46,8 @@ Expected size: about 80 lines in 3 files, tests included.
 
 ## Completion
 
-- [ ] `braid answer` on a wait records `met` when its condition holds and refuses otherwise, never "answered by the user", with tests
-- [ ] Waits are left out of the Decided group and `braid decisions`, with tests
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid answer` on a wait records `met` when its condition holds and refuses otherwise, never "answered by the user", with tests
+- [x] Waits are left out of the Decided group and `braid decisions`, with tests
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
