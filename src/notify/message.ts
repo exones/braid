@@ -1,10 +1,11 @@
 // What a board snapshot calls for: one push per open request that asks the user, the programme stall, and one per
 // Done braid no programme runs. `forUser` is the one place that says whether a need pushes and which thread it opens.
-// A push carries only the repo, item id, lane, title, need line, tag, priority and thread link:
+// A push carries only the repo, item id, lane, title, need line, what it blocks, tag, priority and thread link (a forwarded
+// merge also its short head and the PM's note):
 // a topic on ntfy.sh is readable by anyone who knows its name, so nothing else from the repository goes out.
 import type { BoardData, Lane, Need } from "../board/model.js";
 import { LANE_LABEL, t3codeUrl } from "../board/marks.js";
-import { FORWARDED_WORDS } from "../board/pm.js";
+import { ESCALATED_WORDS, FORWARDED_WORDS } from "../board/pm.js";
 import type { Forward } from "../board/programme.js";
 
 export interface Push {
@@ -70,8 +71,16 @@ export function forUser(need: Need | null | undefined, fallback: string | null):
   return { kind: need.via === "forwarded" ? "forward" : "request", link: need.link ?? fallback };
 }
 
-/** A line that starts with the request's code (`q-7f3k · …`), so it can be named in any thread; unchanged for a need without one. */
-const coded = (need: Need, line: string): string => (need.code === undefined ? line : `${need.code} · ${line}`);
+/** A line that starts with the request's handle (`yellow-bear-5asx · …`), so it can be named in any thread; unchanged for a need without one. */
+const coded = (need: Need, line: string): string => (need.handle === undefined ? line : `${need.handle} · ${line}`);
+
+/** `blocks 0072/B, 0072/C`; null when nothing waits on the request. */
+const blocksLine = (need: Need): string | null => (need.blocks === undefined || need.blocks.length === 0 ? null : `blocks ${need.blocks.join(", ")}`);
+
+/** What answering unblocks and what the user does (`blocks 0072/B · decide`, or just `decide`); null for a need that is no request. */
+const askLine = (need: Need): string | null => (need.act === undefined ? null : [blocksLine(need), need.act].filter((part) => part !== null).join(" · "));
+
+const lines = (...all: readonly (string | null)[]): string => all.filter((line) => line !== null).join("\n");
 
 /** A body that ends with where to go when no thread can be opened. */
 const withBoard = (body: string, click: string | null): string => (click === null ? `${body}\nOpen the board` : body);
@@ -87,7 +96,8 @@ function pmAskPush(repo: string, id: string, title: string, need: Need, link: st
     item: `${id}#pm`,
     kind: "need",
     title: `${repo} ${slug ?? id}: the PM asks`,
-    body: withBoard(slug === undefined ? `${coded(need, title)}\n${need.text}` : coded(need, need.text), click),
+    // A programme request has no item to name: its handle leads the act line.
+    body: withBoard(slug === undefined ? lines(coded(need, title), askLine(need), need.text) : lines(coded(need, askLine(need) ?? ""), need.text), click),
     tags: ["compass"],
     priority: "high",
     click,
@@ -117,12 +127,15 @@ export const doneKey = (id: string): string => `${id}|done`;
 function needPush(repo: string, id: string, title: string, lane: Lane, need: Need, kind: PushKind, link: string | null): Push {
   const click = clickOf(link);
   const forward = kind === "forward";
+  const escalated = !forward && need.via !== undefined;
+  // An escalation says so in its title, so its line doesn't repeat it.
+  const text = forward ? need.text.replace(FORWARDED_WORDS, "The PM asks you:") : escalated ? need.text.replace(`${ESCALATED_WORDS} `, "") : need.text;
   return {
     key: needKey(id, lane, need),
     item: id,
     kind: "need",
-    title: forward ? `${repo} ${id}: the PM asks` : `${repo} ${id}: ${LANE_LABEL[lane]}${need.via === undefined ? "" : " (escalated)"}`,
-    body: withBoard(`${coded(need, title)}\n${forward ? need.text.replace(FORWARDED_WORDS, "The PM asks you:") : need.text}`, click),
+    title: forward ? `${repo} ${id}: the PM asks` : `${repo} ${id}: ${escalated ? "Escalated to you" : LANE_LABEL[lane]}`,
+    body: withBoard(lines(coded(need, title), askLine(need), text), click),
     tags: [forward ? "compass" : TAGS[need.kind]],
     // An escalation or a forward is high even for a review: the PM was meant to deal with it, and didn't or couldn't.
     priority: lane === "Waiting" || need.via !== undefined ? "high" : "default",
@@ -133,13 +146,18 @@ function needPush(repo: string, id: string, title: string, lane: Lane, need: Nee
 
 /**
  * The merges the PM forwarded to the user, one push per PM thread: `<repo>: <n> merges wait for you` (one: `<repo> <id>: merge PR #<n>`),
- * a body line per PR, high, 👀, opening the PM's thread. Its key holds the set of PRs and their heads and its sequence ID is the PM thread's,
+ * per PR its handle, braid and title, head and what it blocks, and the PM's note; high, 👀, opening the PM's thread. Its key holds the set of PRs and their heads and its sequence ID is the PM thread's,
  * so a merge joining or leaving (or a moved head) sends it again in place of the old one; when none is left the notifier clears it.
  */
 function mergesPush(repo: string, thread: string, items: readonly Forward[], link: string | null): Push {
   const click = clickOf(link);
   const sorted = [...items].sort((a, b) => a.id.localeCompare(b.id));
-  const line = (f: Forward): string => `${f.id} PR #${f.need.pr ?? "?"}`;
+  const merge = (f: Forward): string =>
+    lines(
+      coded(f.need, `${f.id} ${f.title}`),
+      [`PR #${f.need.pr ?? "?"}${f.head === undefined ? "" : ` at ${f.head.slice(0, 7)}`}`, blocksLine(f.need)].filter((part) => part !== null).join(" · "),
+      f.note === undefined ? null : `PM: ${f.note}`,
+    );
   const one = sorted.length === 1 ? sorted[0] : undefined;
   const item = `merges#${thread}`;
   return {
@@ -147,7 +165,7 @@ function mergesPush(repo: string, thread: string, items: readonly Forward[], lin
     item,
     kind: "need",
     title: one === undefined ? `${repo}: ${sorted.length} merges wait for you` : `${repo} ${one.id}: merge PR #${one.need.pr ?? "?"}`,
-    body: withBoard(sorted.map(line).join("\n"), click),
+    body: withBoard(sorted.map(merge).join("\n\n"), click),
     tags: [TAGS.review],
     priority: "high",
     click,

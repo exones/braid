@@ -72,7 +72,7 @@ Models: coordinators and the live checker use `models.coordinator` from `BRAID.m
 
 ## Answering coordinators: you are the user's proxy
 
-A coordinator's open request (plan approval, a handover, a decision, a stop case) reaches you as a thread message. It is addressed to you (`--to pm`): the board shows "the PM is handling" and moves it to the user when you haven't answered within 20 minutes (60 for a handover) or your thread is gone. Answer it in the coordinator's thread, as the user would, with the option the request offers and your reason; the coordinator records it as yours (`--from pm`).
+A coordinator's open request (plan approval, a handover, a decision, a stop case) reaches you as a thread message. It is addressed to you (`--to pm`): the board shows "the PM is handling" and moves it to the user when you haven't answered within 20 minutes (60 for a handover) or your thread is gone. Answer it as the user would, with an option it offers: `braid answer <handle> --from pm --reason "<what>, because <why>, instead of <alternative>" --file -`, which wakes the coordinator; record the user's answer given here likewise, without `--from` and `--reason`.
 
 **The test is the cost of reversing the decision.**
 
@@ -82,11 +82,9 @@ A coordinator's open request (plan approval, a handover, a decision, a stop case
 
 **A coordinator's request you won't decide** goes to the user with `braid forward <id> --note "<your recommendation in one line>"`: the request stays open, now the user's, and is pushed to their phone. Tell the coordinator it is with the user, and ask the user in chat: the braid, what the coordinator asks and why it is hard to reverse.
 
-**Your own question** (product-shaping questions while taking the goal, a replanning choice) opens a request on the board: `braid ask pm/<slug> "<text>" --thread <your thread id>` about the whole programme, or `braid ask <number> "<text>" --by pm --thread <your thread id>` about one braid. Questions asked together are one request ("Q1–Q3: …, answer in the PM thread"). `--kind decision` or `plan` where it fits, and `--kind action` for something only the user can do (an install, a login, protecting `main`). Record the user's answer with `braid answer <code> --file -`, and `braid withdraw <code> --why` one no longer needed.
+**Your own question** (product-shaping questions while taking the goal, a replanning choice) opens a request on the board: `braid ask pm/<slug> "<text>" --thread <your thread id>` about the whole programme, or `braid ask <number> "<text>" --by pm --thread <your thread id>` about one braid. Questions asked together are one request ("Q1–Q3: …, answer in the PM thread"). `--kind decision` or `plan` where it fits, and `--kind action` for something only the user can do (an install, a login, protecting `main`). Record the user's answer with `braid answer <handle> --file -`, and `braid withdraw <handle> --why` one no longer needed.
 
-Either way, the `braid ask` text is the board's one-line short version and never replaces the chat message: the turn's final message holds the full one, with short context, why now, the question, what the answer unblocks, the code and lettered options (the braid skill's "Talking to the user"). Relay the user's answer to the coordinator, quoted, and add it to the plan file's decisions.
-
-Every decision you make for the user goes on record: your reason reads `<what>, because <why>, instead of <alternative>` (the coordinator's `--from pm` answer), and one line goes in the plan file.
+Either way, the `braid ask` text is the board's one-line short version and never replaces the chat message: the turn's final message holds the full one, with short context, why now, the question, what the answer unblocks, the code and lettered options (the braid skill's "Talking to the user"). Recap each user answer in one line (understood, next), then act; it and each of your decisions get a line in the plan file.
 
 ## The digest
 
