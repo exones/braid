@@ -38,7 +38,7 @@ The script copies `.agents/skills/braid` and `.agents/skills/braid-*` from that 
 
 A target repository needs a `BRAID.md` at its root with the facts the skills read:
 
-- the `gate` command, run before every PR;
+- the `gate` command, run before every PR; on a machine where several agents run it at once, [`braid gate`](cli.md#commands) runs it with at most two at a time (run by hand: the skills run the command itself, and the command must not be `braid gate`);
 - the `main` branch;
 - the required `ci` checks: a list of names means exactly those; `all` means every check reported on the commit (checks that vary with the paths a PR changes); `[]` and `none` name none, so there is nothing to wait for, reported checks must still pass, and no preset merges; `none` also says there is no hosted CI, so the gate is the evidence;
 - optional `merge-gate` and `merge-gate-on`: a command `braid accept --merge` runs before each merge it makes, under every preset, with `<pr>` and `<sha>` (the reviewed head) filled in, for nine minutes at most; it refuses the merge unless it exits 0, and a script that reports failure only in its output needs a wrapper or an exit-code flag; `merge-gate-on` says which merges run it (strands into the braid branch, PRs into `main`, or both, the default);
