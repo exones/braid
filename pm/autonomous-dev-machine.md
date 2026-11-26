@@ -164,6 +164,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26: user approved 0082's mockups (shiny-muffin-fqro): 1A send at once, 2A merge-waiting PRs ranked in the panel, 3A, 4B, 5B look/FYI mark on the record, 6B, an opened card shows its context expanded; "Start it." 0082 preset free; B-F one at a time; C's data case and D's security come to the PM.
 - 2026-11-26: user: "actually build the questions panel to the end if/when I approve of the mockups. It now takes a lot of time chasing the questions all over the board": 0082 runs B-F after the mockup approval, preset free; it builds on main as is, the second of 0082/0077/0080 to merge merges main before its final PR (PM decision, cheap to reverse).
 - 2026-11-26: P25 is 0082; PM approved its plan (humble-puppy-grd3, A): strands A mockups, B gaps (03t9, 1onw), C context/options, D answer from the board (ask:security), E panel, F docs; only A runs, then hold.
 - 2026-11-26: user: "can you start P25 but just to produce mockups": PM rechecked the row (nothing built; `context`/`options` not in requests.ts; Decided only in the details panel), launched the P25 coordinator (thread mcp:launch:236ccef0…) with preset careful, mockups only, then hold. The rest stays held.
