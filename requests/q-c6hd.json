@@ -1,0 +1,21 @@
+{
+  "code": "q-c6hd",
+  "item": "0074",
+  "kind": "review",
+  "text": "review PR #339 at 85a95fc",
+  "by": "coordinator",
+  "thread": "mcp:launch:26ba11efdb3af7287266920a3acc65fe9e97b7313b3436a84692c265d042342f",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:339",
+  "pr": 339,
+  "head": "85a95fceaa2eaea62bd24c9f3ec73bfafa4a5a07",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T04:02:12.251Z",
+      "by": "coordinator"
+    }
+  ]
+}
