@@ -29,7 +29,13 @@ Expected size: about 100 lines in 6 files.
 
 ## Completion
 
-- [ ] Docs from BRAID.md `docs` are true for everything 0072 changed, as a whole
-- [ ] report.md lists each doc checked as updated or unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Docs from BRAID.md `docs` are true for everything 0072 changed, as a whole
+- [x] report.md lists each doc checked as updated or unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Read the braid's diff, log and reports; check each doc in BRAID.md docs and the help text against the code (src/commands/requests.ts, src/notify/message.ts, src/board).
+2. Fix the log's named gaps and what else is stale; add the recap decision (D113) and the roadmap line.
+3. Gate, PR into the braid branch, report.md listing each doc.
