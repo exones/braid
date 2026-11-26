@@ -38,8 +38,15 @@ Expected size: about 250 lines in 6 files.
 
 ## Completion
 
-- [ ] `braid gate` runs BRAID.md's `gate` and passes its exit code through; a third run waits while two run, and says who holds the slots; a stale lock is taken over
-- [ ] braid's own `node --test` runs with a concurrency cap
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/cli.md, the help text), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `braid gate` runs BRAID.md's `gate` and passes its exit code through; a third run waits while two run, and says who holds the slots; a stale lock is taken over
+- [x] braid's own `node --test` runs with a concurrency cap
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/cli.md, the help text), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## plan
+
+- `src/commands/gate.ts`: `braid gate [--no-wait]`. Slots are `gate-1.lock` and `gate-2.lock` in `braidHome()` (JSON: pid, project, worktree, since). A slot whose pid is gone is taken over through `takeOverStale` (src/braids/state.ts), which gets an optional staleness test, so two waiters can't remove each other's new lock. Busy with `--no-wait`: exit 75. The gate runs in the checkout root, stdio inherited; the slot is released when the command ends, also after Ctrl+C or SIGTERM.
+- src/cli.ts: register and help line.
+- scripts/Test-Node.ps1 behind `npm run test`: `--test-concurrency` half the cores; no cap under `CI` (a CI runner has no board, and half of 4 cores would slow the Windows job).
+- test/gate.test.ts with a temporary home; docs/cli.md, docs/development.md, docs/decisions.md.
