@@ -57,11 +57,11 @@ A question has a name that can be said aloud (`yellow-bear-5asx`, answered with 
 
 ## Completion
 
-- [ ] `braid requests` and `braid ask` say what each open request unblocks and whether it is to decide or do; a request code is found in any letter case (0072/A)
-- [ ] Every request has a name that can be said aloud, shown and copied as one handle `yellow-bear-5asx` (two words unique among open requests plus the q-code's four characters); every command takes every form loosely and asks back on an ambiguous match; old q-codes still work (0072/G)
-- [ ] The board's cards and details say what a question unblocks, list answered questions as Decided with the answer, and an escalation reads "Escalated to you" (0072/B)
-- [ ] Pushes and programme cards carry the request's code, what it unblocks and, for a forwarded merge, the braid's title, PR, head and the PM's note (0072/C)
-- [ ] A wait closed with `braid answer` reads met or is refused, never "answered by the user", and waits stay out of Decided (0072/H)
-- [ ] A PM's answer recorded with `braid answer --from pm` wakes the asking thread once, and the escalation reads the record (0072/D)
-- [ ] The skills say to recap an answer in one line before acting, and the PM records its own answers; 0072's changes to `.agents/skills/` add no words net (0072/E)
-- [ ] Docs are true as a whole (0072/F)
+- [x] `braid requests` and `braid ask` say what each open request unblocks and whether it is to decide or do; a request code is found in any letter case (0072/A)
+- [x] Every request has a name that can be said aloud, shown and copied as one handle `yellow-bear-5asx` (two words unique among open requests plus the q-code's four characters); every command takes every form loosely and asks back on an ambiguous match; old q-codes still work (0072/G)
+- [x] The board's cards and details say what a question unblocks, list answered questions as Decided with the answer, and an escalation reads "Escalated to you" (0072/B)
+- [x] Pushes and programme cards carry the request's code, what it unblocks and, for a forwarded merge, the braid's title, PR, head and the PM's note (0072/C)
+- [x] A wait closed with `braid answer` reads met or is refused, never "answered by the user", and waits stay out of Decided (0072/H)
+- [x] A PM's answer recorded with `braid answer --from pm` wakes the asking thread once, and the escalation reads the record (0072/D)
+- [x] The skills say to recap an answer in one line before acting, and the PM records its own answers; 0072's changes to `.agents/skills/` add no words net (0072/E)
+- [x] Docs are true as a whole (0072/F)
