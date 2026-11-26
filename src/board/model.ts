@@ -481,7 +481,7 @@ function withStalls(own: Own | null, s: Stalls): Own | null {
 
 /**
  * An item's lane, first match winning: Done (its status as `statusOf` reads it: a merged PR, or an old stored
- * Done); an open `review` request is To Review; another open request is Needs You with its text; an agent's
+ * Done; an open request stays as its need there, so no question is lost); an open `review` request is To Review; another open request is Needs You with its text; an agent's
  * pending question is Needs You `question`; an item accepted at its open PR's head (`accepted`) waits for the
  * merge, To Review; a broke alarm (`checks failed`, `stalled`, after ten minutes) is Needs You with its reason;
  * started (In Progress, an agent running, or an open PR) is Working; else To Do. An `ask:<key>` label never sets
@@ -501,7 +501,12 @@ export function derive(status: Status, labels: readonly string[], key: string, g
     if (!key.includes("/")) {
       raise(`${key} wait`, "stalled", false);
     }
-    return { lane: "Done", pr, reason: null, need: null, ask: null, agents, activity: null, pause: null, pm: null, pmAsk: null, alarms };
+    // An open request doesn't go with its item (0082, answer 6B): it stays the need, routed as ever; lane and reason say Done.
+    const { routed, req, pm } = routing(key, sig, t3);
+    const asked = sig.asks?.get(key);
+    const pmAsk = asked === undefined ? null : needOfAsk(asked, sig.now, t3, null, sig.unblocks?.(asked) ?? []);
+    const need = req !== undefined && routed !== undefined ? requestLane(req, sig.now, routed, t3, sig.unblocks?.(req) ?? []).need : pmAsk;
+    return { lane: "Done", pr, reason: null, need, ask: null, agents, activity: null, pause: null, pm, pmAsk, alarms };
   }
   const label = labels.find((l) => l.startsWith("ask:") && l.length > 4);
   const ask = label === undefined ? null : label.slice(4);
@@ -721,7 +726,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
     alarms.push(...derived.alarms);
     const lift = planned(braid.number, derived.lane, gh, t3);
     const own = lift === null ? derived : { ...derived, ...lift };
-    return { id: braid.brief.id, title: braid.brief.title, status: self.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), ...doneLinkOf(braid.number, t3, own.lane), doneAt: own.lane === "Done" ? doneAtOf(braid, own.pr, sig) : null, pause: own.lane === "Done" ? null : derived.pause, pm: own.lane === "Done" ? null : derived.pm, pmAsk: own.lane === "Done" ? null : derived.pmAsk, programme: null, waits: waitsOf(braid.number, sig, t3), alarms };
+    return { id: braid.brief.id, title: braid.brief.title, status: self.status, lane: own.lane, labels: braid.brief.labels, branch: braid.source?.branch ?? null, pr: own.pr, reason: own.reason, need: own.need, ask: own.ask, running: own.agents.length > 0, activity: own.activity, done: 0, total: 0, strands, thread: openThread(braid.number, own.agents, t3, own.lane), threadRole: openThreadRole(braid.number, own.agents, t3, own.lane), merge: mergeOf(braid.number, gh, sig, t3), start: startOf(braid, own.lane, t3, ctx), coordinator: coordinatorOf(braid.number, t3, ctx, own.lane), ...doneLinkOf(braid.number, t3, own.lane), doneAt: own.lane === "Done" ? doneAtOf(braid, own.pr, sig) : null, pause: own.lane === "Done" ? null : derived.pause, pm: derived.pm, pmAsk: derived.pmAsk, programme: null, waits: waitsOf(braid.number, sig, t3), alarms };
   }
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
@@ -732,7 +737,9 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
   const pr = shown?.state === "merged" && self.status !== "Done" ? null : shown;
   const { asked, routed, req, pm: routedPm } = routing(braid.number, sig, t3);
   const pm = routedPm ?? strands.find((s) => s.pm !== null)?.pm ?? null;
-  const askOf = pr?.state === "merged" ? undefined : sig.asks?.get(braid.number);
+  // A Done braid keeps its open requests (6B), its final PR merged or not.
+  const done = self.status === "Done";
+  const askOf = sig.asks?.get(braid.number);
   const pmNeed = askOf === undefined ? null : needOfAsk(askOf, sig.now, t3, null, sig.unblocks?.(askOf) ?? []);
   const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
   // The braid-level stall clock is settled first, so wrap-up's derive keeps its own clock on the braid's number, so this one has its own key and is cleared in wrap-up:
@@ -747,10 +754,12 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
     const d = derive(self.status, braid.brief.labels, braid.number, gh, { ...t3, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []), coordinators: new Map() }, sig, self.accepted, pr);
     alarms.push(...d.alarms);
     own = d;
-  } else if (req !== undefined && routed !== undefined && pr?.state !== "merged") {
+  } else if (req !== undefined && routed !== undefined && (done || pr?.state !== "merged")) {
     own = requestLane(req, sig.now, routed, t3, sig.unblocks?.(req) ?? []);
   }
-  own = withStalls(own, stallsOf({ id: `${braid.number} coordinator`, key: braid.number, holds, words: "Stalled: the coordinator stopped and nothing was asked" }, sig, t3, raise));
+  // Read for a Done braid too, which keeps its alarm clocks right; it shows no stall.
+  const stalls = stallsOf({ id: `${braid.number} coordinator`, key: braid.number, holds, words: "Stalled: the coordinator stopped and nothing was asked" }, sig, t3, raise);
+  own = done ? own : withStalls(own, stalls);
   const paused = sig.pauses?.get(braid.number) ?? null;
   const candidates = [
     ...(own?.need == null ? [] : [{ lane: own.lane, reason: own.reason, need: own.need, who: null as string | null }]),
@@ -769,7 +778,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
     labels: braid.brief.labels,
     branch: braid.source?.branch ?? null,
     pr: shown,
-    reason: top !== undefined && top.lane === "Waiting" ? top.reason : null,
+    reason: !done && top !== undefined && top.lane === "Waiting" ? top.reason : null,
     need: top === undefined ? null : { ...top.need, who: top.who, more: candidates.length - 1 },
     ask: null,
     running: strands.some((s) => s.running) || (own?.agents?.length ?? 0) > 0,
@@ -785,8 +794,8 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
     ...doneLinkOf(braid.number, t3, lane),
     doneAt: lane === "Done" ? (doneAtOf(braid, pr, sig) ?? strands.map((s) => s.doneAt).filter((d) => d !== null).sort().pop() ?? null) : null,
     pause: paused === null || lane === "Done" ? null : pauseView(paused, sig.now),
-    pm: lane === "Done" ? null : pm,
-    pmAsk: lane === "Done" ? null : (pmNeed ?? ((s) => (s?.pmAsk == null ? null : { ...s.pmAsk, who: s.id }))(strands.find((x) => x.pmAsk !== null))),
+    pm,
+    pmAsk: pmNeed ?? ((s) => (s?.pmAsk == null ? null : { ...s.pmAsk, who: s.id }))(strands.find((x) => x.pmAsk !== null)),
     programme: null,
     waits: waitsOf(braid.number, sig, t3),
     alarms,
@@ -828,9 +837,15 @@ const waitsOf = (number: string, sig: Signals, t3: T3): RequestRow[] =>
 /** How many Done braids show at first, and how many more each press of Show more adds. */
 export const DONE_PAGE = 10;
 
-/** The Done braids newest first by the date they became Done; those without a date come last, highest number first. */
-export function doneNewestFirst<T extends { readonly id: string; readonly doneAt: string | null }>(cards: readonly T[]): T[] {
-  return [...cards].sort((a, b) => (a.doneAt === b.doneAt ? 0 : a.doneAt === null ? 1 : b.doneAt === null ? -1 : a.doneAt < b.doneAt ? 1 : -1) || (a.id < b.id ? 1 : -1));
+/** Whether a card still asks the user something, as a Done one with an open request does (6B). */
+export const stillAsks = (card: { readonly need?: Need | null; readonly pmAsk?: Need | null }): boolean => card.need != null || card.pmAsk != null;
+
+/**
+ * The Done braids as the lane lists them: those that still ask the user first, so none hides behind Show more; then
+ * newest first by the date they became Done; those without a date come last, highest number first.
+ */
+export function doneNewestFirst<T extends { readonly id: string; readonly doneAt: string | null; readonly need?: Need | null; readonly pmAsk?: Need | null }>(cards: readonly T[]): T[] {
+  return [...cards].sort((a, b) => Number(stillAsks(b)) - Number(stillAsks(a)) || (a.doneAt === b.doneAt ? 0 : a.doneAt === null ? 1 : b.doneAt === null ? -1 : a.doneAt < b.doneAt ? 1 : -1) || (a.id < b.id ? 1 : -1));
 }
 
 /** The board of a read, and the broke conditions it saw: nothing is written for them until the step after it (`sig.commit(alarms)`). */

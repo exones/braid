@@ -104,10 +104,10 @@ test("a new request from the same asker on the same item withdraws the open one;
   const root = clones[0] as string;
   const first = R.openRequest(root, q("0003")).code;
   const pm = R.openRequest(root, q("0003", { by: "pm" })).code;
-  const second = R.openRequest(root, q("0003", { at: "2026-11-23T11:00:00.000Z" })).code;
+  const { code: second, handle } = R.openRequest(root, q("0003", { at: "2026-11-23T11:00:00.000Z" }));
   const all = new Map(R.loadRecord(root).requests.map((r: any) => [r.code, r]));
   assert.deepEqual([(all.get(first) as any).state, (all.get(pm) as any).state, (all.get(second) as any).state], ["withdrawn", "open", "open"]);
-  assert.deepEqual((all.get(first) as any).events.at(-1), { event: "withdrawn", at: "2026-11-23T11:00:00.000Z", by: "coordinator", text: `replaced by ${second}` });
+  assert.deepEqual((all.get(first) as any).events.at(-1), { event: "withdrawn", at: "2026-11-23T11:00:00.000Z", by: "coordinator", text: `replaced by ${handle}` });
 });
 
 test("a wait doesn't withdraw its asker's open question on the item, nor a question a wait (rf9z)", () => {
@@ -116,10 +116,10 @@ test("a wait doesn't withdraw its asker's open question on the item, nor a quest
   const question = R.openRequest(root, q("0003", { to: "pm", pm: "pm-thread-1234" })).code;
   const wait = R.openRequest(root, q("0003", { to: "0004", doneWhen: "braid:0004", at: "2026-11-23T10:05:00.000Z" })).code;
   const other = R.openRequest(root, q("0003", { to: "0005", doneWhen: "braid:0005", at: "2026-11-23T10:06:00.000Z" })).code;
-  const user = R.openRequest(root, q("0003", { at: "2026-11-23T10:10:00.000Z" })).code;
+  const { code: user, handle } = R.openRequest(root, q("0003", { at: "2026-11-23T10:10:00.000Z" }));
   const state = () => new Map(R.loadRecord(root).requests.map((r: any) => [r.code, r.state]));
   assert.deepEqual([question, wait, other, user].map((c) => state().get(c)), ["withdrawn", "open", "open", "open"], "the question to the user replaced the one to the PM; both waits stay");
-  assert.equal(R.loadRecord(root).requests.find((r: any) => r.code === question).events.at(-1).text, `replaced by ${user}`);
+  assert.equal(R.loadRecord(root).requests.find((r: any) => r.code === question).events.at(-1).text, `replaced by ${handle}`);
 });
 
 test("a wait replaces only its asker's wait to the same braid", () => {

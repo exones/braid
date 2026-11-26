@@ -1,8 +1,10 @@
 // A request as the board shows it: one row per request on an item's Requests tab and on the asking braid's card.
 // Pure: it reads the signals (the open requests and the closed ones) and T3's thread links, and writes nothing.
-import { actOf, age, askerOf, closing, handleOf, isWait, programmeOf, type Asker, type Request, type State, type Who } from "../braids/requests.js";
+import { actOf, age, askerOf, closing, handleOf, isTimedWait, isWait, programmeOf, type Asker, type Request, type State, type Who } from "../braids/requests.js";
 import type { Signals } from "./model.js";
 import { linkOfThread } from "./model.js";
+import { clock } from "./pause.js";
+import { routeOf, viaNote } from "./pm.js";
 import type { T3 } from "./t3.js";
 
 /** How many closed requests the tab keeps in its data; the page shows the first 10 and "Show more". */
@@ -14,9 +16,11 @@ export interface RequestRow {
   readonly code: string;
   /** The one handle it is shown and copied as (`yellow-bear-5asx`, or `q-7f3k` for a record without words). */
   readonly handle: string;
-  /** The items answering it unblocks while it is open (empty once closed), and what the user does about it. */
+  /** The items answering it unblocks while it is open (empty once closed), and what happens about it (`actWord`): `decide`, `do`, `merge`, or for a wait `waits for 0077`, `until 21:00`. */
   readonly blocks: readonly string[];
-  readonly act: "decide" | "do" | "merge";
+  readonly act: string;
+  /** An open request that reached the user from the PM, marked as its card's need line is: `words` leads the text ("Escalated to you:"), `why` ends it; null otherwise. */
+  readonly mark: { readonly words: string; readonly why: string } | null;
   /** The item that asked: `0004/B`. */
   readonly item: string;
   readonly kind: Request["kind"];
@@ -53,13 +57,27 @@ export interface RequestsView {
   readonly closed: readonly RequestRow[];
 }
 
-export function rowOf(r: Request, now: Date, t3: T3, blocks: readonly string[] = []): RequestRow {
+/** What happens about a request, in a few words: a wait says what it waits for, from its own meaning; anything else `actOf` its kind. */
+export const actWord = (r: Pick<Request, "kind" | "to" | "doneWhen">, now: Date): string =>
+  isTimedWait(r) ? `until ${clock(r.doneWhen.slice("time:".length), now)}` : isWait(r) ? `waits for ${r.to ?? ""}` : actOf(r.kind);
+
+/** The mark of an open request that reached the user from the PM (`routeOf`); a forward's note has its own line, so `why` is an escalation's only. */
+function markOf(r: Request, now: Date, t3: T3, paused: boolean): RequestRow["mark"] {
+  if (r.state !== "open" || isWait(r)) {
+    return null;
+  }
+  const routed = routeOf(r, now, t3, paused);
+  return "via" in routed ? { words: routed.words, why: routed.via === "forwarded" ? "" : viaNote(routed.via, r, now) } : null;
+}
+
+export function rowOf(r: Request, now: Date, t3: T3, blocks: readonly string[] = [], paused = false): RequestRow {
   const end = closing(r);
   return {
     code: r.code,
     handle: handleOf(r),
     blocks: r.state === "open" ? blocks : [],
-    act: actOf(r.kind),
+    act: actWord(r, now),
+    mark: markOf(r, now, t3, paused),
     item: r.id,
     kind: r.kind,
     text: r.kind === "review" && r.pr !== undefined ? `Merge PR #${r.pr}` : r.text,
@@ -82,7 +100,7 @@ export const requestCount = (view: RequestsView): number => view.open.length + v
 
 /** The requests of the items `match` keeps: its open ones, the ones waiting on another braid, and the closed ones, newest first. */
 export function requestsOf(match: (id: string) => boolean, sig: Signals, t3: T3): RequestsView {
-  const rows = (rs: readonly Request[]): RequestRow[] => rs.filter((r) => match(r.id) && programmeOf(r.id) === null).map((r) => rowOf(r, sig.now, t3, sig.unblocks?.(r) ?? []));
+  const rows = (rs: readonly Request[]): RequestRow[] => rs.filter((r) => match(r.id) && programmeOf(r.id) === null).map((r) => rowOf(r, sig.now, t3, sig.unblocks?.(r) ?? [], sig.pauses?.has(r.id.slice(0, 4)) === true));
   const ended = rows(sig.closed ?? []).sort((a, b) => (a.closed?.at ?? "") < (b.closed?.at ?? "") ? 1 : -1);
   // A wait is nobody's decision, however it ended (an old record may read "answered by the user").
   const decided = (r: RequestRow): boolean => r.state === "answered" && !isWait(r);

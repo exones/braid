@@ -8,7 +8,7 @@ import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
 import { LANE_LABEL, ageText, cardMarks, leadOf, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
-import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
+import { DONE_PAGE, doneNewestFirst, stillAsks } from "../../src/board/model.ts";
 import { askWho, clock as clockAt, pauseBox, resumeMode, resumeOnCard, usage,type PauseView } from "../../src/board/pause.ts";
 import type { ProgrammeResume } from "../../src/board/programme.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
@@ -882,7 +882,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
           </span>
         </div>
       )}
-      {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
+      {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review" || braid.strands.some((s) => s.lane === "Done" && s.id === braid.need?.who)) && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
       {details && !open && braid.pmAsk !== null && braid.need?.by !== "pm" && <NeedLine need={braid.pmAsk} />}
       {details && !open && braid.pm !== null && <PmLine pm={braid.pm} />}
       {details && !open && braid.waits.map((w) => <WaitLine key={w.code} row={w} />)}
@@ -1163,7 +1163,7 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
   return (
     <div>
       <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:min-h-11 md:hidden">
-        <span aria-hidden>{open ? "▾" : "▸"}</span> {open ? "Hide" : "Show"} done
+        <span aria-hidden>{open ? "▾" : "▸"}</span> {open ? "Hide" : "Show"} done{!open && cards.some(stillAsks) ? ` · ${cards.filter(stillAsks).length} asking you` : ""}
       </button>
       {open && (
         <button type="button" aria-expanded onClick={() => setOpen(false)} className="mb-1 flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:hidden">
@@ -1173,7 +1173,8 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
       {open && (
         <div>
           {rows.slice(0, shown).map((b) => (
-            <button key={`${b.project}/${b.id}`} type="button" data-opens-details onClick={() => go(b.id, "brief", b.project)} className="flex w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
+            <div key={`${b.project}/${b.id}`} className="border-b border-slate-300/60">
+            <button type="button" data-opens-details onClick={() => go(b.id, "brief", b.project)} className="flex w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
               <LaneDot lane="Done" />
               <span className="w-10 flex-none text-xs text-slate-500"><Id id={b.id} /></span>
               {tagged && <ProjectTag name={b.project} />}
@@ -1181,6 +1182,17 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
               <span className="min-w-24 flex-1">{b.title}</span>
               <span className="ml-auto flex-none text-[11px] whitespace-nowrap text-slate-500">{dayOf(b.doneAt)}</span>
             </button>
+            {/* An open question stays with its Done braid, whatever the Details setting: it isn't lost. */}
+            {stillAsks(b) && (
+              <ProjectContext value={b.project}>
+                <div className="px-1 pb-1.5">
+                  {b.need !== null && <NeedLine need={b.need} braid={b.total > 0 || b.need.who !== null} />}
+                  {b.pmAsk !== null && b.need?.by !== "pm" && <NeedLine need={b.pmAsk} />}
+                </div>
+              </ProjectContext>
+            )}
+            {b.pm !== null && <div className="px-1 pb-1.5"><PmLine pm={b.pm} /></div>}
+            </div>
           ))}
           {rows.length > shown && (
             <button type="button" onClick={() => setShown(shown + DONE_PAGE)} className="mt-2 w-full cursor-pointer rounded-md border border-slate-200 bg-white py-1.5 text-xs hover:border-blue-600 max-md:min-h-11 max-md:text-sm">
@@ -1249,6 +1261,7 @@ function Board({ data, details }: { data: { readonly lanes: readonly Lane[]; rea
                 <button type="button" aria-expanded={false} onClick={() => setDoneOpen(true)} className="flex min-h-48 w-full cursor-pointer flex-col items-center gap-2 rounded-xl bg-slate-200/70 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 hover:bg-slate-300/70 max-md:hidden">
                   <LaneDot lane={lane} />
                   <span>{cards.length}</span>
+                  {cards.some(stillAsks) && <span title="Done braids with an open question" className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">? {cards.filter(stillAsks).length}</span>}
                   <span className="[writing-mode:vertical-rl]">{LANE_LABEL[lane]}</span>
                 </button>
                 <div className="md:hidden"><DoneLane cards={cards} open={false} setOpen={setDoneOpen} /></div>
@@ -1306,7 +1319,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           {item.need.text}
           {item.need.also !== undefined && <div className={`mt-2 rounded-md border-l-[3px] px-1.5 py-1 ${toneOf(item.need.also)}`}>{item.need.also.text}</div>}
           {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.handle ?? item.need.code}</b> in any thread to refer to it.</span></div>}
-          <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
+          <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind !== "limit" && item.lane === "Done" ? "This item is Done, but the request is still open: answer it in the coordinator thread." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
       )}
       {item.pmAsk !== null && item.need?.by !== "pm" && (
@@ -1393,14 +1406,15 @@ function RequestCard({ row }: { row: RequestRow }) {
       <div className="flex flex-wrap items-center gap-1.5">
         <CodeChip code={row.handle} />
         <span className={`rounded-full px-2 py-px text-[11px] font-semibold ${state.tone}`}>{label}</span>
-        <Badge>{row.kind}</Badge>
-        {row.state === "open" && !/^\d{4}$/.test(row.to) && row.to !== "self" && <span className="text-xs"><BlockLine blocks={row.blocks} act={row.act} /></span>}
-        {/^\d{4}$/.test(row.to) && <Badge>to braid {row.to}</Badge>}
-        {row.to === "self" && <Badge>waiting until {untilText(row.doneWhen)}</Badge>}
+        {!wait && <Badge>{row.kind}</Badge>}
+        {row.state === "open" && !wait && <span className="text-xs"><BlockLine blocks={row.blocks} act={row.act} /></span>}
+        {wait && <Badge>{row.act}</Badge>}
         <span className="flex-1" />
         {end !== null ? <span className="text-xs text-slate-500">{when(end.at)}</span> : <AskingLink link={row.link} />}
       </div>
-      <div className="mt-1">{row.text}</div>
+      <div className={`mt-1 ${row.mark === null ? "" : `rounded-md border-l-[3px] px-1.5 py-1 ${NEED_TONE.wait}`}`}>
+        {row.mark === null ? row.text : `${row.mark.words} ${row.text}${row.mark.why}`}
+      </div>
       {end?.text != null && (
         <div className={`mt-1.5 rounded border-l-[3px] bg-slate-50 px-2 py-1 text-[13px] ${row.state === "answered" ? "border-green-600" : "border-slate-400 text-slate-700"}`}>
           <b>{row.state === "answered" ? "Answer: " : row.state === "met" ? "Met: " : `Withdrawn by ${WHO[end.by] ?? end.by}: `}</b>
