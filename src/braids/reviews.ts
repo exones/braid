@@ -5,6 +5,9 @@ import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { locked, mainCheckout } from "./requests.js";
 
+/** What the recorded child does for the item; a record without one is a reviewer's. */
+export type ChildRole = "worker" | "review" | "research";
+
 export interface ReviewRecord {
   /** The item: `0015` or `0015/C`. */
   readonly id: string;
@@ -16,7 +19,12 @@ export interface ReviewRecord {
   readonly folder?: string;
   /** That checkout's branch as T3 gave it (a child's `t3/<hex>`); null when T3 gave none. */
   readonly branch?: string | null;
+  /** The child's role; missing in older records, which read as `review`. */
+  readonly role?: ChildRole;
 }
+
+/** The record's role, `review` when it has none. */
+export const childRole = (r: ReviewRecord): ChildRole => r.role ?? "review";
 
 export function reviewsFile(root: string): string {
   return join(mainCheckout(root), ".braid", "reviews.json");
@@ -58,12 +66,12 @@ export function loadReviews(root: string): ReviewRecord[] {
 }
 
 /** Records a thread that reviews the item; the same thread twice is kept once (its first time stays). A PM's checker (`pm/<slug>`) replaces the item's older record: the PM has one checker at a time (0071/E, ozjp). */
-export function recordReview(root: string, id: string, thread: string, at: string = new Date().toISOString(), where: { folder: string; branch: string | null } | null = null): boolean {
+export function recordReview(root: string, id: string, thread: string, at: string = new Date().toISOString(), where: { folder: string; branch: string | null } | null = null, role: ChildRole = "review"): boolean {
   let added = false;
   update(reviewsFile(root), (list) => {
     added = !list.some((r) => r.thread === thread && r.id === id);
     const kept = id.startsWith("pm/") ? list.filter((r) => r.id !== id) : list;
-    return added ? [...kept, { id, thread, at, ...(where === null ? {} : { folder: where.folder, branch: where.branch }) }] : null;
+    return added ? [...kept, { id, thread, at, ...(role === "review" ? {} : { role }), ...(where === null ? {} : { folder: where.folder, branch: where.branch }) }] : null;
   });
   return added;
 }

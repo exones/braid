@@ -18,6 +18,7 @@ import { logEntry, reportItem } from "./commands/logs.js";
 import { nextCommand, statusCommand } from "./commands/coordinate.js";
 import { cleanCommand } from "./commands/clean.js";
 import { startCommand } from "./commands/start.js";
+import { launchCommand } from "./commands/launch.js";
 import { acceptCommand } from "./commands/done.js";
 import { waitCommand } from "./commands/wait.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
@@ -57,7 +58,8 @@ export function helpText(version: string): string {
     "  check                       Check every brief under braids/; list each error with its file (exit 2 on any). --plan <file>: check a programme's plan file (pm/<slug>.md) instead; an error names its line",
     "  status <number>             One line per strand: status, lane (as the board shows it), ask:<key>, branch, PR, ci checks, T3 thread, and the request text of an item on your side (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
-    "  start <id> [--force] [--thread <id>]  Create the strand branch from its braid branch, push it, add a worktree, and record the start on braid-requests (--force: skip the ready check; --thread: the coordinator's thread)",
+    "  start <id> [--force] [--no-worktree] [--thread <id>]  Create the strand branch from its braid branch, push it, add a worktree, and record the start on braid-requests (--no-worktree: only the branch, pushed and recorded, no worktree; --force: skip the ready check; --thread: the coordinator's thread)",
+    "  launch <id> --role worker|review|research  Prepare one subagent launch and print the delegate_task input as JSON: the role's limits check (exit 3 on pause, nothing started), for a worker the item branch pushed with no worktree and the start recorded, the model from BRAID.md models by tier and kind, the title and the first message (--thread: the coordinator's thread; review: --pr <n> [--focus <text>]; research: --question <text>). With --child <thread id> it records the child delegate_task returned, with its role, as braid review does",
     "  review <id> --thread <id>   Record a reviewer subagent's thread with the folder and branch T3 gives for it: the board and status show the review while it runs, clean removes that checkout after the merge",
     "  decisions <number> [--since <date or sha>]  List the Decided: log entries of a braid and its strands and their requests, waits aside, answered by you or the PM (from braid-requests), oldest first",
     "  accept <id> [--head <sha>] [--merge [--preset]]  Accept an item after checks: records the acceptance on braid-requests and commits nothing on the PR's branch; the item is Done once its PR merged. A strand after its merge (--merge merges the reviewed head first; --preset makes it a merge under the braid's autonomy preset, refused unless the preset's merge value allows this PR; the BRAID.md merge-gate command, if any, runs last and a non-zero exit refuses the merge; --log adds a braid log entry on the braid branch), a story or final PR at its reviewed head (--merge merges that head; --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
@@ -79,7 +81,7 @@ export function helpText(version: string): string {
     "  inbox pass <leftover>...    Pass leftovers over in a sweep: passed + 1; at 2 the leftover is dropped (an idea is refused)",
     "  inbox drop <entry>... --why <reason>  Drop entries with a reason",
     "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
-    "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; forces only a recorded reviewer's t3/ branch whose tip is the PR head or on origin)",
+    "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; forces only a recorded subagent's t3/ branch whose tip is the PR head or on origin; keeps what the main checkout, this one or a running thread uses)",
     "  board                       Open the board in the browser (--no-open: only print the address; --no-pause: show the limits but don't pause or resume agents; --demo: sample data, never pauses, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port; --url [--port <n>]: print the running board's address with its token, from ~/.braid/board-<port>.url, or say that none runs; --service: the run of the task below)",
     "  board service <sub>         Windows: the board as a Task Scheduler task of yours, started at logon, again every 5 minutes if it stopped, no window: install [--port <n>, default 8765] [--host tailscale] (from your checkout), remove, restart [--if-installed: nothing when no task], status (state, last result (the previous run's while it runs, shown as previous run:), port, address, the running board's version against this one, the acting leases it and other boards hold, its log ~/.braid/board-<port>.log); elsewhere it points to the systemd recipe in docs/board.md",
     "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends a push, then one it clears, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
@@ -342,6 +344,23 @@ async function main(argv: readonly string[]): Promise<void> {
         process.stderr.write(`error: ${error.message}
 `);
         process.exitCode = error instanceof ProjectsFileError ? 2 : 1;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "launch") {
+    try {
+      const out = await launchCommand(findRoot(process.cwd()), argv.slice(1));
+      process.stdout.write(out.stdout);
+      process.stderr.write(out.stderr);
+      process.exitCode = out.code;
+    } catch (error) {
+      if (error instanceof UsageError || error instanceof GitError) {
+        process.stderr.write(`error: ${error.message}
+`);
+        process.exitCode = 1;
         return;
       }
       throw error;

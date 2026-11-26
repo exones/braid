@@ -398,7 +398,8 @@ export function needOfAsk(r: Request, now: Date, t3: T3, who: string | null = nu
 const pausedBraid = (key: string, sig: Signals): boolean => sig.pauses?.has(key.slice(0, 4)) === true;
 
 function activityOf(agents: readonly T3Thread[], pr: PullRequest | null): Activity | null {
-  if (agents.some((t) => t.role === "worker")) {
+  // A researcher is no review: alone or beside a worker it reads as a running agent.
+  if (agents.some((t) => t.role === "worker") || (agents.length > 0 && !agents.some((t) => t.role === "reviewer"))) {
     return "agent";
   }
   return agents.length > 0 ? "review" : pr?.state === "open" && pr.checks === "pending" ? "checks" : null;
@@ -549,7 +550,7 @@ export function laneOfLanes(lanes: readonly Lane[]): Lane {
   return URGENCY.find((lane) => lanes.includes(lane)) ?? "To Do";
 }
 
-/** The thread to open for an item: a running worker's; a subagent reviewer has no link of its own (it shows inside its coordinator's thread). */
+/** The thread to open for an item: a running worker's, else the first agent's; T3 gives a subagent its own link. */
 export function threadLink(agents: readonly T3Thread[]): string | null {
   return pickThread(agents)?.link ?? null;
 }
@@ -742,7 +743,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
   let own: Own | null = null;
   if (finalPr) {
     // The braid's recorded reviewers (`braid review <n>`) are its agents in wrap-up; the coordinator never counts.
-    const reviewers = (t3.threads.get(braid.number) ?? []).filter((t) => t.role === "reviewer");
+    const reviewers = (t3.threads.get(braid.number) ?? []).filter((t) => t.role !== "worker");
     const d = derive(self.status, braid.brief.labels, braid.number, gh, { ...t3, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []), coordinators: new Map() }, sig, self.accepted, pr);
     alarms.push(...d.alarms);
     own = d;

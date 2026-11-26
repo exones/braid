@@ -1,6 +1,6 @@
 // `braid clean [<number>|<id>] [--yes]`: removes the worktrees and local branches of items whose
 // PR is merged, and of merged planning branches (`plan/<slug>`). A dry run unless `--yes`. It keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
-// changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay. The one exception is a recorded reviewer's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
+// changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay. The one exception is a recorded subagent's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
 import { spawnSync } from "node:child_process";
 import { existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
@@ -10,8 +10,8 @@ import { readGithub, runGh, type Github } from "../board/github.js";
 import { read, type Sources } from "./coordinate.js";
 import { normPath as norm, reviewFolder } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
-import { dropReviews, loadReviews } from "../braids/reviews.js";
-import { runT3, showThread, type T3Runner } from "../board/t3.js";
+import { childRole, dropReviews, loadReviews } from "../braids/reviews.js";
+import { runT3, showThread, type T3, type T3Runner } from "../board/t3.js";
 import { repoName } from "./start.js";
 
 interface Worktree {
@@ -52,8 +52,46 @@ function free(folder: string): boolean {
   return true;
 }
 
+/** Why a folder or branch must stay, whatever a record or its name says; null when nothing holds it. `own` is the thread whose record is being cleaned. */
+type Held = (folder: string | null, branch: string | null, own?: string) => string | null;
+
+/** The main checkout, the caller's own checkout and every other running thread's checkout and branch are held. */
+function holder(listed: readonly Worktree[], here: string, t3: T3 | undefined): Held {
+  const main = listed[0];
+  const mine = listed.find((t) => norm(t.path) === here);
+  return (folder, branch, own) => {
+    const others = (t3?.occupied ?? []).filter((o) => o.id !== own);
+    if (folder !== null) {
+      const f = norm(folder);
+      if (main !== undefined && norm(main.path) === f) {
+        return "it is the main checkout";
+      }
+      if (f === here) {
+        return "checked out in this checkout";
+      }
+      const user = others.find((o) => o.folder !== null && norm(o.folder) === f);
+      if (user !== undefined) {
+        return `running thread ${user.id} uses the checkout`;
+      }
+    }
+    if (branch !== null) {
+      if (branch === main?.branch) {
+        return "the main checkout is on the branch";
+      }
+      if (branch === mine?.branch) {
+        return "this checkout is on the branch";
+      }
+      const user = others.find((o) => o.branch === branch);
+      if (user !== undefined) {
+        return `running thread ${user.id} uses the branch`;
+      }
+    }
+    return null;
+  };
+}
+
 /** Merged `plan/<slug>` branches (the PR that planned a goal) and their worktrees, kept when the worktree is dirty or in use. */
-function plans(root: string, yes: boolean, src: Sources, github: Github | undefined, listed: readonly Worktree[], here: string, lines: string[]): void {
+function plans(root: string, yes: boolean, src: Sources, github: Github | undefined, listed: readonly Worktree[], here: string, held: Held, lines: string[]): void {
   const merged = (github ?? readGithub(root, src.gh ?? runGh, 0)).plans ?? new Map<string, number>();
   for (const branch of git(root, ["branch", "--list", "--format=%(refname:short)", "plan/*"]).stdout.split("\n").map((l) => l.trim()).filter((l) => l !== "")) {
     const pr = merged.get(branch);
@@ -62,9 +100,12 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
     }
     const tree = listed.find((t) => t.branch === branch);
     const what = `planning branch ${branch}${tree === undefined ? "" : ` and worktree ${tree.path}`} (PR #${pr} merged)`;
+    const why = held(tree?.path ?? null, branch);
     let skip: string | null = null;
     if (tree !== undefined && norm(tree.path) === here) {
       skip = "checked out in this checkout";
+    } else if (why !== null) {
+      skip = why;
     } else if (git(root, ["merge-base", "--is-ancestor", branch, "HEAD"]).status !== 0) {
       skip = "merged on GitHub, but its commits are not in this checkout's HEAD: pull first, or delete it by hand";
     } else if (tree !== undefined && existsSync(tree.path) && git(tree.path, ["status", "--porcelain"]).stdout.trim() !== "") {
@@ -94,18 +135,17 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
 
 /**
  * The recorded review threads of a merged item (`braid review`). A record holds the folder and branch T3 gave for the reviewer's checkout
- * when it was recorded; they are removed when the folder is a registered worktree of this repository (not the main checkout, not this one)
+ * when it was recorded; they are removed when the folder is a registered worktree of this repository that nothing holds (`holder`)
  * and T3 doesn't say the thread runs (a thread T3 doesn't know counts as not running); then the record goes. A branch is deleted
  * only when it is a `t3/…` branch: forced when its tip is the merged PR's head or is on a remote-tracking ref of `origin` (no commit is lost), else with `git branch -d`, which keeps one with commits found nowhere else. A record without a folder (T3 gave none when it was recorded, or an older record) falls
  * back to T3: its `worktreePath` and `branch`, only for a subagent's thread; one T3 doesn't know loses its record. When T3 can't be
- * read, everything is kept.
+ * read, everything is kept. A research child ran in its parent's checkout: nothing of it is removed, only its record.
  */
-async function reviewThreads(root: string, yes: boolean, id: string, pr: number, head: string | undefined, t3Ok: boolean, run: T3Runner, listed: readonly Worktree[], here: string, lines: string[]): Promise<void> {
+async function reviewThreads(root: string, yes: boolean, id: string, pr: number, head: string | undefined, t3Ok: boolean, run: T3Runner, listed: readonly Worktree[], held: Held, lines: string[]): Promise<void> {
   const records = loadReviews(root).filter((r) => r.id === id);
-  const main = listed[0] === undefined ? null : norm(listed[0].path);
   const drop: string[] = [];
   for (const r of records) {
-    const label = `${id}: review thread ${r.thread}`;
+    const label = `${id}: ${childRole(r)} thread ${r.thread}`;
     if (!t3Ok) {
       lines.push(`skip ${label}: T3 could not be read, so its checkout is kept`);
       continue;
@@ -114,7 +154,11 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
     let folder: string | null;
     let rawBranch: string | null;
     let skip: string | null = null;
-    if (r.folder !== undefined) {
+    if (childRole(r) === "research") {
+      // Older records hold the parent's checkout and branch: ignore them.
+      folder = null;
+      rawBranch = null;
+    } else if (r.folder !== undefined) {
       folder = r.folder;
       rawBranch = r.branch ?? null;
     } else {
@@ -138,10 +182,8 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
       skip = "still running";
     } else if (folder !== null && tree === undefined && existsSync(folder)) {
       skip = "the folder is not a worktree of this repository";
-    } else if (tree !== undefined && norm(tree.path) === main) {
-      skip = "it is the main checkout";
-    } else if (tree !== undefined && norm(tree.path) === here) {
-      skip = "checked out in this checkout";
+    } else if (held(folder, null, r.thread) !== null) {
+      skip = held(folder, null, r.thread);
     } else if (tree !== undefined && yes && existsSync(tree.path) && !free(tree.path)) {
       skip = "still in use, retry later";
     }
@@ -149,8 +191,10 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
       lines.push(`skip ${what}: ${skip}`);
       continue;
     }
+    const branchHeld = branch === null ? null : held(null, branch, r.thread);
+    let note = branchHeld === null ? "" : `; kept branch ${branch}: ${branchHeld}`;
     if (!yes) {
-      lines.push(`would remove ${what}`);
+      lines.push(`would remove ${what}${note}`);
       continue;
     }
     if (tree !== undefined && existsSync(tree.path)) {
@@ -162,8 +206,7 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
     } else if (tree !== undefined) {
       git(root, ["worktree", "prune"]);
     }
-    let note = "";
-    if (branch !== null && git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).status === 0) {
+    if (branch !== null && branchHeld === null && git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).status === 0) {
       // `git branch -d` checks this checkout's HEAD, but the reviewer sits at the PR head or a commit HEAD lacks. Nothing is lost when the tip is the merged PR's head or on origin.
       const tip = git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).stdout.trim();
       const safe = (head !== undefined && head === tip) || git(root, ["branch", "-r", "--contains", tip, "--list", "origin/*"]).stdout.trim() !== "";
@@ -199,6 +242,7 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
   for (const number of numbers) {
     const w = await read(root, number, "clean", src, first);
     first ??= w;
+    const held = holder(listed, here, w.t3);
     if (w.github.status.state !== "ok") {
       throw new UsageError(`GitHub could not be read (${w.github.status.reason}); merged PRs can't be told, nothing was cleaned`);
     }
@@ -210,14 +254,15 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
       if (item.card.pr?.state !== "merged") {
         continue;
       }
-      await reviewThreads(root, yes, item.id, item.card.pr.number, item.card.pr.head, w.t3.status.state === "ok", src.t3 ?? runT3, listed, here, lines);
+      await reviewThreads(root, yes, item.id, item.card.pr.number, item.card.pr.head, w.t3.status.state === "ok", src.t3 ?? runT3, listed, held, lines);
       // A leftover reviewer checkout from before 0039 (`braid start <id> --review`, detached at the PR head) goes with the merged item.
       const revPaths = folders.map((f) => norm(join(f, reviewFolder(number, item.letter))));
       const rev = listed.find((t) => revPaths.includes(norm(t.path)));
       if (rev !== undefined) {
         const what = `${item.id}: review checkout ${rev.path} (PR #${item.card.pr.number} merged)`;
-        if (norm(rev.path) === here) {
-          lines.push(`skip ${what}: checked out in this checkout`);
+        const why = held(rev.path, null);
+        if (why !== null) {
+          lines.push(`skip ${what}: ${why}`);
         } else if (!yes) {
           lines.push(`would remove ${what}`);
         } else if (existsSync(rev.path) && !free(rev.path)) {
@@ -240,6 +285,8 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
           skip = `${live}; the braid goes on`;
         } else if (tree !== undefined && norm(tree.path) === here) {
           skip = "checked out in this checkout";
+        } else if (held(tree?.path ?? null, ref.branch) !== null) {
+          skip = held(tree?.path ?? null, ref.branch);
         } else if (git(root, ["merge-base", "--is-ancestor", ref.branch, "HEAD"]).status !== 0) {
           // `git branch -d` also accepts a branch merged into its upstream; that is not enough here.
           skip = "merged on GitHub, but its commits are not in this checkout's HEAD: pull first, or if it was squash-merged, delete it by hand";
@@ -275,7 +322,7 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
     }
   }
   if (only === null) {
-    plans(root, yes, src, first?.github, listed, here, lines);
+    plans(root, yes, src, first?.github, listed, here, holder(listed, here, first?.t3), lines);
   }
   const head = lines.length === 0 ? "nothing to clean\n" : `${lines.join("\n")}\n`;
   return `${head}${yes || lines.length === 0 ? "" : "dry run: run again with --yes to do it\n"}${notes}`;
