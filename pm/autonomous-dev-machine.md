@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 7
 state: running
 hold:
-next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24 · 0077, P15 · 0078, P27 · 0080, P28 · 0079 (merge order 0074, 0072, 0060, 0077, 0078, P27; P28 report any time); then P25 (after 0072), P5, P26"
+next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24 · 0077, P15 · 0078, P27 · 0080 (merge order 0074, 0072, 0060, 0077, 0078, P27; P28 report any time); then P25 (after 0072), P5, P26"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -36,7 +36,7 @@ rows:
   - P19 | - | The update story: braid skills update and updating braid as a whole | planned
   - P17 | - | Questions carry likely answers; the board offers them | dropped
   - P26 | - | The machine stays healthy | planned
-  - P28 | 0079 | Research: T3 Workflows | running
+  - P28 | 0079 | Research: T3 Workflows | done
   - P23 | 0076 | The README leads with programmes and lists what braid does | done
 ---
 # PM plan: Autonomous dev machine
@@ -158,6 +158,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26 ~01:30: 0079 merged at the user's "79 merge" (#330, merge daf7e9a; braids/ only, no CI run); pulled and installed, board running 0.2.0 = installed. Verdict: keep all six parts in braid, no follow-up. PM check of #335 (request lock wait, 0078/J early PR) passed: 5/5 lock runs under load, gate 709/709, CI ran 709 tests; waiting for the user's merge. 0072/D merged (#336). 0080/C answered (q-n7xu 1a 2a); 0080/D mockups forwarded (q-nxp6).
 - 2026-11-25 ~22:40: user: "try to not bother me until 10am unless normal braid question has to be raised according to normal rules for free mode". Until 10:00 on 2026-11-26: the PM decides what it may, forwards only what the rules send to the user (security, data, outward, expensive to reverse, UI mockups), keeps merges into main for a morning digest, and keeps chat to one line per event.
 - 2026-11-25: user: "there should be a button to sign in to T3 top-right-corner", then "G. a": icon-only top-right sign-in button, works on the host (token-checked click, one-time state on the loopback callback), on the phone it says where to sign in; `braid t3 login` stays. Sent to 0080 (D or a strand after it, mockup first).
 - 2026-11-25: user adds to the sign-in: two settings, how the board talks to T3 (command line or the signed-in access) and local address only (on by default); "fine", keyring "okay". Sent to 0080/D.
