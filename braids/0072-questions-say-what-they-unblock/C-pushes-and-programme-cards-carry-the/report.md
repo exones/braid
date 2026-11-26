@@ -21,7 +21,7 @@ From the phone or inside a programme the user couldn't tell what they were answe
 
 - Tests: each push text (strand question, action, escalation, the PM's requests, a forwarded merge with and without a note, unchanged key), the programme's list (PM still handling, escalated, addressed to the user, forwarded, story plus the PM's own, no second push) and the lead words (`test/notify-rule.test.ts`). Older assertions and partial card fixtures were updated for the new texts and field.
 - The demo board in headless Edge: the programme cards list their braids' requests (`~/.braid/artifacts/agento/0072/C-board.png`).
-- Gate: local `npm run verify` (27 min under load) passed typecheck and build; 739 of 742 tests. The three failures: one old push-body assertion in `test/pm-requests.test.ts`, fixed afterwards (that file then 24 of 24), and the two known multi-process lock tests in `test/requests.test.ts` (leftover 2026-11-25-2hkx). Verify stops at the test step, so the later steps ran only in CI; CI's green verify on ubuntu and windows is the gate's evidence, as the coordinator allowed.
+- Gate: local `npm run verify` (27 min under load) passed typecheck and build; 739 of 742 tests. The three failures: one old push-body assertion in `test/pm-requests.test.ts`, fixed afterwards (that file then 24 of 24), and the two known multi-process lock tests in `test/requests.test.ts` (leftover 2026-11-25-2hkx). Verify stops at the test step, so the later steps ran only in CI; The gate box is ticked on CI's evidence: the `verify` job (the same `npm run verify`) is green on ubuntu-latest and windows-latest on PR #343 at 72b7b74d, as the coordinator allowed; locally the only failures left are the two lock tests (leftover 2026-11-25-2hkx).
 
 ## Docs
 
