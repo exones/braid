@@ -1,0 +1,11 @@
+{
+  "id": "0082/C",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-26T21:55:10.067Z",
+      "thread": "mcp:launch:236ccef074a45cee67da4aac404fd6df9c2bca310db02b79a3789f23e60f7209",
+      "branch": "braid/0082/C-requests-carry-context-and-likely"
+    }
+  ]
+}
