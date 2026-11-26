@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 2
 state: running
 hold:
-next: "running: P21 · 0074, P4 · 0072, P8 · 0060, P24 · 0077, P15 · 0078, P27 · 0080 (merge order 0074, 0072, 0060, 0077, 0078, P27; P28 report any time); then P25 (after 0072), P5, P26"
+next: "0072 (#349, renumber then the user's merge), then 0060 (#324), then 0077, 0078, 0080 (q-nxp6 with the user); then P25, P5, P26"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -17,7 +17,7 @@ rows:
   - P6 | 0071 | The board wakes, reminds and nudges | done
   - P20 | 0073 | braid on large repos: CI per PR, merge gate, merge preconditions, path-scoped gates | done
   - P22 | 0075 | Lifecycle off the code branches, one pure lane | done
-  - P21 | 0074 | The board pauses and resumes reliably | ready to merge
+  - P21 | 0074 | The board pauses and resumes reliably | done
   - P27 | 0080 | The board talks to T3 directly | running
   - P25 | - | The Questions panel | planned
   - P24 | 0077 | The board stays fast under load | running
@@ -158,6 +158,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-26 ~09:40: user "Merge 74": PM merged #339 at 85a95fc (merge f3879dd), CI green, pulled, installed (board 0.2.0). 0074 Done. Skills changed: coordinators and the four other PMs told to reread the provider-limits sections. The models.steering lines in BRAID.md are unused now (the user's edit).
 - 2026-11-26 ~09:00: user: "K. A" - PM merged #335 at abb76243 (merge d7f6015), CI green, pulled, installed. "N a" - the user merges #339 themselves. "L. Will have a look later, remind me" - q-nxp6 stays open on 0080/D; PM reminds. "M. B" - auto-settle dropped (0080/G dropped, docs note). "I. Remind when it can be merged" - PM tells the user when 0060 is ready. T3 reopened; usage readings fresh again (Claude session 35%, weekly 9%).
 - 2026-11-26 08:34: user (mobile, relayed by thread 93a24a15, verified): "Tell to all pms that usage is back to normal (not excessive) so everyone should return to 2 parallel workers max". Limit back to 2: no new braid launches until at most two have work running; the running braids finish (0074, 0072, 0060 only wait on merges; 0077 waits on 0074; 0080/D waits on the user; 0078 works).
 - 2026-11-26 ~08:00: #335 at abb76243 re-checked (5/5 under load, gate 710/710, CI 710) - ready for the user's merge; skgh (live lock taken over past 30 s under extreme load) sent to 0078 as a strand. Usage caches stale since ~06:00 (all providers "unknown").
