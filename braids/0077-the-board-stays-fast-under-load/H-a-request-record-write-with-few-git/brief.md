@@ -4,7 +4,7 @@ title: "A request-record write with few git processes"
 status: To Do
 labels: ["kind:story", "tier:M"]
 dependencies: ['0077/B']
-order: 45
+order: 28
 ---
 
 ## Goal

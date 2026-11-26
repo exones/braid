@@ -4,7 +4,7 @@ title: "At most two gates at once per machine"
 status: To Do
 labels: ["kind:story", "tier:M", "ask:architecture"]
 dependencies: []
-order: 40
+order: 27
 ---
 
 ## Goal
