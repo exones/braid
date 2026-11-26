@@ -26,6 +26,12 @@
       "by": "coordinator",
       "text": "2026-11-26T11:41:59.085Z",
       "reason": "PR #339 at 85a95fc is ready (CI green, reviews and the PM's re-check passed); it waits only on the user's merge, relayed by the PM"
+    },
+    {
+      "event": "met",
+      "at": "2026-11-26T09:06:56.758Z",
+      "by": "board",
+      "text": "braid 0074 merged into main"
     }
   ]
 }
