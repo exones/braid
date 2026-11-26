@@ -1,6 +1,6 @@
 // `braid gate`: BRAID.md's `gate` command under a machine-wide limit of two at once. Each running gate holds one
 // of two slot files in the braid home (`gate-1.lock`, `gate-2.lock`); a slot whose process is gone is taken over.
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { constants } from "node:os";
 import { basename, join } from "node:path";
@@ -117,17 +117,42 @@ function release(file: string): void {
 }
 
 /**
+ * SIGTERM to `pid` and everything under it, deepest first: a shell doesn't pass its signal on. POSIX only
+ * (Windows delivers no SIGTERM to catch).
+ */
+function terminate(pid: number): void {
+  const children = new Map<number, number[]>();
+  for (const line of (spawnSync("ps", ["-A", "-o", "pid=,ppid="], { encoding: "utf8" }).stdout ?? "").split("\n")) {
+    const [child, parent] = line.trim().split(/\s+/).map(Number);
+    if (child !== undefined && parent !== undefined) {
+      children.set(parent, [...(children.get(parent) ?? []), child]);
+    }
+  }
+  const tree = [pid];
+  for (const p of tree) {
+    tree.push(...(children.get(p) ?? []));
+  }
+  for (const p of tree.reverse()) {
+    try {
+      process.kill(p, "SIGTERM");
+    } catch {
+      // already gone
+    }
+  }
+}
+
+/**
  * Runs `command` in `root` with this process's input and output, and returns its exit code. Ctrl+C reaches the
  * command by itself (same console or process group), so braid only stays alive until it ends and the slot can be
- * released; a SIGTERM sent to braid alone is passed on.
+ * released; a SIGTERM sent to braid alone ends the command's whole process tree.
  */
 function execute(command: string, root: string): Promise<number> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, { cwd: root, shell: true, stdio: "inherit" });
     const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"];
     const onSignal = (signal: NodeJS.Signals): void => {
-      if (signal === "SIGTERM") {
-        child.kill(signal);
+      if (signal === "SIGTERM" && child.pid !== undefined) {
+        terminate(child.pid);
       }
     };
     for (const s of signals) {

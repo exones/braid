@@ -12,7 +12,7 @@ const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 
 // The fake gate: says it started, then runs until `<project>/release` exists and exits with the code written there.
 const FAKE = `import { existsSync, readFileSync, writeFileSync } from "node:fs";
-writeFileSync("started", "");
+writeFileSync("started", String(process.pid));
 console.log("gate output");
 while (!existsSync("release")) await new Promise((r) => setTimeout(r, 20));
 process.exit(Number(readFileSync("release", "utf8")));
@@ -118,14 +118,24 @@ test("a slot whose process is gone is taken over, and released after a failing g
   assert.equal(existsSync(m.slot(2)), true);
 });
 
-test("a SIGTERM to braid gate ends the gate and releases the slot", { skip: process.platform === "win32" && "Windows has no SIGTERM to catch" }, async (t) => {
+test("a SIGTERM to braid gate ends the gate's processes and releases the slot", { skip: process.platform === "win32" && "Windows has no SIGTERM to catch", timeout: 60_000 }, async (t) => {
   const m = machine(t);
-  const dir = m.project("a");
+  // A compound command, so the shell stays between braid and the gate's process.
+  const dir = m.project("a", "node ../fake.mjs && true");
   const run = m.run(dir);
   await until("the gate", () => started(dir));
   run.child.kill("SIGTERM");
   assert.equal(await run.done, 143);
   assert.equal(existsSync(m.slot(1)), false);
+  const gate = Number(readFileSync(join(dir, "started"), "utf8"));
+  await until("the gate's process to end", () => {
+    try {
+      process.kill(gate, 0);
+      return false;
+    } catch {
+      return true;
+    }
+  });
 });
 
 test("no gate in BRAID.md is a usage error that takes no slot", async (t) => {
