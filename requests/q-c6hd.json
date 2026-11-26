@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-26T04:02:12.251Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-26T04:04:13.814Z",
+      "by": "pm",
+      "text": "live check passed · merge PR #339 at 85a95fc (skills change; then remove models.steering from BRAID.md)"
     }
   ]
 }
