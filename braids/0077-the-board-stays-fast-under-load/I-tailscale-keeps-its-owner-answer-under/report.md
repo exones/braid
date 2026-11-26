@@ -31,7 +31,7 @@ The user often got "forbidden" or "couldn't confirm through Tailscale who is ask
   - unparseable addresses are refused at once and never asked;
   - concurrent requests during a slow whois make one call, both on a first ask and on a background one.
 - Existing tests kept; the "kept for a few seconds" test now checks 5 minutes for "the owner" and 5 s for a refusal.
-- `node --test test/board-tailnet.test.ts`: 28 pass. Gate: see below.
+- `node --test test/board-tailnet.test.ts`: 28 pass. Gate: passed (see Open).
 
 ## Docs
 
@@ -40,7 +40,7 @@ docs/board.md (Tailscale "Who" paragraph) and docs/decisions.md D60 updated. No 
 ## Open
 
 - Decided (security, within the brief's stale-while-revalidate): between 5 and 30 minutes the request that starts the background whois is let in before that whois answers, so an address whose owner changed can pass for the duration of one whois (normally about 0.3 s, at most 3 s) after its 5 minutes ran out. Waiting for the whois instead would make that request wait up to 3 s on a busy machine, the slowness this item removes. The PM may prefer waiting; it is a two-line change.
-- Gate result: GATE_PLACEHOLDER
+- Gate (`node dist/cli.js gate`): passed, 2752 s on a heavily loaded machine. A first run (1671 s) failed one unrelated timing test, test/board-async.test.ts "/api/session answers within a second while a read's git calls take seconds"; it passes alone (6/6, 51 s) and passed in the rerun.
 
 For later items: none.
 Needs the user: none.

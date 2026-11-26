@@ -55,8 +55,8 @@ Expected size: about 120 lines in 3 files.
 
 ## Completion
 
-- [ ] Positive answers are kept per IP for the chosen window, and a timeout or failure within the stale window reuses the last positive answer, tested with a slow and a failing fake whois
-- [ ] Every failure mode above has a regression test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md, the Tailscale section), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, the chosen windows, anything open
+- [x] Positive answers are kept per IP for the chosen window, and a timeout or failure within the stale window reuses the last positive answer, tested with a slow and a failing fake whois
+- [x] Every failure mode above has a regression test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md, the Tailscale section), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, the chosen windows, anything open
