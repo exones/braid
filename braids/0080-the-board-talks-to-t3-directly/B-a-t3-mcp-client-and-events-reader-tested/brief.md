@@ -38,8 +38,8 @@ Expected size: about 350 lines in 4 files (module, mock, tests).
 
 ## Completion
 
-- [ ] `src/t3mcp/` has the client and the events reader, with the failures typed as above
-- [ ] Tests against the ported mock cover the cases listed under Change, and no test reaches a real T3
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `src/t3mcp/` has the client and the events reader, with the failures typed as above
+- [x] Tests against the ported mock cover the cases listed under Change, and no test reaches a real T3
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
