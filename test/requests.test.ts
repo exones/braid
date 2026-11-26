@@ -29,7 +29,7 @@ const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, 
   holding: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => Map<string, { state: string }>;
   filterLive: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => object[];
   age: (at: string, now: Date) => string;
-  locked: <T>(file: string, fn: () => T, what?: string, makeDir?: (dir: string) => void, waitMs?: number) => T;
+  locked: <T>(file: string, fn: () => T, what?: string, makeDir?: (dir: string) => void, waitMs?: number, clock?: { now: () => number; pause: () => void }) => T;
 };
 beforeEach(() => {
   resetGithubMemory();
@@ -271,27 +271,35 @@ for (let i = 0; i < 4; i++) openRequest(root, { id: id + i, kind: "question", te
   assert.equal(loadRequests(w.root).length, 16);
 });
 
-test("a waiter outlasts a queue of holders longer than its wait while the lock keeps changing hands", async () => {
+test("a waiter outlasts a queue of holders longer than its wait while the lock keeps changing hands", () => {
   const file = join(mkdtempSync(join(scratch, "queue-")), "queue.json");
-  const script = join(scratch, "holder.mjs");
-  // The lock is renamed over, never removed, until the queue ends: the waiter finds no gap to slip into.
-  writeFileSync(script, `import { renameSync, unlinkSync, writeFileSync } from "node:fs";
-const lock = process.argv[2];
-const nap = () => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 150);
-for (let i = 0; i < 20; i++) {
-  writeFileSync(lock + ".next", String(i));
-  renameSync(lock + ".next", lock);
-  if (i === 0) process.stdout.write("held");
-  nap();
-}
-unlinkSync(lock);`);
-  const holder = spawn(process.execPath, [script, `${file}.lock`]);
-  const closed = new Promise<number | null>((done) => holder.on("close", done));
-  await new Promise((r) => holder.stdout.once("data", r));
-  // about 3 s of holders against a 1.5 s wait
-  assert.equal(locked(file, () => "got", "q", undefined, 1_500), "got");
-  assert.equal(await closed, 0);
-  assert.equal(existsSync(`${file}.lock`), false);
+  const lock = `${file}.lock`;
+  // The test's own clock, so load can't decide it: each pause of the waiter is one second and one hand-off, 20 holders against a 4 s wait.
+  // Every holder leaves the same file with the same times (ahead of now, so never stale): only the token says the lock changed hands.
+  const taken = new Date(Date.now() + 3_600_000);
+  let now = 0;
+  let holder = 0;
+  const hold = () => {
+    writeFileSync(lock, `holder ${holder}`);
+    utimesSync(lock, taken, taken);
+  };
+  const pause = () => {
+    now += 1_000;
+    if (++holder < 20) hold();
+    else rmSync(lock);
+  };
+  hold();
+  assert.equal(locked(file, () => "got", "q", undefined, 4_000, { now: () => now, pause }), "got");
+  assert.equal(now, 20_000, "got only after the whole queue");
+  assert.equal(existsSync(lock), false);
+});
+
+test("every hold of a lock writes its own token, so two holds never look like one", () => {
+  const file = join(mkdtempSync(join(scratch, "token-")), "token.json");
+  const held = () => locked(file, () => readFileSync(`${file}.lock`, "utf8"), "q");
+  const first = held();
+  assert.notEqual(first, "");
+  assert.notEqual(held(), first);
 });
 
 test("a live lock that never changes hands is still given up on after the wait", () => {
