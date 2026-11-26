@@ -16,6 +16,12 @@
       "event": "opened",
       "at": "2026-11-25T23:08:42.031Z",
       "by": "coordinator"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-26T00:08:52.931Z",
+      "by": "board",
+      "text": "sent to the PM"
     }
   ]
 }
