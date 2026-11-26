@@ -17,25 +17,42 @@ export interface SentState {
   readonly keys: Record<string, string>;
   /** True when there was no readable file: this is the first run, and Done braids are recorded without a push. */
   readonly fresh: boolean;
+  /** Limit pushes whose send failed, by key: sent again by the acting board at each refresh, across board restarts (0074/B). */
+  readonly pending: Record<string, LimitPush>;
 }
+
+const pushOf = (v: unknown): LimitPush | null => {
+  const o = typeof v === "object" && v !== null ? (v as Record<string, unknown>) : null;
+  return o !== null && typeof o["key"] === "string" && typeof o["title"] === "string" && typeof o["body"] === "string" && Array.isArray(o["tags"]) && typeof o["priority"] === "string"
+    ? { key: o["key"], title: o["title"], body: o["body"], tags: o["tags"].filter((t): t is string => typeof t === "string"), priority: o["priority"] === "high" || o["priority"] === "low" ? o["priority"] : "default", click: typeof o["click"] === "string" ? o["click"] : null }
+    : null;
+};
 
 export function readSent(file: string): SentState {
   try {
     const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
     const keys = typeof parsed === "object" && parsed !== null ? (parsed as { keys?: unknown }).keys : undefined;
+    const waiting = typeof parsed === "object" && parsed !== null ? (parsed as { pending?: unknown }).pending : undefined;
+    const pending = Object.fromEntries(
+      Object.values(typeof waiting === "object" && waiting !== null && !Array.isArray(waiting) ? waiting : {}).flatMap((v) => {
+        const p = pushOf(v);
+        return p === null ? [] : [[p.key, p] as const];
+      }),
+    );
     if (typeof keys !== "object" || keys === null || Array.isArray(keys)) {
-      return { keys: {}, fresh: true };
+      return { keys: {}, fresh: true, pending };
     }
-    return { keys: Object.fromEntries(Object.entries(keys).filter((e): e is [string, string] => typeof e[1] === "string")), fresh: false };
+    return { keys: Object.fromEntries(Object.entries(keys).filter((e): e is [string, string] => typeof e[1] === "string")), fresh: false, pending };
   } catch {
-    return { keys: {}, fresh: true };
+    return { keys: {}, fresh: true, pending: {} };
   }
 }
 
-function writeSent(file: string, keys: Readonly<Record<string, string>>): void {
+/** Writes the sent keys; the pending limit pushes are kept as the file has them unless given. */
+function writeSent(file: string, keys: Readonly<Record<string, string>>, pending: Readonly<Record<string, LimitPush>> = readSent(file).pending): void {
   ensureStateDir(dirname(file));
   const tmp = `${file}.${process.pid}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify({ keys }, null, 2)}\n`);
+  writeFileSync(tmp, `${JSON.stringify(Object.keys(pending).length === 0 ? { keys } : { keys, pending }, null, 2)}\n`);
   renameSync(tmp, file);
 }
 
@@ -181,23 +198,37 @@ function limitKeyKept(key: string, sent: string, now: number = Date.now()): bool
 
 /**
  * The limit pusher of the board's pause (0064): sends each limit push once, keyed in the same `notified.json` (the key's value is
- * when it was sent). A limit push is an event the board raises once, so a failed send stays pending in memory and `retry()` (called at
- * each refresh) sends it again; its key is stored only once a send succeeded. The settings are read at each send.
+ * when it was sent). A limit push is an event the board raises once, so a failed send is kept in the file's `pending` (0074/B) and
+ * `retry()` (called by the repository's acting board at each refresh) sends it again, also after a board restart; its key is stored
+ * only once a send succeeded. The settings are read at each send.
  */
 export function limitPusher(opts: Omit<NotifierOptions, "clear">): ((push: LimitPush) => void) & { retry(): void; idle(): Promise<void>; pending(): number } {
   const config = opts.config ?? (() => readConfig());
   const send = opts.send ?? ntfySender();
   const token = opts.token ?? (() => tokenOf());
-  const warn = opts.warn ?? ((line: string) => void process.stderr.write(`${line}\n`));
+  const warn = opts.warn ?? ((line: string) => void process.stderr.write(`${line}
+`));
   const flying = new Map<string, Promise<void>>();
-  const waiting = new Map<string, LimitPush>();
   let failing = false;
+  /** Changes the file as it is now: a second board of the repository loses nothing. */
+  const change = (fn: (s: SentState) => { keys: Record<string, string>; pending: Record<string, LimitPush> }): void => {
+    try {
+      const next = fn(readSent(opts.file));
+      writeSent(opts.file, next.keys, next.pending);
+    } catch (e) {
+      warn(`braid notify: can't write ${opts.file} (${e instanceof Error ? e.message : "failed"})`);
+    }
+  };
+  const without = (pending: Record<string, LimitPush>, key: string): Record<string, LimitPush> => Object.fromEntries(Object.entries(pending).filter(([k]) => k !== key));
   const pushOne = (push: LimitPush): void => {
-    if (push.key in readSent(opts.file).keys) {
-      waiting.delete(push.key);
+    const stored = readSent(opts.file);
+    if (push.key in stored.keys) {
+      if (push.key in stored.pending) {
+        change((s) => ({ keys: s.keys, pending: without(s.pending, push.key) }));
+      }
       return;
     }
-    // A send in flight keeps its entry waiting: if it fails, the next refresh sends it again.
+    // A send in flight keeps its entry as it is: if it fails, it is kept pending and the next refresh sends it again.
     if (flying.has(push.key)) {
       return;
     }
@@ -205,27 +236,22 @@ export function limitPusher(opts: Omit<NotifierOptions, "clear">): ((push: Limit
     if (cfg === null || !cfg.enabled) {
       return;
     }
-    waiting.set(push.key, push);
     const run = Promise.resolve()
       .then(() => send(cfg, { title: push.title, body: push.body, tags: push.tags, priority: push.priority, click: push.click, sequence: null }, token()))
       .then(
         () => {
-          waiting.delete(push.key);
           if (failing) {
             failing = false;
             warn("braid notify: limit pushes sending again");
           }
-          try {
-            writeSent(opts.file, { ...readSent(opts.file).keys, [push.key]: new Date().toISOString() });
-          } catch (e) {
-            warn(`braid notify: can't write ${opts.file} (${e instanceof Error ? e.message : "failed"})`);
-          }
+          change((s) => ({ keys: { ...s.keys, [push.key]: new Date().toISOString() }, pending: without(s.pending, push.key) }));
         },
         (e: unknown) => {
           if (!failing) {
             failing = true;
             warn(`braid notify: a limit push failed (${e instanceof Error ? e.message : "failed"}); retrying at each refresh`);
           }
+          change((s) => ({ keys: s.keys, pending: push.key in s.keys ? s.pending : { ...s.pending, [push.key]: push } }));
         },
       )
       .finally(() => flying.delete(push.key));
@@ -233,11 +259,11 @@ export function limitPusher(opts: Omit<NotifierOptions, "clear">): ((push: Limit
   };
   return Object.assign(pushOne, {
     retry: () => {
-      for (const push of [...waiting.values()]) {
+      for (const push of Object.values(readSent(opts.file).pending)) {
         pushOne(push);
       }
     },
-    pending: () => waiting.size,
+    pending: () => Object.keys(readSent(opts.file).pending).length,
     idle: async () => {
       while (flying.size > 0) {
         await Promise.allSettled([...flying.values()]);

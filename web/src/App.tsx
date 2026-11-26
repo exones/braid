@@ -9,7 +9,8 @@ import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, thread
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
-import { pauseBox, type PauseView } from "../../src/board/pause.ts";
+import { askWho, clock as clockAt, pauseBox, resumeMode, resumeOnCard, usage,type PauseView } from "../../src/board/pause.ts";
+import type { ProgrammeResume } from "../../src/board/programme.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
 import { CLOSED_PAGE, type RequestRow, type RequestsView } from "../../src/board/record.ts";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard, type TaggedProgramme } from "./api.ts";
@@ -643,6 +644,141 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
   );
 }
 
+const RetryIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+    <path d="M20 12a8 8 0 1 1-2.3-5.7" />
+    <path d="M20 4v5h-5" />
+  </svg>
+);
+
+/**
+ * Resume now (0074/D): an icon-only button (▶, ↻ while a resume is pending) with its words in the tooltip, and a confirmation that
+ * says what is sent. The server marks the records; the acting board sends through the one resume path.
+ */
+function ResumeButton({ tip, retry, title, sub, rows, foot, confirm, body }: { tip: string; retry: boolean; title: string; sub: string; rows: readonly (readonly [string, ReactNode])[]; foot: string; confirm: string; body: object }) {
+  const project = useContext(ProjectContext);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const go = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await postAction("resume", { project, ...body });
+      setOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Dialog.Root open={open} onOpenChange={(o) => { setOpen(o); setError(null); }}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <Dialog.Trigger asChild>
+            <button type="button" aria-label={tip} onClick={(e) => e.stopPropagation()} className={`${BUTTON} cursor-pointer border-sky-600 bg-sky-600 text-white hover:bg-sky-700`}>
+              {retry ? <RetryIcon /> : <StartIcon />}
+            </button>
+          </Dialog.Trigger>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">{tip}</Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/40" />
+        <Dialog.Content onClick={(e) => e.stopPropagation()} className="fixed left-1/2 top-1/2 z-50 w-[460px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-xl">
+          <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
+          <Dialog.Description className="mb-3 text-slate-500">{sub}</Dialog.Description>
+          <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+            {rows.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt className="text-slate-500">{k}</dt>
+                <dd>{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-xs text-slate-500">{foot}</p>
+          {error !== null && <p role="alert" className="mt-3 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2.5 py-1.5 text-[13px] text-red-900">{error}</p>}
+          <div className="mt-4 flex justify-end gap-2">
+            <Dialog.Close className="cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 hover:border-blue-600">Cancel</Dialog.Close>
+            <button type="button" disabled={busy} onClick={() => void go()} className="flex cursor-pointer items-center gap-1.5 rounded-md border border-sky-600 bg-sky-600 px-3 py-1 font-semibold text-white hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60">
+              {retry ? <RetryIcon /> : <StartIcon />} {busy ? "Sending…" : confirm}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+/** A paused braid's Resume now: directly without a PM, through the PM on a PM-run braid; ↻ while a send is pending. None on a hold. */
+function BraidResume({ id, pause }: { id: string; pause: PauseView }) {
+  const p = pause.record;
+  const mode = resumeMode(p);
+  if (mode === null) {
+    return null;
+  }
+  const now = new Date();
+  const r = p.resuming;
+  const retry = r?.failedSince != null;
+  const ask = mode !== "direct";
+  const who = askWho(p);
+  const tip = retry ? "Retry the resume now" : ask ? (r?.askedAt != null ? `Ask ${who} again to resume` : `Ask ${who} to resume`) : "Resume now";
+  const agents = (p.targets ?? []).filter((t) => t.kind !== "pm");
+  const rows: [string, ReactNode][] = [
+    ["Paused for", `${usage(p)} since ${clockAt(p.at, now)}`],
+    [
+      "Sends to",
+      ask ? (
+        `${who}, one message`
+      ) : (
+        <>
+          {agents.map((t) => (
+            <div key={t.thread}>
+              {t.item} {t.kind} · <code className="text-xs">{t.thread.slice(0, 12)}…</code>
+            </div>
+          ))}
+        </>
+      ),
+    ],
+    ["Then", ask ? `nothing else: ${who} resumes it with braid resume ${id} --limit` : `clears the board's record for ${id}`],
+  ];
+  return (
+    <ResumeButton
+      tip={tip}
+      retry={retry}
+      title={ask ? `Ask ${who} to resume ${id}?` : `Resume ${id} now?`}
+      sub={retry ? `Resume pending since ${clockAt(r?.failedSince ?? p.at, now)}` : `Paused since ${clockAt(p.at, now)}`}
+      rows={rows}
+      foot={ask ? `${who === "the PM" ? "The PM" : "The coordinator"} gets one message naming the paused braid and the command that resumes it. A send T3 can't take is retried at each refresh.` : "Each thread gets its resume text by code, the same path as the board's timer and braid resume --limit. A thread T3 can't reach stays pending and is retried at each refresh."}
+      confirm={ask ? `Ask ${who}` : retry ? "Retry now" : "Resume now"}
+      body={{ braid: id }}
+    />
+  );
+}
+
+/** A paused programme's Resume now: one message asks the PM to resume its braids in its order. */
+function ProgrammeResumeButton({ slug, resume }: { slug: string; resume: ProgrammeResume }) {
+  const tip = resume.pending ? "Retry the resume now" : resume.askedAt !== null ? "Ask the PM again to resume" : "Ask the PM to resume";
+  return (
+    <ResumeButton
+      tip={tip}
+      retry={resume.pending}
+      title={`Ask the PM to resume ${slug}?`}
+      sub={`${resume.braids.length} braid${resume.braids.length === 1 ? "" : "s"} paused for a limit`}
+      rows={[
+        ["Paused braids", resume.braids.join(", ")],
+        ["Sends to", "the PM, one message"],
+      ]}
+      foot="The PM resumes each with braid resume <number> --limit, in its order. A send T3 can't take is retried at each refresh."
+      confirm="Ask the PM"
+      body={{ programme: slug }}
+    />
+  );
+}
+
 /** Open thread where the item has a thread, Coordinator on a braid with a coordinator thread; Start on a To Do braid; Merge on In Review items. */
 function Actions({ id, lane, thread, threadRole = null, coordinator = null, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; threadRole?: ThreadRole | null; coordinator?: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
   return (
@@ -766,7 +902,8 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
         </div>
       )}
       {(braid.coordinator?.warning ?? launched?.warning ?? null) !== null && <Warn>{braid.coordinator?.warning ?? launched?.warning}</Warn>}
-      <div className="mt-2 flex min-h-6 justify-end">
+      <div className="mt-2 flex min-h-6 items-center justify-end gap-1.5">
+        {resumeOnCard(braid.pause, braid.lane) && <span onClick={(e) => e.stopPropagation()}><BraidResume id={braid.id} pause={braid.pause} /></span>}
         <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.total === 0 ? braid.thread : null} threadRole={braid.threadRole} coordinator={braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
       </div>
     </div>
@@ -1820,7 +1957,12 @@ function ProgrammeCard({ p }: { p: TaggedProgramme }) {
           </span>
         </div>
       )}
-      {p.error === null && p.hold !== null && <div className="mt-1.5 rounded-md border-l-[3px] border-sky-600 bg-sky-50 px-2 py-1 text-[12.5px] leading-snug text-sky-900">⏸ {p.status}</div>}
+      {p.error === null && p.hold !== null && (
+        <div className={`mt-1.5 rounded-md border-l-[3px] px-2 py-1 text-[12.5px] leading-snug ${p.resume?.pending === true ? "border-amber-500 bg-amber-50 text-amber-900" : "border-sky-600 bg-sky-50 text-sky-900"}`}>
+          ⏸ {p.status}
+          {p.resume !== null && <small className="mt-px block text-[11px] text-slate-500">{p.resume.note}</small>}
+        </div>
+      )}
       {p.error === null && p.hold === null && <div className="mt-1 text-[13px] leading-snug text-slate-700">{p.need?.kind === "stalled" ? "No braid running" : p.status}</div>}
       <div className="mt-2 flex flex-wrap gap-1">
         <PmThread p={p} />
@@ -1828,6 +1970,12 @@ function ProgrammeCard({ p }: { p: TaggedProgramme }) {
         <button type="button" data-opens-details onClick={() => goProgramme(p.key)} className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[12.5px] text-slate-700 hover:border-blue-600 max-md:min-h-11">
           <span aria-hidden>≡</span> Plan
         </button>
+        {p.error === null && p.resume !== null && (
+          <>
+            <span className="flex-1" />
+            <ProgrammeResumeButton slug={p.slug} resume={p.resume} />
+          </>
+        )}
       </div>
     </div>
   );
