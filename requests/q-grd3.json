@@ -1,0 +1,20 @@
+{
+  "code": "q-grd3",
+  "item": "0082",
+  "kind": "plan",
+  "text": "Approve the plan of 0082 The Questions panel (mockups-only run: 0082/A, then hold)",
+  "words": "humble puppy",
+  "by": "coordinator",
+  "thread": "mcp:launch:236ccef074a45cee67da4aac404fd6df9c2bca310db02b79a3789f23e60f7209",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-26T19:30:47.585Z",
+      "by": "coordinator"
+    }
+  ]
+}
