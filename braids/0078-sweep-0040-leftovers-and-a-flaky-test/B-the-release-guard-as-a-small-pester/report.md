@@ -53,7 +53,7 @@ No dependency was added. Neither GitHub runner image ships `powershell-yaml`, an
 
 - `scripts/Test-Pester.ps1 -Path test/pester/Release-Workflow.Tests.ps1`: 27 passed, 0 failed (Windows, about 7 s).
 - The parsed `release.yml` was checked by hand: 8 steps, the decision step id `publication`, the publish step's `if`, the job's permissions, and `on` holding only `workflow_dispatch`.
-- `npm run verify` (the gate): GATE_RESULT.
+- `npm run verify` (the gate), one run on a heavily loaded machine: the docs gate, typecheck and build passed, and every node test passed but one. That one, `test/requests.test.ts` "a waiter outlasts a queue of holders longer than its wait while the lock keeps changing hands", failed with `q is locked` after 3.6 s, then passed when rerun alone (4.2 s). This change touches no TypeScript or test under `test/`. So the gate box stays unticked until CI's `verify:full` is green on both runners.
 
 ## Docs
 
@@ -63,7 +63,8 @@ No dependency was added. Neither GitHub runner image ships `powershell-yaml`, an
 
 ## Open
 
-`scripts/Publish-Npm.ps1` is a separate local publish path that gets an npm token from Infisical. The guard never covered it and still doesn't, because the brief's properties are about `release.yml`.
+- The lock test above is load-sensitive even after 0078/J. A loaded machine still trips it.
+- `scripts/Publish-Npm.ps1` is a separate local publish path that gets an npm token from Infisical. The guard never covered it and still doesn't, because the brief's properties are about `release.yml`.
 
 For later items:
 - After this item, no hand-written harnesses are left under `test/fixtures/` (`install-policy/` holds only a package). The AGENTS.md sentence "The older hand-written fixtures under `test/fixtures/` stay until they are converted" can go (needs the user's go; 0078/A noted the same).
