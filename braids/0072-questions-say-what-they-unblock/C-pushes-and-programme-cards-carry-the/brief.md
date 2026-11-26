@@ -39,12 +39,20 @@ Expected size: about 250 lines in 5 files, tests included.
 
 - The braid's own card and the details panel (0072/B). Pause, limits, Resume (0074).
 
+## Plan
+
+1. Mockups (`mockups.html`), then stop for the user's verdict.
+2. `src/notify/message.ts`: a line `blocks … · decide|do` (the act alone when nothing waits) under the first line of each need push and the PM's; the handle instead of the code; an escalation titled `Escalated to you`, its line without the repeated words; per forwarded merge the handle, id and title, PR, short head, blocks and the PM's note. Keys and sequence IDs stay.
+3. `src/board/programme.ts`, kept small (0074/D changes it too): a separate list of the braids' requests that are the user's besides `forwards` (which drive the merge pushes, so nothing is pushed twice), with `blocks` filled from `sig.unblocks`; Needs you while one is open; `Forward` carries the PM's note.
+4. `web/src/App.tsx`: the programme's need box shows the block line, the right lead words, and the new list.
+5. Tests per push text and the card; docs (`docs/board.md`), gate, report.
+
 ## Completion
 
-- [ ] Mockups shown and approved before building (log entry with the verdict)
-- [ ] Need pushes say what the request unblocks and decide or do, and an escalation "Escalated to you", with tests
-- [ ] The forwarded-merge push names the code, braid, title, PR, head and the PM's note, without re-sending an unchanged push, with tests
-- [ ] A programme card shows its braids' requests that are the user's and is in Needs you while one is open, with tests
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Mockups shown and approved before building (log entry with the verdict)
+- [x] Need pushes say what the request unblocks and decide or do, and an escalation "Escalated to you", with tests
+- [x] The forwarded-merge push names the code, braid, title, PR, head and the PM's note, without re-sending an unchanged push, with tests
+- [x] A programme card shows its braids' requests that are the user's and is in Needs you while one is open, with tests
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

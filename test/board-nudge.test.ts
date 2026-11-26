@@ -174,7 +174,7 @@ test("a held or paused braid is never nudged, and a held programme's braid is he
 
 // ---- The PM
 
-const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, ...extra });
+const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, need: null, pmAsk: null, strands: [], ...extra });
 function pmRefresh(root: string, now: Date, pm: string | null, state = "running") {
   const read = planOf("p", "pm/p", ["---", "programme: p", "title: P", "goal: G", `thread: ${PM}`, `state: ${state}`, "rows:", "  - P1 | 0001 | One | running", "---", ""].join("\n"));
   const sig = signals.readSignals(root, GH, now);

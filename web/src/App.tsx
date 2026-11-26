@@ -5,7 +5,7 @@ import { Md } from "./Md.tsx";
 import { TAG_COLOURS } from "./palette.ts";
 import { copyText, type CopyEnv } from "../../src/board/copy.ts";
 import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
-import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
+import { LANE_LABEL, ageText, cardMarks, leadOf, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
 import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
@@ -1694,7 +1694,8 @@ function goProgramme(key: string): void {
 /** Needs you first (oldest ask first, across projects), then Working in project order, then slug. */
 function programmeOrder(list: readonly TaggedProgramme[], order: ReadonlyMap<string, number>): { needs: TaggedProgramme[]; working: TaggedProgramme[] } {
   const live = list.filter((p) => p.section !== null);
-  const needs = live.filter((p) => p.section === "needs").sort((a, b) => (a.need?.since ?? "").localeCompare(b.need?.since ?? ""));
+  const oldest = (p: TaggedProgramme): string => [p.need?.since, ...asked(p).map((f) => f.need.since)].filter((s) => s != null).sort()[0] ?? "";
+  const needs = live.filter((p) => p.section === "needs").sort((a, b) => oldest(a).localeCompare(oldest(b)));
   const working = live.filter((p) => p.section === "working").sort((a, b) => (order.get(a.project) ?? 0) - (order.get(b.project) ?? 0) || a.slug.localeCompare(b.slug));
   return { needs, working };
 }
@@ -1763,13 +1764,16 @@ function optionLines(text: string): { head: string; options: string[] } {
   return { head: parts[0] ?? "", options: parts.slice(1) };
 }
 
-/** A programme's need: the PM's request with its options, or the stall with what the board saw. */
+/** The requests of a programme's braids that are the user's, forwarded or not, oldest first. */
+const asked = (p: TaggedProgramme) => [...p.forwards, ...p.requests].sort((a, b) => (a.need.since ?? "").localeCompare(b.need.since ?? ""));
+
+/** A programme's need: the PM's request with its options, or the stall with what the board saw; then its braids' requests. */
 function ProgrammeNeed({ p }: { p: TaggedProgramme }) {
   return (
     <>
       {p.need !== null && <OneNeed p={p} need={p.need} />}
-      {p.forwards.map((f) => (
-        <OneNeed key={f.id} p={p} need={f.need} item={f.id} />
+      {asked(p).map((f) => (
+        <OneNeed key={`${f.id} ${f.need.code}`} p={p} need={f.need} item={f.id} />
       ))}
     </>
   );
@@ -1784,12 +1788,12 @@ function OneNeed({ p, need, item }: { p: TaggedProgramme; need: Need; item?: str
       </div>
     );
   }
-  const words = /^(The PM asks you(?: to)?:)\s*(.*)$/s.exec(need.text);
-  const { head, options } = optionLines(words?.[2] ?? need.text);
+  const { lead, rest } = leadOf(need);
+  const { head, options } = optionLines(rest);
   return (
     <div className="mt-1.5 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-2 py-1.5 text-[13px] leading-snug text-amber-950">
-      {need.code !== undefined && <><CodeChip code={need.handle ?? need.code} />{" "}</>}
-      <b>{words?.[1] ?? "The PM asks you:"}</b> {head}
+      {need.code !== undefined && <><CodeChip code={need.handle ?? need.code} />{" "}<BlockLine blocks={need.blocks} act={need.act} /><br /></>}
+      <b>{lead}</b> {head}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {options.length > 0 && (
         <ul className="mt-0.5 list-none pl-1">
@@ -1805,9 +1809,9 @@ function OneNeed({ p, need, item }: { p: TaggedProgramme; need: Need; item?: str
 
 /** The mark at the top right of a programme card: ? asks, ⏳ stalled, ⏸ held. */
 function ProgrammeMark({ p }: { p: TaggedProgramme }) {
-  if (p.need !== null || p.forwards.length > 0) {
+  if (p.need !== null || p.forwards.length > 0 || p.requests.length > 0) {
     return (
-      <span title={p.need?.kind === "stalled" ? "Stalled" : "The PM asks you"} className="flex size-5 flex-none items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
+      <span title={p.need?.kind === "stalled" ? "Stalled" : p.need !== null || p.forwards.length > 0 ? "The PM asks you" : "A question for you"} className="flex size-5 flex-none items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
         {p.need?.kind === "stalled" ? "⏳" : "?"}
       </span>
     );

@@ -846,10 +846,11 @@ export function deriveBoard(repo: string, braids: readonly Braid[], gh: Github, 
     const c = ideaPlanning(t3, i.id);
     return c === null ? i : { ...i, planning: { link: c.link } };
   });
-  const carded = braids.map((b) => toCard(b, gh, t3, withUnblocks(braids, gh, sig), ctx));
+  const full = withUnblocks(braids, gh, sig);
+  const carded = braids.map((b) => toCard(b, gh, t3, full, ctx));
   const alarms = carded.flatMap((c) => c.alarms);
   const cards: BraidCard[] = carded.map(({ alarms: _seen, ...card }) => card);
-  const programmes = toProgrammes(repo, sig.plans ?? [], cards, t3, sig, gh, alarms);
+  const programmes = toProgrammes(repo, sig.plans ?? [], cards, t3, full, gh, alarms);
   const tags = programmeOfBraid(programmes);
   const board: BoardData = { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: cards.map((c) => ({ ...c, programme: tags.get(c.id) ?? null })), programmes, inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems, pausesNote: sig.pausesNote ?? null, limits };
   return { board, alarms };
