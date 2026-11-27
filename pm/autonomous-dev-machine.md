@@ -164,6 +164,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-27: user "Smooth window a": 0082/D answers from the board on both listeners (local and Tailscale, owner-only), no confirmation. 0082/A-C merged into the braid branch.
 - 2026-11-26: user "A" on the request fields: 0082/C makes look/FYI a kind `look` instead of an `fyi` flag (changes the PM's calm-guitar-nde8 answer); the record cleanup (state and copies derived from events, one timed-wait field) noted as an idea, not in 0082. 0082/E ranks pm/<slug> questions as stops a programme.
 - 2026-11-26: user approved 0082's mockups (shiny-muffin-fqro): 1A send at once, 2A merge-waiting PRs ranked in the panel, 3A, 4B, 5B look/FYI mark on the record, 6B, an opened card shows its context expanded; "Start it." 0082 preset free; B-F one at a time; C's data case and D's security come to the PM.
 - 2026-11-26: user: "actually build the questions panel to the end if/when I approve of the mockups. It now takes a lot of time chasing the questions all over the board": 0082 runs B-F after the mockup approval, preset free; it builds on main as is, the second of 0082/0077/0080 to merge merges main before its final PR (PM decision, cheap to reverse).
