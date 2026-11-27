@@ -35,6 +35,15 @@ Expected size: about 300 lines in 6 files, tests included.
 - The user, 2026-11-27 (smooth-window-jjid, ask:security): "A. Both listeners, no confirmation": `answer` runs on the local and the Tailscale listener alike, behind the same guard, with no confirmation step.
 - The Tailscale listener answers only its owner (`tailscale whois`, 0067, 0077/I).
 
+## Plan
+
+1. `src/commands/requests.ts`: `userAnswerEnding` (the ending `braid answer` records: a lone letter becomes its option inside the write) shared by `answerCommand` and a new `boardAnswer(root, handle, text)`, which resolves the handle in this project's record (`codeOf`, as `braid answer`), refuses a wait and a closed request (`end`'s message), and records `by: user`.
+2. `src/board/wake.ts`: `wakeBoardAnswer(t3, root, request)` sends `answerWakeMessage` and then `markAnswerWoken` (D113's memory), whoever the request was for. A send that fails, or a held or paused asking braid, leaves the code in the board's in-memory list; the waker retries it at each refresh, once, as it does an answer from elsewhere. While the action sends, the waker skips that code.
+3. `src/commands/board.ts`: `answerAction(root, t3)` beside `merge`/`start`/`promote`/`open`/`resume`, through `postAction`'s guard on both listeners; body `{ project, handle, text }`, text one line of at most 500 characters. Reply `{ ok, handle, id, answer, woken, warning }`.
+4. `web/src/api.ts`: `answerRequest(project, handle, text)` over `postAction`.
+5. Docs: `docs/board.md` (Actions, Wakes, Tailscale), `docs/decisions.md` (the user's "Both listeners, no confirmation").
+6. Tests in `test/board-answer.test.ts`.
+
 ## Out of scope
 
 - The panel and its buttons (0082/E); answering from pushes or the phone strip.
@@ -42,10 +51,10 @@ Expected size: about 300 lines in 6 files, tests included.
 
 ## Completion
 
-- [ ] The board's `answer` action records an option or a free-text line as the user's answer, through `braid answer`'s code, with tests
-- [ ] A request no longer open, or of another project, is refused with a clear message, with tests
-- [ ] The action has the same guard as the other actions on both listeners, with tests
-- [ ] An answer recorded from the board wakes the asking thread once, with a test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The board's `answer` action records an option or a free-text line as the user's answer, through `braid answer`'s code, with tests
+- [x] A request no longer open, or of another project, is refused with a clear message, with tests
+- [x] The action has the same guard as the other actions on both listeners, with tests
+- [x] An answer recorded from the board wakes the asking thread once, with a test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

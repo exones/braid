@@ -13,15 +13,20 @@
 // PM records on a request that went through it) wakes the asking thread the same way, once: the send first, then a `reminded`
 // event by `board` (`ANSWER_WOKEN`) as the memory, a kind older braid versions read. Answers before `ANSWER_WAKES_FROM` or
 // older than a day are never woken, so a first run doesn't flood threads with old answers.
+//
+// An answer the user gave on the board's page (0082/D, the `answer` action) wakes the asking thread at once, whoever the
+// request was for, with the same message and the same mark. A send that fails, or an asking braid held or paused, leaves
+// the request in this board's list of its page's answers; the waker sends it at a later refresh, once.
 import { braidAt } from "../braids/branches.js";
 import { gitAsync } from "../braids/gitio.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
+import { loadPauses } from "../braids/pauses.js";
 import type { PullRequest } from "./github.js";
 import { answerWoken, askerOf, closing, conditionEnding, endRequest, handleOf, loadRecord, markAnswerWoken, programmeOf, type Ending, type Request, type RequestEvent } from "../braids/requests.js";
 import type { PlanRead } from "./plans.js";
 import type { Good } from "./feed.js";
 import { prOf } from "./signals.js";
-import type { T3Runner } from "./t3.js";
+import type { T3Result, T3Runner } from "./t3.js";
 
 /**
  * Whether braid `number`, as `origin/<main>` has it, is Done: its PR merged after its strands, or an older stored Done
@@ -113,6 +118,51 @@ export function steps(...all: readonly Waker[]): Waker {
   };
 }
 
+/**
+ * The answers this board's page recorded (0082/D), by project root and code: `sending` while the action sends its wake (the
+ * waker leaves it), `due` once that wake is still to go (a failed send, a held or paused asker). Kept for the board's life;
+ * a restarted board forgets a due one, as the asking thread then reads the record itself.
+ */
+const pageAnswers = new Map<string, "sending" | "due">();
+/** Page answers whose wake was delivered but whose mark isn't written yet. */
+const sentPage = new Set<string>();
+const pageKey = (root: string, code: string): string => `${root}\n${code}`;
+
+/** Whether the asking braid of `r` is held or paused now (`.braid/pauses.json`). */
+const pausedNow = (root: string, r: Pick<Request, "id">): boolean => loadPauses(root).pauses.some((p) => p.braid === askingBraid(r));
+
+/**
+ * Wakes the asking thread of a request the board's page has just answered (0082/D): `answerWakeMessage`, then the
+ * `reminded` mark, whoever the request was for. `woken` false: no thread, an archived one (`archived`), the asking braid
+ * held or paused, or a failed send; the last two are sent by the waker at a later refresh. `why` says which.
+ */
+export async function wakePageAnswer(t3: T3Runner, root: string, r: Request, at: Date, archived = false): Promise<{ readonly woken: boolean; readonly why: string | null }> {
+  const e = r.state === "answered" ? closing(r) : null;
+  if (e === null || r.thread === null || archived) {
+    return { woken: false, why: r.thread === null ? "the request names no asking thread" : archived ? "the asking thread is archived" : "the request isn't answered" };
+  }
+  const key = pageKey(root, r.code);
+  if (pausedNow(root, r)) {
+    pageAnswers.set(key, "due");
+    return { woken: false, why: `braid ${askingBraid(r) ?? ""} is paused; the board wakes its thread when it resumes` };
+  }
+  pageAnswers.set(key, "sending");
+  const out: T3Result = await t3(root, ["thread", "send", r.thread, answerWakeMessage(r, e)]).catch((error: unknown) => ({ status: 1, stdout: "", stderr: error instanceof Error ? error.message : String(error) }));
+  if (out.error !== undefined || out.status !== 0) {
+    pageAnswers.set(key, "due");
+    return { woken: false, why: `the wake failed (${out.stderr.trim().split("\n")[0] || "t3 failed"}); the board tries again at each refresh` };
+  }
+  try {
+    markAnswerWoken(root, r.code, at.toISOString());
+    pageAnswers.delete(key);
+  } catch {
+    // Sent, not marked: the waker writes the mark at the next refresh without sending again.
+    pageAnswers.set(key, "due");
+    sentPage.add(key);
+  }
+  return { woken: true, why: null };
+}
+
 export function waker(t3: T3Runner): Waker {
   /** Codes whose wake was delivered but whose ending (or answer mark) isn't recorded yet. */
   const sent = new Set<string>();
@@ -165,9 +215,21 @@ export function waker(t3: T3Runner): Waker {
     // Answers recorded outside the asking thread (0072/D): one wake each, the mark after it.
     const since = Math.max(Date.parse(ANSWER_WAKES_FROM), at.getTime() - ANSWER_WAKE_MS);
     for (const r of record) {
-      const e = answerFromElsewhere(r);
-      if (e === null || r.thread === null || archived(r) || answerWoken(r) || !live(r) || !(Date.parse(e.at) >= since)) {
+      const page = pageAnswers.get(pageKey(root, r.code));
+      if (page === "sending") {
         continue;
+      }
+      // An answer from the board's page whose wake is still due goes whoever the request was for, and whatever its age.
+      const fromPage = page === "due" && r.state === "answered" ? closing(r) : null;
+      const e = fromPage ?? answerFromElsewhere(r);
+      if (e === null || r.thread === null || archived(r) || answerWoken(r) || !live(r) || (fromPage === null && !(Date.parse(e.at) >= since))) {
+        if (fromPage !== null && (r.thread === null || archived(r) || answerWoken(r))) {
+          pageAnswers.delete(pageKey(root, r.code));
+        }
+        continue;
+      }
+      if (sentPage.has(pageKey(root, r.code))) {
+        sent.add(r.code);
       }
       if (!sent.has(r.code)) {
         // Right before the send, the record is read again: a second board of the project may have woken it a moment ago.
@@ -182,6 +244,8 @@ export function waker(t3: T3Runner): Waker {
       try {
         markAnswerWoken(root, r.code, at.toISOString());
         sent.delete(r.code);
+        pageAnswers.delete(pageKey(root, r.code));
+        sentPage.delete(pageKey(root, r.code));
       } catch (error) {
         warn(`${r.code} (${r.id}) couldn't be recorded as woken (${error instanceof Error ? error.message : String(error)}); retrying at each refresh`, `record ${r.code}`);
       }
