@@ -19,6 +19,12 @@
       "event": "opened",
       "at": "2026-11-27T23:25:16.268Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-27T23:27:42.438Z",
+      "by": "user",
+      "text": "A. Now, beside 0077 (limit 2 for it)"
     }
   ]
 }
