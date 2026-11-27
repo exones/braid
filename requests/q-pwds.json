@@ -28,6 +28,12 @@
       "by": "pm",
       "text": "A. Approve, with one change: no copy of the store unless C: has at least 3x its size free (check first, say it in report.md), and delete the copy at the end of the run; otherwise measure on the live file read-only only. Box 4: docs stay untouched (a spike edits no docs).",
       "reason": "approve with one guard, because drive C: was at 98% on 2026-11-26 and the store is 3.1 GB, instead of an unrestricted read-only copy"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-27T23:35:36.736Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
