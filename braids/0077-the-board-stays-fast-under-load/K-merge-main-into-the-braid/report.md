@@ -1,6 +1,6 @@
 ## What changed
 
-`origin/main` (910cc2a1: 0060, 0081, 0082) is merged into the braid branch as merge commit 459a183f, with one test commit on top (54d0c51c).
+`origin/main` (910cc2a1: 0060, 0081, 0082) is merged into the braid branch as merge commit 459a183f, with a test commit (54d0c51c) and a review fix (ed1f3cef) on top.
 
 | File | Resolution |
 | --- | --- |
@@ -20,24 +20,26 @@
 
 Beyond the conflicts, in files that merged cleanly or already conflicted:
 
-- `src/commands/requests.ts`, `src/commands/board.ts`: main's `answer` action called the synchronous record readers and writers from the board process. `boardAnswer` is now async (fetch, read and write), and the action calls `src.t3()` as 0077's `Sources` has it.
+- `src/commands/requests.ts`, `src/commands/board.ts`: main's `answer` action called the synchronous record readers and writers from the board process. `boardAnswer` is now async (fetch, read and write). The action no longer reads T3 whole: it takes the asking thread's state from the board's last good T3 read (`repoSources`), else from one `thread show` of that thread (review finding at 27eb779).
 - `test/board-async.test.ts`: the no-synchronous-process test now also answers a request through the `answer` action.
+- `test/board-answer.test.ts`: an answer runs no `thread list` and at most one `thread show`.
+- `docs/board.md`: how the action tells that the asking thread is archived.
 
 ## Why
 
 The braid branch must hold `main` before the final PR. Main's new board-path code had to follow 0077's rule that the board process starts no synchronous `git`.
 
-0077 had removed `readT3`'s short memory (`ttlMs`, `resetT3Memory`), so main's callers of it were adapted. The `answer` action therefore reads T3 afresh to see whether the asking thread is archived.
+0077 had removed `readT3`'s short memory (`ttlMs`, `resetT3Memory`), so main's callers of it were adapted. A whole T3 read on a request path can take a minute (J's case), so the `answer` action never does one.
 
 ## Validation
 
-- Gate (`node dist/cli.js gate`) on 54d0c51c: exit 0. Node tests: 851, 850 passed, 0 failed, 1 skipped; 1061 s.
+- Gate (`node dist/cli.js gate`) on ed1f3cef: exit 0. Node tests: 852, 851 passed, 0 failed, 1 skipped; 1429 s.
 - Includes `test/board-async.test.ts` and main's new tests (`launch`, `board-answer`, `board-questions`, `request-gaps`, `requests-options`).
 - `braid check`: OK.
 
 ## Docs
 
-The conflicted docs are resolved as above. No other doc needed a change.
+The conflicted docs are resolved as above; `docs/board.md` also says how the `answer` action reads the asker's state.
 
 ## Open
 
