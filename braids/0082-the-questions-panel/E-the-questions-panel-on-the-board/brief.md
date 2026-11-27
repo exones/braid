@@ -54,12 +54,20 @@ Expected size: about 700 lines in 6 files, tests included.
 
 ## Completion
 
-- [ ] The model ranks every open request of every served project as above, with tests
-- [ ] Decided lists answered questions of braids and programmes, with tests
-- [ ] The panel sits right of the lanes, collapses to a rail with its count, and remembers its state; below about 1600 px one side panel collapses the other
-- [ ] A question is answered in place with an option button or the Custom line through the `answer` action, then the next one opens
-- [ ] Board buttons are icon-only with tooltips; a Done strand's request shows on the compact card with Details off
-- [ ] Screens from `braid board --demo` saved in this folder and named in report.md
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The model ranks every open request of every served project as above, with tests
+- [x] Decided lists answered questions of braids and programmes, with tests
+- [x] The panel sits right of the lanes, collapses to a rail with its count, and remembers its state; below about 1600 px one side panel collapses the other
+- [x] A question is answered in place with an option button or the Custom line through the `answer` action, then the next one opens
+- [x] Board buttons are icon-only with tooltips; a Done strand's request shows on the compact card with Details off
+- [x] Screens from `braid board --demo` saved in this folder and named in report.md
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `src/board/question-list.ts` (pure, shared with the page): the ranks, their labels, the order, the next question after an answer, the rail's count.
+2. `src/board/questions.ts`: per project, the open requests that reach the user (routed as the cards route them, so one the PM is still handling isn't listed) with rank, who asks, blocks, merge data; and Decided from the closed record, braids and programmes. `deriveBoard` puts both on `BoardData`, `combine` merges and ranks them across projects.
+3. `web/src/Questions.tsx`: the panel, rail, rows, roomy card, Decided; `App.tsx`: the layout, the two side panels' remembered state and the below-1600 px rule, the Done strand's line with Details off, icon-only buttons.
+4. Demo data: an escalated, a several-items, a Done-item, a look and a decided programme request.
+5. Tests for the ranking, Decided and the Done strand's line; docs/board.md; screens from `braid board --demo`.

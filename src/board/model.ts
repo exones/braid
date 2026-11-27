@@ -13,6 +13,7 @@ import { addresseeOf, braidOfId, missedEta, pmThreadOf } from "./waits.js";
 import { forwardedLine, pmLine, routeOf, throughPm, viaNote, type PmLine, type Routed, type Via } from "./pm.js";
 import type { PlanRead } from "./plans.js";
 import { programmeOfBraid, toProgrammes, type Programme } from "./programme.js";
+import { decidedOf, questionsOf, type Decided, type Question } from "./questions.js";
 import type { LimitsView } from "./limits.js";
 import { t3codeUrl } from "./marks.js";
 
@@ -198,6 +199,10 @@ export interface BoardData {
   readonly braids: readonly BraidCard[];
   /** The programmes of the project (its `pm/*` plans), done and stopped ones included; the panel shows the others. */
   readonly programmes: readonly Programme[];
+  /** What the Questions panel lists: the open requests that are the user's, ranked (src/board/questions.ts). */
+  readonly questions: readonly Question[];
+  /** The answered requests of braids and programmes, newest first. */
+  readonly decided: readonly Decided[];
   /** The open inbox entries: leftovers and ideas, read only. Not a lane. */
   readonly inbox: InboxData;
   /** True when this answer goes to the Tailscale listener (the phone): there the server refuses `open`. The server sets it per listener; `toBoard` says false. */
@@ -841,6 +846,12 @@ function waitStall(number: string, sig: Signals, t3: T3, raise: Raise): Need | n
 const waitsOf = (number: string, sig: Signals, t3: T3): RequestRow[] =>
   (sig.waits ?? []).filter((r) => r.id === number || r.id.startsWith(`${number}/`)).map((r) => rowOf(r, sig.now, t3));
 
+/**
+ * The Done strands of a braid that isn't Done and still ask something: their line shows on the compact card whatever the
+ * Details setting, as a Done braid's does in the Done lane, so no question is lost (6B).
+ */
+export const doneAsks = (card: Pick<BraidCard, "lane" | "strands">): StrandCard[] => (card.lane === "Done" ? [] : card.strands.filter((s) => s.lane === "Done" && stillAsks(s)));
+
 /** How many Done braids show at first, and how many more each press of Show more adds. */
 export const DONE_PAGE = 10;
 
@@ -877,7 +888,7 @@ export function deriveBoard(repo: string, braids: readonly Braid[], gh: Github, 
   const cards: BraidCard[] = carded.map(({ alarms: _seen, ...card }) => card);
   const programmes = toProgrammes(repo, sig.plans ?? [], cards, t3, full, gh, alarms);
   const tags = programmeOfBraid(programmes);
-  const board: BoardData = { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: cards.map((c) => ({ ...c, programme: tags.get(c.id) ?? null })), programmes, inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems, pausesNote: sig.pausesNote ?? null, limits };
+  const board: BoardData = { repo, lanes: LANES, github: gh.status, t3: t3.status, braids: cards.map((c) => ({ ...c, programme: tags.get(c.id) ?? null })), programmes, questions: questionsOf(cards, programmes, t3, full, gh), decided: decidedOf(cards, programmes, full), inbox: { ...inbox, ideas, base: `origin/${ctx.main}`, expected: ctx.expected === null ? null : `${ctx.expected.provider} / ${ctx.expected.model}` }, remote: false, problems, pausesNote: sig.pausesNote ?? null, limits };
   return { board, alarms };
 }
 
