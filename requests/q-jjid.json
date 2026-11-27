@@ -22,6 +22,12 @@
       "at": "2026-11-26T23:23:51.096Z",
       "by": "pm",
       "text": "PM recommends A: same owner-only Tailscale guard as Merge already uses; a wrong answer is fixable by a follow-up message"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-27T08:22:12.333Z",
+      "by": "user",
+      "text": "A. Both listeners, no confirmation"
     }
   ]
 }
