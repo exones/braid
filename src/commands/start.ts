@@ -54,22 +54,22 @@ function tip(refs: readonly BranchRef[]): BranchRef | undefined {
   return [...refs].sort((a, b) => b.time - a.time || Number(b.local) - Number(a.local))[0];
 }
 
-function parse(args: readonly string[]): { number: string; letter: string | null; force: boolean; thread: string | null } {
+function parse(args: readonly string[]): { number: string; letter: string | null; force: boolean; thread: string | null; branchOnly: boolean } {
   if (args.includes("--review")) {
     // Removed in 0039: a reviewer is a T3 subagent in a checkout T3 makes.
     throw new UsageError("braid start has no --review option: a reviewer runs as a T3 subagent in its own checkout; record its thread with braid review <id> --thread <thread id>. Nothing was created");
   }
   const at = args.indexOf("--thread");
   const thread = at < 0 ? null : (args[at + 1] ?? "");
-  const ids = args.filter((a, i) => a !== "--force" && (at < 0 || (i !== at && i !== at + 1)));
+  const ids = args.filter((a, i) => a !== "--force" && a !== "--no-worktree" && (at < 0 || (i !== at && i !== at + 1)));
   const m = ids.length === 1 ? /^(\d{1,4})(?:\/([A-Z]))?$/.exec(ids[0] ?? "") : null;
   if (m === null || thread === "" || thread?.startsWith("--") === true) {
-    throw new UsageError("usage: braid start <id> [--force] [--thread <id>]  (a strand like 0008/B, or a braid without strands like 0008)");
+    throw new UsageError("usage: braid start <id> [--force] [--no-worktree] [--thread <id>]  (a strand like 0008/B, or a braid without strands like 0008)");
   }
-  return { number: (m[1] ?? "").padStart(4, "0"), letter: m[2] ?? null, force: args.includes("--force"), thread };
+  return { number: (m[1] ?? "").padStart(4, "0"), letter: m[2] ?? null, force: args.includes("--force"), thread, branchOnly: args.includes("--no-worktree") };
 }
 
-function target(w: World, letter: string | null): { branch: string; slug: string; folder: string; why: string | null } {
+export function target(w: World, letter: string | null): { branch: string; slug: string; folder: string; why: string | null } {
   const braidSlug = /^braids\/\d{4}-(.+)$/.exec(w.braid.folder)?.[1] ?? "";
   if (letter === null) {
     if (w.braid.strands.length > 0) {
@@ -90,10 +90,17 @@ function target(w: World, letter: string | null): { branch: string; slug: string
 }
 
 export async function startCommand(root: string, args: readonly string[], src: Sources = {}, env: NodeJS.ProcessEnv = process.env): Promise<string> {
-  const { number, letter, force, thread } = parse(args);
+  const { number, letter, force, thread, branchOnly } = parse(args);
   const w = await read(root, number, "start", src);
   const t = target(w, letter);
   const id = letter === null ? number : `${number}/${letter}`;
+  if (branchOnly) {
+    const b = startBranch(root, w, t, id, letter, force, thread);
+    return `branch ${b.branch}${b.note}
+commit ${b.commit}
+base ${b.base}
+${b.warnings}`;
+  }
   repoName(root);
   const [dir = "", ...old] = agentsDirs(root, env);
   const folder = join(dir, t.folder);
@@ -142,6 +149,62 @@ export async function startCommand(root: string, args: readonly string[], src: S
   must(root, ["worktree", "add", "--track", "-b", t.branch, folder, `${REMOTE}/${t.branch}`], `${t.branch} is pushed but the worktree failed`);
   const closed = closeRequest(root, id, undefined, STARTED);
   return `branch ${t.branch}\ncommit ${commit}\nfolder ${isAbsolute(folder) ? folder : resolve(folder)}\n${warned(closed.warning)}${started(root, id, thread, t.branch)}`;
+}
+
+/** The base an item's branch is cut from: a strand starts from its braid's branch tip, a story from main. */
+function baseOf(root: string, w: World, number: string, letter: string | null): string {
+  if (letter === null) {
+    const main = mainBranch(root);
+    return git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${main}`]).status === 0 ? main : `${REMOTE}/${main}`;
+  }
+  const braidBranch = tip(w.refs.filter((r) => r.number === number && r.letter === null));
+  if (braidBranch === undefined) {
+    throw new UsageError(`braid ${number} has no branch (braid/${number}-<slug>), local or pushed; create it first`);
+  }
+  return braidBranch.branch;
+}
+
+/** A branch ref without its `origin/` prefix. */
+const plain = (r: BranchRef): string => (r.local ? r.branch : r.branch.slice(r.branch.indexOf("/") + 1));
+
+export interface BranchStart {
+  readonly branch: string;
+  readonly commit: string;
+  /** The branch the PR goes into: the braid's branch for a strand, main for a story. */
+  readonly base: string;
+  readonly note: string;
+  readonly warnings: string;
+}
+
+/**
+ * `braid start --no-worktree` (and `braid launch`): the item's branch created from its base and pushed, the start recorded, no
+ * worktree: T3 makes the worker's checkout. Safe to run again: an existing branch is pushed if only local and the start recorded if missing.
+ */
+export function startBranch(root: string, w: World, t: { branch: string; why: string | null }, id: string, letter: string | null, force: boolean, thread: string | null): BranchStart {
+  const number = w.braid.number;
+  const own = tip(w.refs.filter((r) => r.number === number && r.letter === letter));
+  const base = baseOf(root, w, number, letter);
+  const baseName = base.replace(/^origin\//, "");
+  if (own !== undefined) {
+    const name = plain(own);
+    const commit = must(root, ["rev-parse", "--verify", `${own.branch}^{commit}`], `can't read ${own.branch}`);
+    let warnings = "";
+    if (own.local && git(root, ["ls-remote", "--exit-code", "--heads", REMOTE, name]).status !== 0) {
+      must(root, ["push", REMOTE, `${name}:refs/heads/${name}`], `can't push ${name} to ${REMOTE}`);
+    }
+    const has = loadLifecycle(root).get(id)?.events.some((e) => e.kind === "started") ?? false;
+    if (!has) {
+      warnings = started(root, id, thread, name);
+    }
+    return { branch: name, commit, base: baseName, note: has ? " (already started)" : " (existing)", warnings };
+  }
+  if (t.why !== null && !force) {
+    throw new UsageError(`${id} is not ready: ${t.why} (--force starts it anyway)`);
+  }
+  const commit = must(root, ["rev-parse", "--verify", `${base}^{commit}`], `can't read ${base}`);
+  must(root, ["push", REMOTE, `${commit}:refs/heads/${t.branch}`], `can't push ${t.branch} to ${REMOTE}; nothing was created`);
+  const closed = closeRequest(root, id, undefined, STARTED);
+  return { branch: t.branch, commit, base: baseName, note: "", warnings: `${warned(closed.warning)}${started(root, id, thread, t.branch)}` };
 }
 
 /** The `started` event on the record branch (the item reads In Progress from it); a push that failed is a warning line. */

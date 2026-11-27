@@ -8,11 +8,12 @@ import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
 import { LANE_LABEL, ageText, cardMarks, leadOf, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
-import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
+import { DONE_PAGE, doneAsks, doneNewestFirst, stillAsks } from "../../src/board/model.ts";
 import { askWho, clock as clockAt, pauseBox, resumeMode, resumeOnCard, usage,type PauseView } from "../../src/board/pause.ts";
 import type { ProgrammeResume } from "../../src/board/programme.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
 import { CLOSED_PAGE, requestCount, type RequestRow, type RequestsView } from "../../src/board/record.ts";
+import { QuestionsPanel } from "./Questions.tsx";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard, type TaggedProgramme } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
@@ -118,6 +119,14 @@ function ReasonMark({ kind, tooltip }: { kind: string; tooltip: string }) {
   }
   if (kind === "limit") {
     return <Icon tip={tooltip} className="text-amber-500">⚖</Icon>;
+  }
+  if (kind === "look") {
+    // A look request or an FYI blocks nothing: a quiet eye, not the amber of a question.
+    return (
+      <Icon tip={tooltip} className="text-slate-500">
+        <svg {...svg} strokeWidth={2.2}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+      </Icon>
+    );
   }
   if (kind === "plan") {
     return (
@@ -235,7 +244,7 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
 }
 
 /** What answering a request unblocks and what the user does, on one line: `blocks 0072/B, 0072/C · decide`; just `decide` when nothing waits on it. */
-function BlockLine({ blocks, act }: { blocks: readonly string[] | undefined; act: string | undefined }) {
+export function BlockLine({ blocks, act }: { blocks: readonly string[] | undefined; act: string | undefined }) {
   if (act === undefined) {
     return null;
   }
@@ -248,7 +257,7 @@ function BlockLine({ blocks, act }: { blocks: readonly string[] | undefined; act
 }
 
 /** A request's handle (`yellow-bear-5asx`), the name to use for it in any thread. A click, tap or Enter copies it and says "copied" for a moment; the card under it stays as it is. */
-function CodeChip({ code }: { code: string }) {
+export function CodeChip({ code }: { code: string }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -274,7 +283,7 @@ function CodeChip({ code }: { code: string }) {
 }
 
 /** "Open asking thread": the T3 app link of the thread that asked; nothing when T3 doesn't list it. */
-function AskingLink({ link }: { link: string | null }) {
+export function AskingLink({ link }: { link: string | null }) {
   const app = link === null ? null : t3codeUrl(link);
   if (app === null) {
     return null;
@@ -355,7 +364,7 @@ const EMOJI_BUTTON = "text-[13px] leading-none max-md:text-xl";
 const Label = ({ children }: { children: ReactNode }) => <span className="md:hidden">{children}</span>;
 
 /** The project the item being drawn belongs to: every action sends it. */
-const ProjectContext = createContext("");
+export const ProjectContext = createContext("");
 
 /** The projects served (in served order) and whether the page tells them apart; one project served looks as it always did. */
 interface Scope {
@@ -379,7 +388,7 @@ function ageOf(ms: number | null): string {
 }
 
 /** A project's name with its colour; a ⚠ when its latest read failed (the card shows the older board). */
-function ProjectTag({ name }: { name: string }) {
+export function ProjectTag({ name }: { name: string }) {
   const entry = useContext(ScopeContext).projects.get(name);
   const c = colourOf(entry?.index ?? 0);
   const failed = entry?.info.failure != null;
@@ -469,7 +478,7 @@ const CHECK_MARK = { passing: "text-green-600", failing: "text-red-600", pending
  * over. Off, with its reason in the tooltip, when there is no open review request or coordinator thread,
  * the checks aren't green, or the coordinator was already asked for this head.
  */
-function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
+export function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
   const project = useContext(ProjectContext);
   const key = `${project}/${id}`;
   const [open, setOpen] = useState(false);
@@ -837,6 +846,9 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
   const [open, setOpen] = useState(false);
   const [launched, setLaunched] = useState<Launched | null>(null);
   const tier = braid.labels.filter((l) => l.startsWith("tier:"));
+  // The Done strands that still ask: their lines show with Details off too, and not twice.
+  const asking = doneAsks(braid);
+  const asksDone = (who: string | null) => asking.some((s) => s.id === who);
   const stale = scope.projects.get(braid.project)?.info.failure != null;
   return (
     <ProjectContext value={braid.project}>
@@ -882,8 +894,14 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
           </span>
         </div>
       )}
-      {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
-      {details && !open && braid.pmAsk !== null && braid.need?.by !== "pm" && <NeedLine need={braid.pmAsk} />}
+      {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && !asksDone(braid.need.who) && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
+      {details && !open && braid.pmAsk !== null && braid.need?.by !== "pm" && !asksDone(braid.pmAsk.who) && <NeedLine need={braid.pmAsk} />}
+      {!open && asking.map((s) => (
+        <div key={s.id}>
+          {s.need !== null && <NeedLine need={{ ...s.need, who: s.id }} braid />}
+          {s.pmAsk !== null && s.need?.by !== "pm" && <NeedLine need={{ ...s.pmAsk, who: s.id }} braid />}
+        </div>
+      ))}
       {details && !open && braid.pm !== null && <PmLine pm={braid.pm} />}
       {details && !open && braid.waits.map((w) => <WaitLine key={w.code} row={w} />)}
       {details && !open && braid.pause !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PauseLine pause={braid.pause} />}
@@ -1163,7 +1181,7 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
   return (
     <div>
       <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:min-h-11 md:hidden">
-        <span aria-hidden>{open ? "▾" : "▸"}</span> {open ? "Hide" : "Show"} done
+        <span aria-hidden>{open ? "▾" : "▸"}</span> {open ? "Hide" : "Show"} done{!open && cards.some(stillAsks) ? ` · ${cards.filter(stillAsks).length} asking you` : ""}
       </button>
       {open && (
         <button type="button" aria-expanded onClick={() => setOpen(false)} className="mb-1 flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:hidden">
@@ -1173,7 +1191,8 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
       {open && (
         <div>
           {rows.slice(0, shown).map((b) => (
-            <button key={`${b.project}/${b.id}`} type="button" data-opens-details onClick={() => go(b.id, "brief", b.project)} className="flex w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
+            <div key={`${b.project}/${b.id}`} className="border-b border-slate-300/60">
+            <button type="button" data-opens-details onClick={() => go(b.id, "brief", b.project)} className="flex w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
               <LaneDot lane="Done" />
               <span className="w-10 flex-none text-xs text-slate-500"><Id id={b.id} /></span>
               {tagged && <ProjectTag name={b.project} />}
@@ -1181,6 +1200,17 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
               <span className="min-w-24 flex-1">{b.title}</span>
               <span className="ml-auto flex-none text-[11px] whitespace-nowrap text-slate-500">{dayOf(b.doneAt)}</span>
             </button>
+            {/* An open question stays with its Done braid, whatever the Details setting: it isn't lost. */}
+            {stillAsks(b) && (
+              <ProjectContext value={b.project}>
+                <div className="px-1 pb-1.5">
+                  {b.need !== null && <NeedLine need={b.need} braid={b.total > 0 || b.need.who !== null} />}
+                  {b.pmAsk !== null && b.need?.by !== "pm" && <NeedLine need={b.pmAsk} />}
+                </div>
+              </ProjectContext>
+            )}
+            {b.pm !== null && <div className="px-1 pb-1.5"><PmLine pm={b.pm} /></div>}
+            </div>
           ))}
           {rows.length > shown && (
             <button type="button" onClick={() => setShown(shown + DONE_PAGE)} className="mt-2 w-full cursor-pointer rounded-md border border-slate-200 bg-white py-1.5 text-xs hover:border-blue-600 max-md:min-h-11 max-md:text-sm">
@@ -1249,6 +1279,7 @@ function Board({ data, details }: { data: { readonly lanes: readonly Lane[]; rea
                 <button type="button" aria-expanded={false} onClick={() => setDoneOpen(true)} className="flex min-h-48 w-full cursor-pointer flex-col items-center gap-2 rounded-xl bg-slate-200/70 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 hover:bg-slate-300/70 max-md:hidden">
                   <LaneDot lane={lane} />
                   <span>{cards.length}</span>
+                  {cards.some(stillAsks) && <span title="Done braids with an open question" className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">? {cards.filter(stillAsks).length}</span>}
                   <span className="[writing-mode:vertical-rl]">{LANE_LABEL[lane]}</span>
                 </button>
                 <div className="md:hidden"><DoneLane cards={cards} open={false} setOpen={setDoneOpen} /></div>
@@ -1306,7 +1337,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           {item.need.text}
           {item.need.also !== undefined && <div className={`mt-2 rounded-md border-l-[3px] px-1.5 py-1 ${toneOf(item.need.also)}`}>{item.need.also.text}</div>}
           {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.handle ?? item.need.code}</b> in any thread to refer to it.</span></div>}
-          <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
+          <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind !== "limit" && item.lane === "Done" ? "This item is Done, but the request is still open: answer it in the coordinator thread." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
       )}
       {item.pmAsk !== null && item.need?.by !== "pm" && (
@@ -1393,14 +1424,15 @@ function RequestCard({ row }: { row: RequestRow }) {
       <div className="flex flex-wrap items-center gap-1.5">
         <CodeChip code={row.handle} />
         <span className={`rounded-full px-2 py-px text-[11px] font-semibold ${state.tone}`}>{label}</span>
-        <Badge>{row.kind}</Badge>
-        {row.state === "open" && !/^\d{4}$/.test(row.to) && row.to !== "self" && <span className="text-xs"><BlockLine blocks={row.blocks} act={row.act} /></span>}
-        {/^\d{4}$/.test(row.to) && <Badge>to braid {row.to}</Badge>}
-        {row.to === "self" && <Badge>waiting until {untilText(row.doneWhen)}</Badge>}
+        {!wait && <Badge>{row.kind}</Badge>}
+        {row.state === "open" && !wait && <span className="text-xs"><BlockLine blocks={row.blocks} act={row.act} /></span>}
+        {wait && <Badge>{row.act}</Badge>}
         <span className="flex-1" />
         {end !== null ? <span className="text-xs text-slate-500">{when(end.at)}</span> : <AskingLink link={row.link} />}
       </div>
-      <div className="mt-1">{row.text}</div>
+      <div className={`mt-1 ${row.mark === null ? "" : `rounded-md border-l-[3px] px-1.5 py-1 ${NEED_TONE.wait}`}`}>
+        {row.mark === null ? row.text : `${row.mark.words} ${row.text}${row.mark.why}`}
+      </div>
       {end?.text != null && (
         <div className={`mt-1.5 rounded border-l-[3px] bg-slate-50 px-2 py-1 text-[13px] ${row.state === "answered" ? "border-green-600" : "border-slate-400 text-slate-700"}`}>
           <b>{row.state === "answered" ? "Answer: " : row.state === "met" ? "Met: " : `Withdrawn by ${WHO[end.by] ?? end.by}: `}</b>
@@ -1796,31 +1828,75 @@ function ProjectsBar({ infos, selected, onSelect }: { infos: readonly ProjectInf
 // ---- Programmes (docs/board.md, "Programmes"): the panel left of the lanes, its rail, the filter, the details, the phone strip.
 
 const PANEL_KEY = "braid-programmes-open";
+const QUESTIONS_KEY = "braid-questions-open";
+/** The side panel opened last: the one that stays open where only one fits. */
+const LAST_KEY = "braid-side-panel";
 
-/** Whether the programmes panel is open (not the rail): open until collapsed, then remembered in this browser (local storage). */
-function usePanelOpen(): [boolean, (on: boolean) => void] {
-  const [open, setOpen] = useState(() => {
+/** Below this width the two side panels don't both fit: opening one collapses the other (D118). */
+const NARROW = "(max-width: 1599px)";
+
+/** A value remembered in this browser (local storage), kept for the page when storage is off. */
+function useRemembered(key: string, fallback: string): [string, (value: string) => void] {
+  const [value, setValue] = useState(() => {
     try {
-      return localStorage.getItem(PANEL_KEY) !== "0";
+      return localStorage.getItem(key) ?? fallback;
     } catch {
-      return true;
+      return fallback;
     }
   });
-  return [open, (on) => {
+  return [value, (next) => {
     try {
-      localStorage.setItem(PANEL_KEY, on ? "1" : "0");
+      localStorage.setItem(key, next);
     } catch {
       // not remembered: still applied
     }
-    setOpen(on);
+    setValue(next);
   }];
+}
+
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(() => matchMedia(NARROW).matches);
+  useEffect(() => {
+    const query = matchMedia(NARROW);
+    const onChange = () => setNarrow(query.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+  return narrow;
+}
+
+type SidePanel = "programmes" | "questions";
+
+/**
+ * Whether the programmes panel and the Questions panel are open (not a rail): open until collapsed, then remembered. On a
+ * narrow desktop only one is open, the one opened last; `programmes` false: there is no programmes panel to share with.
+ */
+function useSidePanels(programmes: boolean): { readonly open: Readonly<Record<SidePanel, boolean>>; readonly set: (panel: SidePanel, on: boolean) => void } {
+  const narrow = useNarrow();
+  const [prog, setProg] = useRemembered(PANEL_KEY, "1");
+  const [questions, setQuestions] = useRemembered(QUESTIONS_KEY, "1");
+  const [last, setLast] = useRemembered(LAST_KEY, "questions");
+  const both = narrow && programmes && prog !== "0" && questions !== "0";
+  return {
+    open: { programmes: prog !== "0" && !(both && last !== "programmes"), questions: questions !== "0" && !(both && last === "programmes") },
+    set: (panel, on) => {
+      const [mine, other] = panel === "programmes" ? [setProg, setQuestions] : [setQuestions, setProg];
+      mine(on ? "1" : "0");
+      if (on) {
+        setLast(panel);
+        if (narrow && programmes) {
+          other("0");
+        }
+      }
+    },
+  };
 }
 
 /** The programme filter of the page: the key `?programme=` narrows the lanes to, and the setter (null shows all). */
 const FilterContext = createContext<{ readonly key: string | null; readonly set: (key: string | null) => void }>({ key: null, set: () => {} });
 
 /** Opens a programme's details over the board, as `go` opens an item's. */
-function goProgramme(key: string): void {
+export function goProgramme(key: string): void {
   const target = programmeHash(key);
   if (openMode(location.hash) === "push") {
     pushedOpen = true;
@@ -1884,15 +1960,15 @@ function OnlyThese({ p, short = false, icon = false }: { p: TaggedProgramme; sho
       type="button"
       aria-pressed={on}
       aria-label={on ? "Show every braid" : `Only the braids of ${p.slug}`}
-      title={on ? "Show every braid again" : "Show only this programme's braids in the lanes"}
+      title={on ? "Show every braid again" : "Only these: show only this programme's braids in the lanes"}
       onClick={(e) => {
         e.stopPropagation();
         filter.set(on ? null : p.key);
       }}
       className={`inline-flex cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-md border px-2 py-0.5 text-[12.5px] max-md:min-h-11 max-md:min-w-11 ${on ? "border-teal-700 bg-teal-700 font-semibold text-white" : "border-slate-200 bg-white text-slate-700 hover:border-blue-600"}`}
     >
-      <span aria-hidden>◎</span> {icon ? "" : short ? "Only" : "Only these"}
-      {on && !short && <span aria-hidden> · ✕</span>}
+      <span aria-hidden>◎</span>
+      {!icon && <span className="md:hidden">{short ? "Only" : "Only these"}</span>}
     </button>
   );
 }
@@ -1941,7 +2017,7 @@ function OneNeed({ p, need, item }: { p: TaggedProgramme; need: Need; item?: str
           ))}
         </ul>
       )}
-      <small className="mt-0.5 block text-[11px] text-slate-500">{item === undefined ? "programme" : `from ${item}`} · {ageText(need)} · answer in the PM thread</small>
+      <small className="mt-0.5 block text-[11px] text-slate-500">{item === undefined ? "programme" : `from ${item}`} · {ageText(need)} · answer in the Questions panel or the PM thread</small>
     </div>
   );
 }
@@ -1999,8 +2075,8 @@ function ProgrammeCard({ p }: { p: TaggedProgramme }) {
       <div className="mt-2 flex flex-wrap gap-1">
         <PmThread p={p} />
         <OnlyThese p={p} />
-        <button type="button" data-opens-details onClick={() => goProgramme(p.key)} className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[12.5px] text-slate-700 hover:border-blue-600 max-md:min-h-11">
-          <span aria-hidden>≡</span> Plan
+        <button type="button" data-opens-details aria-label={`Plan of ${p.slug}`} title="Plan: open the programme's details" onClick={() => goProgramme(p.key)} className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[12.5px] text-slate-700 hover:border-blue-600 max-md:min-h-11">
+          <span aria-hidden>≡</span> <span className="md:hidden">Plan</span>
         </button>
         {p.error === null && p.resume !== null && (
           <>
@@ -2023,9 +2099,8 @@ function SectionHead({ label, count, tone }: { label: string; count: number; ton
 }
 
 /** The desktop panel left of the lanes: Needs you and Working, or (collapsed) the rail of icons. */
-function ProgrammesPanel({ list }: { list: readonly TaggedProgramme[] }) {
+function ProgrammesPanel({ list, open, setOpen }: { list: readonly TaggedProgramme[]; open: boolean; setOpen: (open: boolean) => void }) {
   const scope = useContext(ScopeContext);
-  const [open, setOpen] = usePanelOpen();
   const order = new Map([...scope.projects].map(([name, { index }]) => [name, index]));
   const { needs, working } = programmeOrder(list, order);
   if (!open) {
@@ -2315,8 +2390,11 @@ export function App() {
   const shown = infos.filter((i) => selected.includes(i.name));
   const programmes = all.state === "ready" ? all.data.programmes.filter((p) => selected.includes(p.project)) : [];
   const only = programmes.find((p) => p.key === programme) ?? null;
+  const questions = all.state === "ready" ? all.data.questions.filter((q) => selected.includes(q.project)) : [];
+  const decided = all.state === "ready" ? all.data.decided.filter((d) => selected.includes(d.project)) : [];
   const board = all.state === "ready" ? { lanes: all.data.lanes, braids: all.data.braids.filter((b) => selected.includes(b.project) && (only === null || (b.project === only.project && only.braids.includes(b.id)))) } : null;
   const panel = programmes.some((p) => p.section !== null) || only !== null;
+  const sides = useSidePanels(panel);
   const inbox = mergeInbox(shown);
   // One project served keeps the page as it was: its notes in the header, its problems in a banner.
   const single = infos.length === 1 ? infos[0] : undefined;
@@ -2351,10 +2429,13 @@ export function App() {
           </span>
           <button
             type="button"
+            aria-label="Refresh"
+            title="Refresh"
             onClick={refresh}
-            className="cursor-pointer rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 hover:border-blue-600"
+            className="flex size-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:border-blue-600 max-md:size-auto max-md:min-h-11 max-md:px-3 max-md:text-xs"
           >
-            Refresh
+            <span className="max-md:hidden"><RetryIcon /></span>
+            <span className="md:hidden">Refresh</span>
           </button>
         </header>
         {limits !== null && <LimitsStrip view={limits} now={now} onOpen={toggleLimits} />}
@@ -2383,13 +2464,14 @@ export function App() {
           <Status loaded={all}>
             {() =>
               board === null ? null : (
-                <div className="flex items-stretch">
-                  {panel && <ProgrammesPanel list={programmes} />}
+                <div className="flex items-stretch max-md:flex-col">
+                  {panel && <ProgrammesPanel list={programmes} open={sides.open.programmes} setOpen={(on) => sides.set("programmes", on)} />}
                   <div className="min-w-0 flex-1">
                     {panel && <PhoneProgrammes list={programmes} />}
                     {only !== null && <FilterBar p={only} count={board.braids.length} />}
                     <Board data={board} details={details} />
                   </div>
+                  <QuestionsPanel questions={questions} decided={decided} open={sides.open.questions} setOpen={(on) => sides.set("questions", on)} refresh={refresh} />
                 </div>
               )
             }

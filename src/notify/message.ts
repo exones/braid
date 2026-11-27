@@ -31,6 +31,7 @@ export const TAGS: Readonly<Record<Need["kind"] | "done", string>> = {
   decision: "scales",
   plan: "clipboard",
   action: "compass",
+  look: "eye",
   "checks failed": "x",
   stalled: "hourglass",
   limit: "scales",
@@ -99,7 +100,8 @@ function pmAskPush(repo: string, id: string, title: string, need: Need, link: st
     // A programme request has no item to name: its handle leads the act line.
     body: withBoard(slug === undefined ? lines(coded(need, title), askLine(need), need.text) : lines(coded(need, askLine(need) ?? ""), need.text), click),
     tags: ["compass"],
-    priority: "high",
+    // The PM's look or FYI blocks nothing, as a coordinator's.
+    priority: need.kind === "look" ? "default" : "high",
     click,
     sequence: sequenceOf(repo, `${id}#pm`),
   };
@@ -138,7 +140,8 @@ function needPush(repo: string, id: string, title: string, lane: Lane, need: Nee
     body: withBoard(lines(coded(need, title), askLine(need), text), click),
     tags: [forward ? "compass" : TAGS[need.kind]],
     // An escalation or a forward is high even for a review: the PM was meant to deal with it, and didn't or couldn't.
-    priority: lane === "Waiting" || need.via !== undefined ? "high" : "default",
+    // A look blocks nothing: it reaches the user without the alarm of a question.
+    priority: (lane === "Waiting" && need.kind !== "look") || need.via !== undefined ? "high" : "default",
     click,
     sequence: sequenceOf(repo, id),
   };
@@ -242,6 +245,10 @@ export function pushesOf(board: BoardData): Push[] {
       out.push(...pushOf(board.repo, card.id, card.title, laneOf(card.need), card.need, coordinator));
     }
     for (const s of card.strands) {
+      // A Done strand's open request stays on the board only: it pushes no more than it did.
+      if (s.lane === "Done") {
+        continue;
+      }
       out.push(...pushOf(board.repo, s.id, s.title, "Waiting", s.pmAsk, coordinator));
       if (s.need !== null && s.need.by === undefined) {
         out.push(...pushOf(board.repo, s.id, s.title, s.lane, s.need, coordinator));
