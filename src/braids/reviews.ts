@@ -57,13 +57,17 @@ export function loadReviews(root: string): ReviewRecord[] {
   }
 }
 
-/** Records a thread that reviews the item; the same thread twice is kept once (its first time stays). A PM's checker (`pm/<slug>`) replaces the item's older record: the PM has one checker at a time (0071/E, ozjp). */
+/** Records a thread that reviews the item; the same thread twice is kept once, at the time of the latest call, which makes the board ask T3 about a finished one again (a checker keeps its first time: its 24 h cap counts from it). A PM's checker (`pm/<slug>`) replaces the item's older record: the PM has one checker at a time (0071/E, ozjp). */
 export function recordReview(root: string, id: string, thread: string, at: string = new Date().toISOString(), where: { folder: string; branch: string | null } | null = null): boolean {
   let added = false;
   update(reviewsFile(root), (list) => {
-    added = !list.some((r) => r.thread === thread && r.id === id);
+    const same = list.find((r) => r.thread === thread && r.id === id);
+    added = same === undefined;
+    if (same !== undefined) {
+      return id.startsWith("pm/") ? null : list.map((r) => (r === same ? { ...r, at } : r));
+    }
     const kept = id.startsWith("pm/") ? list.filter((r) => r.id !== id) : list;
-    return added ? [...kept, { id, thread, at, ...(where === null ? {} : { folder: where.folder, branch: where.branch }) }] : null;
+    return [...kept, { id, thread, at, ...(where === null ? {} : { folder: where.folder, branch: where.branch }) }];
   });
   return added;
 }
