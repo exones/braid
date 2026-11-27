@@ -1,0 +1,24 @@
+{
+  "code": "q-6m89",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "What runs in parallel next: 0078 now, P31+P30 now or after 0077?",
+  "options": [
+    "Resume 0078 now; P31 and P30 together when 0077 merges",
+    "Start P31 and P30 now (limit 4)",
+    "Only P31 when 0077 merges, one at a time"
+  ],
+  "words": "crunchy pickle",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-27T23:40:06.122Z",
+      "by": "pm"
+    }
+  ]
+}
