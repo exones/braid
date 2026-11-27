@@ -19,14 +19,14 @@ rows:
   - P22 | 0075 | Lifecycle off the code branches, one pure lane | done
   - P21 | 0074 | The board pauses and resumes reliably | done
   - P27 | 0080 | The board talks to T3 directly | running
-  - P5 | - | Board lanes collapse, Held lane, Hold all | running
+  - P5 | 0086 | Board lanes collapse, Held lane, Hold all | running
   - P25 | 0082 | The Questions panel | done
   - P24 | 0077 | The board stays fast under load | running
   - P4 | 0072 | Questions say what they unblock | done
   - P8 | 0060 | Workers as T3 subagents | done
   - P29 | 0081 | braid review refuses another thread's checkout | done
-  - P30 | - | braid clean works in repos with submodules | running
-  - P31 | - | Several open questions per item | running
+  - P30 | 0085 | braid clean works in repos with submodules | running
+  - P31 | 0084 | Several open questions per item | running
   - P32 | 0083 | Spike: how braid can read T3 lightly | running
   - P9 | - | Per-programme say settings | planned
   - P10 | 0036 | Coordinator polish, reviewed | planned
@@ -168,6 +168,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28: three plans launched together all took 0084 from `braid new` (none could see the others' unpushed branches); P30's `braid ask 0084` then withdrew P31's plan request (the P31 hole). PM: P31 0084, P30 0085, P5 0086. Idea (noted by P30): `braid new` reserves its number on origin. PM lesson: launch parallel coordinators one at a time, after the previous one pushed its plan.
 - 2026-11-28: user "P31 P30 P5 all in parallel" (crunchy-pickle-6m89): limit 5; three coordinators launched (limits ok). Merge order: 0077 first; P31 before P5's final PR (both change cards and the Questions panel); P30 merges main after 0077 (clean.ts). P5 leaves the T3 sign-in parts to 0080 and 0083.
 - 2026-11-28: P32 is 0083 (spike, M, one worker run). PM approved its plan (gentle-anchor-pwds) with a guard: no copy of the T3 store unless C: has 3x its size free, deleted after; docs untouched.
 - 2026-11-28: user "Silly window a": P32 runs now beside 0077, limit 2. Coordinator launched (limits ok: session 0%, weekly 45%).
