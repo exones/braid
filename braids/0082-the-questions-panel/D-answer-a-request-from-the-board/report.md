@@ -20,7 +20,7 @@ Brief 0082/D: the board side of the Questions panel, answered as the user's own 
   - a failed send is sent once by the waker;
   - a paused braid is woken only after it resumes, and an archived asker is never woken;
   - through the real server: no token, a wrong token, a foreign Origin, a non-owner on Tailscale and a missing request header are all 403 and nothing is recorded; the token on the local listener and the header from the owner on Tailscale record the answer; a second answer gets 400 "already answered"; an unserved project gets 400.
-- The gate `npm run verify` passed (see the PR).
+- The gate `npm run verify` passed: 808 tests, 0 failures, in about 16 minutes (983 s) on Windows.
 
 ## Docs
 

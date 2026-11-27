@@ -51,10 +51,10 @@ Expected size: about 300 lines in 6 files, tests included.
 
 ## Completion
 
-- [ ] The board's `answer` action records an option or a free-text line as the user's answer, through `braid answer`'s code, with tests
-- [ ] A request no longer open, or of another project, is refused with a clear message, with tests
-- [ ] The action has the same guard as the other actions on both listeners, with tests
-- [ ] An answer recorded from the board wakes the asking thread once, with a test
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The board's `answer` action records an option or a free-text line as the user's answer, through `braid answer`'s code, with tests
+- [x] A request no longer open, or of another project, is refused with a clear message, with tests
+- [x] The action has the same guard as the other actions on both listeners, with tests
+- [x] An answer recorded from the board wakes the asking thread once, with a test
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
