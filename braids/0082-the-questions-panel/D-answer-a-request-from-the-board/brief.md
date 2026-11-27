@@ -32,16 +32,13 @@ Expected size: about 300 lines in 6 files, tests included.
 
 - The board's write actions already exist (`merge`, `start`, `promote`, `resume`) behind `postAction`'s guard; `answer` uses that guard and adds no new way in.
 - One click sends at once, with no undo (the user's 1A, D118).
+- The user, 2026-11-27 (smooth-window-jjid, ask:security): "A. Both listeners, no confirmation": `answer` runs on the local and the Tailscale listener alike, behind the same guard, with no confirmation step.
 - The Tailscale listener answers only its owner (`tailscale whois`, 0067, 0077/I).
 
 ## Out of scope
 
 - The panel and its buttons (0082/E); answering from pushes or the phone strip.
 - Changing who the board's listeners serve.
-
-## Open question (ask:security, to the PM before launch)
-
-Whether the `answer` action is allowed on the Tailscale listener as on the local one (proposed: yes, as `merge` and `start` are, since it serves only the owner and needs the page's header), and whether it needs a confirmation step (proposed: no, per 1A).
 
 ## Completion
 
