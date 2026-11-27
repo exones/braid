@@ -38,7 +38,7 @@ import { readLimitsView, type LimitsView } from "../board/limits.js";
 import { loadPauses, markResumed, patchPause, reasonOf, type Pause } from "../braids/pauses.js";
 import { resumeMode } from "../board/pause.js";
 import { readPlans, type PlanRead } from "../board/plans.js";
-import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
+import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, showThread, type T3, type T3Runner } from "../board/t3.js";
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
 import { normaliseId, UsageError } from "./braids.js";
 import { notifyLine } from "./notify.js";
@@ -534,8 +534,11 @@ export function resumeAction(root: string, now: () => Date = () => new Date()): 
  * answer (`boardAnswer`), then the asking thread is woken at once, whoever the request was for (`wakePageAnswer`). A request
  * no longer open, a wait, or a handle this project's record doesn't have is refused with the reason. Both listeners, no
  * confirmation (the user, 2026-11-27).
+ *
+ * Whether the asking thread is archived comes from the states of the board's last T3 read (`states`), else, for a thread
+ * that read doesn't name, from one `thread show` of it: a whole read on the request path can take a minute (0077/J).
  */
-export function answerAction(src: { readonly t3: Sources["t3"] }, root: string, t3: T3Runner, now: () => Date = () => new Date()): Action {
+export function answerAction(states: () => ReadonlyMap<string, string> | undefined, root: string, t3: T3Runner, now: () => Date = () => new Date()): Action {
   return async (body) => {
     const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
     if (typeof b["handle"] !== "string" || b["handle"].trim() === "" || typeof b["text"] !== "string") {
@@ -543,8 +546,8 @@ export function answerAction(src: { readonly t3: Sources["t3"] }, root: string, 
     }
     const done = await boardAnswer(root, b["handle"], b["text"]);
     const r = done.request;
-    const states = r.thread === null ? undefined : (await Promise.resolve(src.t3()).catch(() => null))?.states;
-    const wake = await wakePageAnswer(t3, root, r, now(), r.thread !== null && states?.get(r.thread) === "archived");
+    const state = r.thread === null ? null : (states()?.get(r.thread) ?? (await showThread(t3, root, r.thread).catch(() => null))?.status);
+    const wake = await wakePageAnswer(t3, root, r, now(), state === "archived");
     return { ok: true, handle: handleOf(r), id: r.id, answer: closing(r)?.text ?? "", woken: wake.woken, wake: wake.why, warning: done.warning };
   };
 }
@@ -556,11 +559,13 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
   let working: Promise<WorkingFiles> | undefined;
   let seen: WorkingFiles | undefined;
   const readTree = (): Promise<WorkingFiles> => (working = readWorkingTree(root).then((tree) => (seen = tree)));
+  // The last good T3 read, for the answer action.
+  let lastT3: T3 | undefined;
   const src: Sources = {
     repo: titleRepoName(root),
     braids: () => loadLiveBraidsAsync(root, undefined, readTree()),
     github: () => readGithubAsync(root, gh),
-    t3: () => readT3(root, { run: t3 }),
+    t3: () => readT3(root, { run: t3 }).then((read) => (read.status.state === "ok" ? (lastT3 = read) : read)),
     signals: (github) => readSignalsAsync(root, github),
     fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
@@ -574,7 +579,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     readiness: (github) => readinessAsync(root, github, working ?? readTree()),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src), resume: resumeAction(root), answer: answerAction(src, root, t3) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src), resume: resumeAction(root), answer: answerAction(() => lastT3?.states, root, t3) };
   return src;
 }
 
