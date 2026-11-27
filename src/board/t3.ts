@@ -1,5 +1,5 @@
 // What T3 knows about the agents: one `t3 thread list --json` per refresh, plus `show --json` for
-// each running thread and each recorded review thread; an idle thread is placed by its worker title. An agent of an item is a
+// each running thread and each recorded review thread not seen finished lately; an idle thread is placed by its worker title. An agent of an item is a
 // running thread whose worktree braid created for it (`braid start`, the worker), or a running thread recorded with `braid review`
 // (the reviewer, a coordinator's subagent, which `thread list` doesn't show); any other thread, a coordinator's included, is not an
 // agent of any item.
@@ -180,6 +180,46 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
   }
 }
 
+/** How often a recorded subagent seen finished is asked again. Under the board's ten-minute stall clock: a child messaged without a new record shows running before its item reads stalled. Docs: board.md. */
+export const FINISHED_RECHECK_MS = 5 * 60_000;
+/** The most finished records one read asks again for age alone, the longest unasked first: those seen finished together don't all come due in one read. */
+export const FINISHED_RECHECKS = 6;
+const FINISHED = new Set(["done", "completed", "failed", "archived"]);
+/** The recorded threads seen finished, by thread id: the record's time then and when T3 was last asked. Kept by the process only. */
+const finished = new Map<string, { readonly at: string; readonly asked: number }>();
+
+/**
+ * The records to ask T3 about now: all but those seen finished, unless the record's time moved, `thread list` shows the thread running
+ * again, or the re-check is due.
+ */
+function toShow(records: readonly ReviewRecord[], states: ReadonlyMap<string, string>, now: number): ReviewRecord[] {
+  const changed: ReviewRecord[] = [];
+  const due: { readonly r: ReviewRecord; readonly asked: number }[] = [];
+  for (const r of records) {
+    const seen = finished.get(r.thread);
+    if (seen === undefined || seen.at !== r.at || states.get(r.thread) === "running") {
+      changed.push(r);
+    } else if (now - seen.asked >= FINISHED_RECHECK_MS) {
+      due.push({ r, asked: seen.asked });
+    }
+  }
+  return [...changed, ...due.sort((a, b) => a.asked - b.asked).slice(0, FINISHED_RECHECKS).map((d) => d.r)];
+}
+
+/** Keeps or forgets what T3 said of a record. No answer says nothing new: a remembered one waits for its next re-check. */
+function remember(r: ReviewRecord, where: Where | null, now: number): void {
+  const seen = finished.get(r.thread);
+  if (where === null) {
+    if (seen !== undefined) {
+      finished.set(r.thread, { at: seen.at, asked: now });
+    }
+  } else if (FINISHED.has(where.status?.toLowerCase() ?? "")) {
+    finished.set(r.thread, { at: r.at, asked: now });
+  } else {
+    finished.delete(r.thread);
+  }
+}
+
 /** Runs `work` over `items`, a few at a time. */
 async function pool<T, R>(items: readonly T[], work: (item: T) => Promise<R>, size = 6): Promise<R[]> {
   const out: R[] = new Array<R>(items.length);
@@ -314,8 +354,10 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined, provider: str(t["providerInstanceId"]) ?? where?.provider ?? null } satisfies T3Thread };
   });
   // A recorded review thread is its item's reviewer while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
-  const reviewing = await pool(reviews.filter((r) => !r.id.startsWith("pm/")), async (r) => {
+  // One seen finished is skipped (`toShow`): a read's calls don't grow with the records a project has gathered.
+  const reviewing = await pool(toShow(reviews.filter((r) => !r.id.startsWith("pm/")), states, now.getTime()), async (r) => {
     const where = await showThread(run, root, r.thread);
+    remember(r, where, now.getTime());
     return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: "reviewer", pending: where.pending, link: null, provider: where.provider } satisfies T3Thread } : null;
   });
   const coordinators = new Map<string, T3Coordinator>();

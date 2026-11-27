@@ -102,7 +102,7 @@ function t3(shown: Record<string, object>, calls: string[][] = []): T3Run {
   };
 }
 
-test("braid review records the thread with the folder and branch T3 gives for it, in .braid/ of the main checkout; a repeat is kept once", async () => {
+test("braid review records the thread with the folder and branch T3 gives for it, in .braid/ of the main checkout; a repeat is kept once and moves its time", async () => {
   const { root, wt } = repo();
   const folder = join(scratch, "t3-aaa");
   const calls: string[][] = [];
@@ -117,7 +117,7 @@ test("braid review records the thread with the folder and branch T3 gives for it
   const out = await reviewCommand(root, ["0001/B", "--thread", child(1)], { t3: run, now: () => new Date("2026-11-19T10:00:00Z") });
   assert.equal(out, `0001/B: review thread ${child(1)} recorded (checkout ${folder}, branch t3/aaa)\n`);
   assert.ok(calls.some((c) => c.join("\u0000") === ["thread", "show", child(1), "--json"].join("\u0000")), "the id reaches T3 unchanged");
-  assert.match(await reviewCommand(root, ["0001/B", "--thread", child(1)], { t3: run }), new RegExp(`^0001/B: review thread ${child(1)} already recorded `));
+  assert.match(await reviewCommand(root, ["0001/B", "--thread", child(1)], { t3: run, now: () => new Date("2026-11-19T11:00:00Z") }), new RegExp(`^0001/B: review thread ${child(1)} already recorded `));
   // T3 has no folder for it yet, or doesn't know it: recorded without one, so braid clean asks T3 later. From another worktree it lands in the same file.
   const inner = join(wt, "inner");
   git(root, "worktree", "add", "-q", "--detach", inner);
@@ -127,7 +127,7 @@ test("braid review records the thread with the folder and branch T3 gives for it
   assert.equal(realpathSync.native(dirname(reviewsFile(inner))), realpathSync.native(join(root, ".braid")));
   const records = loadReviews(root);
   assert.deepEqual(records.map((r) => [r.id, r.thread, r.folder, r.branch]), [["0001/B", child(1), folder, "t3/aaa"], ["0001/B", child(2), undefined, undefined], ["0001", child(3), undefined, undefined]]);
-  assert.equal(records[0]?.at, "2026-11-19T10:00:00.000Z");
+  assert.equal(records[0]?.at, "2026-11-19T11:00:00.000Z", "the repeat moved the record's time");
   assert.equal(git(root, "status", "--porcelain"), "", "the record is never untracked");
   await assert.rejects(reviewCommand(root, ["0001/B"], { t3: run }), /usage: braid review <id> --thread <thread id>/);
   await assert.rejects(reviewCommand(root, ["0001/Z", "--thread", child(1)], { t3: run }), /0001\/Z/);
@@ -384,4 +384,88 @@ test("a PM's checker recorded while completed between runs is kept, counts only 
   recordReview(root, "pm/working-product", child(1), "2026-11-24T07:42:00Z");
   r = await t3mod.readT3(root, { run: t3({}), agents: join(scratch, "none"), project: root, now: new Date("2026-11-24T09:20:00Z") });
   assert.equal(loadReviews(root).length, 1, "a thread T3 can't be asked about keeps its record");
+});
+
+// 0077/J: a project gathers recorded subagent threads; a read under load can't afford a `thread show` for each finished one.
+test("a finished record is not asked again at the next read; a running, idle or waiting one is", async () => {
+  const { root } = repo();
+  const id = (i: number) => `thread:finished-${i}`;
+  const shown: Record<string, object> = {};
+  const ended = ["done", "completed", "failed", "archived"];
+  for (let i = 0; i < 30; i++) {
+    recordReview(root, "0001/B", id(i));
+    shown[id(i)] = { status: ended[i % ended.length] };
+  }
+  for (const [i, status] of [[30, "running"], [31, "idle"], [32, "waiting"]] as const) {
+    recordReview(root, "0001/B", id(i));
+    shown[id(i)] = { status };
+  }
+  const calls: string[][] = [];
+  const read = () => t3mod.readT3(root, { run: t3(shown, calls), agents: join(scratch, "none"), project: root });
+  const asked = () => calls.splice(0).filter((c) => c[1] === "show").map((c) => c[2]);
+  await read();
+  assert.equal(asked().length, 33, "the first read asks each record once");
+  const second = await read();
+  assert.deepEqual(asked().sort(), [id(30), id(31), id(32)]);
+  assert.deepEqual(second.threads.get("0001/B")?.map((a) => a.id).sort(), [id(30), id(32)]);
+});
+
+test("a finished record is read again at once when it is recorded again or thread list shows it running, else after the interval", async () => {
+  const { root } = repo();
+  const [a, b, c] = ["thread:woken-a", "thread:woken-b", "thread:woken-c"] as const;
+  for (const thread of [a, b, c]) {
+    recordReview(root, "0001/B", thread, "2026-11-27T10:00:00.000Z");
+  }
+  let status = "completed";
+  let listed: object[] = [];
+  const asked: string[] = [];
+  const run: T3Run = (_root, args) => {
+    if (args[1] === "list") {
+      return Promise.resolve(ok(listed));
+    }
+    asked.push(args[2] ?? "");
+    return Promise.resolve(ok({ thread: { status } }));
+  };
+  const read = async (time: string) => {
+    asked.length = 0;
+    const result = await t3mod.readT3(root, { run, agents: join(scratch, "none"), project: root, now: new Date(`2026-11-27T${time}Z`) });
+    return (result.threads.get("0001/B") ?? []).filter((t) => t.role === "reviewer").map((t) => t.id);
+  };
+  await read("10:00:00");
+  status = "running";
+  assert.deepEqual([await read("10:00:30"), [...asked]], [[], []], "remembered");
+  recordReview(root, "0001/B", a, "2026-11-27T10:00:40.000Z");
+  assert.deepEqual([await read("10:01:00"), [...asked]], [[a], [a]], "re-launched: running at the next read");
+  listed = [{ threadId: b, status: "running" }];
+  assert.ok((await read("10:01:30")).includes(b), "thread list shows it running");
+  assert.ok(!asked.includes(c));
+  listed = [];
+  assert.deepEqual([(await read("10:04:59")).includes(c), asked.includes(c)], [false, false], "not yet due");
+  assert.deepEqual([(await read("10:05:00")).includes(c), asked.includes(c)], [true, true], "due after five minutes");
+});
+
+test("finished records that come due together are re-checked a few per read, and one T3 can't answer waits its turn", async () => {
+  const { root } = repo();
+  for (let i = 0; i < 10; i++) {
+    recordReview(root, "0001/B", `thread:due-${i}`);
+  }
+  let down = false;
+  const asked: string[] = [];
+  const run: T3Run = (_root, args) => {
+    if (args[1] === "list") {
+      return Promise.resolve(ok([]));
+    }
+    asked.push(args[2] ?? "");
+    return Promise.resolve(down ? unknown : ok({ thread: { status: "completed" } }));
+  };
+  const read = async (time: string) => {
+    asked.length = 0;
+    await t3mod.readT3(root, { run, agents: join(scratch, "none"), project: root, now: new Date(`2026-11-27T${time}Z`) });
+    return asked.length;
+  };
+  assert.equal(await read("10:00:00"), 10);
+  down = true;
+  assert.equal(await read("10:06:00"), 6);
+  assert.equal(await read("10:06:30"), 4, "the rest");
+  assert.equal(await read("10:07:00"), 0, "unanswered ones wait for the next interval");
 });

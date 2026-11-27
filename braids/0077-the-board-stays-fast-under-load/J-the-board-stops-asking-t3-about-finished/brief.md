@@ -38,9 +38,18 @@ Expected size: about 150 lines in 4 files.
 
 ## Completion
 
-- [ ] A project with many finished records (for example 30) reads without a `thread show` per finished record after the first read, with a test counting the T3 calls of two reads
-- [ ] A finished thread that is woken again (its record re-launched, or `thread list` shows it running) shows running again at the next read, with a test
-- [ ] report.md has the re-check interval and a `BRAID_BOARD_TIMINGS` read of a project with many records, before and after
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A project with many finished records (for example 30) reads without a `thread show` per finished record after the first read, with a test counting the T3 calls of two reads
+- [x] A finished thread that is woken again (its record re-launched, or `thread list` shows it running) shows running again at the next read, with a test
+- [x] report.md has the re-check interval and a `BRAID_BOARD_TIMINGS` read of a project with many records, before and after
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `src/board/t3.ts`: an in-memory map (per thread id) of item records seen `done`, `completed`, `failed` or `archived`. Such a record is shown again only when its record time changes, `thread list` names it running, or 5 minutes passed (at most 6 of those per read, longest unchecked first). `pm/` checker records are read every time: a checker starts again while T3 shows it `completed`, and its 24 h cap already bounds them.
+2. `src/braids/reviews.ts`: recording an item's thread again moves the record's time (same fields), so a re-launch is read at once.
+3. Tests in `test/reviews.test.ts`: count T3 calls over two reads; wake by re-record, by `thread list`, by the interval.
+4. `docs/board.md`, `docs/cli.md`; timing before/after with a fake T3.
+
+This braid branch lacks `braid launch` (0060 is on `main` only); `launch --child` goes through `recordReview`, so the change covers it after the merge of `main`.
