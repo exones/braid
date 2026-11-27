@@ -14,8 +14,13 @@ import { handleOf, pickWords, WORDS } from "./words.js";
 export { ensureStateDir, LockError, locked, mainCheckout, takeOverStale } from "./state.js";
 export { handleOf, resolveName } from "./words.js";
 
-/** `action` is something only the user can do outside braid (an install, a login); the PM or a coordinator opens one. */
-export const KINDS = ["review", "question", "decision", "plan", "action"] as const;
+/** `action` is something only the user can do outside braid (an install, a login); the PM or a coordinator opens one. `look`: a look request or an FYI, which blocks nothing (an older braid skips a record of this kind). */
+export const KINDS = ["review", "question", "decision", "plan", "action", "look"] as const;
+
+/** The most likely answers a request may carry, lettered A to D in order. */
+export const OPTION_LETTERS = ["A", "B", "C", "D"] as const;
+/** The longest context a request may carry (Markdown). */
+export const CONTEXT_MAX = 4000;
 export type Kind = (typeof KINDS)[number];
 
 /** Who opened a request: the braid's coordinator, or the programme manager asking the user itself. */
@@ -72,6 +77,10 @@ export interface Request {
   readonly kind: Kind;
   /** One line: what is needed. */
   readonly text: string;
+  /** What the question is about (Markdown, at most `CONTEXT_MAX` characters), when given (`ask --context`). */
+  readonly context?: string;
+  /** One to four likely answers, lettered A to D in order (`ask --option`), when given. */
+  readonly options?: readonly string[];
   /** The stop case the request comes from (`ask --key`), when given. */
   readonly key?: string;
   /** When it was opened, ISO (the `opened` event's time). */
@@ -115,6 +124,8 @@ interface RecordFile {
   readonly item: string;
   readonly kind: Kind;
   readonly text: string;
+  readonly context?: string;
+  readonly options?: readonly string[];
   readonly words?: string;
   readonly key?: string;
   readonly by: Asker;
@@ -137,6 +148,8 @@ function toFile(r: Request): RecordFile {
     item: r.id,
     kind: r.kind,
     text: r.text,
+    ...(r.context === undefined ? {} : { context: r.context }),
+    ...(r.options === undefined ? {} : { options: r.options }),
     ...(r.words === undefined ? {} : { words: r.words }),
     ...(r.key === undefined ? {} : { key: r.key }),
     by: askerOf(r),
@@ -185,6 +198,7 @@ export function parseRecord(file: string, text: string): Request | RecordProblem
   const final = list.findLast((e) => FINAL[e.event] !== undefined);
   const by = v["by"] === "pm" ? "pm" : "coordinator";
   // Without `to`, the request is the user's, as before the record.
+  const options = v["options"];
   const to = forward !== undefined ? "user" : v["to"] === "pm" || v["to"] === SELF || (typeof v["to"] === "string" && BRAID_TO.test(v["to"])) ? (v["to"] as string) : undefined;
   return {
     code,
@@ -193,6 +207,9 @@ export function parseRecord(file: string, text: string): Request | RecordProblem
     ...(by === "pm" ? { by } : {}),
     kind: v["kind"] as Kind,
     text: v["text"],
+    // Both are optional and read leniently: a malformed one is left out, the request still reads.
+    ...(typeof v["context"] === "string" ? { context: v["context"] } : {}),
+    ...(Array.isArray(options) && options.length > 0 && options.length <= OPTION_LETTERS.length && options.every((o) => typeof o === "string") ? { options: options as string[] } : {}),
     ...(typeof v["key"] === "string" ? { key: v["key"] } : {}),
     at: opened.at,
     thread: typeof v["thread"] === "string" ? v["thread"] : null,
@@ -712,8 +729,22 @@ export function age(at: string, now: Date): string {
   return min < 60 ? `${min}m` : min < 2880 ? `${Math.floor(min / 60)}h` : `${Math.floor(min / 1440)}d`;
 }
 
-/** The act word of a request: `action` is something to `do` outside braid, `review` a PR to `merge`, every other kind something to `decide`. */
-export const actOf = (kind: Kind): "do" | "merge" | "decide" => (kind === "action" ? "do" : kind === "review" ? "merge" : "decide");
+/** What the user does about a request. */
+export type Act = "do" | "merge" | "decide" | "look";
+
+/** The act word of a request: `action` is something to `do` outside braid, `review` a PR to `merge`, `look` something to `look` at (it blocks nothing), every other kind something to `decide`. */
+export const actOf = (kind: Kind): Act => (kind === "action" ? "do" : kind === "review" ? "merge" : kind === "look" ? "look" : "decide");
+
+/** An answer that is a lone letter of one of the request's stored options (`a`, `B.`) as that option, `A. <text>`; any other answer as it is. */
+export function optionAnswer(r: Pick<Request, "options">, text: string): string {
+  const letter = /^\s*([a-dA-D])\s*[.)]?\s*$/.exec(text)?.[1]?.toUpperCase();
+  const i = letter === undefined ? -1 : OPTION_LETTERS.indexOf(letter as (typeof OPTION_LETTERS)[number]);
+  const option = i < 0 ? undefined : r.options?.[i];
+  return option === undefined ? text : `${OPTION_LETTERS[i] ?? ""}. ${option}`;
+}
+
+/** The options as `A. <text>` lines. */
+export const optionLines = (r: Pick<Request, "options">): string[] => (r.options ?? []).map((o, i) => `${OPTION_LETTERS[i] ?? "?"}. ${o}`);
 
 /** The part of a braid `unblocksOf` reads; a braid whose statuses went through `withStatuses` fits it. */
 export interface BraidFacts {
@@ -726,9 +757,13 @@ export interface BraidFacts {
  * What answering `request` unblocks, derived from the briefs and the record at each read (never stored): its item,
  * and every item that depends on it, directly or not, that isn't Done; for a request on a braid with strands, those
  * strands not Done (a story: the braid itself); plus every other braid with an open wait on the request's braid
- * (`to` its number, or `--done-when braid:<number>`) that isn't Done. A programme request has no item. Sorted, no duplicates.
+ * (`to` its number, or `--done-when braid:<number>`) that isn't Done. A programme request has no item; a `look` unblocks nothing. Sorted, no duplicates.
  */
-export function unblocksOf(request: Pick<Request, "code" | "id">, braids: readonly BraidFacts[], requests: readonly Pick<Request, "code" | "id" | "to" | "doneWhen" | "state">[]): string[] {
+export function unblocksOf(request: Pick<Request, "code" | "id"> & { readonly kind?: Kind }, braids: readonly BraidFacts[], requests: readonly Pick<Request, "code" | "id" | "to" | "doneWhen" | "state">[]): string[] {
+  // A look request or an FYI blocks nothing.
+  if (request.kind === "look") {
+    return [];
+  }
   const items = new Map<string, { status: string; dependencies: readonly string[] }>();
   for (const b of braids) {
     items.set(b.number, b.brief);
