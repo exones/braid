@@ -27,7 +27,7 @@ rows:
   - P29 | 0081 | braid review refuses another thread's checkout | done
   - P30 | - | braid clean works in repos with submodules | planned
   - P31 | - | Several open questions per item | planned
-  - P32 | - | Spike: how braid can read T3 lightly | running
+  - P32 | 0083 | Spike: how braid can read T3 lightly | running
   - P9 | - | Per-programme say settings | planned
   - P10 | 0036 | Coordinator polish, reviewed | planned
   - P11 | - | Reports that say where we are | planned
@@ -168,6 +168,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28: P32 is 0083 (spike, M, one worker run). PM approved its plan (gentle-anchor-pwds) with a guard: no copy of the T3 store unless C: has 3x its size free, deleted after; docs untouched.
 - 2026-11-28: user "Silly window a": P32 runs now beside 0077, limit 2. Coordinator launched (limits ok: session 0%, weekly 45%).
 - 2026-11-28: user: avoid excessive reads of T3's 3.1 GB SQLite store until research on T3's code finds what limits reads. Added P32 "Spike: how braid can read T3 lightly"; its place in the order is asked.
 - 2026-11-27: user found that a new question silently withdraws the same asker's open one on the same item (a PM's P18 question withdrew its P17 giant-spoon). Added P31 "Several open questions per item"; its place in the order is asked.
