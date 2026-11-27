@@ -21,8 +21,9 @@ const { startCommand } = (await load("../dist/commands/start.js")) as { startCom
 const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
 const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
-const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age, locked } = (await load("../dist/braids/requests.js")) as {
+const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age, locked, handleOf } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
+  handleOf: (r: { code: string }) => string;
   loadRecord: (root: string) => { requests: { code: string; id: string; state: string; events: { event: string; at: string; by: string; text?: string }[] }[] };
   legacyFile: (root: string) => string;
   openRequest: (root: string, request: object) => { code: string };
@@ -124,12 +125,12 @@ test("ask opens a request that every worktree shares; a new ask replaces it; ans
   const first = all.find((r) => r.code === code);
   const second = all.find((r) => r.code !== code);
   assert.deepEqual([all.length, first?.state, second?.state], [2, "withdrawn", "answered"]);
-  assert.equal(first?.events.at(-1)?.text, `replaced by ${second?.code}`);
+  assert.equal(first?.events.at(-1)?.text, `replaced by ${handleOf(second!)}`);
 });
 
 test("ask refuses a bad kind, an empty text, an unknown item and a bad thread", () => {
   const w = world();
-  assert.throws(() => askCommand(w.root, ["0001/A", "x", "--kind", "review"]), /--kind is question, decision, plan or action/);
+  assert.throws(() => askCommand(w.root, ["0001/A", "x", "--kind", "review"]), /--kind is question, decision, plan, action or look/);
   assert.throws(() => askCommand(w.root, ["0001/A", "  "]), /must not be empty/);
   assert.throws(() => askCommand(w.root, ["0009", "x"]), /no braid 0009/);
   assert.throws(() => askCommand(w.root, ["0001/A", "x", "--thread", "abc"]), /--thread needs an id/);

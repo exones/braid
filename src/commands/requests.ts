@@ -4,13 +4,15 @@ import { spawnSync } from "node:child_process";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, git } from "../braids/gitbranch.js";
-import { actOf, addEvent, age, askerOf, BRAID_TO, closing, CODE, conditionEnding, endRequest, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { readFileSync } from "node:fs";
+import { addEvent, age, askerOf, BRAID_TO, closing, CODE, CONTEXT_MAX, conditionEnding, endRequest, OPTION_LETTERS, optionAnswer, optionLines, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import { readGithub, runGh, type GhRunner, type PullRequest } from "../board/github.js";
 import { mainCheckout, parentsCheckout, runT3, showThread, type T3Runner } from "../board/t3.js";
 import { normPath } from "../braids/worktrees.js";
 import { clock } from "../board/pause.js";
+import { actWord } from "../board/record.js";
 import { braidDoneOn } from "../board/wake.js";
 import { normaliseId, UsageError } from "./braids.js";
 import { ciAll, ciChecks } from "./coordinate.js";
@@ -238,12 +240,63 @@ function askerFlag(values: Parameters<typeof str>[0], programme: boolean): Asker
   return programme ? "pm" : (by ?? "coordinator");
 }
 
+/** `--context <text>` or `--context-file <path|->`: the request's context, Markdown kept as written, at most `CONTEXT_MAX` characters; undefined without either. */
+function contextFlag(values: Parameters<typeof str>[0]): string | undefined {
+  const text = str(values, "context");
+  const file = str(values, "context-file");
+  if (text !== undefined && file !== undefined) {
+    throw new UsageError("braid ask: give --context or --context-file, not both");
+  }
+  if (file === "-" && str(values, "file") === "-") {
+    throw new UsageError("braid ask: --file - and --context-file - both read standard input; give one of them a file");
+  }
+  let raw = text;
+  if (file === "-") {
+    if (process.stdin.isTTY) {
+      throw new UsageError("--context-file - reads standard input; pipe the context in");
+    }
+    raw = readFileSync(0, "utf8");
+  } else if (file !== undefined) {
+    try {
+      raw = readFileSync(file, "utf8");
+    } catch {
+      throw new UsageError(`can't read ${file}`);
+    }
+  }
+  const context = raw?.replace(/\r\n/g, "\n").trim();
+  if (context === undefined || context === "") {
+    return undefined;
+  }
+  if (context.length > CONTEXT_MAX) {
+    throw new UsageError(`braid ask: the context has ${context.length} characters, more than ${CONTEXT_MAX}; shorten it; nothing opened`);
+  }
+  return context;
+}
+
+/** `--option <text>`, repeated: the likely answers in order, one line each, one to four. */
+function optionsFlag(values: Parameters<typeof str>[0]): string[] | undefined {
+  const raw = values["option"];
+  const given = Array.isArray(raw) ? raw.map((o) => String(o).replace(/\s+/g, " ").trim()) : [];
+  if (given.length === 0) {
+    return undefined;
+  }
+  if (given.length > OPTION_LETTERS.length) {
+    throw new UsageError(`braid ask: at most ${OPTION_LETTERS.length} --option (A to D); got ${given.length}; nothing opened`);
+  }
+  if (given.some((o) => o === "")) {
+    throw new UsageError("braid ask: an --option must not be empty; nothing opened");
+  }
+  return given;
+}
+
 export function askCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
-  const { positionals, values } = parse("braid ask", args, { kind: { type: "string" }, key: { type: "string" }, thread: { type: "string" }, file: { type: "string" }, to: { type: "string" }, by: { type: "string" }, "done-when": { type: "string" } });
+  const { positionals, values } = parse("braid ask", args, { kind: { type: "string" }, key: { type: "string" }, thread: { type: "string" }, file: { type: "string" }, to: { type: "string" }, by: { type: "string" }, "done-when": { type: "string" }, context: { type: "string" }, "context-file": { type: "string" }, option: { type: "string", multiple: true } });
   const kind = str(values, "kind") ?? "question";
   if (!KINDS.includes(kind as Kind) || kind === "review") {
-    throw new UsageError(`--kind is question, decision, plan or action (a review comes from braid handover); got: ${kind}`);
+    throw new UsageError(`--kind is question, decision, plan, action or look (a review comes from braid handover); got: ${kind}`);
   }
+  const context = contextFlag(values);
+  const options = optionsFlag(values);
   const file = str(values, "file");
   if (positionals.length !== (file === undefined ? 2 : 1)) {
     throw new UsageError(`${ASK_USAGE}  (or the text from --file -)`);
@@ -273,16 +326,19 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   // A PM request is answered in the PM's thread: --thread, else the PM-run line of the braid's brief.
   const pmThread = by === "pm" ? (thread ?? (slug === null ? pmOfBraid(root, id) : null)) : thread;
   const at = (opts.now ?? (() => new Date()))();
-  const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route, doneWhen });
+  const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(context === undefined ? {} : { context }), ...(options === undefined ? {} : { options }), ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route, doneWhen });
+  // "…opened, replacing calm-heron-q2ra": the open one this request withdrew.
+  const replacing = opened.replaced.length === 0 ? "" : `, replacing ${opened.replaced.join(", ")}`;
   if (self) {
-    return `${opened.handle} ${id}: timed wait opened, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
+    return `${opened.handle} ${id}: timed wait opened${replacing}, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
   }
-  const gist = unblockLine({ code: opened.code, id, kind: kind as Kind }, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh)));
+  const gist = unblockLine({ code: opened.code, id, kind: kind as Kind, doneWhen, ...(route.to === undefined ? {} : { to: route.to }) }, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh)));
   const whom = by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : route.to !== undefined ? `to braid ${route.to} ` : "";
-  return `${opened.handle} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${gist}\n${warned(opened.warning)}`;
+  const extra = [...optionLines({ ...(options === undefined ? {} : { options }) }), ...(context === undefined ? [] : [`context stored (${context.length} characters)`])].map((l) => `${l}\n`).join("");
+  return `${opened.handle} ${id}: ${kind} request ${whom}opened${replacing}${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${extra}${gist}\n${warned(opened.warning)}`;
 }
 
-const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>|self] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]  (--to self --done-when time:<iso>: a timed wait, nobody asked)';
+const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action|look] [--option <text>]... [--context <text>|--context-file <file>|-] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>|self] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]  (--to self --done-when time:<iso>: a timed wait, nobody asked)';
 
 /** `braid forward <id> [--note <text>]`: the PM hands a request on to the user; it reaches the user (on the braid's card, or for a braid a programme runs as the PM asking in the programme's Needs you) and is pushed, at once or, while the braid is paused or held, after `braid resume`. */
 export function forwardCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
@@ -316,10 +372,10 @@ function statused(root: string, prs: ReadonlyMap<string, PullRequest> = new Map(
   return loadKnownBraids(root).map((b) => withStatuses(b, life, prs));
 }
 
-/** What a request unblocks and its act word on one line: `blocks 0072/B, 0072/C · decide`, or just `decide` when nothing waits on it. */
-function unblockLine(r: Pick<Request, "code" | "id" | "kind">, requests: readonly Request[], braids: readonly Braid[]): string {
+/** What a request unblocks and its act word on one line: `blocks 0072/B, 0072/C · decide`, or just `decide` when nothing waits on it; a wait: `waits for 0077`. */
+function unblockLine(r: Pick<Request, "code" | "id" | "kind" | "to" | "doneWhen">, requests: readonly Request[], braids: readonly Braid[]): string {
   const blocked = unblocksOf(r, braids, requests);
-  return `${blocked.length === 0 ? "" : `blocks ${blocked.join(", ")} · `}${actOf(r.kind)}`;
+  return `${blocked.length === 0 ? "" : `blocks ${blocked.join(", ")} · `}${actWord(r, new Date())}`;
 }
 
 /** A q-code in any letter case, with any punctuation after it (`Q-L9EN.`), lower-cased; null for anything else. */
@@ -428,7 +484,7 @@ function answerText(values: Parameters<typeof str>[0]): string | undefined {
   return text === "" ? undefined : text;
 }
 
-const ANSWER_USAGE = "usage: braid answer <name|code>|<id>|pm/<slug> [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]  (a wait takes no --from: met when its condition holds)";
+const ANSWER_USAGE = "usage: braid answer <name|code>|<id>|pm/<slug> [<answer>|<option letter>] [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]  (a wait takes no --from: met when its condition holds)";
 
 /** What a "done when" is checked against here: GitHub's PRs, and main as origin has it (offline, the last fetched one). */
 function conditions(root: string, requests: readonly Pick<Request, "doneWhen">[], run: GhRunner, now: Date): Conditions {
@@ -475,7 +531,7 @@ function waitEnding(root: string, r: Request, text: string | undefined, opts: Re
  */
 export function answerCommand(root: string, _cwd: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid answer", args, { log: { type: "string" }, file: { type: "string" }, thread: { type: "string" }, by: { type: "string" }, from: { type: "string" }, reason: { type: "string" } });
-  if (positionals.length !== 1) {
+  if (positionals.length !== 1 && positionals.length !== 2) {
     throw new UsageError(ANSWER_USAGE);
   }
   threadOf(values);
@@ -490,7 +546,11 @@ export function answerCommand(root: string, _cwd: string, args: readonly string[
   if (from === "user" && reason !== undefined) {
     throw new UsageError("--reason is the PM's: add --from pm");
   }
-  const text = answerText(values);
+  const given = positionals[1]?.trim();
+  if (given !== undefined && (str(values, "file") !== undefined || str(values, "log") !== undefined)) {
+    throw new UsageError("braid answer: give the answer as text or with --file, not both");
+  }
+  const text = given === undefined ? answerText(values) : given === "" ? undefined : given;
   const found = target(root, positionals[0] ?? "", values, "braid answer");
   if ("none" in found) {
     return found.none;
@@ -500,13 +560,41 @@ export function answerCommand(root: string, _cwd: string, args: readonly string[
   if (wait !== undefined && str(values, "from") !== undefined) {
     throw new UsageError(`braid answer: ${handleOf(wait)} (${wait.id}) is a wait, which asks neither the user nor the PM: drop --from; nothing changed`);
   }
-  const ending: Ending = wait === undefined ? { state: "answered", who: from, ...(text === undefined ? {} : { text }), ...(reason === undefined ? {} : { reason }) } : waitEnding(root, wait, text, opts);
+  const ending: Ending | ((r: Request) => Ending) = wait === undefined ? answerEnding(from, text, reason) : waitEnding(root, wait, text, opts);
   const done = end(root, found, "braid answer", ending);
   const name = `${handleOf(done.request)} ${done.request.id}`;
-  if (ending.state === "met") {
-    return `${name}: met: ${ending.text ?? ""} (the board sends no wake for a wait closed by hand${text === undefined ? "" : "; your text isn't recorded"})\n${warned(done.warning)}`;
+  const last = closing(done.request);
+  if (last?.event === "met") {
+    return `${name}: met: ${last.text ?? ""} (the board sends no wake for a wait closed by hand${text === undefined ? "" : "; your text isn't recorded"})\n${warned(done.warning)}`;
   }
-  return `${name}: answered by ${WHO[ending.who]}${text === undefined ? "" : `: ${oneLine(text)}`}\n${warned(done.warning)}`;
+  return `${name}: answered by ${WHO[last?.by ?? from]}${last?.text === undefined ? "" : `: ${oneLine(last.text)}`}\n${warned(done.warning)}`;
+}
+
+/** The ending `braid answer` records: a lone letter of a stored option (`A`, any case) records that option's text, read from the record inside the write. */
+const answerEnding =
+  (who: "user" | "pm", text: string | undefined, reason: string | undefined) =>
+  (r: Request): Ending => ({ state: "answered", who, ...(text === undefined ? {} : { text: optionAnswer(r, text) }), ...(reason === undefined ? {} : { reason }) });
+
+/** The longest answer the board's page sends (0082/D): one line. */
+export const BOARD_ANSWER_MAX = 500;
+
+/**
+ * The board's `answer` action (0082/D): the user's answer from the board's page, recorded as `braid answer <handle> <text>`
+ * records it (`by: user`, a lone letter as its option). `handle` names a request of this project's record (its name or code);
+ * a wait, which asks no one, and a request already answered, withdrawn or met are refused with the reason. A UsageError
+ * is the refusal the page shows.
+ */
+export function boardAnswer(root: string, handle: string, text: string): { readonly request: Request; readonly warning: string | null } {
+  const answer = text.trim();
+  if (answer === "" || /[\r\n]/.test(answer) || answer.length > BOARD_ANSWER_MAX) {
+    throw new UsageError(`Answer: one line of text or an option letter, at most ${BOARD_ANSWER_MAX} characters`);
+  }
+  const code = codeOf(root, handle.trim(), "Answer") ?? fail(`Answer: no request ${handle} in this project; nothing changed`);
+  const r = loadRecord(root).requests.find((x) => x.code === code);
+  if (r !== undefined && r.state === "open" && isWait(r)) {
+    throw new UsageError(`Answer: ${handleOf(r)} (${r.id}) is a wait, which asks no one: it ends when its condition holds; nothing changed`);
+  }
+  return end(root, { code, id: r?.id ?? "" }, "Answer", answerEnding("user", answer, undefined));
 }
 
 /** `braid withdraw <code>|<id> --why <reason>`: the asker no longer needs it; it stays on the record as withdrawn. */
@@ -627,7 +715,9 @@ function history(r: Request, unblocks: string): string {
     ...(r.eta === null ? [] : [`eta ${r.eta}`]),
   ];
   const events = r.events.map((e) => `${stamp(e.at)}  ${e.event.padEnd(9)}  ${whoOf(r, e.event, e.by)}${e.text === undefined ? "" : `: ${oneLine(e.text)}`}${e.reason === undefined ? "" : ` (reason: ${e.reason})`}`);
-  return `${handleOf(r)}  ${r.id}  ${r.kind}  ${r.state}${r.state === "open" && !isTimedWait(r) ? `  ${unblocks}` : ""}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
+  const options = optionLines(r).map((l) => `${l}\n`).join("");
+  const context = r.context === undefined ? "" : `context:\n${r.context.split("\n").map((l) => `  ${l}`.trimEnd()).join("\n")}\n`;
+  return `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${r.state}${r.state === "open" && !isTimedWait(r) ? `  ${unblocks}` : ""}\n${r.text}\n${options}${context}${facts.join("; ")}\n${events.join("\n")}\n`;
 }
 
 /** One closed request on a line: code, item, kind, state, when, who, the request, and the answer or reason. */
@@ -635,8 +725,11 @@ function closedLine(r: Request): string {
   const last = closing(r);
   const said = last?.text === undefined ? "" : ` -> ${oneLine(last.text)}`;
   const reason = last?.reason === undefined ? "" : ` (reason: ${last.reason})`;
-  return `${handleOf(r)}  ${r.id}  ${r.kind}  ${r.state}  ${last === null ? "" : `${stamp(last.at)}  by ${WHO[last.by] ?? last.by}`}  ${r.text}${said}${reason}`;
+  return `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${r.state}  ${last === null ? "" : `${stamp(last.at)}  by ${WHO[last.by] ?? last.by}`}  ${r.text}${said}${reason}`;
 }
+
+/** Under a request's line in `braid requests`: its options as `A. …` lines and, when it has one, that its context is stored. */
+const extras = (r: Request): string => [...optionLines(r), ...(r.context === undefined ? [] : ["context stored: braid requests <name> prints it"])].map((l) => `\n    ${l}`).join("");
 
 const REQUESTS_USAGE = "usage: braid requests [<name|code>] [--closed [--since <YYYY-MM-DD>]]";
 
@@ -687,5 +780,5 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
   const eta = (r: Request): string => (r.eta === null ? "" : `expected by ${clock(r.eta, now)}  `);
   // A condition that holds is still open: only the running board's tick closes it (and wakes the asker).
   const holds = (r: Request): string => (ends.get(r.code)?.state === "met" ? "condition holds: the board wakes the asker  " : ends.has(r.code) ? "condition holds: the board withdraws it  " : "");
-  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${age(r.at, now)}  ${isTimedWait(r) ? "" : `${unblockLine(r, list, braids)}  `}${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}`).join("\n")}\n`;
+  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${age(r.at, now)}  ${isTimedWait(r) ? "" : `${unblockLine(r, list, braids)}  `}${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}${extras(r)}`).join("\n")}\n`;
 }

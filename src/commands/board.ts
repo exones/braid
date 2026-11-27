@@ -7,13 +7,13 @@ import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
-import type { Braid, Item, Tree } from "../braids/store.js";
-import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
+import { loadTree, type Braid, type Item, type Tree } from "../braids/store.js";
+import { apiBraids, apiGithub, apiPanelSignals, apiPanelTree, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
 import { steerer, type Steerer } from "../board/steerer.js";
 import { ACTING_STALE_MS, actingBoard, providerKey, repoLease, type ActingBoard } from "../board/acting.js";
-import { steps, waker } from "../board/wake.js";
+import { steps, wakePageAnswer, waker } from "../board/wake.js";
 import { nudger } from "../board/nudge.js";
 import { reminder } from "../board/remind.js";
 import { limitPusher } from "../notify/notifier.js";
@@ -28,7 +28,8 @@ import { problemLine, readiness, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignals, type ReadSignals } from "../board/signals.js";
 import { fetchBranchAsync } from "../braids/gitbranch.js";
-import { REQUESTS } from "../braids/requests.js";
+import { closing, handleOf, REQUESTS } from "../braids/requests.js";
+import { boardAnswer } from "./requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
 import { loadPauses, markResumed, patchPause, reasonOf, type Pause } from "../braids/pauses.js";
 import { resumeMode } from "../board/pause.js";
@@ -523,6 +524,27 @@ export function resumeAction(root: string, now: () => Date = () => new Date()): 
   };
 }
 
+/**
+ * Answer (0082/D): the user answers an open request from the board's page, `{ handle, text }` (a request of the project the
+ * body names; `text` an option letter or one line). Recorded as `braid answer <handle> <text>` records it, as the user's
+ * answer (`boardAnswer`), then the asking thread is woken at once, whoever the request was for (`wakePageAnswer`). A request
+ * no longer open, a wait, or a handle this project's record doesn't have is refused with the reason. Both listeners, no
+ * confirmation (the user, 2026-11-27).
+ */
+export function answerAction(src: { readonly t3: Sources["t3"] }, root: string, t3: T3Runner, now: () => Date = () => new Date()): Action {
+  return async (body) => {
+    const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    if (typeof b["handle"] !== "string" || b["handle"].trim() === "" || typeof b["text"] !== "string") {
+      throw new UsageError("answer needs { handle, text }: the request's name or code and an option letter or one line of text");
+    }
+    const done = boardAnswer(root, b["handle"], b["text"]);
+    const r = done.request;
+    const states = r.thread === null ? undefined : (await src.t3(false).catch(() => null))?.states;
+    const wake = await wakePageAnswer(t3, root, r, now(), r.thread !== null && states?.get(r.thread) === "archived");
+    return { ok: true, handle: handleOf(r), id: r.id, answer: closing(r)?.text ?? "", woken: wake.woken, wake: wake.why, warning: done.warning };
+  };
+}
+
 export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
   const src: Sources = {
     repo: titleRepoName(root),
@@ -541,7 +563,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     readiness: (github) => readiness(root, github),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src), resume: resumeAction(root) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src), resume: resumeAction(root), answer: answerAction(src, root, t3) };
   return src;
 }
 
@@ -580,9 +602,9 @@ export function limitsLine(mode: "demo" | "off" | "on"): string {
     return "Limits: shown only (demo: nothing is paused)";
   }
   if (mode === "off") {
-    return "Limits: shown only (--no-pause: the board pauses and resumes nothing)";
+    return "Limits: shown only (--no-pause: the board pauses and resumes nothing, and sends no wake, reminder or nudge)";
   }
-  return "Limits: pauses the working agents over a threshold by sending each its pause text, counts their replies and resumes them after the reset (--no-pause turns this off)";
+  return "Limits: pauses the working agents over a threshold by sending each its pause text, counts their replies and resumes them after the reset (--no-pause turns this off, and the wakes, reminders and nudges)";
 }
 
 export function boardNotifier(root: string): (board: BoardData) => void {
@@ -1163,7 +1185,7 @@ export function demoMembers(t3Down = false, notReady = false): Member[] {
   };
   return [
     { name: "demo", src: demoSources(t3Down, notReady) },
-    { name: "api", src: small("api", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null, apiPlans) },
+    { name: "api", src: small("api", () => loadTree(apiPanelTree()), apiGithub, () => apiPanelSignals(), apiPanelTree, () => null, apiPlans) },
     { name: "mail", src: mail },
     { name: "notes", src: small("notes", () => [], () => ({ status: { state: "ok" }, prs: new Map() }), () => ({ ...apiSignals(), requests: new Map() }), apiTree, notesProblems) },
   ];
