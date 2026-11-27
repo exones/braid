@@ -1,0 +1,22 @@
+{
+  "code": "q-9o73",
+  "item": "0082",
+  "kind": "review",
+  "text": "review PR #365 at f1b454d",
+  "words": "polite mango",
+  "by": "coordinator",
+  "thread": "mcp:launch:236ccef074a45cee67da4aac404fd6df9c2bca310db02b79a3789f23e60f7209",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:365",
+  "pr": 365,
+  "head": "f1b454dd0c220085a7755cb8038bcc1b10a8e91e",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-27T12:42:11.518Z",
+      "by": "coordinator"
+    }
+  ]
+}
