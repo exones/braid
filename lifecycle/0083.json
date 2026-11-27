@@ -1,0 +1,11 @@
+{
+  "id": "0083",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-27T23:38:29.550Z",
+      "thread": "mcp:launch:278bde206cc6c5dcba7a550fd202794be83ea389f2bcdd96dca4b9f8e69d9d06",
+      "branch": "braid/0083-how-braid-can-read-t3-lightly"
+    }
+  ]
+}
