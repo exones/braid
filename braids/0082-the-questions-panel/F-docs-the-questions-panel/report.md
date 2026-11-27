@@ -2,7 +2,7 @@
 
 ## What changed
 
-The docs from BRAID.md `docs`, read against everything 0082/A to E changed. The strands had updated most of them; this fixes what they left stale or missing. No product code.
+The docs from BRAID.md `docs`, read against everything 0082/A to E changed. The strands had updated most of them; this fixes what they left stale or missing. No product code; one header comment.
 
 - **Push priority** (0082/C's known gap): `docs/board.md` and the `braid ask` cell in `docs/cli.md` no longer say a PM request always pushes high; a `look` is default priority, and an escalated or forwarded one is high. The same in `docs/getting-started.md` and `docs/braids-format.md`.
 - **The page writes the record now:** `docs/board.md` and `docs/braids-format.md` said only braid commands (and the board's wake) write requests; the board's `answer` action does too.
@@ -10,7 +10,9 @@ The docs from BRAID.md `docs`, read against everything 0082/A to E changed. The 
 - **`docs/cli.md`:** `braid answer` points to answering on the board; an answer given on the page still wakes under `--no-pause`.
 - **Answer among the board's actions:** `README.md`, `docs/getting-started.md`, `docs/roadmap.md`.
 - **`docs/roadmap.md`:** the Questions panel (0082) as built; 0072's "Not built: answering from the board" is gone.
-- **`docs/decisions.md`:** D118 states the ranking the user decided; the date line. D118 to D120 are free on `origin/main` (its last is D117), so no renumbering.
+- **`docs/decisions.md`:** D118 states the ranking as built, six groups, a look folded even when escalated; D119 says an escalated or forwarded look pushes high; the date line. D118 to D120 are free on `origin/main` (its last is D117), so no renumbering.
+
+- **Review (comment 7217216756):** all four findings fixed (the stall push has no `look` default; D118; D119; a forwarded request of a programme-run braid is answered in the panel or the PM thread), and the header comment of `src/braids/requests.ts` names the running board as a writer.
 
 ## Docs checked
 
@@ -36,11 +38,11 @@ The docs from BRAID.md `docs`, read against everything 0082/A to E changed. The 
 ## Validation
 
 - `braid check`: OK.
-- `npm run verify`: exit 0 on Windows after `npm ci`, 816 tests, none failed or skipped (test run about 19 min).
+- `npm run verify` on Windows, after the review fixes: exit 0, 816 tests, none failed or skipped (test run about 18 min).
 
 ## Anything open
 
-- None.
+- `.agents/skills/braid/references/workflow.md` still says only braid commands write `braid-requests`; skills are out of this strand's scope.
 
-For later items: none
+For later items: the final PR or a later item: `.agents/skills/braid/references/workflow.md` should name the running board as a writer of `braid-requests` too (proposal; the user merges skill changes).
 Needs the user: none
