@@ -39,7 +39,9 @@ docs/board.md (Tailscale "Who" paragraph) and docs/decisions.md D60 updated. No 
 
 ## Open
 
-- Decided (security, within the brief's stale-while-revalidate): between 5 and 30 minutes the request that starts the background whois is let in before that whois answers, so an address whose owner changed can pass for the duration of one whois (normally about 0.3 s, at most 3 s) after its 5 minutes ran out. Waiting for the whois instead would make that request wait up to 3 s on a busy machine, the slowness this item removes. The PM may prefer waiting; it is a two-line change.
+- The PM decided (2026-11-27) to keep both windows and letting the address in while a new ask runs, as built; their reason is in the braid's log.
+
+- Decided (security, within the brief's stale-while-revalidate): between 5 and 30 minutes the request that starts the background whois is let in before that whois answers, so an address whose owner changed can pass for the duration of one whois (normally about 0.3 s, at most 3 s) after its 5 minutes ran out. Waiting for the whois instead would make that request wait up to 3 s on a busy machine, the slowness this item removes.
 - Gate (`node dist/cli.js gate`): passed, 2752 s on a heavily loaded machine. A first run (1671 s) failed one unrelated timing test, test/board-async.test.ts "/api/session answers within a second while a read's git calls take seconds"; it passes alone (6/6, 51 s) and passed in the rerun.
 
 For later items: none.
