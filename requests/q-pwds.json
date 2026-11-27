@@ -1,0 +1,26 @@
+{
+  "code": "q-pwds",
+  "item": "0083",
+  "kind": "plan",
+  "text": "Approve the plan: spike How braid can read T3 lightly",
+  "context": "0083 is a spike, one braid with no strands: research T3's source and time the CLI calls braid makes, read-only, and write report.md and sources.md in braids/0083. Preset free with the PM-run exceptions; tier M, so an independent reviewer looks at the report.",
+  "options": [
+    "Approve",
+    "Change something",
+    "Show me the briefs"
+  ],
+  "words": "gentle anchor",
+  "by": "coordinator",
+  "thread": "mcp:launch:278bde206cc6c5dcba7a550fd202794be83ea389f2bcdd96dca4b9f8e69d9d06",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-27T23:34:05.418Z",
+      "by": "coordinator"
+    }
+  ]
+}
