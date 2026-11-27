@@ -21,6 +21,12 @@
       "event": "opened",
       "at": "2026-11-27T23:53:20.546Z",
       "by": "coordinator"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-27T23:55:26.051Z",
+      "by": "coordinator",
+      "text": "number clash: 0084 is also taken by two other plans (several open questions; board lanes); this plan gets a new number"
     }
   ]
 }
