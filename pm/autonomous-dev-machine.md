@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 1
 state: running
 hold: ""
-next: "0077 running (resumed mid-I, plus the T3 read strand); 0078, 0080 held; then P30, P5"
+next: "0077 running (J, then final PR); 0078, 0080 held; then P31, P30, P5"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -167,6 +167,7 @@ After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for 
 
 ## Change log
 - 2026-11-27: user found that a new question silently withdraws the same asker's open one on the same item (a PM's P18 question withdrew its P17 giant-spoon). Added P31 "Several open questions per item"; its place in the order is asked.
+- 2026-11-27: user "Golden pickle A": P31 runs right after 0077, before P30.
 - 2026-11-27: user: "Start again the 077 this timeout thing": Go for 0077 only. `braid resume 0077`; coordinator told to finish I and add the strand "the board remembers finished T3 threads" (everix4 timeout), merge main (0082) before its final PR. 0078 and 0080 stay held; state running, limit 1.
 - 2026-11-27: everix4's board read times out (31 recorded subagent threads, one slow `t3 thread show` each); SFIL PM reported forwarded q-seqh/q-h3fq hidden on held braids. User: "1. C" (fix in 0077 as a strand on Go, no clean now), "2. E" (forwarded requests on held braids show in the panel marked held, no push; into P5).
 - 2026-11-27: all replied to the 0082 skill news: PMs Everix Cloud (no coordinators), dctl-studio (passed to 0013-0016), SFIL (passed to 0014-0020); coordinators 0077, 0078, 0080 (passed to held workers, merge main before final PRs). All held.
