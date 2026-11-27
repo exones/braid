@@ -19,6 +19,12 @@
       "event": "opened",
       "at": "2026-11-27T21:37:14.179Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-27T21:40:27.211Z",
+      "by": "user",
+      "text": "A. Right after 0077, before P30"
     }
   ]
 }
