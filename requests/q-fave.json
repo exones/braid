@@ -1,0 +1,26 @@
+{
+  "code": "q-fave",
+  "item": "0084",
+  "kind": "plan",
+  "text": "Approve the plan of 0084 (4 strands: CLI, mockups, board, docs+skill lines)",
+  "context": "0084 Several open questions per item: plan on plan/several-open-questions (3478a21d), preset free with the PM-run line. Strands, one worker at a time:\n- 0084/A Several open questions on the record and in the CLI (story, M, order 10): ask withdraws no question; waits, timed waits and review-over-review keep replacing; answer/withdraw by id refused with several open; braid status shows every one; pm/<slug> and --by pm covered.\n- 0084/B Mockups: several open questions on the board (task, S, ui, order 20): card, details, Questions panel, programmes panel, phone; worker stops for the user's look.\n- 0084/C Several open questions on the board (story, M, ui, order 30; after A, B): signals hold every request per item, card/details/panel/programmes show all, one push per question.\n- 0084/D Docs: Several open questions per item (task, L, ask:process, order 40; after A-C): docs as a whole, a new decision, and the skill lines that say \"a new question replaces your open question\" (braid SKILL.md Talking to the user, Sweep step 2). Per AGENTS.md the user merges skill changes, so 0084/D's PR is handed over, not merged under the preset.\nDecided in the plan: a new handover (review) replaces only an older review, never a question; no new field, flag or state; replacing one's own question = braid withdraw then braid ask.",
+  "options": [
+    "Approve",
+    "Change something",
+    "Show me the briefs"
+  ],
+  "words": "steady table",
+  "by": "coordinator",
+  "thread": "mcp:launch:fb5fcd743ad7d6c3cb1795e068f1d43a36e1e52e42fd421781fe11b7d4603838",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-27T23:58:30.627Z",
+      "by": "coordinator"
+    }
+  ]
+}
