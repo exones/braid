@@ -560,9 +560,7 @@ export function answerCommand(root: string, _cwd: string, args: readonly string[
   if (wait !== undefined && str(values, "from") !== undefined) {
     throw new UsageError(`braid answer: ${handleOf(wait)} (${wait.id}) is a wait, which asks neither the user nor the PM: drop --from; nothing changed`);
   }
-  // A lone letter of a stored option (`A`, any case) records that option's text, read from the record inside the write.
-  const ending: Ending | ((r: Request) => Ending) =
-    wait === undefined ? (r) => ({ state: "answered", who: from, ...(text === undefined ? {} : { text: optionAnswer(r, text) }), ...(reason === undefined ? {} : { reason }) }) : waitEnding(root, wait, text, opts);
+  const ending: Ending | ((r: Request) => Ending) = wait === undefined ? answerEnding(from, text, reason) : waitEnding(root, wait, text, opts);
   const done = end(root, found, "braid answer", ending);
   const name = `${handleOf(done.request)} ${done.request.id}`;
   const last = closing(done.request);
@@ -570,6 +568,33 @@ export function answerCommand(root: string, _cwd: string, args: readonly string[
     return `${name}: met: ${last.text ?? ""} (the board sends no wake for a wait closed by hand${text === undefined ? "" : "; your text isn't recorded"})\n${warned(done.warning)}`;
   }
   return `${name}: answered by ${WHO[last?.by ?? from]}${last?.text === undefined ? "" : `: ${oneLine(last.text)}`}\n${warned(done.warning)}`;
+}
+
+/** The ending `braid answer` records: a lone letter of a stored option (`A`, any case) records that option's text, read from the record inside the write. */
+const answerEnding =
+  (who: "user" | "pm", text: string | undefined, reason: string | undefined) =>
+  (r: Request): Ending => ({ state: "answered", who, ...(text === undefined ? {} : { text: optionAnswer(r, text) }), ...(reason === undefined ? {} : { reason }) });
+
+/** The longest answer the board's page sends (0082/D): one line. */
+export const BOARD_ANSWER_MAX = 500;
+
+/**
+ * The board's `answer` action (0082/D): the user's answer from the board's page, recorded as `braid answer <handle> <text>`
+ * records it (`by: user`, a lone letter as its option). `handle` names a request of this project's record (its name or code);
+ * a wait, which asks no one, and a request already answered, withdrawn or met are refused with the reason. A UsageError
+ * is the refusal the page shows.
+ */
+export function boardAnswer(root: string, handle: string, text: string): { readonly request: Request; readonly warning: string | null } {
+  const answer = text.trim();
+  if (answer === "" || /[\r\n]/.test(answer) || answer.length > BOARD_ANSWER_MAX) {
+    throw new UsageError(`Answer: one line of text or an option letter, at most ${BOARD_ANSWER_MAX} characters`);
+  }
+  const code = codeOf(root, handle.trim(), "Answer") ?? fail(`Answer: no request ${handle} in this project; nothing changed`);
+  const r = loadRecord(root).requests.find((x) => x.code === code);
+  if (r !== undefined && r.state === "open" && isWait(r)) {
+    throw new UsageError(`Answer: ${handleOf(r)} (${r.id}) is a wait, which asks no one: it ends when its condition holds; nothing changed`);
+  }
+  return end(root, { code, id: r?.id ?? "" }, "Answer", answerEnding("user", answer, undefined));
 }
 
 /** `braid withdraw <code>|<id> --why <reason>`: the asker no longer needs it; it stays on the record as withdrawn. */
