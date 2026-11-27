@@ -21,6 +21,12 @@
       "event": "opened",
       "at": "2026-11-27T23:52:47.647Z",
       "by": "coordinator"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-27T23:53:20.546Z",
+      "by": "coordinator",
+      "text": "replaced by fresh-dolphin-azs7"
     }
   ]
 }

@@ -1,0 +1,26 @@
+{
+  "code": "q-azs7",
+  "item": "0084",
+  "kind": "plan",
+  "text": "Approve the plan of 0084",
+  "context": "Plan of 0084 (braid clean works in repos with submodules), preset free with the PM-run line: 0084/A safe removal of worktrees with submodules (story, L), 0084/B clean without a number sweeps every finished item and names each kept worktree (story, M, after A), 0084/C what clean cannot remove becomes an action request for the user (story, M, after B), 0084/D docs strand (task, S, last). P31 contact: today openRequest replaces an open request of the same asker and sort on the item, so 0084/C must keep a cleanup request from replacing the coordinator's question; it stops and proposes if it needs a record change.",
+  "options": [
+    "Approve",
+    "Change something",
+    "Show me the briefs"
+  ],
+  "words": "fresh dolphin",
+  "by": "coordinator",
+  "thread": "mcp:launch:473f5b8708edbd228684ca3081f8c0b88457a28574741c6d1cdc78602f672f2f",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-27T23:53:20.546Z",
+      "by": "coordinator"
+    }
+  ]
+}
