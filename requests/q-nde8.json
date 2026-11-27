@@ -23,6 +23,12 @@
       "by": "pm",
       "text": "A. Approve as planned",
       "reason": "approved: additive optional fields that every version since 0070 still reads, and the only loss (an older braid rewriting a new record drops context/options/fyi, keeps the answer) is cheap since one install serves this machine, instead of a new kind that older versions would skip"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-27T08:30:56.623Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
