@@ -4,8 +4,8 @@ title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 1
-state: held
-hold: 2026-11-26T16:40Z the user: finish 0077 and 0081 and hold (usage limits); 0077 held as is
+state: running
+hold: 
 next: "0082 (P25): mockups, then on the user's approval build to the end; held: 0077 (as is, mid-I), 0078, 0080; after the user's Go: 0077, P30, P5"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
@@ -164,6 +164,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-27: user: the board showed the programme "on hold" while 0082 runs: state back to running (limit 1, 0082 the one running braid); 0077, 0078, 0080 stay held one by one (braid pause --hold), P30 and P5 wait for the user's Go.
 - 2026-11-27: user "Smooth window a": 0082/D answers from the board on both listeners (local and Tailscale, owner-only), no confirmation. 0082/A-C merged into the braid branch.
 - 2026-11-26: user "A" on the request fields: 0082/C makes look/FYI a kind `look` instead of an `fyi` flag (changes the PM's calm-guitar-nde8 answer); the record cleanup (state and copies derived from events, one timed-wait field) noted as an idea, not in 0082. 0082/E ranks pm/<slug> questions as stops a programme.
 - 2026-11-26: user approved 0082's mockups (shiny-muffin-fqro): 1A send at once, 2A merge-waiting PRs ranked in the panel, 3A, 4B, 5B look/FYI mark on the record, 6B, an opened card shows its context expanded; "Start it." 0082 preset free; B-F one at a time; C's data case and D's security come to the PM.
