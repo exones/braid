@@ -60,12 +60,12 @@ Expected size: about 1200 lines in 20 files over five strands, tests included.
 
 ## Completion
 
-- [ ] The board shows the Questions panel right of the board, collapsible, with every open question of every project ranked as decided above, and Decided for braids and programmes
-- [ ] A question is answered from the panel with an option button or one line of free text, recorded as the user's answer, and the asking thread is woken
-- [ ] `braid ask` takes `--context`, `--context-file` and `--option`; the record keeps them and older records read unchanged
-- [ ] The six gaps of leftover 2026-11-26-03t9 and the gaps of 2026-11-25-1onw are fixed
-- [ ] Docs from BRAID.md `docs` that this braid makes untrue are updated (0082/F)
-- [ ] The gate command from BRAID.md passes
+- [x] The board shows the Questions panel right of the board, collapsible, with every open question of every project ranked as decided above, and Decided for braids and programmes
+- [x] A question is answered from the panel with an option button or one line of free text, recorded as the user's answer, and the asking thread is woken
+- [x] `braid ask` takes `--context`, `--context-file` and `--option`; the record keeps them and older records read unchanged
+- [x] The six gaps of leftover 2026-11-26-03t9 and the gaps of 2026-11-25-1onw are fixed
+- [x] Docs from BRAID.md `docs` that this braid makes untrue are updated (0082/F)
+- [x] The gate command from BRAID.md passes
 
 ## Autonomy
 
