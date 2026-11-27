@@ -134,7 +134,7 @@ The full list is in [the CLI reference](docs/cli.md).
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Installing the skills and CLI, `BRAID.md` (including which docs braid keeps true), setting up a repository, choosing an autonomy preset. |
 | [CLI reference](docs/cli.md) | Every command, with examples and exit codes. |
-| [The attention board](docs/board.md) | What `braid board` shows, how it decides, and its actions (Start, Merge, Open thread). |
+| [The attention board](docs/board.md) | What `braid board` shows, how it decides, and its actions (Start, Merge, Answer, Open thread). |
 | [The braids/ format](docs/braids-format.md) | The files in `braids/`, branches and each command's behaviour. |
 | [Autonomy presets](docs/autonomy.md) | The preset file a braid runs on, the three shipped presets and `braid autonomy`. |
 | [Workflow](.agents/skills/braid/references/workflow.md) | Items, tiers, branches, merges and checks. |

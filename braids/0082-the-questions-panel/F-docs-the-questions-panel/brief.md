@@ -26,6 +26,16 @@ Expected size: about 150 lines of docs in 8 files.
 ## Completion
 
 
-- [ ] Docs from BRAID.md `docs` that this braid makes untrue are updated; report.md lists each doc checked as updated or unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Docs from BRAID.md `docs` that this braid makes untrue are updated; report.md lists each doc checked as updated or unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `docs/board.md`: the PM look's push priority; the page's `answer` writes the record; `look` in the lane rule and the icon table; answering in the details panel footnote; the act word `look` in the Questions panel rows; a screenshot of the panel and of an opened card (0082/E's screens, copied to `docs/design/board-screenshots/`).
+- `docs/cli.md`: the `braid ask` priority; `--no-pause` against the page's answer wake.
+- `docs/braids-format.md`: the board's `answer` also writes the record.
+- `docs/getting-started.md`, `README.md`: Answer among the board's actions; the PM's look priority.
+- `docs/roadmap.md`: 0082 built; 0072's "Not built" line.
+- `docs/decisions.md`: the ranking in D118, the date line. D118 to D120 are free on `origin/main` (its last is D117), so no renumbering.
+- `src/cli.ts` help: checked, changed only if untrue.
