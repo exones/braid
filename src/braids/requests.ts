@@ -1,6 +1,6 @@
 // Requests: what a coordinator or the PM needs from someone, on the record. Each request is one JSON file,
-// `requests/<code>.json`, on the branch `braid-requests`, written only by braid commands through the shared
-// data branch code (src/braids/gitbranch.ts). Its fields are fixed when it opens; every later change is an
+// `requests/<code>.json`, on the branch `braid-requests`, written by braid commands and the running board (its wake,
+// reminders and `answer` action) through the shared data branch code (src/braids/gitbranch.ts). Its fields are fixed when it opens; every later change is an
 // event appended to `events`, and its state is read from them. Nothing is ever deleted.
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, renameSync } from "node:fs";
