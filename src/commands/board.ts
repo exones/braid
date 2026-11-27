@@ -7,8 +7,8 @@ import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
-import type { Braid, Item, Tree } from "../braids/store.js";
-import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
+import { loadTree, type Braid, type Item, type Tree } from "../braids/store.js";
+import { apiBraids, apiGithub, apiPanelSignals, apiPanelTree, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
 import { steerer, type Steerer } from "../board/steerer.js";
@@ -1185,7 +1185,7 @@ export function demoMembers(t3Down = false, notReady = false): Member[] {
   };
   return [
     { name: "demo", src: demoSources(t3Down, notReady) },
-    { name: "api", src: small("api", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null, apiPlans) },
+    { name: "api", src: small("api", () => loadTree(apiPanelTree()), apiGithub, () => apiPanelSignals(), apiPanelTree, () => null, apiPlans) },
     { name: "mail", src: mail },
     { name: "notes", src: small("notes", () => [], () => ({ status: { state: "ok" }, prs: new Map() }), () => ({ ...apiSignals(), requests: new Map() }), apiTree, notesProblems) },
   ];
