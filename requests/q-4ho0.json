@@ -1,0 +1,23 @@
+{
+  "code": "q-4ho0",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "TEST (PM, ignore): checking the answer buttons on the board",
+  "options": [
+    "Option one",
+    "Option two"
+  ],
+  "words": "soft dolphin",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T16:40:21.709Z",
+      "by": "pm"
+    }
+  ]
+}
