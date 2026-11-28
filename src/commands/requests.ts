@@ -327,7 +327,7 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   const pmThread = by === "pm" ? (thread ?? (slug === null ? pmOfBraid(root, id) : null)) : thread;
   const at = (opts.now ?? (() => new Date()))();
   const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(context === undefined ? {} : { context }), ...(options === undefined ? {} : { options }), ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route, doneWhen });
-  // "…opened, replacing calm-heron-q2ra": the open one this request withdrew.
+  // "…opened, replacing calm-heron-q2ra": the open wait this wait withdrew (a question withdraws nothing).
   const replacing = opened.replaced.length === 0 ? "" : `, replacing ${opened.replaced.join(", ")}`;
   if (self) {
     return `${opened.handle} ${id}: timed wait opened${replacing}, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
@@ -340,32 +340,56 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
 
 const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action|look] [--option <text>]... [--context <text>|--context-file <file>|-] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>|self] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]  (--to self --done-when time:<iso>: a timed wait, nobody asked)';
 
-/** `braid forward <id> [--note <text>]`: the PM hands a request on to the user; it reaches the user (on the braid's card, or for a braid a programme runs as the PM asking in the programme's Needs you) and is pushed, at once or, while the braid is paused or held, after `braid resume`. */
+/** Whether `braid forward` can hand it on: a coordinator's question to the PM, not forwarded yet. */
+const forwardable = (r: Request): boolean => askerOf(r) === "coordinator" && !isWait(r) && r.to === "pm" && r.forwarded === undefined;
+
+/**
+ * The request `braid forward` means: the one a name or code gives, else the item's only one still to forward (several are
+ * listed and refused); with none to forward, one that says why. Undefined when the item has none open.
+ */
+function forwardTarget(root: string, raw: string): { id: string; open: Request | undefined } {
+  if (!idLike(raw)) {
+    const code = namedCode(root, raw, "braid forward");
+    const r = loadRecord(root).requests.find((x) => x.code === code) ?? fail(`braid forward: no request ${code}; nothing changed`);
+    if (r.state !== "open" || askerOf(r) !== "coordinator") {
+      return fail(`braid forward: ${handleOf(r)} (${r.id}) is ${r.state !== "open" ? `already ${r.state}` : "the PM's own"}; nothing changed`);
+    }
+    return { id: r.id, open: r };
+  }
+  const id = itemId(root, raw, "braid forward");
+  fetchBranch(root, REQUESTS);
+  const own = loadRequests(root).filter((r) => r.id === id && askerOf(r) === "coordinator");
+  const waiting = own.filter(forwardable);
+  if (waiting.length > 1) {
+    return fail(`braid forward: ${id} has ${waiting.length} requests to forward: ${waiting.map(listed).join(", ")}; give the name; nothing changed`);
+  }
+  // A wait to another braid is never forwarded: the coordinator's question is.
+  return { id, open: waiting[0] ?? own.find((r) => !isWait(r)) ?? own[0] };
+}
+
+/** `braid forward <name|code>|<id> [--note <text>]`: the PM hands a request on to the user; it reaches the user (on the braid's card, or for a braid a programme runs as the PM asking in the programme's Needs you) and is pushed, at once or, while the braid is paused or held, after `braid resume`. */
 export function forwardCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid forward", args, { note: { type: "string" } });
   if (positionals.length !== 1) {
-    throw new UsageError("usage: braid forward <id> [--note <text>]");
+    throw new UsageError("usage: braid forward <name|code>|<id> [--note <text>]");
   }
-  const id = itemId(root, positionals[0], "braid forward");
   const note = str(values, "note")?.replace(/\s+/g, " ").trim();
-  // A wait to another braid is never forwarded: the coordinator's question is.
-  const open = loadRequests(root).find((r) => r.id === id && askerOf(r) === "coordinator" && !isWait(r)) ?? loadRequests(root).find((r) => r.id === id && askerOf(r) === "coordinator");
+  const { id, open } = forwardTarget(root, positionals[0] ?? "");
   if (open === undefined) {
     throw new UsageError(`${id}: no open request to forward`);
   }
-  if (open.to !== "pm" || open.forwarded !== undefined) {
+  if (!forwardable(open)) {
     const whose = isTimedWait(open) ? "a timed wait" : open.to !== undefined && BRAID_TO.test(open.to) ? `for braid ${open.to}'s coordinator` : `already the user's${open.forwarded === undefined ? "" : " (forwarded)"}`;
     return `${id}: the ${open.kind} request is ${whose}; nothing changed\n`;
   }
   const given = note === undefined || note === "" ? undefined : note;
-  const done = forwardRequest(root, id, (opts.now ?? (() => new Date()))().toISOString(), given);
+  const done = forwardRequest(root, id, (opts.now ?? (() => new Date()))().toISOString(), given, open.code);
   return `${id}: ${open.kind} request forwarded to the user${given === undefined ? "" : `: ${given}`}\n${warned(done.warning)}`;
 }
 
 /** `user`, `pm`, `coordinator`, `board` as the words a line says. */
 const WHO: Readonly<Record<Who, string>> = { user: "the user", pm: "the PM", coordinator: "the coordinator", board: "the board" };
 
-/** The code of the one open request a code or an id names; the id form without `--by` refuses when two askers have one open. */
 /** Every braid braid knows, each item with the status it reads as (from its lifecycle and, when given, the PRs). */
 function statused(root: string, prs: ReadonlyMap<string, PullRequest> = new Map()): Braid[] {
   const life = loadLifecycle(root);
@@ -427,6 +451,14 @@ function prsOf(root: string, run: GhRunner): ReadonlyMap<string, PullRequest> {
   return g.status.state === "ok" ? g.prs : new Map();
 }
 
+/** One of several open requests, as a refusal lists it: its name, whose it is and its kind. */
+function listed(r: Request): string {
+  const whose = askerOf(r) === "pm" ? "the PM's" : "the coordinator's";
+  const what = isTimedWait(r) ? " timed wait" : isWait(r) ? `, waiting on braid ${r.to ?? ""}` : ` ${r.kind}`;
+  return `${handleOf(r)} (${whose}${what})`;
+}
+
+/** The code of the one open request a name, a code or an id means; an id with several open is refused, listing them. */
 function target(root: string, raw: string, values: Parameters<typeof str>[0], command: string): { code: string; id: string } | { none: string } {
   const named = idLike(raw) ? null : namedCode(root, raw, command);
   if (named !== null) {
@@ -442,9 +474,11 @@ function target(root: string, raw: string, values: Parameters<typeof str>[0], co
   fetchBranch(root, REQUESTS);
   const open = loadRequests(root).filter((r) => r.id === id && (by === undefined || askerOf(r) === by));
   if (open.length > 1) {
-    // A question and a wait of one asker are both open: only the code tells them apart.
-    const oneAsker = new Set(open.map(askerOf)).size === 1;
-    throw new UsageError(`${id} has ${open.length} open requests: ${[...open].sort((a, b) => Number(askerOf(a) === "pm") - Number(askerOf(b) === "pm")).map((r) => `${handleOf(r)} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"}${isWait(r) ? `, waiting on braid ${r.to ?? ""}` : ""})`).join(", ")}; give the code${oneAsker ? "" : ", or --by coordinator|pm"}; nothing changed`);
+    // Only the name tells them apart, unless one asker has exactly one open.
+    const askers = open.map(askerOf);
+    const byHelps = new Set(askers).size > 1 && askers.some((a) => askers.indexOf(a) === askers.lastIndexOf(a));
+    const list = [...open].sort((a, b) => Number(askerOf(a) === "pm") - Number(askerOf(b) === "pm")).map(listed).join(", ");
+    throw new UsageError(`${id} has ${open.length} open requests: ${list}; give the name${byHelps ? ", or --by coordinator|pm" : ""}; nothing changed`);
   }
   const [one] = open;
   if (one !== undefined) {
@@ -453,8 +487,9 @@ function target(root: string, raw: string, values: Parameters<typeof str>[0], co
   if (slug === null) {
     itemId(root, id, command);
   }
-  const other = by === undefined ? undefined : loadRequests(root).find((r) => r.id === id && askerOf(r) !== by);
-  const hint = other === undefined ? "" : ` (the ${askerOf(other) === "pm" ? "PM's" : "coordinator's"} is open: ${handleOf(other)})`;
+  const others = by === undefined ? [] : loadRequests(root).filter((r) => r.id === id && askerOf(r) !== by);
+  const [other] = others;
+  const hint = other === undefined ? "" : ` (the ${askerOf(other) === "pm" ? "PM's" : "coordinator's"} ${others.length === 1 ? "is" : "are"} open: ${others.map(handleOf).join(", ")})`;
   return { none: `${id}: no open ${by === "pm" ? "PM " : ""}request${hint}\n` };
 }
 

@@ -9,10 +9,11 @@ import { readGithub, runGh, type GhRunner, type Github } from "../board/github.j
 import { LANE_LABEL, needLine } from "../board/marks.js";
 import { readInputs, readStartContext } from "../board/inputs.js";
 import { readPlans } from "../board/plans.js";
-import { toCard, type Alarm, type BraidCard, type Lane, type StrandCard } from "../board/model.js";
+import { age, askerOf, handleOf, isTimedWait, isWait, loadRequests, type Request } from "../braids/requests.js";
+import { askWords, toCard, type Alarm, type BraidCard, type Lane, type StrandCard } from "../board/model.js";
 import { problemLine, readiness } from "../braids/readiness.js";
 import { readSignals } from "../board/signals.js";
-import { laneNote, statusLine } from "../board/pause.js";
+import { clock, laneNote, statusLine } from "../board/pause.js";
 import { readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
 import { FormatError } from "../braids/frontmatter.js";
 import { UsageError } from "./braids.js";
@@ -59,6 +60,8 @@ export interface World {
   readonly refs: readonly BranchRef[];
   readonly github: Github;
   readonly t3: T3;
+  /** Every open request on the record that the board doesn't read as closed (`braid status` lists them). */
+  readonly requests: readonly Request[];
   /** Why `.braid/pauses.json` was read as no pauses; null when it read cleanly or is missing. */
   readonly pausesNote: string | null;
   readonly now: Date;
@@ -95,7 +98,7 @@ export async function read(root: string, number: string, command: string, src: S
     }
   }
   sig.commit(alarms);
-  return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3, pausesNote: sig.pausesNote ?? null, now: sig.now };
+  return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3, requests: openRequests(root, sig.closed ?? []), pausesNote: sig.pausesNote ?? null, now: sig.now };
 }
 
 export function branchState(refs: readonly BranchRef[], number: string, letter: string | null): { local: boolean; pushed: boolean } {
@@ -137,10 +140,39 @@ function line(names: readonly string[], w: World, card: StrandCard | BraidCard, 
   const ask = card.ask === null ? "" : `  ask:${card.ask}`;
   const head = `${card.id}  ${card.status}  ${lane}${ask}  branch ${where}  PR ${pr}  ci ${checksText(names, card)}  thread ${thread}  ${card.title}`;
   const pause = letter === null && card.pause !== null && card.reason !== "stalled" ? [`    ${statusLine(card.pause, w.now)}`] : [];
-  const pm = card.pm === null ? [] : [`    🧭 ${card.pm.text} (to the PM ${card.pm.age} ago)`];
+  return [head, ...pause, ...requestLines(w, card)];
+}
+
+/**
+ * The lines under an item: the card's (the request the PM handles, the need, the PM's own request), each with its request's
+ * name, then one line for every other open request of the item. The card shows one per asker; the record may hold more.
+ */
+function requestLines(w: World, card: StrandCard | BraidCard): string[] {
+  const own = w.requests.filter((r) => r.id === card.id);
+  const shown = new Set<string>();
+  const named = (handle: string | undefined): string => {
+    if (handle === undefined) {
+      return "";
+    }
+    shown.add(handle);
+    return `${handle}  `;
+  };
+  // The card's quiet PM line is about the coordinator's newest question, as the board reads it.
+  const handled = card.pm === null ? undefined : own.findLast((r) => askerOf(r) === "coordinator" && !isWait(r));
+  const pm = card.pm === null ? [] : [`    🧭 ${named(handled === undefined ? undefined : handleOf(handled))}${card.pm.text} (to the PM ${card.pm.age} ago)`];
+  const need = card.need === null ? [] : [`    ${named(card.need.handle)}${needLine(card.need)}`];
   // The PM's own request, when the need line is another one (the coordinator's).
-  const pmAsk = card.pmAsk === null || card.need === card.pmAsk || card.need?.by === "pm" ? [] : [`    🧭 ${needLine(card.pmAsk)}`];
-  return [head, ...pause, ...pm, ...(card.need === null ? [] : [`    ${needLine(card.need)}`]), ...pmAsk];
+  const pmAsk = card.pmAsk === null || card.need === card.pmAsk || card.need?.by === "pm" ? [] : [`    🧭 ${named(card.pmAsk.handle)}${needLine(card.pmAsk)}`];
+  const rest = own.filter((r) => !shown.has(handleOf(r))).map((r) => `    ${handleOf(r)}  ${openLine(r, w.now)}`);
+  return [...pm, ...need, ...pmAsk, ...rest];
+}
+
+/** An open request the card doesn't show, in words: whom or what it waits for, its text and age. */
+function openLine(r: Request, now: Date): string {
+  const whom = askerOf(r) === "pm" ? `${askWords(r.kind)} ` : r.forwarded !== undefined ? "forwarded by the PM: " : r.to === "pm" ? "to the PM: " : r.kind === "action" ? "The coordinator asks you to: " : "";
+  const wait = isTimedWait(r) ? `waiting until ${clock(r.doneWhen.slice(5), now)}: ` : isWait(r) ? `waiting on braid ${r.to ?? ""}: ` : "";
+  const text = r.kind === "review" && r.pr !== undefined ? `Merge PR #${r.pr}` : r.text;
+  return needLine({ kind: "question", text: `${whom}${wait}${text}`, verb: "asked", age: age(r.at, now), since: r.at, key: null, pr: null, who: null, more: 0 });
 }
 
 /** The notes for a source that couldn't be read; `next` also says what that hides. */
@@ -170,6 +202,16 @@ async function readOrProblems(root: string, number: string, src: Sources): Promi
       throw error;
     }
     return [...problems.map(problemLine), `braid status: ${error.message}`].map((l) => `${l}\n`).join("");
+  }
+}
+
+/** The open requests, without those the board already reads as closed; none outside a repository, as the board reads it. */
+function openRequests(root: string, closed: readonly Request[]): Request[] {
+  const done = new Set(closed.map((r) => r.code));
+  try {
+    return loadRequests(root).filter((r) => !done.has(r.code));
+  } catch {
+    return [];
   }
 }
 
