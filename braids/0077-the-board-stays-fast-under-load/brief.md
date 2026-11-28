@@ -49,7 +49,7 @@ What a user can try at the end: start two gates at once (two worktrees, `braid g
 
 ## Completion
 
-- [ ] With two gates running at once on one machine, the board's `/api/session` and page answer within a second, measured and written in the final report
+- Moved by the user's decision (brown-cloud-p70q, "B", 2026-11-28) to the follow-up P34 "The board never waits on git or t3" in the programme plan, which the user has parked ("About 1 second: I don't care for now"): "With two gates running at once on one machine, the board's `/api/session` and page answer within a second". It was measured and not met; the numbers and cause are in report.md (0077/M).
 - [x] `braid board --url` finds a running board on a busy machine, and says "busy" rather than "no board" when one listens but answers late
 - [x] No synchronous git or gh call runs in the board process, and a test fails if one is added
 - [x] At most two `braid gate` runs on one machine run at once; a third waits

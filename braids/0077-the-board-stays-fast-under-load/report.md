@@ -28,7 +28,7 @@ The user decided (brown-cloud-p70q, "B"): ship 0077 as it is. Spawning git, t3 a
 
 ## Completion boxes
 
-- Left open: "With two gates running at once on one machine, the board's `/api/session` and page answer within a second". It was measured and written above, and not met, for the reason above. The follow-up braid takes it.
+- Moved, not ticked: "With two gates running at once on one machine, the board's `/api/session` and page answer within a second". It was measured above and not met. The user's decision B (brown-cloud-p70q) moved it to the follow-up P34 "The board never waits on git or t3", which the user has parked.
 - All the others hold.
 
 ## Validation
