@@ -1,0 +1,5 @@
+## 2026-11-28 18:13Z checkpoint
+
+Finding (at a17855e1 main and 7240e9d6): a forwarded request answered on the board or with braid answer wakes its asker once and is marked (test/board-wake-forwarded.test.ts passes on both), so 'forwarded' is not the cause. This repo's record agrees: forwarded user answers here were marked (windy-violin-af9e, tidy-garden-2qgd, jolly-mitten). The failing cases are all in everix4. Not yet read: its record, .braid/pauses.json, the coordinator thread's state.
+Code paths on main that leave no mark and no trace: asking braid held or paused; thread archived; t3 thread send fails (stderr only, retried within 24 h of the answer); a page answer's retry list is lost at a board restart.
+done: finding and test; plan; wip in src/braids/requests.ts (due/sent/failed marks) and src/board/wake.ts (does not build yet: commands not updated). next: on the coordinator's word, the cause, then accept/start, the commands, board views, context, warning, tests, docs. open: permission for a read-only look at everix4.

@@ -39,6 +39,13 @@ Expected size: about 320 lines in 7 files, tests included.
 
 - Changing who can answer or forward, or the escalation timers.
 
+## Plan
+
+- Accept and start: `closeRequest` takes a `keep` test; a request forwarded by the PM or asked by the PM is kept. Accept refuses on one before it reads GitHub or changes anything; start keeps and names them.
+- Delivery on the record, events only (`reminded` by `board`): an answer recorded by `braid answer` or the board's page writes, in the same write, "answer to send to …" per thread that must hear it (the asker; the forwarder), or the "sent" mark when it was recorded in that thread (`--thread`, else `T3CODE_THREAD_ID`). A wake that can't go writes "answer not delivered to …" with the reason. The board sends owed wakes whatever their age; answers without the "to send" event (an older braid) keep the old rule.
+- Board: Decided and the Requests tab say "answer not delivered" with the reason and Retry (action `retry`); the card, the forwarded view and the Requests tab show the context.
+- `braid ask` warns on a decision or a stop case without context.
+
 ## Completion
 
 - [ ] `braid accept` (with or without `--merge`) refuses while a forwarded or PM-owned request is open, names each (name, kind, who holds it) and changes nothing; the coordinator's own unforwarded ones close as today; `braid start` doesn't close such a request (tests)

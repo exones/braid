@@ -540,7 +540,27 @@ export interface Ending {
   readonly at?: string;
   /** Also record the answer's wake as delivered (`ANSWER_WOKEN`), in the same write: nobody is to be woken (an acknowledgement). */
   readonly woken?: true;
+  /** An answer given by `braid answer` or the board's page: record who must still hear it (`owedEvents`). */
+  readonly tell?: Tell;
 }
+
+/** Who records an answer and who else follows the request. */
+export interface Tell {
+  /** The thread recording it, when known: that thread needs no wake. */
+  readonly recorder: string | null;
+  /** The thread besides the asker's that follows the request (the PM that forwarded it), or null. */
+  readonly follower: (r: Request) => string | null;
+}
+
+/** Whom an answer reaches by a wake: the asking thread, and the `follower` of the request. */
+export type Reader = "asker" | "follower";
+export const READERS: readonly Reader[] = ["asker", "follower"];
+
+/** The texts of the `reminded` events that say where an answer's wake stands, per reader. */
+const MARKS: Readonly<Record<Reader, { readonly due: string; readonly sent: string; readonly failed: string }>> = {
+  asker: { due: "answer to send to the asking thread", sent: "answer sent to the asking thread", failed: "answer not delivered to the asking thread" },
+  follower: { due: "answer to send to the PM or coordinator thread", sent: "answer sent to the PM or coordinator thread", failed: "answer not delivered to the PM or coordinator thread" },
+};
 
 /** The answer an acknowledged look or FYI records: seen by the user, nothing to say (0084/C). */
 export const ACKNOWLEDGED = "Acknowledged";
@@ -567,17 +587,19 @@ const endEvent = (e: Ending, at: string): RequestEvent => ({ event: e.state, at:
 
 /**
  * Closes the item's open request of this asker (without `by`: of both) with an event, never a delete; true
- * when there was one. `end` may depend on the request (a review is met, a question withdrawn).
+ * when there was one. `end` may depend on the request (a review is met, a question withdrawn). A request `keep`
+ * holds true for stays open (`start` and `accept` keep those that are `awaited`).
  */
-export function closeRequest(root: string, id: string, by: Asker | undefined, end: Ending | ((r: Request) => Ending)): { readonly found: boolean; readonly warning: string | null } {
+export function closeRequest(root: string, id: string, by: Asker | undefined, end: Ending | ((r: Request) => Ending), keep: (r: Request) => boolean = () => false): { readonly found: boolean; readonly warning: string | null } {
+  const closes = (r: Request): boolean => same(r, id, by) && !keep(r);
   // Nothing to close: no lock, no write (start and accept call this on every item).
-  if (!loadRequests(root).some((r) => same(r, id, by))) {
+  if (!loadRequests(root).some(closes)) {
     return { found: false, warning: null };
   }
   const at = new Date().toISOString();
   const result = writeRecord(root, (view) => {
     const files = new Map<string, string>();
-    for (const r of viewAll(view).requests.filter((x) => x.state === "open" && same(x, id, by))) {
+    for (const r of viewAll(view).requests.filter((x) => x.state === "open" && closes(x))) {
       files.set(pathOf(r.code), serialise(withEvent(r, endEvent(typeof end === "function" ? end(r) : end, at))));
     }
     return { files, message: `docs(requests): ${id} closed` };
@@ -616,7 +638,8 @@ function endJob(code: string, end: Ending | ((r: Request) => Ending)): { change:
       }
       const e = typeof end === "function" ? end(found) : end;
       const closed = withEvent(found, endEvent(e, new Date().toISOString()));
-      const next = serialise(e.woken === true ? withEvent(closed, { event: "reminded", at: e.at ?? new Date().toISOString(), by: "board", text: ANSWER_WOKEN }) : closed);
+      const marked = [...(e.woken === true ? [boardMark(e.at, ANSWER_WOKEN)] : []), ...(e.tell === undefined ? [] : owedEvents(closed, e, e.tell))];
+      const next = serialise(marked.reduce(withEvent, closed));
       found = parseRecord(pathOf(code), next) as Request;
       return { files: new Map([[pathOf(code), next]]), message: `docs(requests): ${found.id} ${code} ${e.state}` };
     },
@@ -669,28 +692,64 @@ function addJob(code: string, event: RequestEvent): { change: Change; outcome: (
 }
 
 /** The text of the `reminded` event that says the board delivered an answer's wake to the asking thread (src/board/wake.ts). */
-export const ANSWER_WOKEN = "answer sent to the asking thread";
+export const ANSWER_WOKEN = MARKS.asker.sent;
 
-/** Whether the board already delivered this answered request's wake: a `reminded` event with `ANSWER_WOKEN` after the answer. */
-export const answerWoken = (r: Pick<Request, "events">): boolean => r.events.some((e) => e.event === "reminded" && e.text === ANSWER_WOKEN);
+const boardMark = (at: string | undefined, text: string, reason?: string): RequestEvent => ({ event: "reminded", at: at ?? new Date().toISOString(), by: "board", text, ...(reason === undefined ? {} : { reason }) });
+
+const marked = (r: Pick<Request, "events">, text: string): RequestEvent | undefined => r.events.findLast((e) => e.event === "reminded" && e.text === text);
+
+/** Whether this reader already has the answer: its wake was delivered, or it recorded the answer itself. */
+export const answerWoken = (r: Pick<Request, "events">, reader: Reader = "asker"): boolean => marked(r, MARKS[reader].sent) !== undefined;
+
+/** What the record says of a wake still owed to a reader: when it became due, and why the last try didn't go (null: not tried). Null: nothing owed. */
+export function owed(r: Pick<Request, "events">, reader: Reader): { readonly at: string; readonly failed: { readonly at: string; readonly reason: string } | null } | null {
+  const due = marked(r, MARKS[reader].due);
+  const failed = marked(r, MARKS[reader].failed);
+  const first = due ?? failed;
+  return first === undefined || answerWoken(r, reader) ? null : { at: first.at, failed: failed === undefined ? null : { at: failed.at, reason: failed.reason ?? "" } };
+}
 
 /**
- * Records that the board delivered an answered or dismissed request's wake: a `reminded` event by `board` (a kind older braid
+ * The marks an answer or a dismissal is recorded with: for each reader that must hear it, "to send", or "sent" when
+ * that reader's own thread records it. An acknowledgement tells the asker nothing; the follower hears of it too.
+ */
+function owedEvents(r: Request, e: Ending, tell: Tell): RequestEvent[] {
+  if (e.state !== "answered" && !(e.state === "withdrawn" && e.who === "user" && e.text === DISMISSED)) {
+    return [];
+  }
+  const follower = tell.follower(r);
+  const mark = (reader: Reader, thread: string | null): RequestEvent => (thread !== null && thread === tell.recorder ? boardMark(e.at, MARKS[reader].sent, "recorded in that thread") : boardMark(e.at, MARKS[reader].due));
+  return [...(e.woken === true ? [] : [mark("asker", r.thread)]), ...(follower === null || follower === r.thread ? [] : [mark("follower", follower)])];
+}
+
+/** A request the asker's `start` or `accept` may not close: the PM forwarded it to the user, or the PM asked it. */
+export const awaited = (r: Pick<Request, "by" | "forwarded">): boolean => askerOf(r) === "pm" || r.forwarded !== undefined;
+
+type Marked = { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null;
+
+/**
+ * Records that an answered or dismissed request's wake was delivered: a `reminded` event by `board` (a kind older braid
  * versions read; on a closed request nothing but the history reads it). Checked again inside the write: a request that is
  * neither, or already carries the mark, is left and returned with `added: false`. Null: no such code.
  */
-export function markAnswerWoken(root: string, code: string, at: string): { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null {
-  const job = wokenJob(code, at);
+export function markAnswerWoken(root: string, code: string, at: string, reader: Reader = "asker"): Marked {
+  const job = markJob(code, boardMark(at, MARKS[reader].sent), reader);
   return job.outcome(writeRecord(root, job.change));
 }
 
 /** `markAnswerWoken` for the board: the same write, without blocking the process. */
-export async function markAnswerWokenAsync(root: string, code: string, at: string): Promise<{ readonly request: Request; readonly added: boolean; readonly warning: string | null } | null> {
-  const job = wokenJob(code, at);
+export async function markAnswerWokenAsync(root: string, code: string, at: string, reader: Reader = "asker"): Promise<Marked> {
+  const job = markJob(code, boardMark(at, MARKS[reader].sent), reader);
   return job.outcome(await writeRecordAsync(root, job.change));
 }
 
-function wokenJob(code: string, at: string): { change: Change; outcome: (r: WriteResult) => { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null } {
+/** Records why a wake didn't go; the same reason as the last one is not written again. */
+export async function markAnswerFailedAsync(root: string, code: string, at: string, reader: Reader, reason: string): Promise<Marked> {
+  const job = markJob(code, boardMark(at, MARKS[reader].failed, reason), reader);
+  return job.outcome(await writeRecordAsync(root, job.change));
+}
+
+function markJob(code: string, event: RequestEvent, reader: Reader): { change: Change; outcome: (r: WriteResult) => Marked } {
   let found: Request | null = null;
   let added = false;
   return {
@@ -698,13 +757,13 @@ function wokenJob(code: string, at: string): { change: Change; outcome: (r: Writ
       const text = view.read(pathOf(code));
       const r = text === null ? null : parseRecord(pathOf(code), text);
       found = r === null || isRecordProblem(r) ? null : r;
-      added = found !== null && (found.state === "answered" || outcomeOf(found) === "dismissed") && !answerWoken(found);
+      added = found !== null && (found.state === "answered" || outcomeOf(found) === "dismissed") && !answerWoken(found, reader) && (event.reason === undefined || marked(found, event.text ?? "")?.reason !== event.reason);
       if (found === null || !added) {
         return { files: new Map(), message: "" };
       }
-      const next = withEvent(found, { event: "reminded", at, by: "board", text: ANSWER_WOKEN });
+      const next = withEvent(found, event);
       found = next;
-      return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} answer woken` };
+      return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} ${event.reason === undefined ? "answer woken" : "answer not delivered"}` };
     },
     outcome: (result) => {
       const request: Request | null = found;
