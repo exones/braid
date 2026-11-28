@@ -1,4 +1,5 @@
 import { type Github, type PullRequest } from "./github.js";
+import type { Failure } from "./failure.js";
 import type { Problem } from "../braids/readiness.js";
 import { ideaPlanning, NO_T3, type T3, type T3Coordinator, type T3Thread } from "./t3.js";
 import type { Status } from "../braids/brief.js";
@@ -55,6 +56,8 @@ export interface Need {
   readonly code?: string;
   /** The T3 link of the thread that asked (always the asker's, also when the PM forwarded it); null when T3 doesn't list it. Set with `code`. */
   readonly asking?: string | null;
+  /** Why the stalled thread failed: `text` is then its few words, and the card shows its icon and, in a tooltip, `full`. */
+  readonly failure?: Pick<Failure, "kind" | "full">;
   /** A second need shown under this one: a broken wait (past its estimate, or a gone addressee) on a braid that also has a question open; both need the user. */
   readonly also?: Need;
 }
@@ -287,6 +290,8 @@ export interface Signals {
    * back as `alarms`; one step after it (`ReadSignals.commit`) starts, keeps or drops the clock's times.
    */
   readonly alarm: (id: string, reason: BrokeReason, holds: boolean | null, nudge?: NudgeTarget) => string | null;
+  /** The failures of idle threads by thread id (src/board/failure.ts); a stall names its thread's. Absent: none. */
+  readonly failures?: ReadonlyMap<string, Failure>;
   /** Whether the stall of this alarm id was nudged (and so is shown as the stall after a nudge). Absent: never. */
   readonly nudged?: (id: string) => boolean;
   /** When the item whose brief is in `folder` became Done (ISO; the commit that set `status: Done`), or null when it isn't known. Absent: no dates. */
@@ -428,6 +433,21 @@ interface Stalls {
 }
 
 /**
+ * Why the thread behind a stall failed: for an item, its newest idle worker's; else (and for the braid's own stall) the braid's
+ * coordinator's, while no coordinator of it runs.
+ */
+function failureFor(key: string, braidLevel: boolean, sig: Signals, t3: T3): Failure | undefined {
+  const worker = braidLevel ? undefined : t3.idle?.get(key)?.[0];
+  const of = worker === undefined ? undefined : sig.failures?.get(worker.id);
+  if (of !== undefined) {
+    return of;
+  }
+  const number = key.slice(0, 4);
+  const coordinator = t3.coordinators?.has(number) === true ? undefined : t3.idleCoordinators?.get(number);
+  return coordinator === undefined ? undefined : sig.failures?.get(coordinator.id);
+}
+
+/**
  * The steps `derive` and `toCard` share. `id` is the stall alarm's id, `holds` whether nobody works and nothing was asked, `words` what the
  * stall says. A paused braid isn't stalled while the pause lasts; once its resume is 25 min overdue it is, at once, naming the pause. A braid
  * (not a strand) also reads a broken wait and the pause's limit.
@@ -438,9 +458,12 @@ function stallsOf(o: { readonly id: string; readonly key: string; readonly holds
   const paused = sig.pauses?.get(number) ?? null;
   const since = raise(o.id, "stalled", paused === null ? o.holds : false, nudgeOf(number, o.key, t3, sig));
   const overdue = paused !== null && o.holds === true && phaseOf(paused, sig.now) === "over" ? stalledSince(paused) : null;
+  // A failed thread's reason replaces the generic stall sentence.
+  const failed = since === null ? undefined : failureFor(o.key, o.id.endsWith(" coordinator"), sig, t3);
+  const said = failed === undefined ? { text: sig.nudged?.(o.id) === true ? AFTER_NUDGE : o.words } : { text: failed.short, failure: { kind: failed.kind, full: failed.full } };
   const stall: Need | null =
     since !== null
-      ? { ...plain, kind: "stalled", text: sig.nudged?.(o.id) === true ? AFTER_NUDGE : o.words, verb: "for", age: age(since, sig.now), since }
+      ? { ...plain, kind: "stalled", ...said, verb: "for", age: age(since, sig.now), since }
       : paused !== null && overdue !== null
         ? { ...plain, kind: "stalled", text: stalledText(paused, sig.now), verb: "for", age: age(overdue, sig.now), since: overdue }
         : null;
@@ -500,8 +523,10 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const checking = pr?.state === "open" && (pr.checks === "pending" || pr.checks === "failing");
   const failed = raise(key, "checks failed", busy ? false : known ? pr?.state === "open" && pr.checks === "failing" && agents.length === 0 : null);
+  // A strandless braid is one item: its running coordinator (`working()`, as in the braid-level stall) holds the stall off. It still isn't an agent of the card (D46).
+  const coordinating = !key.includes("/") && t3.coordinators?.has(key) === true;
   // An open wait of the braid on another braid, or a timed wait still ahead, is the coordinator waiting on purpose: no item of it reads stalled; a broken wait on a braid does, on the braid.
-  const holds = busy || waits(key.slice(0, 4), sig).length > 0 || status !== "In Progress" ? false : known ? agents.length === 0 && !checking : null;
+  const holds = busy || waits(key.slice(0, 4), sig).length > 0 || status !== "In Progress" ? false : known ? agents.length === 0 && !checking && !coordinating : null;
   const stalls = stallsOf({ id: key, key, holds, words: "Stalled: nobody is working and nothing was asked" }, sig, t3, raise);
   const names = pr?.failed ?? [];
   const asking: Own | null =
@@ -726,7 +751,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, sig: Signals = 
   if (finalPr) {
     // The braid's recorded reviewers (`braid review <n>`) are its agents in wrap-up; the coordinator never counts.
     const reviewers = (t3.threads.get(braid.number) ?? []).filter((t) => t.role === "reviewer");
-    const d = derive(self.status, braid.brief.labels, braid.number, gh, { ...t3, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []) }, sig, self.accepted, pr);
+    const d = derive(self.status, braid.brief.labels, braid.number, gh, { ...t3, threads: new Map(reviewers.length > 0 ? [[braid.number, reviewers]] : []), coordinators: new Map() }, sig, self.accepted, pr);
     alarms.push(...d.alarms);
     own = d;
   } else if (req !== undefined && routed !== undefined && pr?.state !== "merged") {
