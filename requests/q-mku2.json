@@ -20,6 +20,13 @@
       "event": "opened",
       "at": "2026-11-28T12:25:01.192Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T12:27:26.240Z",
+      "by": "pm",
+      "text": "A. Merge now, live check later",
+      "reason": "A merge into the braid branch only, reversible; no real token used yet. The live check with the user real sign-in (steps 1-5) runs before the final PR into main, together with E, and the user does step 1 at the keyboard."
     }
   ]
 }
