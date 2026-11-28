@@ -27,6 +27,12 @@
       "at": "2026-11-28T17:50:42.676Z",
       "by": "pm",
       "text": "Security, so yours: PM recommends A (no new access; the log holds only your own devices' addresses, never the token)"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T18:00:31.383Z",
+      "by": "user",
+      "text": "A. Merge as is (owner one-click close, peer addresses in the board log)"
     }
   ]
 }
