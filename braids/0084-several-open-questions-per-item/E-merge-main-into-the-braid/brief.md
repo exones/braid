@@ -35,11 +35,11 @@ Expected size: a merge commit; about 30 lines of conflict resolution in 2 files.
 
 ## Completion
 
-- [ ] `origin/main` at 397b2431 or later is merged into the branch; no conflict markers remain
-- [ ] Decision numbers in `docs/decisions.md` are unique and in order, and every reference to a renumbered one is updated
-- [ ] The tests for 0084/A's rule (`test/requests-several.test.ts`, `test/requests-record.test.ts`) pass after the merge
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: the conflicts and how each was resolved
+- [x] `origin/main` at 397b2431 or later is merged into the branch; no conflict markers remain
+- [x] Decision numbers in `docs/decisions.md` are unique and in order, and every reference to a renumbered one is updated
+- [x] The tests for 0084/A's rule (`test/requests-several.test.ts`, `test/requests-record.test.ts`) pass after the merge
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: the conflicts and how each was resolved
 
 ## Plan
 
