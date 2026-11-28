@@ -21,6 +21,12 @@
       "at": "2026-11-28T16:56:42.549Z",
       "by": "user",
       "text": "A approve the plan"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T16:56:47.865Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
