@@ -1,0 +1,11 @@
+{
+  "id": "0078/F",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-28T15:08:11.307Z",
+      "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
+      "branch": "braid/0078/F-shim-sweep-carry-over-once-old-shapes"
+    }
+  ]
+}
