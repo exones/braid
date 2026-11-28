@@ -4,9 +4,9 @@ title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 5
-state: running
-hold: ""
-next: "running: 0077 (L, then final PR), 0083 spike, 0084; held: 0085 and 0086 until 0077 is in main, 0078, 0080. Merge order: 0077, then 0084 before 0086"
+state: held
+hold: "2026-11-28T01:30Z the user: Hold everything. I have some issues with Claude"
+next: "all held: 0077 (L), 0083, 0084 (A), 0085, 0086, 0078, 0080; on Go: 0077, 0083, 0084 first, then 0085 and 0086 once 0077 is in main"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -168,6 +168,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28 01:30: user "Hold everything. I have some issues with Claude": 0077, 0083, 0084 held (braid pause --hold), coordinators told to stop their agents at a clean point; programme state held.
 - 2026-11-28: user "Can you pause one more braid": 0085 held (braid pause --hold) until 0077 is in main.
 - 2026-11-28: machine overloaded with five braids (git timeouts in T3 worktree setup, braid next 2m47s); user "Yes lighten": 0086 held (braid pause --hold) until 0077, with its two-gates cap, is in main. 0084/A retried (green-island-6udm, PM: A).
 - 2026-11-28: three plans launched together all took 0084 from `braid new` (none could see the others' unpushed branches); P30's `braid ask 0084` then withdrew P31's plan request (the P31 hole). PM: P31 0084, P30 0085, P5 0086. Idea (noted by P30): `braid new` reserves its number on origin. PM lesson: launch parallel coordinators one at a time, after the previous one pushed its plan.
