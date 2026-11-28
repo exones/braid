@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 3
 state: running
 hold: ""
-next: "running: 0078 (N, then E-I), 0080 (F; live check waits on sticky-ladder-4x27), 0084 (E, C with Acknowledge, D); held: 0085, 0086, 0087 (D gets the ✋ guard), 0088; P34 parked"
+next: "running: 0078 (N, then E-I), 0080 (F, H, final PR; the user tests sign-in live after the merge), 0084 (E, C with Acknowledge, D); held: 0085, 0086, 0087 (D gets the ✋ guard), 0088; P34 parked"
 digest: "14:05 · 2 done (0077, 0083) · 2 running (0078, 0080) · 9 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -172,6 +172,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28: user on sticky-ladder-4x27: "Will test live, now merging to main, close request": no pre-merge sign-in check for 0080; the user tests D+E live after 0080 is in main; the PM check before the merge stays sign-in-free.
 - 2026-11-28: user A on wild-mango-ccj4: 0084/A (several open questions on the record and CLI) ships to main early as a follow-up PR; after the user's merge the PM tells every coordinator to rebook stacked questions as separate requests.
 - 2026-11-28: user B on crunchy-cactus-tcwc: merges into main stay the user's explicit word each time (AGENTS.md unchanged); passed PRs wait in To Review.
 - 2026-11-28: PM live check of #384 (0078/L lock fix into main) passed; user: "If it's safe to merge you can merge actually" (giant-pickle-juvv): merged 764eb9d5, braid installed from main, board service restarted.
