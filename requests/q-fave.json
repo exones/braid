@@ -28,6 +28,12 @@
       "by": "pm",
       "text": "A. Approve as planned. 0084/D's PR comes to me for the user's merge.",
       "reason": "approve as planned, because it fixes the hole with no new field or state and keeps waits as they are, instead of a --replace flag or a cap"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T00:03:00.502Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
