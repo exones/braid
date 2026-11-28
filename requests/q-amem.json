@@ -1,0 +1,26 @@
+{
+  "code": "q-amem",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "Q1 add a skill guard (every ✋ has an open request)? Q2 resume 0084 now so several questions per card land sooner?",
+  "context": "Q1. The missing sign-in request was the PM's slip: the braid-pm skill already says every PM question or user action opens a board request (--kind action for a login). A one-line guard in the skills would still help: \"every message ending with ✋ has an open request for it\" (PM and coordinators). A skill change, the user merges it; it would ride in 0086/H (skills: holds that hold) or 0087/D.\nQ2. 0084 (several open questions per item) is held. Left: E (merge main, gate rerun, about 1 h), C (the board: several questions per card, plus the Acknowledge button), D (docs), the final PR, the PM's live check, the user's merge. Resumed now: likely ready for the merge tomorrow. Nothing of it is usable before that merge (A, the CLI part, sits on the braid branch).",
+  "options": [
+    "Both: guard via 0087/D, resume 0084 now",
+    "Only resume 0084 now",
+    "Only the skill guard",
+    "Neither for now"
+  ],
+  "words": "noisy kitten",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T13:48:53.670Z",
+      "by": "pm"
+    }
+  ]
+}
