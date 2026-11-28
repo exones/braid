@@ -22,3 +22,4 @@ Signed in, the board polls T3's MCP events (`thread.run_settled`, `thread.needs_
 
 - Poll at T3's `nextPollMs` or a shorter period; whether `events/stream` is worth it.
 - The backstop period.
+- Which MCP reads are cheap against T3's store (about 3 GB): read 0083's report (how braid can read T3 lightly) or ask its coordinator before any timed read. Performance is the user's priority (2026-11-28): the board's per-record `t3 thread show` spawns took 7-24 s each under load; signed in, the board should replace them (including 0080/C's failure read) with calls over the one MCP connection where 0083 shows that is cheaper.
