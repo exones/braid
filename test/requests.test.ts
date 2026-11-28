@@ -20,9 +20,8 @@ const { handoverCommand, askCommand, requestsCommand, answerCommand } = (await l
 const { startCommand } = (await load("../dist/commands/start.js")) as { startCommand: (root: string, args: string[], src: object, env: object) => Promise<string> };
 const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
-const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age, locked, handleOf } = (await load("../dist/braids/requests.js")) as {
+const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age, locked } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
-  handleOf: (r: { code: string }) => string;
   loadRecord: (root: string) => { requests: { code: string; id: string; state: string; events: { event: string; at: string; by: string; text?: string }[] }[] };
   legacyFile: (root: string) => string;
   openRequest: (root: string, request: object) => { code: string };
@@ -101,7 +100,7 @@ function world() {
   return { root, other, pr, gh, first, green, clock: () => NOW };
 }
 
-test("ask opens a request that every worktree shares; a new ask replaces it; answer closes it", async () => {
+test("ask opens a request that every worktree shares; a new ask leaves it open; answer closes it", async () => {
   const w = world();
   const asked = askCommand(w.root, ["0001/A", "Which   name\nshould it have?", "--kind", "decision", "--key", "scope", "--thread", THREAD], { now: w.clock }) as string;
   assert.match(asked, /^[a-z]+-[a-z]+-[a-z0-9]{4} 0001\/A: decision request opened: Which name should it have\?/);
@@ -113,17 +112,16 @@ test("ask opens a request that every worktree shares; a new ask replaces it; ans
   const listed = (await requestsCommand(w.other, [], { gh: w.gh, now: () => new Date("2026-11-15T12:30:00Z") })) as string;
   assert.equal(listed, `${handle}  0001/A  decision  30m  blocks 0001/A · decide  Which name should it have?\n`);
   askCommand(w.other, ["0001/A", "Plan ok?", "--kind", "plan"], { now: w.clock });
-  assert.deepEqual(loadRequests(w.root).map((r) => [r.id, r.kind, r.text]), [["0001/A", "plan", "Plan ok?"]]);
+  assert.deepEqual(loadRequests(w.root).map((r) => r.text).sort(), ["Plan ok?", "Which name should it have?"], "the first stays open");
   assert.equal(readdirSync(join(w.root, ".braid")).filter((n) => n.endsWith(".tmp")).length, 0);
+  assert.match(answerCommand(w.other, w.other, [handle]), /^[a-z]+-[a-z]+-[a-z0-9]{4} 0001\/A: answered by the user\n$/);
+  assert.deepEqual(loadRequests(w.root).map((r) => r.text), ["Plan ok?"]);
   assert.match(answerCommand(w.other, w.other, ["0001/A"]), /^[a-z]+-[a-z]+-[a-z0-9]{4} 0001\/A: answered by the user\n$/);
   assert.equal(await requestsCommand(w.root, [], { gh: w.gh }), "no open requests\n");
   assert.match(answerCommand(w.root, w.root, ["0001/A"]), /no open request/);
-  // Nothing is deleted: the first is withdrawn as replaced, the second answered.
+  // Nothing is deleted: both stay on the record, answered.
   const all = loadRecord(w.root).requests;
-  const first = all.find((r) => r.code === code);
-  const second = all.find((r) => r.code !== code);
-  assert.deepEqual([all.length, first?.state, second?.state], [2, "withdrawn", "answered"]);
-  assert.equal(first?.events.at(-1)?.text, `replaced by ${handleOf(second!)}`);
+  assert.deepEqual([all.length, ...all.map((r) => r.state), all.some((r) => r.code === code)], [2, "answered", "answered", true]);
 });
 
 test("ask refuses a bad kind, an empty text, an unknown item and a bad thread", () => {

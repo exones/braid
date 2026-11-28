@@ -109,7 +109,7 @@ test("an id with two open requests names both codes and changes nothing; withdra
   const pms = codeOf(R.askCommand(w.root, ["0002", "PM asks", "--by", "pm", "--thread", "mcp:launch:pm0000001"]));
   const before = git(w.root, "rev-parse", "refs/heads/braid-requests");
   for (const run of [() => R.answerCommand(w.root, w.root, ["0002"]), () => R.withdrawCommand(w.root, ["0002", "--why", "x"])]) {
-    assert.throws(run, new RegExp(`0002 has 2 open requests: ${nameOf(w.root, mine)} \\(the coordinator's\\), ${nameOf(w.root, pms)} \\(the PM's\\); give the code, or --by coordinator\\|pm; nothing changed`));
+    assert.throws(run, new RegExp(`0002 has 2 open requests: ${nameOf(w.root, mine)} \\(the coordinator's question\\), ${nameOf(w.root, pms)} \\(the PM's question\\); give the name, or --by coordinator\\|pm; nothing changed`));
   }
   assert.equal(git(w.root, "rev-parse", "refs/heads/braid-requests"), before, "no write");
   assert.throws(() => R.withdrawCommand(w.root, [mine]), /usage: braid withdraw/);

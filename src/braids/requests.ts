@@ -72,7 +72,7 @@ export interface Request {
   readonly id: string;
   /** Its two spoken words (`yellow bear`), unique among the project's open requests when it opened (src/braids/words.ts); absent on a record written before. */
   readonly words?: string;
-  /** Who asks: a record without it is the coordinator's. An item has at most one open request per asker. */
+  /** Who asks: a record without it is the coordinator's. */
   readonly by?: Asker;
   readonly kind: Kind;
   /** One line: what is needed. */
@@ -276,8 +276,8 @@ export const isWait = (r: Pick<Request, "to">): boolean => r.to !== undefined &&
 /** A timed wait (`braid ask <id> "<why>" --to self --done-when time:<iso>`): the asker waits on purpose until a time. */
 export const isTimedWait = (r: Pick<Request, "to">): boolean => r.to === SELF;
 
-/** Whether a new request replaces an open one of its asker on its item: a question (to the user or the PM) replaces a question, a wait a wait to the same braid, a timed wait a timed wait. */
-const replaces = (r: Request, next: Pick<Request, "to">): boolean => (isWait(next) ? r.to === next.to : !isWait(r));
+/** Whether a new request replaces an open one of its asker on its item: a wait a wait to the same braid, a timed wait a timed wait, a review a review. A question replaces nothing. */
+const replaces = (r: Request, next: Pick<Request, "to" | "kind">): boolean => (isWait(next) && r.to === next.to) || (next.kind === "review" && r.kind === "review");
 
 /** Every request and the files that can't be read, from texts by path. */
 function parseAll(texts: ReadonlyMap<string, string>): { requests: Request[]; problems: RecordProblem[] } {
@@ -502,9 +502,9 @@ export const takenWords = (requests: readonly Pick<Request, "words" | "state">[]
 
 /**
  * Opens a request and returns its code and handle (`yellow-bear-5asx`). Its words are picked inside the write, against
- * the open requests on the branch as it is then, so two requests opened at once never share them. The open one on the
- * same item from the same asker is withdrawn, "replaced by <handle>", when it is of the same sort: a question (to the user
- * or the PM) replaces a question, a wait (to a braid) replaces the wait to that braid. The other asker's stays.
+ * the open requests on the branch as it is then, so two requests opened at once never share them. Any number stay open per
+ * item and asker: only a wait (to the same braid, or a timed wait) or a review withdraws its asker's earlier one on the item,
+ * "replaced by <handle>"; a question withdraws nothing, and the other asker's stays.
  * `replaced`: the handles of those withdrawn.
  */
 export function openRequest(root: string, request: NewRequest): { readonly code: string; readonly handle: string; readonly replaced: readonly string[]; readonly warning: string | null } {
@@ -690,11 +690,11 @@ function wokenJob(code: string, at: string): { change: Change; outcome: (r: Writ
   };
 }
 
-/** Hands the item's request to the user (`braid forward`): a `forwarded` event with the note. Null when there is no open request. */
-export function forwardRequest(root: string, id: string, at: string, note: string | undefined): { readonly request: Request | null; readonly warning: string | null } {
+/** Hands a request of the item to the user (`braid forward`): the one `code` names, else the oldest that isn't a wait, with a `forwarded` event and the note. Null when it isn't open. */
+export function forwardRequest(root: string, id: string, at: string, note: string | undefined, code?: string): { readonly request: Request | null; readonly warning: string | null } {
   let out: Request | null = null;
   const result = writeRecord(root, (view) => {
-    const old = viewAll(view).requests.find((r) => r.state === "open" && same(r, id, "coordinator") && !isWait(r));
+    const old = viewAll(view).requests.find((r) => r.state === "open" && same(r, id, "coordinator") && !isWait(r) && (code === undefined || r.code === code));
     if (old === undefined) {
       out = null;
       return { files: new Map(), message: "" };

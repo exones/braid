@@ -6,8 +6,8 @@ import type { Status } from "../braids/brief.js";
 import { braidStatuses, withStatuses, type Lifecycle } from "../braids/lifecycle.js";
 import type { Braid, Item, Source, Tree } from "../braids/store.js";
 import { NO_INBOX, type InboxData } from "./inbox.js";
-import { actOf, age, handleOf, isTimedWait, unblocksOf, type Act, type Request } from "../braids/requests.js";
-import { requestsOf, rowOf, type RequestRow, type RequestsView } from "./record.js";
+import { actOf, age, askerOf, handleOf, isTimedWait, unblocksOf, type Act, type Request } from "../braids/requests.js";
+import { openItemRequests, requestsOf, rowOf, type RequestRow, type RequestsView } from "./record.js";
 import type { Pause } from "../braids/pauses.js";
 import { clock, limitNeed, pauseView, phaseOf, stalledSince, stalledText, type PauseView } from "./pause.js";
 import { addresseeOf, braidOfId, missedEta, pmThreadOf } from "./waits.js";
@@ -293,6 +293,8 @@ export interface Signals {
   readonly requests: ReadonlyMap<string, Request>;
   /** The PM's own open requests on an item (`by: pm`), by item id. Absent: none. */
   readonly asks?: ReadonlyMap<string, Request>;
+  /** Every open request on an item, of both askers, oldest first; `requests` and `asks` keep only the newest per item. Absent: those. */
+  readonly open?: readonly Request[];
   /** The open requests addressed to another braid's coordinator, which aren't the user's: the asking braid's card shows them. Absent: none. */
   readonly waits?: readonly Request[];
   /** The closed requests (answered, withdrawn, met), the ones whose PR just merged or closed included; the details panel's Requests tab lists them. Absent: none. */
@@ -429,8 +431,20 @@ function requestLane(r: Request, now: Date, routed: Routed, t3: T3, blocks: read
 }
 
 /** Where an item's open request goes: the one the lane shows (`req`), and the line of one the PM handles or forwarded (`pm`). */
+/**
+ * The coordinator's request an item's card shows, of the several that may be open: the newest the card asks the user
+ * with, else the newest that is the user's through the PM, else the newest. So one still with the PM never hides one that reached you.
+ */
+export function requestOf(key: string, sig: Signals, t3: T3 = NO_T3): Request | undefined {
+  const mine = (sig.open ?? []).filter((r) => r.id === key && askerOf(r) === "coordinator");
+  const paused = pausedBraid(key, sig);
+  const theirs = mine.map((r) => ({ r, routed: routeOf(r, sig.now, t3, paused) })).filter(({ routed }) => routed.to === "user");
+  const direct = theirs.findLast(({ r, routed }) => !throughPm(r, routed, sig.plans));
+  return (direct ?? theirs.at(-1))?.r ?? mine.at(-1) ?? sig.requests.get(key);
+}
+
 function routing(key: string, sig: Signals, t3: T3): { readonly asked: Request | undefined; readonly routed: Routed | undefined; readonly req: Request | undefined; readonly pm: PmLine | null } {
-  const asked = sig.requests.get(key);
+  const asked = requestOf(key, sig, t3);
   const routed = asked === undefined ? undefined : routeOf(asked, sig.now, t3, pausedBraid(key, sig));
   // A forwarded request of a braid a programme runs is the PM asking the user: the programmes panel shows it, the card keeps its lane and says so quietly.
   const away = asked !== undefined && routed !== undefined && throughPm(asked, routed, sig.plans);
@@ -612,12 +626,12 @@ export function openThread(key: string, agents: readonly T3Thread[], t3: T3, lan
 }
 
 /**
- * The open review request of an item as Merge on request needs it, or null when there is none. The
+ * The open review request of an item as Merge on request needs it, or null when there is none (a card whose request
+ * shown is a question has none; the Questions panel and the merge action name the review itself, `req`). The
  * reason is the first thing that stops the board from asking the coordinator: no coordinator thread on
  * the request, no PR read, or checks that aren't green.
  */
-export function mergeOf(key: string, gh: Github, sig: Signals, t3: T3 = NO_T3): MergeInfo | null {
-  const req = sig.requests.get(key);
+export function mergeOf(key: string, gh: Github, sig: Signals, t3: T3 = NO_T3, req: Request | undefined = requestOf(key, sig, t3)): MergeInfo | null {
   if (req === undefined || req.kind !== "review" || req.pr === undefined) {
     return null;
   }
@@ -727,7 +741,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
   const alarms: Alarm[] = [];
   const raise = raiseTo(sig, alarms);
   // What each item reads as (record, PRs, stored status): the one input of the lanes below.
-  const reviews = new Set([...sig.requests].filter(([, r]) => r.kind === "review").map(([k]) => k));
+  const reviews = new Set(openItemRequests(sig).filter((r) => r.kind === "review" && askerOf(r) === "coordinator").map((r) => r.id));
   const st = braidStatuses(braid, sig.lifecycle ?? new Map(), gh.prs, reviews);
   const statusOfItem = (id: string, stored: Status) => st.get(id) ?? { status: stored, accepted: null };
   const strands: StrandCard[] = braid.strands.map((s) => {
@@ -896,7 +910,7 @@ export function withUnblocks(braids: readonly Braid[], gh: Github, sig: Signals)
     return sig;
   }
   const facts = braids.map((b) => withStatuses(b, sig.lifecycle ?? new Map(), gh.prs));
-  const open = [...sig.requests.values(), ...(sig.asks?.values() ?? []), ...(sig.waits ?? [])];
+  const open = [...openItemRequests(sig), ...(sig.waits ?? [])];
   return { ...sig, unblocks: (r) => unblocksOf(r, facts, open) };
 }
 

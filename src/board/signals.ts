@@ -191,6 +191,7 @@ function assemble(root: string, github: Github, now: Date, loaded: Loaded | null
     requests: new Map(requests.filter((r) => askerOf(r) === "coordinator" && programmeOf(r.id) === null).map((r) => [r.id, r])),
     asks: new Map(requests.filter((r) => askerOf(r) === "pm" && programmeOf(r.id) === null).map((r) => [r.id, r])),
     programmes: requests.filter((r) => programmeOf(r.id) !== null),
+    open: requests.filter((r) => programmeOf(r.id) === null),
     waits,
     closed,
     pauses: new Map(pauses.map((p) => [p.braid, p])),
