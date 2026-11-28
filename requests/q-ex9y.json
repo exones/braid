@@ -1,0 +1,27 @@
+{
+  "code": "q-ex9y",
+  "item": "0085",
+  "kind": "decision",
+  "text": "Approve dropping submodule deinit from clean (it damages the main checkout's submodules)",
+  "context": "0085/A found that git submodule deinit run inside a linked worktree rewrites the repository's shared .git/config (submodule.<name> entries), so the main checkout's submodules read as not initialised: the everix4 damage. The goal says clean deinits the submodules, then removes the worktree. The worker dropped deinit: after the safety checks, git worktree remove --force alone removes the worktree and its submodules, and the main checkout stays intact (test). Logged as D121. Changing the goal's wording needs the PM.",
+  "options": [
+    "Approve: no deinit, forced remove after checks",
+    "Keep deinit some other way",
+    "Discuss"
+  ],
+  "words": "little parrot",
+  "key": "scope",
+  "by": "coordinator",
+  "thread": "mcp:launch:473f5b8708edbd228684ca3081f8c0b88457a28574741c6d1cdc78602f672f2f",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T12:02:09.251Z",
+      "by": "coordinator"
+    }
+  ]
+}
