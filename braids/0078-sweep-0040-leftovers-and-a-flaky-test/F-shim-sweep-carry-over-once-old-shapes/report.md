@@ -31,7 +31,7 @@ The second folder also covered a case newer than 0053: worktrees made while a re
 - Tests removed with their code: the two carry-over tests and the board's one, the alias test, three tests of the second worktrees folder.
 - Gate (`npm run verify`, Windows): exit 0; Node tests 862, 861 pass, 1 skipped, 0 fail.
 
-**Docs updated:** `docs/cli.md`, `docs/braids-format.md`, `docs/board.md`, `docs/getting-started.md`, and notes on D48 and D96 in `docs/decisions.md`. The setup reference is unaffected, since `import-backlog` stays.
+**Docs updated:** `docs/cli.md`, `docs/braids-format.md`, `docs/board.md`, `docs/getting-started.md`, and dated or inline notes on D48, D84 and D96 in `docs/decisions.md`. The setup reference is unaffected, since `import-backlog` stays.
 
 Decisions: remove the carry-over instead of caching its check; drop the second worktrees folder although it also covered a later rename (above).
 For later items: remove `braid import-backlog` (about 500 lines) once chinese-trainer is off Backlog.md or the user says it doesn't count; the setup reference's "project has backlog/ and no braids/" then needs new wording (move the tasks into `braids/` by hand with `braid new`, `backlog/` left as history).
