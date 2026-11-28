@@ -1,0 +1,25 @@
+{
+  "code": "q-2qgd",
+  "item": "0078/O",
+  "kind": "action",
+  "text": "Merge PR #395 into main at 3462a51: the board page recovers its live updates",
+  "context": "PR #395 (into main) carries 0078/O alone: the board page recovers its live updates by itself (the user's phone board stopped updating). Same diff as PR #394 into the 0078 braid branch, reviewed there; port review not blocking (https://github.com/exones/braid/pull/395#issuecomment-7243123584); both verify checks green at 3462a515. After the merge, reload open board pages once.",
+  "options": [
+    "Merge it",
+    "Leave it for the final PR"
+  ],
+  "words": "tidy garden",
+  "by": "coordinator",
+  "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T17:41:56.954Z",
+      "by": "coordinator"
+    }
+  ]
+}
