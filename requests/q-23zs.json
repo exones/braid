@@ -23,6 +23,12 @@
       "at": "2026-11-28T15:42:27.316Z",
       "by": "pm",
       "text": "live check passed (signed out, sign-in tests 62/62) · merge PR #391 at 85be4f08; your sign-in steps follow the merge"
+    },
+    {
+      "event": "withdrawn",
+      "at": "2026-11-28T15:45:57.748Z",
+      "by": "board",
+      "text": "PR #391 head moved to e88d83d"
     }
   ]
 }
