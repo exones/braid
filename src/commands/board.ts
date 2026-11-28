@@ -25,6 +25,7 @@ import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toCard, toDetail, withUnblocks, type BoardData, type StartContext } from "../board/model.js";
 import { failureReader, type Failure } from "../board/failure.js";
+import { boardT3, type T3Hub } from "../board/t3-mcp.js";
 import { readInputs, readStartContext } from "../board/inputs.js";
 
 export { readStartContext };
@@ -98,6 +99,8 @@ export interface Sources {
   tree(item: Item): Tree;
   /** A folder whose changes refresh the page; null for none. */
   readonly watch: string | null;
+  /** The signed-in T3 read (0080/F): told of a change under `watch`, and told how to refresh the project on T3's events. */
+  readonly live?: { stale(): void; subscribe(refresh: () => void): () => void };
   /** What BRAID.md says about the main branch and the coordinator's model. */
   start(): StartContext;
   /** The providers' usage against their thresholds, from T3's caches (no `t3` call); absent: not shown. */
@@ -561,9 +564,12 @@ export function answerAction(states: () => ReadonlyMap<string, string> | undefin
   };
 }
 
-export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
+export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3, hub?: T3Hub): Sources {
   // The main checkout is found with git once per root and cached: asked here, when the project is set up, so no read, wake or action runs that git.
   mainCheckout(root);
+  // Signed in to T3, the reads go over MCP (src/board/t3-mcp.ts); signed out, or with no hub, by the t3 command line.
+  const signed = hub?.project(root);
+  const cli = (): Promise<T3> => readT3(root, { run: t3 });
   // The working tree as the last read saw it: one read serves the braids, the readiness check and the item pages.
   let working: Promise<WorkingFiles> | undefined;
   let seen: WorkingFiles | undefined;
@@ -574,11 +580,12 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     repo: titleRepoName(root),
     braids: () => loadLiveBraidsAsync(root, undefined, readTree()),
     github: () => readGithubAsync(root, gh),
-    t3: () => readT3(root, { run: t3 }).then((read) => (read.status.state === "ok" ? (lastT3 = read) : read)),
+    t3: () => (signed?.read(cli) ?? cli()).then((read) => (read.status.state === "ok" ? (lastT3 = read) : read)),
     signals: (github) => readSignalsAsync(root, github),
     fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
-    failures: failureReader(t3, root),
+    failures: failureReader(t3, root, signed?.errorOf),
+    ...(signed === undefined ? {} : { live: signed }),
     limits: (threads, pauses) => readLimitsView(root, threads, pauses),
     // An item page is asked for only after a good read, so the working tree's files are there already.
     tree: (item) => (item.source === null && seen !== undefined ? seen : treeOf(root, item)),
@@ -822,6 +829,8 @@ async function t3Action(req: IncomingMessage, url: URL, listener: Listener, sign
 
 /** How often open pages are told to refresh. */
 export const REFRESH_MS = 30_000;
+/** The stop step takes the live list of the refresh that just ran (0080/E, 0080/F). */
+const LIVE_FOR_STOP_MS = 10_000;
 /** How long `Started.close()` waits for the server's close event. */
 const CLOSE_TIMEOUT_MS = 10_000;
 
@@ -915,7 +924,7 @@ export function startBoardWith(
       c.write("data: refresh\n\n");
     }
   };
-  type Entry = { readonly feed: Feed; watcher?: FSWatcher; debounce?: NodeJS.Timeout };
+  type Entry = { readonly feed: Feed; watcher?: FSWatcher; debounce?: NodeJS.Timeout; unsubscribe?: () => void };
   let feeds = new Map<string, Entry>();
   const watchFolder = (entry: Entry): void => {
     const folder = entry.feed.src.watch;
@@ -924,6 +933,7 @@ export function startBoardWith(
     }
     try {
       const changed = (): void => {
+        entry.feed.src.live?.stale();
         clearTimeout(entry.debounce);
         entry.debounce = setTimeout(() => void entry.feed.refresh(), 200);
         entry.debounce.unref();
@@ -950,6 +960,7 @@ export function startBoardWith(
     entry.feed.close();
     clearTimeout(entry.debounce);
     entry.watcher?.close();
+    entry.unsubscribe?.();
   };
   /** Takes the roster as it is now: new projects start reading, removed ones stop (a read still running stores and sends nothing). */
   const sync = (): void => {
@@ -974,6 +985,10 @@ export function startBoardWith(
       }
       const entry: Entry = { feed: feed(m.src, { timeoutMs, changed: push }) };
       watchFolder(entry);
+      // T3's events (0080/F) refresh the project at once; the feed runs one read at a time and queues at most one more.
+      if (m.src.live !== undefined) {
+        entry.unsubscribe = m.src.live.subscribe(() => void entry.feed.refresh());
+      }
       next.set(m.name, entry);
     }
     for (const [name, entry] of feeds) {
@@ -1367,12 +1382,15 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   // One acting board per provider account and per repository on this machine (0074/B): the leases in ~/.braid/acting.
   let port: number | null = null;
   const leases = pausing ? (run.acting ?? actingBoard({ staleMs: ACTING_STALE_MS, port: () => port })) : null;
-  // The T3 sign-in, made further down: signed in, the pause and the hold stop the braid's working threads first (0080/E).
+  // The T3 sign-in, made further down: signed in, the board reads T3 over MCP and hears its events (0080/F), and the pause and the
+  // hold stop the braid's working threads first (0080/E). One hub: one live list per refresh, one set of event readers.
   let signedIn: BoardSignIn | undefined;
+  const hub = boardT3({ client: () => signedIn?.client() ?? null, ready: () => signedIn?.read() ?? Promise.resolve() });
   const steer = pausing
     ? steerer({
         t3,
         mcp: () => signedIn?.client() ?? null,
+        live: () => hub.live(LIVE_FOR_STOP_MS),
         wake: steps(waker(t3), reminder(t3), nudger(t3)),
         ...(leases === null ? {} : { acting: leases }),
         ...(run.notifier === undefined
@@ -1398,7 +1416,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   };
   let served: Sources | Roster;
   if (!several) {
-    served = printing("", act(titleRepoName(root), root, { ...repoSources(root, gh, t3), notify: notifierOf(root) }));
+    served = printing("", act(titleRepoName(root), root, { ...repoSources(root, gh, t3, hub), notify: notifierOf(root) }));
   } else if (demo) {
     const members = demoMembers(t3Down, notReady).filter((m) => only === undefined || m.name === only).map((m) => ({ ...m, src: printing(m.name, m.src) }));
     served = () => members;
@@ -1428,7 +1446,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
         .filter((p) => only === undefined || p.name === only)
         .map((p) => {
           const key = `${p.name}\0${p.path}`;
-          const member = cache.get(key) ?? { name: p.name, src: ((s: Sources) => (first ? printing(p.name, s) : s))(act(p.name, p.path, withNotify(p, repoSources(p.path, gh, t3)))) };
+          const member = cache.get(key) ?? { name: p.name, src: ((s: Sources) => (first ? printing(p.name, s) : s))(act(p.name, p.path, withNotify(p, repoSources(p.path, gh, t3, hub)))) };
           next.set(key, member);
           return member;
         });

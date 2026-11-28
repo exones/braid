@@ -2,7 +2,8 @@
 // What it copies from T3: one stateless JSON-RPC POST to /mcp per call; 403 for a request with an Origin; 401 for a
 // wrong token; the `mcp-method`, `mcp-name` and `mcp-protocol-version` checks; `events/poll` as MilestoneHub reads
 // (cursor "<epoch>.<seq>", null starts from now, `truncated` after eviction or a restart); and for `tools/call` a
-// failed tool as `isError` with `{ _tag, code, message }`. The two tools are stubs (the list's threads settable).
+// failed tool as `isError` with `{ _tag, code, message }`. The tools are stubs; with `switches.world` set, the project list, the
+// thread list (its filters) and the thread read answer from it (0080/F).
 // Not copied: events/list, events/stream, events/subscribe, maxAgeMs, OAuth.
 import { createServer, type IncomingHttpHeaders, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -22,6 +23,36 @@ interface Filter {
   readonly projectIds?: readonly string[];
   readonly threadIds?: readonly string[];
   readonly includeSubagentChildren?: boolean;
+}
+
+/** A thread of the mock's world: a list item's fields, plus what only a read gives, and its activity items. */
+export interface MockThread {
+  readonly threadId: string;
+  readonly projectId: string;
+  status: string;
+  readonly updatedAt: string;
+  readonly settled?: boolean;
+  readonly relationshipToParent?: string | null;
+  readonly archived?: boolean;
+  readonly detail?: Readonly<Record<string, unknown>>;
+  readonly activity?: readonly Readonly<Record<string, unknown>>[];
+  readonly [field: string]: unknown;
+}
+
+export interface MockWorld {
+  readonly projects: readonly { readonly id: string; readonly title: string; readonly workspaceRoot: string }[];
+  readonly threads: MockThread[];
+}
+
+/** What `thread list` and `t3_thread_list` give of a thread. */
+export function listItem(t: MockThread): Record<string, unknown> {
+  const { detail: _detail, activity: _activity, archived: _archived, ...item } = t;
+  return item;
+}
+
+/** What `thread show` and `t3_thread_read` give of it. */
+export function detailOf(t: MockThread): Record<string, unknown> {
+  return { ...listItem(t), pendingRequestCount: 0, worktreePath: null, branch: null, parentThreadId: null, archived: t.archived === true, ...t.detail };
 }
 
 /** T3 keeps the newest 1,000 milestones; fewer here, so falling behind is easy to show. */
@@ -80,6 +111,8 @@ export async function startT3Mock(options: { readonly kept?: number } = {}) {
     aboveLevel: new Set<string>(),
     /** What `t3_thread_list` answers (0080/E: the live threads, children with their parent); null: the one-thread stub. */
     threads: null as { threadId: string; status: string; parentThreadId?: string | null }[] | null,
+    /** The projects and threads the list, read and project tools answer from; null: the stubs. */
+    world: null as MockWorld | null,
     /** `t3_thread_interrupt` on these answers 401, as T3 does to a revoked sign-in. */
     revokeOn: new Set<string>(),
   };
@@ -133,6 +166,32 @@ export async function startT3Mock(options: { readonly kept?: number } = {}) {
       const args = (p["arguments"] ?? {}) as { threadId?: string; runId?: string; stop?: boolean };
       const text = (value: unknown) => [{ type: "text", text: JSON.stringify(value) }];
       const done = (value: unknown) => reply({ result: { isError: false, structuredContent: value, content: text(value) } });
+      const world = switches.world;
+      if (world !== null && p["name"] === "t3_project_list") {
+        return done({ projects: world.projects, nextCursor: null });
+      }
+      if (world !== null && p["name"] === "t3_thread_list") {
+        const a = args as { allProjects?: boolean; projectId?: string; includeSubagents?: boolean; statuses?: string[]; settled?: boolean; limit?: number; cursor?: number };
+        const matching = world.threads
+          .filter((t) => t.archived !== true)
+          .filter((t) => a.allProjects === true || t.projectId === a.projectId)
+          .filter((t) => a.includeSubagents !== false || t.relationshipToParent !== "subagent")
+          .filter((t) => a.statuses === undefined || a.statuses.includes(t.status))
+          .filter((t) => a.settled === undefined || (t.settled === true) === a.settled)
+          .sort((x, y) => y.updatedAt.localeCompare(x.updatedAt) || y.threadId.localeCompare(x.threadId));
+        const from = a.cursor ?? 0;
+        const limit = a.limit ?? 50;
+        return done({ threads: matching.slice(from, from + limit).map(listItem), nextCursor: from + limit < matching.length ? from + limit : null });
+      }
+      if (world !== null && p["name"] === "t3_thread_read") {
+        const t = world.threads.find((x) => x.threadId === args.threadId);
+        if (t === undefined) {
+          const failure = { _tag: "OrchestratorMcpFailure", code: "thread_not_found", message: `Thread ${args.threadId} was not found.` };
+          return reply({ result: { isError: true, structuredContent: failure, content: text(failure) } });
+        }
+        const view = (args as { view?: string }).view;
+        return done({ thread: detailOf(t), recentRuns: [], items: view === "activity" ? (t.activity ?? []) : [] });
+      }
       if (p["name"] === "t3_thread_list") {
         return done({ projectId: "p1", currentThreadId: null, threads: switches.threads ?? [{ threadId: "t1", title: "one", status: "running" }], nextCursor: null });
       }
