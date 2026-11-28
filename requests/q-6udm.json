@@ -29,6 +29,12 @@
       "by": "pm",
       "text": "A. Retry now. If T3's worktree setup times out again, wait until no gate runs on the machine (check before launching) and retry once more before stopping.",
       "reason": "retry now, because git answers in 0.9 s and the failure was a load spike while gates ran, instead of waiting 30 minutes"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T00:20:52.777Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
