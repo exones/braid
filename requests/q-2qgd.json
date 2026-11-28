@@ -26,6 +26,12 @@
       "at": "2026-11-28T17:56:45.555Z",
       "by": "pm",
       "text": "live check passed (restart, stalled stream, offline, no read storm) · merge PR #395 at 3462a51; reload board pages once after"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T17:59:02.857Z",
+      "by": "user",
+      "text": "A. Merge it"
     }
   ]
 }
