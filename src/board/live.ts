@@ -11,6 +11,11 @@ export const STALE_MS = 90_000;
 const CHECK_MS = 5_000;
 /** `visibilitychange`, `online` and `pageshow` often come together: one refresh for the burst. */
 const RESUME_GAP_MS = 1_000;
+/** A fresh read asks GitHub and fetches: resumes make at most one in this long, the others a plain read. */
+export const FRESH_GAP_MS = 30_000;
+
+/** Whether a board read at `at` is old enough for the stale marker. */
+export const isStale = (at: number, now: number): boolean => now - at > STALE_MS;
 
 export interface LiveStream {
   /** Whether it gave up for good (`EventSource.CLOSED`). */
@@ -35,9 +40,9 @@ export interface LiveEnv {
 }
 
 /**
- * Opens the event stream and calls `refresh` when the page should read the board again: on each event, and, with
- * `fresh`, once when the page resumes. A stream that errors, closes or stays silent is reopened with backoff; while it is
- * down a visible page polls. Returns the stop.
+ * Opens the event stream and calls `refresh` when the page should read the board again: on each event, and once when
+ * the page resumes (`fresh` at most every 30 s). A stream that errors or closes is reopened with backoff, one silent for
+ * 90 s at once; while it is down a visible page polls. Returns the stop.
  */
 export function keepLive(env: LiveEnv, refresh: (fresh: boolean) => void): () => void {
   let stream: LiveStream | null = null;
@@ -45,6 +50,7 @@ export function keepLive(env: LiveEnv, refresh: (fresh: boolean) => void): () =>
   let down = false;
   let polled = 0;
   let resumed = -Infinity;
+  let freshAt = -Infinity;
   let delay = RECONNECT_FIRST_MS;
   let retry: unknown;
   let check: unknown;
@@ -118,7 +124,9 @@ export function keepLive(env: LiveEnv, refresh: (fresh: boolean) => void): () =>
     }
     if (env.now() - resumed >= RESUME_GAP_MS) {
       resumed = env.now();
-      refresh(true);
+      const fresh = resumed - freshAt >= FRESH_GAP_MS;
+      if (fresh) freshAt = resumed;
+      refresh(fresh);
     }
   });
 

@@ -1,7 +1,8 @@
 // The board page's live updates (0078/O, src/board/live.ts) with a fake event stream and clock.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { keepLive, type LiveEnv, type StreamHandlers } from "../src/board/live.ts";
+import { isStale, keepLive, type LiveEnv, type StreamHandlers } from "../src/board/live.ts";
+import { failedRead, readUrl, type Shown } from "../src/board/reply.ts";
 
 function page() {
   let now = 0;
@@ -114,6 +115,56 @@ test("an open but silent stream is reopened after 90 s, only while visible", () 
   p.advance(5_000);
   assert.equal(p.streams.length, 2);
   assert.equal(p.streams[0]!.state, "closed");
+});
+
+test("a silent stream is reopened once per 90 s of silence, not at every check", () => {
+  const p = page();
+  p.last().on.open();
+  p.advance(95_000);
+  assert.equal(p.streams.length, 2);
+  p.advance(90_000);
+  assert.equal(p.streams.length, 2, "the new stream has its own 90 s");
+  p.advance(5_000);
+  assert.equal(p.streams.length, 3);
+});
+
+test("resumes more than a second apart make at most one fresh read per 30 s", () => {
+  const p = page();
+  p.last().on.open();
+  for (let i = 0; i < 15; i++) {
+    p.resume();
+    p.advance(2_000);
+  }
+  assert.deepEqual(p.refreshes, [true, ...Array(14).fill(false)]);
+  p.refreshes.length = 0;
+  p.resume();
+  assert.deepEqual(p.refreshes, [true], "30 s after the last fresh one");
+});
+
+test("a read with no reply keeps the board, stale after 90 s, until the next good read", async () => {
+  const reply = (status: number, body: string) => () => Promise.resolve(new Response(body, { status }));
+  const offline = () => Promise.reject(new TypeError("Failed to fetch"));
+  let shown: Shown<{ n: number }> | null = null;
+  const read = async (now: number, request: Parameters<typeof readUrl>[1]): Promise<void> => {
+    try {
+      shown = { url: "/api/all", value: { state: "ready", data: await readUrl<{ n: number }>("/api/all", request), at: now } };
+    } catch (error) {
+      shown = failedRead(shown, "/api/all", error);
+    }
+  };
+  const marked = (now: number): boolean => shown?.value.state === "ready" && isStale(shown.value.at, now);
+
+  await read(0, reply(200, '{"n":1}'));
+  const good = shown;
+  await read(60_000, offline);
+  assert.equal(shown, good, "the board stays");
+  assert.equal(marked(90_000), false);
+  assert.equal(marked(90_001), true);
+  await read(120_000, reply(200, '{"n":2}'));
+  assert.equal(marked(120_000), false);
+
+  await read(130_000, reply(500, '{"error":"read failed"}'));
+  assert.equal((shown as Shown<{ n: number }> | null)?.value.state, "error", "the board's own error shows");
 });
 
 test("a resume refreshes once for a burst of events and reopens a stream that is down or silent", () => {

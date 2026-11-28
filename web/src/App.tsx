@@ -15,7 +15,7 @@ import type { PmLine as PmHandling } from "../../src/board/pm.ts";
 import { CLOSED_PAGE, requestCount, type RequestRow, type RequestsView } from "../../src/board/record.ts";
 import { QuestionsPanel } from "./Questions.tsx";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard, type TaggedProgramme } from "./api.ts";
-import { STALE_MS } from "../../src/board/live.ts";
+import { isStale } from "../../src/board/live.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
 let pushedOpen = false;
@@ -2390,7 +2390,7 @@ function StaleMarker({ at }: { at: number }) {
     const timer = setInterval(() => setNow(Date.now()), 5_000);
     return () => clearInterval(timer);
   }, []);
-  return now - at > STALE_MS ? (
+  return isStale(at, now) ? (
     <b role="status" className="text-amber-700">stale · last updated {clock(new Date(at).toISOString())} · </b>
   ) : null;
 }

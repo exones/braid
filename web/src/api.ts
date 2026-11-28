@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ItemDetail } from "../../src/board/model.ts";
-import { readReply } from "../../src/board/reply.ts";
+import { failedRead, readReply, readUrl, type Loaded, type Shown } from "../../src/board/reply.ts";
 import { keepLive, type LiveEnv } from "../../src/board/live.ts";
 import type { AllBoard } from "../../src/board/combined.ts";
 
@@ -11,17 +11,9 @@ export type { LimitsView, ProviderView } from "../../src/board/limits.ts";
 export type { WindowReading } from "../../src/braids/limits.ts";
 export type { AllBoard, ProjectInfo, TaggedCard, TaggedProgramme } from "../../src/board/combined.ts";
 
-export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T; at: number };
+export type { Loaded } from "../../src/board/reply.ts";
 
-/** A request that got no reply at all: the phone is offline or the board isn't there. */
-class Unreached extends Error {}
-
-async function get<T>(url: string): Promise<T> {
-  const response = await fetch(url).catch((error: unknown) => {
-    throw new Unreached(error instanceof Error ? error.message : String(error));
-  });
-  return readReply<T>(response);
-}
+const get = <T>(url: string): Promise<T> => readUrl<T>(url, (u) => fetch(u));
 
 const TOKEN_KEY = "braid-token";
 
@@ -82,7 +74,7 @@ export interface Tick {
 
 /** Loads `url` and again on each tick; a null `url` fetches nothing and stays loading. */
 function useLoad<T>(url: string | null, tick: Tick): Loaded<T> {
-  const [result, setResult] = useState<{ url: string; value: Loaded<T> } | null>(null);
+  const [result, setResult] = useState<Shown<T> | null>(null);
   useEffect(() => {
     if (url === null) {
       return;
@@ -90,14 +82,7 @@ function useLoad<T>(url: string | null, tick: Tick): Loaded<T> {
     let live = true;
     get<T>(tick.fresh ? `${url}${url.includes("?") ? "&" : "?"}fresh=1` : url).then(
       (data) => live && setResult({ url, value: { state: "ready", data, at: Date.now() } }),
-      (error: unknown) =>
-        live &&
-        setResult((shown) =>
-          // With no reply, what the page shows stays, under the stale marker.
-          error instanceof Unreached && shown?.url === url && shown.value.state === "ready"
-            ? shown
-            : { url, value: { state: "error", message: error instanceof Error ? error.message : String(error) } },
-        ),
+      (error: unknown) => live && setResult((shown) => failedRead(shown, url, error)),
     );
     return () => {
       live = false;
