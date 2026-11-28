@@ -15,6 +15,12 @@
       "event": "opened",
       "at": "2026-11-28T16:59:15.478Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T17:11:05.900Z",
+      "by": "user",
+      "text": "I pressed: it showed progress for some time, then disappeared (on the phone, demo board 7810)"
     }
   ]
 }
