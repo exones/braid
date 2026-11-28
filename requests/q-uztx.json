@@ -23,6 +23,12 @@
       "by": "pm",
       "text": "Done: the user pressed A on \"Approve the plan\" on the demo board (7810) from the phone: \"it showed progress for some time, then disappeared\". Log: arrived 17:08:37Z, done after 11.0 s.",
       "reason": "relayed the user's phone test (windy-bucket step 2)"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T17:11:09.123Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
