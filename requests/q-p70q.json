@@ -1,0 +1,27 @@
+{
+  "code": "q-p70q",
+  "item": "0077",
+  "kind": "decision",
+  "text": "0077 misses its 1 s / 60 s targets under load (cause: spawn on the main thread); build the fix here or ship and follow up?",
+  "context": "0077/M measured the braid branch under load (three projects, two gates plus other agents, 15 min; PR #373). Both targets were missed. Reads: after each fresh start every project failed at the 60 s limit (73-157 s) and recovered after about 3 min; the longest read later under two gates was 42 s; dctl-studio failed twice after a start. /api/session after the start: p95 2.6 s, max 6.8 s, 16 % of requests over 1 s (whole run: p95 26.7 s, max 56.6 s). Cause: the board's main thread spent 74 % of the load run inside child_process.spawn (git, t3, gh), about 300 ms per spawn on this machine. The braid's first Completion box (answers within a second under two gates) is not met; the --url and other boxes hold.",
+  "options": [
+    "Fix here: spawn off thread",
+    "Ship, follow-up braid",
+    "Ship, drop the box"
+  ],
+  "words": "brown cloud",
+  "key": "scope",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T02:37:00.421Z",
+      "by": "coordinator"
+    }
+  ]
+}
