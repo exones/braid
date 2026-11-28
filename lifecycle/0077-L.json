@@ -1,0 +1,11 @@
+{
+  "id": "0077/L",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-28T00:06:14.092Z",
+      "thread": "mcp:launch:90866b96cd9d1f3df0e696ca84e6a89e03158132a8a9cd664a6abeada0094837",
+      "branch": "braid/0077/L-a-fresh-board-recovers-with-many"
+    }
+  ]
+}
