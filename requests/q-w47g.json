@@ -1,0 +1,26 @@
+{
+  "code": "q-w47g",
+  "item": "0085",
+  "kind": "plan",
+  "text": "Approve the plan of 0085",
+  "context": "Plan of 0085 (braid clean works in repos with submodules), preset free with the PM-run line: 0085/A safe removal of worktrees with submodules (story, L), 0085/B clean without a number sweeps every finished item and names each kept worktree (story, M, after A), 0085/C what clean cannot remove becomes an action request for the user (story, M, after B), 0085/D docs strand (task, S, last). Branch plan/clean-submodules at 63259f98.",
+  "options": [
+    "Approve",
+    "Change something",
+    "Show me the briefs"
+  ],
+  "words": "clever cloud",
+  "by": "coordinator",
+  "thread": "mcp:launch:473f5b8708edbd228684ca3081f8c0b88457a28574741c6d1cdc78602f672f2f",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T00:00:45.670Z",
+      "by": "coordinator"
+    }
+  ]
+}
