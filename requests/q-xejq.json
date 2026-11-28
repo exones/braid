@@ -18,6 +18,12 @@
       "event": "opened",
       "at": "2026-11-28T16:26:41.329Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T16:27:42.610Z",
+      "by": "user",
+      "text": "A. Refuse and name the pending requests"
     }
   ]
 }
