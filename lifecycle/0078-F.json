@@ -6,6 +6,13 @@
       "at": "2026-11-28T15:08:11.307Z",
       "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
       "branch": "braid/0078/F-shim-sweep-carry-over-once-old-shapes"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-28T16:03:59.800Z",
+      "head": "1d1bd12915c800a8a4092507de6f1773ba7e18b7",
+      "review": "https://github.com/exones/braid/pull/392#issuecomment-7241783487",
+      "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317"
     }
   ]
 }
