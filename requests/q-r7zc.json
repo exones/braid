@@ -1,0 +1,27 @@
+{
+  "code": "q-r7zc",
+  "item": "0086",
+  "kind": "plan",
+  "text": "0086: approve the plan (9 strands; data shape of the hold record; how a programme close is recorded)",
+  "context": "P5 as braid 0086: 9 strands on preset `free` with the PM-run line. The full plan is in the coordinator's message to the PM thread.\n\nStrands: A mockups (the worker stops for the user's look) · C one hold record in `.braid/pauses.json` (ask:data; fixes yd2t) · B limits as what is left (qap7, 7ija) · D lanes collapse and the Held lane, plus a held forwarded question in the Questions panel · E Hold/Go on cards and programmes, sent and counted by code through one seam for 0080 · F Hold all · G finishing a programme, with the Finished and Held/Paused groups · H skills (ask:process, the user merges) · I docs.\n\nTwo decisions:\n1. Data: the hold record gains optional fields (`waitsFor`, `programme`, who held it), and `by` keeps today's values, because an older `braid` drops a record whose `by` it doesn't know.\n2. The close of a programme: recorded as a request on `braid-requests` (the user's Close is the record, with who and when), so only the PM writes `pm/<slug>`. The alternative is the CLI writing `state: done` on the PM's branch.",
+  "options": [
+    "Approve, close as a request record",
+    "Approve, CLI writes state: done",
+    "Change something",
+    "Show me the briefs"
+  ],
+  "words": "snowy rabbit",
+  "by": "coordinator",
+  "thread": "mcp:launch:7909c884628e4ae88bd8816ea77e3afc1c467ec7e93b7b6d4546ad7143b853e4",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T00:01:57.570Z",
+      "by": "coordinator"
+    }
+  ]
+}
