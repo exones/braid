@@ -36,8 +36,15 @@ Expected size: about 40 to 80 lines in 2 to 3 files.
 
 ## Completion
 
-- [ ] A strand whose coordinator is working, or whose dependency strand isn't Done, doesn't read stalled; the second reads as waiting on the named strand; tested
-- [ ] A strand with an idle coordinator and no dependency in progress still reads stalled, tested
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A strand whose coordinator is working, or whose dependency strand isn't Done, doesn't read stalled; the second reads as waiting on the named strand; tested
+- [x] A strand with an idle coordinator and no dependency in progress still reads stalled, tested
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `src/board/model.ts`: a coordinator that `working()` holds off the stall of any item of its braid, strands included. `toCard` passes each strand its sibling dependencies that aren't Done; `derive` reads an In Progress strand with such a dependency, no agent, no pending PR checks and nothing asked as parked: no stall, `waitingOn` on the card.
+- The braid-level stall counts a parked strand as quiet, so an idle coordinator whose parked strand waits on a To Do sibling still reads stalled (on the braid).
+- `web/src/App.tsx`: the quiet "Waiting on <ids>" line on the card.
+- Tests in `test/board-no-false-stalls.test.ts`; docs/board.md stall rules.

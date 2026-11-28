@@ -143,6 +143,8 @@ export interface StrandCard {
   readonly pm: PmLine | null;
   /** The PM's own open request on this item (`--by pm`), whatever the coordinator's request says; `need` shows it when nothing else is asked. */
   readonly pmAsk: Need | null;
+  /** The sibling strands it is parked behind (`0078/M`): In Progress, nobody on it, nothing asked, and they aren't Done; null otherwise. */
+  readonly waitingOn: string | null;
 }
 
 export interface BraidCard {
@@ -353,6 +355,8 @@ export interface Derived {
   readonly pm: PmLine | null;
   /** The PM's own open request on this item (`--by pm`), whatever the coordinator's request says; `need` shows it when nothing else is asked. */
   readonly pmAsk: Need | null;
+  /** As `StrandCard.waitingOn`; null for a braid. */
+  readonly waitingOn: string | null;
   /** The broke conditions this derivation saw; nothing is written for them until the step after it. */
   readonly alarms: readonly Alarm[];
 }
@@ -500,7 +504,7 @@ function withStalls(own: Own | null, s: Stalls): Own | null {
  * the lane; it comes back as `ask` (none once the PR is merged) for the flag. It writes nothing: the alarm
  * conditions it saw come back as `alarms`.
  */
-export function derive(status: Status, labels: readonly string[], key: string, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), accepted: string | null = null, prOf: PullRequest | null = gh.prs.get(key) ?? null): Derived {
+export function derive(status: Status, labels: readonly string[], key: string, gh: Github, t3: T3 = NO_T3, sig: Signals = noSignals(), accepted: string | null = null, prOf: PullRequest | null = gh.prs.get(key) ?? null, unfinished: readonly string[] = []): Derived {
   const pr = prOf;
   const agents = t3.threads.get(key) ?? [];
   const activity = activityOf(agents, pr);
@@ -518,7 +522,7 @@ export function derive(status: Status, labels: readonly string[], key: string, g
     const asked = sig.asks?.get(key);
     const pmAsk = asked === undefined ? null : needOfAsk(asked, sig.now, t3, null, sig.unblocks?.(asked) ?? []);
     const need = req !== undefined && routed !== undefined ? requestLane(req, sig.now, routed, t3, sig.unblocks?.(req) ?? []).need : pmAsk;
-    return { lane: "Done", pr, reason: null, need, ask: null, agents, activity: null, pause: null, pm, pmAsk, alarms };
+    return { lane: "Done", pr, reason: null, need, ask: null, agents, activity: null, pause: null, pm, pmAsk, waitingOn: null, alarms };
   }
   const label = labels.find((l) => l.startsWith("ask:") && l.length > 4);
   const ask = label === undefined ? null : label.slice(4);
@@ -531,10 +535,12 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const checking = pr?.state === "open" && (pr.checks === "pending" || pr.checks === "failing");
   const failed = raise(key, "checks failed", busy ? false : known ? pr?.state === "open" && pr.checks === "failing" && agents.length === 0 : null);
-  // A strandless braid is one item: its running coordinator (`working()`, as in the braid-level stall) holds the stall off. It still isn't an agent of the card (D46).
-  const coordinating = !key.includes("/") && t3.coordinators?.has(key) === true;
+  // The braid's running coordinator (`working()`, as in the braid-level stall) holds the stall off, a strand's too. It still isn't an agent of the card (D46).
+  const coordinating = t3.coordinators?.has(key.slice(0, 4)) === true;
+  // A started strand behind a sibling it depends on is parked, not stalled.
+  const waitingOn = status === "In Progress" && unfinished.length > 0 && !busy && !checking && agents.length === 0 ? unfinished.join(", ") : null;
   // An open wait of the braid on another braid, or a timed wait still ahead, is the coordinator waiting on purpose: no item of it reads stalled; a broken wait on a braid does, on the braid.
-  const holds = busy || waits(key.slice(0, 4), sig).length > 0 || status !== "In Progress" ? false : known ? agents.length === 0 && !checking && !coordinating : null;
+  const holds = busy || waitingOn !== null || waits(key.slice(0, 4), sig).length > 0 || status !== "In Progress" ? false : known ? agents.length === 0 && !checking && !coordinating : null;
   const stalls = stallsOf({ id: key, key, holds, words: "Stalled: nobody is working and nothing was asked" }, sig, t3, raise);
   const names = pr?.failed ?? [];
   const asking: Own | null =
@@ -555,8 +561,8 @@ export function derive(status: Status, labels: readonly string[], key: string, g
   const need = own?.need ?? null;
   // The PM's own request puts the item in Needs You and is its need when nothing else is asked; the coordinator's request stays what it was.
   return pmAsk === null
-    ? { lane, pr, reason, need, ask, agents, activity, pause, pm, pmAsk, alarms }
-    : { lane: "Waiting", pr, reason: lane === "Waiting" && reason !== null ? reason : (pmAsk.kind as Reason), need: need ?? pmAsk, ask, agents, activity, pause, pm, pmAsk, alarms };
+    ? { lane, pr, reason, need, ask, agents, activity, pause, pm, pmAsk, waitingOn, alarms }
+    : { lane: "Waiting", pr, reason: lane === "Waiting" && reason !== null ? reason : (pmAsk.kind as Reason), need: need ?? pmAsk, ask, agents, activity, pause, pm, pmAsk, waitingOn, alarms };
 }
 
 /** Most urgent first. */
@@ -709,7 +715,9 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
   const statusOfItem = (id: string, stored: Status) => st.get(id) ?? { status: stored, accepted: null };
   const strands: StrandCard[] = braid.strands.map((s) => {
     const own = statusOfItem(`${braid.number}/${s.letter}`, s.brief.status);
-    const d = derive(own.status, s.brief.labels, `${braid.number}/${s.letter}`, gh, t3, sig, own.accepted);
+    // The siblings it depends on that aren't Done.
+    const unfinished = braid.strands.map((x) => ({ id: `${braid.number}/${x.letter}`, stored: x.brief.status })).filter((x) => s.brief.dependencies.includes(x.id) && statusOfItem(x.id, x.stored).status !== "Done").map((x) => x.id);
+    const d = derive(own.status, s.brief.labels, `${braid.number}/${s.letter}`, gh, t3, sig, own.accepted, undefined, unfinished);
     alarms.push(...d.alarms);
     return {
       id: s.brief.id,
@@ -730,6 +738,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
       pause: d.pause,
       pm: d.pm,
       pmAsk: d.pmAsk,
+      waitingOn: d.waitingOn,
     };
   });
   const self = statusOfItem(braid.number, braid.brief.status);
@@ -743,7 +752,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
   // A braid with strands is never worked on by a thread of its own (a thread on its branch is the coordinator),
   // so its own derive sees no agents. It counts when it has a request, or when its final PR is open with every
   // strand Done; before that the strands decide. The one alarm it has is the braid-level `stalled`: In Progress, nothing asked,
-  // no strand Working, Needs You or To Review, no pending checks, and no coordinator thread running.
+  // no strand Working (a parked one doesn't count), Needs You or To Review, no pending checks, and no coordinator thread running.
   // An early PR from the braid branch, merged while strands were open, is shown but isn't the braid's merge (dsyv).
   const shown = gh.prs.get(braid.number) ?? null;
   const pr = shown?.state === "merged" && self.status !== "Done" ? null : shown;
@@ -756,7 +765,7 @@ export function toCard(braid: Braid, gh: Github, t3: T3 = NO_T3, signals: Signal
   const finalPr = pr?.state === "open" && strands.every((s) => s.lane === "Done");
   // The braid-level stall clock is settled first, so wrap-up's derive keeps its own clock on the braid's number, so this one has its own key and is cleared in wrap-up:
   // a final PR open or merged, an open request or any other condition failing clears it.
-  const quiet = strands.every((s) => s.lane === "To Do" || s.lane === "Done");
+  const quiet = strands.every((s) => s.lane === "To Do" || s.lane === "Done" || (s.waitingOn !== null && s.lane === "In Progress"));
   const known = gh.status.state === "ok" && t3.status.state === "ok";
   const holds = finalPr || (asked !== undefined && pr?.state !== "merged") || pmNeed !== null || waits(braid.number, sig).length > 0 || pr?.state === "merged" || self.status !== "In Progress" || !quiet || (pr?.state === "open" && pr.checks === "pending") || t3.coordinators?.has(braid.number) === true ? false : known ? true : null;
   let own: Own | null = null;
