@@ -25,6 +25,7 @@ Expected size: about 120 lines in 9 files.
 - `docs/decisions.md`: a new decision for several open questions per item, naming what it changes in D96 (a question no longer replaces a question) and why (the user, 2026-11-27).
 - `.agents/skills/braid/SKILL.md` and any other skill line found: a new question no longer replaces one; to replace your own, withdraw it (`braid withdraw <handle> --why`) and ask again; with several open, answer and withdraw by handle. Change only the words that are wrong and add no sections ("don't overblow skills").
 - `.agents/skills/braid/SKILL.md` "Talking to the user": one line that a request the user dismissed (Dismiss, `braid answer --dismiss`, 0084/C) is asked again only when it is still needed, saying what changed (the user, 2026-11-28).
+- `.agents/skills/braid/SKILL.md`: one line that `braid accept` refuses while a request is with the user or the PM (0084/G; the user, yellow-lantern-xejq): wait for the answer or ask the PM.
 - Docs for Acknowledge and Dismiss (0084/C): `docs/board.md`, `docs/cli.md` (`braid answer --ack|--dismiss`), `docs/braids-format.md`.
 - `report.md`: each doc and skill file checked, as updated or unchanged.
 

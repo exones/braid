@@ -21,7 +21,7 @@ Expected size: about 250 lines in 6 files, tests included.
 
 ## Change
 
-- `braid accept` (and `braid start`): close only the coordinator's own requests that were never forwarded (a `review` met, others withdrawn as today). A request the PM forwarded to the user, or one asked by the PM (`by: pm`), stays open, and the command's output names each one it kept. Pick between keeping them open and refusing the accept; the brief's preference is keeping them open and naming them, since refusing would block a merge the user may already have asked for.
+- `braid accept <item>` (with or without `--merge`) refuses while a request on the item that isn't the coordinator's own is open (one the PM forwarded to the user, or one the PM asked, `by: pm`): it names each one (name, kind, who holds it) and changes nothing. It still closes the coordinator's own unforwarded requests as stale, as today. `braid start` (same `closeRequest`): keep such requests open and name them rather than refuse, since a start blocks no merge; say which you chose in report.md.
 - The answer wake: find each answer path that can end without a wake (the CLI with no board running, the `since` window after a board restart, an archived or unknown thread, anything else you find) and name them in report.md. Make every answered request either get its wake once a board runs, at any later time, or a recorded reason why it couldn't (a `reminded` event with the reason), never silence.
 - The board shows an answered request whose wake wasn't delivered as "answer not delivered" (in the Questions panel's Decided and the details' Requests tab) with a Retry action that sends the wake again and records it.
 - Tests for both: the forwarded and PM-owned requests survive `braid accept --merge`; an answer recorded while no board runs is woken by the next board start; a wake that fails shows "answer not delivered" and Retry sends it.
@@ -30,6 +30,7 @@ Expected size: about 250 lines in 6 files, tests included.
 
 - Read the braid brief `braids/0084-several-open-questions-per-item/brief.md` "Already decided": it is binding (no new state or record field where an event or an existing state serves; "lean more to reliable calls like with requests").
 - Decided by the PM (2026-11-28): this strand, after 0084/C, tier S–M; the fixes as above.
+- Decided by the user (yellow-lantern-xejq, 2026-11-28: "A. Refuse and name the pending requests"): accept refuses while a request with the user or the PM is open; the coordinator waits for the answer or asks the PM; the user's Dismiss and the PM's withdraw close an obsolete one.
 - 0084/C changed the board's request views (several per item, Acknowledge, Dismiss): build on them. A Dismiss wakes the asker too, so it follows the same delivery rule.
 
 ## Out of scope
@@ -38,7 +39,7 @@ Expected size: about 250 lines in 6 files, tests included.
 
 ## Completion
 
-- [ ] `braid accept --merge` and `braid start` keep a forwarded or PM-owned open request open and name it; the coordinator's own unforwarded ones close as today (tests)
+- [ ] `braid accept` (with or without `--merge`) refuses while a forwarded or PM-owned request is open, names each (name, kind, who holds it) and changes nothing; the coordinator's own unforwarded ones close as today; `braid start` doesn't close such a request (tests)
 - [ ] report.md names every answer path that could skip the wake and how each now ends
 - [ ] An answer recorded while no board runs is woken by the next board run (test)
 - [ ] An undelivered answer shows "answer not delivered" on the board with a Retry that sends the wake and records it (tests)
