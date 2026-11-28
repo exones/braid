@@ -67,6 +67,11 @@ export async function answerRequest(project: string, handle: string, text: strin
   return postAction<Answered>("answer", { project, handle, text: answer });
 }
 
+/** Closes an open request without an answer (0084/C): `ack` (a look or an FYI, seen) or `dismiss`. */
+export function closeRequest(project: string, handle: string, close: "ack" | "dismiss"): Promise<Answered> {
+  return postAction<Answered>("answer", { project, handle, close });
+}
+
 /** A reload request: `n` changes on every one; `fresh` skips the server's short-lived reads. */
 export interface Tick {
   readonly n: number;

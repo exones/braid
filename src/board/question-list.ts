@@ -50,3 +50,8 @@ export function nextAfter(order: readonly string[], answered: string): string | 
   const at = order.indexOf(answered);
   return order[at + 1] ?? order.find((k) => k !== answered) ?? null;
 }
+
+/** What Decided shows of a request the user closed without answering: who did what, and what the asker heard. */
+export const OUTCOME_LABEL = { acknowledged: "acknowledged by you", dismissed: "dismissed by you" } as const;
+export const outcomeText = (outcome: "acknowledged" | "dismissed", handle: string): string =>
+  outcome === "acknowledged" ? "Seen. Nobody was woken." : `No answer. The asking thread is told once: "${handle} dismissed by the user without an answer; if you still need it, ask again with what changed."`;

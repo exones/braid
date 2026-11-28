@@ -533,8 +533,9 @@ export function resumeAction(root: string, now: () => Date = () => new Date()): 
 
 /**
  * Answer (0082/D): the user answers an open request from the board's page, `{ handle, text }` (a request of the project the
- * body names; `text` an option letter or one line). Recorded as `braid answer <handle> <text>` records it, as the user's
- * answer (`boardAnswer`), then the asking thread is woken at once, whoever the request was for (`wakePageAnswer`). A request
+ * body names; `text` an option letter or one line), or closes it with `{ handle, close: "ack" | "dismiss" }` (0084/C).
+ * Recorded as `braid answer <handle> <text>` (or `--ack`, `--dismiss`) records it, as the user's (`boardAnswer`), then the
+ * asking thread is woken at once, whoever the request was for (`wakePageAnswer`); an acknowledgement wakes no one. A request
  * no longer open, a wait, or a handle this project's record doesn't have is refused with the reason. Both listeners, no
  * confirmation (the user, 2026-11-27).
  *
@@ -544,11 +545,15 @@ export function resumeAction(root: string, now: () => Date = () => new Date()): 
 export function answerAction(states: () => ReadonlyMap<string, string> | undefined, root: string, t3: T3Runner, now: () => Date = () => new Date()): Action {
   return async (body) => {
     const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
-    if (typeof b["handle"] !== "string" || b["handle"].trim() === "" || typeof b["text"] !== "string") {
-      throw new UsageError("answer needs { handle, text }: the request's name or code and an option letter or one line of text");
+    const close = b["close"] === "ack" || b["close"] === "dismiss" ? b["close"] : null;
+    if (typeof b["handle"] !== "string" || b["handle"].trim() === "" || (close === null && typeof b["text"] !== "string")) {
+      throw new UsageError("answer needs { handle, text } or { handle, close: ack|dismiss }: the request's name or code");
     }
-    const done = await boardAnswer(root, b["handle"], b["text"]);
+    const done = await boardAnswer(root, b["handle"], close === null ? { text: b["text"] as string } : { close });
     const r = done.request;
+    if (close === "ack") {
+      return { ok: true, handle: handleOf(r), id: r.id, answer: closing(r)?.text ?? "", woken: false, wake: null, warning: done.warning };
+    }
     const state = r.thread === null ? null : (states()?.get(r.thread) ?? (await showThread(t3, root, r.thread).catch(() => null))?.status);
     const wake = await wakePageAnswer(t3, root, r, now(), state === "archived");
     return { ok: true, handle: handleOf(r), id: r.id, answer: closing(r)?.text ?? "", woken: wake.woken, wake: wake.why, warning: done.warning };

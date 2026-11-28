@@ -1,6 +1,6 @@
 // A request as the board shows it: one row per request on an item's Requests tab and on the asking braid's card.
 // Pure: it reads the signals (the open requests and the closed ones) and T3's thread links, and writes nothing.
-import { actOf, age, askerOf, closing, handleOf, isTimedWait, isWait, programmeOf, type Asker, type Request, type State, type Who } from "../braids/requests.js";
+import { actOf, age, askerOf, closing, handleOf, isTimedWait, isWait, outcomeOf, programmeOf, type Asker, type Request, type State, type Who } from "../braids/requests.js";
 import type { Signals } from "./model.js";
 import { linkOfThread } from "./model.js";
 import { clock } from "./pause.js";
@@ -42,6 +42,8 @@ export interface RequestRow {
   readonly eta: string | null;
   /** Its opening, estimates and reminders, oldest first, while it is open: the details panel lists them under a wait. */
   readonly history: readonly { readonly event: string; readonly at: string; readonly by: Who; readonly text: string | null; readonly reason: string | null }[];
+  /** The user closed it without an answer: acknowledged (a look, seen) or dismissed; null otherwise. */
+  readonly outcome: "acknowledged" | "dismissed" | null;
   /** How it ended; null while open. */
   readonly closed: { readonly at: string; readonly by: Who; /** The answer, or the reason it was withdrawn or met. */ readonly text: string | null; /** The PM's reason, when the PM answered. */ readonly reason: string | null } | null;
 }
@@ -51,9 +53,9 @@ export interface RequestsView {
   readonly open: readonly RequestRow[];
   /** Open, addressed to another braid's coordinator, or a timed wait. */
   readonly waiting: readonly RequestRow[];
-  /** Answered (waits left out), newest first: the question, the answer, who answered (the PM with its reason) and when. */
+  /** Answered (waits left out) and dismissed ones, newest first: the question, the answer, who answered (the PM with its reason) and when. */
   readonly decided: readonly RequestRow[];
-  /** Withdrawn or met, and answered waits, newest first. */
+  /** Withdrawn (not by a dismissal) or met, and answered waits, newest first. */
   readonly closed: readonly RequestRow[];
 }
 
@@ -91,6 +93,7 @@ export function rowOf(r: Request, now: Date, t3: T3, blocks: readonly string[] =
     note: r.note ?? null,
     eta: r.eta,
     history: r.state !== "open" ? [] : r.events.filter((e) => e.event === "opened" || e.event === "eta" || e.event === "reminded").map((e) => ({ event: e.event, at: e.at, by: e.by, text: e.text ?? null, reason: e.reason ?? null })),
+    outcome: outcomeOf(r),
     closed: end === null ? null : { at: end.at, by: end.by, text: end.text ?? null, reason: end.reason ?? null },
   };
 }
@@ -106,7 +109,7 @@ export function requestsOf(match: (id: string) => boolean, sig: Signals, t3: T3)
   const rows = (rs: readonly Request[]): RequestRow[] => rs.filter((r) => match(r.id) && programmeOf(r.id) === null).map((r) => rowOf(r, sig.now, t3, sig.unblocks?.(r) ?? [], sig.pauses?.has(r.id.slice(0, 4)) === true));
   const ended = rows(sig.closed ?? []).sort((a, b) => (a.closed?.at ?? "") < (b.closed?.at ?? "") ? 1 : -1);
   // A wait is nobody's decision, however it ended (an old record may read "answered by the user").
-  const decided = (r: RequestRow): boolean => r.state === "answered" && !isWait(r);
+  const decided = (r: RequestRow): boolean => (r.state === "answered" || r.outcome === "dismissed") && !isWait(r);
   return {
     open: rows(openItemRequests(sig)).sort((a, b) => (a.at < b.at ? 1 : -1)),
     waiting: rows(sig.waits ?? []).sort((a, b) => (a.at < b.at ? 1 : -1)),

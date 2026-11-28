@@ -146,7 +146,7 @@ test("readPlans reads each pm/* branch's plan, a local branch before origin's, a
 
 // ---- The panel's sections and the stall
 
-const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, need: null, pmAsk: null, strands: [], ...extra });
+const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, need: null, pmAsk: null, asks: [], strands: [], ...extra });
 const t3 = (pm: string | null, extra: object = {}): any => ({ status: { state: "ok" }, threads: new Map(), states: new Map(pm === null ? [] : [[PM, pm]]), links: new Map([[PM, LINK]]), ...extra });
 const gh = (): any => ({ status: { state: "ok" }, prs: new Map() });
 const read = (lines: string[] = []): any => planOf("working-product", "pm/working-product", plan(["programme: working-product", "title: W", "goal: G", `thread: ${PM}`, ...(lines.some((l) => l.startsWith("state:")) ? [] : ["state: running"]), ...lines, "rows:", "  - P1 | 0001 | One | running", "  - P2 | 0002 | Two | running"]));
@@ -322,7 +322,7 @@ test("a programme's request is pushed from the panel; a braid it runs sends no D
   const braid = (n: string) => ({ number: n, folder: `braids/${n}-a`, brief: { id: n, title: `B${n}`, status: "Done", labels: [], dependencies: [] }, strands: [] });
   const board = model.toBoard("agento", [braid("0001"), braid("0009")], gh(), t3("idle"), sig);
   const pushes = message.pushesOf(board);
-  const ask = pushes.find((p: any) => p.item === "pm/working-product#pm");
+  const ask = pushes.find((p: any) => p.item === "pm/working-product");
   assert.deepEqual([ask.title, ask.body, ask.priority], ["agento working-product: the PM asks", "do\nThe PM asks you to: protect main", "high"]);
   assert.equal(pushes.find((p: any) => p.item === "0001"), undefined, "run by the programme: the PM handles what follows");
   assert.equal(pushes.find((p: any) => p.item === "0009").priority, "default");
@@ -337,7 +337,8 @@ test("a PM ask next to a coordinator's handover: Needs You, with the review and 
   const sig = { now: NOW, requests: new Map([["0001", review]]), asks: new Map([["0001", pmAsk]]), alarm: () => null };
   const c = model.toBoard("agento", [braid], github, t3("idle"), sig).braids[0];
   assert.equal(c.lane, "Waiting", "the PM's ask is the more urgent");
-  assert.equal(c.need.text, "Merge PR #7", "the review stays the card's line");
+  assert.equal(c.need.text, "The PM asks you to: sign in to the test account", "the question is the card's line (D122)");
+  assert.deepEqual(c.asks.map((n: any) => n.kind), ["review", "action"], "the review stays beside it");
   assert.equal(c.pmAsk.text, "The PM asks you to: sign in to the test account");
   assert.equal(c.merge?.reason, null, "Merge stays available");
 });

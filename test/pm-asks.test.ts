@@ -27,7 +27,7 @@ const LINK = `http://127.0.0.1:3773/env1/${PM}`;
 const gh = (): any => ({ status: { state: "ok" }, prs: new Map() });
 const t3 = (): any => ({ status: { state: "ok" }, threads: new Map(), states: new Map([[PM, "idle"]]), links: new Map([[PM, LINK]]) });
 const req = (id: string, kind: string, minutes: number, extra: object = {}): any => ({ id, kind, text: `a ${kind} text`, at: ago(minutes), thread: null, ...extra });
-const ask = (id: string, kind: string, minutes: number, extra: object = {}): any => req(id, kind, minutes, { by: "pm", thread: PM, ...extra });
+const ask = (id: string, kind: string, minutes: number, extra: object = {}): any => req(id, kind, minutes, { by: "pm", thread: PM, code: `q-pm${minutes}`, ...extra });
 const board = (...braids: object[]): any => ({ repo: "agento", github: { state: "ok" }, t3: { state: "ok" }, braids });
 
 function sig(requests: any[], asks: any[] = [], programmes: any[] = []): any {

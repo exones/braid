@@ -91,6 +91,7 @@ interface Strand {
   lane: string;
   need: Need | null;
   thread: string | null;
+  asks: Need[];
 }
 interface Card extends Strand {
   pr: { number: number } | null;
@@ -105,8 +106,8 @@ interface Board {
 }
 
 const need = (kind: string, text: string, since: string | null, extra: Partial<Need> = {}): Need => ({ kind, text, verb: "asked", age: "1m", since, key: null, pr: null, who: null, more: 0, ...extra });
-const card = (id: string, lane: string, n: Need | null, extra: Partial<Card> = {}): Card => ({ id, title: `Title of ${id}`, lane, need: n, thread: null, pr: null, strands: [], coordinator: null, ...extra });
-const strand = (id: string, lane: string, n: Need | null, thread: string | null = null): Strand => ({ id, title: `Strand ${id}`, lane, need: n, thread });
+const card = (id: string, lane: string, n: Need | null, extra: Partial<Card> = {}): Card => ({ id, title: `Title of ${id}`, lane, need: n, thread: null, pr: null, strands: [], coordinator: null, asks: n === null || n.who !== null ? [] : [n], ...extra });
+const strand = (id: string, lane: string, n: Need | null, thread: string | null = null): Strand => ({ id, title: `Strand ${id}`, lane, need: n, thread, asks: n === null ? [] : [n] });
 const boardOf = (braids: Card[], ok = true): Board => ({ repo: "agento", github: { state: ok ? "ok" : "unavailable" }, t3: { state: "ok" }, braids });
 
 const CFG: Config = { server: "https://ntfy.example", topic: "braid-abcdefghijklmnopqrstuvwx", enabled: true };
@@ -534,7 +535,7 @@ test("merges forwarded by one PM are one push, updated in place under one sequen
   const at = (n: number): PushIn => (f.sent[n] as { push: PushIn }).push;
   const notify = notifierMod.notifier({ file, config: () => CFG, send: f.send, token: () => null, warn: () => {}, clear: async (_c: unknown, sequence: string) => void cleared.push(sequence) } as never);
   const forward = (id: string, pr: number, head = "a".repeat(40)) => ({ id, title: `Title ${id}`, head, need: need("review", `The PM asks you: merge PR #${pr}`, "2026-11-22T12:00:00Z", { pr, via: "forwarded" }) });
-  const prog = (...forwards: unknown[]) => ({ slug: "w", title: "W", section: "needs", thread: "pm-thread", link: "http://127.0.0.1:3773/env1/pm-thread", need: null, forwards });
+  const prog = (...forwards: unknown[]) => ({ slug: "w", title: "W", section: "needs", thread: "pm-thread", link: "http://127.0.0.1:3773/env1/pm-thread", need: null, asks: [], forwards });
   const withProg = (...forwards: unknown[]) => ({ ...boardOf([]), programmes: [prog(...forwards)] }) as unknown as Board;
   const run = async (b: Board) => {
     notify(b);
@@ -576,7 +577,7 @@ test("upgrading with 0069/B's per-braid push on the phone: it is cleared and the
   const cleared: string[] = [];
   const notify = notifierMod.notifier({ file, config: () => CFG, send: f.send, token: () => null, warn: () => {}, clear: async (_c: unknown, sequence: string) => void cleared.push(sequence) } as never);
   const forward = { id: "0001", title: "T", head: "a".repeat(40), need: need("review", "The PM asks you: merge PR #7", "2026-11-22T12:00:00Z", { pr: 7, via: "forwarded" }) };
-  const b = { ...boardOf([]), programmes: [{ slug: "w", title: "W", section: "needs", thread: "pm-thread", link: "http://127.0.0.1:3773/env1/pm-thread", need: null, forwards: [forward] }] } as unknown as Board;
+  const b = { ...boardOf([]), programmes: [{ slug: "w", title: "W", section: "needs", thread: "pm-thread", link: "http://127.0.0.1:3773/env1/pm-thread", need: null, asks: [], forwards: [forward] }] } as unknown as Board;
   notify(b);
   await notify.idle();
   notify(b);

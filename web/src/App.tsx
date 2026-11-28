@@ -5,7 +5,7 @@ import { Md } from "./Md.tsx";
 import { TAG_COLOURS } from "./palette.ts";
 import { copyText, type CopyEnv } from "../../src/board/copy.ts";
 import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
-import { LANE_LABEL, ageText, cardMarks, leadOf, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
+import { LANE_LABEL, ageText, cardMarks, leadOf, questionsIn, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
 import { DONE_PAGE, doneAsks, doneNewestFirst, stillAsks } from "../../src/board/model.ts";
@@ -14,6 +14,8 @@ import type { ProgrammeResume } from "../../src/board/programme.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
 import { CLOSED_PAGE, requestCount, type RequestRow, type RequestsView } from "../../src/board/record.ts";
 import { QuestionsPanel } from "./Questions.tsx";
+import { CardActions, RefreshContext } from "./Close.tsx";
+import { OUTCOME_LABEL, outcomeText, splitQuestions } from "../../src/board/question-list.ts";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard, type TaggedProgramme } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
@@ -89,7 +91,7 @@ function Icon({ tip, children, className = "" }: { tip: string; children: ReactN
         </span>
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">
+        <Tooltip.Content sideOffset={4} className="z-[60] max-w-sm whitespace-pre-line rounded bg-slate-800 px-2 py-1 text-xs text-white">
           {tip}
         </Tooltip.Content>
       </Tooltip.Portal>
@@ -99,7 +101,15 @@ function Icon({ tip, children, className = "" }: { tip: string; children: ReactN
 
 const svg = { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true } as const;
 
-function ReasonMark({ kind, tooltip }: { kind: string; tooltip: string }) {
+function ReasonMark({ kind, tooltip, count }: { kind: string; tooltip: string; count?: number }) {
+  if (count !== undefined) {
+    // Several questions, Details off: the ? icon with their count, whichever the oldest is.
+    return (
+      <Icon tip={tooltip} className="relative rounded-full bg-amber-500 text-[11px] font-bold text-white">
+        ?<sup aria-hidden className="absolute -top-1.5 left-2.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full border border-amber-500 bg-white px-0.5 text-[9.5px] text-slate-900">{count}</sup>
+      </Icon>
+    );
+  }
   if (kind === "question") {
     return <Icon tip={tooltip} className="rounded-full bg-amber-500 text-[11px] font-bold text-white">?</Icon>;
   }
@@ -147,7 +157,7 @@ function Marks({ marks }: { marks: Marks }) {
   return (
     <span className="inline-flex flex-none items-center gap-1.5">
       {marks.reasons.map((r) => (
-        <ReasonMark key={r.kind} kind={r.kind} tooltip={r.tooltip} />
+        <ReasonMark key={r.kind} kind={r.kind} tooltip={r.tooltip} {...(r.count === undefined ? {} : { count: r.count })} />
       ))}
       {marks.paused !== null && (
         <Icon tip={marks.paused.tooltip} className={PAUSE_TONE[marks.paused.state].icon}>
@@ -225,8 +235,9 @@ function PmLine({ pm }: { pm: PmHandling }) {
 
 const toneOf = (need: Need): string => NEED_TONE[need.kind === "review" ? "review" : need.kind === "checks failed" || need.kind === "stalled" || (need.kind === "limit" && need.text.startsWith("Pause failed")) ? "bad" : "wait"];
 
-/** One line saying what the user needs to do, with its age; on a braid card also which strand it comes from. */
-function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?: boolean; className?: string }) {
+/** One line saying what the user needs to do, with its age; on a braid card also which strand it comes from. A request has Dismiss (and a look Acknowledge) in its box, with `footer` before them. */
+function NeedLine({ need, braid = false, className = "", footer }: { need: Need; braid?: boolean; className?: string; footer?: ReactNode }) {
+  const project = useContext(ProjectContext);
   const parts = [
     braid && need.more > 0 ? `+${need.more} more in strands` : null,
     braid ? (need.who === null ? "braid, no strand involved" : `strand ${need.who}`) : null,
@@ -237,9 +248,70 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
       {need.code !== undefined && <><CodeChip code={need.handle ?? need.code} />{" "}<BlockLine blocks={need.blocks} act={need.act} /><br /></>}
       {need.text}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
+      {need.code !== undefined && <CardActions project={project} handle={need.handle ?? need.code} look={need.kind === "look"}>{footer}</CardActions>}
       {parts.length > 0 && <small className="mt-px block text-[11px] text-slate-500">{parts.join(" · ")}</small>}
       {need.also !== undefined && <NeedLine need={need.also} />}
     </div>
+  );
+}
+
+/** Whether an item's open requests put the Merge button in the handover's box: a handover with questions beside it. */
+const mergeInBox = (asks: readonly Need[]): boolean => asks.some((n) => n.kind === "review") && questionsIn(asks).length > 0;
+
+/**
+ * What one item's open requests say on a card (0084/C): a handover's line with its Merge button above the questions, the
+ * oldest question, then "+N more" with the other names, which opens the Requests tab. `need` is what the card shows (on a braid
+ * card with the strand it is of and how many more strands ask); `asks` are that item's requests.
+ */
+function ItemNeeds({ id, need, asks, merge, braid = false, className = "" }: { id: string; need: Need; asks: readonly Need[]; merge: MergeInfo | null; braid?: boolean; className?: string }) {
+  const project = useContext(ProjectContext);
+  const questions = questionsIn(asks);
+  const first = questions[0];
+  // A stall or a limit is no request, and a handover alone is the card's line as ever.
+  if (need.code === undefined || first === undefined) {
+    return <NeedLine need={need} braid={braid} className={className} />;
+  }
+  const review = asks.find((n) => n.kind === "review");
+  const others = questions.slice(1);
+  const lead: Need = { ...first, who: need.who, more: need.more, ...(need.also === undefined ? {} : { also: need.also }) };
+  const where = braid ? [need.more > 0 ? `+${need.more} more in strands` : null, need.who === null ? "braid, no strand involved" : `strand ${need.who}`].filter((p) => p !== null).join(" · ") : "";
+  return (
+    <div className={className}>
+      {review !== undefined && <NeedLine need={review} footer={<MergeButton id={id} merge={merge} />} />}
+      <NeedLine need={lead} braid={braid && others.length === 0} />
+      {others.length > 0 && (
+        <>
+          <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-slate-500">
+            <button
+              type="button"
+              data-opens-details
+              onClick={(e) => {
+                e.stopPropagation();
+                go(id, "requests", project);
+              }}
+              className="cursor-pointer font-bold text-blue-700 max-md:min-h-11"
+            >
+              +{others.length} more
+            </button>
+            {others.map((n) => <CodeChip key={n.code} code={n.handle ?? n.code ?? ""} />)}
+          </div>
+          {braid && <small className="ml-2 block text-[11px] text-slate-500">{where}</small>}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** What a braid card says: the most urgent item's requests, and the PM's own request on another one. */
+function BraidNeeds({ braid, asksDone }: { braid: TaggedCard; asksDone: (who: string | null) => boolean }) {
+  const need = braid.need;
+  const item = need === null ? null : need.who === null ? braid : (braid.strands.find((s) => s.id === need.who) ?? braid);
+  const pm = braid.pmAsk;
+  return (
+    <>
+      {need !== null && item !== null && !asksDone(need.who) && <ItemNeeds id={need.who ?? braid.id} need={need} asks={item.asks} merge={item.merge} braid={braid.total > 0 || need.who !== null} />}
+      {pm !== null && (need === null || pm.who !== need.who) && !asksDone(pm.who) && <NeedLine need={pm} />}
+    </>
   );
 }
 
@@ -894,12 +966,10 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
           </span>
         </div>
       )}
-      {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && !asksDone(braid.need.who) && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
-      {details && !open && braid.pmAsk !== null && braid.need?.by !== "pm" && !asksDone(braid.pmAsk.who) && <NeedLine need={braid.pmAsk} />}
+      {details && !open && (braid.lane === "Waiting" || braid.lane === "In Review") && <BraidNeeds braid={braid} asksDone={asksDone} />}
       {!open && asking.map((s) => (
         <div key={s.id}>
-          {s.need !== null && <NeedLine need={{ ...s.need, who: s.id }} braid />}
-          {s.pmAsk !== null && s.need?.by !== "pm" && <NeedLine need={{ ...s.pmAsk, who: s.id }} braid />}
+          {s.need !== null && <ItemNeeds id={s.id} need={{ ...s.need, who: s.id }} asks={s.asks} merge={s.merge} braid />}
         </div>
       ))}
       {details && !open && braid.pm !== null && <PmLine pm={braid.pm} />}
@@ -925,9 +995,8 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
               </span>
               <PrLink pr={s.pr} />
               <Marks marks={strandMarks(s, details)} />
-              <span onClick={(e) => e.stopPropagation()}><Actions id={s.id} lane={s.lane} thread={s.thread} threadRole={s.threadRole} merge={s.merge} /></span>
-              {details && s.need !== null && <NeedLine need={s.need} className="ml-[34px] basis-full" />}
-              {details && s.pmAsk !== null && s.need?.by !== "pm" && <NeedLine need={s.pmAsk} className="ml-[34px] basis-full" />}
+              <span onClick={(e) => e.stopPropagation()}><Actions id={s.id} lane={s.lane} thread={s.thread} threadRole={s.threadRole} merge={details && mergeInBox(s.asks) ? null : s.merge} /></span>
+              {details && s.need !== null && <ItemNeeds id={s.id} need={s.need} asks={s.asks} merge={s.merge} className="ml-[34px] basis-full" />}
             </div>
           ))}
         </div>
@@ -935,7 +1004,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
       {(braid.coordinator?.warning ?? launched?.warning ?? null) !== null && <Warn>{braid.coordinator?.warning ?? launched?.warning}</Warn>}
       <div className="mt-2 flex min-h-6 items-center justify-end gap-1.5">
         {resumeOnCard(braid.pause, braid.lane) && <span onClick={(e) => e.stopPropagation()}><BraidResume id={braid.id} pause={braid.pause} /></span>}
-        <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.total === 0 ? braid.thread : null} threadRole={braid.threadRole} coordinator={braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
+        <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.total === 0 ? braid.thread : null} threadRole={braid.threadRole} coordinator={braid.coordinator?.link ?? null} merge={details && !open && braid.need?.who === null && mergeInBox(braid.asks) ? null : braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
       </div>
     </div>
     </ProjectContext>
@@ -1204,8 +1273,7 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
             {stillAsks(b) && (
               <ProjectContext value={b.project}>
                 <div className="px-1 pb-1.5">
-                  {b.need !== null && <NeedLine need={b.need} braid={b.total > 0 || b.need.who !== null} />}
-                  {b.pmAsk !== null && b.need?.by !== "pm" && <NeedLine need={b.pmAsk} />}
+                  <BraidNeeds braid={b} asksDone={() => false} />
                 </div>
               </ProjectContext>
             )}
@@ -1301,7 +1369,34 @@ function Board({ data, details }: { data: { readonly lanes: readonly Lane[]; rea
   );
 }
 
+/** The details' banner with several open requests of the coordinator: each of them, then one closing sentence (0084/C). */
+function SeveralAsks({ asks }: { asks: readonly Need[] }) {
+  const oldest = asks[0];
+  if (asks.length < 2 || oldest === undefined) {
+    return null;
+  }
+  return (
+    <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(asks.find((n) => n.kind !== "review") ?? oldest)}`}>
+      <b className="block text-xs uppercase tracking-wide">Needs you · {asks.length} open · oldest {ageText(oldest).replace(/^asked | ago$/g, "")}</b>
+      {asks.map((n) => (
+        <div key={n.code} className="border-b border-black/10 py-1.5">
+          {n.code !== undefined && <CodeChip code={n.handle ?? n.code} />}{" "}<BlockLine blocks={n.blocks} act={n.act} /> <span className="text-[11px] text-slate-500">· {ageText(n)}</span>
+          <br />
+          {n.text}
+          <br />
+          <AskingLink link={n.asking ?? null} />
+        </div>
+      ))}
+      <div className="mt-1.5 text-[11px] text-slate-500">Answer in the Questions panel or the coordinator thread. Say a question's name in any thread to refer to it.</div>
+    </div>
+  );
+}
+
 function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
+  // One banner each for an alarm (a stall, a limit) and a lone request of the coordinator's; several of those share one box below.
+  const mine = item.asks.filter((n) => n.by !== "pm");
+  const banners = [...(item.need !== null && item.need.code === undefined ? [item.need] : []), ...(mine.length === 1 ? mine : [])];
+  const also = item.need?.also;
   const project = useContext(ProjectContext);
   const rows: [string, string][] = [
     ["Stored status", item.status],
@@ -1330,25 +1425,26 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
         <Actions id={item.id} lane={item.lane} thread={item.id.includes("/") || item.braid.total === 0 ? item.thread : null} threadRole={item.threadRole} coordinator={item.id.includes("/") ? null : item.braid.coordinator?.link ?? null} merge={item.merge} start={item.id.includes("/") ? null : item.braid.start} />
       </div>
       {!item.id.includes("/") && item.braid.coordinator?.warning != null && <Warn>{item.braid.coordinator.warning}</Warn>}
-      {item.need !== null && (
-        <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.need)}`}>
-          <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
-          {item.need.code !== undefined && <><CodeChip code={item.need.handle ?? item.need.code} />{" "}<BlockLine blocks={item.need.blocks} act={item.need.act} /><br /></>}
-          {item.need.text}
-          {item.need.also !== undefined && <div className={`mt-2 rounded-md border-l-[3px] px-1.5 py-1 ${toneOf(item.need.also)}`}>{item.need.also.text}</div>}
-          {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.handle ?? item.need.code}</b> in any thread to refer to it.</span></div>}
-          <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind !== "limit" && item.lane === "Done" ? "This item is Done, but the request is still open: answer it in the coordinator thread." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
+      {banners.map((need) => (
+        <div key={need.code ?? need.text} className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(need)}`}>
+          <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(need) === "" ? "" : ` · ${ageText(need)}`}</b>
+          {need.code !== undefined && <><CodeChip code={need.handle ?? need.code} />{" "}<BlockLine blocks={need.blocks} act={need.act} /><br /></>}
+          {need.text}
+          {need === banners[0] && also !== undefined && <div className={`mt-2 rounded-md border-l-[3px] px-1.5 py-1 ${toneOf(also)}`}>{also.text}</div>}
+          {need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{need.handle ?? need.code}</b> in any thread to refer to it.</span></div>}
+          <div className="mt-1.5 text-[11px] text-slate-500">{need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : need.kind !== "limit" && item.lane === "Done" ? "This item is Done, but the request is still open: answer it in the coordinator thread." : need.kind === "limit" ? (need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
-      )}
-      {item.pmAsk !== null && item.need?.by !== "pm" && (
-        <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.pmAsk)}`}>
-          <b className="mb-0.5 block text-xs uppercase tracking-wide">Needs you · from the PM{ageText(item.pmAsk) === "" ? "" : ` · ${ageText(item.pmAsk)}`}</b>
-          {item.pmAsk.code !== undefined && <><CodeChip code={item.pmAsk.handle ?? item.pmAsk.code} />{" "}<BlockLine blocks={item.pmAsk.blocks} act={item.pmAsk.act} /><br /></>}
-          {item.pmAsk.text}
-          {item.pmAsk.code !== undefined && <div className="mt-2"><AskingLink link={item.pmAsk.asking ?? null} /></div>}
+      ))}
+      <SeveralAsks asks={item.asks.filter((n) => n.by !== "pm")} />
+      {item.asks.filter((n) => n.by === "pm").map((pm) => (
+        <div key={pm.code} className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(pm)}`}>
+          <b className="mb-0.5 block text-xs uppercase tracking-wide">Needs you · from the PM{ageText(pm) === "" ? "" : ` · ${ageText(pm)}`}</b>
+          {pm.code !== undefined && <><CodeChip code={pm.handle ?? pm.code} />{" "}<BlockLine blocks={pm.blocks} act={pm.act} /><br /></>}
+          {pm.text}
+          {pm.code !== undefined && <div className="mt-2"><AskingLink link={pm.asking ?? null} /></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">Answer in the PM thread; the card leaves Needs You when the PM closes the request.</div>
         </div>
-      )}
+      ))}
       {item.pm !== null && (
         <div role="note" className="my-3.5 max-w-[75ch] rounded-lg border-l-[3px] border-teal-700 bg-teal-50 px-3.5 py-2.5 text-teal-900">
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.pm.forwarded === true ? "Asked of you through the PM" : "For the PM"} · {item.pm.age} ago</b>
@@ -1418,7 +1514,7 @@ function RequestCard({ row }: { row: RequestRow }) {
   const state = REQUEST_STATE[row.state];
   // A wait (to a braid, or timed) is nobody's decision.
   const wait = /^\d{4}$/.test(row.to) || row.to === "self";
-  const label = end !== null && row.state === "answered" && !wait ? `decided by ${WHO[end.by] ?? end.by}` : state.label;
+  const label = row.outcome !== null ? OUTCOME_LABEL[row.outcome] : end !== null && row.state === "answered" && !wait ? `decided by ${WHO[end.by] ?? end.by}` : state.label;
   return (
     <div className="my-2 max-w-[75ch] rounded-lg border border-slate-200 px-3 py-2 text-[13.5px]">
       <div className="flex flex-wrap items-center gap-1.5">
@@ -1433,7 +1529,8 @@ function RequestCard({ row }: { row: RequestRow }) {
       <div className={`mt-1 ${row.mark === null ? "" : `rounded-md border-l-[3px] px-1.5 py-1 ${NEED_TONE.wait}`}`}>
         {row.mark === null ? row.text : `${row.mark.words} ${row.text}${row.mark.why}`}
       </div>
-      {end?.text != null && (
+      {row.outcome !== null && <div className={`mt-1.5 rounded border-l-[3px] bg-slate-50 px-2 py-1 text-[13px] ${row.outcome === "acknowledged" ? "border-green-600" : "border-slate-400 text-slate-700"}`}>{outcomeText(row.outcome, row.handle)}</div>}
+      {row.outcome === null && end?.text != null && (
         <div className={`mt-1.5 rounded border-l-[3px] bg-slate-50 px-2 py-1 text-[13px] ${row.state === "answered" ? "border-green-600" : "border-slate-400 text-slate-700"}`}>
           <b>{row.state === "answered" ? "Answer: " : row.state === "met" ? "Met: " : `Withdrawn by ${WHO[end.by] ?? end.by}: `}</b>
           {end.text}
@@ -1982,11 +2079,12 @@ function optionLines(text: string): { head: string; options: string[] } {
 /** The requests of a programme's braids that are the user's, forwarded or not, oldest first. */
 const asked = (p: TaggedProgramme) => [...p.forwards, ...p.requests].sort((a, b) => (a.need.since ?? "").localeCompare(b.need.since ?? ""));
 
-/** A programme's need: the PM's request with its options, or the stall with what the board saw; then its braids' requests. */
+/** A programme's needs: each of the PM's requests with its options, or the stall with what the board saw; then its braids' requests. */
 function ProgrammeNeed({ p }: { p: TaggedProgramme }) {
   return (
     <>
-      {p.need !== null && <OneNeed p={p} need={p.need} />}
+      {p.asks.map((need) => <OneNeed key={need.code} p={p} need={need} />)}
+      {p.need?.kind === "stalled" && <OneNeed p={p} need={p.need} />}
       {asked(p).map((f) => (
         <OneNeed key={`${f.id} ${f.need.code}`} p={p} need={f.need} item={f.id} />
       ))}
@@ -2371,6 +2469,60 @@ function useFilters(served: readonly string[], keys: readonly string[] | null): 
   };
 }
 
+/** The phone's two views (0084/C): the lanes, or the Questions panel full screen. Desktop shows both side by side. */
+type PhoneView = "board" | "requests";
+
+const PHONE_VIEW_KEY = "braid-phone-view";
+
+/**
+ * The phone view: the last one used on this device (local storage); the first time, Requests if something waits on the user
+ * at the first read, else Board. Decided once, so answering the last request doesn't switch the tab by itself.
+ */
+function usePhoneView(ready: boolean, waiting: number): [PhoneView, (view: PhoneView) => void] {
+  const [chosen, setChosen] = useState<PhoneView | null>(() => {
+    try {
+      const kept = localStorage.getItem(PHONE_VIEW_KEY);
+      return kept === "board" || kept === "requests" ? kept : null;
+    } catch {
+      return null;
+    }
+  });
+  const [first, setFirst] = useState<PhoneView | null>(null);
+  if (chosen === null && first === null && ready) {
+    setFirst(waiting > 0 ? "requests" : "board");
+  }
+  return [chosen ?? first ?? "board", (view) => {
+    try {
+      localStorage.setItem(PHONE_VIEW_KEY, view);
+    } catch {
+      // not remembered: still applied
+    }
+    setChosen(view);
+  }];
+}
+
+/** The two-way switch under the project selector (under the header with one project); Requests counts what waits on the user, red when one is escalated. */
+function PhoneSwitch({ view, setView, waiting, escalated }: { view: PhoneView; setView: (view: PhoneView) => void; waiting: number; escalated: boolean }) {
+  const tab = (name: PhoneView, label: string, count: number) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={view === name}
+      onClick={() => setView(name)}
+      className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg font-bold ${view === name ? "bg-white text-slate-900 shadow" : "text-slate-500"}`}
+    >
+      {label}
+      {count > 0 && <span className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-extrabold text-white ${escalated ? "bg-red-600" : "bg-amber-500"}`}>{count}</span>}
+    </button>
+  );
+  return (
+    <div role="tablist" aria-label="Board or requests" className="mx-3.5 mt-2.5 flex gap-1 rounded-xl border border-slate-200 bg-slate-200 p-1 md:hidden">
+      {tab("board", "Board", 0)}
+      {tab("requests", "Requests", waiting)}
+    </div>
+  );
+}
+
 export function App() {
   const route = useRoute();
   const [details, setDetails] = useDetails();
@@ -2395,6 +2547,8 @@ export function App() {
   const board = all.state === "ready" ? { lanes: all.data.lanes, braids: all.data.braids.filter((b) => selected.includes(b.project) && (only === null || (b.project === only.project && only.braids.includes(b.id)))) } : null;
   const panel = programmes.some((p) => p.section !== null) || only !== null;
   const sides = useSidePanels(panel);
+  const waiting = splitQuestions(questions).ranked;
+  const [view, setView] = usePhoneView(all.state === "ready", waiting.length);
   const inbox = mergeInbox(shown);
   // One project served keeps the page as it was: its notes in the header, its problems in a banner.
   const single = infos.length === 1 ? infos[0] : undefined;
@@ -2409,6 +2563,7 @@ export function App() {
     <RemoteContext value={all.state !== "ready" || all.data.remote}>
     <ScopeContext value={scope}>
     <FilterContext value={{ key: programme, set: setProgramme }}>
+    <RefreshContext value={refresh}>
     <Tooltip.Provider>
       <div className="min-h-screen bg-slate-100 text-sm text-slate-900">
         <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-white px-5 py-2.5">
@@ -2458,6 +2613,7 @@ export function App() {
             <b>The latest read failed:</b> {single.failure}. {single.readAt === null ? "No board has been read yet." : `This is the board read ${ageOf(single.ageMs)} ago.`}
           </div>
         )}
+        {!route.inbox && all.state === "ready" && <PhoneSwitch view={view} setView={setView} waiting={waiting.length} escalated={waiting.some((q) => q.rank === "escalated")} />}
         {route.inbox ? (
           <Status loaded={all}>{() => <InboxPage inbox={inbox} />}</Status>
         ) : (
@@ -2466,12 +2622,12 @@ export function App() {
               board === null ? null : (
                 <div className="flex items-stretch max-md:flex-col">
                   {panel && <ProgrammesPanel list={programmes} open={sides.open.programmes} setOpen={(on) => sides.set("programmes", on)} />}
-                  <div className="min-w-0 flex-1">
+                  <div className={`min-w-0 flex-1 ${view === "board" ? "" : "max-md:hidden"}`}>
                     {panel && <PhoneProgrammes list={programmes} />}
                     {only !== null && <FilterBar p={only} count={board.braids.length} />}
                     <Board data={board} details={details} />
                   </div>
-                  <QuestionsPanel questions={questions} decided={decided} open={sides.open.questions} setOpen={(on) => sides.set("questions", on)} refresh={refresh} />
+                  <QuestionsPanel questions={questions} decided={decided} open={sides.open.questions} setOpen={(on) => sides.set("questions", on)} refresh={refresh} phone={view === "requests"} />
                 </div>
               )
             }
@@ -2481,6 +2637,7 @@ export function App() {
         {route.id !== null && resolved !== null && all.state === "ready" && <DetailsPanel id={route.id} tab={route.tab} project={"name" in resolved ? resolved.name : ""} unknown={"unknown" in resolved ? resolved.unknown : null} tick={tick} />}
       </div>
     </Tooltip.Provider>
+    </RefreshContext>
     </FilterContext>
     </ScopeContext>
     </RemoteContext>

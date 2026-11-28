@@ -158,7 +158,7 @@ test("the compass mark and the Merge button: a request the PM handles shows 🧭
 });
 
 const board = (card: object): any => ({ repo: "agento", github: { state: "ok" }, t3: { state: "ok" }, braids: [card] });
-const cardOf = (d: any): any => ({ id: "0001", title: "T", lane: d.lane, need: d.need, pm: d.pm, thread: null, pr: null, strands: [], coordinator: { link: "http://127.0.0.1:3773/env1/thread1" } });
+const cardOf = (d: any): any => ({ id: "0001", title: "T", lane: d.lane, need: d.need, asks: d.asks ?? [], pm: d.pm, thread: null, pr: null, strands: [], coordinator: { link: "http://127.0.0.1:3773/env1/thread1" } });
 
 test("a request the PM handles is never pushed; an escalation or forward is pushed once at high priority, a handover too", () => {
   const handled = derive("In Progress", gh(), t3(), sig([request("question", 3)]));

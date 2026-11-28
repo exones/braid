@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// The board with several open requests on one item (0084/F): a card shows one per asker, and none of the others is lost.
+// The board with several open requests on one item (0084/F, 0084/C): a card shows the oldest question, and none of the others is lost.
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const model: any = await load("../dist/board/model.js");
@@ -55,12 +55,13 @@ test("an escalated question is shown over a younger one still with the PM", () =
   assert.equal(b.braids[0].need.via, "timeout");
 });
 
-test("the Questions panel and the Requests tab list every open question; the card shows the newest", () => {
+test("the Questions panel and the Requests tab list every open question; the card shows the oldest", () => {
   const open = [req("0001", "question", 30), req("0001", "decision", 20), req("0001", "question", 10, { by: "pm" }), req("0001", "question", 5, { by: "pm" })];
   const b = boardOf(open);
   assert.deepEqual(b.questions.map((q: any) => q.code).sort(), open.map((r) => r.code).sort());
-  assert.equal(b.braids[0].need.code, open[1].code);
-  assert.equal(b.braids[0].pmAsk.code, open[3].code);
+  assert.equal(b.braids[0].need.code, open[0].code);
+  assert.equal(b.braids[0].pmAsk.code, open[2].code);
+  assert.deepEqual(b.braids[0].asks.map((n: any) => n.code), open.map((r) => r.code));
   const detail = model.toDetail({ read: () => null }, BRAIDS[0], BRAIDS[0], gh, t3, signalsOf(open));
   assert.deepEqual(detail.requests.open.map((r: any) => r.code).sort(), open.map((r) => r.code).sort());
 });
@@ -79,10 +80,13 @@ test("a forwarded question stays on the programme and pushes when a newer one is
   }
 });
 
-test("a question after a review hides the card's Merge button; the Questions panel keeps it", () => {
+test("a question after a review: Needs You, the Merge button kept (D122)", () => {
   const review = req("0001", "review", 20, { pr: 7, head: HEAD });
-  const b = boardOf([review, req("0001", "question", 5)]);
-  assert.equal(b.braids[0].merge, null);
+  const question = req("0001", "question", 5);
+  const b = boardOf([review, question]);
+  assert.equal(b.braids[0].lane, "Waiting");
+  assert.equal(b.braids[0].need.code, question.code);
+  assert.equal(b.braids[0].merge.pr, 7);
   assert.equal(b.questions.find((q: any) => q.code === review.code).merge.pr, 7);
 });
 

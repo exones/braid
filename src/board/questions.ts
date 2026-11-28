@@ -1,7 +1,7 @@
 // What the Questions panel lists for one project (docs/board.md, "The Questions panel"): every open request that reaches the
 // user, routed as the cards route it (one the PM is still handling isn't listed), with its rank and who asks; and Decided, the
 // answered requests of braids and programmes. Pure: it reads the signals, the cards, GitHub and T3, and writes nothing.
-import { actOf, age, askerOf, closing, handleOf, isWait, programmeOf, type Act, type Kind, type Request } from "../braids/requests.js";
+import { actOf, age, askerOf, closing, handleOf, isWait, outcomeOf, programmeOf, type Act, type Kind, type Request } from "../braids/requests.js";
 import type { Github } from "./github.js";
 import { linkOfThread, mergeOf, type BraidCard, type MergeInfo, type Signals } from "./model.js";
 import { routeOf, viaNote } from "./pm.js";
@@ -51,6 +51,8 @@ export interface Decided {
   readonly who: string;
   readonly answer: string;
   readonly by: "user" | "pm";
+  /** The user closed it without an answer: seen (a look) or dismissed; null for an answer. */
+  readonly outcome: "acknowledged" | "dismissed" | null;
   /** The PM's reason, when the PM answered. */
   readonly reason: string | null;
   /** When it was answered (ISO). */
@@ -154,13 +156,14 @@ export function questionsOf(cards: readonly BraidCard[], programmes: readonly Pr
   return rankQuestions(out);
 }
 
-/** The requests the user or the PM answered, braids' and programmes', newest answer first; waits ask neither and are left out. */
+/** The requests the user or the PM answered, and the ones the user acknowledged or dismissed, braids' and programmes', newest first; waits ask neither and are left out. */
 export function decidedOf(cards: readonly BraidCard[], programmes: readonly Programme[], sig: Signals): Decided[] {
   const byId = new Map(cards.map((c) => [c.id, c]));
   const tags = programmeOfBraid(programmes);
   return (sig.closed ?? [])
     .flatMap((r): Decided[] => {
-      const end = r.state === "answered" ? closing(r) : null;
+      const outcome = outcomeOf(r);
+      const end = r.state === "answered" || outcome === "dismissed" ? closing(r) : null;
       if (end === null || (end.by !== "user" && end.by !== "pm") || isWait(r)) {
         return [];
       }
@@ -172,8 +175,9 @@ export function decidedOf(cards: readonly BraidCard[], programmes: readonly Prog
         programme: slug,
         text: questionText(r, slug ?? titleOf(byId, r.id)),
         who: whoOf(r, byId, tags, false),
-        answer: end.text ?? "",
+        answer: outcome === null ? (end.text ?? "") : "",
         by: end.by,
+        outcome,
         reason: end.reason ?? null,
         at: end.at,
       }];

@@ -131,7 +131,7 @@ test("a look request opens, lists and answers; it reads as a look, never as a de
   assert.equal(record(w.root, code).state, "answered");
   // The PM's own look pushes at default priority too.
   Cmd.askCommand(w.root, ["0001", "FYI: billing moved", "--by", "pm", "--kind", "look", "--thread", "11111111-aaaa-4bbb-8ccc-222222222222"], w.opts);
-  const pm = message.pushesOf(model.toBoard("agento", [braid("0001"), braid("0002")], github, t3, readSignals(w.root, github))).find((p: any) => p.item === "0001#pm");
+  const pm = message.pushesOf(model.toBoard("agento", [braid("0001"), braid("0002")], github, t3, readSignals(w.root, github))).find((p: any) => p.item.startsWith("0001#") && p.title.endsWith("the PM asks"));
   assert.deepEqual([pm.tags, pm.priority], [["compass"], "default"]);
 });
 

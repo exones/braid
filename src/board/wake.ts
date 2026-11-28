@@ -22,7 +22,7 @@ import { gitAsync } from "../braids/gitio.js";
 import { loadLifecycle, loadLifecycleAsync, withStatuses } from "../braids/lifecycle.js";
 import { loadPauses } from "../braids/pauses.js";
 import type { PullRequest } from "./github.js";
-import { answerWoken, askerOf, closing, conditionEnding, endRequestAsync, handleOf, loadRecordAsync, markAnswerWokenAsync, programmeOf, type Ending, type Request, type RequestEvent } from "../braids/requests.js";
+import { answerWoken, askerOf, closing, conditionEnding, DISMISSED, endRequestAsync, handleOf, loadRecordAsync, markAnswerWokenAsync, outcomeOf, programmeOf, type Ending, type Request, type RequestEvent } from "../braids/requests.js";
 import type { PlanRead } from "./plans.js";
 import type { Good } from "./feed.js";
 import { prOf } from "./signals.js";
@@ -79,7 +79,11 @@ const ANSWERER: Readonly<Record<RequestEvent["by"], string>> = { user: "the user
  * role never wakes itself; the user's answer wakes a coordinator only on a request that went through the PM (`to: pm` or
  * forwarded), where the PM records it; a request straight to the user is answered in the asker's thread. Null otherwise.
  */
-export function answerFromElsewhere(r: Pick<Request, "state" | "events" | "by" | "to" | "forwarded">): RequestEvent | null {
+export function answerFromElsewhere(r: Pick<Request, "state" | "kind" | "events" | "by" | "to" | "forwarded">): RequestEvent | null {
+  // A dismissal is the user's, outside the asking thread, whoever the request was for.
+  if (outcomeOf(r) === "dismissed") {
+    return closing(r);
+  }
   const e = r.state === "answered" ? closing(r) : null;
   if (e === null || e.event !== "answered" || e.by === askerOf(r)) {
     return null;
@@ -90,12 +94,18 @@ export function answerFromElsewhere(r: Pick<Request, "state" | "events" | "by" |
   return e;
 }
 
-/** What the asking thread is sent when its request was answered elsewhere. */
-export function answerWakeMessage(r: Pick<Request, "code" | "words">, e: Pick<RequestEvent, "by" | "text" | "reason">): string {
+/** What the asking thread is sent when its request was answered elsewhere, or dismissed. */
+export function answerWakeMessage(r: Pick<Request, "code" | "words">, e: Pick<RequestEvent, "event" | "by" | "text" | "reason">): string {
+  if (e.event === "withdrawn" && e.by === "user" && e.text === DISMISSED) {
+    return `Wake: ${handleOf(r)} ${DISMISSED}; if you still need it, ask again with what changed.`;
+  }
   const said = e.text === undefined ? "" : safeText(e.text);
   const reason = e.reason === undefined ? "" : safeText(e.reason);
   return `Wake: ${handleOf(r)} answered by ${ANSWERER[e.by]}${said === "" ? "" : `: ${said}`}${reason === "" ? "" : ` (reason: ${reason})`}. Recap it in one line, then act.`;
 }
+
+/** The event of a request closed on the page that its asker hears of: the answer, or a dismissal. */
+const pageEnding = (r: Request): RequestEvent | null => (r.state === "answered" || outcomeOf(r) === "dismissed" ? closing(r) : null);
 
 /** Whether a request on a programme item (`pm/<slug>`) belongs to a held or paused programme: the plan is held, or every braid of it still open is held or paused. */
 export function programmeHeld(r: Pick<Request, "id">, plans: readonly PlanRead[] | undefined, held: ReadonlyMap<string, unknown>): boolean {
@@ -148,7 +158,7 @@ const pausedNow = (root: string, r: Pick<Request, "id">): boolean => loadPauses(
  * held or paused, or a failed send; the last two are sent by the waker at a later refresh. `why` says which.
  */
 export async function wakePageAnswer(t3: T3Runner, root: string, r: Request, at: Date, archived = false): Promise<{ readonly woken: boolean; readonly why: string | null }> {
-  const e = r.state === "answered" ? closing(r) : null;
+  const e = pageEnding(r);
   if (e === null || r.thread === null || archived) {
     return { woken: false, why: r.thread === null ? "the request names no asking thread" : archived ? "the asking thread is archived" : "the request isn't answered" };
   }
@@ -233,7 +243,7 @@ export function waker(t3: T3Runner): Waker {
         continue;
       }
       // An answer from the board's page whose wake is still due goes whoever the request was for, and whatever its age.
-      const fromPage = page === "due" && r.state === "answered" ? closing(r) : null;
+      const fromPage = page === "due" ? pageEnding(r) : null;
       const e = fromPage ?? answerFromElsewhere(r);
       if (e === null || r.thread === null || archived(r) || answerWoken(r) || !live(r) || (fromPage === null && !(Date.parse(e.at) >= since))) {
         if (fromPage !== null && (r.thread === null || archived(r) || answerWoken(r))) {

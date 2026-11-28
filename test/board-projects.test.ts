@@ -186,8 +186,8 @@ test("pushes for both projects come from one board, each with its keys in its ow
   assert.ok(sent.some((t) => t.startsWith("demo ")), sent.join("; "));
   assert.ok(sent.some((t) => /^api 0001\/B: /.test(t)), sent.join("; "));
   const keys = folders.map((f) => Object.keys((JSON.parse(readFileSync(join(f, "notified.json"), "utf8")) as { keys: Record<string, string> }).keys));
-  assert.ok(keys[1]!.some((k) => k.startsWith("0001/B|")), "api's key in api's file");
-  assert.ok(!keys[0]!.some((k) => k.startsWith("0001/B|Waiting|question")), "api's question key is not in demo's file");
+  assert.ok(keys[1]!.some((k) => k.startsWith("0001/B#")), "api's key in api's file");
+  assert.ok(!keys[0]!.some((k) => k.startsWith("0001/B#q-a001|")), "api's question key is not in demo's file");
 });
 
 test("failure mode: one project's read hangs; the other still refreshes and pushes, the hung one shows its failure and its snapshot's age", async () => {

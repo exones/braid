@@ -17,8 +17,10 @@ export type ReasonKind = "question" | "checks" | "stalled" | "ask" | "plan" | "l
 
 export interface ReasonIcon {
   readonly kind: ReasonKind;
-  /** The hover text and the aria-label. */
+  /** The hover text and the aria-label; several open questions are one line each. */
   readonly tooltip: string;
+  /** How many questions the icon stands for, with Details off and more than one open. */
+  readonly count?: number;
 }
 
 export interface ActivityIcon {
@@ -110,7 +112,20 @@ export function askTooltip(key: string): string {
   return `Will need your decision: ${key}`;
 }
 
-export type Row = Pick<StrandCard, "lane" | "reason" | "need" | "ask" | "pr" | "activity" | "pause" | "pm">;
+export type Row = Pick<StrandCard, "lane" | "reason" | "need" | "ask" | "pr" | "activity" | "pause" | "pm"> & { readonly asks?: StrandCard["asks"] };
+
+/** The questions of the open requests, oldest first: what a card shows one of, beside any handover. */
+export const questionsIn = (asks: readonly Need[]): Need[] => asks.filter((n) => n.kind !== "review");
+
+/** With several questions open, the tooltip names each; a braid card ends with where they are. */
+function severalTip(row: Row, questions: readonly Need[], braid: boolean): string {
+  const lines = questions.map((n) => `${n.handle === undefined ? "" : `${n.handle} `}${n.text}${ageText(n) === "" ? "" : ` — ${ageText(n)}`}`);
+  const need = row.need;
+  if (braid && need !== null) {
+    lines.push(`${need.more > 0 ? `+${need.more} more in strands · ` : ""}${need.who === null ? "braid, no strand involved" : `strand ${need.who}`}`);
+  }
+  return lines.join("\n");
+}
 
 const pmTip = (pm: Row["pm"]): string | null => (pm === null ? null : `${pm.text} · to the PM ${pm.age} ago`);
 
@@ -129,9 +144,11 @@ function ofRow(row: Row, details: boolean, braid: boolean): { reasons: ReasonIco
   }
   let review = row.lane === "In Review" ? reviewTip(row) : null;
   if (!details && row.need !== null) {
-    const tip = needTip(row.need, braid);
+    const questions = questionsIn(row.asks ?? []);
+    const several = questions.length > 1;
+    const tip = several ? severalTip(row, questions, braid) : needTip(row.need, braid);
     if (reasons[0] !== undefined && row.reason !== null) {
-      reasons[0] = { ...reasons[0], tooltip: tip };
+      reasons[0] = { ...reasons[0], tooltip: tip, ...(several ? { count: questions.length } : {}) };
     } else if (review !== null) {
       review = tip;
     }
@@ -155,7 +172,7 @@ export function cardMarks(card: BraidCard, details = true): Marks {
   if ((card.lane === "Waiting" || card.lane === "In Review") && card.need !== null) {
     const who = card.need.who;
     const source: Row = who === null ? card : (card.strands.find((s) => s.id === who) ?? card);
-    const row: Row = { lane: card.lane, reason: card.reason, need: card.need, ask: null, pr: source.pr, activity: null, pause: null, pm: null };
+    const row: Row = { lane: card.lane, reason: card.reason, need: card.need, ask: null, pr: source.pr, activity: null, pause: null, pm: null, asks: source.asks ?? [] };
     const { reasons, review } = ofRow(row, details, true);
     return { reasons: reasons.slice(0, 1), paused: null, pm: null, review, activities: [], done: false };
   }

@@ -5,7 +5,7 @@ import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
 import { fetchBranch, fetchBranchAsync, git } from "../braids/gitbranch.js";
 import { readFileSync } from "node:fs";
-import { addEvent, age, askerOf, BRAID_TO, closing, CODE, CONTEXT_MAX, conditionEnding, endRequest, endRequestAsync, OPTION_LETTERS, optionAnswer, optionLines, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRecordAsync, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { acknowledgeEnding, addEvent, age, askerOf, BRAID_TO, closing, CODE, CONTEXT_MAX, conditionEnding, dismissEnding, endRequest, endRequestAsync, OPTION_LETTERS, optionAnswer, optionLines, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRecordAsync, loadRequests, openRequest, outcomeOf, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import { readGithub, runGh, type GhRunner, type PullRequest } from "../board/github.js";
@@ -528,7 +528,7 @@ function answerText(values: Parameters<typeof str>[0]): string | undefined {
   return text === "" ? undefined : text;
 }
 
-const ANSWER_USAGE = "usage: braid answer <name|code>|<id>|pm/<slug> [<answer>|<option letter>] [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]  (a wait takes no --from: met when its condition holds)";
+const ANSWER_USAGE = "usage: braid answer <name|code>|<id>|pm/<slug> [<answer>|<option letter> | --ack | --dismiss] [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]  (--ack: the user saw a look or FYI; --dismiss: the user closes it without an answer; a wait takes no --from: met when its condition holds)";
 
 /** What a "done when" is checked against here: GitHub's PRs, and main as origin has it (offline, the last fetched one). */
 function conditions(root: string, requests: readonly Pick<Request, "doneWhen">[], run: GhRunner, now: Date): Conditions {
@@ -574,11 +574,18 @@ function waitEnding(root: string, r: Request, text: string | undefined, opts: Re
  * where it was. `--log` is the old name of `--file`.
  */
 export function answerCommand(root: string, _cwd: string, args: readonly string[], opts: RequestOptions = {}): string {
-  const { positionals, values } = parse("braid answer", args, { log: { type: "string" }, file: { type: "string" }, thread: { type: "string" }, by: { type: "string" }, from: { type: "string" }, reason: { type: "string" } });
+  const { positionals, values } = parse("braid answer", args, { log: { type: "string" }, file: { type: "string" }, thread: { type: "string" }, by: { type: "string" }, from: { type: "string" }, reason: { type: "string" }, ack: { type: "boolean" }, dismiss: { type: "boolean" } });
   if (positionals.length !== 1 && positionals.length !== 2) {
     throw new UsageError(ANSWER_USAGE);
   }
   threadOf(values);
+  const close = values["ack"] === true ? "--ack" : values["dismiss"] === true ? "--dismiss" : null;
+  if (values["ack"] === true && values["dismiss"] === true) {
+    throw new UsageError("braid answer: give --ack or --dismiss, not both");
+  }
+  if (close !== null && (positionals.length === 2 || ["file", "log", "from", "reason"].some((k) => str(values, k) !== undefined))) {
+    throw new UsageError(`braid answer: ${close} is the user's own and carries no answer: drop the text, --file, --from and --reason`);
+  }
   const from = str(values, "from") ?? "user";
   if (from !== "user" && from !== "pm") {
     throw new UsageError(`--from is user or pm; got: ${from}`);
@@ -601,13 +608,20 @@ export function answerCommand(root: string, _cwd: string, args: readonly string[
   }
   // A closed wait goes on to `end`, which names who closed it.
   const wait = loadRecord(root).requests.find((r) => r.code === found.code && r.state === "open" && isWait(r));
+  if (wait !== undefined && close !== null) {
+    throw new UsageError(`braid answer: ${handleOf(wait)} (${wait.id}) is a wait, which asks no one: \`braid withdraw ${handleOf(wait)} --why <reason>\` ends it; nothing changed`);
+  }
   if (wait !== undefined && str(values, "from") !== undefined) {
     throw new UsageError(`braid answer: ${handleOf(wait)} (${wait.id}) is a wait, which asks neither the user nor the PM: drop --from; nothing changed`);
   }
-  const ending: Ending | ((r: Request) => Ending) = wait === undefined ? answerEnding(from, text, reason) : waitEnding(root, wait, text, opts);
+  const ending: Ending | ((r: Request) => Ending) = close !== null ? closeEnding(close, "braid answer") : wait === undefined ? answerEnding(from, text, reason) : waitEnding(root, wait, text, opts);
   const done = end(root, found, "braid answer", ending);
   const name = `${handleOf(done.request)} ${done.request.id}`;
   const last = closing(done.request);
+  const outcome = outcomeOf(done.request);
+  if (close !== null && outcome !== null) {
+    return `${name}: ${outcome} by the user${outcome === "dismissed" ? "; the board tells the asking thread once" : ""}\n${warned(done.warning)}`;
+  }
   if (last?.event === "met") {
     return `${name}: met: ${last.text ?? ""} (the board sends no wake for a wait closed by hand${text === undefined ? "" : "; your text isn't recorded"})\n${warned(done.warning)}`;
   }
@@ -619,6 +633,22 @@ const answerEnding =
   (who: "user" | "pm", text: string | undefined, reason: string | undefined) =>
   (r: Request): Ending => ({ state: "answered", who, ...(text === undefined ? {} : { text: optionAnswer(r, text) }), ...(reason === undefined ? {} : { reason }) });
 
+/** `--ack` or `--dismiss` as an ending, read inside the write: only a look or an FYI is acknowledged. */
+const closeEnding =
+  (close: "--ack" | "--dismiss", command: string) =>
+  (r: Request): Ending => {
+    if (close === "--dismiss") {
+      return dismissEnding();
+    }
+    if (r.kind !== "look") {
+      throw new UsageError(`${command}: only a look or an FYI is acknowledged; ${handleOf(r)} (${r.id}) is a ${r.kind}: answer or dismiss it; nothing changed`);
+    }
+    return acknowledgeEnding();
+  };
+
+/** What the board's page asks of a request: an answer (a line of text or an option letter), or to acknowledge or dismiss it. */
+export type BoardReply = { readonly text: string } | { readonly close: "ack" | "dismiss" };
+
 /** The longest answer the board's page sends (0082/D): one line. */
 export const BOARD_ANSWER_MAX = 500;
 
@@ -628,9 +658,9 @@ export const BOARD_ANSWER_MAX = 500;
  * a wait, which asks no one, and a request already answered, withdrawn or met are refused with the reason. A UsageError
  * is the refusal the page shows. Runs in the board process, so every `git` call is asynchronous.
  */
-export async function boardAnswer(root: string, handle: string, text: string): Promise<{ readonly request: Request; readonly warning: string | null }> {
-  const answer = text.trim();
-  if (answer === "" || /[\r\n]/.test(answer) || answer.length > BOARD_ANSWER_MAX) {
+export async function boardAnswer(root: string, handle: string, reply: BoardReply): Promise<{ readonly request: Request; readonly warning: string | null }> {
+  const answer = "text" in reply ? reply.text.trim() : null;
+  if (answer !== null && (answer === "" || /[\r\n]/.test(answer) || answer.length > BOARD_ANSWER_MAX)) {
     throw new UsageError(`Answer: one line of text or an option letter, at most ${BOARD_ANSWER_MAX} characters`);
   }
   const name = handle.trim();
@@ -643,7 +673,8 @@ export async function boardAnswer(root: string, handle: string, text: string): P
   if (r !== undefined && r.state === "open" && isWait(r)) {
     throw new UsageError(`Answer: ${handleOf(r)} (${r.id}) is a wait, which asks no one: it ends when its condition holds; nothing changed`);
   }
-  return ended(await endRequestAsync(root, code, answerEnding("user", answer, undefined)), code, "Answer");
+  const ending = answer === null ? closeEnding((reply as { close: "ack" | "dismiss" }).close === "ack" ? "--ack" : "--dismiss", "Answer") : answerEnding("user", answer, undefined);
+  return ended(await endRequestAsync(root, code, ending), code, "Answer");
 }
 
 /** `braid withdraw <code>|<id> --why <reason>`: the asker no longer needs it; it stays on the record as withdrawn. */

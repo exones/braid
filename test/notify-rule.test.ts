@@ -94,8 +94,8 @@ test("the PM's own request and a programme's stall push, opening the PM's thread
   const asked = { ...sig, programmes: [{ id: "pm/working-product", kind: "action", by: "pm", text: "protect main", at: ago(1), thread: PM }], asks: new Map([["0001", { id: "0001", kind: "question", by: "pm", text: "which?", at: ago(1), thread: PM }]]) };
   const out = pushes(model.toBoard("agento", [braid()], gh(), t3(), asked));
   assert.deepEqual(out.map((p) => [p.item, p.title, p.click]), [
-    ["pm/working-product#pm", "agento working-product: the PM asks", url(PM)],
-    ["0001#pm", "agento 0001: the PM asks", url(PM)],
+    ["pm/working-product", "agento working-product: the PM asks", url(PM)],
+    ["0001", "agento 0001: the PM asks", url(PM)],
   ]);
 });
 
@@ -103,7 +103,7 @@ test("0069/F: a programme request with no thread opens the plan's PM thread; wit
   const clock = signals.brokeClock({}, NOW);
   const sig = { now: NOW, requests: new Map(), alarm: clock.alarm, plans: [plan()], programmes: [{ id: "pm/working-product", kind: "action", by: "pm", text: "protect main", at: ago(1), thread: null }] };
   const [p] = pushes(model.toBoard("agento", [braid()], gh(), t3(), sig));
-  assert.deepEqual([p.item, p.click], ["pm/working-product#pm", url(PM)]);
+  assert.deepEqual([p.item, p.click], ["pm/working-product", url(PM)]);
   const unlisted = pushes(model.toBoard("agento", [braid()], gh(), t3({}, []), sig))[0];
   assert.equal(unlisted.click, null);
   assert.match(unlisted.body, /\nOpen the board$/);

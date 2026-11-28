@@ -48,8 +48,10 @@ export interface Programme {
   readonly total: number;
   /** Its braids that are live: started, not Done, with an agent, pending checks, a coordinator working or waiting, or the PM handling it. */
   readonly running: number;
-  /** The open programme request, or the stall; null otherwise. */
+  /** The oldest open programme request, or the stall; null otherwise. */
   readonly need: Need | null;
+  /** Every open request of the programme (`pm/<slug>`), oldest first (0084/C). */
+  readonly asks: readonly Need[];
   /** What the PM forwarded to the user from its braids (a forwarded merge handover too): the PM asking you, each opening the PM's thread. Item, lane its card would sit in, and the need. */
   readonly forwards: readonly Forward[];
   /** The other open requests of its braids that are the user's (escalated, or addressed to the user, the PM's own too), as their cards push them. */
@@ -135,9 +137,9 @@ const hhmm = (iso: string): string => new Date(iso).toLocaleTimeString("en-GB", 
  */
 export function toProgrammes(repo: string, plans: readonly PlanRead[], cards: readonly BraidCard[], t3: T3, sig: Signals, gh: { readonly status: { readonly state: string } }, alarms: Alarm[] = []): Programme[] {
   const byId = new Map(cards.map((c) => [c.id, c]));
-  const requests = new Map((sig.programmes ?? []).map((r) => [r.id, r] as const));
+  const requests = (slug: string): Request[] => (sig.programmes ?? []).filter((r) => r.id === `pm/${slug}`).sort((a, b) => a.at.localeCompare(b.at));
   const live = plans.filter((p) => p.plan === null || p.plan.state === "running" || p.plan.state === "held").length;
-  return plans.map((read) => programmeOf(repo, read, byId, requests.get(`pm/${read.slug}`), t3, sig, gh.status.state === "ok", live === 1, raiseTo(sig, alarms)));
+  return plans.map((read) => programmeOf(repo, read, byId, requests(read.slug), t3, sig, gh.status.state === "ok", live === 1, raiseTo(sig, alarms)));
 }
 
 /**
@@ -153,15 +155,11 @@ function requestsOfCard(card: BraidCard): Forward[] {
   if (card.lane === "Done") {
     return [];
   }
-  const items = [{ id: card.id, title: card.title, need: card.need?.who === null ? card.need : null, pmAsk: card.pmAsk?.who === null ? card.pmAsk : null }, ...card.strands.filter((s) => s.lane !== "Done")];
-  return items.flatMap(({ id, title, need, pmAsk }) => [need?.by === undefined ? need : null, pmAsk].flatMap((n) => (n?.code === undefined ? [] : [{ id, title, need: n }])));
+  return [card, ...card.strands.filter((s) => s.lane !== "Done")].flatMap(({ id, title, asks }) => asks.map((need) => ({ id, title, need })));
 }
 
-/** The coordinators' requests forwarded to the user through the PM, the newest per item; a newer one still with the PM doesn't hide it. */
-function forwardedOf(sig: Signals, t3: T3, read: PlanRead): Request[] {
-  const forwarded = openItemRequests(sig).filter((r) => askerOf(r) === "coordinator" && throughPm(r, routeOf(r, sig.now, t3, sig.pauses?.has(r.id.slice(0, 4)) === true), [read]));
-  return [...new Map(forwarded.map((r) => [r.id, r])).values()];
-}
+/** Every coordinator request forwarded to the user through the PM; a newer one still with the PM doesn't hide it. */
+const forwardedOf = (sig: Signals, t3: T3, read: PlanRead): Request[] => openItemRequests(sig).filter((r) => askerOf(r) === "coordinator" && throughPm(r, routeOf(r, sig.now, t3, sig.pauses?.has(r.id.slice(0, 4)) === true), [read]));
 
 /** The title of an item (a braid or one of its strands) from the board's cards; the id when the card isn't there. */
 const titleOf = (cards: ReadonlyMap<string, BraidCard>, id: string): string => {
@@ -169,15 +167,17 @@ const titleOf = (cards: ReadonlyMap<string, BraidCard>, id: string): string => {
   return (id.includes("/") ? card?.strands.find((s) => s.id === id)?.title : card?.title) ?? id;
 };
 
-function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, BraidCard>, request: Request | undefined, t3: T3, sig: Signals, ghOk: boolean, only: boolean, raise: Raise): Programme {
+function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, BraidCard>, requests: readonly Request[], t3: T3, sig: Signals, ghOk: boolean, only: boolean, raise: Raise): Programme {
   const clock = `${repo}/${read.slug} pm`;
   const plan = read.plan;
-  const asked = request === undefined ? null : needOfAsk(request, sig.now, t3);
+  const asks = requests.map((r) => needOfAsk(r, sig.now, t3));
+  const asked = asks[0] ?? null;
+  const request = requests[0];
   if (plan === null) {
     raise(clock, "stalled", false);
     return {
       slug: read.slug, branch: read.branch, title: read.slug, goal: null, state: null, section: asked === null ? "working" : "needs", thread: request?.thread ?? null, link: asked?.link ?? null, pmState: null,
-      hold: null, paused: false, resume: null, next: null, digest: null, limit: null, rows: [], braids: [], done: 0, total: 0, running: 0, need: asked, forwards: [], requests: [],
+      hold: null, paused: false, resume: null, next: null, digest: null, limit: null, rows: [], braids: [], done: 0, total: 0, running: 0, need: asked, asks, forwards: [], requests: [],
       status: `plan unreadable: ${read.error ?? "unknown"}`, handling: [], seen: null, error: `plan unreadable: ${read.error ?? "unknown"}`,
     };
   }
@@ -253,6 +253,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
     total: counted.length,
     running,
     need,
+    asks: over ? [] : asks,
     forwards,
     requests: theirs,
     status,
