@@ -299,7 +299,7 @@ The board's T3 read timed out at 60 s under load (0077). The user asked to resea
 - Every code claim is cited to upstream at the installed build's commit: v0.1.12 (`ca81b7b9`) for questions 1–4, v0.1.13 (`bc0f04da`) for question 5 and the log findings. Where the code runs here, it is also cited to the installed bundle's file and line.
 - Timings were run here (commands, times and load above). Server costs come from T3's own trace.
 - The checkpoint ref recipe was checked against every scope and ref in agento (part 5).
-- The gate (`npm run verify`): see the PR.
+- The gate (`npm run verify`), run locally on 2026-11-28 from about 10:05, was stopped at the 1-hour limit of a background command, mid-test. Typecheck and build passed. One test failed after 139.9 s, "braid board: pushes name the project when two listed projects share a repository name…", a board timing test, on a machine at 50–100% CPU. This PR changes only files in `braids/0083-…/`. CI's `verify` (Ubuntu and Windows) is the gate result to go by. I didn't start a second long run on the loaded machine.
 
 ## Docs
 
