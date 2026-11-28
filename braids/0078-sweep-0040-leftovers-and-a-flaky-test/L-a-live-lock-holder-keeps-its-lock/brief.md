@@ -3,7 +3,7 @@ id: '0078/L'
 title: "A live lock holder keeps its lock"
 status: To Do
 labels: ["kind:task", "tier:L"]
-dependencies: []
+dependencies: ['0078/M']
 order: 45
 ---
 
