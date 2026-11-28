@@ -24,6 +24,12 @@
       "at": "2026-11-28T16:51:58.404Z",
       "by": "user",
       "text": "B. Skip step 3, I do revoke and logout"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T16:52:03.515Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
