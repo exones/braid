@@ -16,6 +16,13 @@
       "event": "opened",
       "at": "2026-11-28T16:55:38.322Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T17:10:58.990Z",
+      "by": "pm",
+      "text": "Done: the user pressed A on \"Approve the plan\" on the demo board (7810) from the phone: \"it showed progress for some time, then disappeared\". Log: arrived 17:08:37Z, done after 11.0 s.",
+      "reason": "relayed the user's phone test (windy-bucket step 2)"
     }
   ]
 }
