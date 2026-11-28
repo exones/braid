@@ -21,6 +21,12 @@
       "event": "opened",
       "at": "2026-11-28T15:20:47.672Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-28T15:26:35.098Z",
+      "by": "pm",
+      "text": "PM recommends A (words, buttons in the box, none in details, last tab); mockups in chat and in the context"
     }
   ]
 }
