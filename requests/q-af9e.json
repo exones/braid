@@ -1,0 +1,26 @@
+{
+  "code": "q-af9e",
+  "item": "0084/C",
+  "kind": "decision",
+  "text": "Security on 0084/C (#393): owner one-click close and peer addresses in the board log; merge as is?",
+  "options": [
+    "Merge as is (owner one-click close, peer addresses in the board log)",
+    "Merge, but drop the peer address from the log",
+    "Change something"
+  ],
+  "words": "windy violin",
+  "key": "security",
+  "by": "coordinator",
+  "thread": "mcp:launch:fb5fcd743ad7d6c3cb1795e068f1d43a36e1e52e42fd421781fe11b7d4603838",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T17:50:17.682Z",
+      "by": "coordinator"
+    }
+  ]
+}
