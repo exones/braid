@@ -1,0 +1,23 @@
+{
+  "code": "q-1dkg",
+  "item": "0084",
+  "kind": "decision",
+  "text": "Answers from the board take ~11 s (fetch, git write, push, wake before replying). Make the board reply once the answer is saved locally, then push and wake in the background with sent/delivered states?",
+  "options": [
+    "Yes, into 0084's 'requests reach their reader' step",
+    "No, leave it for now"
+  ],
+  "words": "thirsty pillow",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T16:53:31.633Z",
+      "by": "pm"
+    }
+  ]
+}
