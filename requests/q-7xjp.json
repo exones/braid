@@ -1,0 +1,20 @@
+{
+  "code": "q-7xjp",
+  "item": "0084",
+  "kind": "action",
+  "text": "Phone test, round 2: press A on the demo board (port 7810) again from the phone and answer 4 short questions",
+  "context": "The demo board logged no press at all, so the press may never have reached it. It now logs every action live.\n1. Was \"A approve the plan\" pressed on the demo (port 7810) or typed on the real board? On which device?\n2. Once more on the phone: open http://exon-pc.tailf59262.ts.net:7810/ (reload), tap Requests, open \"Approve the plan: 3 strands, A to C\", press A, wait 30 s without reloading, screenshot the line under the buttons; then Dismiss another request, wait 30 s.\n3. Phone OS and browser; browser tab, home-screen icon or in-app browser; other board tabs open; a red line at the top of the Questions panel on the live board when a press failed?\n4. Earlier on the live board: did typing an answer work from the phone while the A/B buttons didn't?",
+  "words": "windy bucket",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T16:59:15.478Z",
+      "by": "pm"
+    }
+  ]
+}
