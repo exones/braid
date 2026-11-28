@@ -1,0 +1,27 @@
+{
+  "code": "q-6rep",
+  "item": "0078/F",
+  "kind": "question",
+  "text": "Remove the requests.json carry-over and the pre-0053 worktree folder search (data)?",
+  "context": "0078/F (PR #392) removes the one-time carry-over of an old .braid/requests.json onto the braid-requests branch, and the search for worktrees in the pre-0053 folder. The worker searched only this machine: no project here has a request in .braid/requests.json (openclaw holds an empty list), and no listed project has worktrees in the old folder. A project on another machine, or one not in braid projects, that never ran a braid command since the 0070 record would lose its open requests from that file (they stay in the file, but nothing reads them).",
+  "options": [
+    "Remove both",
+    "Keep the carry-over",
+    "Keep both"
+  ],
+  "words": "jolly cactus",
+  "key": "data",
+  "by": "coordinator",
+  "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T15:31:19.177Z",
+      "by": "coordinator"
+    }
+  ]
+}
