@@ -24,6 +24,12 @@
       "at": "2026-11-28T16:56:13.869Z",
       "by": "user",
       "text": "B. No, leave it for now"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T16:56:17.349Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
