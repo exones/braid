@@ -1,8 +1,9 @@
 // Why a braid's thread failed (docs/board.md, "Why a thread failed"): T3 gives the latest run's error text in `thread show --json`, and no
-// error class, so the kind is read from the text. `failureReader` is the board's one extra read: `thread show` once per newly failed
-// idle thread of an open item. Nothing here acts on a reason.
+// error class, so the kind is read from the text. `failureReader` is the board's one extra read: once per newly failed idle thread
+// of an open item, over MCP while signed in (0080/F) and by `thread show` else. Nothing here acts on a reason.
 import type { Braid } from "../braids/store.js";
-import { showThread, type T3, type T3Runner } from "./t3.js";
+import type { HubProject } from "./t3-mcp.js";
+import { pool, showThread, type T3, type T3Runner } from "./t3.js";
 
 export type FailureKind = "limit" | "provider" | "stopped" | "other";
 
@@ -80,7 +81,10 @@ export function failureOf(error: string | null, thread: { readonly status: strin
   return /^API Error\b/i.test(full) ? { kind: "provider", short: "Provider error", full } : { kind: "other", short: cut(full), full };
 }
 
-/** The list statuses that are worth a `thread show` for the error. */
+/** How many errors are read at once: many threads can fail together (a provider's limit). */
+const AT_ONCE = 4;
+
+/** The list statuses that are worth a read for the error. */
 const FAILED = new Set(["failed", "interrupted"]);
 
 /** The idle threads a stalled card of an open item can name: each item's newest worker thread, and each braid's coordinator while none of its runs. */
@@ -107,26 +111,30 @@ function candidates(t3: T3, braids: readonly Braid[]): string[] {
 }
 
 /**
- * The failures of the idle threads of open items, by thread id. A thread is shown once and remembered until the list gives it another
- * status; a `thread show` that fails is tried again at the next read.
+ * The failures of the idle threads of open items, by thread id. A thread is read once and remembered until the list gives it another
+ * status; a read that fails is tried again at the next read. `mcp`: the signed-in read of a thread's error, which says "cli" when the
+ * read goes by `thread show`.
  */
-export function failureReader(run: T3Runner, root: string): (t3: T3, braids: readonly Braid[]) => Promise<ReadonlyMap<string, Failure>> {
+export function failureReader(run: T3Runner, root: string, mcp?: HubProject["errorOf"]): (t3: T3, braids: readonly Braid[]) => Promise<ReadonlyMap<string, Failure>> {
   let known = new Map<string, { status: string; failure: Failure | null }>();
   return async (t3, braids) => {
     const next = new Map<string, { status: string; failure: Failure | null }>();
-    await Promise.all(
-      candidates(t3, braids).map(async (id) => {
+    await pool(
+      candidates(t3, braids),
+      async (id) => {
         const status = t3.states?.get(id) ?? "";
         const had = known.get(id);
         if (had?.status === status) {
           next.set(id, had);
           return;
         }
-        const where = await showThread(run, root, id);
-        if (where !== null) {
-          next.set(id, { status, failure: failureOf(where.error, { status }) });
+        const said = mcp === undefined ? "cli" : await mcp(id);
+        const read = said === "cli" ? await showThread(run, root, id) : said;
+        if (read !== null) {
+          next.set(id, { status, failure: failureOf(read.error, { status }) });
         }
-      }),
+      },
+      AT_ONCE,
     );
     // A T3 that couldn't be read forgets nothing.
     if (t3.status.state === "ok") {

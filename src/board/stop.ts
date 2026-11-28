@@ -5,14 +5,11 @@
 import type { PauseTarget, StopThread } from "../braids/pauses.js";
 import { McpError, type McpClient } from "../t3mcp/client.js";
 import { stopItem } from "./pause.js";
+import { listLive } from "./t3-mcp.js";
 import { LIMIT_KEY, type LimitPush } from "./steer.js";
 
-/** T3's live statuses: a list filtered to these costs by the live threads only (0083). */
-export const LIVE_STATUSES = ["queued", "preparing", "starting", "running", "waiting"] as const;
 /** After a stop, threads of the braid still running this long are pushed once. */
 export const STILL_PUSH_MS = 2 * 60_000;
-/** One page; braid's live threads are far fewer. */
-const LIST_LIMIT = 100;
 
 /** A live thread as the list gives it. */
 export interface LiveThread {
@@ -32,7 +29,6 @@ export interface TickMcp {
 }
 
 type Json = Record<string, unknown>;
-const obj = (v: unknown): Json | null => (typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Json) : null);
 const str = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
 
 /** Why a stop was refused, in the card's words. */
@@ -47,7 +43,8 @@ export function refusedWhy(error: unknown): string {
   return text.length <= 60 ? text : `${text.slice(0, 59).trimEnd()}…`;
 }
 
-export function tickMcp(client: McpClient | null, warn: (line: string, once?: string) => void): TickMcp {
+/** `liveList`: the board's shared list (0080/F), so a refresh asks T3 for the live threads once; a list of its own when not given. */
+export function tickMcp(client: McpClient | null, warn: (line: string, once?: string) => void, liveList?: () => Promise<readonly Json[]>): TickMcp {
   let c = client;
   let listed: Promise<ReadonlyMap<string, LiveThread> | null> | undefined;
   /** A 401: signed out (the client told the sign-in); nothing more by MCP this tick. */
@@ -64,13 +61,12 @@ export function tickMcp(client: McpClient | null, warn: (line: string, once?: st
       return null;
     }
     try {
-      const out = obj(await c.callTool("t3_thread_list", { allProjects: true, includeSubagents: true, statuses: [...LIVE_STATUSES], limit: LIST_LIMIT }));
-      const threads = Array.isArray(out?.["threads"]) ? (out["threads"] as unknown[]) : [];
+      const threads = await (liveList?.() ?? listLive(c));
       const live = new Map<string, LiveThread>();
-      for (const t of threads.map(obj)) {
-        const id = str(t?.["threadId"]);
+      for (const t of threads) {
+        const id = str(t["threadId"]);
         if (id !== null) {
-          live.set(id, { id, parent: str(t?.["parentThreadId"]) });
+          live.set(id, { id, parent: str(t["parentThreadId"]) });
         }
       }
       return live;

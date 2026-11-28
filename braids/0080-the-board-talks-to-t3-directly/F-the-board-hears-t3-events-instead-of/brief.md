@@ -49,12 +49,12 @@ Expected size: about 500 lines in 6 to 8 files.
 
 ## Completion
 
-- [ ] Signed in, the board reads T3 over MCP as described (one live list per refresh, cached per-thread reads, the full list every 5 minutes or on a `braids/` change), and the snapshot matches the CLI read's
-- [ ] 0080/C's failure read uses MCP when signed in and is bounded
-- [ ] Events trigger a project's refresh within seconds; `truncated` triggers one full read
-- [ ] Signed out, `access: cli`, a 401 or T3 down: the CLI read as today (tests prove it)
-- [ ] report.md has the measured read times signed in vs the CLI
-- [ ] Live check on scratch threads with the user's sign-in (a finished turn shows on a test board within seconds), or report.md says what is left
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Signed in, the board reads T3 over MCP as described (one live list per refresh, cached per-thread reads, the full list every 5 minutes or on a `braids/` change), and the snapshot matches the CLI read's
+- [x] 0080/C's failure read uses MCP when signed in and is bounded
+- [x] Events trigger a project's refresh within seconds; `truncated` triggers one full read
+- [x] Signed out, `access: cli`, a 401 or T3 down: the CLI read as today (tests prove it)
+- [x] report.md has the measured read times signed in vs the CLI
+- [x] Live check on scratch threads with the user's sign-in (a finished turn shows on a test board within seconds), or report.md says what is left
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

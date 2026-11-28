@@ -69,6 +69,8 @@ export interface SteererOptions {
    * threads before their texts. Absent or null: today's CLI path only, and a hold stays a record.
    */
   readonly mcp?: () => McpClient | null;
+  /** The board's shared live thread list (0080/F); absent: the tick lists the live threads itself. */
+  readonly live?: () => Promise<readonly Record<string, unknown>[]>;
 }
 
 export interface Steerer {
@@ -663,7 +665,7 @@ ${c.pause.provider ?? ""}`;
     }
     const at = now();
     // One MCP view per tick (0080/E): at most one live list, and a 401 turns the rest of the tick to the CLI.
-    const mcp = tickMcp(opts.mcp?.() ?? null, warn);
+    const mcp = tickMcp(opts.mcp?.() ?? null, warn, opts.live);
     try {
       clearDone(seen, acts);
       await count(seen, at, acts, repos);
