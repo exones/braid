@@ -81,7 +81,7 @@ function fakeSchtasks(o: { installed?: string | null; csv?: string; failCreate?:
 }
 
 /** The other seams: a board that answers on `port` once the task ran, at version `running`. */
-function deps(fake: ReturnType<typeof fakeSchtasks>, o: { port?: number; running?: string | null; answers?: boolean; free?: boolean; platform?: string } = {}) {
+function deps(fake: ReturnType<typeof fakeSchtasks>, o: { port?: number; running?: string | null; busy?: boolean; answers?: boolean; free?: boolean; platform?: string } = {}) {
   const port = o.port ?? 8765;
   return {
     platform: o.platform ?? "win32",
@@ -93,8 +93,10 @@ function deps(fake: ReturnType<typeof fakeSchtasks>, o: { port?: number; running
     sleep: async () => {},
     waitMs: 1000,
     portFree: async () => o.free ?? true,
-    live: async () => ((o.answers ?? true) && fake.verbs().includes("/run") ? [{ port, url: `http://127.0.0.1:${port}/#token=${TOKEN}` }] : []),
-    runningVersion: async () => (o.running === undefined ? "0.2.0" : o.running),
+    live: async () =>
+      (o.answers ?? true) && fake.verbs().includes("/run")
+        ? [{ port, url: `http://127.0.0.1:${port}/#token=${TOKEN}`, ...(o.busy === true ? { state: "busy" } : { state: "answers", version: o.running === undefined ? "0.2.0" : o.running }) }]
+        : [],
     version: "0.2.0",
   };
 }
@@ -123,7 +125,7 @@ test("install over an installed task (another port) ends its run first, and repl
 test("install on a port another process holds says so; a refused registration, a bad flag and a board that never answers fail", async () => {
   // A board started by hand holds the port and answers there: the task stays installed, isn't run, and install fails.
   const holder = fakeSchtasks();
-  const held = await svc.serviceCommand(["install"], { ...deps(holder, { free: false }), live: async () => [{ port: 8765, url: `http://127.0.0.1:8765/#token=${TOKEN}` }] });
+  const held = await svc.serviceCommand(["install"], { ...deps(holder, { free: false }), live: async () => [{ port: 8765, url: `http://127.0.0.1:8765/#token=${TOKEN}`, state: "answers", version: "0.2.0" }] });
   assert.equal(held.code, 1);
   assert.equal(held.stdout, "", "no claim that the task's board runs");
   assert.match(held.stderr, /installed the braid board task, but its board didn't start: port 8765 is held by another process \(a board started by hand\?\)\. Stop that board, then run braid board service restart/);
@@ -199,6 +201,17 @@ test("status shows a stale board after an install, and a task whose board isn't 
   assert.match(out.stdout, /Task: braid board, Ready, last result: exited 1 \(0x1\)/);
   assert.match(out.stdout, /Address: no board answers on port 8765 \(the task's board isn't running; see the log\)/);
   assert.match(out.stdout, /Version: the running board's is unknown, installed 0\.2\.0/);
+});
+
+test("status, install and restart say busy for a board that listens but answers late", async () => {
+  const fake = fakeSchtasks({ installed: svc.taskXml(spec) });
+  fake.calls.push({ args: ["/run"] });
+  const out = await svc.serviceCommand(["status"], deps(fake, { busy: true }));
+  assert.equal(out.code, 0);
+  assert.ok(out.stdout.includes(`Address: http://127.0.0.1:8765/#token=${TOKEN} (busy: no answer within 10 s)\n`), out.stdout);
+  assert.match(out.stdout, /^Version: the running board is busy, installed 0\.2\.0$/m);
+  const restarted = await svc.serviceCommand(["restart"], deps(fakeSchtasks({ installed: svc.taskXml(spec) }), { busy: true }));
+  assert.deepEqual([restarted.code, restarted.stdout], [0, "braid board service: restarted the board on port 8765 (busy: no answer within 10 s); braid board --url prints its address\n"]);
 });
 
 test("status: while the task runs, its last result is named the previous run's, never a failure of the running task", async () => {

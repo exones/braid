@@ -40,7 +40,6 @@ const gitio = (await load("../dist/braids/gitio.js")) as {
 };
 const t3mod = (await load("../dist/board/t3.js")) as {
   readT3: (root: string, options: unknown) => Promise<{ status: { state: string } }>;
-  resetT3Memory: () => void;
 };
 const board = (await load("../dist/commands/board.js")) as {
   repoSources: (root: string, gh: unknown, t3: unknown) => { braids(): unknown };
@@ -75,7 +74,6 @@ const processes: (readonly string[])[] = [];
 beforeEach(() => {
   processes.length = 0;
   done.resetDoneDates();
-  t3mod.resetT3Memory();
   gitio.spyOnGit((args) => processes.push(args));
 });
 after(() => gitio.spyOnGit(undefined));
@@ -173,7 +171,7 @@ test("every running thread is shown on every read, also with an unchanged update
     shows.push(args[2] ?? "");
     return ok({ thread: { worktreePath: null, pendingRequestCount: 2 } });
   };
-  const read = () => t3mod.readT3("/nowhere", { run, ttlMs: 0, agents: "/agents", project: "/p" });
+  const read = () => t3mod.readT3("/nowhere", { run, agents: "/agents", project: "/p" });
   assert.equal((await read()).status.state, "ok");
   assert.deepEqual(shows.sort(), ["t1", "t2"]);
   shows.length = 0;

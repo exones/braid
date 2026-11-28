@@ -395,7 +395,7 @@ test("T3's thread ids are kept exactly as given: a PM thread whose id matches by
     stdout: args[0] === "thread" && args[1] === "list" ? JSON.stringify([{ threadId: mixed, status: "running", title: "PM" }]) : "{}",
   });
   const t3mod: any = await load("../dist/board/t3.js");
-  const read = await t3mod.readT3("/nowhere", { run, ttlMs: 0, agents: "/agents", project: "/p", reviews: [] });
+  const read = await t3mod.readT3("/nowhere", { run, agents: "/agents", project: "/p", reviews: [] });
   assert.equal(read.states.get(mixed), "running");
   const pmMod: any = await load("../dist/board/pm.js");
   assert.equal(pmMod.pmGone(read, mixed), false);

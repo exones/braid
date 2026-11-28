@@ -20,7 +20,6 @@ const { handoverCommand, askCommand, requestsCommand, answerCommand } = (await l
 const { startCommand } = (await load("../dist/commands/start.js")) as { startCommand: (root: string, args: string[], src: object, env: object) => Promise<string> };
 const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
-const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
 const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age, locked, handleOf } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
   handleOf: (r: { code: string }) => string;
@@ -34,7 +33,6 @@ const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, 
 };
 beforeEach(() => {
   resetGithubMemory();
-  resetT3Memory();
 });
 
 const git = (cwd: string, ...args: string[]) => {
@@ -311,6 +309,27 @@ test("a live lock that never changes hands is still given up on after the wait",
   const began = Date.now();
   assert.throws(() => locked(file, () => 1, "q", undefined, 300), /is locked/);
   assert.ok(Date.now() - began >= 300);
+});
+
+test("the board's asynchronous wait outlasts a moving lock queue too", async () => {
+  const { lockedAsync } = (await load("../dist/braids/state.js")) as { lockedAsync: <T>(file: string, fn: () => Promise<T>, what?: string, makeDir?: undefined, waitMs?: number) => Promise<T> };
+  const file = join(mkdtempSync(join(scratch, "queue-async-")), "queue.json");
+  const lock = `${file}.lock`;
+  // Waiter and holders share this process's timers, so load delays both alike: 12 holders of 250 ms each against a 2 s wait.
+  let holder = 0;
+  writeFileSync(lock, "holder 0");
+  const timer = setInterval(() => {
+    if (++holder < 12) writeFileSync(lock, `holder ${holder}`);
+    else {
+      clearInterval(timer);
+      rmSync(lock);
+    }
+  }, 250);
+  try {
+    assert.equal(await lockedAsync(file, async () => holder, "q", undefined, 2_000), 12);
+  } finally {
+    clearInterval(timer);
+  }
 });
 
 test("a stale lock is taken over and the lock is released", () => {

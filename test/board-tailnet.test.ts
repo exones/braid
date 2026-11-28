@@ -45,7 +45,7 @@ interface TailnetModule {
   readTailnet(run: Runner): Promise<Tailnet>;
   tailnetAddress(host: string, tailnet: Tailnet): string;
   tailnetHosts(address: string, name: string | null, port: number): string[];
-  whoisGate(owner: string, run: Runner, options?: { ttlMs?: number; timeoutMs?: number; now?: () => number }): Gate;
+  whoisGate(owner: string, run: Runner, options?: { freshMs?: number; staleMs?: number; refusalMs?: number; timeoutMs?: number; now?: () => number }): Gate;
 }
 interface BoardModule {
   startBoardWith(src: Sources, web: string, refreshMs?: number, token?: string, tailnet?: TailnetListen, port?: number): Promise<Started>;
@@ -134,18 +134,24 @@ test("the whois gate allows only the owner's untagged node and fails closed", as
   assert.equal(await tn.whoisGate(OWNER, WHOIS["owner"]!)("not an ip", 1), false);
 });
 
-test("the whois gate keeps an answer per remote address for a few seconds", async () => {
+test("the whois gate keeps the owner's answer per remote address for minutes and a refusal for seconds", async () => {
   let calls = 0;
   let clock = 0;
-  const gate = tn.whoisGate(OWNER, (args) => (calls++, args[2]?.startsWith("[") === true ? WHOIS["other"]!() : WHOIS["owner"]!()), { ttlMs: 5000, now: () => clock });
+  const gate = tn.whoisGate(OWNER, (args) => (calls++, args[2]?.startsWith("[") === true ? WHOIS["other"]!() : WHOIS["owner"]!()), { now: () => clock });
   assert.equal(await gate("::ffff:100.64.0.9", 1), true);
   assert.equal(await gate("100.64.0.9", 2), true);
   assert.equal(calls, 1);
   assert.equal(await gate("fd7a::9", 3), false);
   assert.equal(calls, 2);
-  clock = 6000;
-  assert.equal(await gate("100.64.0.9", 4), true);
-  assert.equal(calls, 3);
+  clock = 4_000;
+  assert.equal(await gate("fd7a::9", 4), false);
+  assert.equal(calls, 2, "a refusal is kept 5 s");
+  clock = 6_000;
+  assert.equal(await gate("fd7a::9", 5), false);
+  assert.equal(calls, 3, "then asked again");
+  clock = 5 * 60_000 - 1;
+  assert.equal(await gate("100.64.0.9", 6), true);
+  assert.equal(calls, 3, "the owner's answer is kept 5 minutes without asking");
 });
 
 // --- the Tailscale listener (bound to 127.0.0.1 here: CI has no tailscaled)
@@ -335,19 +341,19 @@ test("braid board --port refuses a bad number or one in use before anything star
 test("the whois gate drops a timeout or failure at once but keeps a definite answer", async () => {
   for (const [first, firstWant] of [["hang", false], ["error", false]] as const) {
     let calls = 0;
-    const gate = tn.whoisGate(OWNER, () => (calls++ === 0 ? WHOIS[first]!() : WHOIS["owner"]!()), { timeoutMs: 50, ttlMs: 5000, now: () => 0 });
+    const gate = tn.whoisGate(OWNER, () => (calls++ === 0 ? WHOIS[first]!() : WHOIS["owner"]!()), { timeoutMs: 50, now: () => 0 });
     assert.equal(await gate("100.64.0.9", 1), firstWant, first);
     assert.equal(await gate("100.64.0.9", 2), true, `${first}: the next request asks again`);
     assert.equal(await gate("100.64.0.9", 3), true);
     assert.equal(calls, 2, `${first}: the owner's answer is then kept`);
   }
   let spawnFails = 0;
-  const gate = tn.whoisGate(OWNER, async () => (spawnFails++ === 0 ? { status: null, stdout: "", stderr: "spawn tailscale ENOENT" } : WHOIS["owner"]!()), { ttlMs: 5000, now: () => 0 });
+  const gate = tn.whoisGate(OWNER, async () => (spawnFails++ === 0 ? { status: null, stdout: "", stderr: "spawn tailscale ENOENT" } : WHOIS["owner"]!()), { now: () => 0 });
   assert.equal(await gate("100.64.0.9", 1), false);
   assert.equal(await gate("100.64.0.9", 2), true);
   // "Not the owner" is a definite answer: kept.
   let asked = 0;
-  const other = tn.whoisGate(OWNER, () => (asked++, WHOIS["other"]!()), { ttlMs: 5000, now: () => 0 });
+  const other = tn.whoisGate(OWNER, () => (asked++, WHOIS["other"]!()), { now: () => 0 });
   assert.equal(await other("100.64.0.9", 1), false);
   assert.equal(await other("100.64.0.9", 2), false);
   assert.equal(asked, 1);
@@ -367,4 +373,126 @@ test("over Tailscale, a refused /api/ request is JSON that says to refresh; othe
     assert.equal(api.status, 403);
     assert.match((JSON.parse(api.text) as { error: string }).error, /Host/);
   });
+});
+
+// --- the whois gate under load: how long the owner's answer is kept and what a failed ask falls back to
+
+const MIN = 60_000;
+/** Lets background asks finish. */
+const settle = () => new Promise<void>((done) => setTimeout(done, 5));
+/** A fake whois that answers from `script` in order (the last one repeats), counting calls. */
+function scripted(...script: (keyof typeof WHOIS)[]): { run: Runner; calls: () => number } {
+  let n = 0;
+  return { run: () => WHOIS[script[Math.min(n++, script.length - 1)]!]!(), calls: () => n };
+}
+/** Resolves with `fallback` if `p` takes longer than `ms`. */
+const within = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> => Promise.race([p, new Promise<T>((done) => setTimeout(() => done(fallback), ms))]);
+
+test("the whois gate refuses a peer that was never the owner, also when tailscaled times out or fails", async () => {
+  // Another address got "the owner"; that never lets this one in.
+  const gate = tn.whoisGate(OWNER, (args) => (args[2]?.startsWith("100.64.0.9:") === true ? WHOIS["owner"]!() : WHOIS["hang"]!()), { timeoutMs: 50, now: () => 0 });
+  assert.equal(await gate("100.64.0.9", 1), true);
+  assert.equal(await gate("100.64.0.10", 1), false, "a timeout with no earlier owner answer refuses");
+  assert.equal(await gate("100.64.0.10", 2), false);
+  for (const failing of ["hang", "error", "garbage"] as const) {
+    const g = tn.whoisGate(OWNER, WHOIS[failing]!, { timeoutMs: 50, now: () => 0 });
+    assert.equal(await g("100.64.0.11", 1), false, failing);
+  }
+});
+
+test("the whois gate lets the owner in from a stale answer while tailscaled is slow or failing", async () => {
+  for (const failing of ["hang", "error"] as const) {
+    let clock = 0;
+    const fake = scripted("owner", failing);
+    const gate = tn.whoisGate(OWNER, fake.run, { timeoutMs: 10_000, now: () => clock });
+    assert.equal(await gate("100.64.0.9", 1), true);
+    clock = 10 * MIN;
+    // Answered at once from the earlier answer, not after the 10 s timeout.
+    assert.equal(await within<boolean | "waited">(gate("100.64.0.9", 2), 1_000, "waited" as const), true, failing);
+    assert.equal(fake.calls(), 2, `${failing}: asked again in the background`);
+    await settle();
+    clock = 30 * MIN - 1;
+    assert.equal(await within<boolean | "waited">(gate("100.64.0.9", 3), 1_000, "waited" as const), true, `${failing}: still within 30 minutes`);
+  }
+});
+
+test("the whois gate serves a stale owner answer only within its window; past it a failing tailscaled refuses", async () => {
+  for (const failing of ["hang", "error"] as const) {
+    let clock = 0;
+    const fake = scripted("owner", failing);
+    const gate = tn.whoisGate(OWNER, fake.run, { timeoutMs: 50, now: () => clock });
+    assert.equal(await gate("100.64.0.9", 1), true);
+    clock = 20 * MIN;
+    assert.equal(await gate("100.64.0.9", 2), true);
+    await new Promise((done) => setTimeout(done, 80));
+    // The failures in between didn't extend the window: it counts from tailscaled's last "the owner".
+    clock = 30 * MIN;
+    assert.equal(await gate("100.64.0.9", 3), false, `${failing}: past the window`);
+    assert.equal(await gate("100.64.0.9", 4), false);
+  }
+});
+
+test("the whois gate never lets a stale owner answer override a later \"not the owner\"", async () => {
+  let clock = 0;
+  const fake = scripted("owner", "other", "hang", "error", "owner");
+  const gate = tn.whoisGate(OWNER, fake.run, { timeoutMs: 50, now: () => clock });
+  assert.equal(await gate("100.64.0.9", 1), true);
+  clock = 6 * MIN;
+  assert.equal(await gate("100.64.0.9", 2), true, "served from the earlier answer while asking");
+  await settle();
+  assert.equal(await gate("100.64.0.9", 3), false, "tailscaled said no: refused from then on");
+  // The refusal expires, but tailscaled now times out, then fails: still refused, the earlier "yes" is gone.
+  clock = 6 * MIN + 6_000;
+  assert.equal(await gate("100.64.0.9", 4), false, "timeout after a no");
+  assert.equal(await gate("100.64.0.9", 5), false, "failure after a no");
+  assert.equal(await gate("100.64.0.9", 6), true, "a new yes lets it in again");
+  assert.equal(fake.calls(), 5);
+});
+
+test("the whois gate refuses an address whose owner changed after the next successful ask", async () => {
+  // Inside the stale window: the request that triggers the ask may pass, the next one is refused.
+  let clock = 0;
+  const fake = scripted("owner", "other");
+  const gate = tn.whoisGate(OWNER, fake.run, { now: () => clock });
+  assert.equal(await gate("100.64.0.9", 1), true);
+  clock = 5 * MIN;
+  await gate("100.64.0.9", 2);
+  await settle();
+  assert.equal(await gate("100.64.0.9", 3), false);
+  // Past the stale window the request waits for the ask, so it is refused itself.
+  clock = 0;
+  const later = scripted("owner", "tagged");
+  const g = tn.whoisGate(OWNER, later.run, { now: () => clock });
+  assert.equal(await g("100.64.0.9", 1), true);
+  clock = 31 * MIN;
+  assert.equal(await g("100.64.0.9", 2), false);
+});
+
+test("the whois gate refuses unparseable addresses at once without asking", async () => {
+  const fake = scripted("owner");
+  const gate = tn.whoisGate(OWNER, fake.run);
+  for (const bad of ["not an ip", "", "100.64.0.999", "::ffff:", "100.64.0.9:80", "[fd7a::9]"]) {
+    assert.equal(await gate(bad, 1), false, bad);
+  }
+  assert.equal(fake.calls(), 0);
+});
+
+test("concurrent requests during a slow whois make one tailscale whois call", async () => {
+  let clock = 0;
+  let calls = 0;
+  let release: (r: Result) => void = () => {};
+  const slow: Runner = () => (calls++, new Promise<Result>((done) => (release = done)));
+  const gate = tn.whoisGate(OWNER, slow, { timeoutMs: 10_000, now: () => clock });
+  const first = Array.from({ length: 5 }, (_, i) => gate("100.64.0.9", 1000 + i));
+  assert.equal(calls, 1);
+  release(whois(OWNER));
+  assert.deepEqual(await Promise.all(first), [true, true, true, true, true]);
+  // Past the fresh window, requests answer from the earlier answer and still share one background ask.
+  clock = 6 * MIN;
+  assert.deepEqual(await Promise.all(Array.from({ length: 5 }, (_, i) => gate("100.64.0.9", 2000 + i))), [true, true, true, true, true]);
+  assert.equal(calls, 2);
+  release(whois(OWNER));
+  await settle();
+  assert.equal(await gate("100.64.0.9", 3000), true);
+  assert.equal(calls, 2, "the background answer renewed the window");
 });

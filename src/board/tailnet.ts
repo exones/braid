@@ -109,9 +109,28 @@ export function tailnetHosts(address: string, name: string | null, port: number)
 /** Decides whether a connection from `address:port` may use the board; it never rejects. */
 export type Gate = (address: string, port: number) => Promise<boolean>;
 
+/**
+ * How long tailscaled's "this is the owner" is kept per remote address without asking again. A tailnet address
+ * changes owner only when a node is removed and its address handed to another user's node, which takes minutes,
+ * not seconds; asking at most every 5 minutes keeps `tailscale whois` off a busy machine's hot path.
+ */
+export const OWNER_FRESH_MS = 5 * 60_000;
+/**
+ * How long after tailscaled last said "this is the owner" that answer may still let the address in while a new ask
+ * runs in the background, so a slow or failing tailscaled doesn't refuse the owner. It bounds how long a tailscaled
+ * that stopped answering keeps an earlier-confirmed address in; past it a failed ask refuses.
+ */
+export const OWNER_STALE_MS = 30 * 60_000;
+/** How long "not the owner" (another user, a tagged node, an unknown peer) is kept; it is never extended by a failure. */
+export const REFUSAL_KEPT_MS = 5_000;
+
 export interface GateOptions {
-  /** How long an answer is kept per remote address. */
-  readonly ttlMs?: number;
+  /** How long the owner's answer is kept without asking again (OWNER_FRESH_MS). */
+  readonly freshMs?: number;
+  /** How long after the owner's last answer it may serve while asking in the background (OWNER_STALE_MS). */
+  readonly staleMs?: number;
+  /** How long "not the owner" is kept (REFUSAL_KEPT_MS). */
+  readonly refusalMs?: number;
   /** How long a whois may take; a slower one refuses. */
   readonly timeoutMs?: number;
   readonly now?: () => number;
@@ -129,14 +148,22 @@ export function ownerOf(whois: string, owner: string): boolean {
 /**
  * The Tailscale listener's identity check: `tailscale whois --json <ip>:<port>` of each connection, allowed only for
  * the owner's login on an untagged node. Every failure (tailscaled down, an unknown peer, unreadable output,
- * a timeout) refuses. A definite answer (the owner, or not) is kept for a few seconds per remote address; a failure
- * refuses only that request and isn't kept, so the next one asks again. Concurrent asks share one call.
+ * a timeout) refuses, unless tailscaled said "the owner" for that address within OWNER_STALE_MS.
+ *
+ * Per remote address: the owner's answer is kept OWNER_FRESH_MS without asking. Past that, until OWNER_STALE_MS after
+ * it was given, the request is let in at once and one ask runs in the background: "the owner" renews it, "not the
+ * owner" refuses from then on, a failure changes nothing. With no such answer the request waits for the ask, and a
+ * failure refuses only that request (the next one asks again). "Not the owner" is kept REFUSAL_KEPT_MS and drops the
+ * owner's answer, so only a new "the owner" lets that address in again. Concurrent asks share one call.
  */
 export function whoisGate(owner: string, run: TailscaleRunner = runTailscale, options: GateOptions = {}): Gate {
-  const ttl = options.ttlMs ?? 5_000;
+  const fresh = options.freshMs ?? OWNER_FRESH_MS;
+  const stale = options.staleMs ?? OWNER_STALE_MS;
+  const refusal = options.refusalMs ?? REFUSAL_KEPT_MS;
   const timeout = options.timeoutMs ?? TAILSCALE_TIMEOUT_MS;
   const now = options.now ?? Date.now;
-  const cache = new Map<string, { at: number; answer: Promise<boolean> }>();
+  /** Per address: when tailscaled last said "the owner" and "not the owner", and the ask in flight. */
+  const kept = new Map<string, { yes?: number | undefined; no?: number | undefined; asking?: Promise<boolean | null> | undefined }>();
   /** True or false when tailscaled answered; null when it didn't (a timeout, a failure to run, a non-zero exit). */
   const ask = async (ip: string, port: number): Promise<boolean | null> => {
     let timer: NodeJS.Timeout | undefined;
@@ -158,18 +185,35 @@ export function whoisGate(owner: string, run: TailscaleRunner = runTailscale, op
     if (isIP(ip) === 0) {
       return Promise.resolve(false);
     }
-    const kept = cache.get(ip);
-    if (kept !== undefined && now() - kept.at < ttl) {
-      return kept.answer;
+    let entry = kept.get(ip);
+    if (entry === undefined) {
+      entry = {};
+      kept.set(ip, entry);
     }
-    const entry = { at: now(), answer: ask(ip, port).then((r) => {
-      if (r === null && cache.get(ip) === entry) {
-        // Not an answer: refuse this request, but ask again on the next one.
-        cache.delete(ip);
+    const e = entry;
+    const t = now();
+    if (e.no !== undefined && t - e.no < refusal) {
+      return Promise.resolve(false);
+    }
+    const age = e.yes === undefined ? Infinity : t - e.yes;
+    if (age < fresh) {
+      return Promise.resolve(true);
+    }
+    // One ask per address at a time; only a definite answer changes what is kept.
+    e.asking ??= ask(ip, port).then((r) => {
+      if (r === true) {
+        e.yes = now();
+        e.no = undefined;
+      } else if (r === false) {
+        e.yes = undefined;
+        e.no = now();
       }
-      return r === true;
-    }) };
-    cache.set(ip, entry);
-    return entry.answer;
+      e.asking = undefined;
+      return r;
+    });
+    if (age < stale) {
+      return Promise.resolve(true);
+    }
+    return e.asking.then((r) => r === true);
   };
 }

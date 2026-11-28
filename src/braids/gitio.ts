@@ -1,6 +1,6 @@
 // Asynchronous Git for the board's reads: the server keeps answering requests while `git` runs. The
 // synchronous readers stay for the CLI commands.
-import { execFile, spawn, spawnSync } from "node:child_process";
+import { execFile, spawn, spawnSync, type SpawnSyncReturns } from "node:child_process";
 
 export interface GitOut {
   readonly status: number | null;
@@ -16,28 +16,65 @@ export function spyOnGit(observer: ((args: readonly string[], sync?: boolean) =>
   spy = observer;
 }
 
+/** Held before every asynchronous `git` process starts, for tests: a slow git without a slow machine. */
+let before: ((args: readonly string[]) => Promise<void> | void) | undefined;
+
+/** Sets or clears the test hook awaited before each asynchronous `git` process starts. */
+export function delayGit(hook: ((args: readonly string[]) => Promise<void> | void) | undefined): void {
+  before = hook;
+}
+
 /** Tells the observer a synchronous `git` process starts (the synchronous readers call this), for tests. */
 export function noteSyncGit(args: readonly string[]): void {
   spy?.(args, true);
 }
 
+/** Options of `gitSync`; the rest (`core.quotePath=false`, `windowsHide`, UTF-8 text) is the same for every caller. */
+export interface GitSyncOptions {
+  readonly input?: string;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly timeout?: number;
+  readonly maxBuffer?: number;
+}
+
+/** The one synchronous `git` runner: runs `git` in `root`, reports it to `spyOnGit`, never throws (a failed start is `status` null). */
+export function gitSync(root: string, args: readonly string[], options: GitSyncOptions = {}): SpawnSyncReturns<string> {
+  noteSyncGit(args);
+  return spawnSync("git", ["-c", "core.quotePath=false", ...args], {
+    cwd: root,
+    encoding: "utf8",
+    windowsHide: true,
+    ...(options.maxBuffer === undefined ? {} : { maxBuffer: options.maxBuffer }),
+    ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
+    ...(options.input === undefined ? {} : { input: options.input }),
+    ...(options.env === undefined ? {} : { env: { ...process.env, ...options.env } }),
+  });
+}
+
 /** How long `git cat-file --batch` may run before it is killed. */
 export const BATCH_TIMEOUT_MS = 60_000;
 
-/** Runs `git` in `root` without blocking; never rejects. */
-export function gitAsync(root: string, args: readonly string[], env?: NodeJS.ProcessEnv): Promise<GitOut> {
+/** Runs `git` in `root` without blocking; never rejects. `input` goes to its standard input. */
+export function gitAsync(root: string, args: readonly string[], env?: NodeJS.ProcessEnv, input?: string): Promise<GitOut> {
   spy?.(args);
-  return new Promise((done) => {
-    execFile(
-      "git",
-      ["-c", "core.quotePath=false", ...args],
-      { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024, timeout: 60_000, windowsHide: true, ...(env === undefined ? {} : { env: { ...process.env, ...env } }) },
-      (error, stdout, stderr) => {
-        const code = error === null ? 0 : typeof (error as { code?: unknown }).code === "number" ? (error as { code: number }).code : null;
-        done({ status: code, stdout, stderr });
-      },
-    );
-  });
+  return Promise.resolve(before?.(args)).then(
+    () =>
+      new Promise((done) => {
+        const child = execFile(
+          "git",
+          ["-c", "core.quotePath=false", ...args],
+          { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024, timeout: 60_000, windowsHide: true, ...(env === undefined ? {} : { env: { ...process.env, ...env } }) },
+          (error, stdout, stderr) => {
+            const code = error === null ? 0 : typeof (error as { code?: unknown }).code === "number" ? (error as { code: number }).code : null;
+            done({ status: code, stdout, stderr });
+          },
+        );
+        if (input !== undefined) {
+          child.stdin?.on("error", () => {});
+          child.stdin?.end(input);
+        }
+      }),
+  );
 }
 
 /**
@@ -50,6 +87,10 @@ export function catBatch(root: string, specs: readonly string[], timeoutMs: numb
     return Promise.resolve([]);
   }
   spy?.(["cat-file", "--batch"]);
+  return Promise.resolve(before?.(["cat-file", "--batch"])).then(() => catBatchRun(root, specs, timeoutMs, command));
+}
+
+function catBatchRun(root: string, specs: readonly string[], timeoutMs: number, command: readonly string[]): Promise<(string | null)[]> {
   return new Promise((done, reject) => {
     let failed = false;
     const child = spawn(command[0] ?? "git", command.slice(1), { cwd: root, windowsHide: true, stdio: ["pipe", "pipe", "ignore"] });
