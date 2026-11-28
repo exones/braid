@@ -7,6 +7,12 @@ dependencies: []
 order: 20
 ---
 
+## Plan
+
+1. `mockups.html`: standalone page on test data, in 0082's mockup style, with today's card, details, panel and programme markup: strand rows (Details on and off), the folded braid card, variants A and B, a handover beside questions, the details banner and Requests tab, the Questions panel, the programmes panel, phone width.
+2. `report.md`: screens, variants, questions for the user. Stop for the look.
+3. After approval: log the verdict, run the gate, open the PR.
+
 ## Goal
 
 Mockups, on realistic test data, of the board when one item has several open questions, so the user approves the look before 0084/C builds it. The worker stops at the mockups for the user's look.
@@ -45,7 +51,7 @@ Expected size: about 400 lines in one HTML file.
 
 ## Completion
 
-- [ ] `mockups.html` in the item folder shows the screens listed under Change on test data, readable in light and dark and at phone width
-- [ ] report.md lists the screens, any variant with its recommendation, and the questions for the user
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] `mockups.html` in the item folder shows the screens listed under Change on test data, readable in light and dark and at phone width
+- [x] report.md lists the screens, any variant with its recommendation, and the questions for the user
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
