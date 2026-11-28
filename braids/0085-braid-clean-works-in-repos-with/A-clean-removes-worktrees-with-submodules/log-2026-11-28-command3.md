@@ -17,3 +17,7 @@ Tests consolidated into one fixture with subtests: the machine is heavily loaded
 ## 2026-11-28 12:01Z checkpoint
 
 done: safe removal (no deinit, linked-worktree guard, recursive submodule checks) in all four clean sites; braid branch merged (with 0077, at c9140b9d); test/clean-submodules.test.ts passes (12/12, one fixture); start-clean messages updated; docs/cli.md and D121 updated; brief has the binding addition. next: run the gate once (stopped by the restart hold, result unknown; start-clean.test.ts and reviews.test.ts not yet run on the new code), fix what fails, tick boxes, write report.md, push, PR into braid/0085-braid-clean-works-in-repos-with. open: none.
+
+## 2026-11-28 12:19Z checkpoint
+
+done: as at 13731afa, plus the approved decision (no deinit; PM, request little-parrot-ex9y, answer A) in the brief. The braid branch is merged (c9140b9d). next: run test/start-clean.test.ts and test/reviews.test.ts (stopped again by the hold; partial results in this entry's commit message if any), fix what fails, gate once, tick boxes, report.md (with the decision), PR into braid/0085-braid-clean-works-in-repos-with. open: none.

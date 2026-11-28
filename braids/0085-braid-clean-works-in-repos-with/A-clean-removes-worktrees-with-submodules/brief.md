@@ -35,6 +35,7 @@ Expected size: about 200 lines in 3 files, tests included.
 - Stashes are shared by every worktree of a repository: removing a worktree loses none, so they are not checked.
 - Tests build fixture repositories with submodules in temp folders (a superproject and one or two submodule repos, `file://` remotes, `-c protocol.file.allow=always`), never real ones; `C:\code\everix4` is read-only. The tests run in the gate, so CI runs them on Windows and Linux.
 - `git submodule deinit` (and any forced removal) never runs against the main checkout and never touches another worktree's submodules: it runs only with the cwd set to the one worktree being removed, after that worktree's path was verified to be a linked worktree (not the main checkout, not the caller's checkout). Why: everix4's main checkout had its docs and data submodules emptied on disk (cause unknown); the user restored them. (The user via the PM, 2026-11-28.)
+- No `git submodule deinit` anywhere in clean: `git worktree remove --force`, only after the checks, removes a worktree with its submodules. deinit in a linked worktree edits the shared `.git/config` and de-registers the submodule in the main checkout (found by this item's test). The PM approved this, 2026-11-28 (request little-parrot-ex9y, answer A).
 
 ## Failure modes and required regression tests
 
