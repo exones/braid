@@ -34,13 +34,14 @@ Start one in a T3 thread: `$braid-pm I need customers to pay by invoice; ask me 
 
 - **Plan a goal into reviewed pull requests:** a plan to approve, then one PR per part ([walk-through](#a-walk-through)).
 - **Review before it reaches you:** an independent reviewer on medium and large changes, the coordinator on small ones, review bots if you choose ([review bots](docs/getting-started.md#braid-on-a-large-repo)).
-- **Questions and requests on the board:** a short line on the board, the full question in chat, each with a code (`q-7f3k`) that `braid ask`, `braid answer` and `braid requests` read and write on a record branch, not in a chat ([questions and answers](docs/getting-started.md#questions-and-answers), [requests](docs/board.md#requests)).
+- **Questions and requests on the board:** a short line on the board, the full question in chat, saying what the answer unblocks and whether to decide, do, merge or only look, with likely answers you can pick by letter, each with a name you can say aloud, `yellow-bear-7f3k` (two words and the four characters of its code `q-7f3k`), that `braid ask`, `braid answer` and `braid requests` read and write on a record branch, not in a chat ([questions and answers](docs/getting-started.md#questions-and-answers), [requests](docs/board.md#requests)).
 - **Autonomy presets:** a file per project or braid says what the coordinator merges and starts itself and, per stop case, what it decides and what it asks you; decisions it makes are logged ([autonomy](docs/autonomy.md)).
-- **Wakes, reminders and nudges:** a coordinator that waits ends its turn; the running board wakes it when the condition holds, reminds whoever it waits for hourly (`braid eta` sets when), and nudges an agent that has gone quiet before it shows as stalled ([wakes](docs/board.md#wakes), [reminders](docs/board.md#reminders)).
-- **Pausing before provider limits:** `braid limits` reads each provider's usage; over a threshold the board pauses that provider's agents at a clean point and resumes them after the reset ([provider limits](docs/board.md#provider-limits), [pauses](docs/cli.md#pauses)).
+- **Wakes, reminders and nudges:** a coordinator that waits ends its turn; the running board wakes it when the condition holds or when the PM records an answer for it, reminds whoever it waits for hourly (`braid eta` sets when), and nudges an agent that has gone quiet before it shows as stalled ([wakes](docs/board.md#wakes), [reminders](docs/board.md#reminders)).
+- **Pausing before provider limits:** `braid limits` reads each provider's usage; over a threshold the board pauses that provider's agents at a clean point by code and resumes them after the reset, early when usage drops, or on Resume now; a PM-run braid resumes through its PM ([provider limits](docs/board.md#provider-limits), [pauses](docs/cli.md#pauses)).
+- **Gates that share the machine:** `braid gate` runs your gate command with at most two at once on a machine, so the board stays responsive ([the CLI reference](docs/cli.md#commands)).
 - **The merge gate and `ci: all`:** your own gate runs before every merge braid makes, and `ci: all` waits for every check a PR gets ([braid on a large repo](docs/getting-started.md#braid-on-a-large-repo)).
 - **Live checks by the PM:** it builds and runs a PR's head before the merge; after the merge the check is CI on the merge commit, and a live checker runs again only if `main` moved ([the PM skill](.agents/skills/braid-pm/SKILL.md)). A failure after the merge becomes a fix braid.
-- **The attention board:** lanes by what needs you, Open thread, merge on request, a programmes panel, and a phone layout that `braid board --host tailscale` serves to your own login ([lanes](docs/board.md#lanes), [Open thread and Merge on request](docs/board.md#open-thread-and-merge-on-request), [Tailscale](docs/board.md#on-tailscale)); on Windows `braid board service install` runs it at logon ([run at login](docs/board.md#run-the-board-at-login)).
+- **The attention board:** lanes by what needs you, Open thread, merge on request, a programmes panel, a Questions panel that ranks every open question and takes your answer in one click, and a phone layout that `braid board --host tailscale` serves to your own login ([lanes](docs/board.md#lanes), [the Questions panel](docs/board.md#the-questions-panel), [Open thread and Merge on request](docs/board.md#open-thread-and-merge-on-request), [Tailscale](docs/board.md#on-tailscale)); on Windows `braid board service install` runs it at logon ([run at login](docs/board.md#run-the-board-at-login)).
 - **The ideas inbox:** `$braid-idea` and `braid note` park an idea or a leftover where the board shows it ([the inbox](docs/board.md#the-inbox)).
 - **Resume from the files:** briefs, logs and reports live in `braids/`, so any agent continues after a crash ([the braids/ format](docs/braids-format.md)).
 - **Claude, Codex and Cursor:** agent skills plus a CLI that does the bookkeeping; agents run as threads in [T3 Code](https://github.com/pingdotgg/t3code) ([getting started](docs/getting-started.md)).
@@ -66,7 +67,7 @@ You ask for dark mode. Here is what happens next.
 
    *Illustrative mock-up, not a real thread: the plan, and later the recap.*
 
-2. **A worker builds strand A** on its own branch and worktree, runs the project's gate and opens a PR with CI green.
+2. **A worker builds strand A** on its own branch, runs the project's gate and opens a PR; the coordinator waits for the PR's CI.
 3. **A reviewer checks the PR** against the brief (for a small strand, the coordinator reads the diff); findings go back to the worker.
 4. **You get a recap** and merge or ask for changes. Until then the board shows the item where you can act on it:
 
@@ -93,7 +94,7 @@ Away from your desk, the same board fits a phone, and the inbox keeps ideas and 
 
 - **A programme manager** takes a business goal, slices it into braids and runs their coordinators for you.
 - **A coordinator** is the agent you talk to. It plans with you, launches the other agents and reports back.
-- **Workers** each do one item on their own branch and worktree, run the gate and open a PR.
+- **Workers** each do one item on their own branch, run the gate and open a PR. In T3 a worker is a subagent the coordinator launches with `braid launch`, and the coordinator, not the worker, waits for the PR's CI.
 - **Reviewers** check medium and large PRs independently before they reach you.
 - **Braids and strands:** a braid is a story or a goal; a goal is split into strands, its parts, which run in order.
 - **The ledger** is the `braids/` folder: one folder per braid and strand with its brief, logs and report, plain Markdown in Git, managed with the `braid` CLI.
@@ -134,7 +135,7 @@ The full list is in [the CLI reference](docs/cli.md).
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Installing the skills and CLI, `BRAID.md` (including which docs braid keeps true), setting up a repository, choosing an autonomy preset. |
 | [CLI reference](docs/cli.md) | Every command, with examples and exit codes. |
-| [The attention board](docs/board.md) | What `braid board` shows, how it decides, and its actions (Start, Merge, Open thread). |
+| [The attention board](docs/board.md) | What `braid board` shows, how it decides, and its actions (Start, Merge, Answer, Open thread). |
 | [The braids/ format](docs/braids-format.md) | The files in `braids/`, branches and each command's behaviour. |
 | [Autonomy presets](docs/autonomy.md) | The preset file a braid runs on, the three shipped presets and `braid autonomy`. |
 | [Workflow](.agents/skills/braid/references/workflow.md) | Items, tiers, branches, merges and checks. |

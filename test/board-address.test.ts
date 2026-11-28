@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import type { Server } from "node:http";
+import { createServer, type Server } from "node:http";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
@@ -49,13 +49,14 @@ const board = (await load("../dist/commands/board.js")) as {
   startBoardWith(served: unknown, web: string, refreshMs?: number, token?: string, tailnet?: undefined, port?: number): Promise<Started>;
   runBoard(root: string, args: readonly string[], tailscale: undefined, run: { gh?: unknown; t3?: unknown; projects?: () => unknown[]; notifier?: unknown }): Promise<Started>;
   keepAddress(started: Started, url: string, home?: string, raise?: (signal: string) => void): Started;
-  boardUrl(args: readonly string[], home?: string): Promise<Out>;
+  boardUrl(args: readonly string[], home?: string, probe?: (url: string) => Promise<unknown>): Promise<Out>;
 };
 const address = (await load("../dist/board/address.js")) as {
   addressFile(port: number, home?: string): string;
   writeAddress(port: number, url: string, home?: string, ownerOnly?: ((file: string) => void) | null): string;
   removeAddress(port: number, url: string, home?: string): void;
   readAddresses(home?: string): { port: number; url: string }[];
+  probeBoard(url: string, budgetMs?: number): Promise<{ state: string; version?: string | null }>;
 };
 
 const sys = (await load("../dist/system32.js")) as { system32(exe: string, env?: NodeJS.ProcessEnv): string };
@@ -203,6 +204,46 @@ test("a stale file whose port answers nothing, or answers with another token, is
     await other.close();
     rmSync(address.addressFile(port, home), { force: true });
     rmSync(address.addressFile(portOf(other), home), { force: true });
+  }
+});
+
+test("a board that answers late is found, a silent listener is busy with its address, a closed port is none", async () => {
+  const own = join(scratch, "late");
+  // Answers like a loaded board after `delay` ms; never when it is null.
+  const listen = async (delay: number | null): Promise<{ url: string; close(): void }> => {
+    const server = createServer((_req, res) => {
+      if (delay !== null) setTimeout(() => res.writeHead(204, { "x-braid-version": "9.9.9" }).end(), delay);
+    });
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+    const port = (server.address() as { port: number }).port;
+    return {
+      url: `http://127.0.0.1:${port}/#token=${"d".repeat(48)}`,
+      close: () => {
+        server.closeAllConnections();
+        server.close();
+      },
+    };
+  };
+  const late = await listen(3_000);
+  const silent = await listen(null);
+  const closed = await listen(null);
+  closed.close();
+  try {
+    address.writeAddress(Number(new URL(late.url).port), late.url, own);
+    assert.deepEqual(await board.boardUrl(["--url"], own), { code: 0, stdout: `${late.url}\n`, stderr: "" });
+    assert.deepEqual(await address.probeBoard(late.url), { state: "answers", version: "9.9.9" });
+    rmSync(address.addressFile(Number(new URL(late.url).port), own));
+
+    const short = (url: string) => address.probeBoard(url, 300);
+    assert.deepEqual(await short(silent.url), { state: "busy" });
+    assert.deepEqual(await address.probeBoard(closed.url), { state: "none" });
+    address.writeAddress(Number(new URL(silent.url).port), silent.url, own);
+    const out = await board.boardUrl(["--url"], own, short);
+    assert.deepEqual([out.code, out.stdout], [0, `${silent.url}\n`]);
+    assert.match(out.stderr, /^the board on port \d+ answers slowly/);
+  } finally {
+    late.close();
+    silent.close();
   }
 });
 

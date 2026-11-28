@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { after, beforeEach, test } from "node:test";
+import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
@@ -10,14 +10,13 @@ const fixtures = fileURLToPath(new URL("./fixtures/limits", import.meta.url));
 const { readLimitsView, mergeLimits, buildView } = await load("../dist/board/limits.js");
 const { chipNote, agentsText } = await load("../dist/board/limits-view.js");
 const { DEFAULT_LIMITS } = await load("../dist/braids/limits.js");
-const { readT3, resetT3Memory } = await load("../dist/board/t3.js");
-const { parseSteeringTitle, parseThreadTitle, steeringTitle } = await load("../dist/braids/title.js");
+const { readT3 } = await load("../dist/board/t3.js");
+const { parseSteeringTitle, parseThreadTitle } = await load("../dist/braids/title.js");
 const { demoLimits, demoT3, demoPauses } = await load("../dist/board/demo.js");
 const { toBoard } = await load("../dist/board/model.js");
 
 const scratch = mkdtempSync(join(tmpdir(), "braid-board-limits-"));
 after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
-beforeEach(() => resetT3Memory());
 
 // The fixtures were checked at 18:00Z; their windows reset between 19:22Z and 26 Nov.
 const NOW = new Date("2026-11-21T18:05:00.000Z");
@@ -118,7 +117,7 @@ function stub(list: unknown[], shown: Record<string, unknown>) {
   return (_root: string, args: readonly string[]) => Promise.resolve({ status: 0, stdout: JSON.stringify(args[1] === "list" ? list : { thread: shown[args[2] ?? ""] ?? {} }), stderr: "" });
 }
 
-test("worker and reviewer threads carry their provider, as coordinators do; a steering thread is no agent", async () => {
+test("worker and reviewer threads carry their provider, as coordinators do; an older steering thread is no agent", async () => {
   const agents = join(scratch, "wt");
   mkdirSync(agents, { recursive: true });
   const list = [
@@ -133,16 +132,15 @@ test("worker and reviewer threads carry their provider, as coordinators do; a st
     // placed inside an item's worktree, but by its title a steering thread
     s1: { status: "running", worktreePath: join(agents, "0001-B"), providerInstanceId: "Claude_Everix" },
   };
-  const t3 = await readT3(scratch, { run: stub(list, shown), agents, project: scratch, reviews: [{ id: "0001/C", thread: "r1" }], ttlMs: 0 });
+  const t3 = await readT3(scratch, { run: stub(list, shown), agents, project: scratch, reviews: [{ id: "0001/C", thread: "r1" }] });
   assert.equal(t3.threads.get("0001/A")?.[0]?.provider, "codex");
   assert.equal(t3.threads.get("0001/C")?.[0]?.provider, "cursor");
   assert.equal(t3.threads.has("0001/B"), false);
   assert.equal(t3.coordinators.get("0001")?.provider, "Claude_Everix");
 });
 
-test("the steering title has no item id, and nothing but a steering title reads as one", () => {
-  const title = steeringTitle("braid", "pause Claude_Everix Session 97%");
-  assert.equal(title, "🚦 braid steering: pause Claude_Everix Session 97%");
+test("an older steering thread's title has no item id, and nothing but a steering title reads as one", () => {
+  const title = "🚦 braid steering: pause Claude_Everix Session 97%";
   assert.deepEqual(parseSteeringTitle(title), { repo: "braid", what: "pause Claude_Everix Session 97%" });
   assert.equal(parseThreadTitle(title), null);
   assert.equal(parseSteeringTitle("🧠 braid 0064 coordinator: x"), null);
@@ -159,4 +157,19 @@ test("the demo shows Claude_Everix paused, codex ok and cursor not measured, and
   const data = toBoard("demo", [], { status: { state: "ok" } }, t3, undefined, undefined, undefined, [], view);
   assert.equal(data.limits.providers.length, 3);
   assert.equal(toBoard("demo", [], { status: { state: "ok" } }, t3).limits, null);
+});
+
+test("0074/E: on the combined board blind wins over another project's unknown, in both orders", () => {
+  const later = new Date("2026-11-21T19:00:00.000Z"); // claude_stale was checked before 18:00Z: over 30 minutes ago
+  const front = "models:\n  coordinator: claude_stale / claude-opus-5-5 / effort=medium";
+  const running = { status: { state: "ok" }, threads: new Map([["0001/A", [{ id: "w", role: "worker", pending: 0, link: null, provider: "claude_stale" }]]]) };
+  const idle = readLimitsView(project(front), NO_THREADS, new Map(), later, fixtures);
+  const busy = readLimitsView(project(front), running, new Map(), later, fixtures);
+  assert.equal(idle.providers[0].state, "unknown");
+  assert.equal(busy.providers[0].state, "blind");
+  for (const order of [[["a", idle], ["b", busy]], [["a", busy], ["b", idle]]] as const) {
+    const merged = mergeLimits(order.map(([project, view]) => ({ project, view })));
+    assert.equal(merged.providers[0].state, "blind");
+    assert.equal(merged.providers[0].blindSince, busy.providers[0].blindSince);
+  }
 });

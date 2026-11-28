@@ -21,8 +21,9 @@ const CO2 = "c0002222-aaaa-4bbb-8ccc-333333333333";
 const PM = "pm000000-aaaa-4bbb-8ccc-333333333333";
 const T0 = new Date("2026-11-23T10:00:00.000Z");
 const at = (minutes: number): Date => new Date(T0.getTime() + minutes * 60_000);
-const codeOf = (out: string): string => /^(q-[a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`);
+const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})\b/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
 const recordOf = (root: string, code: string): any => Rec.loadRecord(root).requests.find((r: any) => r.code === code);
+const nameOf = (root: string, code: string): string => Rec.handleOf(recordOf(root, code));
 const FIRST = "Gentle hourly reminder: I'm still waiting for you.";
 
 /** A wait of 0001 on 0002, opened at T0. */
@@ -33,7 +34,7 @@ test("braid eta sets an estimate, a later call moves it, each an eta event with 
   const w = world();
   const code = waitOn2(w.root);
   const out = eta(w.root, [code, "40m", "after strand 0002/C merges"], at(10));
-  assert.equal(out, `${code} (0001, to braid 0002): expected by ${clock(at(50).toISOString(), at(10))} (in 40 min)\n`);
+  assert.equal(out, `${nameOf(w.root, code)} (0001, to braid 0002): expected by ${clock(at(50).toISOString(), at(10))} (in 40 min)\n`);
   let r = recordOf(w.root, code);
   assert.equal(r.eta, at(50).toISOString());
   assert.deepEqual(r.events.at(-1), { event: "eta", at: at(10).toISOString(), by: "coordinator", text: at(50).toISOString(), reason: "after strand 0002/C merges" });
@@ -69,7 +70,7 @@ test("braid eta takes a time of day (tomorrow once passed) or an ISO time, and r
   assert.throws(() => eta(w.root, [code], now), /usage: braid eta/);
   Cmd.withdrawCommand(w.root, [code, "--why", "not needed"]);
   const before = recordOf(w.root, code).events.length;
-  assert.throws(() => eta(w.root, [code, "2h"], now), new RegExp(`${code} is withdrawn \\(closed .*\\); an estimate is only for an open request; nothing changed`));
+  assert.throws(() => eta(w.root, [code, "2h"], now), new RegExp(`${nameOf(w.root, code)} is withdrawn \\(closed .*\\); an estimate is only for an open request; nothing changed`));
   assert.equal(recordOf(w.root, code).events.length, before);
   assert.throws(() => eta(w.root, ["q-zzzz", "2h"], now), /no request q-zzzz/);
 });
@@ -116,7 +117,7 @@ test("the addressee is reminded an hour after the wait opened, then at most hour
   assert.equal(s.sent.length, 1);
   assert.equal(s.sent[0]?.thread, CO2);
   assert.ok(s.sent[0]?.text.startsWith(FIRST), s.sent[0]?.text);
-  assert.equal(s.sent[0]?.text, `${FIRST} ${code} from the 0001 coordinator (item 0001): Can search ship before reports? Done when braid 0002 is merged into main. Say when you expect it: braid eta ${code} 2h 'why' (a duration, or a time such as 16:30).`);
+  assert.equal(s.sent[0]?.text, `${FIRST} ${nameOf(w.root, code)} from the 0001 coordinator (item 0001): Can search ship before reports? Done when braid 0002 is merged into main. Say when you expect it: braid eta ${nameOf(w.root, code)} 2h 'why' (a duration, or a time such as 16:30).`);
   assert.deepEqual(reminded(w.root, code), [{ event: "reminded", at: at(60).toISOString(), by: "board", text: "sent to the 0002 coordinator" }]);
   await step({ root: w.root, good: g }, at(100), warn);
   await reminder(s.t3)({ root: w.root, good: g }, at(110), warn);
@@ -138,8 +139,8 @@ test("not before the estimate; once it has passed, reminded hourly, the PM told 
   await step({ root: w.root, good: g }, at(190), warn);
   const missed = clock(at(190).toISOString(), at(190));
   assert.deepEqual(s.sent.map((x) => x.thread), [PM, CO2]);
-  assert.equal(s.sent[0]?.text, `From the board: 0001 waits on braid 0002 (${code}: Can search ship before reports?) past its estimate ${missed}. The 0002 coordinator is reminded hourly. See braid requests ${code}.`);
-  assert.match(s.sent[1]?.text ?? "", new RegExp(`Your estimate ${missed} has passed; set a new one: braid eta ${code} 2h 'why'\\.$`));
+  assert.equal(s.sent[0]?.text, `From the board: 0001 waits on braid 0002 (${nameOf(w.root, code)}: Can search ship before reports?) past its estimate ${missed}. The 0002 coordinator is reminded hourly. See braid requests ${nameOf(w.root, code)}.`);
+  assert.match(s.sent[1]?.text ?? "", new RegExp(`Your estimate ${missed} has passed; set a new one: braid eta ${nameOf(w.root, code)} 2h 'why'\\.$`));
   assert.deepEqual(reminded(w.root, code).map((e: any) => [e.text, e.reason]), [["sent to the PM", `missed its estimate ${missed}`], ["sent to the 0002 coordinator", undefined]]);
   await step({ root: w.root, good: g }, at(251), warn);
   assert.deepEqual(s.sent.map((x) => x.thread), [PM, CO2, CO2], "the PM once; the coordinator hourly");
@@ -156,7 +157,7 @@ test("a waited-on braid with no coordinator: the PM of a PM-run braid is reminde
   const s = sender();
   await reminder(s.t3)({ root: w.root, good: good({ pm: true }) }, at(60), warn);
   assert.equal(s.sent[0]?.thread, PM);
-  assert.match(s.sent[0]?.text ?? "", new RegExp(`^${FIRST} ${code} from the 0001 coordinator \\(item 0001\\) to braid 0002, which has no coordinator yet: `));
+  assert.match(s.sent[0]?.text ?? "", new RegExp(`^${FIRST} ${nameOf(w.root, code)} from the 0001 coordinator \\(item 0001\\) to braid 0002, which has no coordinator yet: `));
   assert.deepEqual(reminded(w.root, code).map((e: any) => e.text), ["sent to the PM"]);
   const w2 = world();
   waitOn2(w2.root);
@@ -269,7 +270,7 @@ test("braid eta works through the CLI: sets the estimate on an open request", as
   const code = waitOn2(w.root);
   const r = spawnSync(process.execPath, [fileURLToPath(new URL("../dist/cli.js", import.meta.url)), "eta", code, "2h", "after 0002/C"], { encoding: "utf8", cwd: w.root });
   assert.equal(r.status, 0, r.stderr);
-  assert.ok(r.stdout.startsWith(`${code} (0001, to braid 0002): expected by `), r.stdout);
+  assert.ok(r.stdout.startsWith(`${nameOf(w.root, code)} (0001, to braid 0002): expected by `), r.stdout);
   assert.match(r.stdout, /\(in 2h\)/);
   assert.ok(recordOf(w.root, code).eta, "the estimate is set");
 });

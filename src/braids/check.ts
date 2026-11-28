@@ -1,11 +1,9 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
 import { loadKnownBraids } from "./branches.js";
 import { availablePresets, delegatedGuarded, parsePreset, projectDefault, projectPresetFiles, PRESET_NAME, type Preset } from "./autonomy.js";
 import { SHIPPED_PRESETS } from "./presets.js";
 import { parseBrief } from "./brief.js";
 import { FormatError } from "./frontmatter.js";
-import { BRAID_FOLDER, STRAND_FOLDER } from "./store.js";
+import { BRAID_FOLDER, fsTree, STRAND_FOLDER, type WorkingFiles } from "./store.js";
 
 export interface CheckResult {
   /** One line per problem: `<file>: <message>`. */
@@ -16,10 +14,6 @@ export interface CheckResult {
   readonly strands: number;
 }
 
-function display(root: string, path: string): string {
-  return relative(root, path).split(sep).join("/");
-}
-
 interface Checked {
   readonly name: string;
   readonly related: readonly string[];
@@ -27,15 +21,15 @@ interface Checked {
 }
 
 /** Validates one brief; returns its file name, `related` ids and preset, or null when it fails. */
-function checkBrief(root: string, dir: string, id: string, errors: string[]): Checked | null {
-  const path = join(dir, "brief.md");
-  const name = display(root, path);
-  if (!existsSync(path)) {
+function checkBrief(tree: WorkingFiles, dir: string, id: string, errors: string[]): Checked | null {
+  const name = `${dir}/brief.md`;
+  const text = tree.read(name);
+  if (text === null) {
     errors.push(`${name}: file is missing`);
     return null;
   }
   try {
-    const brief = parseBrief(readFileSync(path, "utf8"), name, id);
+    const brief = parseBrief(text, name, id);
     return { name, related: brief.related, autonomy: brief.autonomy };
   } catch (error) {
     if (error instanceof FormatError) {
@@ -74,61 +68,62 @@ function relatedWarnings(root: string, all: readonly Checked[]): string[] {
 
 /**
  * Validates every brief under `<root>/braids`, like `loadBraids` but without stopping
- * at the first problem. A missing `braids/` folder is a clean result.
+ * at the first problem. A missing `braids/` folder is a clean result. `tree` is where the
+ * files are read from; `related: false` leaves out the `related` warnings, which read every branch.
  */
-export function checkBraids(root: string): CheckResult {
-  const base = join(root, "braids");
+export function checkBraids(root: string, { tree = fsTree(root), related = true }: { readonly tree?: WorkingFiles; readonly related?: boolean } = {}): CheckResult {
   const errors: string[] = [];
   const links: Checked[] = [];
   let braids = 0;
   let strands = 0;
-  if (!existsSync(base)) {
-    const presets = presetProblems(root, links);
+  if (!tree.exists("braids")) {
+    const presets = presetProblems(root, tree, links);
     return { errors: presets.errors, warnings: presets.warnings, braids, strands };
   }
   const numbers = new Map<string, string>();
-  for (const entry of readdirSync(base).sort()) {
-    const dir = join(base, entry);
-    if (!statSync(dir).isDirectory()) {
+  for (const { name: entry, isDir } of tree.list("braids")) {
+    const dir = `braids/${entry}`;
+    if (!isDir) {
       continue;
     }
     const match = BRAID_FOLDER.exec(entry);
     if (!match) {
-      errors.push(`${display(root, dir)}: folder name must be <4 digits>-<slug>, like 0002-braids-folder`);
+      errors.push(`${dir}: folder name must be <4 digits>-<slug>, like 0002-braids-folder`);
       continue;
     }
     const number = match[1] ?? "";
     const other = numbers.get(number);
     if (other !== undefined) {
-      errors.push(`${display(root, dir)}: braid number ${number} is also used by ${other}`);
+      errors.push(`${dir}: braid number ${number} is also used by ${other}`);
       continue;
     }
     numbers.set(number, entry);
     braids += 1;
-    const link = checkBrief(root, dir, number, errors);
+    const link = checkBrief(tree, dir, number, errors);
     if (link !== null) {
       links.push(link);
     }
     const letters = new Map<string, string>();
-    for (const sub of readdirSync(dir).sort()) {
-      const strandDir = join(dir, sub);
-      const found = STRAND_FOLDER.exec(sub);
-      if (!found || !statSync(strandDir).isDirectory()) {
+    for (const sub of tree.list(dir)) {
+      const strandDir = `${dir}/${sub.name}`;
+      const found = STRAND_FOLDER.exec(sub.name);
+      if (!found || !sub.isDir) {
         continue;
       }
       const letter = found[1] ?? "";
       const used = letters.get(letter);
       if (used !== undefined) {
-        errors.push(`${display(root, strandDir)}: strand letter ${letter} is also used by ${used}`);
+        errors.push(`${strandDir}: strand letter ${letter} is also used by ${used}`);
         continue;
       }
-      letters.set(letter, sub);
+      letters.set(letter, sub.name);
       strands += 1;
-      checkBrief(root, strandDir, `${number}/${letter}`, errors);
+      checkBrief(tree, strandDir, `${number}/${letter}`, errors);
     }
   }
-  const presets = presetProblems(root, links);
-  return { errors: [...errors, ...presets.errors, ...docsProblems(root)], warnings: [...relatedWarnings(root, links), ...presets.warnings], braids, strands };
+  const presets = presetProblems(root, tree, links);
+  const warnings = related ? relatedWarnings(root, links) : [];
+  return { errors: [...errors, ...presets.errors, ...docsProblems(tree)], warnings: [...warnings, ...presets.warnings], braids, strands };
 }
 
 /**
@@ -136,7 +131,7 @@ export function checkBraids(root: string): CheckResult {
  * preset that exists. A preset that lets the agents decide security, data or outward is a warning:
  * every project file, and a shipped preset only when something here names it.
  */
-function presetProblems(root: string, briefs: readonly Checked[]): { errors: string[]; warnings: string[] } {
+function presetProblems(root: string, tree: WorkingFiles, briefs: readonly Checked[]): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
   const warn = (where: string, preset: Preset) => {
@@ -145,7 +140,7 @@ function presetProblems(root: string, briefs: readonly Checked[]): { errors: str
       warnings.push(`${where}: preset ${preset.name} lets the agents decide ${cases.join(", ")} (allowed; make sure it is meant)`);
     }
   };
-  for (const [name, source] of projectPresetFiles(root)) {
+  for (const [name, source] of projectPresetFiles(root, tree)) {
     if (!PRESET_NAME.test(name)) {
       errors.push(`${source.from}: a preset file name must be lowercase letters and digits joined by single hyphens, like steady.md`);
       continue;
@@ -160,7 +155,7 @@ function presetProblems(root: string, briefs: readonly Checked[]): { errors: str
       throw error;
     }
   }
-  const available = availablePresets(root);
+  const available = availablePresets(root, tree);
   const named = new Set<string>();
   const known = (where: string, name: string) => {
     if (available.has(name)) {
@@ -169,7 +164,7 @@ function presetProblems(root: string, briefs: readonly Checked[]): { errors: str
       errors.push(`${where}: autonomy preset ${name} does not exist (no autonomy/${name}.md and no shipped preset ${name}; shipped: ${[...SHIPPED_PRESETS.keys()].join(", ")})`);
     }
   };
-  const fallback = projectDefault(root);
+  const fallback = projectDefault(root, tree);
   if (fallback !== null) {
     if (PRESET_NAME.test(fallback)) {
       known("BRAID.md", fallback);
@@ -194,12 +189,12 @@ function presetProblems(root: string, briefs: readonly Checked[]): { errors: str
 const DOCS_UPDATE = ["strand", "braid", "both", "on-demand"];
 
 /** The `docs` key of BRAID.md's front matter: `update` must be one of DOCS_UPDATE, `public` and `internal` lists. A BRAID.md without `docs` is valid. */
-function docsProblems(root: string): string[] {
-  const file = join(root, "BRAID.md");
-  if (!existsSync(file)) {
+function docsProblems(tree: WorkingFiles): string[] {
+  const text = tree.read("BRAID.md");
+  if (text === null) {
     return [];
   }
-  const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
+  const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? "";
   const lines = front.split(/\r?\n/);
   const start = lines.findIndex((l) => /^docs:/.test(l));
   if (start === -1) {

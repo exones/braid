@@ -20,7 +20,6 @@ const { readGithubAsync, resetGithubMemory } = (await load("../dist/board/github
   readGithubAsync: (root: string, run: (root: string, args: readonly string[]) => unknown, ttl: number) => Promise<Gh>;
   resetGithubMemory: () => void;
 };
-const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
 const { statusCommand } = (await load("../dist/commands/coordinate.js")) as { statusCommand: (root: string, args: string[], src: object) => Promise<string> };
 const { startBoardWith, repoSources, runBoard } = (await load("../dist/commands/board.js")) as {
   runBoard: (root: string, args: string[], tailscale: undefined, run: { gh: (root: string, args: readonly string[]) => unknown; t3: unknown }) => Promise<{ server: import("node:http").Server; close(): Promise<void> }>;
@@ -111,7 +110,6 @@ test("readiness never throws: a file it can't read is a problem", () => {
 
 test("a malformed brief is a problem, not an error, and the board still serves", async () => {
   resetGithubMemory();
-  resetT3Memory();
   const root = project({ ...ready(), "braids/0002-b/brief.md": "not a brief" });
   assert.deepEqual(keys(readiness(root, OK)), ["check"]);
   const web = project({ "index.html": "<html></html>" });
@@ -129,7 +127,6 @@ test("a malformed brief is a problem, not an error, and the board still serves",
 
 test("braid status on backlog/ without braids/ names braid import-backlog instead of failing", async () => {
   resetGithubMemory();
-  resetT3Memory();
   const root = project({ "BRAID.md": GOOD, "backlog/tasks/t.md": "x" });
   const out = await statusCommand(root, ["1"], { gh: () => ({ status: 0, stdout: "[]", stderr: "" }), t3: () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }) });
   assert.match(out, /^not ready: it has backlog\/ but no braids\/; run braid import-backlog\n/);
@@ -138,7 +135,6 @@ test("braid status on backlog/ without braids/ names braid import-backlog instea
 
 test("braid status on a malformed brief prints the problem too", async () => {
   resetGithubMemory();
-  resetT3Memory();
   const root = project({ ...ready(), "braids/0002-b/brief.md": "not a brief" });
   const out = await statusCommand(root, ["1"], { gh: () => ({ status: 0, stdout: "[]", stderr: "" }), t3: () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }) });
   assert.match(out, /^not ready: braid check reports 1 error/);
@@ -146,7 +142,6 @@ test("braid status on a malformed brief prints the problem too", async () => {
 
 test("braid status prints a line per problem before the strand lines", async () => {
   resetGithubMemory();
-  resetT3Memory();
   const root = project({ "BRAID.md": "---\nci: [verify]\n---\n", "braids/0001-a/brief.md": BRIEF.replace("To Do", "In Progress") });
   const out = await statusCommand(root, ["1"], {
     gh: () => ({ status: 0, stdout: "[]", stderr: "" }),
@@ -159,7 +154,6 @@ test("braid status prints a line per problem before the strand lines", async () 
 
 test("the board snapshot carries the problems", async () => {
   resetGithubMemory();
-  resetT3Memory();
   const root = project({ "BRAID.md": GOOD, "backlog/tasks/t.md": "x" });
   const web = project({ "index.html": "<html></html>" });
   const src = repoSources(root, () => ({ status: 0, stdout: "[]", stderr: "" }), () => Promise.resolve({ status: 0, stdout: "[]", stderr: "" }));
@@ -176,7 +170,6 @@ test("the board snapshot carries the problems", async () => {
 
 test("braid board reads GitHub once from startup until it prints the not ready lines", async () => {
   resetGithubMemory();
-  resetT3Memory();
   // The notifier and its settings live under the home folder: keep them in the scratch folder.
   const saved = { HOME: process.env["HOME"], USERPROFILE: process.env["USERPROFILE"] };
   process.env["HOME"] = scratch;

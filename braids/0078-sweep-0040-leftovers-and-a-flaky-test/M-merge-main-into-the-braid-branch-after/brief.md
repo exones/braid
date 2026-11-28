@@ -36,8 +36,8 @@ Expected size: conflict resolution only, about 50 to 150 lines in 7 files.
 
 ## Completion
 
-- [ ] `origin/main` at the time of the merge is merged into this branch, every conflict resolved with both sides' behaviour kept, and report.md lists each
-- [ ] The focused tests for the conflicted files pass
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] `origin/main` at the time of the merge is merged into this branch, every conflict resolved with both sides' behaviour kept, and report.md lists each
+- [x] The focused tests for the conflicted files pass
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
