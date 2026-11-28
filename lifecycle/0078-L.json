@@ -6,6 +6,13 @@
       "at": "2026-11-26T09:03:50.678Z",
       "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
       "branch": "braid/0078/L-a-live-lock-holder-keeps-its-lock"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-28T13:41:42.531Z",
+      "head": "74696ed095eb9acc2c0b1761ef2042c5a59acd41",
+      "review": "https://github.com/exones/braid/pull/382#issuecomment-7240101398",
+      "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317"
     }
   ]
 }
