@@ -15,6 +15,12 @@
       "event": "opened",
       "at": "2026-11-28T14:10:04.135Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T14:11:32.368Z",
+      "by": "user",
+      "text": "If it's safe to merge you can merge actually, because I believe you checked it"
     }
   ]
 }
