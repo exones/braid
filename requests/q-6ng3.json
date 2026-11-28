@@ -23,6 +23,12 @@
       "at": "2026-11-28T09:32:18.064Z",
       "by": "user",
       "text": "Merge 375"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T09:45:00.929Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
