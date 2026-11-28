@@ -11,10 +11,11 @@ const scratch = mkdtempSync(join(tmpdir(), "braid-lock-test-"));
 after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
 
 const stateUrl = pathToFileURL(fileURLToPath(new URL("../dist/braids/state.js", import.meta.url))).href;
-const { locked, takeOverStale, checkHeld } = (await import(stateUrl)) as {
+const { locked, lockedAsync, takeOverStale, checkHeld } = (await import(stateUrl)) as {
   locked: <T>(file: string, fn: () => T, what?: string, makeDir?: (dir: string) => void, waitMs?: number, clock?: object, refreshMs?: number) => T;
+  lockedAsync: <T>(file: string, fn: () => Promise<T>, what?: string, makeDir?: (dir: string) => void, waitMs?: number, refreshMs?: number) => Promise<T>;
   takeOverStale: (lock: string, staleMs?: number) => boolean;
-  checkHeld: () => void;
+  checkHeld: (name?: string) => void;
 };
 const { writeBranch } = (await import(pathToFileURL(fileURLToPath(new URL("../dist/braids/gitbranch.js", import.meta.url))).href)) as {
   writeBranch: (root: string, b: object, change: () => { files: Map<string, string>; message: string }) => unknown;
@@ -96,6 +97,27 @@ test("a holder that lost its lock leaves the new holder's lock alone, never refr
   );
   assert.equal(readFileSync(lock, "utf8"), "another writer", "release leaves it");
   assert.doesNotThrow(() => checkHeld(), "nothing held any more");
+});
+
+test("the board's asynchronous hold is refreshed too, and its release leaves another writer's lock alone", async () => {
+  const file = place("async");
+  const lock = `${file}.lock`;
+  await lockedAsync(
+    file,
+    async () => {
+      utimesSync(lock, old(), old());
+      for (let i = 0; i < 3_000 && Date.now() - statSync(lock).mtimeMs > 60_000; i++) await new Promise((done) => setTimeout(done, 10));
+      assert.equal(takeOverStale(lock), false, "refreshed while held");
+      unlinkSync(lock);
+      writeFileSync(lock, "another writer");
+      assert.throws(() => checkHeld("async.json.lock"), /lost the lock/);
+    },
+    "q",
+    noDir,
+    undefined,
+    10,
+  );
+  assert.equal(readFileSync(lock, "utf8"), "another writer", "release leaves it");
 });
 
 test("a branch write whose lock was taken over fails before it pushes or moves the branch", () => {

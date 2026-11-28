@@ -12,8 +12,9 @@ const Rec: any = await load("../../dist/braids/requests.js");
 const { waker }: any = await load("../../dist/board/wake.js");
 
 const ASKER = "22222222-aaaa-4bbb-8ccc-333333333333";
-const codeOf = (out: string): string => /^(q-[a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`);
+const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})\b/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
 const stateOf = (root: string, code: string): string => Rec.loadRecord(root).requests.find((r: any) => r.code === code).state;
+const nameOf = (root: string, code: string): string => Rec.handleOf(Rec.loadRecord(root).requests.find((r: any) => r.code === code));
 const list = (root: string): string => {
   const r = spawnSync(process.execPath, [fileURLToPath(new URL("../dist/cli.js", import.meta.url)), "requests"], { encoding: "utf8", cwd: root });
   assert.equal(r.status, 0, r.stderr);
@@ -33,14 +34,14 @@ test("braid requests shows a request whose condition holds as open and writes no
   const before = tip(w.root);
   assert.match(before, /^[0-9a-f]{40}$/);
   const out = list(w.root);
-  assert.match(out, new RegExp(`${code}.*condition holds: the board wakes the asker`));
+  assert.match(out, new RegExp(`${nameOf(w.root, code)}.*condition holds: the board wakes the asker`));
   assert.equal(tip(w.root), before, "nothing was written on braid-requests");
   assert.equal(stateOf(w.root, code), "open");
   const sent: string[] = [];
   const t3 = (_r: string, args: readonly string[]) => (sent.push(args[3] as string), Promise.resolve({ status: 0, stdout: "", stderr: "" }));
   await waker(t3)({ root: w.root, good: good() }, new Date("2026-11-23T12:00:00Z"), () => undefined);
   assert.equal(sent.length, 1);
-  assert.match(sent[0] ?? "", new RegExp(`Wake: ${code} is met`));
+  assert.match(sent[0] ?? "", new RegExp(`Wake: ${nameOf(w.root, code)} is met`));
   assert.equal(stateOf(w.root, code), "met");
 });
 

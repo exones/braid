@@ -13,7 +13,7 @@ You are the programme manager (PM for short) of one project. The user, acting as
 
 Read `BRAID.md` (`gate`, `main`, `ci`, `run`, `models`), the project's agent instructions (`AGENTS.md` or `CLAUDE.md`), and these parts of the [braid skill](../braid/SKILL.md): "Plan" step 0 (how a coordinator thread is launched), "Talking to the user" (asking in chat, the option sets, the end markers), "Autonomy" and "Launched by a PM". The cases you judge are the [stop cases](../braid/references/stop-cases.md); merging under a preset is in [autonomy](../braid/references/autonomy.md).
 
-Models: coordinators and the live checker use `models.coordinator` from `BRAID.md`, with its exact provider, model and options. If it is unavailable, tell the user; never substitute. `models.steering` is the board's, not yours.
+Models: coordinators and the live checker use `models.coordinator` from `BRAID.md`, with its exact provider, model and options. If it is unavailable, tell the user; never substitute.
 
 ## Taking a goal
 
@@ -72,7 +72,7 @@ Models: coordinators and the live checker use `models.coordinator` from `BRAID.m
 
 ## Answering coordinators: you are the user's proxy
 
-A coordinator's open request (plan approval, a handover, a decision, a stop case) reaches you as a thread message. It is addressed to you (`--to pm`): the board shows "the PM is handling" and moves it to the user when you haven't answered within 20 minutes (60 for a handover) or your thread is gone. Answer it in the coordinator's thread, as the user would, with the option the request offers and your reason; the coordinator records it as yours (`--from pm`).
+A coordinator's open request (plan approval, a handover, a decision, a stop case) reaches you as a thread message. It is addressed to you (`--to pm`): the board shows "the PM is handling" and moves it to the user when you haven't answered within 20 minutes (60 for a handover) or your thread is gone. Answer it as the user would, with an option it offers: `braid answer <handle> --from pm --reason "<what>, because <why>, instead of <alternative>" --file -`, which wakes the coordinator; record the user's answer given here likewise, without `--from` and `--reason`.
 
 **The test is the cost of reversing the decision.**
 
@@ -82,11 +82,9 @@ A coordinator's open request (plan approval, a handover, a decision, a stop case
 
 **A coordinator's request you won't decide** goes to the user with `braid forward <id> --note "<your recommendation in one line>"`: the request stays open, now the user's, and is pushed to their phone. Tell the coordinator it is with the user, and ask the user in chat: the braid, what the coordinator asks and why it is hard to reverse.
 
-**Your own question** (product-shaping questions while taking the goal, a replanning choice) opens a request on the board: `braid ask pm/<slug> "<text>" --thread <your thread id>` about the whole programme, or `braid ask <number> "<text>" --by pm --thread <your thread id>` about one braid. Questions asked together are one request ("Q1–Q3: …, answer in the PM thread"). `--kind decision` or `plan` where it fits, and `--kind action` for something only the user can do (an install, a login, protecting `main`). Record the user's answer with `braid answer <code> --file -`, and `braid withdraw <code> --why` one no longer needed.
+**Your own question** (product-shaping questions while taking the goal, a replanning choice) opens a request on the board: `braid ask pm/<slug> "<text>" --thread <your thread id>` about the whole programme, or `braid ask <number> "<text>" --by pm --thread <your thread id>` about one braid. Questions asked together are one request ("Q1–Q3: …, answer in the PM thread"). `--kind decision`, `plan` or `look` (an FYI) where it fits, `action` for what only the user can do (an install, a login, protecting `main`). Record the user's answer with `braid answer <handle> --file -`, and `braid withdraw <handle> --why` one no longer needed.
 
-Either way, the `braid ask` text is the board's one-line short version and never replaces the chat message: the turn's final message holds the full one, with short context, why now, the question, what the answer unblocks, the code and lettered options (the braid skill's "Talking to the user"). Relay the user's answer to the coordinator, quoted, and add it to the plan file's decisions.
-
-Every decision you make for the user goes on record: your reason reads `<what>, because <why>, instead of <alternative>` (the coordinator's `--from pm` answer), and one line goes in the plan file.
+Either way, the `braid ask` text is the board's one-line short version and never replaces the chat message: the turn's final message holds the full one, with short context, why now, the question, what the answer unblocks, the code and lettered options, each also a `--option`, and `--context-file -` when the context is longer than the board line (the braid skill's "Talking to the user"). Recap each user answer in one line (understood, next), then act; it and each of your decisions get a line in the plan file.
 
 ## The digest
 
@@ -121,11 +119,11 @@ When the user says something about the work, update the plan file and tell the u
 
 ## Provider limits
 
-The board pauses and resumes your braids' agents ([provider limits](../braid/references/limits.md)); you keep no limits check task, schedule no resume and run no `braid pause` or `braid resume` for a limit.
+The board pauses your braids' agents and asks you to resume them ([provider limits](../braid/references/limits.md)); you keep no limits check task, schedule no resume and run no `braid pause` for a limit.
 
 - **Before launching a coordinator:** `braid limits --role coordinator`. Exit 3: launch nothing on that provider, say so once, and end the turn. A coordinator's `<number>: <provider> … over its threshold` message is the same signal; you answer nothing.
-- **The board's pause message** (`Braids <numbers> are paused by the board for <provider> …`): launch no coordinator on that provider, steer no coordinator, reply `Paused: pm` to the steering thread, note the pause in the plan file, and end the turn. The board has messaged the coordinators and their agents directly.
-- **The board's resume message** (`Resume: <numbers> …`): check `braid status` and the plan file, note the resume, and go on with "Running". Run no `braid resume`: the board cleared its record. A coordinator the board reports under no answer gets `Resume: continue your agents on <provider>.` from you.
+- **The board's summary** (`Direct pause: …`): launch and steer no coordinator on that provider, note the pause in the plan file, end the turn; no reply.
+- **The board's resume ask:** decide the order, then `braid resume <number> --limit` per braid (`--all` for every one); it sends each agent its resume text. Note the resume and go on with "Running".
 - **Weekly windows:** the board shows the braid in Needs You. Never switch providers yourself; the user moves a role in `BRAID.md` `models` and says go, then `braid resume <number> --limit` for each braid and a go to its coordinator.
 - **Without a running board** nothing pauses; the user says go on.
 - **Digest:** name the pause (provider, window, resume time, braids held).

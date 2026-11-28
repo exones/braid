@@ -228,7 +228,7 @@ test("BRAID.md's coordinator is read for the main branch and the model", () => {
 });
 
 test("a running thread titled `<emoji> <repo> <number> coordinator: …` is that braid's coordinator, with its provider and model; a stopped one is not", async () => {
-  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<{ coordinators: Map<string, { id: string; link: string | null; provider: string | null; model: string | null }> }> };
+  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; agents: string; project: string }): Promise<{ coordinators: Map<string, { id: string; link: string | null; provider: string | null; model: string | null }> }> };
   const root = join(scratch, "demo");
   const listed = [
     { threadId: "c1", status: "running", title: "🧠 demo 0012 coordinator: Sample", link: "http://t3/c1", providerInstanceId: "Claude_Everix", model: "claude-opus-5-5" },
@@ -237,12 +237,12 @@ test("a running thread titled `<emoji> <repo> <number> coordinator: …` is that
     { threadId: "c4", status: "running", title: "demo 0015 worker: Sample" },
   ];
   const run = (_root: string, args: readonly string[]): Promise<Result> => Promise.resolve({ status: 0, stdout: args[1] === "list" ? JSON.stringify(listed) : "{}", stderr: "" });
-  const read = await t3.readT3(root, { run, ttlMs: 0, agents: join(scratch, "agents"), project: root });
+  const read = await t3.readT3(root, { run, agents: join(scratch, "agents"), project: root });
   assert.deepEqual([...read.coordinators], [["0012", { id: "c1", link: "http://t3/c1", provider: "Claude_Everix", model: "claude-opus-5-5" }]]);
 });
 
 test("Open thread: an idle, non-archived thread of an item or a braid's coordinator is kept for opening, a running one wins, an archived one is dropped", async () => {
-  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<{ coordinators: Map<string, unknown>; idleCoordinators: Map<string, { id: string }>; threads: Map<string, { id: string }[]>; idle: Map<string, { id: string; link: string | null }[]> }> };
+  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; agents: string; project: string }): Promise<{ coordinators: Map<string, unknown>; idleCoordinators: Map<string, { id: string }>; threads: Map<string, { id: string }[]>; idle: Map<string, { id: string; link: string | null }[]> }> };
   const root = join(scratch, "demo");
   const agents = join(scratch, "agents-idle");
   const where: Record<string, string> = { w1: join(agents, "0020-A") };
@@ -264,7 +264,7 @@ test("Open thread: an idle, non-archived thread of an item or a braid's coordina
     const out = args[1] === "list" ? listed : { thread: { worktreePath: where[id] ?? null, pendingRequestCount: 0 } };
     return Promise.resolve({ status: 0, stdout: JSON.stringify(out), stderr: "" });
   };
-  const read = await t3.readT3(root, { run, ttlMs: 0, agents, project: root });
+  const read = await t3.readT3(root, { run, agents, project: root });
   assert.deepEqual(read.threads.get("0020/A")?.map((t) => t.id), ["w1"]);
   assert.deepEqual(read.idle.get("0020/A")?.map((t) => t.id), ["w2"]);
   assert.equal(read.idle.has("0020/B"), false, "an idle thread titled as a review is no thread of the item: reviewers are subagents now");
@@ -362,7 +362,7 @@ test("open with thread: \"coordinator\": while strands run, the braid opens its 
 });
 
 test("idle threads are found by title alone (with or without the emoji): worker and coordinator, not review, and a fake t3 counts no show for them", async () => {
-  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<{ idle: Map<string, { id: string; role: string }[]>; idleCoordinators: Map<string, { id: string }> }> };
+  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; agents: string; project: string }): Promise<{ idle: Map<string, { id: string; role: string }[]>; idleCoordinators: Map<string, { id: string }> }> };
   const root = join(scratch, "demo");
   const listed = [
     { threadId: "i1", status: "idle", title: "💻 demo 0030/A worker: x" },
@@ -381,7 +381,7 @@ test("idle threads are found by title alone (with or without the emoji): worker 
     shown.push(args[2] ?? "");
     return Promise.resolve({ status: 0, stdout: JSON.stringify({ thread: {} }), stderr: "" });
   };
-  const read = await t3.readT3(root, { run, ttlMs: 0, agents: join(scratch, "agents-cheap"), project: root });
+  const read = await t3.readT3(root, { run, agents: join(scratch, "agents-cheap"), project: root });
   assert.deepEqual(read.idle.get("0030/A")?.map((t) => [t.id, t.role]), [["i1", "worker"]], "a thread titled as a review is no item's thread");
   assert.equal(read.idle.has("0030/B"), false, "another repository's title is no thread of this one");
   assert.deepEqual([...read.idleCoordinators.keys()], ["0030"]);
@@ -396,13 +396,13 @@ test("Start is off with the coordinator's reason even when the running coordinat
 });
 
 test("a running coordinator titled in the new format (or with the checkout's old repo name) lifts its To Do braid to Working", async () => {
-  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; agents: string; project: string }): Promise<unknown> };
+  const t3 = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; agents: string; project: string }): Promise<unknown> };
   const m = (await load("../dist/board/model.js")) as { toCard(b: unknown, g: unknown, t: unknown, s: unknown): { lane: string } };
   const base = demo.demoBraids().find((b: { number: string }) => b.number === "0007") as { brief: object; strands: { brief: object }[] };
   const todo = { ...base, brief: { ...base.brief, status: "To Do" }, strands: base.strands.map((s) => ({ ...s, brief: { ...s.brief, status: "To Do" } })) };
   const root = join(scratch, "demo");
   const read = (title: string) =>
-    t3.readT3(root, { ttlMs: 0, agents: join(scratch, "agents"), project: root, run: (_r: string, args: readonly string[]): Promise<Result> => Promise.resolve({ status: 0, stdout: args[1] === "list" ? JSON.stringify([{ threadId: "c1", status: "running", title }]) : "{}", stderr: "" }) });
+    t3.readT3(root, { agents: join(scratch, "agents"), project: root, run: (_r: string, args: readonly string[]): Promise<Result> => Promise.resolve({ status: 0, stdout: args[1] === "list" ? JSON.stringify([{ threadId: "c1", status: "running", title }]) : "{}", stderr: "" }) });
   const lane = async (title: string) => m.toCard(todo, { status: { state: "ok" }, prs: new Map() }, await read(title), { now: new Date(), requests: new Map(), alarm: () => null }).lane;
   assert.equal(await lane("🧠 demo 0007 coordinator: Sample"), "In Progress");
   assert.equal(await lane("demo 0007 coordinator: Sample"), "In Progress", "no emoji");

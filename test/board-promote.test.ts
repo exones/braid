@@ -36,8 +36,8 @@ const board = (await load("../dist/commands/board.js")) as {
   openAction(src: Sources, open: (url: string) => Promise<void>): (body: unknown, snapshot?: () => Promise<unknown>) => Promise<{ url: string }>;
 };
 const t3mod = (await load("../dist/board/t3.js")) as { ideaPlanning(t3: unknown, id: string): { link: string | null } | null };
-const reader = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: (root: string, args: readonly string[]) => Promise<Result>; ttlMs: number; agents: string; project: string }): Promise<{ ideaThreads?: Map<string, { link: string | null }> }> };
-const model = (await load("../dist/board/model.js")) as { toBoard(repo: string, braids: unknown, gh: unknown, t3: unknown, sig: unknown, ctx: unknown, inbox: unknown): { inbox: { base?: string; ideas: { id: string; planning: { link: string | null } | null }[] } } };
+const reader = (await load("../dist/board/t3.js")) as { readT3(root: string, o: { run: (root: string, args: readonly string[]) => Promise<Result>; agents: string; project: string }): Promise<{ ideaThreads?: Map<string, { link: string | null }> }> };
+const model = (await load("../dist/board/model.js")) as { toBoard(repo: string, braids: unknown, gh: unknown, t3: unknown, sig: unknown, ctx: unknown, inbox: unknown): { inbox: { base?: string; ideas: { id: string; planning: { link: string | null } | null }[] } }; noSignals(): unknown };
 
 const IDEA = "2026-11-18-q1wd"; // an open idea of the demo, not being planned
 const PLANNED = "2026-11-15-w8nn"; // an open idea of the demo with a running coordinator
@@ -151,7 +151,7 @@ test("the planning check: a running thread on coordinator/idea-<id>, -2 or -3, a
 test("the board marks the planned idea with its thread link; the others have none", async () => {
   const src = board.demoSources();
   const inbox = await src.inbox(false);
-  const data = model.toBoard("demo", [], { status: { state: "ok" } }, await src.t3(false), {}, src.start(), inbox);
+  const data = model.toBoard("demo", [], { status: { state: "ok" } }, await src.t3(false), model.noSignals(), src.start(), inbox);
   assert.equal(data.inbox.base, "origin/main");
   const planned = data.inbox.ideas.filter((i) => i.planning !== null);
   assert.deepEqual(planned.map((i) => [i.id, i.planning?.link]), [[PLANNED, "https://t3.example/thread/demo-11"]]);
@@ -178,6 +178,6 @@ test("reading T3: a running thread on a coordinator/idea- branch is a planning t
   const branches: Record<string, string> = { a: `coordinator/idea-${IDEA}`, b: "coordinator/idea-2026-11-10-t5cc", c: "braid/0043-x" };
   const run = (_root: string, args: readonly string[]): Promise<Result> =>
     Promise.resolve({ status: 0, stdout: JSON.stringify(args[1] === "list" ? list : { thread: { branch: branches[args[2] ?? ""] ?? null } }), stderr: "" });
-  const t3 = await reader.readT3("/nowhere-promote", { run, ttlMs: 0, agents: "/nowhere-agents", project: "/nowhere" });
+  const t3 = await reader.readT3("/nowhere-promote", { run, agents: "/nowhere-agents", project: "/nowhere" });
   assert.deepEqual([...(t3.ideaThreads ?? [])].map(([b, c]) => [b, c.link]), [[`coordinator/idea-${IDEA}`, "t3://a"]]);
 });

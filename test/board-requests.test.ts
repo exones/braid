@@ -30,7 +30,7 @@ const braid = (number: string, strands: string[] = []): any => ({
   brief: { id: number, title: `B${number}`, status: "In Progress", labels: [], dependencies: [], order: null, delivery: null, body: "" },
   strands: strands.map((l) => ({ letter: l, folder: `braids/${number}-a/${l}`, brief: { id: `${number}/${l}`, title: `S${l}`, status: "In Progress", labels: [], dependencies: [] } })),
 });
-const codeOf = (out: string): string => /^(q-[a-z0-9]{4,})/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`);
+const codeOf = (out: string): string => `q-${/^(?:[a-z]+-[a-z]+-|q-)([a-z0-9]{4,})\b/.exec(out)?.[1] ?? assert.fail(`no code in: ${out}`)}`;
 const answerFile = (root: string, text: string): string => {
   const path = join(dirname(root), `a-${Math.random().toString(36).slice(2)}.txt`);
   writeFileSync(path, text);
@@ -47,7 +47,8 @@ test("an open request carries its code and its asking thread; the push leads wit
   assert.equal(card.need.asking, base + ASKER, "the T3 link of the asking thread");
   const [p, ...rest] = message.pushesOf(b);
   assert.equal(rest.length, 0);
-  assert.equal(p.body, `${code} · B0002\nWhich rounding rule?`);
+  assert.ok(card.need.handle.endsWith(code.slice(2)));
+  assert.equal(p.body, `${card.need.handle} · B0002\nblocks 0002 · decide\nWhich rounding rule?`);
   assert.equal(p.click, url(ASKER));
 });
 
@@ -65,12 +66,12 @@ PM-run (thread ${PM}): security always ask.
   const b = boardOf(w.root, github());
   const pushes = message.pushesOf(b);
   const forwarded = pushes.find((p: any) => p.item === "0001");
-  assert.match(forwarded.body, new RegExp(`^${fwd} · B0001\n`));
+  assert.match(forwarded.body, new RegExp(`^[a-z-]*${fwd.slice(2)} · B0001\n`));
   assert.equal(forwarded.click, url(PM), "the push opens the PM's thread");
   const need = b.braids.find((c: any) => c.id === "0001").need;
   assert.deepEqual([need.code, need.link, need.asking], [fwd, base + PM, base + ASKER], "the link the page shows stays the coordinator's");
   const byPm = pushes.find((p: any) => p.item.endsWith("#pm"));
-  assert.match(byPm.body, new RegExp(`^${ask} · `));
+  assert.match(byPm.body, new RegExp(`^[a-z-]*${ask.slice(2)} · `));
 });
 
 test("an answered request is listed with who answered, the answer and the PM's reason, newest first", () => {
@@ -84,17 +85,19 @@ test("an answered request is listed with who answered, the answer and the PM's r
   const sig = readSignals(w.root, github());
   const all = view.requestsOf(() => true, sig, t3);
   assert.deepEqual(all.open, []);
-  assert.deepEqual(all.closed.map((r: any) => [r.code, r.state, r.closed.by]), [[d, "withdrawn", "coordinator"], [c, "answered", "pm"], [a, "answered", "user"]], "newest first");
-  const byPm = all.closed.find((r: any) => r.code === c);
+  assert.deepEqual(all.closed.map((r: any) => [r.code, r.state, r.closed.by]), [[d, "withdrawn", "coordinator"]]);
+  assert.deepEqual(all.decided.map((r: any) => [r.code, r.state, r.closed.by]), [[c, "answered", "pm"], [a, "answered", "user"]], "answered ones are Decided, newest first");
+  const byPm = all.decided.find((r: any) => r.code === c);
   assert.deepEqual([byPm.closed.text, byPm.closed.reason, byPm.link], ["Yes, net.", "the goal says net", base + ASKER]);
   assert.equal(all.closed.find((r: any) => r.code === d).closed.text, "the brief says en-GB");
   // An item's tab holds its own requests only; a braid's holds its strands' too.
   assert.deepEqual(view.requestsOf((id: string) => id === "0001/A", sig, t3).closed.map((r: any) => r.code), [d]);
-  assert.deepEqual(view.requestsOf((id: string) => id === "0001" || id.startsWith("0001/"), sig, t3).closed.map((r: any) => r.code), [d, c]);
+  assert.deepEqual(view.requestsOf((id: string) => id === "0001" || id.startsWith("0001/"), sig, t3).closed.map((r: any) => r.code), [d]);
+  assert.deepEqual(view.requestsOf((id: string) => id === "0001" || id.startsWith("0001/"), sig, t3).decided.map((r: any) => r.code), [c]);
   // The detail of the item carries the same view.
   const parent = braid("0001", ["A"]);
   const detail = model.toDetail({ read: () => "" }, parent, parent, github(), t3, sig);
-  assert.deepEqual(detail.requests.closed.map((r: any) => r.code), [d, c]);
+  assert.deepEqual([...detail.requests.closed, ...detail.requests.decided].map((r: any) => r.code), [d, c]);
 });
 
 test("a request to another braid shows on the asking braid's card with its done-when, and nowhere as the user's", () => {
@@ -159,12 +162,13 @@ test("a withdrawn or met request takes its push off the phone, as an answered on
     await notify.idle();
   };
   await run(github([pr(5, "open")]));
-  assert.deepEqual(sent.map((p) => p.body.split(" · ")[0]).sort(), [met, withdrawn].sort(), "both pushed with their codes");
+  const pushed = (code: string) => sent.find((p) => p.body.split(" · ")[0].endsWith(code.slice(2)));
+  assert.deepEqual([sent.length, pushed(met) !== undefined, pushed(withdrawn) !== undefined], [2, true, true], "both pushed with their handles");
   // The PM's side withdraws one; the other's PR merges.
   Cmd.withdrawCommand(w.root, [withdrawn, "--why", "no longer needed"]);
   await run(github([pr(5, "open")]));
-  assert.deepEqual(cleared, [sent.find((p) => p.body.startsWith(withdrawn)).sequence], "the withdrawn request's push is cleared");
+  assert.deepEqual(cleared, [pushed(withdrawn).sequence], "the withdrawn request's push is cleared");
   await run(github([pr(5, "merged")]));
   assert.equal(cleared.length, 2);
-  assert.ok(cleared.includes(sent.find((p) => p.body.startsWith(met)).sequence), "the met request's push is cleared");
+  assert.ok(cleared.includes(pushed(met).sequence), "the met request's push is cleared");
 });

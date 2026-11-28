@@ -1,8 +1,9 @@
 // Provider usage limits: read T3's provider caches (`<T3CODE_HOME>/caches/<instanceId>.json`), apply the reading rules
 // and say per provider whether an agent may be launched. Read-only: nothing is written and no service is called.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { percent } from "./percent.js";
 
 export type Verdict = "ok" | "pause" | "unknown";
 
@@ -32,6 +33,9 @@ export const SCOPED_WINDOWS: Readonly<Record<string, { readonly only?: RegExp; r
 /** What the reason of an unmeasurable provider (T3 reports it unsupported, as for cursor) starts with; the board shows it as "not measured". */
 export const NOT_MEASURED = "T3 cannot measure this provider";
 
+/** How long a provider's reading must have been unusable before the board calls it blind (0074/E); a short T3 restart stays quiet. */
+export const BLIND_MINUTES = 30;
+
 export class LimitsError extends Error {
   override name = "LimitsError";
 }
@@ -41,6 +45,8 @@ export interface ModelLine {
   readonly role: string;
   readonly instanceId: string;
   readonly model: string | null;
+  /** The settings after the model (`effort=high, fastMode=false`), `true` and `false` as booleans; `{}` when none. */
+  readonly options: Readonly<Record<string, string | boolean>>;
 }
 
 function frontMatter(root: string): string {
@@ -115,7 +121,14 @@ function parseModelLine(role: string, value: string): ModelLine | null {
     return null;
   }
   const model = (parts[1] ?? "").replace(/\s.*$/, "");
-  return { role, instanceId, model: model === "" ? null : model };
+  const options: Record<string, string | boolean> = {};
+  for (const item of parts.slice(2).join("/").replace(/[;(].*$/, "").split(",")) {
+    const kv = /^\s*([A-Za-z_][\w-]*)\s*=\s*(\S+)\s*$/.exec(item);
+    if (kv !== null) {
+      options[kv[1] ?? ""] = kv[2] === "true" ? true : kv[2] === "false" ? false : (kv[2] ?? "");
+    }
+  }
+  return { role, instanceId, model: model === "" ? null : model, options };
 }
 
 /** Every line under BRAID.md's `models:`: roles with one line (`coordinator`) and roles keyed by tier or kind (`worker.story`). */
@@ -213,6 +226,11 @@ export interface ProviderReading {
   readonly pauseWindow: string | null;
   /** For `pause`: that window's `resetsAt` plus the buffer, as ISO UTC. */
   readonly resumeAt: string | null;
+  /**
+   * Set (0074/E) when the reading has been unknown, for a reason other than "T3 cannot measure it", for over `BLIND_MINUTES`: when the
+   * cache was last updated (its `checkedAt`, else the file's modified time). Null otherwise; a missing cache file is never blind.
+   */
+  readonly blindSince: string | null;
 }
 
 export function t3Home(env: NodeJS.ProcessEnv = process.env): string {
@@ -243,7 +261,7 @@ function parseWindows(raw: unknown): RawWindow[] | null {
 }
 
 function unknownReading(instanceId: string, roles: string[], models: string[], reason: string, checkedAt: string | null = null): ProviderReading {
-  return { instanceId, roles, models, verdict: "unknown", reason, checkedAt, windows: [], pauseWindow: null, resumeAt: null };
+  return { instanceId, roles, models, verdict: "unknown", reason, checkedAt, windows: [], pauseWindow: null, resumeAt: null, blindSince: null };
 }
 
 /** Whether a window counts for the models of a line: unscoped windows always, a scoped one by its `only` or `except` pattern. */
@@ -263,6 +281,22 @@ function appliesTo(windowId: string, models: readonly string[]): boolean {
 
 /** One provider's reading from its cache file (`caches` folder), for the model lines that use it. `now` is passed in so tests fix it. */
 export function readProvider(caches: string, instanceId: string, lines: readonly ModelLine[], limits: Limits, now: Date): ProviderReading {
+  const reading = readUsage(caches, instanceId, lines, limits, now);
+  if (reading.verdict !== "unknown" || reading.reason?.startsWith(NOT_MEASURED) === true) {
+    return reading;
+  }
+  let since = reading.checkedAt;
+  if (since === null) {
+    try {
+      since = statSync(join(caches, `${instanceId}.json`)).mtime.toISOString();
+    } catch {
+      return reading; // no cache file: T3 may simply not have checked yet
+    }
+  }
+  return now.getTime() - Date.parse(since) > BLIND_MINUTES * 60000 ? { ...reading, blindSince: since } : reading;
+}
+
+function readUsage(caches: string, instanceId: string, lines: readonly ModelLine[], limits: Limits, now: Date): ProviderReading {
   const roles = [...new Set(lines.map((l) => l.role))];
   const models = [...new Set(lines.flatMap((l) => (l.model === null ? [] : [l.model])))];
   const file = join(caches, `${instanceId}.json`);
@@ -307,7 +341,7 @@ export function readProvider(caches: string, instanceId: string, lines: readonly
     });
   const over = windows.filter((w) => w.over);
   if (over.length === 0) {
-    return { instanceId, roles, models, verdict: "ok", reason: null, checkedAt, windows, pauseWindow: null, resumeAt: null };
+    return { instanceId, roles, models, verdict: "ok", reason: null, checkedAt, windows, pauseWindow: null, resumeAt: null, blindSince: null };
   }
   // A window with no reset shown resumes one window length after the check, when T3 gives the length.
   const resumeMs = (w: WindowReading): number | null => {
@@ -323,7 +357,7 @@ export function readProvider(caches: string, instanceId: string, lines: readonly
   });
   if (timed.length === 0) {
     const w = over[0] as WindowReading;
-    return unknownReading(instanceId, roles, models, `${w.label} (${w.id}) is at ${w.usedPercent}% but shows no reset time`, checkedAt);
+    return unknownReading(instanceId, roles, models, `${w.label} (${w.id}) is at ${percent(w.usedPercent)}% but shows no reset time`, checkedAt);
   }
   const latest = timed.reduce((a, b) => (b.at > a.at ? b : a));
   const resumeAt = new Date(latest.at + limits.buffer * 60000).toISOString();
@@ -332,11 +366,12 @@ export function readProvider(caches: string, instanceId: string, lines: readonly
     roles,
     models,
     verdict: "pause",
-    reason: `${latest.w.label} (${latest.w.id}) is at ${latest.w.usedPercent}%, threshold ${latest.w.threshold}%`,
+    reason: `${latest.w.label} (${latest.w.id}) is at ${percent(latest.w.usedPercent)}%, threshold ${latest.w.threshold}%`,
     checkedAt,
     windows,
     pauseWindow: latest.w.id,
     resumeAt,
+    blindSince: null,
   };
 }
 

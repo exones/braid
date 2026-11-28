@@ -44,7 +44,7 @@ export function autonomyCommand(root: string, args: readonly string[]): string {
   // A strand's PR goes into the braid branch (into main with `delivery: main`), a braid's into main.
   const slug = /^braids\/\d{4}-(.+)$/.exec(braid.folder)?.[1] ?? "";
   const base = id === number || braid.brief.delivery === "main" ? mainBranch(root) : `braid/${number}-${slug}`;
-  const { ref, brief, onBase, resolved } = judgedPreset(root, base, number, braid.brief);
+  const { ref, brief, onBase, resolved, tree } = judgedPreset(root, base, number, braid.brief);
   const nameFrom =
     resolved.nameFrom === "brief"
       ? `the brief of ${number}`
@@ -53,7 +53,7 @@ export function autonomyCommand(root: string, args: readonly string[]): string {
         : "the built-in default (neither the brief nor BRAID.md names one)";
   if (resolved.source === null) {
     const where = ref === null ? "" : ` on ${ref}`;
-    throw new UsageError(`autonomy preset ${resolved.name}, named by ${nameFrom}, does not exist${where}; available ${ref === null ? "here" : "there"}: ${[...availablePresets(root, ref).keys()].join(", ")}`);
+    throw new UsageError(`autonomy preset ${resolved.name}, named by ${nameFrom}, does not exist${where}; available ${ref === null ? "here" : "there"}: ${[...availablePresets(root, tree).keys()].join(", ")}`);
   }
   const source = resolved.source;
   // A broken project file fails here as it fails braid check: exit 2 with its file and line.

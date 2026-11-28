@@ -77,7 +77,7 @@ test("a question escalates after 20 min and a handover after 60, to Needs You an
   assert.equal(q.lane, "Waiting");
   assert.equal(q.reason, "question");
   assert.equal(q.need.via, "timeout");
-  assert.equal(q.need.text, "Escalated: a question text (the PM hasn't answered for 21 min)");
+  assert.equal(q.need.text, "Escalated to you: a question text (the PM hasn't answered for 21 min)");
   assert.equal(q.pm, null);
   for (const kind of ["decision", "plan"]) {
     assert.equal(derive("In Progress", gh(), t3(), sig([request(kind, 20)])).lane, "Waiting", kind);
@@ -86,7 +86,7 @@ test("a question escalates after 20 min and a handover after 60, to Needs You an
   const h = derive("In Progress", gh(PR), t3(), sig([request("review", 61, { pr: 7 })]));
   assert.equal(h.lane, "In Review");
   assert.equal(h.need.via, "timeout");
-  assert.equal(h.need.text, "Escalated: Merge PR #7 (the PM hasn't answered for 1 h)");
+  assert.equal(h.need.text, "Escalated to you: Merge PR #7 (the PM hasn't answered for 1 h)");
 });
 
 test("a PM thread that is archived, failed or unknown escalates at once; a running or idle one doesn't; unreadable T3 can't tell", () => {
@@ -94,7 +94,7 @@ test("a PM thread that is archived, failed or unknown escalates at once; a runni
     const d = derive("In Progress", gh(), t3(state), sig([request("question", 1)]));
     assert.equal(d.lane, "Waiting", String(state));
     assert.equal(d.need.via, "gone");
-    assert.equal(d.need.text, "Escalated: a question text (the PM thread is gone)");
+    assert.equal(d.need.text, "Escalated to you: a question text (the PM thread is gone)");
   }
   for (const state of ["running", "idle", "ready"]) {
     assert.equal(derive("In Progress", gh(), t3(state), sig([request("question", 1)])).lane, "In Progress", state);
@@ -165,19 +165,19 @@ test("a request the PM handles is never pushed; an escalation or forward is push
   assert.deepEqual(message.pushesOf(board(cardOf(handled))), []);
   const escalated = derive("In Progress", gh(), t3(), sig([request("question", 30)]));
   const [a] = message.pushesOf(board(cardOf(escalated)));
-  assert.match(a.title, /agento 0001: Needs You \(escalated\)$/);
+  assert.match(a.title, /agento 0001: Escalated to you$/);
   assert.equal(a.priority, "high");
   assert.equal(a.click, "t3code://threads/env1/thread1");
   assert.equal(a.sequence, "braid-agento-0001");
   const review = derive("In Progress", gh(PR), t3(), sig([request("review", 90, { pr: 7 })]));
   const [b] = message.pushesOf(board(cardOf(review)));
-  assert.match(b.title, /To Review \(escalated\)$/);
+  assert.match(b.title, /agento 0001: Escalated to you$/);
   assert.equal(b.priority, "high", "an escalated handover is high; an ordinary review stays default");
   const fwd = derive("In Progress", gh(), t3(), sig([request("question", 1, { to: "user", forwarded: ago(0) })]));
   const [c] = message.pushesOf(board(cardOf(fwd)));
   assert.match(c.title, /agento 0001: the PM asks$/);
   assert.equal(c.tags[0], "compass");
-  assert.equal(c.body, "T\nThe PM asks you: a question text");
+  assert.equal(c.body, "T\ndecide\nThe PM asks you: a question text");
   assert.notEqual(c.key, a.key);
   const ordinary = derive("In Progress", gh(PR), t3(), sig([{ id: KEY, kind: "review", text: "r", at: ago(5), thread: null, pr: 7 }]));
   assert.equal(message.pushesOf(board(cardOf(ordinary)))[0].priority, "default");
@@ -313,8 +313,8 @@ test("braid requests shows the addressee; braid forward hands the request on onc
   askCommand(root, ["0001/A", "Which name?", "--to", "pm"], { now: () => NOW });
   askCommand(root, ["0001", "Approve?", "--kind", "plan"], { now: () => NOW });
   const list = (await requestsCommand(root, [], { now: () => NOW })) as string;
-  assert.match(list, /^q-[a-z0-9]{4} {2}0001 {2}plan {2}0m {2}Approve\?$/m);
-  assert.match(list, /^q-[a-z0-9]{4} {2}0001\/A {2}question {2}0m {2}to the PM {2}Which name\?$/m);
+  assert.match(list, /^[a-z]+-[a-z]+-[a-z0-9]{4} {2}0001 {2}plan {2}0m {2}blocks 0001\/A · decide {2}Approve\?$/m);
+  assert.match(list, /^[a-z]+-[a-z]+-[a-z0-9]{4} {2}0001\/A {2}question {2}0m {2}blocks 0001\/A · decide {2}to the PM {2}Which name\?$/m);
   assert.match(forwardCommand(root, ["0001/A", "--note", "your call: it changes the name"], { now: () => NOW }), /0001\/A: question request forwarded to the user: your call: it changes the name/);
   const f = loadRequests(root).find((x: { id: string }) => x.id === "0001/A");
   assert.deepEqual([f.to, f.forwarded, f.note], ["user", NOW.toISOString(), "your call: it changes the name"]);
@@ -395,7 +395,7 @@ test("T3's thread ids are kept exactly as given: a PM thread whose id matches by
     stdout: args[0] === "thread" && args[1] === "list" ? JSON.stringify([{ threadId: mixed, status: "running", title: "PM" }]) : "{}",
   });
   const t3mod: any = await load("../dist/board/t3.js");
-  const read = await t3mod.readT3("/nowhere", { run, ttlMs: 0, agents: "/agents", project: "/p", reviews: [] });
+  const read = await t3mod.readT3("/nowhere", { run, agents: "/agents", project: "/p", reviews: [] });
   assert.equal(read.states.get(mixed), "running");
   const pmMod: any = await load("../dist/board/pm.js");
   assert.equal(pmMod.pmGone(read, mixed), false);
