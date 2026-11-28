@@ -113,6 +113,30 @@ export interface Pause {
   readonly resumed?: readonly string[];
   /** A resume under way (0074/D); absent while none is. */
   readonly resuming?: Resuming;
+  /** The board's stop of the braid's working threads through T3's MCP (0080/E); absent when it stopped nothing (signed out). */
+  readonly stop?: Stop;
+}
+
+/** A thread of a braid as the stop names it on the card. */
+export interface StopThread {
+  readonly item: string;
+  readonly thread: string;
+  /** Why T3 refused the stop (refused only). */
+  readonly why?: string;
+}
+
+/**
+ * The board's stop (0080/E): the working top-level threads it interrupted with `stop: true` before its texts (children stop with their
+ * parent), those T3 refused and why, and the threads of the braid still running at the last live list after it.
+ */
+export interface Stop {
+  /** When the board stopped them (ISO). */
+  readonly at: string;
+  readonly stopped: readonly string[];
+  readonly refused: readonly StopThread[];
+  readonly still: readonly StopThread[];
+  /** Whether the "still working" push went (once, 2 minutes after the stop). */
+  readonly pushed: boolean;
 }
 
 export interface PausesRead {
@@ -246,8 +270,11 @@ export function claimPauses(root: string, records: readonly Pause[]): Pause[] {
   );
 }
 
-/** Changes the board's records of these braids under the lock (`change` gets each and returns the new one); records of others, or not `by: board`, stay. Returns the new records. */
-export function patchPauses(root: string, braids: readonly string[], change: (p: Pause) => Pause): Pause[] {
+/** The board's own records: what `patchPauses` changes unless told otherwise. */
+export const byBoard = (p: Pause): boolean => p.by === "board";
+
+/** Changes the board's records of these braids under the lock (`change` gets each and returns the new one); records of others, or not `by: board` (`which`: a hold), stay. Returns the new records. */
+export function patchPauses(root: string, braids: readonly string[], change: (p: Pause) => Pause, which: (p: Pause) => boolean = byBoard): Pause[] {
   const file = pausesFile(root);
   return locked(
     file,
@@ -255,7 +282,7 @@ export function patchPauses(root: string, braids: readonly string[], change: (p:
       const list = readPausesFile(file).pauses;
       const out: Pause[] = [];
       const next = list.map((p) => {
-        if (p.by !== "board" || !braids.includes(p.braid)) {
+        if (!which(p) || !braids.includes(p.braid)) {
           return p;
         }
         const n = change(p);

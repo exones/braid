@@ -18,11 +18,12 @@ export interface PmThread {
  * subagent workers), its running coordinator, and then its coordinator even when idle (it would launch new work). None when nothing of
  * the braid works on the provider: an Outline, a braid with no started item or whose agents all finished gets no pause. Idle workers,
  * archived threads and threads on other providers are never targets. A thread whose provider T3 doesn't name is left out.
+ * `provider` null (a hold, 0080/E): every provider.
  */
-export function targetsOf(braid: string, provider: string, t3: T3, project: string): PauseTarget[] {
+export function targetsOf(braid: string, provider: string | null, t3: T3, project: string): PauseTarget[] {
   const out: PauseTarget[] = [];
   const add = (t: PauseTarget, on: string | null | undefined): void => {
-    if (on === provider && t3.states?.get(t.thread) !== "archived" && !out.some((o) => o.thread === t.thread)) {
+    if ((provider === null || on === provider) && t3.states?.get(t.thread) !== "archived" && !out.some((o) => o.thread === t.thread)) {
       out.push(t);
     }
   };
@@ -42,7 +43,7 @@ export function targetsOf(braid: string, provider: string, t3: T3, project: stri
     return out;
   }
   const idle = t3.idleCoordinators?.get(braid);
-  if (running === undefined && idle !== undefined && idle.provider === provider && t3.states?.get(idle.id) !== "archived") {
+  if (running === undefined && idle !== undefined && (provider === null || idle.provider === provider) && t3.states?.get(idle.id) !== "archived") {
     out.unshift({ thread: idle.id, kind: "coordinator", item: braid, project, link: idle.link });
   }
   return out;
@@ -73,6 +74,22 @@ export function coordinatorPause(braid: string, provider: string, window: string
 /** The PM's one summary (direct pause, tell the PM): which braids, the provider and window, until when. It needs no reply. */
 export function pmSummary(braids: readonly string[], provider: string, window: string, resume: string): string {
   return `Direct pause: the board paused braid${braids.length === 1 ? "" : "s"} ${braids.join(", ")} on ${provider} (${window}) until ${resume}, messaging each working agent and coordinator itself. Launch nothing on ${provider} until the resume. No reply is needed.`;
+}
+
+/** Every hold text starts so; the count reads replies only after it. */
+export const HOLD_HEAD = "Hold from the board";
+
+/**
+ * A hold's text (0080/E), the same for every thread of the braid: the hold's words, then what to do. The board stopped the thread's
+ * running tasks first, and T3 invites a stopped parent to restart them, so the text says not to.
+ */
+export function holdText(braid: string, words: string): string {
+  return `${HOLD_HEAD}: braid ${braid} is held (“${words}”). The board stopped your running turn and tasks. Stop at a clean point: commit or note where you are, start nothing, and don't restart your stopped tasks until a resume message. End your turn with the line \`Held: <id>\` (your item id, or ${braid} for the coordinator) as the last line of your message; the board reads it in this thread.`;
+}
+
+/** Whether a message holds a `Held:` line (a hold's reply), as `pausedLine` reads `Paused:`. */
+export function heldLine(text: string): boolean {
+  return /^[\s`*>_-]*Held:\s*\S+/m.test(text);
 }
 
 /** Whether a message holds a `Paused:` line (`Paused: 0074/C at 1a2b3c4`, `Paused: 0074`), in any line, also in code marks or bold. */

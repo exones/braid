@@ -274,3 +274,16 @@ test("braid eta works through the CLI: sets the estimate on an open request", as
   assert.match(r.stdout, /\(in 2h\)/);
   assert.ok(recordOf(w.root, code).eta, "the estimate is set");
 });
+
+test("the limit clash (0080/E): an addressee whose last run failed on a usage limit counts as paused and isn't reminded", async () => {
+  const w = world();
+  waitOn2(w.root);
+  const s = sender();
+  const g = good({ coordinators: { "0002": CO2 } });
+  const limited = { ...g, sig: { ...g.sig, failures: new Map([[CO2, { kind: "limit", short: "Usage limit", full: "You've hit your usage limit" }]]) } };
+  await reminder(s.t3)({ root: w.root, good: limited }, at(60), warn);
+  assert.equal(s.sent.length, 0, "only the resume reaches it");
+  const other = { ...g, sig: { ...g.sig, failures: new Map([[CO2, { kind: "provider", short: "Provider rate limit", full: "429" }]]) } };
+  await reminder(s.t3)({ root: w.root, good: other }, at(60), warn);
+  assert.equal(s.sent.length, 1, "a provider's 429 is not the account's limit: reminded as before");
+});

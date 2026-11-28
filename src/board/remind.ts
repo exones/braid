@@ -67,6 +67,10 @@ export function reminder(t3: T3Runner): Waker {
       const pm = pmThreadOf(braidOfId(r.id) ?? "", plans);
       const live = pm !== null && good.t3.states?.has(pm) === true && good.t3.states.get(pm) !== "archived" ? pm : null;
       const addressee = addresseeOf(r, good.t3, plans);
+      // The limit clash (0080/E): an addressee whose last run failed on a usage limit counts as paused; only the resume reaches it.
+      if (addressee !== null && addressee.to !== "gone" && good.sig.failures?.get(addressee.thread)?.kind === "limit") {
+        continue;
+      }
       for (const s of remindersOf(r, addressee, live, at)) {
         const key = `${r.code} ${s.event.text ?? ""} ${s.event.reason ?? ""}`;
         if (!sent.has(key)) {

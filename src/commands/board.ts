@@ -1367,9 +1367,12 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   // One acting board per provider account and per repository on this machine (0074/B): the leases in ~/.braid/acting.
   let port: number | null = null;
   const leases = pausing ? (run.acting ?? actingBoard({ staleMs: ACTING_STALE_MS, port: () => port })) : null;
+  // The T3 sign-in, made further down: signed in, the pause and the hold stop the braid's working threads first (0080/E).
+  let signedIn: BoardSignIn | undefined;
   const steer = pausing
     ? steerer({
         t3,
+        mcp: () => signedIn?.client() ?? null,
         wake: steps(waker(t3), reminder(t3), nudger(t3)),
         ...(leases === null ? {} : { acting: leases }),
         ...(run.notifier === undefined
@@ -1449,6 +1452,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   }
   // The T3 sign-in (docs/board.md, "T3 sign-in"): the OS store read at the start and at most once a minute; no T3 call on a timer.
   const signin = demo ? demoSignIn() : run.signin !== undefined ? (run.signin ?? undefined) : run.t3 === undefined ? boardSignIn({ store: keyringStore(), settings: () => readSettings(), send: t3Pusher() }) : undefined;
+  signedIn = signin;
   const listening = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort, READ_TIMEOUT_MS, signin).catch((e: unknown) => {
     signin?.close();
     throw e;
