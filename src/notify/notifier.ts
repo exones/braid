@@ -8,7 +8,7 @@ import { dirname } from "node:path";
 import type { BoardData } from "../board/model.js";
 import { ensureStateDir } from "../braids/requests.js";
 import { readConfig, tokenOf, type NotifyConfig } from "./config.js";
-import { pushesOf, sequenceOf, type Push } from "./message.js";
+import { pushesOf, sequenceOf, shrankFrom, type Push } from "./message.js";
 import { LIMIT_KEY, type LimitPush } from "../board/steer.js";
 import { ntfyClearer, ntfySender, SEND_TIMEOUT_MS, type Clearer, type Sender } from "./sender.js";
 
@@ -90,12 +90,20 @@ export function notifier(opts: NotifierOptions): Notifier {
   let current = new Set<string>();
   let failing = false;
 
+  /**
+   * Whether a stored key stays: the latest snapshot still calls for it; or it is the merges group the phone shows while the
+   * shrunk one isn't sent yet, so a retry after a failed send is quiet too; or it is a limit key (an event, not a need: the
+   * limit pusher keeps those until they are a week old).
+   */
+  const kept = (key: string, value: string, keys: Readonly<Record<string, string>>): boolean =>
+    current.has(key) || [...current].some((c) => !(c in keys) && shrankFrom(c, key)) || limitKeyKept(key, value);
+
   /** Re-reads the file before writing, so a second board on the same repository loses nothing. */
   const update = (add: Readonly<Record<string, string>>): void => {
     try {
-      // Only keys the latest snapshot still calls for: a send that succeeds after its need left is not recorded, so the need's return is sent again.
-      // Limit keys are events, not needs: the limit pusher keeps them until they are a week old.
-      const keys = Object.fromEntries(Object.entries({ ...readSent(opts.file).keys, ...add }).filter(([k, v]) => current.has(k) || limitKeyKept(k, v)));
+      // Only keys `kept`: a send that succeeds after its need left is not recorded, so the need's return is sent again.
+      const all = { ...readSent(opts.file).keys, ...add };
+      const keys = Object.fromEntries(Object.entries(all).filter(([k, v]) => kept(k, v, all)));
       writeSent(opts.file, keys);
     } catch (e) {
       warn(`braid notify: can't write ${opts.file} (${e instanceof Error ? e.message : "failed"})`);
@@ -152,7 +160,8 @@ export function notifier(opts: NotifierOptions): Notifier {
         quiet[push.key] = push.item; // history, not news: the first run records Done braids without a push
         continue;
       }
-      start(cfg, push);
+      // A merges group that only lost merges replaces the earlier push without a sound.
+      start(cfg, Object.keys(stored.keys).some((k) => shrankFrom(push.key, k)) ? { ...push, priority: "low" } : push);
     }
     // A need that is gone (its request answered or closed) takes its push off the phone: clear it by its sequence ID,
     // unless a push now carries that same sequence ID (it replaced the old one). Another push of the item (a Done push has
@@ -175,7 +184,7 @@ export function notifier(opts: NotifierOptions): Notifier {
         );
       }
     }
-    const dropped = Object.entries(stored.keys).some(([k, v]) => !current.has(k) && !limitKeyKept(k, v));
+    const dropped = Object.entries(stored.keys).some(([k, v]) => !kept(k, v, stored.keys));
     if (stored.fresh || dropped || Object.keys(quiet).length > 0) {
       update(quiet);
     }

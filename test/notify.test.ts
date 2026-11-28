@@ -552,19 +552,50 @@ test("merges forwarded by one PM are one push, updated in place under one sequen
   assert.equal(at(1).title, "agento: 2 merges wait for you");
   assert.equal(at(1).body, "0001 Title 0001\nPR #7 at aaaaaaa\n\n0002 Title 0002\nPR #8 at aaaaaaa");
   assert.equal(at(1).sequence, at(0).sequence);
-  assert.deepEqual([at(1).priority, at(1).tags], ["high", ["eyes"]]);
+  assert.deepEqual([at(1).priority, at(1).tags], ["high", ["eyes"]], "a grown group alerts");
   // A head moves: sent again, still in place.
   await run(withProg(forward("0001", 7, "b".repeat(40)), forward("0002", 8)));
   assert.equal(f.sent.length, 3);
-  // One leaves: back to one merge, same sequence ID, nothing cleared.
+  assert.equal(at(2).priority, "high", "a moved head alerts");
+  // One leaves: back to one merge, same sequence ID, nothing cleared, and no sound.
   await run(withProg(forward("0002", 8)));
   assert.equal(f.sent.length, 4);
   assert.equal(at(3).title, "agento 0002: merge PR #8");
   assert.equal(at(3).sequence, at(0).sequence);
+  assert.equal(at(3).priority, "low", "a shrunk group is quiet");
   assert.deepEqual(cleared, []);
   // None left: the push is cleared by that sequence ID.
   await run(withProg());
   assert.deepEqual(cleared, [at(0).sequence]);
+});
+
+test("a shrunk merges group stays quiet across a failed send; one that loses a merge and gains another alerts", async () => {
+  const file = join(dir(), ".braid", "notified.json");
+  const sent: PushIn[] = [];
+  let down = false;
+  const send = async (_c: unknown, push: PushIn): Promise<void> => {
+    if (down) {
+      throw new Error("down");
+    }
+    sent.push(push);
+  };
+  const notify = notifierMod.notifier({ file, config: () => CFG, send, token: () => null, warn: () => {}, clear: async () => {} } as never);
+  const forward = (n: number) => ({ id: `000${n}`, title: "T", head: "a".repeat(40), need: need("review", `The PM asks you: merge PR #${n}`, "2026-11-22T12:00:00Z", { pr: n, via: "forwarded" }) });
+  const run = async (...prs: number[]) => {
+    notify({ ...boardOf([]), programmes: [{ slug: "w", title: "W", section: "needs", thread: "pm-thread", link: null, need: null, forwards: prs.map(forward) }] } as unknown as Board);
+    await notify.idle();
+  };
+  const keys = () => Object.keys((JSON.parse(readFileSync(file, "utf8")) as { keys: object }).keys);
+  await run(1, 2, 3);
+  down = true;
+  await run(1, 2);
+  await run(1, 2);
+  down = false;
+  await run(1, 2);
+  assert.deepEqual(sent.map((p) => p.priority), ["high", "low"], "the retry is quiet too");
+  assert.equal(keys().length, 1, "the superseded group's key is gone once the shrunk one is sent");
+  await run(1, 4);
+  assert.deepEqual(sent.map((p) => p.priority), ["high", "low", "high"]);
 });
 
 test("upgrading with 0069/B's per-braid push on the phone: it is cleared and the group push is sent once", async () => {
