@@ -1,0 +1,22 @@
+{
+  "code": "q-23zs",
+  "item": "0080",
+  "kind": "review",
+  "text": "review PR #391 at 85be4f0",
+  "words": "shiny rabbit",
+  "by": "coordinator",
+  "thread": "mcp:launch:dd3b6dc3e3dfa3c9a1515a11da6c5a321a852f1a03d3476d761e87ada6709510",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:391",
+  "pr": 391,
+  "head": "85be4f08efa31f512954adf5e0a08160cc274e1b",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T15:32:31.622Z",
+      "by": "coordinator"
+    }
+  ]
+}
