@@ -1,16 +1,28 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { test } from "node:test";
-import { fileURLToPath } from "node:url";
-import { load } from "./support/done-fixtures.ts";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after, test } from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { git, load } from "./support/done-fixtures.ts";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
 const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
-const pkg = JSON.parse(readFileSync(`${root}package.json`, "utf8")) as { version: string };
+const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
+
+// Every command here runs in a throwaway repository with a throwaway home, never in braid's own. Each test
+// file has its own process, so the environment set here reaches `run` and the spawned CLI and nothing else.
+const scratch = mkdtempSync(join(tmpdir(), "braid-cli-test-"));
+after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }));
+const repo = join(scratch, "repo");
+mkdirSync(repo);
+git(repo, "init", "-q");
+for (const name of ["HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME"]) {
+  process.env[name] = join(scratch, "home");
+}
 
 function braid(...args: string[]) {
-  return spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", cwd: root });
+  return spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", cwd: repo });
 }
 
 test("--version prints the package version", () => {
@@ -42,20 +54,33 @@ test("braid done is an alias of braid accept and says so", () => {
   assert.match(braid("--help").stdout, /accept <id>/);
 });
 
-test("every command named in the help is known to run", async () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { run, helpText }: any = await load("../../dist/cli.js");
-  // These are handled in `main` before `run`, so they are not in its command list.
-  const skip = new Set(["help", "board", "gate", "notify", "projects", "clean", "wait", "status", "next", "start", "accept", "facts", "recap", "handover", "review", "launch"]);
-  const lines: string[] = helpText("0").split("\n");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const { run, helpText }: any = await load("../../dist/cli.js");
+
+/** The commands `help` names that nothing dispatches: neither `run` nor, for those `main` handles first, the built CLI. */
+function undispatched(help: string): string[] {
+  const lines = help.split("\n");
   const section = lines.slice(lines.indexOf("Commands:") + 1, lines.indexOf("Options:"));
-  const names = new Set<string>();
-  for (const l of section) {
-    const n = /^ {2}([a-z-]+)/.exec(l)?.[1];
-    if (n !== undefined && !skip.has(n)) names.add(n);
-  }
-  assert.ok(names.has("eta") && names.size > 20);
-  for (const name of names) {
-    assert.doesNotMatch(run([name, "--nope"], root).stderr, /unknown command/, name);
-  }
+  const names = [...new Set(section.flatMap((l) => /^ {2}([a-z-]+)/.exec(l)?.[1] ?? []))];
+  const unknown = /unknown command/;
+  // Every command refuses `--nope` before it does anything.
+  return names.filter((name) => unknown.test(run([name, "--nope"], repo).stderr) && unknown.test(braid(name, "--nope").stderr));
+}
+
+test("every command named in the help is known to run", () => {
+  // The help was read: it names far more commands than these two, one run by `run`, one by `main`.
+  assert.match(helpText("0"), /^ {2}eta [\s\S]*^ {2}help /m);
+  assert.deepEqual(undispatched(helpText("0")), []);
+});
+
+test("a help entry that nothing dispatches is reported", () => {
+  // One command of each kind beside the one nothing runs.
+  const help = ["Commands:", "  eta <name>", "  wait <number>", "  nosuch", "Options:"].join("\n");
+  assert.deepEqual(undispatched(help), ["nosuch"]);
+});
+
+test("importing the CLI module runs no command", () => {
+  const code = `await import(${JSON.stringify(pathToFileURL(cli).href)})`;
+  const r = spawnSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8", cwd: repo });
+  assert.deepEqual([r.status, r.stdout, r.stderr], [0, "", ""]);
 });
