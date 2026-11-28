@@ -1,7 +1,7 @@
 ---
 id: '0084/F'
 title: "Ship 0084/A to main early"
-status: To Do
+status: Done
 labels: ["kind:task", "tier:M"]
 dependencies: []
 order: 15
@@ -38,7 +38,7 @@ Expected size: 0084/A's diff (about 290 lines in 16 files, outside `braids/`), p
 
 ## Completion
 
-- [ ] A PR into `main` from this branch carries 0084/A's change and nothing from `braids/`
-- [ ] 0084/A's tests (`test/requests-several.test.ts`, the replacing-rule tests) pass on it
-- [ ] The board with several open requests on one item is checked as under Change, each check and its result in the PR description, and anything that broke is fixed with a test
-- [ ] The gate command from BRAID.md passes
+- [x] A PR into `main` from this branch carries 0084/A's change and nothing from `braids/`
+- [x] 0084/A's tests (`test/requests-several.test.ts`, the replacing-rule tests) pass on it
+- [x] The board with several open requests on one item is checked as under Change, each check and its result in the PR description, and anything that broke is fixed with a test
+- [x] The gate command from BRAID.md passes
