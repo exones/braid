@@ -17,6 +17,7 @@ How can braid read what it needs from T3 (a thread's status, parent, last activi
 2. What each costs against a store this size, measured read-only (timings of the CLI calls braid makes).
 3. Which calls or options are cheapest for what the board needs, and how often braid calls each today (src/board/t3.ts, feed.ts, wake.ts and the skills).
 4. Whether settled or archived threads can be removed or the store compacted, and what T3 offers for it.
+5. Can old checkpoint refs be removed safely, and what does T3 lose? (Added 2026-11-28 by the PM.)
 
 The answer feeds the decision of how braid reads T3 from here on: which calls and how often, in 0077's follow-ups and in 0080 (the board talks to T3 directly over MCP). Time box: one worker run, about half a day of research.
 

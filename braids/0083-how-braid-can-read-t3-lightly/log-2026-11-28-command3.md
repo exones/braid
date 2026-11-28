@@ -8,3 +8,10 @@ Decided: one COUNT(*) of auth_sessions scanned its covering index (405,159 entri
 ## 2026-11-28 00:31Z checkpoint
 
 done: research complete, with report.md and sources.md as drafts. next: run the gate (npm run verify), push, open the PR into main. open: held by the user through the PM. No store copy was made; no T3 write by me.
+
+## 2026-11-28 09:01Z
+
+Brief: added question 5 to the Goal ("Can old checkpoint refs be removed safely, and what does T3 lose?"), at the PM's request (2026-11-28).
+Finding: checkpoint ref segment = base64url(sha256_hex(scopeId)[0:32]), with scopeId = checkpoint-scope:thread:<enc threadId>:name:<enc name>. Checked against all 1,544 scopes and 5,647 refs in agento. Removing a settled thread's refs loses its turn diffs and its rewind; both fail cleanly. T3 prunes only deleted threads' refs.
+Finding: after the PM's prune (3,652 refs), for-each-ref refs/t3 went from 340-1,070 ms to 77-81 ms, and the whole repo from 107-2,184 ms to 78-86 ms. The 358 unmatched segments are 75 archived threads and 283 subagent threads. By the rule (not live, parent not live), 316 segments (938 refs) are safe to prune.
+Decided: T3 is now 0.1.13. Question 5 and the log findings cite v0.1.13; questions 1-4 stay on 0.1.12, with the 0.1.13 diff noted (no read path changed).

@@ -1,6 +1,6 @@
-> **Draft, held** (2026-11-28): the user put this spike on hold through the PM. The research is complete. Not done: the gate run (stopped mid-test) and the PR.
-
 **Research: How can braid read what it needs from T3 without loading T3's whole store?** — answered
+
+**Versions:** questions 1–4 were researched on T3 0.1.12 (2026-11-27/28 night). T3 updated itself to **0.1.13** (`bc0f04da`) before question 5 (2026-11-28 morning). The 0.1.13 diff of the files cited for 1–4 changes no read path: `cli/thread.ts` lets `--messages` take 0; `OrchestratorMcpService.ts` adds a mode check on delegation; `ProjectionStore.ts` changes run-payload reads; `DatabaseStorage.ts` renames `compacted-at` to `compacted-at-v2`, so the old file is stale. Question 5 and the log findings cite 0.1.13 (S19–S29).
 
 **Answer:** T3 doesn't load its store to answer braid. Every read behind `t3 thread list`, `t3 thread show` and the MCP tools is filtered SQL on indexed columns. It builds the costly per-thread "shells" only for the page asked, and it reads no transcripts beyond the page of items asked. On the server, a `t3_thread_list` page costs about 85 ms and a `t3_thread_read` about 20 ms (p50). What costs 7–24 s is the `t3` process itself. Each call starts the Electron runtime as Node, loads about 10 MB of JavaScript, opens the 3.1 GB database in its own process, writes a new auth session row and revokes it, and only then makes its MCP calls. The call that needs no server at all took 9–19 s. So the lever is fewer `t3` processes, not lighter queries: one long-lived MCP client (0080) asking live-only lists. Confidence in the basis: high for the code paths (read in the source at the installed commit and in the installed bundle). Medium for the split between start-up and server time: one evening's sample, two runs per call, on a loaded machine.
 
@@ -116,6 +116,98 @@ Cheapest call per need:
 - inferred: the file's size isn't what makes braid slow: every read is indexed (part 1). Archiving braid's finished threads would cut a full list from 8 pages to about 1, and the CLI process would remain. Deleting would shrink the file and lose the threads' history. That is the user's call.
 - read [S4] and measured: each `t3` CLI call adds one `auth_sessions` row (insert, then revoke). v0.1.12 has no `DELETE FROM auth_sessions` (searched, none found). The 405,159 rows (inferred: mostly braid's CLI calls, at about 70 a minute) stay in the store. The table is indexed and its rows are small, so it's not a read cost now, only growth.
 
+## 5. Can old checkpoint refs be removed safely, and what does T3 lose? (added)
+
+**Answer:** yes, for settled threads. Removing a settled thread's refs costs that thread's turn diffs and its rewind to old turns. Both fail cleanly, and nothing else breaks. Live threads should keep theirs. The PM pruned 3,652 refs of 435 settled threads in agento at about 09:58. `git for-each-ref refs/t3` went from 340–1,070 ms to 77–81 ms, and the whole-repo listing from 107–2,184 ms to 78–86 ms.
+
+**What reads the refs** (read [S19] `orchestration-v2/CheckpointService.ts`, [S20] `checkpointing/CheckpointDiffQuery.ts`, [S21] `ws.ts`, at 0.1.13; bundle `runtimeLayer-bHa_wuNB.mjs`, `server-B8LwMtOy.mjs`):
+
+| Reader | What it does with a ref | When the ref is missing |
+| --- | --- | --- |
+| Turn capture, after each turn (S19 736–790) | diffs the previous ordinal against the new one for the turn's file list | logs "previous checkpoint ref lookup failed" (bundle 35999); that turn records no file list |
+| Turn baseline, before a turn (S19 493–499, 545–565) | checks the ordinal's ref and skips the capture if it exists | captures it again: one more snapshot |
+| Turn diff and full-thread diff (`getTurnDiff`, `getFullThreadDiff`, S21 2131–2145; S20 420–431, 215–236) | `git diff` between two checkpoint refs | the diff fails; the repository diff logs "checkpoint repository diff unavailable" (bundle `server-B8LwMtOy.mjs` 19633–19641) |
+| Restore, rewind, revert (S19 859–863, 877–898) | checks the ref, snapshots the folder as `…/pre-rewind`, restores | refuses: "Checkpoint ref is unavailable." (bundle 36066, 36094); the folder isn't touched |
+| T3's own cleanup (S22 `storageCleanup.ts` 2006–2105) | lists refs and deletes those of **deleted** threads | — |
+
+- read [S19] 877–898: a `…/pre-rewind` ref left by a failed rewind is "the only copy of how the folder was". Never prune one. agento had none.
+- not checked: whether the live working-tree Changes panel (`review.gitDiffPreview`) reads checkpoint refs.
+- inferred: a live thread doesn't break without its refs, but it degrades. It gets one more baseline snapshot, one turn without a file list, and no rewind to older turns. That is why the rule below keeps live threads and the children of live parents.
+- inferred (Git): deleting refs doesn't shrink `.git` by itself. The snapshot objects go at the next `git gc`.
+
+**T3's own pruning** (read [S22] 2006–2105, 2122–2133, 2294–2300): `StorageCleanup.cleanCheckpointRefs` runs first in every cleanup sweep: at start-up, on a settings change, then hourly, whatever the cleanup policies say.
+- It deletes refs only of **deleted** threads that aren't the ancestor of a fork and have no pending effects (`WHERE t.deleted_at IS NOT NULL`). It does this with `git update-ref --no-deref -z --stdin`.
+- It also removes their capture index (`<git common dir>/t3-checkpoint-indexes`; idle ones age out after 14 days, [S23] 1–19).
+- Settled and archived threads keep their refs for ever. No setting changes that.
+
+**How a ref's name is made** (read [S19] 37, 285–297, 321–324; [S24] `IdAllocator.ts` 199–202, 402–406; bundle `runtimeLayer-bHa_wuNB.mjs` 35664, 35748, `WorkflowStore-BPhFw2zX.mjs` 100105):
+- The ref is `refs/t3/orchestration-v2/checkpoints/<segment>/ordinal/<n>`.
+- `segment = base64url(sha256_hex(scopeId).slice(0, 32))`: the first 32 characters of the hex digest, taken as text, then base64url-encoded without padding.
+- `scopeId = "checkpoint-scope:thread:" + encodeURIComponent(threadId) + ":name:" + encodeURIComponent(name)`. The name is `root` for a thread's own checkout, and `repository:<path>` for the extra repositories of a multi-repo project (everix4).
+- measured: `~/.braid/artifacts/agento/0083/seg.mjs --verify C:/code/agento` rebuilt all 1,544 scope ids from their thread and name, and explained all 805 segments and 5,647 refs. The PM's example `M2E2Y2U5…` (decoding to `3a6ce9bc…`) is the 0064/D review subagent.
+
+**Timings** (measured; `C:\code\agento`; 2026-11-28; `refs.ps1`, `refs.tsv`, `refs-after.tsv` in the artifacts folder; one PowerShell `Stopwatch` per command, 1–4 minutes apart):
+
+| When | Refs under `refs/t3` | `git for-each-ref refs/t3` | All refs | Whole-repo `git for-each-ref` | `packed-refs` | CPU |
+| --- | --- | --- | --- | --- | --- | --- |
+| 09:40:06 before | 5,643 | 886 ms | 6,010 | 2,184 ms | 784,688 B | 52–68% |
+| 09:40:36 before | 5,643 | 473 ms | 6,010 | 444 ms | 784,688 B | 71% |
+| 09:44:39 before | 5,648 | 340 ms | 6,016 | 107 ms | 784,688 B | 85% |
+| 09:48:43 before | 5,652 | 1,070 ms | 6,020 | 135 ms | 784,688 B | 8% |
+| about 09:58 | the PM's prune: 3,652 refs of 435 settled threads, one `git update-ref --stdin`; the PM's first listing after it, 1,164 ms (packed-refs just rewritten) | | | | | |
+| 09:54:38 after (my clock) | 2,001 | 80 ms | — | — | 300,455 B | — |
+| 09:54:47 after | 2,002 | 81 ms | 2,372 | 78 ms | 300,455 B | 56% |
+| 09:55:48 after | 2,006 | 78 ms | 2,377 | 79 ms | 300,455 B | 54% |
+| 09:56:49 after | 2,010 | 77 ms | 2,381 | 86 ms | 300,455 B | 59% |
+
+My clock reads a few minutes behind the PM's: the PM's "about 09:58" falls between 09:48:43 and 09:54:38 on mine. The count rises by about 4 refs a minute: one per finished turn.
+
+- inferred: `for-each-ref` cost follows the ref count and the `packed-refs` size (785 KB to 300 KB). After the prune, listings are 4–25× faster, and their variance under load is gone. `vcs.listRefs` and `vcs.refreshBranch` run the same listing (finding 2 below), so they should gain likewise. Not measured inside T3.
+
+**The 1,065 refs that matched no listed thread** (measured: `unmatched.mjs`, a read-only select of T3's scope and thread tables plus one live-only `t3_thread_list` MCP call, at about 09:55):
+- All 371 segments left (2,006 refs) have a scope in the store, and all are `root` scopes. The 358 the PM couldn't match are **75 archived threads**, which `t3 thread list` leaves out, and **283 subagent threads**, which `t3 thread list` drops on the client ([S1] 880–916).
+- Rule: prune a segment only when its thread is **not live** and its **parent is not live**. Live means it appears in `t3_thread_list {projectId, includeSubagents: true, statuses: [queued, preparing, starting, running, waiting]}`, one call of about 90 ms (part 2). The parent check matters because a coordinator messages a finished worker child again for fixes. A child whose parent is live is kept.
+
+| Group now | Segments | Refs | By the rule |
+| --- | --- | --- | --- |
+| archived, no parent | 28 | 341 | prune |
+| archived, parent not live | 34 | 68 | prune |
+| archived, parent live | 13 | 43 | keep |
+| subagent, not live, parent not live | 254 | 529 | prune |
+| subagent, not live, parent live | 28 | 82 | keep |
+| subagent, live | 2 | 4 | keep |
+| top-level, live | 6 | 844 | keep |
+| top-level, not live (unsettled, kept by the PM) | 6 | 95 | keep |
+
+That is **316 segments, 938 refs to prune**, and 55 segments kept.
+- Recipe for the PM:
+  1. Write the live thread ids, one per line, from that MCP call, to `live-ids.txt`.
+  2. `node ~/.braid/artifacts/agento/0083/unmatched.mjs C:/code/agento live-ids.txt --safe` prints the segments to prune, one per line.
+  3. For each, delete `refs/t3/orchestration-v2/checkpoints/<segment>/ordinal/*` in one `git update-ref --no-deref -z --stdin` transaction, as T3 does.
+- The script reads the store read-only: one `SELECT` joining the scope table (1,544 rows) to the thread rows, and one `SELECT DISTINCT thread_id` of live runs through their covering index. Without `live-ids.txt` it falls back to that live-run index, which misses threads `waiting` on background work, so pass the file.
+
+## What else loads the machine (T3's logs; evidence from the PM)
+
+Two sets of findings [S29], cited as given: "T3 trace logs, 2026-11-28, read by the PM" (PM) and "T3 traces, 2026-11-28, read by a PM helper" (helper), both on T3 0.1.13. I checked each against the code where that was cheap.
+
+| # | Finding (source) | Checked here |
+| --- | --- | --- |
+| 1 | **Per-turn git snapshots.** T3 takes a checkpoint on every turn (`CheckpointCaptureServiceV2`, from `RunFinalizationService.finalize`), and no setting turns it off. In 31 minutes about 1,500 git processes ran; capture-lock waits reached 294 s and finalize up to 367 s (PM) | read [S19]: captures run under a per-workspace lock (`withWorkspaceLock`, 405–410), up to 6 git processes per thread (`REPOSITORY_SCOPE_CONCURRENCY`, 42). A baseline is skipped only after 2 timeouts (`BASELINE_CAPTURE_BUDGET` 5 s, 40; 506–511). No checkpoint setting in `packages/contracts/src/settings.ts` (searched). `finalize` is at `RunFinalizationService.ts` 73; I didn't trace its call into capture |
+| 2 | **Checkpoint refs are never pruned:** 5,587 in agento and 2,358 in everix4; `vcs.listRefs` and `vcs.refreshBranch` were slow (PM) | confirmed: only deleted threads' refs are pruned (part 5). Measured counts and timings above |
+| 3 | **Submodule diffs.** The Changes panel diffs submodules in full; everix4's emptied `docs`/`data` submodules (about 1.4M deleted lines) pushed `review.gitDiffPreview` past 15 s (PM) | partly: the review diff of the parent repository runs with `--submodule=short` ([S25] `vcs/GitVcsDriverCore.ts` 118–129), so the full lines more likely come from everix4's submodules being their own checkpoint scopes (`repository:<path>` scopes, measured above). I didn't find the diff preview handler (`rg gitDiffPreview` found nothing in `apps/server/src`) |
+| 4 | **Trace logs:** 725 MB in `~/.t3/userdata/logs` (PM) | measured: 726 MB, of which **513 MB is `logs/provider/`** (`events.<id>.log*`). Traces are capped at 10 files of 10 MB per kind ([S26] `config.ts` 246–247) |
+| 5 | **PR sweep.** `ThreadPullRequestServiceV2` runs every minute over the unsettled, unarchived, non-subagent threads with a branch, grouped by project, cwd and branch, with concurrency 32. Branches with a PR are rechecked every sweep; branches without one at most 4 per sweep and 30 minutes apart. It also fires on run end, checkpoint capture and unsettle (helper) | read [S27] `orchestration-v2/ThreadPullRequestService.ts`: selection 228–300 (subagents left out, 231–236; unarchived and unsettled, 266–272; grouped by project, cwd and branch, 296–300), concurrency 32 (293), every minute **only while `shouldRunOpportunisticWork`**, meaning a foreground client lease ([S27] 609–620; `background/BackgroundPolicy.ts` 189–191). Throttle numbers not checked |
+| 6 | **Remote poller** (fetch, ahead/behind, PR status): only for cwds with an open thread view or diff panel, while a T3 window is visible and recently used; every 30 s (balanced), 15 s (performance), off (battery-saver); sidebar rows watch HEAD only (helper) | partly: `STATUS_UPSTREAM_REFRESH_INTERVAL` is 15 s ([S25] 130); the per-mode intervals weren't found by name |
+| 7 | **Timings:** `vcs.refreshStatus` 27–56 s, queued up to 100–130 s (agento, everix4); single git calls 10–13 s with at most 6 at once, so machine load is the cause; plain `git status`: everix4 2.8 s, agento 0.6 s (helper) | not re-measured; consistent with the CPU load seen throughout this spike (part 2) |
+| 8 | **T3's store** is now 3.3 GB; `subscribeThread` up to 7.5 s; the server stalls up to about 5.8 s between finished operations (helper) | not re-measured. Event-loop stalls go to a log of their own ([S26] `observability/EventLoopMonitor.ts` 136–158) |
+| 9 | **fsmonitor:** `C:\code\everix4\.git\config` sets `core.fsmonitor=true`, shared by its 82 worktrees, so a git run there that doesn't override it starts a daemon; T3 always passes `-c core.fsmonitor=false` (helper) | read: T3 passes it ([S28] `vcs/GitVcsDriver.ts` 600, 1285, 2180). **braid's own git calls don't override it**: `rg fsmonitor src` finds nothing, and braid runs git from `src/braids/gitio.ts`, `gitbranch.ts`, `branches.ts`, `src/commands/{board,clean,coordinate,done}.ts` and `src/board/done.ts` |
+
+**What settling saves in the PR sweep** (measured: `sweep.mjs`, one read-only select at about 10:00; inferred from [S27]):
+- After the PM's settling, **47 threads** in all projects are swept: unsettled, unarchived, not subagents, with a branch. That is 22 in one project, 14 in agento (on 3 branches), 9, 1 and 1. Of the 47, 35 have braid titles (worker, review, coordinator).
+- The sweep groups by project, cwd and branch, so its lookups per minute are at most the number of distinct groups: at most 47 now, and fewer where threads share a cwd and branch.
+- Before the settling, agento alone had 448 top-level threads, 12 of them unsettled (the PM's numbers). So the 436 settled agento threads were already outside the sweep. What settling buys now is the 35 braid threads still unsettled. Those are at most 35 lookups a minute, each a `git` call plus a share of a batched GitHub GraphQL query ([S27] 500), while a T3 window is in use.
+- inferred, for 0080's strand that launches PM and coordinator threads with auto-settle off: a coordinator works on its own branch and worktree, so it stays one sweep group (one lookup a minute) for its whole life. That is cheap next to a worker's. The cost that grows is unsettled workers and reviewers left behind: keep auto-settle on for them, and settle a coordinator when its braid ends.
+
 ## Recommendation for braid
 
 1. **Talk MCP from one long-lived process (0080), and keep one session** instead of one per call. That removes the 7–24 s process cost and the two session writes per call. It also stops `auth_sessions` from growing. This is the change that matters. Every other step is a few hundred ms at most.
@@ -137,6 +229,9 @@ Cheapest call per need:
    `--messages 1` doesn't help.
 6. **For agents:** no change needed: the skills already wait for wakes. A PM's resume could use `t3_thread_list {titleContains: "coordinator", settled: false}` instead of paging all threads.
 7. **For 0080's MCP approach:** the cheap MCP calls are `t3_thread_list` with live `statuses` (cost by live threads), `t3_thread_read` with `limit: 1`, `task_status` and `t3_thread_search`. The expensive patterns are an unfiltered list paged to the end, and a status filter that includes any non-live status (shells for every candidate). Reading a subagent from its parent thread acknowledges its result. The board isn't a thread, so this doesn't apply to it.
+8. **Checkpoint refs** (part 5): prune settled, archived and finished-child refs by the rule above every so often. Never prune live threads, children of live parents, or `pre-rewind` refs. After a large prune, a `git gc` returns the space. A braid command could do this (`braid clean` already prunes braid's leftovers).
+9. **Settle what braid finishes:** a worker's or reviewer's thread once its PR is merged or its review posted, and a coordinator's when its braid ends. Each unsettled thread with a branch is one PR-sweep lookup a minute while a T3 window is in use (part "What else loads the machine"). With auto-settle off for coordinators (0080), braid has to settle them itself.
+10. **braid's own git calls in everix4:** pass `-c core.fsmonitor=false` (or set it per worktree), as T3 does, so they don't start fsmonitor daemons in its 82 worktrees.
 
 ## Things to ask T3 upstream (for the user; nothing was sent)
 
@@ -149,12 +244,21 @@ Cheapest call per need:
 | A `threadIds` filter on `t3_thread_list` | One call for N known thread ids (braid's records) | [S6] has no such field |
 | Prune revoked and expired `auth_sessions` | 405,159 rows, growing by one per CLI call | measured; no `DELETE FROM auth_sessions` in v0.1.12 [S4] |
 | An optional retention policy: archive settled threads after N days | Active lists are filtered by `archived_at IS NULL`; 1,526 of 1,626 threads are active | [S8], [S12], measured |
+| Prune checkpoint refs of settled and archived threads (after N days, keeping `pre-rewind`), not only of deleted ones | 5,643 refs in agento before the PM's prune; listings went from up to 2.2 s to under 0.1 s after it | part 5; [S22] 2006–2037 |
+| A setting to turn off or thin per-turn checkpoints (per project, or for agent threads) | about 1,500 git processes in 31 minutes; capture-lock waits up to 294 s (PM) | finding 1; [S19] 40–43, 405–410 |
+| A cap or a summary for submodule diffs in the Changes panel and in checkpoint scopes | `review.gitDiffPreview` past 15 s on about 1.4M deleted lines (PM) | finding 3; [S25] 118–129 |
+| Size and age limits for `logs/provider/` event logs, as the traces have | 513 MB of the 726 MB in `logs` | finding 4 (measured); [S26] 246–247 |
+| A PR sweep that skips threads without a PR more aggressively, or a way to leave agent threads out | at most one lookup a minute per unsettled thread with a branch | finding 5; [S27] 228–300, 609–620 |
 
 ## Proposed follow-ups
 
 - **0077 follow-up (story, S):** the CLI-era savings in recommendation 5: cache worktree and branch per thread, one parent show per run, one board service per project. Update `docs/board.md` (what a read asks T3).
 - **0080 (when unheld):** build its reader as recommendation 2–4: live-only list, `limit: 1` reads, a slow full list, one session. Its brief could quote this report's "cheapest call per need" table.
 - **User decision (not an item):** whether to archive or delete braid's settled threads, by hand or with a policy, and whether to send the upstream asks.
+- **braid prunes T3 checkpoint refs (story, S–M):** a `braid` command, or a step of `braid clean`, that applies part 5's rule: one live-only MCP list, the segment recipe, one `update-ref --stdin`, and an optional `git gc`. Dry run by default. Docs: `docs/cli.md`.
+- **braid settles what it finishes (story, S):** settle worker and reviewer threads when their PR merges or their review is posted, and coordinators when their braid closes (`t3_thread_update` or the CLI). This bears on 0080's auto-settle strand.
+- **braid's git calls set `core.fsmonitor=false` (task, S):** in braid's git runner (`src/braids/gitio.ts` and the other call sites), with a test.
+- **For the PM now:** prune the 316 segments (938 refs) that part 5's rule marks safe in agento, and apply the same rule in everix4 (2,358 refs, its `repository:` scopes included).
 
 **Against:** candidate A (store size drives cost) is very unlikely (5–20%). Every query read is indexed, the server spans are tens of ms, and the call that needs no database took 9–19 s. Candidate C holds only in a small way: the active-thread index is filtered in memory after its `WHERE`, so a project with many more active threads pays more per list page. The strongest evidence against the answer is noise: two runs per call on a machine at 70–100% CPU, with no CPU profile of the CLI. A profile could show that the database open or the session write, waiting on the server's writer (`busy_timeout` 5 s), is the larger share. That wouldn't change the recommendation (fewer processes), only the upstream ask's wording. The answer assumes the server trace spans cover the whole server-side cost. The trace times each tool call from request to response, so they do.
 **Unknowns:**
@@ -175,11 +279,16 @@ Cheapest call per need:
 - **No copy was made.** Free space on C: was 55.0 GB at the start (store plus WAL: 3.13 GB, so 3x is 9.4 GB). Two board services and other agents were running, so I measured on the live file, read-only.
 - **No write by me** to the store, its WAL or its SHM: no read-write open, VACUUM or checkpoint, and no T3 maintenance command (`doctor`). What the `t3` CLI calls write by design (an `auth_sessions` row each, [S4]) is what every braid call does today. That was 18 rows, against 405,159.
 - Also read: T3's own trace files (`~/.t3/userdata/logs/server.trace.ndjson*`), one pass each.
-- Deleted at the end of the run: the extracted bundle (`apps/server` of `server.asar`) and the upstream clones in the scratchpad. The scripts and raw timings are kept in the artifacts folder.
+- **For question 5 and the PR sweep (2026-11-28, 09:40–10:00):** more read-only opens, the same way:
+  - `seg.mjs --verify` and `find.mjs`: a `SELECT` of the checkpoint scope table (1,544 rows) joined to the thread rows;
+  - `unmatched.mjs`: the same join with two `json_extract`s, plus `SELECT DISTINCT thread_id` of live runs through their covering index;
+  - `sweep.mjs`: one `SELECT … GROUP BY project_id` over the unarchived thread rows, with `json_extract`s.
+  Each is one query of under a second. Also two live-only `t3_thread_list` MCP calls, one `t3_thread_read {limit: 1}`, and `git for-each-ref` in `C:\code\agento` 12 times, 1–4 minutes apart. No ref was pruned or written by me: the prune was the PM's.
+- Deleted at the end of the run: the extracted bundles (`apps/server` of `server.asar`, both versions) and the upstream clones (v0.1.12, v0.1.13) in the scratchpad. The scripts and raw timings are kept in `~/.braid/artifacts/agento/0083/`.
 
 ## What changed
 
-- `braids/0083-how-braid-can-read-t3-lightly/report.md` (this) and `sources.md` (S1–S18); the brief's Plan and Completion boxes. No product code, docs or skills.
+- `braids/0083-how-braid-can-read-t3-lightly/report.md` (this) and `sources.md` (S1–S29); the brief's Plan, question 5 and Completion boxes. No product code, docs or skills.
 
 ## Why
 
@@ -187,9 +296,10 @@ The board's T3 read timed out at 60 s under load (0077). The user asked to resea
 
 ## Validation
 
-- Every code claim is cited to upstream v0.1.12 (`ca81b7b9`, the installed build's commit) and, where it runs here, to the installed bundle's file and line.
+- Every code claim is cited to upstream at the installed build's commit: v0.1.12 (`ca81b7b9`) for questions 1–4, v0.1.13 (`bc0f04da`) for question 5 and the log findings. Where the code runs here, it is also cited to the installed bundle's file and line.
 - Timings were run here (commands, times and load above). Server costs come from T3's own trace.
-- The gate (`npm run verify`) has not passed yet: it was stopped mid-test by the hold. No PR is open.
+- The checkpoint ref recipe was checked against every scope and ref in agento (part 5).
+- The gate (`npm run verify`): see the PR.
 
 ## Docs
 
@@ -198,6 +308,12 @@ None edited: a spike edits no docs. None is made untrue by this report. `docs/bo
 ## Open
 
 - The CLI cost split is a two-run sample under load (Unknowns).
+- Not checked in code:
+  - the PR sweep's throttle for branches without a PR (finding 5);
+  - the remote poller's per-mode intervals (finding 6);
+  - the Changes panel's diff preview handler (finding 3);
+  - whether the working-tree Changes panel reads checkpoint refs.
+- `vcs.listRefs` inside T3 after the prune: not measured; only plain `git for-each-ref`.
 
 For later items: (needs the user's go) none for skills. The PM resume step could use `titleContains`/`settled` (recommendation 6), a skill edit for the user to approve.
 
