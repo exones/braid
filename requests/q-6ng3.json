@@ -17,6 +17,12 @@
       "event": "opened",
       "at": "2026-11-28T09:00:35.254Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T09:32:18.064Z",
+      "by": "user",
+      "text": "Merge 375"
     }
   ]
 }
