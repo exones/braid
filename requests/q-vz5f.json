@@ -23,6 +23,12 @@
       "at": "2026-11-28T11:02:59.193Z",
       "by": "user",
       "text": "It's okay to merge"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T11:03:35.584Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
