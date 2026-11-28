@@ -168,6 +168,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28: T3 showed "5 requests waiting longer than 15s"; 11 `t3 thread show` processes alive, all from the installed board (pre-0077/J). User "kill the board": PM stopped and disabled the "braid board" scheduled task (Disable-ScheduledTask, re-enable with Enable-ScheduledTask then Start-ScheduledTask) and killed its process; no board wakes or pushes until 0077 is in main; the PM relays answers by hand.
 - 2026-11-28: user "start faster board and multiple questions": 0077 and 0084 resumed (braid resume, Go to coordinators); 0083, 0085, 0086, 0078, 0080 stay held. Limits ok (weekly 2%).
 - 2026-11-28: user: hold goes via the coordinators (they run the subagents); added to P5 · 0086 (E, F, H): stop at a clean point, forward to every working subagent incl. background tasks, Held only after their replies. Until 0086 lands the PM, on each hold, also checks subagents for running turns or background tasks and asks the coordinator to forward to any it missed.
 - 2026-11-28 01:30: user "Hold everything. I have some issues with Claude": 0077, 0083, 0084 held (braid pause --hold), coordinators told to stop their agents at a clean point; programme state held.
