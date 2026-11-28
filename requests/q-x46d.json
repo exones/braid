@@ -1,0 +1,19 @@
+{
+  "code": "q-x46d",
+  "item": "0078/L",
+  "kind": "question",
+  "text": "0078/L waits for 0078/M (merge main into the braid branch) to merge; then it merges the braid branch and finishes",
+  "words": "crunchy river",
+  "by": "coordinator",
+  "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
+  "to": "self",
+  "doneWhen": "time:2026-11-28T12:52:26.000Z",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T09:52:33.097Z",
+      "by": "coordinator"
+    }
+  ]
+}
