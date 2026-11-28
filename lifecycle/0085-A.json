@@ -1,0 +1,11 @@
+{
+  "id": "0085/A",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-28T00:15:18.795Z",
+      "thread": "mcp:launch:473f5b8708edbd228684ca3081f8c0b88457a28574741c6d1cdc78602f672f2f",
+      "branch": "braid/0085/A-clean-removes-worktrees-with-submodules"
+    }
+  ]
+}
