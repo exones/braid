@@ -9,7 +9,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { ACTING_STALE_MS, actingLines } from "../board/acting.js";
-import { liveAddresses, SESSION_PATH, type Address } from "../board/address.js";
+import { liveAddresses, PROBE_MS, type Live } from "../board/address.js";
 import { mainCheckout } from "../board/t3.js";
 import { findRoot } from "../braids/store.js";
 import { braidHome } from "../notify/config.js";
@@ -21,8 +21,6 @@ export const TASK_NAME = "braid board";
 export const DEFAULT_PORT = 8765;
 /** How often the task is started again: with `IgnoreNew` a running board ignores it, a crashed one comes back. */
 export const REPEAT = "PT5M";
-/** The header of `/api/session`'s 204: the version the running board started from. */
-export const VERSION_HEADER = "x-braid-version";
 
 export interface Ran {
   readonly status: number | null;
@@ -45,9 +43,7 @@ export interface ServiceDeps {
   readonly user?: string;
   readonly now?: () => Date;
   readonly sleep?: (ms: number) => Promise<void>;
-  readonly live?: (home: string) => Promise<Address[]>;
-  /** The version the board answering at this tokened address started from, or null. */
-  readonly runningVersion?: (url: string) => Promise<string | null>;
+  readonly live?: (home: string) => Promise<Live[]>;
   readonly portFree?: (port: number) => Promise<boolean>;
   /** This braid's version: the installed one, when the installed `braid` runs the command. */
   readonly version?: string;
@@ -256,19 +252,6 @@ const portFreeOn = (port: number): Promise<boolean> =>
     s.listen(port, "127.0.0.1", () => s.close(() => done(true)));
   });
 
-const versionAt = async (url: string): Promise<string | null> => {
-  const at = url.indexOf("#token=");
-  try {
-    const response = await fetch(`${url.slice(0, at).replace(/\/$/, "")}${SESSION_PATH}`, {
-      headers: { "x-braid-token": url.slice(at + "#token=".length) },
-      signal: AbortSignal.timeout(2000),
-    });
-    return response.status === 204 ? response.headers.get(VERSION_HEADER) : null;
-  } catch {
-    return null;
-  }
-};
-
 export function logFile(port: number, home: string = braidHome()): string {
   return join(home, `board-${port}.log`);
 }
@@ -277,9 +260,8 @@ interface Ctx {
   readonly run: Schtasks;
   readonly home: string;
   readonly sleep: (ms: number) => Promise<void>;
-  readonly live: (home: string) => Promise<Address[]>;
+  readonly live: (home: string) => Promise<Live[]>;
   readonly portFree: (port: number) => Promise<boolean>;
-  readonly runningVersion: (url: string) => Promise<string | null>;
   readonly waitMs: number;
 }
 
@@ -295,7 +277,7 @@ async function until(ctx: Ctx, check: () => Promise<boolean>): Promise<boolean> 
   }
 }
 
-const answering = async (ctx: Ctx, port: number): Promise<Address | undefined> => (await ctx.live(ctx.home)).find((a) => a.port === port);
+const answering = async (ctx: Ctx, port: number): Promise<Live | undefined> => (await ctx.live(ctx.home)).find((a) => a.port === port);
 
 /** Ends the task's run and waits until its port is free; false when something else still holds it. */
 async function stopTask(ctx: Ctx, port: number): Promise<boolean> {
@@ -303,19 +285,21 @@ async function stopTask(ctx: Ctx, port: number): Promise<boolean> {
   return until(ctx, () => ctx.portFree(port));
 }
 
-/** Runs the task and waits for its board to answer: the line to print, and whether it answered. */
+const SLOW = `no answer within ${PROBE_MS / 1000} s`;
+
+/** Runs the task and waits for its board to answer or its port to be busy: the line to print, and whether it is up. */
 async function startTask(ctx: Ctx, port: number, done: string): Promise<Out> {
   const r = ctx.run(["/run", "/tn", TASK_NAME]);
   if (r.status !== 0) {
     return { code: 1, stdout: "", stderr: `braid board service: schtasks couldn't run the task: ${(r.stderr || r.stdout).trim()}\n` };
   }
-  let found: Address | undefined;
+  let found: Live | undefined;
   await until(ctx, async () => (found = await answering(ctx, port)) !== undefined);
   if (found === undefined) {
     return { code: 1, stdout: "", stderr: `braid board service: the task started, but no board answers on port ${port} yet; see ${logFile(port, ctx.home)} and braid board service status\n` };
   }
-  const v = await ctx.runningVersion(found.url);
-  return { code: 0, stdout: `braid board service: ${done} on port ${port}${v === null ? "" : ` (braid ${v})`}; braid board --url prints its address\n`, stderr: "" };
+  const v = found.state === "busy" ? ` (busy: ${SLOW})` : found.version === null ? "" : ` (braid ${found.version})`;
+  return { code: 0, stdout: `braid board service: ${done} on port ${port}${v}; braid board --url prints its address\n`, stderr: "" };
 }
 
 function portFlag(args: readonly string[]): { port: number; rest: string[] } {
@@ -351,7 +335,6 @@ export async function serviceCommand(args: readonly string[], deps: ServiceDeps 
     sleep: deps.sleep ?? ((ms) => new Promise((done) => setTimeout(done, ms))),
     live: deps.live ?? ((home) => liveAddresses(home)),
     portFree: deps.portFree ?? portFreeOn,
-    runningVersion: deps.runningVersion ?? versionAt,
     waitMs: deps.waitMs ?? 30_000,
   };
   const version = deps.version ?? readVersion();
@@ -425,13 +408,14 @@ export async function serviceCommand(args: readonly string[], deps: ServiceDeps 
   // status
   const state = taskState(ctx.run);
   const address = await answering(ctx, task.port);
-  const running = address === undefined ? null : await ctx.runningVersion(address.url);
+  const busy = address?.state === "busy";
+  const running = address?.state === "answers" ? address.version : null;
   const lines = [
     `Task: ${TASK_NAME}, ${state === null ? "state unknown" : taskStateText(state)}`,
     `Port: ${task.port}${task.host === undefined ? "" : ` (also on Tailscale: --host ${task.host})`}`,
     `Folder: ${task.folder ?? "unknown"}`,
-    `Address: ${address === undefined ? `no board answers on port ${task.port}${state !== null && !taskRunning(state) ? " (the task's board isn't running; see the log)" : ""}` : address.url}`,
-    `Version: ${running === null ? "the running board's is unknown" : `running ${running}`}, installed ${version}${running !== null && running !== version ? ": the board runs older code; braid board service restart starts the installed one" : ""}`,
+    `Address: ${address === undefined ? `no board answers on port ${task.port}${state !== null && !taskRunning(state) ? " (the task's board isn't running; see the log)" : ""}` : `${address.url}${busy ? ` (busy: ${SLOW})` : ""}`}`,
+    `Version: ${busy ? "the running board is busy" : running === null ? "the running board's is unknown" : `running ${running}`}, installed ${version}${running !== null && running !== version ? ": the board runs older code; braid board service restart starts the installed one" : ""}`,
     `Log: ${logFile(task.port, ctx.home)}`,
     ...actingLines(task.port, ctx.home, new Date(), ACTING_STALE_MS),
   ];

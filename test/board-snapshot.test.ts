@@ -13,8 +13,8 @@ mkdirSync(web);
 writeFileSync(join(web, "index.html"), "<p>board</p>");
 
 interface Sources {
-  github(fresh: boolean): unknown;
-  t3(fresh: boolean): Promise<unknown>;
+  github(): unknown;
+  t3(): Promise<unknown>;
   action(name: string): ((body: unknown, board?: () => Promise<unknown>) => unknown) | undefined;
   braids(): unknown[];
 }
@@ -34,21 +34,21 @@ const board = (await load("../dist/commands/board.js")) as {
 
 const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
 
-/** The demo with `github` and `t3` slow, counting how often each is read (and whether fresh). */
+/** The demo with `github` and `t3` slow, counting how often each is read. */
 function slow(ms: number) {
   const base = board.demoSources();
   const calls = { github: [] as boolean[], t3: [] as boolean[], delay: ms };
   const src: Sources = {
     ...base,
-    github: async (fresh) => {
-      calls.github.push(fresh);
+    github: async () => {
+      calls.github.push(true);
       await sleep(calls.delay);
-      return base.github(fresh);
+      return base.github();
     },
-    t3: async (fresh) => {
-      calls.t3.push(fresh);
+    t3: async () => {
+      calls.t3.push(true);
       await sleep(calls.delay);
-      return base.t3(fresh);
+      return base.t3();
     },
   };
   return { src, calls };
@@ -140,11 +140,11 @@ test("a read ends only when every source it started has settled; the next succes
       }
       return base.braids();
     },
-    github: async (fresh) => {
+    github: async () => {
       events.push("github start");
       await sleep(600);
       events.push("github end");
-      return base.github(fresh);
+      return base.github();
     },
   };
   const { timed } = await serve(src);

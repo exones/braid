@@ -1,6 +1,6 @@
 // `braid status <number>` and `braid next <number>`: what a coordinator needs to run a braid,
 // read from the same sources as the board (branch copies, GitHub, T3). They change nothing.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, isAbsolute } from "node:path";
 import { braidBranches, loadLiveBraids, type BranchRef } from "../braids/branches.js";
@@ -73,7 +73,7 @@ export async function read(root: string, number: string, command: string, src: S
     {
       braids: () => loadLiveBraids(root),
       github: () => reuse?.github ?? readGithub(root, src.gh ?? runGh, 0),
-      t3: () => (reuse === undefined ? readT3(root, { ttlMs: 0, run: src.t3 ?? runT3 }) : Promise.resolve(reuse.t3)),
+      t3: () => (reuse === undefined ? readT3(root, { run: src.t3 ?? runT3 }) : Promise.resolve(reuse.t3)),
       signals: (g) => readSignals(root, g),
       plans: () => readPlans(root),
       start: () => readStartContext(root),
@@ -108,7 +108,7 @@ export function branchState(refs: readonly BranchRef[], number: string, letter: 
 
 /** When the remote-tracking branches were last updated by a fetch, as Git recorded it. */
 export function freshness(root: string): string {
-  const r = spawnSync("git", ["rev-parse", "--git-path", "FETCH_HEAD"], { cwd: root, encoding: "utf8" });
+  const r = gitSync(root, ["rev-parse", "--git-path", "FETCH_HEAD"]);
   const raw = r.status === 0 ? r.stdout.trim() : "";
   const path = raw === "" ? "" : isAbsolute(raw) ? raw : join(root, raw);
   if (path === "" || !existsSync(path)) {

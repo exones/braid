@@ -101,27 +101,45 @@ export function readAddresses(home: string = braidHome()): Address[] {
   return found.sort((a, b) => a.port - b.port);
 }
 
-/** Whether a board answers at `url` with its token: a stale file's port answers nothing, or with another run's token. */
-export type Probe = (url: string) => Promise<boolean>;
-
 export const SESSION_PATH = "/api/session";
+/** The header of `/api/session`'s 204: the version the running board started from. */
+export const VERSION_HEADER = "x-braid-version";
 
-export const probeBoard: Probe = async (url) => {
+/** How long a board may take to answer the probe before it reads as busy. */
+export const PROBE_MS = 10_000;
+
+/**
+ * What a port says to an address file's token. `answers`: the board of this run, with the version it started from when it
+ * names one. `busy`: something listens there but didn't answer in time. `none`: nothing listens, or it answers otherwise
+ * (a stale file's port with another run's token).
+ */
+export type Probed = { readonly state: "answers"; readonly version: string | null } | { readonly state: "busy" } | { readonly state: "none" };
+export type Probe = (url: string) => Promise<Probed>;
+
+/** One request with the whole budget: a retry would give up on a board that needs longer than one attempt. */
+export async function probeBoard(url: string, budgetMs: number = PROBE_MS): Promise<Probed> {
   const at = url.indexOf("#token=");
   try {
     const response = await fetch(`${url.slice(0, at).replace(/\/$/, "")}${SESSION_PATH}`, {
       headers: { "x-braid-token": url.slice(at + "#token=".length) },
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(budgetMs),
     });
-    return response.status === 204;
-  } catch {
-    return false;
+    return response.status === 204 ? { state: "answers", version: response.headers.get(VERSION_HEADER) } : { state: "none" };
+  } catch (error) {
+    // A closed port refuses at once; only a port that takes the request and stays silent runs into the budget.
+    return { state: (error as Error).name === "TimeoutError" ? "busy" : "none" };
   }
-};
+}
 
-/** The addresses of the boards running now: the files whose board answers with their token. */
-export async function liveAddresses(home: string = braidHome(), probe: Probe = probeBoard): Promise<Address[]> {
+/** An address whose board runs: it answered, or its port is busy. */
+export type Live = Address & ({ readonly state: "answers"; readonly version: string | null } | { readonly state: "busy" });
+
+/** The addresses of the boards running now: the files whose board answers with their token, or whose port is busy. */
+export async function liveAddresses(home: string = braidHome(), probe: Probe = probeBoard): Promise<Live[]> {
   const all = readAddresses(home);
-  const live = await Promise.all(all.map((a) => probe(a.url)));
-  return all.filter((_, i) => live[i]);
+  const probed = await Promise.all(all.map((a) => probe(a.url)));
+  return all.flatMap((a, i): Live[] => {
+    const p = probed[i];
+    return p === undefined || p.state === "none" ? [] : [{ ...a, ...p }];
+  });
 }

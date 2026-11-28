@@ -213,7 +213,7 @@ test("a worktree of the old folder placed by a thread: the board counts it as an
   await listed([], () => startCommand(root, ["0001/B"], src(), env));
   await listed([{ name: "renamed", path: root }], async () => {
     await startCommand(root, ["0001/C", "--force"], src(), env);
-    const t3 = (await load("../../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; ttlMs: number; project: string }): Promise<{ threads: Map<string, { id: string }[]> }> };
+    const t3 = (await load("../../dist/board/t3.js")) as { readT3(root: string, o: { run: unknown; project: string }): Promise<{ threads: Map<string, { id: string }[]> }> };
     const where: Record<string, string> = {
       old: join(wt, "proj", "0001-B"),
       fresh: join(wt, "renamed", "0001-C"),
@@ -227,7 +227,7 @@ test("a worktree of the old folder placed by a thread: the board counts it as an
     const saved = process.env["BRAID_WORKTREES_DIR"];
     process.env["BRAID_WORKTREES_DIR"] = wt;
     try {
-      const read = await t3.readT3(root, { run, ttlMs: 0, project: root });
+      const read = await t3.readT3(root, { run, project: root });
       assert.deepEqual(read.threads.get("0001/B")?.map((t) => t.id), ["old"]);
       assert.deepEqual(read.threads.get("0001/C")?.map((t) => t.id), ["fresh"]);
       assert.equal(read.threads.has("0001/A"), false);
