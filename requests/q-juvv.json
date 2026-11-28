@@ -1,0 +1,20 @@
+{
+  "code": "q-juvv",
+  "item": "0078",
+  "kind": "action",
+  "text": "Merge PR #384 into main at bca5368: the lock fix, live check passed",
+  "context": "PR #384 into main: a live lock holder keeps its lock (0078 step L, one commit, same diff as #382). CI green both platforms, review not blocking, mergeable at bca5368.\nPM live check passed: 7 writers at once with no lost write; a holder kept its lock for 55 s; a killed holder's lock taken over after 30 s with a consistent branch; a writer that lost its lock stops before pushing (sync and async paths); lock tests 5/5; the rest of the CLI fine.\nSay \"merge 384\" (or merge it on GitHub).",
+  "words": "giant pickle",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T14:10:04.135Z",
+      "by": "pm"
+    }
+  ]
+}
