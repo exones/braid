@@ -20,6 +20,13 @@
       "event": "opened",
       "at": "2026-11-28T13:39:52.235Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T13:40:30.932Z",
+      "by": "pm",
+      "text": "A. Merge now",
+      "reason": "Additive fields in pauses.json, read both ways (test shows old and new), nothing migrated or deleted; merge into the braid branch only, reversible. The live check with the user covers it before main."
     }
   ]
 }
