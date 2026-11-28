@@ -98,9 +98,7 @@ export async function read(root: string, number: string, command: string, src: S
     }
   }
   sig.commit(alarms);
-  const closed = new Set((sig.closed ?? []).map((r) => r.code));
-  const requests = loadRequests(root).filter((r) => !closed.has(r.code));
-  return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3, requests, pausesNote: sig.pausesNote ?? null, now: sig.now };
+  return { braid, card: card as BraidCard, cards, refs: braidBranches(root), github, t3, requests: openRequests(root, sig.closed ?? []), pausesNote: sig.pausesNote ?? null, now: sig.now };
 }
 
 export function branchState(refs: readonly BranchRef[], number: string, letter: string | null): { local: boolean; pushed: boolean } {
@@ -204,6 +202,16 @@ async function readOrProblems(root: string, number: string, src: Sources): Promi
       throw error;
     }
     return [...problems.map(problemLine), `braid status: ${error.message}`].map((l) => `${l}\n`).join("");
+  }
+}
+
+/** The open requests, without those the board already reads as closed; none outside a repository, as the board reads it. */
+function openRequests(root: string, closed: readonly Request[]): Request[] {
+  const done = new Set(closed.map((r) => r.code));
+  try {
+    return loadRequests(root).filter((r) => !done.has(r.code));
+  } catch {
+    return [];
   }
 }
 

@@ -229,10 +229,10 @@ test("status prints the request's text and age under its item, as the board show
   const out = await statusCommand(root, ["1"], src());
   const lines = out.split("\n");
   assert.match(lines[0] ?? "", /^0001 {2}In Progress {2}Needs You \(plan\) /); // the braid's own request first on a tie
-  assert.equal(lines[1], "    Approve the plan: 2 strands (asked 20 min ago)");
+  assert.match(lines[1] ?? "", /^ {4}[a-z]+-[a-z]+-[a-z0-9]{4} {2}Approve the plan: 2 strands \(asked 20 min ago\)$/); // its name first
   const b = lines.findIndex((l) => l.includes("0001/B"));
   assert.match(lines[b] ?? "", /^ {2}0001\/B {2}To Do {2}Needs You \(question\) /);
-  assert.equal(lines[b + 1], "      Which date format, ISO or local? (asked 35 min ago)");
+  assert.match(lines[b + 1] ?? "", /^ {6}[a-z]+-[a-z]+-[a-z0-9]{4} {2}Which date format, ISO or local\? \(asked 35 min ago\)$/);
 });
 
 test("stalled and checks failed show only after the condition has held for ten minutes", async () => {

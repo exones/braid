@@ -213,7 +213,7 @@ test("with a question and a wait open on one item, answer and withdraw by id ref
   writeFileSync(join(w.root, "braids", "0001-alpha", "brief.md"), brief("0001", "In Progress", `\n## Autonomy\n\nPM-run (thread ${ASKER}): security always ask.\n`));
   const question = codeOf(Cmd.askCommand(w.root, ["0001", "Which rounding rule?", "--thread", ASKER, "--to", "pm"]));
   const wait = codeOf(Cmd.askCommand(w.root, ["0001", "Go on after 0002", "--thread", ASKER, "--to", "0002", "--done-when", "braid:0002"]));
-  const both = (e: Error) => e.message === `0001 has 2 open requests: ${nameOf(w.root, question)} (the coordinator's), ${nameOf(w.root, wait)} (the coordinator's, waiting on braid 0002); give the code; nothing changed`;
+  const both = (e: Error) => e.message === `0001 has 2 open requests: ${nameOf(w.root, question)} (the coordinator's question), ${nameOf(w.root, wait)} (the coordinator's, waiting on braid 0002); give the name; nothing changed`;
   assert.throws(() => Cmd.answerCommand(w.root, w.root, ["0001"]), both);
   assert.throws(() => Cmd.withdrawCommand(w.root, ["0001", "--why", "not needed"]), both);
   // `--by coordinator` can't tell them apart: both are the coordinator's.
