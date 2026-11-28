@@ -498,14 +498,14 @@ function end(root: string, found: { code: string; id: string }, command: string,
   return ended(endRequest(root, found.code, ending), found.code, command);
 }
 
-/** What `end` makes of the write's result: no such request, or one already closed, is refused. */
-function ended(done: ReturnType<typeof endRequest>, code: string, command: string): { request: Request; warning: string | null } {
+/** What `end` makes of the write's result: no such request, or one already closed, is refused; `what`: the refusal also says the answer or reason it was closed with (the page shows it). */
+function ended(done: ReturnType<typeof endRequest>, code: string, command: string, what = false): { request: Request; warning: string | null } {
   if (done === null) {
     throw new UsageError(`${command}: no request ${code} on ${REQUESTS.branch}; nothing changed`);
   }
   if (!done.ended) {
     const last = closing(done.request);
-    throw new UsageError(`${command}: ${handleOf(done.request)} (${done.request.id}) is already ${done.request.state}${last === null ? "" : ` by ${WHO[last.by] ?? last.by} at ${stamp(last.at)}${last.text === undefined ? "" : `: ${oneLine(last.text)}`}`}; nothing changed`);
+    throw new UsageError(`${command}: ${handleOf(done.request)} (${done.request.id}) is already ${done.request.state}${last === null ? "" : ` by ${WHO[last.by] ?? last.by} at ${stamp(last.at)}${what && last.text !== undefined ? `: ${oneLine(last.text)}` : ""}`}; nothing changed`);
   }
   return done;
 }
@@ -674,7 +674,7 @@ export async function boardAnswer(root: string, handle: string, reply: BoardRepl
     throw new UsageError(`Answer: ${handleOf(r)} (${r.id}) is a wait, which asks no one: it ends when its condition holds; nothing changed`);
   }
   const ending = answer === null ? closeEnding((reply as { close: "ack" | "dismiss" }).close === "ack" ? "--ack" : "--dismiss", "Answer") : answerEnding("user", answer, undefined);
-  return ended(await endRequestAsync(root, code, ending), code, "Answer");
+  return ended(await endRequestAsync(root, code, ending), code, "Answer", true);
 }
 
 /** `braid withdraw <code>|<id> --why <reason>`: the asker no longer needs it; it stays on the record as withdrawn. */
