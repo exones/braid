@@ -34,8 +34,14 @@ Expected size: about 20 to 50 lines in 2 to 3 files.
 
 ## Completion
 
-- [ ] New request codes always contain a letter, tested with a pinned random source
-- [ ] An old all-digit code still resolves by `q-<code>` and by name, tested
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/braids-format.md on request codes), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] New request codes always contain a letter, tested with a pinned random source
+- [x] An old all-digit code still resolves by `q-<code>` and by name, tested
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/braids-format.md on request codes), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. `newCode` draws again while the four characters hold no letter; export it with an injected random source for the test.
+2. `src/commands/requests.ts`: where an item-looking argument is refused or read as an item, first try `digitCode`: four digits that are an old request's code, with no braid and no request's item of that number.
+3. Tests in `test/request-words.test.ts`; update `docs/braids-format.md`; run the focused tests, then the gate once.

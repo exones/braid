@@ -163,3 +163,38 @@ for (let i = 0; i < 4; i++) openRequest(root, { id: "pm/" + prefix + i, by: "pm"
   assert.equal(open.length, 8);
   assert.equal(new Set(open.map((r: any) => r.words)).size, 8, "eight requests, eight pairs of words");
 });
+
+test("a new code always holds a letter: an all-digit draw is drawn again", () => {
+  // The source draws four digits (index 31 is "5") first, then four letters.
+  const draws = [[31, 33, 29, 28], [0, 1, 2, 3]];
+  assert.equal(R.newCode(() => false, () => Uint8Array.from(draws.shift() ?? assert.fail("drew too often"))), "q-abcd");
+  assert.equal(draws.length, 0);
+});
+
+test("an old all-digit code still resolves by q-code, by name and, when no item has the number, bare", async () => {
+  const w = world();
+  const open = (item: string, code: string, words: string): void => {
+    B.lockedBranch(w.root, R.REQUESTS, () =>
+      B.writeBranchUnlocked(w.root, R.REQUESTS, () => {
+        const record = R.newRecord({ id: item, kind: "question", text: "Old?", at: new Date().toISOString(), thread: null, code, words });
+        const { code: _code, id, ...file } = record;
+        return { files: new Map([[`requests/${code}.json`, `${JSON.stringify({ code, item: id, ...file }, null, 2)}\n`]]), message: "test: old record" };
+      }),
+    );
+  };
+  open("0001/A", "q-5732", "yellow bear");
+  const shown = /^yellow-bear-5732 {2}0001\/A {2}question {2}open/;
+  for (const given of ["q-5732", "yellow-bear-5732", "yellow bear", "5732"]) {
+    assert.match((await Cmd.requestsCommand(w.root, [given], { gh: w.opts.gh })) as string, shown, given);
+  }
+  assert.match(Cmd.etaCommand(w.root, ["5732", "2h"]), /^yellow-bear-5732 \(0001\/A\): expected by/);
+  assert.match(Cmd.answerCommand(w.root, w.root, ["q-5732", "yes"]), /^yellow-bear-5732 0001\/A: answered/);
+  open("0001/A", "q-9902", "purple chair");
+  assert.match(Cmd.withdrawCommand(w.root, ["purple-chair-9902", "--why", "no"]), /^purple-chair-9902 0001\/A: withdrawn/);
+  open("0001/A", "q-4411", "green lamp");
+  assert.match(Cmd.answerCommand(w.root, w.root, ["4411", "yes"]), /^green-lamp-4411 0001\/A: answered/);
+  // A number a braid has keeps meaning the braid.
+  open("0001/A", "q-0002", "calm otter");
+  assert.throws(() => Cmd.etaCommand(w.root, ["0002", "2h"]), /0002 is an item/);
+  assert.match(Cmd.withdrawCommand(w.root, ["0002", "--why", "no"]), /^0002: no open request/);
+});

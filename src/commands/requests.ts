@@ -384,8 +384,22 @@ function strictCode(raw: string): string | null {
   return CODE.test(code) ? code : null;
 }
 
-/** An item id (`15`, `0015/c`) or a programme (`pm/<slug>`): these keep their meaning, so a suffix of four digits is given as `q-0123` or with its words. */
+/** An item id (`15`, `0015/c`) or a programme (`pm/<slug>`): these keep their meaning (but see `digitCode`). */
 const idLike = (raw: string): boolean => /^\d{1,4}(?:\/[A-Za-z])?$/.test(raw) || programmeOf(raw) !== null;
+
+/**
+ * Codes opened before 0078/P may be four digits. Given bare, one means its request only when no braid and no
+ * request's item has that number; otherwise null, and it keeps meaning the item.
+ */
+function digitCode(root: string, raw: string): string | null {
+  if (!/^\d{4}$/.test(raw)) {
+    return null;
+  }
+  fetchBranch(root, REQUESTS);
+  const { requests } = loadRecord(root);
+  const code = `q-${raw}`;
+  return requests.some((r) => r.code === code) && !requests.some((r) => r.id.slice(0, 4) === raw) && braidOf(root, raw) === undefined ? code : null;
+}
 
 const fail = (message: string): never => {
   throw new UsageError(message);
@@ -428,7 +442,7 @@ function prsOf(root: string, run: GhRunner): ReadonlyMap<string, PullRequest> {
 }
 
 function target(root: string, raw: string, values: Parameters<typeof str>[0], command: string): { code: string; id: string } | { none: string } {
-  const named = idLike(raw) ? null : namedCode(root, raw, command);
+  const named = idLike(raw) ? digitCode(root, raw) : namedCode(root, raw, command);
   if (named !== null) {
     if (str(values, "by") !== undefined) {
       throw new UsageError(`${command}: --by is for an id; the code ${raw} names one request`);
@@ -678,7 +692,7 @@ export function etaCommand(root: string, args: readonly string[], opts: RequestO
   if (given === undefined || raw === undefined || rest.length > 1) {
     throw new UsageError(ETA_USAGE);
   }
-  const code = idLike(given) ? fail(`braid eta: ${given} is an item; give the request's name or code (yellow-bear-5asx, 5asx or q-5asx)`) : namedCode(root, given, "braid eta");
+  const code = idLike(given) ? digitCode(root, given) ?? fail(`braid eta: ${given} is an item; give the request's name or code (yellow-bear-5asx, 5asx or q-5asx)`) : namedCode(root, given, "braid eta");
   const now = (opts.now ?? (() => new Date()))();
   const at = etaAt(raw, now);
   if (at === null) {
@@ -752,7 +766,7 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
   const given = positionals[0];
   const closed = values["closed"] === true;
   const since = str(values, "since");
-  if (given !== undefined && idLike(given)) {
+  if (given !== undefined && idLike(given) && digitCode(root, given) === null) {
     throw new UsageError(`braid requests: ${given} is an item; give the request's name or code (yellow-bear-5asx, 5asx or q-5asx)`);
   }
   if (positionals.length > 1 || (given !== undefined && closed) || (since !== undefined && !closed)) {
