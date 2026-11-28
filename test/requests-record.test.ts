@@ -15,6 +15,7 @@ after(() => rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retr
 const load = (path: string) => import(pathToFileURL(fileURLToPath(new URL(path, import.meta.url))).href);
 const R: any = await load("../dist/braids/requests.js");
 const B: any = await load("../dist/braids/gitbranch.js");
+const G: any = await load("../dist/braids/gitio.js");
 const { requestsCommand }: any = await load("../dist/commands/requests.js");
 
 const git = (cwd: string, ...args: string[]) => {
@@ -57,11 +58,13 @@ test("a request round-trips through its file: fields fixed at opening, every cha
   assert.equal(warning, null);
   assert.deepEqual(onOrigin(origin), [`requests/${code}.json`]);
   const file = fileOn(origin, code);
+  assert.match(file.words, /^[a-z]+ [a-z]+$/, "two spoken words, after the text (0072/G)");
   assert.deepEqual(file, {
     code,
     item: "0001/A",
     kind: "question",
     text: "about 0001/A",
+    words: file.words,
     key: "scope",
     by: "coordinator",
     thread: null,
@@ -102,10 +105,10 @@ test("a new request from the same asker on the same item withdraws the open one;
   const root = clones[0] as string;
   const first = R.openRequest(root, q("0003")).code;
   const pm = R.openRequest(root, q("0003", { by: "pm" })).code;
-  const second = R.openRequest(root, q("0003", { at: "2026-11-23T11:00:00.000Z" })).code;
+  const { code: second, handle } = R.openRequest(root, q("0003", { at: "2026-11-23T11:00:00.000Z" }));
   const all = new Map(R.loadRecord(root).requests.map((r: any) => [r.code, r]));
   assert.deepEqual([(all.get(first) as any).state, (all.get(pm) as any).state, (all.get(second) as any).state], ["withdrawn", "open", "open"]);
-  assert.deepEqual((all.get(first) as any).events.at(-1), { event: "withdrawn", at: "2026-11-23T11:00:00.000Z", by: "coordinator", text: `replaced by ${second}` });
+  assert.deepEqual((all.get(first) as any).events.at(-1), { event: "withdrawn", at: "2026-11-23T11:00:00.000Z", by: "coordinator", text: `replaced by ${handle}` });
 });
 
 test("a wait doesn't withdraw its asker's open question on the item, nor a question a wait (rf9z)", () => {
@@ -114,10 +117,10 @@ test("a wait doesn't withdraw its asker's open question on the item, nor a quest
   const question = R.openRequest(root, q("0003", { to: "pm", pm: "pm-thread-1234" })).code;
   const wait = R.openRequest(root, q("0003", { to: "0004", doneWhen: "braid:0004", at: "2026-11-23T10:05:00.000Z" })).code;
   const other = R.openRequest(root, q("0003", { to: "0005", doneWhen: "braid:0005", at: "2026-11-23T10:06:00.000Z" })).code;
-  const user = R.openRequest(root, q("0003", { at: "2026-11-23T10:10:00.000Z" })).code;
+  const { code: user, handle } = R.openRequest(root, q("0003", { at: "2026-11-23T10:10:00.000Z" }));
   const state = () => new Map(R.loadRecord(root).requests.map((r: any) => [r.code, r.state]));
   assert.deepEqual([question, wait, other, user].map((c) => state().get(c)), ["withdrawn", "open", "open", "open"], "the question to the user replaced the one to the PM; both waits stay");
-  assert.equal(R.loadRecord(root).requests.find((r: any) => r.code === question).events.at(-1).text, `replaced by ${user}`);
+  assert.equal(R.loadRecord(root).requests.find((r: any) => r.code === question).events.at(-1).text, `replaced by ${handle}`);
 });
 
 test("a wait replaces only its asker's wait to the same braid", () => {
@@ -200,7 +203,7 @@ test("a request file that doesn't parse is reported and skipped; the others stil
   assert.deepEqual(problems.map((p: any) => p.file), ["requests/q-bad1.json"]);
   const out = (await requestsCommand(root, [], { gh: () => ({ status: 1, stdout: "", stderr: "" }) })) as string;
   assert.match(out, /^warning: skipped requests\/q-bad1\.json: not JSON/m);
-  assert.match(out, new RegExp(`^${good}  0001  question`, "m"));
+  assert.match(out, new RegExp(`^${R.handleOf(requests[0])}  0001  question`, "m"));
   assert.equal(R.openRequest(root, q("0002")).warning, null, "a bad file doesn't stop writes");
 });
 
@@ -260,4 +263,106 @@ test("readers list from the local refs without fetching", () => {
   assert.deepEqual(R.loadRequests(b), [], "b hasn't fetched");
   B.fetchBranch(b, R.REQUESTS);
   assert.deepEqual(R.loadRequests(b).map((r: any) => r.id), ["0001"]);
+});
+
+/** The `git` processes `fn` starts, by subcommand. */
+async function processes(fn: () => unknown): Promise<string[]> {
+  const seen: string[] = [];
+  G.spyOnGit((args: string[]) => seen.push(args[0] as string));
+  try {
+    await fn();
+  } finally {
+    G.spyOnGit(undefined);
+  }
+  return seen;
+}
+
+// If this list grows, every writer holds the record's lock longer (0077/H; 17 processes before it).
+const ONE_WRITE = ["fetch", "for-each-ref", "ls-tree", "cat-file", "var", "var", "config", "fast-import", "push", "update-ref"];
+
+test("one write to the record starts ten git processes, with either driver", async () => {
+  const root = world(1).clones[0] as string;
+  R.openRequest(root, q("0001")); // the first write also finds the main checkout and has no branch yet
+  assert.deepEqual(await processes(() => R.openRequest(root, q("0001", { at: "2026-11-23T11:00:00.000Z" }))), ONE_WRITE);
+  const [open] = R.loadRequests(root);
+  const event = { event: "eta", at: "2026-11-23T12:00:00.000Z", by: "coordinator", text: "soon" };
+  const seen = await processes(() => R.addEventAsync(root, open.code, event));
+  assert.deepEqual(seen.filter((name) => name !== "rev-parse"), ONE_WRITE);
+});
+
+/** The sha `commit` would have if it were built with an index, `write-tree` and `commit-tree -m`, as before 0077/H. */
+function rebuilt(root: string, commit: string): string {
+  const raw = spawnSync("git", ["cat-file", "commit", commit], { cwd: root, encoding: "utf8" }).stdout;
+  const head = raw.slice(0, raw.indexOf("\n\n"));
+  const message = raw.slice(raw.indexOf("\n\n") + 2).replace(/\n$/, "");
+  const ident = (kind: string) => new RegExp(`^${kind} (.*) <(.*)> (\\d+ [+-]\\d{4})$`, "m").exec(head) as RegExpExecArray;
+  const [, an, ae, ad] = ident("author");
+  const [, cn, ce, cd] = ident("committer");
+  const parent = /^parent (\w+)$/m.exec(head)?.[1];
+  const env = { ...process.env, GIT_INDEX_FILE: join(mkdtempSync(join(scratch, "i-")), "index"), GIT_AUTHOR_NAME: an, GIT_AUTHOR_EMAIL: ae, GIT_AUTHOR_DATE: `@${ad}`, GIT_COMMITTER_NAME: cn, GIT_COMMITTER_EMAIL: ce, GIT_COMMITTER_DATE: `@${cd}` };
+  const run = (args: string[], input = "") => {
+    const r = spawnSync("git", args, { cwd: root, encoding: "utf8", env, input });
+    assert.equal(r.status, 0, `git ${args.join(" ")}: ${r.stderr}`);
+    return r.stdout.trim();
+  };
+  run(["read-tree", ...(parent === undefined ? ["--empty"] : [parent])]);
+  const changed = run(["diff-tree", "-r", "--no-commit-id", "--root", commit]).split("\n").filter((l) => l !== "");
+  run(["update-index", "--index-info"], changed.map((l) => `100644 blob ${l.split(" ")[3]}\t${l.split("\t")[1]}\n`).join(""));
+  return run(["commit-tree", run(["write-tree"]), ...(parent === undefined ? [] : ["-p", parent]), "-m", message]);
+}
+
+for (const encoding of [null, "ISO-8859-1"]) test(`the commits are those of commit-tree: tree, message, parent and identities, also when offline commits are replayed${encoding === null ? "" : `, with i18n.commitEncoding ${encoding}`}`, () => {
+  const { origin, clones } = world(2);
+  const [a, b] = clones as [string, string];
+  if (encoding !== null) {
+    git(a, "config", "i18n.commitEncoding", encoding);
+    git(b, "config", "i18n.commitEncoding", encoding);
+  }
+  const first = R.openRequest(a, q("0001", { to: "pm", pm: "pm-thread-1234", text: "Which näme — «this»?" })).code;
+  git(b, "fetch", "-q", "origin", "+refs/heads/braid-requests:refs/remotes/origin/braid-requests");
+  git(a, "remote", "set-url", "origin", join(scratch, "nowhere.git"));
+  R.closeRequest(a, "0001", "coordinator", { state: "answered", who: "coordinator", text: "A", at: "2026-11-23T10:20:00.000Z" });
+  R.forwardRequest(b, "0001", "2026-11-23T10:10:00.000Z", "over to you");
+  git(a, "remote", "set-url", "origin", origin);
+  const last = R.openRequest(a, q("0002")).code;
+  const commits = git(a, "rev-list", "--reverse", "braid-requests").split("\n");
+  assert.deepEqual(commits.map((c) => git(a, "log", "-1", "--format=%an %s", c)), [
+    "c0 docs(requests): 0001 question " + first,
+    "c1 docs(requests): 0001 " + first + " forwarded",
+    "c0 docs(requests): 0001 closed",
+    "c0 docs(requests): 0002 question " + last,
+  ]);
+  for (const commit of commits) {
+    assert.equal(rebuilt(a, commit), commit);
+  }
+  if (encoding !== null) {
+    assert.match(git(a, "cat-file", "commit", "braid-requests"), new RegExp(`^encoding ${encoding}$`, "m"));
+  }
+  assert.equal(git(a, "rev-parse", "braid-requests"), git(a, "rev-parse", "origin/braid-requests"));
+  assert.equal(git(a, "for-each-ref", "refs/braid"), "", "no ref is left from building");
+});
+
+test("with no Git identity the record is written as braid; a branch deleted on the remote is pushed again", () => {
+  const { origin, clones } = world(1);
+  const root = clones[0] as string;
+  R.openRequest(root, q("0001"));
+  git(origin, "update-ref", "-d", "refs/heads/braid-requests");
+  git(root, "config", "--unset", "user.email");
+  git(root, "config", "--unset", "user.name");
+  git(root, "config", "user.useConfigOnly", "true");
+  const empty = join(scratch, "no-config");
+  writeFileSync(empty, "");
+  const saved = { ...process.env };
+  try {
+    for (const name of Object.keys(process.env).filter((n) => /^(GIT_(AUTHOR|COMMITTER)_|EMAIL$)/.test(n))) {
+      delete process.env[name];
+    }
+    process.env.GIT_CONFIG_GLOBAL = empty;
+    process.env.GIT_CONFIG_NOSYSTEM = "1";
+    assert.equal(R.openRequest(root, q("0002")).warning, null);
+  } finally {
+    process.env = saved;
+  }
+  assert.equal(git(origin, "log", "-1", "--format=%an <%ae> %cn <%ce>", "braid-requests"), "braid <braid@localhost> braid <braid@localhost>");
+  assert.equal(onOrigin(origin).length, 2);
 });

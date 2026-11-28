@@ -3,7 +3,7 @@
 // merged PR, so nothing is committed on a PR's branch and its head never moves (0075/B). A strand's braid log entry
 // (`--log`) is still committed on the braid branch after its merge. Every refusal names the condition that failed,
 // and nothing is written before all checks pass.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { join } from "node:path";
 import { parsePreset, resolvePreset } from "../braids/autonomy.js";
 import { loadLifecycle, recordEvent } from "../braids/lifecycle.js";
@@ -36,7 +36,7 @@ export interface PrView {
 }
 
 export function git(cwd: string, args: readonly string[]) {
-  return spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd, encoding: "utf8" });
+  return gitSync(cwd, args);
 }
 
 export function must(cwd: string, args: readonly string[], what: string): string {
@@ -249,7 +249,7 @@ function ready(root: string, run: GhRunner, w: World, t: Target, pr: PrView, hea
   // Only agents braid started count; the coordinator's own thread is no agent of any item.
   const running = (w.t3.threads.get(t.key) ?? [])[0];
   if (running !== undefined) {
-    fail(`a ${running.role === "reviewer" ? "review" : "worker"} thread for ${t.key} is still running (${running.id}${running.title === undefined ? "" : `, "${running.title}"`})`);
+    fail(`a ${{ worker: "worker", reviewer: "review", researcher: "research" }[running.role]} thread for ${t.key} is still running (${running.id}${running.title === undefined ? "" : `, "${running.title}"`})`);
   }
   const at = (path: string) => git(root, ["show", `${pr.headRefOid}:${path}`]);
   const brief = at(`${t.folder}/brief.md`);

@@ -8,8 +8,8 @@ import { doneDate, headOf, prefetchDoneDates } from "./done.js";
 import { gitAsync } from "../braids/gitio.js";
 import type { Braid } from "../braids/store.js";
 import { BROKE_MS, type Alarm, type BrokeReason, type NudgeTarget, type Signals } from "./model.js";
-import { loadLifecycle, type Lifecycle } from "../braids/lifecycle.js";
-import { askerOf, conditionEnding, ensureStateDir, loadRecord, mainCheckout, programmeOf, type PrNow, type Request } from "../braids/requests.js";
+import { loadLifecycle, loadLifecycleAsync, type Lifecycle } from "../braids/lifecycle.js";
+import { askerOf, conditionEnding, ensureStateDir, loadRecord, loadRecordAsync, mainCheckout, programmeOf, type PrNow, type Request } from "../braids/requests.js";
 import { toBraid } from "./record.js";
 import { loadPauses, type Pause } from "../braids/pauses.js";
 
@@ -135,6 +135,32 @@ function readBroke(file: string): Record<string, string> {
  * fewer signals, not an error: no requests, and alarms that start from this read.
  */
 export function readSignals(root: string, github: Github, now: Date = new Date()): ReadSignals {
+  let loaded: Loaded | null = null;
+  try {
+    loaded = { record: loadRecord(root), lifecycle: loadLifecycle(root) };
+  } catch {
+    // not a repository: no requests, and no place to keep the alarms' clock
+  }
+  return assemble(root, github, now, loaded);
+}
+
+/** `readSignals` for the board: the record and the lifecycle are read without blocking the process. */
+export async function readSignalsAsync(root: string, github: Github, now: Date = new Date()): Promise<ReadSignals> {
+  let loaded: Loaded | null = null;
+  try {
+    loaded = { record: await loadRecordAsync(root), lifecycle: await loadLifecycleAsync(root) };
+  } catch {
+    // not a repository: no requests, and no place to keep the alarms' clock
+  }
+  return assemble(root, github, now, loaded);
+}
+
+interface Loaded {
+  readonly record: { readonly requests: Request[] };
+  readonly lifecycle: ReadonlyMap<string, Lifecycle>;
+}
+
+function assemble(root: string, github: Github, now: Date, loaded: Loaded | null): ReadSignals {
   let requests: Request[] = [];
   let waits: Request[] = [];
   let closed: Request[] = [];
@@ -142,19 +168,21 @@ export function readSignals(root: string, github: Github, now: Date = new Date()
   let pauses: readonly Pause[] = [];
   let pausesNote: string | null = null;
   let lifecycle: ReadonlyMap<string, Lifecycle> = new Map();
-  try {
-    // A request whose PR just merged or closed, or whose time came, is closed for the board now; the board's wake step (src/board/wake.ts) records it.
-    const record = loadRecord(root).requests.map((r) => ended(r, now, (n) => prOf(github, n)));
-    closed = record.filter((r) => r.state !== "open");
-    // A request to another braid's coordinator isn't the user's: no lane and no push (P6); the asking braid's card shows it. A timed wait (`to: self`) likewise.
-    const open = record.filter((r) => r.state === "open");
-    waits = open.filter(toBraid);
-    requests = open.filter((r) => !toBraid(r));
-    lifecycle = loadLifecycle(root);
-    file = brokeFile(root);
-    ({ pauses, note: pausesNote } = loadPauses(root));
-  } catch {
-    // not a repository: no requests, and no place to keep the alarms' clock
+  if (loaded !== null) {
+    try {
+      // A request whose PR just merged or closed, or whose time came, is closed for the board now; the board's wake step (src/board/wake.ts) records it.
+      const record = loaded.record.requests.map((r) => ended(r, now, (n) => prOf(github, n)));
+      closed = record.filter((r) => r.state !== "open");
+      // A request to another braid's coordinator isn't the user's: no lane and no push (P6); the asking braid's card shows it. A timed wait (`to: self`) likewise.
+      const open = record.filter((r) => r.state === "open");
+      waits = open.filter(toBraid);
+      requests = open.filter((r) => !toBraid(r));
+      lifecycle = loaded.lifecycle;
+      file = brokeFile(root);
+      ({ pauses, note: pausesNote } = loadPauses(root));
+    } catch {
+      // no place to keep the alarms' clock
+    }
   }
   let head: string | undefined;
   const clock = brokeClock(file === null ? {} : readBroke(file), now);

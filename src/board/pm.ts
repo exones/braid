@@ -9,8 +9,8 @@ export const PM_QUESTION_MS = 20 * 60_000;
 /** A handover (a review) escalates after this long: the PM's live check can take most of an hour. */
 export const PM_REVIEW_MS = 60 * 60_000;
 
-/** The PM's thread states that mean no one is there to answer. */
-const GONE = new Set(["archived", "failed", "error", "errored"]);
+/** The thread states that mean no one is there: a PM that can't answer, a braid's dead coordinator. */
+export const GONE = new Set(["archived", "failed", "error", "errored"]);
 
 export type Via = "timeout" | "gone" | "forwarded";
 
@@ -21,6 +21,9 @@ export type Routed =
   | { readonly to: "pm" }
   /** It reached the user's side: `since` (ISO) keys the one push, `words` leads the need line. */
   | { readonly to: "user"; readonly via: Via; readonly since: string; readonly words: string };
+
+/** What an escalated request's line starts with: it reached the user, not the PM. */
+export const ESCALATED_WORDS = "Escalated to you:";
 
 /** What a forwarded request's line starts with on the braid's own card. */
 export const FORWARDED_WORDS = "Forwarded by the PM:";
@@ -65,9 +68,9 @@ export function routeOf(req: Request, now: Date, t3: T3, paused: boolean): Route
   }
   const limit = req.kind === "review" ? PM_REVIEW_MS : PM_QUESTION_MS;
   if (now.getTime() - Date.parse(req.at) >= limit) {
-    return { to: "user", via: "timeout", since: req.at, words: "Escalated:" };
+    return { to: "user", via: "timeout", since: req.at, words: ESCALATED_WORDS };
   }
-  return pmGone(t3, req.pm) === true ? { to: "user", via: "gone", since: req.at, words: "Escalated:" } : { to: "pm" };
+  return pmGone(t3, req.pm) === true ? { to: "user", via: "gone", since: req.at, words: ESCALATED_WORDS } : { to: "pm" };
 }
 
 /** Why an escalated request reached the user, for the end of its line. */

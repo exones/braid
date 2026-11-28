@@ -8,6 +8,8 @@ import { checkBraids } from "./braids/check.js";
 import { boardUrl, runBoard } from "./commands/board.js";
 import { serviceCommand } from "./commands/service.js";
 import { notifyCommand } from "./commands/notify.js";
+import { t3Command } from "./commands/t3.js";
+import { gateCommand } from "./commands/gate.js";
 import { projectsCommand } from "./commands/projects.js";
 import { ProjectsFileError } from "./projects/list.js";
 import { GitError } from "./braids/numbers.js";
@@ -18,6 +20,7 @@ import { logEntry, reportItem } from "./commands/logs.js";
 import { nextCommand, statusCommand } from "./commands/coordinate.js";
 import { cleanCommand } from "./commands/clean.js";
 import { startCommand } from "./commands/start.js";
+import { launchCommand } from "./commands/launch.js";
 import { acceptCommand } from "./commands/done.js";
 import { waitCommand } from "./commands/wait.js";
 import { factsCommand, recapCommand } from "./commands/facts.js";
@@ -57,20 +60,22 @@ export function helpText(version: string): string {
     "  check                       Check every brief under braids/; list each error with its file (exit 2 on any). --plan <file>: check a programme's plan file (pm/<slug>.md) instead; an error names its line",
     "  status <number>             One line per strand: status, lane (as the board shows it), ask:<key>, branch, PR, ci checks, T3 thread, and the request text of an item on your side (reads GitHub and T3, no fetch)",
     "  next <number>               The next strand to run, or why none is ready",
-    "  start <id> [--force] [--thread <id>]  Create the strand branch from its braid branch, push it, add a worktree, and record the start on braid-requests (--force: skip the ready check; --thread: the coordinator's thread)",
-    "  review <id> --thread <id>   Record a reviewer subagent's thread with the folder and branch T3 gives for it: the board and status show the review while it runs, clean removes that checkout after the merge",
-    "  decisions <number> [--since <date or sha>]  List the Decided: log entries of a braid and its strands and their requests answered by you or the PM (from braid-requests), oldest first",
+    "  start <id> [--force] [--no-worktree] [--thread <id>]  Create the strand branch from its braid branch, push it, add a worktree, and record the start on braid-requests (--no-worktree: only the branch, pushed and recorded, no worktree; --force: skip the ready check; --thread: the coordinator's thread)",
+    "  launch <id> --role worker|review|research  Prepare one subagent launch and print the delegate_task input as JSON: the role's limits check (exit 3 on pause, nothing started), for a worker the item branch pushed with no worktree and the start recorded, the model from BRAID.md models by tier and kind, the title and the first message (--thread: the coordinator's thread; review: --pr <n> [--focus <text>]; research: --question <text>). With --child <thread id> it records the child delegate_task returned, with its role, as braid review does",
+    "  review <id> --thread <id>   Record a reviewer subagent's thread with the folder and branch T3 gives for it: the board and status show the review while it runs, clean removes that checkout after the merge. A checkout that is the main one, yours, the thread's parent's or another recorded thread's is not recorded: clean keeps it and says why",
+    "  decisions <number> [--since <date or sha>]  List the Decided: log entries of a braid and its strands and their requests, waits aside, answered by you or the PM (from braid-requests), oldest first",
     "  accept <id> [--head <sha>] [--merge [--preset]]  Accept an item after checks: records the acceptance on braid-requests and commits nothing on the PR's branch; the item is Done once its PR merged. A strand after its merge (--merge merges the reviewed head first; --preset makes it a merge under the braid's autonomy preset, refused unless the preset's merge value allows this PR; the BRAID.md merge-gate command, if any, runs last and a non-zero exit refuses the merge; --log adds a braid log entry on the braid branch), a story or final PR at its reviewed head (--merge merges that head; --review <url> names the review comment; the acceptance is also posted on the PR). `braid done` is the old name",
     "  wait <number> [--timeout <minutes>]  Wait for the braid branch's CI (reads only): each check is answered by the newest commit from the tip down to the newest one outside braids/ and epics/ that has a run for it (else a merge commit's second parent), and a cancelled run stays pending while a newer commit may still run it: exit 0 green, 1 a ci check failed, 2 no run within 5 minutes or an error, with ci: all every reported check is waited for after a 2-minute start grace, 3 still running when --timeout (minutes, default 30) is up: call again",
+    "  gate [--no-wait]            Run BRAID.md's gate command in this checkout, at most two at once on this machine: with both slots held it says who holds them and waits (--no-wait: exit 75 instead); exits with the command's code",
     "  facts <pr>                  The stop-case diff facts of a PR (dependency, process, deleted tests, skip markers, size), each with its case, and the BRAID.md merge-gate, if any, with whether it runs on this PR's merge",
     "  recap <id>                  A draft recap and braid log line from report.md, the Decided: entries and answered requests, the PR (head, checks) and the facts, to edit",
-    "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints its code and the recap draft (--thread, --to pm)",
-    "  ask <id> <text>             Open a request for what the coordinator needs from you and print its code (q-7f3k) (--kind question|decision|plan, --key <stop case>, --thread, --file -; --to pm: the PM answers first, from the braid's PM-run line; --to <braid number>: another braid's coordinator, reminded hourly by the running board; --to self --done-when time:<iso>: a timed wait, nobody asked: the card shows Waiting until <time>, no push, no stall until then, the board's wake ends it; --done-when answered|pr:<n>|braid:<number>|time:<iso>: met when that PR merges, that braid is Done on origin/<main>, that time comes; the running board then wakes the asking thread once). A question replaces its asker's question on the item, a wait its wait to that braid. Finds the item on any branch, on origin/<main> or in the record. The PM's own: --by pm on a braid, or ask pm/<slug> for the programme (--kind action: something only you can do); a PM request shows in Needs You, is pushed and opens the PM thread",
+    "  handover <id> --head <sha>  Open a review request after checking the PR is open, at that head and green; prints its name (yellow-bear-7f3k) and the recap draft (--thread, --to pm)",
+    "  ask <id> <text>             Open a request for what the coordinator needs from you and print its name (yellow-bear-7f3k: two words to say aloud and the four characters of its code q-7f3k) (--kind question|decision|plan|action|look (look: a look request or an FYI, blocking nothing), --option <text> repeated for the likely answers A to D, --context <text> or --context-file <file>|- (Markdown, at most 4000 characters), --key <stop case>, --thread, --file -; prints what it unblocks and decide|do|merge|look; --to pm: the PM answers first, from the braid's PM-run line; --to <braid number>: another braid's coordinator, reminded hourly by the running board; --to self --done-when time:<iso>: a timed wait, nobody asked: the card shows Waiting until <time>, no push, no stall until then, the board's wake ends it; --done-when answered|pr:<n>|braid:<number>|time:<iso>: met when that PR merges, that braid is Done on origin/<main>, that time comes; the running board then wakes the asking thread once). A question replaces its asker's question on the item, a wait its wait to that braid. Finds the item on any branch, on origin/<main> or in the record. The PM's own: --by pm on a braid, or ask pm/<slug> for the programme (--kind action: something only you can do, a coordinator may open one too); a PM request shows in Needs You, is pushed and opens the PM thread",
     "  forward <id>                The PM hands a request addressed to it on to you: it reaches you as the PM's ask (the programme's Needs you; a braid with no programme: its card's Needs You, a handover To Review) and is pushed, opening the PM's thread (the merges one PM forwards are one push listing them), at once or, while the braid is paused or held, after braid resume (--note <text>); a wait to another braid is never forwarded",
-    "  answer <code>|<id>          Record the answer on braid-requests, never on a braid branch: the text from --file <file>|- (--log is the same), who answered (--from user, the default, or --from pm --reason <why>); an id acts on its one open request: with both askers' open it needs the code or --by coordinator|pm (pm/<slug>: the PM's), with a question and a wait open it names the codes and needs the code. An already closed request is refused",
-    "  withdraw <code>|<id> --why <reason>  Withdraw a request no longer needed; it stays on the record as withdrawn with the reason (an id as for answer: --by coordinator|pm, the code when a question and a wait are open)",
-    "  eta <code> <duration|time> [<why>]  The addressee of an open request (another braid's coordinator; the PM for a request to the PM, or with --by pm) says when it expects to get to it: a duration (2h, 90m, 1h30m, 2d) or a time (16:30, today or tomorrow; 2026-11-24T09:00); sets its estimate and records an eta event with the why; a later call moves it; refused on a closed request. The running board reminds no sooner, and reads the wait as stalled once it passes",
-    "  requests [<code>]           List the open requests on braid-requests: code, item, kind, age, who asks or whom it is for, done when, expected by, text; with a code: that request's whole history (each event's time, who and text); --closed [--since <YYYY-MM-DD>]: the closed ones, newest first, with state, who closed them and the answer",
+    "  answer <name>|<id> [<answer>]  Record the answer on braid-requests, never on a braid branch: the text after the name or from --file <file>|- (--log is the same), a lone letter of a stored option (A, any case) recorded as that option, who answered (--from user, the default, or --from pm --reason <why>); a wait (to a braid, or timed) takes no --from: met, by the coordinator, when its condition holds now, else refused (done when answered: answered by the coordinator); an answer recorded outside the asking thread (the PM's, or yours that the PM records) makes the running board wake that thread once with it; an id acts on its one open request: with both askers' open it needs the name or --by coordinator|pm (pm/<slug>: the PM's), with a question and a wait open it names both and needs the name. An already closed request is refused",
+    "  withdraw <name>|<id> --why <reason>  Withdraw a request no longer needed; it stays on the record as withdrawn with the reason (an id as for answer: --by coordinator|pm, the name when a question and a wait are open)",
+    "  eta <name> <duration|time> [<why>]  The addressee of an open request (another braid's coordinator; the PM for a request to the PM, or with --by pm) says when it expects to get to it: a duration (2h, 90m, 1h30m, 2d) or a time (16:30, today or tomorrow; 2026-11-24T09:00); sets its estimate and records an eta event with the why; a later call moves it; refused on a closed request. The running board reminds no sooner, and reads the wait as stalled once it passes",
+    "  requests [<name>]           List the open requests on braid-requests: name, item, kind, age, what it blocks and decide|do|merge|look, who asks or whom it is for, done when, expected by, text, its options as A. lines and whether context is stored; with a name (yellow-bear-7f3k, yellow bear 7f3k, 7f3k or q-7f3k in any case; yellow bear alone for an open one): that request's whole history (each event's time, who and text); --closed [--since <YYYY-MM-DD>]: the closed ones, newest first, with state, who closed them and the answer",
     "  note <text> --from <source>  Capture a leftover on the braid-inbox branch and push it (source: 0012/A, review 0012/A, PR #12 or user; --ref <url> repeats; --file -)",
     "  note --idea <text>          Capture an idea on the braid-inbox branch and push it (from: user unless --from; --file -)",
     "  inbox                       List the open inbox entries: kind, id, age, source, passed, title (--leftovers, --ideas, --all adds taken and dropped, --no-fetch)",
@@ -79,11 +84,15 @@ export function helpText(version: string): string {
     "  inbox pass <leftover>...    Pass leftovers over in a sweep: passed + 1; at 2 the leftover is dropped (an idea is refused)",
     "  inbox drop <entry>... --why <reason>  Drop entries with a reason",
     "  inbox reopen <entry>        Bring a dropped or taken entry back to open (why and into removed, passed 0)",
-    "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; forces only a recorded reviewer's t3/ branch whose tip is the PR head or on origin)",
-    "  board                       Open the board in the browser (--no-open: only print the address; --no-pause: show the limits but don't pause or resume agents; --demo: sample data, never pauses, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port; --url [--port <n>]: print the running board's address with its token, from ~/.braid/board-<port>.url, or say that none runs; --service: the run of the task below)",
-    "  board service <sub>         Windows: the board as a Task Scheduler task of yours, started at logon, again every 5 minutes if it stopped, no window: install [--port <n>, default 8765] [--host tailscale] (from your checkout), remove, restart [--if-installed: nothing when no task], status (state, last result (the previous run's while it runs, shown as previous run:), port, address, the running board's version against this one, the acting leases it and other boards hold, its log ~/.braid/board-<port>.log); elsewhere it points to the systemd recipe in docs/board.md",
+    "  clean [<number>|<id>] [--yes]  Remove worktrees and local branches of merged items (a dry run without --yes; forces only a recorded subagent's t3/ branch whose tip is the PR head or on origin; keeps what the main checkout, this one or a running thread uses)",
+    "  board                       Open the board in the browser (--no-open: only print the address; --no-pause: show the limits but don't pause or resume agents, and turn off the wake of a request whose done-when holds, with its reminders and nudges; --demo: sample data, never pauses, --demo-not-ready: a project with problems; --host tailscale: also on this machine's Tailscale address, for its owner only; --port <n>: both listeners on that port; --url [--port <n>]: print the running board's address with its token, from ~/.braid/board-<port>.url, (also of a busy board, noted on stderr), or say that none runs; --service: the run of the task below)",
+    "  board service <sub>         Windows: the board as a Task Scheduler task of yours, started at logon, again every 5 minutes if it stopped, no window: install [--port <n>, default 8765] [--host tailscale] (from your checkout), remove, restart [--if-installed: nothing when no task], status (state, last result (the previous run's while it runs, shown as previous run:), port, address, the running board's version against this one or busy, the acting leases it and other boards hold, its log ~/.braid/board-<port>.log); elsewhere it points to the systemd recipe in docs/board.md",
     "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends a push, then one it clears, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
     "  notify send <line> --thread <id>  The PM's own push, sent at once without the board: the line (200 characters at most), opening the thread (--programme <slug>; a newer line of a programme replaces the older; off or not set up: says why, exit 0)",
+    "  t3 login [--url <origin>]   Sign the board in to T3's MCP at Full access: opens T3's approval page, takes the answer on a one-off 127.0.0.1 port and keeps the token only in the OS secret store (5 minutes to approve; --url: T3's address, local only unless braid t3 set --local-only off, then https only)",
+    "  t3 logout                   Sign the board out of T3: revokes \"braid board\" in T3 and deletes the sign-in here (if T3 can't be reached: deleted here, revoke it in T3's Settings)",
+    "  t3 status                   Whether the board is signed in to T3, at which address and until when, and the two settings in ~/.braid/t3.json; never the token",
+    "  t3 set [--access auto|cli] [--local-only on|off]  The two T3 settings: access auto (the sign-in when signed in, else the t3 command line) or cli (always the command line); local only on (a local T3 address only) or off (also https elsewhere)",
     "  projects add [<path>]       Add a project to this machine's list in ~/.braid/projects.json (its main checkout; --name <n>, --port <n>) and print its readiness",
     "  projects remove <name>      Remove a project from the list",
     "  projects list               Each listed project: name, path, port and readiness (GitHub not checked)",
@@ -262,8 +271,15 @@ export function run(argv: readonly string[], cwd: string = process.cwd()): Outpu
   return { code: 1, stdout: "", stderr: `error: unknown command: ${first}\nRun braid help.\n` };
 }
 
+/** `braid board --help`: the board's lines of the help. */
+export const boardHelp = (version: string): string => `${helpText(version).split("\n").filter((line) => /^ {2}board( |$)/.test(line)).join("\n")}\n`;
+
 async function main(argv: readonly string[]): Promise<void> {
   if (argv[0] === "board") {
+    if (argv.includes("--help")) {
+      process.stdout.write(boardHelp(readVersion()));
+      return;
+    }
     try {
       if (argv[1] === "service") {
         const out = await serviceCommand(argv.slice(2));
@@ -318,9 +334,37 @@ async function main(argv: readonly string[]): Promise<void> {
     }
     return;
   }
+  if (argv[0] === "gate") {
+    try {
+      process.exitCode = await gateCommand(findRoot(process.cwd()), argv.slice(1));
+    } catch (error) {
+      if (error instanceof UsageError) {
+        process.stderr.write(`error: ${error.message}
+`);
+        process.exitCode = 1;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
   if (argv[0] === "notify") {
     try {
       process.stdout.write(await notifyCommand(argv.slice(1)));
+    } catch (error) {
+      if (error instanceof UsageError) {
+        process.stderr.write(`error: ${error.message}
+`);
+        process.exitCode = 1;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "t3") {
+    try {
+      process.stdout.write(await t3Command(argv.slice(1)));
     } catch (error) {
       if (error instanceof UsageError) {
         process.stderr.write(`error: ${error.message}
@@ -342,6 +386,23 @@ async function main(argv: readonly string[]): Promise<void> {
         process.stderr.write(`error: ${error.message}
 `);
         process.exitCode = error instanceof ProjectsFileError ? 2 : 1;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "launch") {
+    try {
+      const out = await launchCommand(findRoot(process.cwd()), argv.slice(1));
+      process.stdout.write(out.stdout);
+      process.stderr.write(out.stderr);
+      process.exitCode = out.code;
+    } catch (error) {
+      if (error instanceof UsageError || error instanceof GitError) {
+        process.stderr.write(`error: ${error.message}
+`);
+        process.exitCode = 1;
         return;
       }
       throw error;

@@ -49,17 +49,27 @@ Expected size: about 1,100 lines in 12 files (0080/A's estimate: oauth ~250, sec
 
 - Using the sign-in to stop threads (0080/E) or read events (0080/F).
 
+## Plan
+
+1. Mockups (`mockups/t3-button.html`, `t3-button-full.png`) on demo data: the button's place, the four states and tooltips, the click panels on the host, the phone sheet, the two pushes, `braid t3 status`. Stop for the user's verdict.
+2. After approval: `src/t3/settings.ts` (`~/.braid/t3.json`, defaults on any read failure), `src/t3/secret.ts` (lazy `@napi-rs/keyring`, a fake for tests), `src/t3/oauth.ts` (discovery, registration, PKCE, state/iss, loopback callback, exchange, revoke; the URL opened without a shell).
+3. `src/commands/t3.ts`: `login|logout|status|set`, usage lines in `src/cli.ts`.
+4. The board: a sign-in reader (start, at most once a minute, after a 401; token in memory only) feeding 0080/B's client; the state in `/api/all` without the token; the two pushes once per sign-in; the button's POST routes (token-checked, loopback-only for sign-in) and the loopback-only `/t3/callback`.
+5. The page: the button, tooltip and panel (desktop) and sheet (phone), from the approved mockups.
+6. Tests (fake authorization server, fake store, mock MCP 401, token-leak checks) plus leftover 2026-11-26-7wrg in `src/t3mcp` (a refused redirect, a bare 5xx, `token()` read once).
+7. Docs (`docs/cli.md`, `docs/board.md`, `docs/decisions.md`), the gate, the PR; the live check with the user.
+
 ## Completion
 
-- [ ] The user approved the button mockups before building
-- [ ] `braid t3 login|logout|status|set` work as above against the fake server, refusing a sign-in below Full access, and a non-local address while `localOnly` is on or over plain `http`
-- [ ] The two settings in `~/.braid/t3.json` (`access` auto or cli, `localOnly` on or off) decide how the board talks to T3; defaults auto and on
-- [ ] The token is kept only in the OS store through `@napi-rs/keyring` (lazily loaded); no store means signed out and the board as today
-- [ ] The board's T3 button shows the four states with the tooltip words above, and the two pushes go once
-- [ ] The button signs in from the host through the board's callback, which tests show answers 404 to anything but the pending click's own `state` (wrong state, reused, expired, non-loopback); from a non-loopback origin it starts nothing
-- [ ] A 401 turns the board signed out with no retry; `braid t3 logout` revokes in T3
-- [ ] Tests prove the token appears in no log, error, API or page output
-- [ ] Live check done with the user's sign-in on scratch threads only, or report.md says what is left
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The user approved the button mockups before building
+- [x] `braid t3 login|logout|status|set` work as above against the fake server, refusing a sign-in below Full access, and a non-local address while `localOnly` is on or over plain `http`
+- [x] The two settings in `~/.braid/t3.json` (`access` auto or cli, `localOnly` on or off) decide how the board talks to T3; defaults auto and on
+- [x] The token is kept only in the OS store through `@napi-rs/keyring` (lazily loaded); no store means signed out and the board as today
+- [x] The board's T3 button shows the four states with the tooltip words above, and the two pushes go once
+- [x] The button signs in from the host through the board's callback, which tests show answers 404 to anything but the pending click's own `state` (wrong state, reused, expired, non-loopback); from a non-loopback origin it starts nothing
+- [x] A 401 turns the board signed out with no retry; `braid t3 logout` revokes in T3
+- [x] Tests prove the token appears in no log, error, API or page output
+- [x] Live check done with the user's sign-in on scratch threads only, or report.md says what is left
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

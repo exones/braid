@@ -8,6 +8,7 @@ export type { BoardData, BraidCard, ItemDetail, Lane, CoordinatorInfo, MergeInfo
 export type { PullRequest } from "../../src/board/github.ts";
 export type { LimitsView, ProviderView } from "../../src/board/limits.ts";
 export type { WindowReading } from "../../src/braids/limits.ts";
+export type { SignInView } from "../../src/t3/words.ts";
 export type { AllBoard, ProjectInfo, TaggedCard, TaggedProgramme } from "../../src/board/combined.ts";
 
 export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
@@ -38,6 +39,43 @@ export async function postAction<T = unknown>(name: string, body: object = {}): 
     body: JSON.stringify(body),
   });
   return readReply<T>(response);
+}
+
+/** Runs a T3 sign-in action (`login`, `cancel`, `logout`) with the session token, gated like every board action. */
+export async function postT3<T = unknown>(verb: "login" | "cancel" | "logout"): Promise<T> {
+  const response = await fetch(`/api/t3/${verb}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-braid-token": sessionToken() ?? "", "x-braid-request": "1" },
+    body: "{}",
+  });
+  return readReply<T>(response);
+}
+
+/** What the board's `answer` action replies (0082/D): the recorded answer, and whether the asking thread was woken (`wake`: why not). */
+export interface Answered {
+  readonly ok: true;
+  readonly handle: string;
+  readonly id: string;
+  readonly answer: string;
+  readonly woken: boolean;
+  readonly wake: string | null;
+  readonly warning: string | null;
+}
+
+/** The longest answer the board takes: one line (src/commands/requests.ts `BOARD_ANSWER_MAX`). */
+export const ANSWER_MAX = 500;
+
+/**
+ * Answers an open request of `project` from the board (0082/D): `text` is an option letter (`A`) or one line of free text, sent at
+ * once with no confirmation (D118). A request answered, withdrawn or met meanwhile is refused: the promise rejects with the
+ * board's reason, which the page shows. Text that isn't one line, or is longer than `ANSWER_MAX`, is refused here without a call.
+ */
+export async function answerRequest(project: string, handle: string, text: string): Promise<Answered> {
+  const answer = text.trim();
+  if (answer === "" || /[\r\n]/.test(answer) || answer.length > ANSWER_MAX) {
+    throw new Error(`An answer is an option letter or one line of text, at most ${ANSWER_MAX} characters`);
+  }
+  return postAction<Answered>("answer", { project, handle, text: answer });
 }
 
 /** A reload request: `n` changes on every one; `fresh` skips the server's short-lived reads. */

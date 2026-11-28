@@ -20,10 +20,8 @@ export const { cleanCommand } = (await load("../../dist/commands/clean.js")) as 
   cleanCommand: (root: string, args: string[], src: object, env: Record<string, string>) => Promise<string>;
 };
 export const { resetGithubMemory } = (await load("../../dist/board/github.js")) as { resetGithubMemory: () => void };
-export const { resetT3Memory } = (await load("../../dist/board/t3.js")) as { resetT3Memory: () => void };
 beforeEach(() => {
   resetGithubMemory();
-  resetT3Memory();
 });
 
 export const git = (cwd: string, ...args: string[]) => {

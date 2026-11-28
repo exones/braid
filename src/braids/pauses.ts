@@ -14,7 +14,7 @@ export type Reason = (typeof REASONS)[number];
 /** A thread the board's pause reached: a coordinator, worker, reviewer (any recorded thread) or PM thread from the snapshot; `child` only in older records. */
 export interface PauseTarget {
   readonly thread: string;
-  readonly kind: "coordinator" | "worker" | "reviewer" | "pm" | "child";
+  readonly kind: "coordinator" | "worker" | "reviewer" | "researcher" | "pm" | "child";
   /** The item (`0064/C`) of a worker or reviewer, the braid of a coordinator, the braids (`0064,0065`) of a PM; a child's parent item. */
   readonly item: string;
   /** The project (T3's folder) the thread is in, for `t3 thread send`. */
