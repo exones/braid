@@ -27,6 +27,12 @@
       "by": "pm",
       "text": "A. Merge now, live check later",
       "reason": "A merge into the braid branch only, reversible; no real token used yet. The live check with the user real sign-in (steps 1-5) runs before the final PR into main, together with E, and the user does step 1 at the keyboard."
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T12:27:39.218Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
