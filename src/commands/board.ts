@@ -640,6 +640,15 @@ export function boardNotifier(root: string): (board: BoardData) => void {
 }
 
 /** The samples of `braid board --demo`: no repository, `gh` or `t3` is touched. */
+/** The demo's action: nothing is done. `BRAID_DEMO_ACTION_MS` makes it reply late, as a slow record write does, to see what the page shows meanwhile. */
+const demoAction: Action = async () => {
+  const late = Number(process.env["BRAID_DEMO_ACTION_MS"] ?? 0);
+  if (late > 0) {
+    await new Promise((done) => setTimeout(done, late));
+  }
+  return { ok: true, demo: true };
+};
+
 export function demoSources(t3Down = false, notReady = false): Sources {
   return {
     ...(notReady ? { readiness: () => demoProblems() } : {}),
@@ -656,7 +665,7 @@ export function demoSources(t3Down = false, notReady = false): Sources {
     inbox: () => demoInbox(),
     project: () => ".",
     // A demo board accepts every action and fakes the result; nothing is written.
-    action: () => () => ({ ok: true, demo: true }),
+    action: () => demoAction,
   };
 }
 
@@ -719,6 +728,40 @@ type Pick = (body: unknown) => { readonly src: Sources; readonly board: () => Pr
  * Runs `POST /api/action/<name>`: on the local listener only the page this run opened may call it; on the Tailscale listener,
  * a board page on it. The body's `project` names the project the action is for (`pick` resolves it among the served ones).
  */
+/**
+ * The board's log of actions (stderr, which the service keeps): each one that arrives, and how it ended, with the route and the
+ * peer, so a press that does nothing on a phone can be traced. Never a token, a header or an answer's text.
+ */
+function actionLog(req: IncomingMessage, listener: Listener): (words: string) => void {
+  const path = (req.url ?? "").split(/[?#]/)[0] ?? "";
+  const peer = `${listener.kind === "tailnet" ? "tailscale" : "local"} ${req.socket.remoteAddress ?? "unknown peer"}`;
+  return (words) => void process.stderr.write(`braid board: ${new Date().toISOString()} POST ${path.slice(0, 80)} from ${peer}: ${words.replace(/\s+/g, " ").slice(0, 400)}\n`);
+}
+
+/** `postAction`, logged: arrived, then done, refused (with the reason) or failed, and a page that went away before the reply. */
+async function loggedAction(req: IncomingMessage, res: ServerResponse, url: URL, listener: Listener, pick: Pick): Promise<Reply> {
+  const log = actionLog(req, listener);
+  const began = Date.now();
+  const after = (): string => `after ${((Date.now() - began) / 1000).toFixed(1)} s`;
+  log("arrived");
+  res.once("close", () => {
+    if (!res.writableFinished) {
+      log(`the page went away ${after()}, before the reply`);
+    }
+  });
+  try {
+    const out = await postAction(req, url, listener, pick);
+    const why = out.status === 200 ? "" : `: ${String((JSON.parse(out.body) as { error?: unknown }).error ?? "")}`;
+    log(`${out.status === 200 ? "done" : `refused ${out.status}`} ${after()}${why}`);
+    return out;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log(`failed ${after()}: ${message}`);
+    // In words, so the page can say it; a bare "error" told no one anything.
+    return json(500, { error: `The board couldn't do it: ${message.split("\n")[0] ?? "unknown error"}` });
+  }
+}
+
 async function postAction(req: IncomingMessage, url: URL, listener: Listener, pick: Pick): Promise<Reply> {
   const host = req.headers.host;
   const origin = req.headers.origin;
@@ -1027,6 +1070,9 @@ export function startBoardWith(
         // Fail closed: who the peer is comes first, then whether it asked for this listener by name.
         const allowed = await listener.gate(req.socket.remoteAddress ?? "", req.socket.remotePort ?? 0);
         if (!allowed || !hostOk(listener, req.headers.host)) {
+          if (req.method === "POST") {
+            actionLog(req, listener)(allowed ? "refused 403: not this listener's Host" : "refused 403: Tailscale didn't confirm the owner");
+          }
           const api = (req.url ?? "").startsWith("/api/");
           res.writeHead(403, { "content-type": api ? (TYPES[".json"] ?? "") : "text/plain", "cache-control": "no-store" }).end(api ? JSON.stringify({ error: TAILNET_REFUSED }) : "forbidden");
           return;
@@ -1039,7 +1085,7 @@ export function startBoardWith(
       }
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       if (req.method === "POST" && url.pathname.startsWith("/api/action/")) {
-        const out = await postAction(req, url, listener, pick);
+        const out = await loggedAction(req, res, url, listener, pick);
         res.writeHead(out.status, { "content-type": TYPES[".json"] ?? "", "cache-control": "no-store" }).end(out.body);
         return;
       }
@@ -1175,7 +1221,7 @@ export interface Runners {
 
 /** The four sample projects of `braid board --demo`: the full sample (`demo`), a small one (`api`), one whose reads fail after the first (`mail`) and one that isn't ready (`notes`). */
 export function demoMembers(t3Down = false, notReady = false): Member[] {
-  const accept: Sources["action"] = () => () => ({ ok: true, demo: true });
+  const accept: Sources["action"] = () => demoAction;
   const small = (repo: string, braids: () => Braid[], github: () => Github, signals: () => ReadSignals, tree: () => Tree, problems: () => Problem[] | null, plans: () => PlanRead[] = () => []): Sources => {
     const listed = problems();
     return {

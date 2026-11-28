@@ -6,8 +6,10 @@ import { Tooltip } from "radix-ui";
 import { OUTCOME_LABEL, RANK_LABEL, nextAfter, outcomeText, splitQuestions, type Rank } from "../../src/board/question-list.ts";
 import { CLOSED_PAGE } from "../../src/board/record.ts";
 import type { TaggedDecided, TaggedQuestion } from "../../src/board/combined.ts";
-import { ANSWER_MAX, answerRequest, closeRequest } from "./api.ts";
-import { CloseButton } from "./Close.tsx";
+import { ANSWER_MAX } from "./api.ts";
+import { CloseButton, SendLine, SendNotices, Sending, useRequestSend } from "./Close.tsx";
+import { submit } from "./sends.ts";
+import { sendKey, type Closed } from "../../src/board/sends.ts";
 import { Md } from "./Md.tsx";
 import { AskingLink, BlockLine, CodeChip, MergeButton, ProjectContext, ProjectTag, go, goProgramme } from "./App.tsx";
 
@@ -19,6 +21,9 @@ const keyOf = (q: { readonly project: string; readonly code: string }): string =
 const waitText = (age: string): string => `${age.slice(0, -1)} ${age.endsWith("m") ? "min" : age.slice(-1)}`;
 
 const when = (at: string): string => new Date(at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+/** What Decided says of each closed request, by `project/handle`, for the line of a send whose request left the list. */
+export const closedOf = (decided: readonly TaggedDecided[]): ReadonlyMap<string, Closed> => new Map(decided.map((d) => [sendKey(d.project, d.handle), d]));
 
 /** An icon-only button with its words in the tooltip. */
 function IconButton({ tip, onClick, children, className = "border-slate-200 bg-white text-slate-700", type = "button", disabled = false }: { tip: string; onClick?: () => void; children: ReactNode; className?: string; type?: "button" | "submit"; disabled?: boolean }) {
@@ -93,20 +98,22 @@ function MergeLine({ q }: { q: TaggedQuestion }) {
 type Close = (how: "ack" | "dismiss") => void;
 
 /** The "✎ Answer" button beside Acknowledge and Dismiss. */
-const AnswerButton = ({ onClick }: { onClick: () => void }) => (
+const AnswerButton = ({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) => (
   <button
     type="button"
+    disabled={disabled}
     onClick={(e) => {
       e.stopPropagation();
       onClick();
     }}
-    className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-blue-600 max-md:min-h-11 max-md:px-3.5 max-md:text-[13px]"
+    className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 hover:border-blue-600 disabled:cursor-wait disabled:opacity-60 max-md:min-h-11 max-md:px-3.5 max-md:text-[13px]"
   >
     <span aria-hidden>✎</span> Answer
   </button>
 );
 
-function Row({ q, busy, onOpen, onClose }: { q: TaggedQuestion; busy: boolean; onOpen: () => void; onClose: Close }) {
+function Row({ q, onOpen, onClose }: { q: TaggedQuestion; onOpen: () => void; onClose: Close }) {
+  const { send, at, disabled, done, sending } = useRequestSend(q.project, q.handle);
   const tone = q.rank === "look" ? "border-l-slate-400 bg-white" : q.escalated !== null ? "border-red-600 bg-red-50" : "border-l-amber-500 bg-white";
   return (
     <div data-question={q.handle} onClick={onOpen} className={`mb-1.5 cursor-pointer rounded-lg border border-l-[3px] border-slate-200 px-2.5 py-1.5 hover:border-blue-600 ${tone}`}>
@@ -115,10 +122,15 @@ function Row({ q, busy, onOpen, onClose }: { q: TaggedQuestion; busy: boolean; o
       <Who q={q} />
       <Blocks q={q} />
       <MergeLine q={q} />
-      <div className="mt-1.5 flex flex-wrap justify-end gap-1.5">
-        {q.kind === "look" && <CloseButton close="ack" handle={q.handle} disabled={busy} onClose={() => onClose("ack")} />}
-        <AnswerButton onClick={onOpen} />
-        <CloseButton close="dismiss" handle={q.handle} disabled={busy} onClose={() => onClose("dismiss")} />
+      <div className="mt-1.5 flex flex-wrap justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+        {!done && (
+          <>
+            {q.kind === "look" && <CloseButton close="ack" handle={q.handle} disabled={disabled} sending={sending("ack")} onClose={() => onClose("ack")} />}
+            <AnswerButton onClick={onOpen} disabled={disabled} />
+            <CloseButton close="dismiss" handle={q.handle} disabled={disabled} sending={sending("dismiss")} onClose={() => onClose("dismiss")} />
+          </>
+        )}
+        <SendLine send={send} at={at} />
       </div>
     </div>
   );
@@ -142,7 +154,8 @@ function ItemLink({ q }: { q: TaggedQuestion }) {
  * The roomy card: the context (open, can be folded), the question, one button per likely answer that sends at once, and
  * ✎ Custom, which swaps the buttons for a one-line field. A request without options shows the field only.
  */
-function Opened({ q, busy, onSend, onClose, onDone }: { q: TaggedQuestion; busy: boolean; onSend: (text: string) => void; onClose: () => void; onDone: Close }) {
+function Opened({ q, onSend, onClose, onDone }: { q: TaggedQuestion; onSend: (text: string) => void; onClose: () => void; onDone: Close }) {
+  const { send: pending, at, disabled: busy, done, sending } = useRequestSend(q.project, q.handle);
   const [context, setContext] = useState(true);
   const [custom, setCustom] = useState(false);
   const [typed, setTyped] = useState("");
@@ -155,7 +168,7 @@ function Opened({ q, busy, onSend, onClose, onDone }: { q: TaggedQuestion; busy:
   const field = custom || (q.options.length === 0 && q.kind !== "look");
   const send = (e: FormEvent) => {
     e.preventDefault();
-    if (typed.trim() !== "") {
+    if (typed.trim() !== "" && !busy) {
       onSend(typed);
     }
   };
@@ -179,7 +192,7 @@ function Opened({ q, busy, onSend, onClose, onDone }: { q: TaggedQuestion; busy:
       <div className="my-3 break-words text-[15.5px] font-semibold leading-snug">{q.text}</div>
       {q.note !== null && <div className="mb-2 text-xs text-slate-500">The PM's note: {q.note}</div>}
       <MergeLine q={q} />
-      {field ? (
+      {done ? null : field ? (
         <form onSubmit={send} className="mt-2 flex items-center gap-1.5">
           <input
             aria-label="Your answer"
@@ -190,7 +203,9 @@ function Opened({ q, busy, onSend, onClose, onDone }: { q: TaggedQuestion; busy:
             onChange={(e) => setTyped(e.target.value)}
             className="min-w-0 flex-1 rounded-lg border border-blue-600 bg-white px-2.5 py-1.5 max-md:min-h-11"
           />
-          <IconButton tip="Send" type="submit" disabled={busy || typed.trim() === ""} className="border-blue-600 bg-blue-600 text-white">➤</IconButton>
+          <IconButton tip="Send" type="submit" disabled={busy || typed.trim() === ""} className="border-blue-600 bg-blue-600 text-white">
+            {sending("text") ? <span className="block size-3 animate-spin rounded-full border-2 border-white border-t-transparent" /> : "➤"}
+          </IconButton>
           {q.options.length > 0 && <IconButton tip="Back to the options" onClick={() => setCustom(false)}>✕</IconButton>}
         </form>
       ) : (
@@ -202,22 +217,26 @@ function Opened({ q, busy, onSend, onClose, onDone }: { q: TaggedQuestion; busy:
                 type="button"
                 disabled={busy}
                 onClick={() => onSend(OPTION_LETTERS[i] ?? option)}
-                className="flex w-full cursor-pointer items-baseline gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left hover:border-blue-600 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60 max-md:min-h-11"
+                className={`flex w-full cursor-pointer items-baseline gap-2.5 rounded-lg border bg-white px-3 py-2 text-left hover:border-blue-600 hover:bg-slate-50 disabled:cursor-wait max-md:min-h-11 ${sending(OPTION_LETTERS[i] ?? option) ? "border-blue-600" : "border-slate-200 disabled:opacity-60"}`}
               >
                 <b className="rounded border border-slate-400 px-1.5 text-xs">{OPTION_LETTERS[i]}</b>
                 <span className="min-w-0 break-words">{option}</span>
+                {sending(OPTION_LETTERS[i] ?? option) && <span className="ml-auto flex-none text-xs font-semibold"><Sending /></span>}
               </button>
             ))}
           </div>
         )
       )}
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {q.kind === "look" && <CloseButton close="ack" handle={q.handle} disabled={busy} onClose={() => onDone("ack")} />}
-        {q.kind === "look" && !field && <AnswerButton onClick={() => setCustom(true)} />}
-        {q.kind !== "look" && !field && <IconButton tip="Custom answer" onClick={() => setCustom(true)}>✎</IconButton>}
-        <span className="flex-1" />
-        <CloseButton close="dismiss" handle={q.handle} disabled={busy} onClose={() => onDone("dismiss")} />
-      </div>
+      {!done && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {q.kind === "look" && <CloseButton close="ack" handle={q.handle} disabled={busy} sending={sending("ack")} onClose={() => onDone("ack")} />}
+          {q.kind === "look" && !field && <AnswerButton onClick={() => setCustom(true)} disabled={busy} />}
+          {q.kind !== "look" && !field && <IconButton tip="Custom answer" disabled={busy} onClick={() => setCustom(true)}>✎</IconButton>}
+          <span className="flex-1" />
+          <CloseButton close="dismiss" handle={q.handle} disabled={busy} sending={sending("dismiss")} onClose={() => onDone("dismiss")} />
+        </div>
+      )}
+      <SendLine send={pending} at={at} />
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         <AskingLink link={q.link} />
         {q.context === null && <ItemLink q={q} />}
@@ -251,71 +270,28 @@ function DecidedRow({ d }: { d: TaggedDecided }) {
   );
 }
 
-interface Sent {
-  readonly handle: string;
-  readonly answer: string;
-  /** Why the asking thread wasn't woken, or a warning of the record's write; null when all went. */
-  readonly note: string | null;
-  /** Set for a request closed without an answer. */
-  readonly closed?: "ack" | "dismiss";
-}
-
-/** The panel's content, and the answering: what is open, what was just sent, what the board refused. */
+/** The panel's content and the answering: what is open; what each send does is kept by request (web/src/sends.ts). */
 function useAnswering(questions: readonly TaggedQuestion[], refresh: () => void) {
   const [opened, setOpened] = useState<string | null>(null);
-  const [answered, setAnswered] = useState<ReadonlySet<string>>(new Set());
   const [looksOpen, setLooksOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState<Sent | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const split = splitQuestions(questions.filter((q) => !answered.has(keyOf(q))));
-  const open = (key: string | null) => {
-    setError(null);
-    setSent(null);
-    setOpened(key);
-  };
-  const send = async (q: TaggedQuestion, text: string) => {
+  const split = splitQuestions(questions);
+  const open = (key: string | null) => setOpened(key);
+  /** Sends, then opens the next question when it was recorded. The row stays, saying "sent", until a read drops it. */
+  const go = async (q: TaggedQuestion, press: string, label: string, text?: string) => {
     const key = keyOf(q);
     // The order as shown when the answer was given: the next question is the one under it.
     const order = [...split.ranked, ...(looksOpen ? split.looks : [])].map(keyOf);
-    setBusy(true);
-    setError(null);
-    setSent(null);
-    try {
-      const reply = await answerRequest(q.project, q.handle, text);
-      setAnswered((a) => new Set([...a, key]));
-      setOpened(nextAfter(order, key));
-      const note = [reply.woken === false ? `Recorded; the asking thread isn't woken yet: ${reply.wake ?? "unknown"}` : null, reply.warning ?? null].filter((n) => n !== null).join(" ");
-      const letter = OPTION_LETTERS.indexOf(text as (typeof OPTION_LETTERS)[number]);
-      setSent({ handle: q.handle, answer: letter >= 0 && q.options[letter] !== undefined ? `${text} · ${q.options[letter]}` : text.trim(), note: note === "" ? null : note });
-    } catch (e) {
-      // Closed meanwhile, or refused: say why, and read the list again.
-      setError(`${q.handle}: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      setBusy(false);
-      refresh();
-    }
-  };
-  const close = async (q: TaggedQuestion, how: "ack" | "dismiss") => {
-    const key = keyOf(q);
-    const order = [...split.ranked, ...(looksOpen ? split.looks : [])].map(keyOf);
-    setBusy(true);
-    setError(null);
-    setSent(null);
-    try {
-      const reply = await closeRequest(q.project, q.handle, how);
-      setAnswered((a) => new Set([...a, key]));
+    if (await submit(q.project, q.handle, press, label, refresh, text)) {
       setOpened((o) => (o === key ? nextAfter(order, key) : o));
-      const note = [how === "dismiss" && !reply.woken ? `Recorded; the asking thread isn't told yet: ${reply.wake ?? "unknown"}` : null, reply.warning ?? null].filter((n) => n !== null).join(" ");
-      setSent({ handle: q.handle, answer: "", note: note === "" ? null : note, closed: how });
-    } catch (e) {
-      setError(`${q.handle}: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      setBusy(false);
-      refresh();
     }
   };
-  return { ...split, opened, open, looksOpen, setLooksOpen, busy, sent, error, send, close };
+  const send = (q: TaggedQuestion, text: string) => {
+    const letter = OPTION_LETTERS.indexOf(text as (typeof OPTION_LETTERS)[number]);
+    const option = letter >= 0 ? q.options[letter] : undefined;
+    return option !== undefined ? go(q, text, `${text} · ${option}`) : go(q, "text", text.trim(), text);
+  };
+  const close = (q: TaggedQuestion, how: "ack" | "dismiss") => go(q, how, how === "ack" ? "Acknowledge" : "Dismiss");
+  return { ...split, opened, open, looksOpen, setLooksOpen, send, close };
 }
 
 type Answering = ReturnType<typeof useAnswering>;
@@ -326,7 +302,7 @@ function List({ a, decided }: { a: Answering; decided: readonly TaggedDecided[] 
   // Each question acts in its own project (Merge reads it from the context).
   const item = (q: TaggedQuestion) => (
     <ProjectContext key={keyOf(q)} value={q.project}>
-      {a.opened === keyOf(q) ? <Opened q={q} busy={a.busy} onSend={(text) => void a.send(q, text)} onClose={() => a.open(null)} onDone={(how) => void a.close(q, how)} /> : <Row q={q} busy={a.busy} onOpen={() => a.open(keyOf(q))} onClose={(how) => void a.close(q, how)} />}
+      {a.opened === keyOf(q) ? <Opened q={q} onSend={(text) => void a.send(q, text)} onClose={() => a.open(null)} onDone={(how) => void a.close(q, how)} /> : <Row q={q} onOpen={() => a.open(keyOf(q))} onClose={(how) => void a.close(q, how)} />}
     </ProjectContext>
   );
   const heading = (rank: Rank) => (
@@ -337,13 +313,7 @@ function List({ a, decided }: { a: Answering; decided: readonly TaggedDecided[] 
   );
   return (
     <>
-      {a.error !== null && <p role="alert" className="mt-2 rounded-lg border-l-[3px] border-red-600 bg-red-50 px-2.5 py-1.5 text-red-900">{a.error}</p>}
-      {a.sent !== null && (
-        <div role="status" className="mt-2 break-words rounded-lg border border-green-600 bg-green-50 px-2.5 py-1.5 text-[12.5px]">
-          {a.sent.closed === "dismiss" ? "⊘" : "✓"} <CodeChip code={a.sent.handle} /> {a.sent.closed === "dismiss" ? "dismissed" : a.sent.closed === "ack" ? "acknowledged" : a.sent.answer}
-          <span className="block text-slate-500">{a.sent.note ?? (a.sent.closed === "dismiss" ? "the asking thread is told" : a.sent.closed === "ack" ? "nobody is woken" : "sent")}</span>
-        </div>
-      )}
+      <SendNotices closed={closedOf(decided)} />
       {a.ranked.length === 0 && <p className="mx-0.5 mt-3 text-xs text-slate-500">No open questions.</p>}
       {a.ranked.map((q, i) => (
         <div key={keyOf(q)}>

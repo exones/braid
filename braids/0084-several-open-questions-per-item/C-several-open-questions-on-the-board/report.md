@@ -15,6 +15,20 @@ The board now shows every open question of an item as the approved mockups do, e
 
 Screens (demo data): [card and programmes](screens/desktop-card-and-programmes.png), [details](screens/desktop-details-requests.png), [phone Requests](screens/phone-requests.png), [phone Board](screens/phone-board.png).
 
+## Presses that did nothing on the phone (shiny-monkey-mo72)
+
+**Cause not yet found; it needs the user's phone.** The presses recorded nothing (the user then answered in chat). What the code shows:
+
+- The server cuts nothing at about 11 s, and the page sends its header and same-origin request as a desktop does (the PM's desktop press over Tailscale recorded).
+- One answer can take far longer than a phone browser waits: a fetch of the record, up to 60 s for its lock, the write and its push, then the wake of the asking thread.
+- Any unexpected error in an action answered a bare `500 error` and was **logged nowhere**, which fits "the board log shows nothing".
+- On `main`'s page (the live one) an error shows only at the top of the Questions panel, off screen on a phone; the buttons otherwise just grey.
+
+Fixed whatever the cause: every action is logged (arrived, done, refused or failed with the reason, page gone, with listener and peer), an error answers in words, and the page shows each send in place (below). The cause itself is still open.
+
+- **While sending** (`src/board/sends.ts`, `web/src/sends.ts`): "Sending…" on the pressed button, "still sending (the record is being written)" after 5 s, errors in words, "already answered by …: …" instead of buttons, the send kept across a reload, the "sent" line until a read drops the request.
+- Screens at 390 px with an 11 s fake write (`BRAID_DEMO_ACTION_MS`): [sending](screens/phone-sending.png), [still sending](screens/phone-still-sending.png), [after a reload](screens/phone-sending-after-reload.png), [already answered](screens/phone-already-answered.png) (that refusal was faked in the browser).
+
 ## Behaviour that differs from before
 
 - After upgrading, the board clears the old per-item pushes and sends each open request once more under its own ID.
@@ -26,7 +40,8 @@ Screens (demo data): [card and programmes](screens/desktop-card-and-programmes.p
 
 - New suite `test/board-acknowledge-dismiss.test.ts` (CLI, board action, wake once or never, three questions and their pushes, a programme's two, Decided, the demo). Existing tests updated where they expected one request per item, the newest request, or per-item push IDs.
 - Demo board driven in headless Edge at 1900 px and 390 px: the screens above; the last tab survives a reload; no horizontal overflow; no page errors.
-- Gate: `npm run verify` on Windows, exit 0: 878 tests, 877 passed, 1 skipped, none failed (node tests 774 s).
+- `test/board-sends.test.ts`: the stages of a send, the list across a reload, the refusal naming who and what, the action log without token or text.
+- Gate on the commits before the sending fix: `npm run verify` on Windows, exit 0: 878 tests, 877 passed, 1 skipped, none failed (node tests 774 s). **Not yet run on the sending fix** (typecheck, build and the touched suites pass).
 
 ## Docs
 

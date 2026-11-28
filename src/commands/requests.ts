@@ -505,7 +505,7 @@ function ended(done: ReturnType<typeof endRequest>, code: string, command: strin
   }
   if (!done.ended) {
     const last = closing(done.request);
-    throw new UsageError(`${command}: ${handleOf(done.request)} (${done.request.id}) is already ${done.request.state}${last === null ? "" : ` by ${WHO[last.by] ?? last.by} at ${stamp(last.at)}`}; nothing changed`);
+    throw new UsageError(`${command}: ${handleOf(done.request)} (${done.request.id}) is already ${done.request.state}${last === null ? "" : ` by ${WHO[last.by] ?? last.by} at ${stamp(last.at)}${last.text === undefined ? "" : `: ${oneLine(last.text)}`}`}; nothing changed`);
   }
   return done;
 }

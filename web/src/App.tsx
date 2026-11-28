@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Dialog, Tabs, Tooltip } from "radix-ui";
 import { ROLES } from "../../src/braids/roles.ts";
 import { Md } from "./Md.tsx";
@@ -13,8 +13,10 @@ import { askWho, clock as clockAt, pauseBox, resumeMode, resumeOnCard, usage,typ
 import type { ProgrammeResume } from "../../src/board/programme.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
 import { CLOSED_PAGE, requestCount, type RequestRow, type RequestsView } from "../../src/board/record.ts";
-import { QuestionsPanel } from "./Questions.tsx";
-import { CardActions, RefreshContext } from "./Close.tsx";
+import { QuestionsPanel, closedOf } from "./Questions.tsx";
+import { CardActions, RefreshContext, SendNotices } from "./Close.tsx";
+import { useSettle } from "./sends.ts";
+import { sendKey } from "../../src/board/sends.ts";
 import { OUTCOME_LABEL, outcomeText, splitQuestions } from "../../src/board/question-list.ts";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard, type TaggedProgramme } from "./api.ts";
 
@@ -2547,6 +2549,9 @@ export function App() {
   const board = all.state === "ready" ? { lanes: all.data.lanes, braids: all.data.braids.filter((b) => selected.includes(b.project) && (only === null || (b.project === only.project && only.braids.includes(b.id)))) } : null;
   const panel = programmes.some((p) => p.section !== null) || only !== null;
   const sides = useSidePanels(panel);
+  // Every project's open requests, whatever the filter shows: what a send is checked against.
+  const openList = all.state === "ready" ? all.data.questions : null;
+  useSettle(useMemo(() => (openList === null ? null : new Set(openList.map((q) => sendKey(q.project, q.handle)))), [openList]));
   const waiting = splitQuestions(questions).ranked;
   const [view, setView] = usePhoneView(all.state === "ready", waiting.length);
   const inbox = mergeInbox(shown);
@@ -2623,6 +2628,8 @@ export function App() {
                 <div className="flex items-stretch max-md:flex-col">
                   {panel && <ProgrammesPanel list={programmes} open={sides.open.programmes} setOpen={(on) => sides.set("programmes", on)} />}
                   <div className={`min-w-0 flex-1 ${view === "board" ? "" : "max-md:hidden"}`}>
+                    {/* Where the panel isn't on screen (the phone's Board tab, a collapsed panel), what became of a send shows here. */}
+                    <SendNotices closed={closedOf(decided)} className={`px-3.5 ${sides.open.questions ? "md:hidden" : ""}`} />
                     {panel && <PhoneProgrammes list={programmes} />}
                     {only !== null && <FilterBar p={only} count={board.braids.length} />}
                     <Board data={board} details={details} />
