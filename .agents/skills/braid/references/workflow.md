@@ -62,7 +62,7 @@ The user looks at the work with `braid board` (read-only) from their own checkou
 
 ## Starting the next item
 
-Goal: `braid next <number>` names the next ready strand or says why none is. One whose PR was closed unmerged follows [resuming](resuming.md). `braid start <id>` then makes its branch and worktree. Story: there is no next item.
+Goal: `braid next <number>` names the next ready strand or says why none is. One whose PR was closed unmerged follows [resuming](resuming.md). `braid launch <id> --role worker` then makes its branch and prints the launch. Story: there is no next item.
 
 ## Tiers
 
@@ -84,7 +84,7 @@ The user merges, whatever the tier. The coordinator merges in three cases only:
 
 ## Checks and reports
 
-- The `gate` from `BRAID.md` passes before every PR. CI evidence is `gh pr checks` green on the PR's latest commit, limited to the `ci` names if listed; a required check that never reports isn't green. The worker alone waits on an item PR's CI (D77) and reports when it is green; the coordinator reads `gh pr checks` once and waits only for a wake ("Say waiting" in the braid skill). With `ci: none` the gate run is the evidence.
+- The `gate` from `BRAID.md` passes before every PR. CI evidence is `gh pr checks` green on the PR's latest commit, limited to the `ci` names if listed; a required check that never reports isn't green. The worker ends its run at an open PR; the coordinator watches the PR while its CI runs and sends a red result back to the worker (D117). With `ci: none` the gate run is the evidence.
 - The PR description says what changed, why, how it was checked and what is open. The worker's `report.md`, its final chat report and the coordinator's recap say the same.
 - **Converge loop.** A `ui` item, or one whose brief says the user chooses the shape (design, names, wording), starts with a proposal on realistic test data, and the worker stops. Each verdict of the user goes into the item's log at once; rounds repeat until the user approves; only then is it built.
 
@@ -95,8 +95,8 @@ The user merges, whatever the tier. The coordinator merges in three cases only:
 | A brief is edited on two branches | Only the owning branch edits a brief. Merge the other branch in, keep both sides' sections, the more advanced status and the union of dependencies; log files never conflict. Run `braid check`. |
 | Branch protection refuses a merge | Never `--admin` or another bypass. `braid ask` and wait for the user. |
 | `braid edit --dep` says an id doesn't exist | Lookups read only the current checkout. Create the prerequisite on the branch where the dependency must resolve, or merge the branch that has it. |
-| A worktree folder can't be deleted | On Windows the worker's agent process, or T3 for a finished reviewer's checkout, holds it for a while after the report. `braid clean --yes` keeps it ("still in use"); run it again once the session has ended. |
-| A worker ends without a report, or its run fails | The skill, "Run an item" step 3. |
+| A worktree folder can't be deleted | On Windows T3 holds a finished child's checkout for a while after its result. `braid clean --yes` keeps it ("still in use"); run it again once the session has ended. |
+| A worker's run ends without a PR, or fails; its PR's CI is red | The skill, "Run an item" step 3. |
 | A reviewer task returns nothing, an empty result or a failure | The PR's review comment at that head is the record; without one, one fresh task, then `braid ask`. The skill, "Accept and hand over" step 1. |
 | A worker proposes growth beyond the mandate | The skill, "Grow and adjust". |
 | CI is red on a braid branch or a final PR | The skill, "Fixes". |

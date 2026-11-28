@@ -1,21 +1,25 @@
 // `braid handover`, `braid ask`, `braid answer`, `braid withdraw` and `braid requests`: the coordinator
 // records that it needs someone (a request), and closes it again. The record is src/braids/requests.ts.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
-import { fetchBranch, git } from "../braids/gitbranch.js";
-import { addEvent, age, askerOf, BRAID_TO, closing, CODE, endRequest, forwardRequest, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, type Asker, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { fetchBranch, fetchBranchAsync, git } from "../braids/gitbranch.js";
+import { readFileSync } from "node:fs";
+import { addEvent, age, askerOf, BRAID_TO, closing, CODE, CONTEXT_MAX, conditionEnding, endRequest, endRequestAsync, OPTION_LETTERS, optionAnswer, optionLines, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRecordAsync, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
-import { readGithub, runGh, type GhRunner } from "../board/github.js";
-import { runT3, showThread, type T3Runner } from "../board/t3.js";
+import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
+import { readGithub, runGh, type GhRunner, type PullRequest } from "../board/github.js";
+import { mainCheckout, parentsCheckout, runT3, showThread, type T3Runner } from "../board/t3.js";
+import { normPath } from "../braids/worktrees.js";
 import { clock } from "../board/pause.js";
+import { actWord } from "../board/record.js";
 import { braidDoneOn } from "../board/wake.js";
 import { normaliseId, UsageError } from "./braids.js";
 import { ciAll, ciChecks } from "./coordinate.js";
 import { checksProblem, view } from "./done.js";
 import { find, parse, readText, str } from "./edit.js";
 import { mainBranch } from "./start.js";
-import { recordReview } from "../braids/reviews.js";
+import { loadReviews, recordReview, type ChildRole } from "../braids/reviews.js";
 import { recapCommand } from "./facts.js";
 
 /** A push that didn't happen: the request is on the local branch, and the next write pushes it. */
@@ -104,7 +108,7 @@ function doneWhenFlag(values: Parameters<typeof str>[0]): string {
  * The item's id (`0015` or `0015/C`), checked against the braids braid can see (`braidOf`); an id the
  * record already has requests for is known too, though its braid is out of sight here.
  */
-function itemId(root: string, raw: string | undefined, command: string): string {
+export function itemId(root: string, raw: string | undefined, command: string): string {
   const number = raw === undefined ? undefined : /^(\d{1,4})(?:\/|$)/.exec(raw)?.[1]?.padStart(4, "0");
   const braid = number === undefined ? undefined : braidOf(root, number);
   try {
@@ -123,6 +127,7 @@ function itemId(root: string, raw: string | undefined, command: string): string 
  * thread with the folder and branch T3 gives for it at that moment (`t3 thread show`: `worktreePath`, `branch`), so the board and
  * `braid status` count it as the item's reviewer while it runs, and `braid clean` removes that checkout after the merge without asking
  * T3 again. When T3 has no folder for it yet, or can't be read, the thread is recorded without one and `braid clean` asks T3 later.
+ * A checkout that isn't the child's own (`notOwn`, or a research child's) is not recorded as one; the thread is, so the board still sees it.
  */
 export async function reviewCommand(root: string, args: readonly string[], opts: RequestOptions & { readonly t3?: T3Runner } = {}): Promise<string> {
   const { positionals, values } = parse("braid review", args, { thread: { type: "string" } });
@@ -134,12 +139,45 @@ export async function reviewCommand(root: string, args: readonly string[], opts:
   // A PM's live checker is recorded on its programme (`pm/<slug>`): T3 lists no subagent threads, so this is how the board sees it run (0071/C).
   const pm = /^pm\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(positionals[0] ?? "");
   const id = pm ? (positionals[0] ?? "") : itemId(root, positionals[0], "braid review");
+  return recordChild(root, id, thread, "review", pm, opts);
+}
+
+/** Why a checkout T3 gives for a child isn't its own: it is the main checkout or the caller's, or is on their branch, or is another recorded thread's or its parent's; null when it is. */
+async function notOwn(run: T3Runner, root: string, thread: string, parent: string | null, folder: string, branch: string | null): Promise<string | null> {
+  for (const [dir, name] of [[mainCheckout(root), "the main checkout"], [root, "the caller's own checkout"]] as const) {
+    if (normPath(folder) === normPath(dir)) {
+      return `it is ${name}`;
+    }
+    if (branch !== null && git(dir, ["symbolic-ref", "--short", "-q", "HEAD"]).stdout.trim() === branch) {
+      return `${name} is on its branch ${branch}`;
+    }
+  }
+  const other = loadReviews(root).find((r) => r.thread !== thread && ((r.folder !== undefined && normPath(r.folder) === normPath(folder)) || (branch !== null && r.branch === branch)));
+  return other === undefined ? parentsCheckout(run, root, parent, folder, branch) : `thread ${other.thread} is recorded with that checkout or branch`;
+}
+
+/** Records a child thread of the item with its role and the checkout T3 gives for it (`braid review`, `braid launch --child`). */
+export async function recordChild(root: string, id: string, thread: string, role: ChildRole, pm: boolean, opts: RequestOptions & { readonly t3?: T3Runner } = {}): Promise<string> {
   const at = (opts.now ?? (() => new Date()))();
-  const where = await showThread(opts.t3 ?? runT3, root, thread);
+  // A researcher is launched `shared`: T3 gives the parent's checkout as its folder, which is not the child's to remove.
+  const shared = role === "research";
+  const run = opts.t3 ?? runT3;
+  const where = await showThread(run, root, thread);
   const folder = pm ? null : (where?.worktreePath ?? null);
-  const added = recordReview(root, id, thread, at.toISOString(), folder === null ? null : { folder, branch: where?.branch ?? null });
-  const what = folder === null ? `no checkout yet (${where === null ? "T3 doesn't know the thread or can't be read" : "T3 gives no folder"}); braid clean will ask T3` : `checkout ${folder}${where?.branch == null ? "" : `, branch ${where.branch}`}`;
-  return `${id}: review thread ${thread} ${added ? "recorded" : "already recorded"} (${what})
+  const branch = where?.branch ?? null;
+  const why = folder === null ? null : shared ? "a research child shares its parent's checkout" : await notOwn(run, root, thread, where?.parent ?? null, folder, branch);
+  const added = recordReview(root, id, thread, at.toISOString(), folder === null ? null : why === null ? { folder, branch } : { kept: { folder, why } }, role);
+  let what: string;
+  if (shared) {
+    what = "shared checkout: no folder or branch recorded";
+  } else if (folder === null) {
+    what = `no checkout yet (${where === null ? "T3 doesn't know the thread or can't be read" : "T3 gives no folder"}); braid clean will ask T3`;
+  } else if (why !== null) {
+    what = `no folder or branch recorded; braid clean keeps checkout ${folder}: ${why}`;
+  } else {
+    what = `checkout ${folder}${branch === null ? "" : `, branch ${branch}`}`;
+  }
+  return `${id}: ${role} thread ${thread} ${added ? "recorded" : "already recorded"} (${what})
 `;
 }
 
@@ -182,12 +220,12 @@ export async function handoverCommand(root: string, args: readonly string[], opt
   const at = (opts.now ?? (() => new Date()))();
   const opened = openRequest(root, { id, kind: "review", text: `review PR #${pr.number} at ${pr.headRefOid.slice(0, 7)}`, at: at.toISOString(), thread, pr: pr.number, head: pr.headRefOid, ...route });
   const recap = await recapCommand(root, [id], { gh: run });
-  return `${notes.map((n) => `${n}\n`).join("")}${opened.code} ${id}: review request ${route.to === "pm" ? "to the PM " : ""}opened for PR #${pr.number} at ${pr.headRefOid}\n${warned(opened.warning)}\n${recap}`;
+  return `${notes.map((n) => `${n}\n`).join("")}${opened.handle} ${id}: review request ${route.to === "pm" ? "to the PM " : ""}opened for PR #${pr.number} at ${pr.headRefOid}\n${warned(opened.warning)}\n${recap}`;
 }
 
 /** Whether the project has this `pm/<slug>` branch, local or on `origin`. */
 function programmeBranch(root: string, slug: string): boolean {
-  return ["refs/heads", "refs/remotes/origin"].some((ns) => spawnSync("git", ["rev-parse", "--verify", "--quiet", `${ns}/pm/${slug}`], { cwd: root }).status === 0);
+  return ["refs/heads", "refs/remotes/origin"].some((ns) => gitSync(root, ["rev-parse", "--verify", "--quiet", `${ns}/pm/${slug}`]).status === 0);
 }
 
 /** `--by coordinator|pm`: who asks. A programme id (`pm/<slug>`) is always the PM's. */
@@ -202,12 +240,63 @@ function askerFlag(values: Parameters<typeof str>[0], programme: boolean): Asker
   return programme ? "pm" : (by ?? "coordinator");
 }
 
+/** `--context <text>` or `--context-file <path|->`: the request's context, Markdown kept as written, at most `CONTEXT_MAX` characters; undefined without either. */
+function contextFlag(values: Parameters<typeof str>[0]): string | undefined {
+  const text = str(values, "context");
+  const file = str(values, "context-file");
+  if (text !== undefined && file !== undefined) {
+    throw new UsageError("braid ask: give --context or --context-file, not both");
+  }
+  if (file === "-" && str(values, "file") === "-") {
+    throw new UsageError("braid ask: --file - and --context-file - both read standard input; give one of them a file");
+  }
+  let raw = text;
+  if (file === "-") {
+    if (process.stdin.isTTY) {
+      throw new UsageError("--context-file - reads standard input; pipe the context in");
+    }
+    raw = readFileSync(0, "utf8");
+  } else if (file !== undefined) {
+    try {
+      raw = readFileSync(file, "utf8");
+    } catch {
+      throw new UsageError(`can't read ${file}`);
+    }
+  }
+  const context = raw?.replace(/\r\n/g, "\n").trim();
+  if (context === undefined || context === "") {
+    return undefined;
+  }
+  if (context.length > CONTEXT_MAX) {
+    throw new UsageError(`braid ask: the context has ${context.length} characters, more than ${CONTEXT_MAX}; shorten it; nothing opened`);
+  }
+  return context;
+}
+
+/** `--option <text>`, repeated: the likely answers in order, one line each, one to four. */
+function optionsFlag(values: Parameters<typeof str>[0]): string[] | undefined {
+  const raw = values["option"];
+  const given = Array.isArray(raw) ? raw.map((o) => String(o).replace(/\s+/g, " ").trim()) : [];
+  if (given.length === 0) {
+    return undefined;
+  }
+  if (given.length > OPTION_LETTERS.length) {
+    throw new UsageError(`braid ask: at most ${OPTION_LETTERS.length} --option (A to D); got ${given.length}; nothing opened`);
+  }
+  if (given.some((o) => o === "")) {
+    throw new UsageError("braid ask: an --option must not be empty; nothing opened");
+  }
+  return given;
+}
+
 export function askCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
-  const { positionals, values } = parse("braid ask", args, { kind: { type: "string" }, key: { type: "string" }, thread: { type: "string" }, file: { type: "string" }, to: { type: "string" }, by: { type: "string" }, "done-when": { type: "string" } });
+  const { positionals, values } = parse("braid ask", args, { kind: { type: "string" }, key: { type: "string" }, thread: { type: "string" }, file: { type: "string" }, to: { type: "string" }, by: { type: "string" }, "done-when": { type: "string" }, context: { type: "string" }, "context-file": { type: "string" }, option: { type: "string", multiple: true } });
   const kind = str(values, "kind") ?? "question";
   if (!KINDS.includes(kind as Kind) || kind === "review") {
-    throw new UsageError(`--kind is question, decision, plan or action (a review comes from braid handover); got: ${kind}`);
+    throw new UsageError(`--kind is question, decision, plan, action or look (a review comes from braid handover); got: ${kind}`);
   }
+  const context = contextFlag(values);
+  const options = optionsFlag(values);
   const file = str(values, "file");
   if (positionals.length !== (file === undefined ? 2 : 1)) {
     throw new UsageError(`${ASK_USAGE}  (or the text from --file -)`);
@@ -216,9 +305,6 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   const doneWhen = doneWhenFlag(values);
   const slug = programmeOf(positionals[0] ?? "");
   const by = askerFlag(values, slug !== null);
-  if (kind === "action" && by !== "pm") {
-    throw new UsageError("--kind action is something only the user can do, and only the PM asks it: add --by pm, or ask on pm/<slug>");
-  }
   if (by === "pm" && str(values, "to") !== undefined) {
     throw new UsageError("--to is for a coordinator's request; a PM request is already the user's");
   }
@@ -240,15 +326,19 @@ export function askCommand(root: string, args: readonly string[], opts: RequestO
   // A PM request is answered in the PM's thread: --thread, else the PM-run line of the braid's brief.
   const pmThread = by === "pm" ? (thread ?? (slug === null ? pmOfBraid(root, id) : null)) : thread;
   const at = (opts.now ?? (() => new Date()))();
-  const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route, doneWhen });
+  const opened = openRequest(root, { id, ...(by === "pm" ? { by } : {}), kind: kind as Kind, text, ...(context === undefined ? {} : { context }), ...(options === undefined ? {} : { options }), ...(key === undefined ? {} : { key }), at: at.toISOString(), thread: pmThread, ...route, doneWhen });
+  // "…opened, replacing calm-heron-q2ra": the open one this request withdrew.
+  const replacing = opened.replaced.length === 0 ? "" : `, replacing ${opened.replaced.join(", ")}`;
   if (self) {
-    return `${opened.code} ${id}: timed wait opened, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
+    return `${opened.handle} ${id}: timed wait opened${replacing}, waiting until ${clock(doneWhen.slice(5), at)} (the board's wake ends it; nobody is asked): ${text}\n${warned(opened.warning)}`;
   }
+  const gist = unblockLine({ code: opened.code, id, kind: kind as Kind, doneWhen, ...(route.to === undefined ? {} : { to: route.to }) }, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh)));
   const whom = by === "pm" ? "from the PM " : route.to === "pm" ? "to the PM " : route.to !== undefined ? `to braid ${route.to} ` : "";
-  return `${opened.code} ${id}: ${kind} request ${whom}opened${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${warned(opened.warning)}`;
+  const extra = [...optionLines({ ...(options === undefined ? {} : { options }) }), ...(context === undefined ? [] : [`context stored (${context.length} characters)`])].map((l) => `${l}\n`).join("");
+  return `${opened.handle} ${id}: ${kind} request ${whom}opened${replacing}${doneWhen === "answered" ? "" : ` (done when ${doneWhen})`}: ${text}\n${extra}${gist}\n${warned(opened.warning)}`;
 }
 
-const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>|self] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]  (--to self --done-when time:<iso>: a timed wait, nobody asked)';
+const ASK_USAGE = 'usage: braid ask <id>|pm/<slug> "<what is needed>" [--kind question|decision|plan|action|look] [--option <text>]... [--context <text>|--context-file <file>|-] [--key <stop case>] [--thread <id>] [--to user|pm|<braid number>|self] [--done-when answered|pr:<n>|braid:<number>|time:<iso>] [--by coordinator|pm]  (--to self --done-when time:<iso>: a timed wait, nobody asked)';
 
 /** `braid forward <id> [--note <text>]`: the PM hands a request on to the user; it reaches the user (on the braid's card, or for a braid a programme runs as the PM asking in the programme's Needs you) and is pushed, at once or, while the braid is paused or held, after `braid resume`. */
 export function forwardCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
@@ -276,12 +366,74 @@ export function forwardCommand(root: string, args: readonly string[], opts: Requ
 const WHO: Readonly<Record<Who, string>> = { user: "the user", pm: "the PM", coordinator: "the coordinator", board: "the board" };
 
 /** The code of the one open request a code or an id names; the id form without `--by` refuses when two askers have one open. */
+/** Every braid braid knows, each item with the status it reads as (from its lifecycle and, when given, the PRs). */
+function statused(root: string, prs: ReadonlyMap<string, PullRequest> = new Map()): Braid[] {
+  const life = loadLifecycle(root);
+  return loadKnownBraids(root).map((b) => withStatuses(b, life, prs));
+}
+
+/** What a request unblocks and its act word on one line: `blocks 0072/B, 0072/C · decide`, or just `decide` when nothing waits on it; a wait: `waits for 0077`. */
+function unblockLine(r: Pick<Request, "code" | "id" | "kind" | "to" | "doneWhen">, requests: readonly Request[], braids: readonly Braid[]): string {
+  const blocked = unblocksOf(r, braids, requests);
+  return `${blocked.length === 0 ? "" : `blocks ${blocked.join(", ")} · `}${actWord(r, new Date())}`;
+}
+
+/** A q-code in any letter case, with any punctuation after it (`Q-L9EN.`), lower-cased; null for anything else. */
+function strictCode(raw: string): string | null {
+  const code = raw.trim().toLowerCase().replace(/[^a-z0-9]+$/, "");
+  return CODE.test(code) ? code : null;
+}
+
+/** An item id (`15`, `0015/c`) or a programme (`pm/<slug>`): these keep their meaning, so a suffix of four digits is given as `q-0123` or with its words. */
+const idLike = (raw: string): boolean => /^\d{1,4}(?:\/[A-Za-z])?$/.test(raw) || programmeOf(raw) !== null;
+
+const fail = (message: string): never => {
+  throw new UsageError(message);
+};
+
+/**
+ * The code of the request a name means (src/braids/words.ts `resolveName`): a q-code as given; otherwise the record as
+ * origin has it is read and the handle, the words with the suffix, the suffix (any request) or the words alone (an open
+ * one) looked up, loosely. Several matched: refused with their handles, nothing changed. Null when nothing matched.
+ */
+function codeOf(root: string, raw: string, command: string): string | null {
+  const code = strictCode(raw);
+  if (code !== null) {
+    return code;
+  }
+  fetchBranch(root, REQUESTS);
+  return matched(loadRecord(root).requests, raw, command);
+}
+
+/** The code of the request `raw` names among `requests`; null when none, a refusal when several. */
+function matched(requests: readonly Request[], raw: string, command: string): string | null {
+  const found = resolveName(raw, requests);
+  if (found === null) {
+    return null;
+  }
+  if ("several" in found) {
+    const list = found.several.map((r) => `${handleOf(r)} (${r.id}, ${r.state})`).join(", ");
+    return fail(`${command}: "${raw}" names ${found.several.length} requests: ${list}; give the whole name; nothing changed`);
+  }
+  return found.one.code;
+}
+
+/** `codeOf`, refusing a name nothing matched. */
+const namedCode = (root: string, raw: string, command: string): string => codeOf(root, raw, command) ?? fail(`${command}: no request named ${raw}; nothing changed`);
+
+/** The PRs of the project when GitHub can be read, else none: only an item's Done reading needs them. */
+function prsOf(root: string, run: GhRunner): ReadonlyMap<string, PullRequest> {
+  const g = readGithub(root, run);
+  return g.status.state === "ok" ? g.prs : new Map();
+}
+
 function target(root: string, raw: string, values: Parameters<typeof str>[0], command: string): { code: string; id: string } | { none: string } {
-  if (CODE.test(raw)) {
+  const named = idLike(raw) ? null : namedCode(root, raw, command);
+  if (named !== null) {
     if (str(values, "by") !== undefined) {
       throw new UsageError(`${command}: --by is for an id; the code ${raw} names one request`);
     }
-    return { code: raw, id: "" };
+    return { code: named, id: "" };
   }
   const slug = programmeOf(raw);
   const by = str(values, "by") === undefined && slug === null ? undefined : askerFlag(values, slug !== null);
@@ -292,7 +444,7 @@ function target(root: string, raw: string, values: Parameters<typeof str>[0], co
   if (open.length > 1) {
     // A question and a wait of one asker are both open: only the code tells them apart.
     const oneAsker = new Set(open.map(askerOf)).size === 1;
-    throw new UsageError(`${id} has ${open.length} open requests: ${[...open].sort((a, b) => Number(askerOf(a) === "pm") - Number(askerOf(b) === "pm")).map((r) => `${r.code} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"}${isWait(r) ? `, waiting on braid ${r.to ?? ""}` : ""})`).join(", ")}; give the code${oneAsker ? "" : ", or --by coordinator|pm"}; nothing changed`);
+    throw new UsageError(`${id} has ${open.length} open requests: ${[...open].sort((a, b) => Number(askerOf(a) === "pm") - Number(askerOf(b) === "pm")).map((r) => `${handleOf(r)} (${askerOf(r) === "pm" ? "the PM's" : "the coordinator's"}${isWait(r) ? `, waiting on braid ${r.to ?? ""}` : ""})`).join(", ")}; give the code${oneAsker ? "" : ", or --by coordinator|pm"}; nothing changed`);
   }
   const [one] = open;
   if (one !== undefined) {
@@ -302,19 +454,23 @@ function target(root: string, raw: string, values: Parameters<typeof str>[0], co
     itemId(root, id, command);
   }
   const other = by === undefined ? undefined : loadRequests(root).find((r) => r.id === id && askerOf(r) !== by);
-  const hint = other === undefined ? "" : ` (the ${askerOf(other) === "pm" ? "PM's" : "coordinator's"} is open: ${other.code})`;
+  const hint = other === undefined ? "" : ` (the ${askerOf(other) === "pm" ? "PM's" : "coordinator's"} is open: ${handleOf(other)})`;
   return { none: `${id}: no open ${by === "pm" ? "PM " : ""}request${hint}\n` };
 }
 
 /** Closes the request `target` found; a request already closed is refused, naming its state and who closed it. */
 function end(root: string, found: { code: string; id: string }, command: string, ending: Ending | ((r: Request) => Ending)): { request: Request; warning: string | null } {
-  const done = endRequest(root, found.code, ending);
+  return ended(endRequest(root, found.code, ending), found.code, command);
+}
+
+/** What `end` makes of the write's result: no such request, or one already closed, is refused. */
+function ended(done: ReturnType<typeof endRequest>, code: string, command: string): { request: Request; warning: string | null } {
   if (done === null) {
-    throw new UsageError(`${command}: no request ${found.code} on ${REQUESTS.branch}; nothing changed`);
+    throw new UsageError(`${command}: no request ${code} on ${REQUESTS.branch}; nothing changed`);
   }
   if (!done.ended) {
     const last = closing(done.request);
-    throw new UsageError(`${command}: ${found.code} (${done.request.id}) is already ${done.request.state}${last === null ? "" : ` by ${WHO[last.by] ?? last.by} at ${stamp(last.at)}`}; nothing changed`);
+    throw new UsageError(`${command}: ${handleOf(done.request)} (${done.request.id}) is already ${done.request.state}${last === null ? "" : ` by ${WHO[last.by] ?? last.by} at ${stamp(last.at)}`}; nothing changed`);
   }
   return done;
 }
@@ -337,16 +493,54 @@ function answerText(values: Parameters<typeof str>[0]): string | undefined {
   return text === "" ? undefined : text;
 }
 
-const ANSWER_USAGE = "usage: braid answer <code>|<id>|pm/<slug> [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]";
+const ANSWER_USAGE = "usage: braid answer <name|code>|<id>|pm/<slug> [<answer>|<option letter>] [--from user|pm] [--reason <text>] [--file <file>|-] [--by coordinator|pm] [--thread <id>]  (a wait takes no --from: met when its condition holds)";
+
+/** What a "done when" is checked against here: GitHub's PRs, and main as origin has it (offline, the last fetched one). */
+function conditions(root: string, requests: readonly Pick<Request, "doneWhen">[], run: GhRunner, now: Date): Conditions {
+  // Only a request waiting on a PR needs GitHub, and only when there is one.
+  const pr = (number: number): PrNow => {
+    try {
+      const found = view(run, root, number);
+      return { state: found.state, headRefOid: found.headRefOid };
+    } catch {
+      return null;
+    }
+  };
+  const main = mainBranch(root);
+  if (requests.some((r) => r.doneWhen.startsWith("braid:"))) {
+    git(root, ["fetch", "-q", "origin", main]);
+  }
+  const prs = () => {
+    const g = readGithub(root, run);
+    return g.status.state === "ok" ? g.prs : null;
+  };
+  return { pr, braidDone: braidDoneOn(root, main, prs), now };
+}
+
+/**
+ * How `braid answer` ends a wait (`isWait`), which asks neither the user nor the PM: `met`, by the coordinator, when its
+ * condition holds now, refused otherwise. A wait on another braid without a condition (done when answered) ends with
+ * that coordinator's answer, recorded as the coordinator's.
+ */
+function waitEnding(root: string, r: Request, text: string | undefined, opts: RequestOptions): Ending {
+  if (r.doneWhen === "answered") {
+    return { state: "answered", who: "coordinator", ...(text === undefined ? {} : { text }) };
+  }
+  const e = conditionEnding(r, conditions(root, [r], opts.gh ?? runGh, (opts.now ?? (() => new Date()))()));
+  if (e?.state !== "met") {
+    return fail(`braid answer: ${handleOf(r)} (${r.id}) is a wait and its condition (done when ${r.doneWhen}) doesn't hold now. A wait ends when its condition holds (the board closes it and wakes the asker); \`braid withdraw ${handleOf(r)} --why <reason>\` ends one no longer needed; nothing changed`);
+  }
+  return { ...e, who: "coordinator" };
+}
 
 /**
  * `braid answer`: records the answer on the request record, with who answered (`--from`, the user by
- * default) and the PM's reason. It writes only to braid-requests, never to a braid branch, so a PR head stays
+ * default; a wait: `waitEnding`) and the PM's reason. It writes only to braid-requests, never to a braid branch, so a PR head stays
  * where it was. `--log` is the old name of `--file`.
  */
-export function answerCommand(root: string, _cwd: string, args: readonly string[]): string {
+export function answerCommand(root: string, _cwd: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid answer", args, { log: { type: "string" }, file: { type: "string" }, thread: { type: "string" }, by: { type: "string" }, from: { type: "string" }, reason: { type: "string" } });
-  if (positionals.length !== 1) {
+  if (positionals.length !== 1 && positionals.length !== 2) {
     throw new UsageError(ANSWER_USAGE);
   }
   threadOf(values);
@@ -361,13 +555,60 @@ export function answerCommand(root: string, _cwd: string, args: readonly string[
   if (from === "user" && reason !== undefined) {
     throw new UsageError("--reason is the PM's: add --from pm");
   }
-  const text = answerText(values);
+  const given = positionals[1]?.trim();
+  if (given !== undefined && (str(values, "file") !== undefined || str(values, "log") !== undefined)) {
+    throw new UsageError("braid answer: give the answer as text or with --file, not both");
+  }
+  const text = given === undefined ? answerText(values) : given === "" ? undefined : given;
   const found = target(root, positionals[0] ?? "", values, "braid answer");
   if ("none" in found) {
     return found.none;
   }
-  const done = end(root, found, "braid answer", { state: "answered", who: from, ...(text === undefined ? {} : { text }), ...(reason === undefined ? {} : { reason }) });
-  return `${found.code} ${done.request.id}: answered by ${WHO[from]}${text === undefined ? "" : `: ${oneLine(text)}`}\n${warned(done.warning)}`;
+  // A closed wait goes on to `end`, which names who closed it.
+  const wait = loadRecord(root).requests.find((r) => r.code === found.code && r.state === "open" && isWait(r));
+  if (wait !== undefined && str(values, "from") !== undefined) {
+    throw new UsageError(`braid answer: ${handleOf(wait)} (${wait.id}) is a wait, which asks neither the user nor the PM: drop --from; nothing changed`);
+  }
+  const ending: Ending | ((r: Request) => Ending) = wait === undefined ? answerEnding(from, text, reason) : waitEnding(root, wait, text, opts);
+  const done = end(root, found, "braid answer", ending);
+  const name = `${handleOf(done.request)} ${done.request.id}`;
+  const last = closing(done.request);
+  if (last?.event === "met") {
+    return `${name}: met: ${last.text ?? ""} (the board sends no wake for a wait closed by hand${text === undefined ? "" : "; your text isn't recorded"})\n${warned(done.warning)}`;
+  }
+  return `${name}: answered by ${WHO[last?.by ?? from]}${last?.text === undefined ? "" : `: ${oneLine(last.text)}`}\n${warned(done.warning)}`;
+}
+
+/** The ending `braid answer` records: a lone letter of a stored option (`A`, any case) records that option's text, read from the record inside the write. */
+const answerEnding =
+  (who: "user" | "pm", text: string | undefined, reason: string | undefined) =>
+  (r: Request): Ending => ({ state: "answered", who, ...(text === undefined ? {} : { text: optionAnswer(r, text) }), ...(reason === undefined ? {} : { reason }) });
+
+/** The longest answer the board's page sends (0082/D): one line. */
+export const BOARD_ANSWER_MAX = 500;
+
+/**
+ * The board's `answer` action (0082/D): the user's answer from the board's page, recorded as `braid answer <handle> <text>`
+ * records it (`by: user`, a lone letter as its option). `handle` names a request of this project's record (its name or code);
+ * a wait, which asks no one, and a request already answered, withdrawn or met are refused with the reason. A UsageError
+ * is the refusal the page shows. Runs in the board process, so every `git` call is asynchronous.
+ */
+export async function boardAnswer(root: string, handle: string, text: string): Promise<{ readonly request: Request; readonly warning: string | null }> {
+  const answer = text.trim();
+  if (answer === "" || /[\r\n]/.test(answer) || answer.length > BOARD_ANSWER_MAX) {
+    throw new UsageError(`Answer: one line of text or an option letter, at most ${BOARD_ANSWER_MAX} characters`);
+  }
+  const name = handle.trim();
+  let code = strictCode(name);
+  if (code === null) {
+    await fetchBranchAsync(root, REQUESTS);
+    code = matched((await loadRecordAsync(root)).requests, name, "Answer") ?? fail(`Answer: no request ${handle} in this project; nothing changed`);
+  }
+  const r = (await loadRecordAsync(root)).requests.find((x) => x.code === code);
+  if (r !== undefined && r.state === "open" && isWait(r)) {
+    throw new UsageError(`Answer: ${handleOf(r)} (${r.id}) is a wait, which asks no one: it ends when its condition holds; nothing changed`);
+  }
+  return ended(await endRequestAsync(root, code, answerEnding("user", answer, undefined)), code, "Answer");
 }
 
 /** `braid withdraw <code>|<id> --why <reason>`: the asker no longer needs it; it stays on the record as withdrawn. */
@@ -375,19 +616,19 @@ export function withdrawCommand(root: string, args: readonly string[]): string {
   const { positionals, values } = parse("braid withdraw", args, { why: { type: "string" }, by: { type: "string" } });
   const why = str(values, "why")?.replace(/\s+/g, " ").trim();
   if (positionals.length !== 1 || why === undefined || why === "") {
-    throw new UsageError("usage: braid withdraw <code>|<id>|pm/<slug> --why <reason> [--by coordinator|pm]");
+    throw new UsageError("usage: braid withdraw <name|code>|<id>|pm/<slug> --why <reason> [--by coordinator|pm]");
   }
   const found = target(root, positionals[0] ?? "", values, "braid withdraw");
   if ("none" in found) {
     return found.none;
   }
   const done = end(root, found, "braid withdraw", (r) => ({ state: "withdrawn", who: askerOf(r), text: why }));
-  return `${found.code} ${done.request.id}: withdrawn: ${why}\n${warned(done.warning)}`;
+  return `${handleOf(done.request)} ${done.request.id}: withdrawn: ${why}\n${warned(done.warning)}`;
 }
 
 const oneLine = (text: string): string => text.replace(/\s+/g, " ").trim();
 
-const ETA_USAGE = 'usage: braid eta <code> <duration|time> ["<why>"] [--by coordinator|pm]  (a duration: 2h, 90m, 1h30m, 2d; a time: 16:30, or 2026-11-24T09:00)';
+const ETA_USAGE = 'usage: braid eta <name|code> <duration|time> ["<why>"] [--by coordinator|pm]  (a duration: 2h, 90m, 1h30m, 2d; a time: 16:30, or 2026-11-24T09:00)';
 
 /**
  * When an estimate given as `2h`, `90m`, `1h30m`, `2d` (from now), `16:30` (today, or tomorrow once it has passed)
@@ -433,13 +674,11 @@ function inSpan(ms: number): string {
  */
 export function etaCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid eta", args, { by: { type: "string" } });
-  const [code, raw, ...rest] = positionals;
-  if (code === undefined || raw === undefined || rest.length > 1) {
+  const [given, raw, ...rest] = positionals;
+  if (given === undefined || raw === undefined || rest.length > 1) {
     throw new UsageError(ETA_USAGE);
   }
-  if (!CODE.test(code)) {
-    throw new UsageError(`braid eta: ${code} is not a request code (q- and four letters or digits)`);
-  }
+  const code = idLike(given) ? fail(`braid eta: ${given} is an item; give the request's name or code (yellow-bear-5asx, 5asx or q-5asx)`) : namedCode(root, given, "braid eta");
   const now = (opts.now ?? (() => new Date()))();
   const at = etaAt(raw, now);
   if (at === null) {
@@ -461,11 +700,11 @@ export function etaCommand(root: string, args: readonly string[], opts: RequestO
   const r = done.request;
   if (!done.added) {
     const last = closing(r);
-    throw new UsageError(`braid eta: ${code} is ${r.state}${last === null ? "" : ` (closed ${stamp(last.at)})`}; an estimate is only for an open request; nothing changed`);
+    throw new UsageError(`braid eta: ${handleOf(r)} is ${r.state}${last === null ? "" : ` (closed ${stamp(last.at)})`}; an estimate is only for an open request; nothing changed`);
   }
   const before = was?.eta ?? null;
   const whom = whomOf(r).trim();
-  return `${code} (${r.id}${whom === "" ? "" : `, ${whom}`}): expected by ${clock(at, now)} (${inSpan(Date.parse(at) - now.getTime())})${before === null || before === at ? "" : `; was ${clock(before, now)}`}\n${warned(done.warning)}`;
+  return `${handleOf(r)} (${r.id}${whom === "" ? "" : `, ${whom}`}): expected by ${clock(at, now)} (${inSpan(Date.parse(at) - now.getTime())})${before === null || before === at ? "" : `; was ${clock(before, now)}`}\n${warned(done.warning)}`;
 }
 
 /** Whom a request is for, as `braid requests` says it. */
@@ -479,7 +718,7 @@ function whoOf(r: Request, event: string, by: Who): string {
 }
 
 /** One request with every event: `braid requests <code>`. */
-function history(r: Request): string {
+function history(r: Request, unblocks: string): string {
   const facts = [
     `asked by ${WHO[askerOf(r)]}`,
     isTimedWait(r) ? "a timed wait, nobody asked" : `for ${r.to === undefined || r.to === "user" ? "the user" : r.to === "pm" ? "the PM" : `braid ${r.to}`}`,
@@ -490,7 +729,9 @@ function history(r: Request): string {
     ...(r.eta === null ? [] : [`eta ${r.eta}`]),
   ];
   const events = r.events.map((e) => `${stamp(e.at)}  ${e.event.padEnd(9)}  ${whoOf(r, e.event, e.by)}${e.text === undefined ? "" : `: ${oneLine(e.text)}`}${e.reason === undefined ? "" : ` (reason: ${e.reason})`}`);
-  return `${r.code}  ${r.id}  ${r.kind}  ${r.state}\n${r.text}\n${facts.join("; ")}\n${events.join("\n")}\n`;
+  const options = optionLines(r).map((l) => `${l}\n`).join("");
+  const context = r.context === undefined ? "" : `context:\n${r.context.split("\n").map((l) => `  ${l}`.trimEnd()).join("\n")}\n`;
+  return `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${r.state}${r.state === "open" && !isTimedWait(r) ? `  ${unblocks}` : ""}\n${r.text}\n${options}${context}${facts.join("; ")}\n${events.join("\n")}\n`;
 }
 
 /** One closed request on a line: code, item, kind, state, when, who, the request, and the answer or reason. */
@@ -498,18 +739,24 @@ function closedLine(r: Request): string {
   const last = closing(r);
   const said = last?.text === undefined ? "" : ` -> ${oneLine(last.text)}`;
   const reason = last?.reason === undefined ? "" : ` (reason: ${last.reason})`;
-  return `${r.code}  ${r.id}  ${r.kind}  ${r.state}  ${last === null ? "" : `${stamp(last.at)}  by ${WHO[last.by] ?? last.by}`}  ${r.text}${said}${reason}`;
+  return `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${r.state}  ${last === null ? "" : `${stamp(last.at)}  by ${WHO[last.by] ?? last.by}`}  ${r.text}${said}${reason}`;
 }
 
-const REQUESTS_USAGE = "usage: braid requests [<code>] [--closed [--since <YYYY-MM-DD>]]";
+/** Under a request's line in `braid requests`: its options as `A. …` lines and, when it has one, that its context is stored. */
+const extras = (r: Request): string => [...optionLines(r), ...(r.context === undefined ? [] : ["context stored: braid requests <name> prints it"])].map((l) => `\n    ${l}`).join("");
+
+const REQUESTS_USAGE = "usage: braid requests [<name|code>] [--closed [--since <YYYY-MM-DD>]]";
 
 export function requestsCommand(root: string, args: readonly string[], opts: RequestOptions = {}): string {
   const { positionals, values } = parse("braid requests", args, { closed: { type: "boolean" }, since: { type: "string" } });
-  const code = positionals[0];
+  const given = positionals[0];
   const closed = values["closed"] === true;
   const since = str(values, "since");
-  if (positionals.length > 1 || (code !== undefined && (!CODE.test(code) || closed)) || (since !== undefined && !closed)) {
-    throw new UsageError(code !== undefined && !CODE.test(code) ? `braid requests: ${code} is not a request code (q- and four letters or digits)` : REQUESTS_USAGE);
+  if (given !== undefined && idLike(given)) {
+    throw new UsageError(`braid requests: ${given} is an item; give the request's name or code (yellow-bear-5asx, 5asx or q-5asx)`);
+  }
+  if (positionals.length > 1 || (given !== undefined && closed) || (since !== undefined && !closed)) {
+    throw new UsageError(REQUESTS_USAGE);
   }
   if (since !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(since)) {
     throw new UsageError(`--since needs a date (YYYY-MM-DD); got: ${since}`);
@@ -521,12 +768,13 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
     loadRecord(root)
       .problems.map((p) => `warning: skipped ${p.file}: ${p.message}\n`)
       .join("");
-  if (code !== undefined) {
+  if (given !== undefined) {
+    const code = codeOf(root, given, "braid requests");
     const r = loadRecord(root).requests.find((x) => x.code === code);
     if (r === undefined) {
-      throw new UsageError(`no request ${code} on ${REQUESTS.branch}`);
+      throw new UsageError(`no request ${code ?? `named ${given}`} on ${REQUESTS.branch}`);
     }
-    return `${offline}${history(r)}`;
+    return `${offline}${history(r, unblockLine(r, loadRequests(root), statused(root, prsOf(root, opts.gh ?? runGh))))}`;
   }
   if (closed) {
     const done = loadRecord(root)
@@ -535,29 +783,16 @@ export function requestsCommand(root: string, args: readonly string[], opts: Req
     return `${offline}${skipped()}${done.length === 0 ? `no closed requests${since === undefined ? "" : ` since ${since}`}\n` : `${done.map(closedLine).join("\n")}\n`}`;
   }
   const run = opts.gh ?? runGh;
-  // Only a request waiting on a PR needs GitHub, and only when there is one.
-  const prOf = (number: number): PrNow => {
-    try {
-      const pr = view(run, root, number);
-      return { state: pr.state, headRefOid: pr.headRefOid };
-    } catch {
-      return null;
-    }
-  };
-  // A `braid:` wait reads main as origin has it; offline, the last fetched one.
-  const main = mainBranch(root);
-  if (loadRequests(root).some((r) => r.doneWhen.startsWith("braid:"))) {
-    git(root, ["fetch", "-q", "origin", main]);
-  }
   const list: Request[] = loadRequests(root);
-  const ends = holding(list, { pr: prOf, braidDone: braidDoneOn(root, main, () => { const g = readGithub(root, run); return g.status.state === "ok" ? g.prs : null; }), now: (opts.now ?? (() => new Date()))() });
+  const now = (opts.now ?? (() => new Date()))();
+  const ends = holding(list, conditions(root, list, run, now));
+  const braids = statused(root, prsOf(root, run));
   if (list.length === 0) {
     return `${offline}${skipped()}no open requests\n`;
   }
-  const now = (opts.now ?? (() => new Date()))();
   const when = (r: Request): string => (r.doneWhen === "answered" || r.kind === "review" || isTimedWait(r) ? "" : `done when ${r.doneWhen}  `);
   const eta = (r: Request): string => (r.eta === null ? "" : `expected by ${clock(r.eta, now)}  `);
   // A condition that holds is still open: only the running board's tick closes it (and wakes the asker).
   const holds = (r: Request): string => (ends.get(r.code)?.state === "met" ? "condition holds: the board wakes the asker  " : ends.has(r.code) ? "condition holds: the board withdraws it  " : "");
-  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${r.code}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${age(r.at, now)}  ${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}`).join("\n")}\n`;
+  return `${offline}${skipped()}${[...list].sort((a, b) => a.at.localeCompare(b.at)).map((r) => `${handleOf(r)}  ${r.id}  ${isTimedWait(r) ? "wait" : r.kind}  ${age(r.at, now)}  ${isTimedWait(r) ? "" : `${unblockLine(r, list, braids)}  `}${whomOf(r)}${when(r)}${eta(r)}${holds(r)}${r.text}${extras(r)}`).join("\n")}\n`;
 }

@@ -3,7 +3,7 @@
 // remote-tracking branch (not other refs, such as T3's checkpoints under refs/t3), including
 // folders deleted since. So a
 // number used on another branch, or given once and removed, is never handed out again.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "./gitio.js";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { BRAID_FOLDER, STRAND_FOLDER } from "./store.js";
@@ -19,11 +19,7 @@ export interface Taken {
 }
 
 function git(root: string, args: readonly string[]) {
-  return spawnSync("git", ["-c", "core.quotePath=false", ...args], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-  });
+  return gitSync(root, args, { maxBuffer: 256 * 1024 * 1024 });
 }
 
 function isRepository(root: string): boolean {

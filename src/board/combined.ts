@@ -7,6 +7,8 @@ import { LANES, type BoardData, type BraidCard, type Lane } from "./model.js";
 import type { T3 } from "./t3.js";
 import type { Programme } from "./programme.js";
 import { mergeLimits, type LimitsView } from "./limits.js";
+import { rankQuestions } from "./question-list.js";
+import type { Decided, Question } from "./questions.js";
 import type { SignInView } from "../t3/words.js";
 
 /** What the board knows about one served project, besides its cards. */
@@ -42,6 +44,10 @@ export type TaggedProgramme = Programme & { readonly project: string; readonly k
 /** The programmes of one project, tagged with its name and keyed. */
 export const tagProgrammes = (project: string, programmes: readonly Programme[]): TaggedProgramme[] => programmes.map((p) => ({ ...p, project, key: `${project}/${p.slug}` }));
 
+/** A question or a decided request of the combined board, tagged with its project. */
+export type TaggedQuestion = Question & { readonly project: string };
+export type TaggedDecided = Decided & { readonly project: string };
+
 /** `GET /api/all`. */
 export interface AllBoard {
   readonly lanes: readonly Lane[];
@@ -51,6 +57,9 @@ export interface AllBoard {
   readonly braids: readonly TaggedCard[];
   /** Every programme of those projects (done and stopped ones too), in list order, each project's in slug order. */
   readonly programmes: readonly TaggedProgramme[];
+  /** The open questions of every project as one ranked list, and the answered ones, newest first. */
+  readonly questions: readonly TaggedQuestion[];
+  readonly decided: readonly TaggedDecided[];
   /** Names asked for with `?projects=` that aren't served (a project removed from the list). */
   readonly missing: readonly string[];
   /** The providers' limits of those projects as one list (a provider spans projects); null when none was read. */
@@ -98,6 +107,8 @@ export function combine(held: readonly Held[], remote: boolean, missing: readonl
     projects: held.map((h) => projectInfo(h, now)),
     braids: held.flatMap((h) => (h.board?.braids ?? []).map((card) => ({ ...card, project: h.name }))),
     programmes: held.flatMap((h) => tagProgrammes(h.name, h.board?.programmes ?? [])),
+    questions: rankQuestions(held.flatMap((h) => (h.board?.questions ?? []).map((q) => ({ ...q, project: h.name })))),
+    decided: held.flatMap((h) => (h.board?.decided ?? []).map((d) => ({ ...d, project: h.name }))).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)),
     missing,
     limits: mergeLimits(held.map((h) => ({ project: h.name, view: h.board?.limits ?? null }))),
   };

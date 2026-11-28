@@ -13,7 +13,7 @@ export const LANE_LABEL: Readonly<Record<Lane, string>> = {
   Done: "Done",
 };
 
-export type ReasonKind = "question" | "checks" | "stalled" | "ask" | "plan" | "limit" | `failed-${NonNullable<Need["failure"]>["kind"]}`;
+export type ReasonKind = "question" | "checks" | "stalled" | "ask" | "plan" | "look" | "limit" | `failed-${NonNullable<Need["failure"]>["kind"]}`;
 
 export interface ReasonIcon {
   readonly kind: ReasonKind;
@@ -53,6 +53,12 @@ function span(age: string): string {
   return `${age.slice(0, -1)} ${unit === "m" ? "min" : unit}`;
 }
 
+/** The words a programme's need box starts with, and the rest: the need's own lead, else who asks (a PM's, else a coordinator's). */
+export function leadOf(need: Pick<Need, "text" | "by">): { readonly lead: string; readonly rest: string } {
+  const words = /^((?:The (?:PM|coordinator) asks you(?: to)?|Escalated to you):)\s*(.*)$/s.exec(need.text);
+  return { lead: words?.[1] ?? (need.by === "pm" ? "The PM asks you:" : "The coordinator asks you:"), rest: words?.[2] ?? need.text };
+}
+
 /** "asked 35 min ago" for a request, "for 14 min" for a broke alarm; empty when the time isn't known. */
 export function ageText(need: Need): string {
   return need.age === null ? "" : need.verb === "asked" ? `asked ${span(need.age)} ago` : `${need.failure === undefined ? "" : "stalled "}for ${span(need.age)}`;
@@ -83,6 +89,9 @@ export function reasonIcon(reason: string, failed: readonly string[] = [], key: 
   }
   if (reason === "decision") {
     return { kind: "ask", tooltip: key === null ? "Decision needed" : `Decision needed: ${key}` };
+  }
+  if (reason === "look") {
+    return { kind: "look", tooltip: "Look: for you to see; nothing waits on it" };
   }
   if (reason === "action") {
     return { kind: "ask", tooltip: "The PM asks you to do something" };
@@ -191,7 +200,7 @@ export function splitId(id: string): { readonly zeros: string; readonly digits: 
   return digits === "" && zeros !== "" ? { zeros: zeros.slice(0, -1), digits: "0", rest } : { zeros, digits, rest };
 }
 
-/** The emoji on the Open thread button: the role of the thread (worker 💻, review 👀), 💻 when the role is not known. */
+/** The emoji on the Open thread button: the role of the thread (worker 💻, review 👀, research), 💻 when the role is not known. */
 export function threadEmoji(role: ThreadRole | null): string {
-  return role === "reviewer" ? ROLES.review : ROLES.worker;
+  return role === "reviewer" ? ROLES.review : role === "researcher" ? ROLES.research : ROLES.worker;
 }

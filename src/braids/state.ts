@@ -1,18 +1,10 @@
 // braid's local state in the main checkout's `.braid/` (found from any worktree), and the lock its writers take turns with.
-import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
+import { mainCheckout } from "./repo.js";
 
-/** The main checkout's folder, also from inside a worktree. */
-export function mainCheckout(root: string): string {
-  const r = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" });
-  if (r.status !== 0) {
-    throw new Error(`can't read the repository: ${(r.stderr || "").trim()}`);
-  }
-  const dir = resolve(root, r.stdout.trim());
-  return basename(dir) === ".git" ? dirname(dir) : dir;
-}
+export { mainCheckout };
 
 /** The folder of braid's local state in the main checkout, created with a `.gitignore` of its own so it never shows as untracked, whether or not the project ignores it. */
 export function ensureStateDir(dir: string): void {
@@ -41,11 +33,11 @@ const LOCK_CLOCK: LockClock = {
 };
 
 /**
- * Removes the lock when it is older than `staleMs`, for one waiter at a time: the check and the removal
+ * Removes the lock when it is stale (`isStale`; by default older than `staleMs`), for one waiter at a time: the check and the removal
  * happen under a short guard file, so a second waiter that also found the lock stale looks again and
  * leaves the first one's new lock alone. Returns whether this call removed it.
  */
-export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): boolean {
+export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS, isStale: (lock: string) => boolean = (file) => Date.now() - statSync(file).mtimeMs > staleMs): boolean {
   const guard = `${lock}.takeover`;
   try {
     closeSync(openSync(guard, "wx"));
@@ -61,7 +53,7 @@ export function takeOverStale(lock: string, staleMs: number = LOCK_STALE_MS): bo
     return false;
   }
   try {
-    if (Date.now() - statSync(lock).mtimeMs > staleMs) {
+    if (isStale(lock)) {
       unlinkSync(lock);
       return true;
     }
@@ -124,6 +116,46 @@ export function locked<T>(file: string, fn: () => T, what = "the requests store"
   }
   try {
     return fn();
+  } finally {
+    try {
+      unlinkSync(lock);
+    } catch {
+      // already taken over as stale
+    }
+  }
+}
+
+/** `locked` for the board: waiting for the lock doesn't block the process, and `fn` may be asynchronous. */
+export async function lockedAsync<T>(file: string, fn: () => Promise<T>, what = "the requests store", makeDir: (dir: string) => void = ensureStateDir, waitMs: number = LOCK_WAIT_MS): Promise<T> {
+  makeDir(dirname(file));
+  const lock = `${file}.lock`;
+  let give = Date.now() + waitMs;
+  let seen = "";
+  for (;;) {
+    try {
+      writeFileSync(lock, randomUUID(), { flag: "wx" });
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST" && (error as NodeJS.ErrnoException).code !== "EPERM") {
+        throw error;
+      }
+      if (takeOverStale(lock)) {
+        continue;
+      }
+      // As in `locked`: the wait runs out only when the lock has not changed hands for `waitMs`.
+      const now = lockIdentity(lock);
+      if (now !== "" && now !== seen) {
+        seen = now;
+        give = Date.now() + waitMs;
+      }
+      if (Date.now() > give) {
+        throw new LockError(`${what} is locked (${lock}); remove it if no braid command is running`);
+      }
+      await new Promise((done) => setTimeout(done, 20));
+    }
+  }
+  try {
+    return await fn();
   } finally {
     try {
       unlinkSync(lock);

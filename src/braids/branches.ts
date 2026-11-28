@@ -1,9 +1,8 @@
 // Live copies: a braid or strand being worked on lives on its own branch, so its brief there
 // is newer than the copy in the working tree. Branch names (docs/braids-format.md):
 // `braid/0006-<slug>` for a braid and `braid/0006/A-<slug>` for a strand, local or on a remote.
-import { spawnSync } from "node:child_process";
 import { FormatError } from "./frontmatter.js";
-import { catBatch, catBatchSync, gitAsync, noteSyncGit, type GitOut } from "./gitio.js";
+import { catBatch, catBatchSync, gitAsync, gitSync, type GitOut } from "./gitio.js";
 import {
   BRAID_FOLDER,
   byRunOrder,
@@ -19,17 +18,13 @@ import {
   type Strand,
   type Tree,
 } from "./store.js";
+import { limited, readWorkingTree } from "./worktree.js";
 
 export const BRAID_BRANCH = /^braid\/(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const STRAND_BRANCH = /^braid\/(\d{4})\/([A-Z])-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function git(root: string, args: readonly string[]) {
-  noteSyncGit(args);
-  return spawnSync("git", ["-c", "core.quotePath=false", ...args], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-  });
+  return gitSync(root, args, { maxBuffer: 256 * 1024 * 1024 });
 }
 
 /** A braid or strand branch, local or remote-tracking. */
@@ -47,9 +42,15 @@ export interface BranchRef {
 
 /** Every local and remote-tracking branch whose name is a braid or strand branch; with `only`, that braid number's. */
 export function braidBranches(root: string, only?: string): BranchRef[] {
+  if (primed !== null && primed.root === root && primed.only === only) {
+    return parseBranchRefs(primed.refs, only);
+  }
   const r = git(root, refArgs(only));
   return r.status !== 0 ? [] : parseBranchRefs(r.stdout, only);
 }
+
+/** What `loadLiveBraidsAsync` already read without blocking (the branch listing and HEAD), for the synchronous loader it then runs in the same turn. */
+let primed: { readonly root: string; readonly only: string | undefined; readonly refs: string; readonly head: string | null } | null = null;
 
 function refPatterns(only?: string): string[] {
   return only === undefined
@@ -299,13 +300,12 @@ interface Slot {
  * are skipped, and so is a branch whose copy is missing or malformed. Braids and strands that
  * exist only on a branch are added. With `only`, just that braid number's branches are read.
  */
-export function loadLiveBraids(root: string, only?: string): Braid[] {
+export function loadLiveBraids(root: string, only?: string, working: Tree = fsTree(root)): Braid[] {
   const slots = new Map<string, Slot>();
-  for (const braid of loadTree(fsTree(root))) {
+  for (const braid of loadTree(working)) {
     slots.set(braid.number, { item: braid, strands: new Map(braid.strands.map((s) => [s.letter, s])) });
   }
-  const headResult = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
-  const head = headResult.status === 0 ? headResult.stdout.trim() : null;
+  const head = primed !== null && primed.root === root && primed.only === only ? primed.head : headOf(root);
   // Only each item's newest copy is checked against HEAD: if it is merged, the older ones are too old.
   const newest = winners(braidBranches(root, only));
   const braidTips = new Map(newest.filter((r) => r.letter === null).map((r) => [r.number, r.commit]));
@@ -366,16 +366,9 @@ export function loadLiveBraids(root: string, only?: string): Braid[] {
     .map(([number, slot]) => ({ ...slot.item, number, strands: [...slot.strands.values()].sort(byRunOrder) }));
 }
 
-/** Runs `work` over `items`, a few at a time. */
-async function limited<T>(items: readonly T[], work: (item: T) => Promise<void>, size = 8): Promise<void> {
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(size, items.length) }, async () => {
-      while (next < items.length) {
-        await work(items[next++] as T);
-      }
-    }),
-  );
+function headOf(root: string): string | null {
+  const r = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
+  return r.status === 0 ? r.stdout.trim() : null;
 }
 
 async function inHeadAsync(root: string, head: string, commit: string): Promise<boolean> {
@@ -388,38 +381,16 @@ async function inHeadAsync(root: string, head: string, commit: string): Promise<
   return value;
 }
 
-/**
- * Reads, without blocking and with one `git cat-file --batch` process, what `loadLiveBraids` will need: the
- * merge checks, the trees of the branches it reads and the briefs, reports and logs in them. It fills the caches the
- * synchronous loader reads, so that one then runs no `git` process per file.
- */
-async function prefetchLive(root: string, only?: string): Promise<void> {
-  const listed = await gitAsync(root, refArgs(only));
-  if (listed.status !== 0) {
-    return;
-  }
-  const headResult = await gitAsync(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
-  const head = headResult.status === 0 ? headResult.stdout.trim() : null;
-  const newest = winners(parseBranchRefs(listed.stdout, only));
-  if (head !== null) {
-    await markMergedAsync(root, head, newest.map((r) => r.commit), refPatterns(only));
-    await limited(newest, (ref) => inHeadAsync(root, head, ref.commit).then(() => undefined));
-  }
-  const braidTips = new Map(newest.filter((r) => r.letter === null).map((r) => [r.number, r.commit]));
-  const open = newest.filter((ref) => head === null || !merged.get(`${ref.commit}:${head}`));
-  await limited(strandTips(open, braidTips), ([number, tip, commits]) => markMergedAsync(root, tip, commits, strandPatterns(number)));
-  await limited(
-    open.filter((ref) => ref.letter !== null && braidTips.has(ref.number)),
-    (ref) => inHeadAsync(root, braidTips.get(ref.number) ?? "", ref.commit).then(() => undefined),
-  );
-  const commits = [...new Set(open.map((r) => r.commit))].filter((c) => !trees.has(c));
+/** Reads, without blocking, the trees of these commits and the briefs, reports and logs in them into the caches the synchronous loader reads. */
+async function prefetchTrees(root: string, all: readonly string[]): Promise<void> {
+  const commits = [...new Set(all)].filter((c) => !trees.has(c));
   await limited(commits, async (commit) => {
     const r = await gitAsync(root, treeArgs(commit));
     trees.set(commit, r.status === 0 ? parseTree(r.stdout) : new Map());
   });
   // The briefs, reports and logs are what the board reads; the same text in many commits has one id.
   const wanted = new Set<string>();
-  for (const commit of new Set(open.map((r) => r.commit))) {
+  for (const commit of new Set(all)) {
     for (const list of trees.get(commit)?.values() ?? []) {
       for (const e of list) {
         if (!e.isDir && (e.name === "brief.md" || e.name === "report.md" || LOG_FILE.test(e.name)) && !blobs.has(e.oid)) {
@@ -438,26 +409,76 @@ async function prefetchLive(root: string, only?: string): Promise<void> {
   });
 }
 
-/** `loadLiveBraids` without blocking the process while Git runs: the same braids, read through one `git cat-file --batch`. */
-export async function loadLiveBraidsAsync(root: string, only?: string): Promise<Braid[]> {
-  await prefetchLive(root, only);
-  return loadLiveBraids(root, only);
+/**
+ * Reads, without blocking and with one `git cat-file --batch` process, what `loadLiveBraids` will need: the
+ * merge checks, the trees of the branches it reads and the briefs, reports and logs in them. It fills the caches the
+ * synchronous loader reads, so that one then runs no `git` process per file.
+ */
+async function prefetchLive(root: string, only?: string): Promise<typeof primed> {
+  const listed = await gitAsync(root, refArgs(only));
+  if (listed.status !== 0) {
+    return null;
+  }
+  const headResult = await gitAsync(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
+  const head = headResult.status === 0 ? headResult.stdout.trim() : null;
+  const newest = winners(parseBranchRefs(listed.stdout, only));
+  if (head !== null) {
+    await markMergedAsync(root, head, newest.map((r) => r.commit), refPatterns(only));
+    await limited(newest, (ref) => inHeadAsync(root, head, ref.commit).then(() => undefined));
+  }
+  const braidTips = new Map(newest.filter((r) => r.letter === null).map((r) => [r.number, r.commit]));
+  const open = newest.filter((ref) => head === null || !merged.get(`${ref.commit}:${head}`));
+  await limited(strandTips(open, braidTips), ([number, tip, commits]) => markMergedAsync(root, tip, commits, strandPatterns(number)));
+  await limited(
+    open.filter((ref) => ref.letter !== null && braidTips.has(ref.number)),
+    (ref) => inHeadAsync(root, braidTips.get(ref.number) ?? "", ref.commit).then(() => undefined),
+  );
+  await prefetchTrees(root, open.map((r) => r.commit));
+  return { root, only, refs: listed.stdout, head };
+}
+
+/** The last braids `loadLiveBraidsAsync` loaded per root, with what they were loaded from. */
+const loaded = new Map<string, { readonly working: Tree; readonly key: string; readonly braids: readonly Braid[] }>();
+
+/**
+ * `loadLiveBraids` without blocking the process: the same braids, with the working tree read by `readWorkingTree`
+ * (`tree`: a read already made) and Git read through one `git cat-file --batch`. When neither the working tree nor a
+ * branch tip or HEAD changed since the last call, that call's braids are returned and nothing is loaded.
+ */
+export async function loadLiveBraidsAsync(root: string, only?: string, tree: Promise<Tree> = readWorkingTree(root)): Promise<Braid[]> {
+  const working = await tree;
+  const state = await prefetchLive(root, only);
+  const slot = `${root}\0${only ?? ""}`;
+  const key = state === null ? null : `${state.refs}\0${state.head ?? ""}`;
+  const had = loaded.get(slot);
+  if (had !== undefined && had.working === working && had.key === key) {
+    return [...had.braids];
+  }
+  primed = state;
+  try {
+    const braids = loadLiveBraids(root, only, working);
+    if (key !== null) {
+      loaded.set(slot, { working, key, braids });
+    }
+    return [...braids];
+  } finally {
+    primed = null;
+  }
 }
 
 const PLAN_PATTERNS = ["refs/heads/plan/", "refs/remotes/*/plan/*"];
 
 /** Local and remote-tracking `plan/<slug>` branches (a planning branch's name holds no braid number). */
 function planBranches(root: string): { branch: string; commit: string; time: number; local: boolean }[] {
-  const r = git(root, [
-    "for-each-ref",
-    "--format=%(refname)%00%(objectname)%00%(committerdate:unix)",
-    ...PLAN_PATTERNS,
-  ]);
-  if (r.status !== 0) {
-    return [];
-  }
+  const r = git(root, planArgs);
+  return r.status !== 0 ? [] : parsePlanRefs(r.stdout);
+}
+
+const planArgs = ["for-each-ref", "--format=%(refname)%00%(objectname)%00%(committerdate:unix)", ...PLAN_PATTERNS];
+
+function parsePlanRefs(stdout: string): { branch: string; commit: string; time: number; local: boolean }[] {
   const refs: { branch: string; commit: string; time: number; local: boolean }[] = [];
-  for (const line of r.stdout.split("\n")) {
+  for (const line of stdout.split("\n")) {
     const [ref = "", commit = "", time = "0"] = line.split("\0");
     const local = ref.startsWith("refs/heads/");
     const remote = /^refs\/remotes\/([^/]+)\/(plan\/.+)$/.exec(ref);
@@ -482,8 +503,7 @@ export function loadKnownBraids(root: string, only?: string): Braid[] {
   if (only !== undefined && known.has(only)) {
     return braids;
   }
-  const headResult = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"]);
-  const head = headResult.status === 0 ? headResult.stdout.trim() : null;
+  const head = primed !== null && primed.root === root ? primed.head : headOf(root);
   const plans = planBranches(root);
   if (head !== null) {
     markMerged(root, head, plans.map((r) => r.commit), PLAN_PATTERNS);
@@ -513,6 +533,18 @@ export function braidAt(root: string, ref: string, number: string): Braid | null
   if (r.status !== 0) {
     return null;
   }
+  const t = gitTree(root, { branch: ref, commit: r.stdout.trim() });
+  const dir = braidFolder(t, number);
+  return dir === null ? null : attempt(() => loadBraid(t, dir, number));
+}
+
+/** `braidAt` without blocking the process: the tree and the files it reads are fetched first, then the synchronous reader runs on the caches. */
+export async function braidAtAsync(root: string, ref: string, number: string): Promise<Braid | null> {
+  const r = await gitAsync(root, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+  if (r.status !== 0) {
+    return null;
+  }
+  await prefetchTrees(root, [r.stdout.trim()]);
   const t = gitTree(root, { branch: ref, commit: r.stdout.trim() });
   const dir = braidFolder(t, number);
   return dir === null ? null : attempt(() => loadBraid(t, dir, number));

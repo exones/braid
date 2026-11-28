@@ -4,9 +4,8 @@ How a braid's agents stop cleanly before a provider's usage limit and start agai
 
 ## Check before launch
 
-Before launching a worker, reviewer, researcher, spike or coordinator, run `braid limits --role <role> --kind <kind>` (or `--tier <S|M|L>`) for that agent's model.
+`braid launch` checks the limits for the agent's model; a coordinator's launch is checked with `braid limits --role coordinator`. `unknown` (stale cache, no numbers, an `unsupported` provider such as `cursor`; also with a `blind since` line) never pauses: launch, and say so in one line.
 
-- Exit 0, `ok`: launch. Exit 0, `unknown` (stale cache, no numbers, `unsupported` such as `cursor`; also with a `blind since` line): launch, and say so in one line. Unknown never pauses.
 - Exit 3, `pause`: launch nothing on that provider, say so once with the provider, window and resume time it prints, and end the turn. A PM-run coordinator also sends its PM `<number>: <provider> <window> over its threshold, resumes <time>; launching nothing` once per window. Don't poll or schedule anything.
 
 ## On the board's texts
