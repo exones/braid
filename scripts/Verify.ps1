@@ -1,8 +1,10 @@
 # Pre-PR gate. Quick (npm run verify): tracked Markdown links and anchors,
 # tracked-text LF/trailing whitespace, OIDC release shape, typecheck, build,
-# tests. -Full (npm run verify:full, used by CI and releases) also runs the
-# tooling tests (docs-gate negatives, install policy, Node toolchain, Pester)
-# and the packed-install proof.
+# and the tests scripts/Select-Tests.ps1 picks for the branch's changes (none,
+# with no typecheck or build, when only docs changed). -All runs every test in
+# the quick gate. -Full (npm run verify:full, used by CI and releases) runs every
+# test, the tooling tests (docs-gate negatives, install policy, Node toolchain,
+# Pester) and the packed-install proof.
 # Root dependencies stay on `npm ci`, which reads .npmrc. The install-policy fixture is a
 # separate project and is not a root dependency. The OIDC guard only reads release.yml.
 # Stops on the first failed native command and returns that exit code.
@@ -14,7 +16,8 @@
 #Requires -Version 7.6
 [CmdletBinding()]
 param(
-  [switch]$Full
+  [switch]$Full,
+  [switch]$All
 )
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -102,10 +105,23 @@ if ($Full) {
   Invoke-Script 'pester: PowerShell suites under test/pester' 'scripts/Test-Pester.ps1'
 }
 
+$selection = $null
+if (-not $Full -and -not $All) {
+  $selection = & (Join-Path $PSScriptRoot 'Select-Tests.ps1') -RepositoryRoot $repoRoot
+}
+if ($null -ne $selection -and $selection.Mode -eq 'docs') {
+  exit 0
+}
 Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'typecheck')
 Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'build')
-Write-Host "test: every suite under test/"
-Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'test')
+if ($null -eq $selection -or $selection.Mode -eq 'all') {
+  Write-Host "test: every suite under test/"
+  Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'test')
+} elseif ($selection.Tests.Count) {
+  # node --test with no files would run everything, so an empty pick runs nothing.
+  Write-Host "test: $($selection.Tests.Count) picked file(s)"
+  Invoke-VerifiedNative -Executable $node -Arguments (@('--test', '--test-reporter', 'spec') + $selection.Tests)
+}
 if ($Full) {
   Invoke-Script 'package: packed install outside the checkout' 'scripts/Test-Package.ps1'
 }

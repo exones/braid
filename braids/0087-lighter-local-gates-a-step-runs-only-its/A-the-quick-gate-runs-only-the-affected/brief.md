@@ -45,6 +45,13 @@ Expected size: about 250 lines in 4 files (a picker script, its Pester suite, `s
 - BRAID.md and the docs strand's work: 0087/D.
 - Temp repo cleanup, git settings and fewer git calls: 0087/B and 0087/C.
 
+## Plan
+
+1. `scripts/Select-Tests.ps1`: base, changed files, classification, import graph over test and src files; returns all, picked or docs and prints why.
+2. `scripts/Verify.ps1`: quick gate uses it; `-All` and `-Full` run `npm run test`. 0077 is not in main, so picked files go to `node --test` directly.
+3. `test/pester/Select-Tests.Tests.ps1` on a temp repo.
+4. `docs/development.md`, a decisions record; time quick against full; report.
+
 ## Completion
 
 - [ ] On a branch that changed one src module, `npm run verify` runs only the test files that import it, directly or through src modules, and prints which and why

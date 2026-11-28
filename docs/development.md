@@ -44,14 +44,14 @@ Focused tests: `npm run build && node --test test/<file>.test.ts`. Pester suites
 
 Both gates run `scripts/Verify.ps1`, which selects the toolchain first.
 
-`npm run verify` is the quick offline pre-PR gate (about 20 seconds) and the `gate` in [BRAID.md](../BRAID.md):
+`npm run verify` is the quick offline pre-PR gate and the `gate` in [BRAID.md](../BRAID.md):
 
 1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Paths listed as frozen in `scripts/markdown-link-exclusions.json` (closed records kept as written) are not link-checked, but their text still is. A skill under `.agents/skills/<name>/` must not link outside its own folder, except to another braid skill.
 2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
 3. The OIDC release-shape guard.
-4. `npm run typecheck` (`tsc -p tsconfig.json --noEmit` and `tsc -p web/tsconfig.json --noEmit` for the board's web app), `npm run build` (`tsc -p tsconfig.build.json` and `vite build --config web/vite.config.ts`) and `npm run test` (`node --test --test-reporter spec test`, every suite under `test/`).
+4. `npm run typecheck` (`tsc -p tsconfig.json --noEmit` and `tsc -p web/tsconfig.json --noEmit` for the board's web app), `npm run build` (`tsc -p tsconfig.build.json` and `vite build --config web/vite.config.ts`) and the tests [picked for the branch's changes](#which-tests-the-quick-gate-runs). `npm run verify -- -All` runs every suite under `test/` instead.
 
-`npm run verify:full` (`Verify.ps1 -Full`) is what CI and the release workflow run. It adds the tooling tests and the package proof:
+`npm run verify:full` (`Verify.ps1 -Full`) is what CI and the release workflow run. It runs every suite under `test/` (`npm run test`, `node --test --test-reporter spec test`) and adds the tooling tests and the package proof:
 
 - The docs-gate negatives: a disposable repository that must fail for a broken link or anchor, a CR line ending, trailing whitespace and a skill linking outside its folder (a braid skill may link to another braid skill), and must pass for a broken link under a frozen path.
 - The install-policy guard: real installs that `.npmrc` must refuse.
@@ -62,6 +62,15 @@ Both gates run `scripts/Verify.ps1`, which selects the toolchain first.
 Run `verify:full` locally when you change those tools, `.npmrc`, packaging or the release workflow. External skill validators are not part of either gate; run them when a change edits skill content.
 
 Both stop on the first native command with a nonzero exit code and return that code. Dependencies must already be installed with `npm ci`. A dirty worktree is a pre-commit probe. GitHub Actions sets `BRAID_REQUIRE_CLEAN=1`, so the hosted pack must come from a clean checkout. The tarball and its provenance file are written to `artifacts/package/` and are not committed.
+
+### Which tests the quick gate runs
+
+`scripts/Select-Tests.ps1` picks them from the import lines, and prints each picked file with the import chain that picked it, or why it runs everything. Run it on its own to see the choice: `pwsh -NoProfile -File scripts/Select-Tests.ps1`.
+
+- Changed files are those committed since the merge-base with the base branch (the braid branch `braid/<number>-<slug>` for a strand branch `braid/<number>/<letter>-<slug>`, else `origin/main`), plus staged, unstaged and untracked files. It reads local refs and doesn't fetch.
+- A test is picked when it changed, or imports a changed file directly or through the modules it imports (`dist/<path>.js` stands for `src/<path>.ts`). `import type` lines don't count: the gate still typechecks everything. A test that reaches a module only by spawning `dist/cli.js` isn't picked for it; CI's full run catches that.
+- Every test runs when `src/cli.ts`, `package.json`, `package-lock.json`, a `tsconfig*.json`, `scripts/`, `test/support/` or `test/fixtures/` changed, when any other file it can't classify changed (such as `web/` or `.github/`), when nothing changed, or when the base can't be found.
+- When only Markdown, `braids/` or `docs/` changed, there is no typecheck, build or test; the docs gate and the OIDC guard still run.
 
 ## Continuous integration
 
