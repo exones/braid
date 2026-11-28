@@ -9,7 +9,7 @@ import type { TaggedDecided, TaggedQuestion } from "../../src/board/combined.ts"
 import { ANSWER_MAX } from "./api.ts";
 import { CloseButton, SendLine, SendNotices, Sending, useRequestSend } from "./Close.tsx";
 import { submit } from "./sends.ts";
-import { sendKey, type Closed } from "../../src/board/sends.ts";
+import { openedAfter, sendKey, type After, type Closed } from "../../src/board/sends.ts";
 import { Md } from "./Md.tsx";
 import { AskingLink, BlockLine, CodeChip, MergeButton, ProjectContext, ProjectTag, go, goProgramme } from "./App.tsx";
 
@@ -276,13 +276,19 @@ function useAnswering(questions: readonly TaggedQuestion[], refresh: () => void)
   const [looksOpen, setLooksOpen] = useState(false);
   const split = splitQuestions(questions);
   const open = (key: string | null) => setOpened(key);
-  /** Sends, then opens the next question when it was recorded. The row stays, saying "sent", until a read drops it. */
+  const [after, setAfter] = useState<After | null>(null);
+  const listed = new Set(questions.map(keyOf));
+  if (after !== null && !listed.has(after.key)) {
+    setAfter(null);
+    setOpened(openedAfter(opened, after, listed));
+  }
+  /** Sends. A recorded one keeps its card, saying "sent", until a read drops it; then the question under it opens. */
   const go = async (q: TaggedQuestion, press: string, label: string, text?: string) => {
     const key = keyOf(q);
     // The order as shown when the answer was given: the next question is the one under it.
     const order = [...split.ranked, ...(looksOpen ? split.looks : [])].map(keyOf);
     if (await submit(q.project, q.handle, press, label, refresh, text)) {
-      setOpened((o) => (o === key ? nextAfter(order, key) : o));
+      setAfter({ key, next: nextAfter(order, key) });
     }
   };
   const send = (q: TaggedQuestion, text: string) => {
@@ -313,7 +319,6 @@ function List({ a, decided }: { a: Answering; decided: readonly TaggedDecided[] 
   );
   return (
     <>
-      <SendNotices closed={closedOf(decided)} />
       {a.ranked.length === 0 && <p className="mx-0.5 mt-3 text-xs text-slate-500">No open questions.</p>}
       {a.ranked.map((q, i) => (
         <div key={keyOf(q)}>

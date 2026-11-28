@@ -58,6 +58,18 @@ export function settle(sends: readonly Send[], open: ReadonlySet<string>, now: n
   });
 }
 
+/** A recorded send of the opened card: the card that keeps its line, and the one to open once a read drops it. */
+export interface After {
+  readonly key: string;
+  readonly next: string | null;
+}
+
+/**
+ * Which card is open after a read (`listed`: the open requests' keys). A sent request keeps its card, with its "sent"
+ * line, while it is listed; once it is gone the one under it opens. A card the user opened meanwhile stays.
+ */
+export const openedAfter = (opened: string | null, after: After, listed: ReadonlySet<string>): string | null => (!listed.has(after.key) && opened === after.key ? after.next : opened);
+
 /** A request the record shows closed: who and what, for the line of a send that left the open list. */
 export interface Closed {
   readonly by: "user" | "pm";

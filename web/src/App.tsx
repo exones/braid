@@ -2628,8 +2628,6 @@ export function App() {
                 <div className="flex items-stretch max-md:flex-col">
                   {panel && <ProgrammesPanel list={programmes} open={sides.open.programmes} setOpen={(on) => sides.set("programmes", on)} />}
                   <div className={`min-w-0 flex-1 ${view === "board" ? "" : "max-md:hidden"}`}>
-                    {/* Where the panel isn't on screen (the phone's Board tab, a collapsed panel), what became of a send shows here. */}
-                    <SendNotices closed={closedOf(decided)} className={`px-3.5 ${sides.open.questions ? "md:hidden" : ""}`} />
                     {panel && <PhoneProgrammes list={programmes} />}
                     {only !== null && <FilterBar p={only} count={board.braids.length} />}
                     <Board data={board} details={details} />
@@ -2640,6 +2638,7 @@ export function App() {
             }
           </Status>
         )}
+        {all.state === "ready" && <SendNotices closed={closedOf(all.data.decided)} />}
         {route.programme !== null && all.state === "ready" && <ProgrammeDetails name={route.programme} list={all.data.programmes} />}
         {route.id !== null && resolved !== null && all.state === "ready" && <DetailsPanel id={route.id} tab={route.tab} project={"name" in resolved ? resolved.name : ""} unknown={"unknown" in resolved ? resolved.unknown : null} tick={tick} />}
       </div>

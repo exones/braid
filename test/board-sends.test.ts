@@ -37,6 +37,15 @@ test("the list survives a reload; a send stays while its request is listed and l
   assert.equal(sends.goneLine(gone, { by: "user", answer: "", outcome: "dismissed" }), "dismissed by you");
 });
 
+test("a sent request keeps its card until a read drops it, then the one under it opens", () => {
+  const after = { key: "p/calm-otter-7k2m", next: "p/amber-lynx-4qpm" };
+  const listed = new Set(["p/calm-otter-7k2m", "p/amber-lynx-4qpm"]);
+  assert.equal(sends.openedAfter(after.key, after, listed), after.key, "still listed: the card and its line stay");
+  assert.equal(sends.openedAfter(after.key, after, new Set(["p/amber-lynx-4qpm"])), after.next);
+  assert.equal(sends.openedAfter("p/another", after, new Set()), "p/another", "what the user opened meanwhile stays");
+  assert.equal(sends.openedAfter(null, after, new Set()), null);
+});
+
 test("a request already closed is refused saying who and with what, and the page reads it as closed", async () => {
   const w = world();
   const out = Cmd.askCommand(w.root, ["0001", "Which rounding rule?", "--option", "Half-up", "--thread", "33333333-aaaa-4bbb-8ccc-444444444444"], w.opts);
