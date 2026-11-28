@@ -15,6 +15,12 @@
       "event": "opened",
       "at": "2026-11-28T16:55:39.269Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T16:56:42.549Z",
+      "by": "user",
+      "text": "A approve the plan"
     }
   ]
 }
