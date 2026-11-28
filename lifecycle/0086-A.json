@@ -1,0 +1,11 @@
+{
+  "id": "0086/A",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-28T00:14:16.520Z",
+      "thread": "mcp:launch:7909c884628e4ae88bd8816ea77e3afc1c467ec7e93b7b6d4546ad7143b853e4",
+      "branch": "braid/0086/A-mockups-lanes-holds-programmes-and-what"
+    }
+  ]
+}
