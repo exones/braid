@@ -27,6 +27,12 @@
       "at": "2026-11-28T15:26:35.098Z",
       "by": "pm",
       "text": "PM recommends A (words, buttons in the box, none in details, last tab); mockups in chat and in the context"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T15:33:30.333Z",
+      "by": "user",
+      "text": "A. As recommended: words, buttons in the box, none in Requests tab, last tab"
     }
   ]
 }
