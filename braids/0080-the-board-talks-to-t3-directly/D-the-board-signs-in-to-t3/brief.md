@@ -61,15 +61,15 @@ Expected size: about 1,100 lines in 12 files (0080/A's estimate: oauth ~250, sec
 
 ## Completion
 
-- [ ] The user approved the button mockups before building
-- [ ] `braid t3 login|logout|status|set` work as above against the fake server, refusing a sign-in below Full access, and a non-local address while `localOnly` is on or over plain `http`
-- [ ] The two settings in `~/.braid/t3.json` (`access` auto or cli, `localOnly` on or off) decide how the board talks to T3; defaults auto and on
-- [ ] The token is kept only in the OS store through `@napi-rs/keyring` (lazily loaded); no store means signed out and the board as today
-- [ ] The board's T3 button shows the four states with the tooltip words above, and the two pushes go once
-- [ ] The button signs in from the host through the board's callback, which tests show answers 404 to anything but the pending click's own `state` (wrong state, reused, expired, non-loopback); from a non-loopback origin it starts nothing
-- [ ] A 401 turns the board signed out with no retry; `braid t3 logout` revokes in T3
-- [ ] Tests prove the token appears in no log, error, API or page output
-- [ ] Live check done with the user's sign-in on scratch threads only, or report.md says what is left
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The user approved the button mockups before building
+- [x] `braid t3 login|logout|status|set` work as above against the fake server, refusing a sign-in below Full access, and a non-local address while `localOnly` is on or over plain `http`
+- [x] The two settings in `~/.braid/t3.json` (`access` auto or cli, `localOnly` on or off) decide how the board talks to T3; defaults auto and on
+- [x] The token is kept only in the OS store through `@napi-rs/keyring` (lazily loaded); no store means signed out and the board as today
+- [x] The board's T3 button shows the four states with the tooltip words above, and the two pushes go once
+- [x] The button signs in from the host through the board's callback, which tests show answers 404 to anything but the pending click's own `state` (wrong state, reused, expired, non-loopback); from a non-loopback origin it starts nothing
+- [x] A 401 turns the board signed out with no retry; `braid t3 logout` revokes in T3
+- [x] Tests prove the token appears in no log, error, API or page output
+- [x] Live check done with the user's sign-in on scratch threads only, or report.md says what is left
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
