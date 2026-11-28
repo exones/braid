@@ -17,6 +17,12 @@
       "event": "opened",
       "at": "2026-11-28T10:38:57.223Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T11:02:59.193Z",
+      "by": "user",
+      "text": "It's okay to merge"
     }
   ]
 }
