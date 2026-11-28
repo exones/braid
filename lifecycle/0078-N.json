@@ -6,6 +6,13 @@
       "at": "2026-11-28T13:43:32.625Z",
       "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
       "branch": "braid/0078/N-a-strand-parked-behind-a-sibling-never"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-28T14:25:55.388Z",
+      "head": "e192116fa8a5329545147a5deed3a65c051811d8",
+      "review": "https://github.com/exones/braid/pull/387#issuecomment-7240544678",
+      "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317"
     }
   ]
 }
