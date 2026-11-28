@@ -32,8 +32,8 @@ For about the first minute after a start the project has no snapshot, and from 6
 
 ## Validation
 
-- Held on 2026-11-28 before validation finished. The new test passed alone on the base's product code (`node --test --test-name-pattern="fresh board" test/reviews.test.ts`, 1 passed).
-- Not done: the whole of `test/reviews.test.ts` (stopped partway, no failure among the tests that had finished), the check that the new test fails with the memory switched off, and the gate. No PR is open.
+- Gate (`node dist/cli.js gate`): exit 0; 853 tests, 852 passed, 0 failed, 1 skipped; node tests 2266 s on this machine.
+- The new test passes on the base's product code (it took 12 s in the gate). With the memory switched off in the built `dist/board/t3.js` (a finished answer no longer stored), it fails: only the timed-out read is recorded by 70 s. There is no fix, so no test that failed on the base.
 
 ## Docs
 

@@ -35,11 +35,11 @@ Expected size: about 80 lines in 3 files (about 200 if a fix is needed).
 
 ## Completion
 
-- [ ] A test shows a fresh board with 31 finished records at 10 s per call recovering: a read within the limit by the second (or a stated) read, with timings in report.md
-- [ ] If it didn't recover on the base, the fix and a test that failed before it
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md, Refresh), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A test shows a fresh board with 31 finished records at 10 s per call recovering: a read within the limit by the second (or a stated) read, with timings in report.md
+- [x] If it didn't recover on the base, the fix and a test that failed before it (not needed: it recovered on the base)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md, Refresh), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Plan
 
