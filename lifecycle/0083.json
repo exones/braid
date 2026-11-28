@@ -6,6 +6,13 @@
       "at": "2026-11-27T23:38:29.550Z",
       "thread": "mcp:launch:278bde206cc6c5dcba7a550fd202794be83ea389f2bcdd96dca4b9f8e69d9d06",
       "branch": "braid/0083-how-braid-can-read-t3-lightly"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-28T10:38:19.931Z",
+      "head": "59afef50faae8fd65f7cbf016e47bbd6e7f1ef6e",
+      "review": "https://github.com/exones/braid/pull/378#issuecomment-7237813005",
+      "thread": "mcp:launch:278bde206cc6c5dcba7a550fd202794be83ea389f2bcdd96dca4b9f8e69d9d06"
     }
   ]
 }
