@@ -476,7 +476,7 @@ Start, Merge and [Answer](#answer-from-the-board) work over Tailscale as on the 
 
 ## T3 sign-in
 
-The board can sign in to T3's MCP once, so it [reads T3](#the-read-over-mcp), [hears its events](#events) and [stops threads](#stop-before-the-words) through one connection instead of a `t3` process per call (D121, D122). Signed out, refused, or on a host without a secret store, it works as before, through the `t3` command line.
+The board can sign in to T3's MCP once, so it [reads T3](#the-read-over-mcp), [hears its events](#events) and [stops threads](#stop-before-the-words) through one connection instead of a `t3` process per call (D123, D122). Signed out, refused, or on a host without a secret store, it works as before, through the `t3` command line.
 
 **Signing in.** `braid t3 login` in a terminal, or the T3 button on the board ([below](#the-t3-button)), runs T3's own OAuth sign-in for outside agents: braid reads T3's metadata, registers as "braid board", makes a fresh `state` and PKCE verifier (S256), and opens T3's approval page in the browser without a shell. There you approve "braid board" at **Full access**: T3 refuses an outside agent acting on a thread whose mode ranks above its level, and braid's threads run at the project's default, some at Full access. T3 sends the browser back to a loopback address with a code, `state` and `iss`; braid checks `state` and `iss`, exchanges the code with the verifier, and refuses (revoking it at once) a sign-in whose scopes are below Full access. The sign-in lasts T3's fixed 30 days and isn't renewed.
 
