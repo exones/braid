@@ -11,7 +11,7 @@ order: 30
 
 The board shows every open question of an item, on the card, in the details panel, in the Questions panel and in the programmes panel, as 0084/B's approved mockups show them, and each is answered on its own. Pushes and wakes treat each question on its own.
 
-Expected size: about 650 lines in 13 files, tests included.
+Expected size: about 800 lines in 14 files, tests included.
 
 ## Start here
 
@@ -33,7 +33,8 @@ Expected size: about 650 lines in 13 files, tests included.
 - The demo (`braid board --demo`) has an item with three open questions and a programme with two.
 - **Acknowledge** (the user, 2026-11-28, idea 2026-11-28-iy7b): an Acknowledge button next to Answer on FYI requests (kind `look`), in the Questions panel, on the card and on the phone. One click closes the request as seen by the user, recorded in braid with no agent turn (no wake, no thread message); it then shows under Decided. Matching CLI: `braid answer <name> --ack`.
 - **Dismiss** (the user, 2026-11-28: "I also want the button dismiss on all requests … dismissed by user. Meaning that I close this request without an answer. And if the coordinator still thinks I have to answer, it should raise again. … Sometimes some requests become obsolete after other requests are answered, so I just want to dismiss them."): a Dismiss button on every request, every kind, in the Questions panel, on the card and on the phone, next to Answer (and Acknowledge on FYIs). One click closes the request with no answer, recorded as dismissed by the user; it shows under Decided marked dismissed. Unlike Acknowledge it wakes the asking thread once: "<handle> dismissed by the user without an answer; if you still need it, ask again with what changed." Anything it blocked stays blocked until the asker re-asks or decides otherwise. Matching CLI: `braid answer <name> --dismiss`.
-- First step, before building: add the Acknowledge and Dismiss buttons to 0084/B's `mockups.html` (the panel row, the card, the phone, Decided showing an acknowledged and a dismissed request), push, and stop for the user's look through the coordinator; build only after the approval.
+- **Phone: Board | Requests** (the user, 2026-11-28: "I don't like too much how questions are executed on the phone. They are in the very end of the board. I would like rather switch under the project selector because I want to see the board or the questions. And more and more I think I will be on the questions tab. It's like requests."): at phone width, a two-way switch right under the project selector, Board | Requests. Requests shows the Questions panel (0082's) full-screen, with several questions per item, Acknowledge and Dismiss; Board shows the lanes as today, without the panel at the bottom. The last tab is kept per device in localStorage (wrapped in try/catch); whether Requests is the default when something waits on the user is the worker's call, shown in the mockup. The Requests tab shows the count of what waits on the user. Desktop unchanged unless the mockup shows a reason.
+- First step, before building: add to 0084/B's `mockups.html` the Acknowledge and Dismiss buttons (the panel row, the card, Decided showing an acknowledged and a dismissed request) and the phone's Board | Requests switch with both tabs, on demo data; push, take screenshots, and stop for the user's look through the coordinator (a `look` request, like 0084/B). Build only after the approval.
 
 ## Already decided
 
@@ -58,7 +59,8 @@ Expected size: about 650 lines in 13 files, tests included.
 - [ ] An item with an open review request and an open question is in Needs You with its Merge button (test)
 - [ ] Acknowledge on a `look` request (board button, phone, and `braid answer <name> --ack`) closes it as answered by the user with no wake of the asker, and it shows under Decided (tests)
 - [ ] Dismiss on any request (board button, phone, and `braid answer <name> --dismiss`) closes it as withdrawn by the user, wakes the asker once with the dismissed line, and it shows under Decided marked dismissed (tests)
-- [ ] The user approved the two buttons' look in the mockups before they were built
+- [ ] At phone width the Board | Requests switch sits under the project selector; Requests shows the Questions panel full-screen with a count badge, Board the lanes without the panel; the last tab is kept per device (tests or screens)
+- [ ] The user approved the look of the two buttons and the phone switch in the mockups before they were built
 - [ ] `braid board --demo` shows an item with three open questions; screens in the item folder match the approved mockups
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
