@@ -28,6 +28,12 @@
       "by": "pm",
       "text": "A. Approve, with one change in 0085/C: one open cleanup request per project (key cleanup), listing every kept folder with size and reason, updated by each clean run and closed when the list is empty, instead of one request per folder.",
       "reason": "approve with one change, because everix4 has ~70 worktrees and one request per folder would flood the Questions panel, instead of one request per folder"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T00:02:33.015Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
