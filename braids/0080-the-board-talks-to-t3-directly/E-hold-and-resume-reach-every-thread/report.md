@@ -29,7 +29,7 @@ A pause text waits until a busy turn ends and never reaches a delegated child, a
   - a signed-in pause starts no synchronous process.
 - `test/board-nudge.test.ts` and `test/board-remind.test.ts`: a `limit` failure is neither nudged nor reminded, and a provider 429 still is.
 - Nothing runs on the request path. The stop runs only in the steerer's tick, which `observe` queues off the snapshot, never inside an HTTP handler.
-- The gate (`npm run verify`): see the gate note below.
+- The gate (`npm run verify`) passed locally: 910 tests, 909 pass, 1 skipped, 0 fail, about 15 min on a loaded machine (the first run caught a test typing error, fixed).
 
 ## Docs
 

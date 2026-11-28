@@ -65,5 +65,5 @@ Expected size: about 450 lines in 6 to 8 files.
 - [x] Tests cover the cases under Change against the mock T3, with no synchronous call and nothing on the request path
 - [ ] Live check (with 0080/D's, before the final PR, the user signed in): a hold on a scratch braid with a scratch coordinator thread and one delegated child stops both; or report.md says what is left
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
