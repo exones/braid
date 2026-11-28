@@ -6,6 +6,13 @@
       "at": "2026-11-28T16:06:28.049Z",
       "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317",
       "branch": "braid/0078/O-the-board-page-recovers-its-live-updates"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-28T17:28:43.412Z",
+      "head": "c54f63ecb1f69e17cfda5952846199c484b10333",
+      "review": "https://github.com/exones/braid/pull/394#issuecomment-7242859877",
+      "thread": "mcp:launch:57ba0cc37e8d36f1a72f80274635cb85ca0fb08c5d38d85561592c22663e8317"
     }
   ]
 }
