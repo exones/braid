@@ -6,3 +6,7 @@ Found: in test/requests.test.ts neither import is kept: main removed resetT3Memo
 ## 2026-11-28 12:01Z checkpoint
 
 done: origin/main (397b2431) merged as 24d9eb9c, conflicts resolved; openRequest/replaces keep 0084/A rule; the three request suites pass (46/46). First npm run verify: exit 1, 856 pass, 2 timing failures under load (inbox "first note creates braid-inbox", requests "asynchronous wait outlasts a moving lock queue"); both pass when run alone.; next: rerun npm run verify (the second run was killed unfinished for a machine restart), write report.md, tick the Completion boxes, push, open the PR into braid/0084-several-open-questions-per-item.; open: gate not finished; no PR.
+
+## 2026-11-28 12:28Z checkpoint
+
+done: resumed from c974afc7, clean checkout; started npm run verify again and killed it unfinished at a second hold (about 10 minutes in, no failure in its output up to then).; next: on go, run npm run verify, write report.md (conflicts and resolutions, the two load timing failures of the first run), tick the boxes, push, open the PR into braid/0084-several-open-questions-per-item.; open: gate not finished; no PR. The braid branch has two newer log commits (23eb764e, 0c06814f) not merged into this branch.
