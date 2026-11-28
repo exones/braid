@@ -32,12 +32,10 @@ const board = (await load("../dist/commands/board.js")) as {
   demoSources: (down?: boolean) => unknown;
 };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
-const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
 const demo = (await load("../dist/board/demo.js")) as Demo;
 
 beforeEach(() => {
   resetGithubMemory();
-  resetT3Memory();
 });
 
 let repos = 0;
@@ -180,7 +178,6 @@ test("without T3 the board still works and says so", async () => {
     [() => Promise.resolve({ status: 0, stdout: "nope", stderr: "" }), /unreadable/],
   ];
   for (const [run, reason] of cases) {
-    resetT3Memory();
     const { get } = await start(files(), run);
     const data = await get("api/board");
     assert.equal(data.t3.state, "unavailable");

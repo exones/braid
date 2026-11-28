@@ -3,7 +3,7 @@
 // offline kept local until the next write.
 import { GitError } from "../braids/numbers.js";
 import { catBatch, gitAsync } from "../braids/gitio.js";
-import { fetchBranch, fetchBranchAsync, filesAt, must, parseTree, reading, tips, tipsAsync, writeBranch, type BranchChange, type BranchSpec, type BranchView, type FetchResult, type WriteResult as BranchWrite } from "../braids/gitbranch.js";
+import { fetchBranch, fetchBranchAsync, filesAt, must, parseTree, reading, readingAsync, tips, tipsAsync, writeBranch, type BranchChange, type BranchSpec, type BranchView, type FetchResult, type WriteResult as BranchWrite } from "../braids/gitbranch.js";
 import { isProblem, parseEntry, type Entry, type Problem } from "./entries.js";
 
 export { REMOTE, type FetchResult } from "../braids/gitbranch.js";
@@ -85,7 +85,24 @@ export function readInbox(root: string, options: { fetch?: boolean } = {}): Inbo
   return { commit: r.commit, entries, problems, fetched };
 }
 
+/** The inboxes read for the board, by root and commit: a commit never changes, so its entries are read once. */
+const atCommit = new Map<string, Inbox>();
+
 async function readInboxAtAsync(root: string, commit: string | null): Promise<Inbox> {
+  const key = `${root}\0${commit ?? ""}`;
+  let inbox = atCommit.get(key);
+  if (inbox === undefined) {
+    inbox = await loadInboxAtAsync(root, commit);
+    // A few commits at most are asked for at once (two when the branches diverged).
+    if (atCommit.size >= 16) {
+      atCommit.clear();
+    }
+    atCommit.set(key, inbox);
+  }
+  return inbox;
+}
+
+async function loadInboxAtAsync(root: string, commit: string | null): Promise<Inbox> {
   if (commit === null) {
     return { commit, entries: [], problems: [] };
   }
@@ -117,18 +134,21 @@ async function readInboxAtAsync(root: string, commit: string | null): Promise<In
 
 /**
  * `readInbox` without blocking the process, for the board: the same entries, read with one `git cat-file --batch`
- * instead of a process per entry. Branches that have diverged (rare) are read by the synchronous version.
+ * instead of a process per entry. Branches that have diverged are merged the same way.
  */
 export async function readInboxAsync(root: string, options: { fetch?: boolean } = {}): Promise<Inbox & { readonly fetched: FetchResult | null }> {
   const fetched = options.fetch === true ? await fetchBranchAsync(root, SPEC) : null;
-  const { local, remote } = await tipsAsync(root, SPEC);
-  if (local === null || remote === null || local === remote || (await gitAsync(root, ["merge-base", "--is-ancestor", local, remote])).status === 0) {
-    return { ...(await readInboxAtAsync(root, remote ?? local)), fetched };
+  const r = await readingAsync(root, SPEC, await tipsAsync(root, SPEC));
+  if (!("ours" in r)) {
+    return { ...(await readInboxAtAsync(root, r.commit)), fetched };
   }
-  if ((await gitAsync(root, ["merge-base", "--is-ancestor", remote, local])).status === 0) {
-    return { ...(await readInboxAtAsync(root, local)), fetched };
-  }
-  return { ...readInbox(root), fetched };
+  // Diverged: as `readInbox` merges the two sides, with every process awaited.
+  const { pending } = r;
+  const [ours, theirs] = [await readInboxAtAsync(root, r.ours), await readInboxAtAsync(root, r.commit)];
+  const entries = [...theirs.entries.filter((e) => !pending.has(e.file)), ...ours.entries.filter((e) => pending.has(e.file))];
+  entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const problems = [...theirs.problems.filter((p) => !pending.has(p.file)), ...ours.problems.filter((p) => pending.has(p.file))];
+  return { commit: r.commit, entries, problems, fetched };
 }
 
 /** What a write sees of the branch before it changes it. */

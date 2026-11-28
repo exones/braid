@@ -24,11 +24,9 @@ const { statusCommand, nextCommand } = (await load("../dist/commands/coordinate.
   nextCommand: (root: string, args: string[], src: object) => Promise<string>;
 };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
-const { resetT3Memory } = (await load("../dist/board/t3.js")) as { resetT3Memory: () => void };
 
 beforeEach(() => {
   resetGithubMemory();
-  resetT3Memory();
 });
 
 const git = (root: string, ...args: string[]) => {
@@ -107,7 +105,6 @@ test("status reports failing checks and says when GitHub or T3 cannot be read", 
   assert.match(red, /ci verify \(ubuntu-latest\): failing, verify \(windows-latest\): passing {2}thread running/);
 
   resetGithubMemory();
-  resetT3Memory();
   const down = await statusCommand(root, ["1"], {
     gh: () => ({ status: 1, stdout: "", stderr: "gh auth login needed" }),
     t3: () => Promise.resolve({ status: 1, stdout: "", stderr: "not running" }),
@@ -158,7 +155,6 @@ test("next names a running agent, and says when everything is done", async () =>
     { letter: "A", status: "Done", order: 10 },
     { letter: "B", status: "Done", order: 20 },
   ]);
-  resetT3Memory();
   assert.match(await nextCommand(done, ["1"], src()), /^none: all strands of 0001 are done\n/);
 });
 
@@ -192,7 +188,6 @@ test("next treats another braid as a dependency until its lane is Done, and note
 
   put("braids/0002-other/brief.md", other("Done"));
   resetGithubMemory();
-  resetT3Memory();
   const ready = await nextCommand(root, ["1"], down);
   assert.match(ready, /^0001\/A {2}T 0001\/A\n/);
   assert.match(ready, /a running agent can't be ruled out/);
@@ -250,19 +245,16 @@ test("stalled and checks failed show only after the condition has held for ten m
   assert.match(out, /0001\/A {2}In Progress {2}Needs You \(stalled\) /);
   assert.match(out, /Stalled: nobody is working and nothing was asked \(for 11 min\)/);
   // An agent shows up: the clock is forgotten, and a later gap starts from zero.
-  resetT3Memory();
   const busy = await statusCommand(root, ["1"], { gh: ghWith([]), t3: t3With([{ threadId: "w", status: "running" }], { w: "0001-A" }, root) });
   assert.doesNotMatch(busy, /stalled/);
   assert.deepEqual(JSON.parse(readFileSync(file, "utf8")), {});
 
   // Red checks, no agent: the same ten minutes.
   const red = [pr(8, "braid/0001/A-s", [check("verify (ubuntu-latest)", "FAILURE")])];
-  resetT3Memory();
   resetGithubMemory();
   await statusCommand(root, ["1"], src(red));
   writeFileSync(file, JSON.stringify({ "0001/A checks failed": new Date(Date.now() - 12 * 60_000).toISOString() }));
   resetGithubMemory();
-  resetT3Memory();
   assert.match(await statusCommand(root, ["1"], src(red)), /Needs You \(checks failed\)[\s\S]*Checks failed: verify \(ubuntu-latest\); fix or retry \(for 12 min\)/);
 });
 

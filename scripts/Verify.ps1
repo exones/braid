@@ -118,9 +118,10 @@ if ($null -eq $selection -or $selection.Mode -eq 'all') {
   Write-Host "test: every suite under test/"
   Invoke-VerifiedNative -Executable $node -Arguments @($npmCli, 'run', 'test')
 } elseif ($selection.Tests.Count) {
-  # node --test with no files would run everything, so an empty pick runs nothing.
+  # The test runner with no files runs everything, so an empty pick runs nothing.
   Write-Host "test: $($selection.Tests.Count) picked file(s)"
-  Invoke-VerifiedNative -Executable $node -Arguments (@('--test', '--test-reporter', 'spec') + $selection.Tests)
+  # What `npm run test` runs, called directly: a long file list would not fit through npm's shell.
+  Invoke-VerifiedNative -Executable 'pwsh' -Arguments (@('-NoProfile', '-File', (Join-Path $PSScriptRoot 'Test-Node.ps1')) + $selection.Tests)
 }
 if ($Full) {
   Invoke-Script 'package: packed install outside the checkout' 'scripts/Test-Package.ps1'

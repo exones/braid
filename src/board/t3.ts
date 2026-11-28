@@ -1,13 +1,15 @@
 // What T3 knows about the agents: one `t3 thread list --json` per refresh, plus `show --json` for
-// each running thread and each recorded review thread; an idle thread is placed by its worker title. An agent of an item is a
+// each running thread and each recorded review thread not seen finished lately; an idle thread is placed by its worker title. An agent of an item is a
 // running thread whose worktree braid created for it (`braid start`, the worker), or a running thread recorded with `braid review`
 // (the reviewer, a coordinator's subagent, which `thread list` doesn't show); any other thread, a coordinator's included, is not an
 // agent of any item.
-import { execFile, spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { childRole, dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
+import { callFailure, CALL_TIMEOUT_MS } from "./timeout.js";
+import { mainCheckout as baseMainCheckout } from "../braids/repo.js";
 import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { itemOfFolder, normPath, repoNameOf } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
@@ -105,7 +107,7 @@ export const runT3: T3Runner = (root, args, input) =>
     const child = execFile(
       win ? "cmd.exe" : command,
       win ? ["/d", "/s", "/c", `"${[command, ...args].map(quote).join(" ")}"`] : [...args],
-      { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 30_000, windowsHide: true, windowsVerbatimArguments: win },
+      { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: CALL_TIMEOUT_MS, windowsHide: true, windowsVerbatimArguments: win },
       (error, stdout, stderr) => {
         const code = error !== null && typeof (error as { code?: unknown }).code === "number" ? (error as { code: number }).code : error === null ? 0 : null;
         done({ status: code, stdout, stderr, error: error !== null && code === null ? error : undefined });
@@ -121,11 +123,13 @@ const str = (v: unknown): string | null => (typeof v === "string" && v !== "" ? 
 
 const norm = (p: string): string => resolve(p).replaceAll("\\", "/").toLowerCase();
 
-/** The main checkout: the first entry of `git worktree list`, which T3 knows as the project. */
+/** The main checkout, which T3 knows as the project; `root` itself when it is not in a repository. Cached per root. */
 export function mainCheckout(root: string): string {
-  const r = spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: root, encoding: "utf8" });
-  const first = r.status === 0 ? r.stdout.split("\n").find((l) => l.startsWith("worktree ")) : undefined;
-  return first === undefined ? root : first.slice(9).trim();
+  try {
+    return baseMainCheckout(root);
+  } catch {
+    return root;
+  }
 }
 
 /** What `t3 thread show <id> --json` says of a thread. */
@@ -156,9 +160,6 @@ export function checkerRecord(where: Where, recordedAt: string, now: Date): "cou
   return where.status === "archived" || (!Number.isNaN(at) && now.getTime() - at >= CHECKER_CAP_MS) ? "drop" : "kept";
 }
 
-const recent = new Map<string, { at: number; t3: Promise<T3> }>();
-const SHARE_MS = 3000;
-
 /** One thread as T3 shows it; null when T3 doesn't know it or can't be asked. The id reaches the runner as given. */
 export async function showThread(run: T3Runner, root: string, id: string): Promise<Where | null> {
   const r = await run(root, ["thread", "show", id, "--json"]);
@@ -181,6 +182,46 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
     };
   } catch {
     return null;
+  }
+}
+
+/** How often a recorded subagent seen finished is asked again. Under the board's ten-minute stall clock: a child messaged without a new record shows running before its item reads stalled. Docs: board.md. */
+export const FINISHED_RECHECK_MS = 5 * 60_000;
+/** The most finished records one read asks again for age alone, the longest unasked first: those seen finished together don't all come due in one read. */
+export const FINISHED_RECHECKS = 6;
+const FINISHED = new Set(["done", "completed", "failed", "archived"]);
+/** The recorded threads seen finished, by thread id: the record's time then and when T3 was last asked. Kept by the process only. */
+const finished = new Map<string, { readonly at: string; readonly asked: number }>();
+
+/**
+ * The records to ask T3 about now: all but those seen finished, unless the record's time moved, `thread list` shows the thread running
+ * again, or the re-check is due.
+ */
+function toShow(records: readonly ReviewRecord[], states: ReadonlyMap<string, string>, now: number): ReviewRecord[] {
+  const changed: ReviewRecord[] = [];
+  const due: { readonly r: ReviewRecord; readonly asked: number }[] = [];
+  for (const r of records) {
+    const seen = finished.get(r.thread);
+    if (seen === undefined || seen.at !== r.at || states.get(r.thread) === "running") {
+      changed.push(r);
+    } else if (now - seen.asked >= FINISHED_RECHECK_MS) {
+      due.push({ r, asked: seen.asked });
+    }
+  }
+  return [...changed, ...due.sort((a, b) => a.asked - b.asked).slice(0, FINISHED_RECHECKS).map((d) => d.r)];
+}
+
+/** Keeps or forgets what T3 said of a record. No answer says nothing new: a remembered one waits for its next re-check. */
+function remember(r: ReviewRecord, where: Where | null, now: number): void {
+  const seen = finished.get(r.thread);
+  if (where === null) {
+    if (seen !== undefined) {
+      finished.set(r.thread, { at: seen.at, asked: now });
+    }
+  } else if (FINISHED.has(where.status?.toLowerCase() ?? "")) {
+    finished.set(r.thread, { at: r.at, asked: now });
+  } else {
+    finished.delete(r.thread);
   }
 }
 
@@ -215,7 +256,6 @@ export interface T3Options {
   readonly agents?: string | readonly string[];
   /** The T3 project folder; the main checkout when not given. */
   readonly project?: string;
-  readonly ttlMs?: number;
   /** The recorded review threads; read from `.braid/reviews.json` of the main checkout when not given. */
   readonly reviews?: readonly ReviewRecord[];
   /** The clock for the checker cap; now when not given. */
@@ -227,14 +267,7 @@ export interface T3Options {
  * `unavailable` with the reason, never an error.
  */
 export function readT3(root: string, options: T3Options = {}): Promise<T3> {
-  const ttl = options.ttlMs ?? SHARE_MS;
-  const shared = recent.get(root);
-  if (shared !== undefined && Date.now() - shared.at < ttl) {
-    return shared.t3;
-  }
-  const t3 = readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root), options.now ?? new Date());
-  recent.set(root, { at: Date.now(), t3 });
-  return t3;
+  return readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root), options.now ?? new Date());
 }
 
 /** T3's statuses of a thread whose turn is under way: `running`, or `waiting` (its turn waits on a background task it awaits). */
@@ -264,7 +297,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
   const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
-    return down("t3 is not installed or not on PATH");
+    return down(callFailure("T3", "t3", listed.error));
   }
   if (listed.status !== 0) {
     const first = listed.stderr.trim().split("\n")[0] ?? "";
@@ -338,8 +371,10 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined, provider: str(t["providerInstanceId"]) ?? where?.provider ?? null } satisfies T3Thread };
   });
   // A recorded child thread is its item's reviewer (or its worker or researcher, by the record's role) while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
-  const reviewing = await pool(reviews.filter((r) => !r.id.startsWith("pm/")), async (r) => {
+  // One seen finished is skipped (`toShow`): a read's calls don't grow with the records a project has gathered.
+  const reviewing = await pool(toShow(reviews.filter((r) => !r.id.startsWith("pm/")), states, now.getTime()), async (r) => {
     const where = await showThread(run, root, r.thread);
+    remember(r, where, now.getTime());
     if (where?.status !== "running") {
       return null;
     }
@@ -392,9 +427,4 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   }
   const pmChecks = [...listedChecks, ...recordedChecks.flat()];
   return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, providers, pmChecks, occupied };
-}
-
-/** Forgets what was read, for tests. */
-export function resetT3Memory(): void {
-  recent.clear();
 }

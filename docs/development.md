@@ -44,14 +44,16 @@ Focused tests: `npm run build && node --test test/<file>.test.ts`. Pester suites
 
 Both gates run `scripts/Verify.ps1`, which selects the toolchain first.
 
-`npm run verify` is the quick offline pre-PR gate and the `gate` in [BRAID.md](../BRAID.md):
+`npm run verify` is the offline pre-PR gate and the `gate` in [BRAID.md](../BRAID.md):
 
 1. Tracked Markdown relative links and heading anchors, using pinned `remark-cli` and `remark-validate-links`. The check runs with its working directory set to the repository being scanned. `inspiration/` and external URLs are excluded. Paths listed as frozen in `scripts/markdown-link-exclusions.json` (closed records kept as written) are not link-checked, but their text still is. A skill under `.agents/skills/<name>/` must not link outside its own folder, except to another braid skill.
 2. Tracked-text LF line endings and trailing whitespace. The check reads Git index blobs and worktree bytes, so a clean checkout and a local edit are both covered.
 3. The OIDC release-shape guard.
-4. `npm run typecheck` (`tsc -p tsconfig.json --noEmit` and `tsc -p web/tsconfig.json --noEmit` for the board's web app), `npm run build` (`tsc -p tsconfig.build.json` and `vite build --config web/vite.config.ts`) and the tests [picked for the branch's changes](#which-tests-the-quick-gate-runs). `npm run verify -- -All` runs every suite under `test/` instead.
+4. `npm run typecheck` (`tsc -p tsconfig.json --noEmit` and `tsc -p web/tsconfig.json --noEmit` for the board's web app), `npm run build` (`tsc -p tsconfig.build.json` and `vite build --config web/vite.config.ts`) and the tests [picked for the branch's changes](#which-tests-the-quick-gate-runs), run by `scripts/Test-Node.ps1` with `--test-concurrency` at half the cores so a gate leaves room for the board (no cap when `CI` is set). `npm run verify -- -All` runs every suite under `test/` instead.
 
-`npm run verify:full` (`Verify.ps1 -Full`) is what CI and the release workflow run. It runs every suite under `test/` (`npm run test`, `node --test --test-reporter spec test`) and adds the tooling tests and the package proof:
+On a machine where several gates may start at once, `braid gate` runs this gate with at most two at a time ([the CLI reference](cli.md)). CI runs `npm run verify:full` directly.
+
+`npm run verify:full` (`Verify.ps1 -Full`) is what CI and the release workflow run. It runs every suite under `test/` (`npm run test`: `scripts/Test-Node.ps1` running `node --test --test-reporter spec test`, with the same cap) and adds the tooling tests and the package proof:
 
 - The docs-gate negatives: a disposable repository that must fail for a broken link or anchor, a CR line ending, trailing whitespace and a skill linking outside its folder (a braid skill may link to another braid skill), and must pass for a broken link under a frozen path.
 - The install-policy guard: real installs that `.npmrc` must refuse.
