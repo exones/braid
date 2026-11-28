@@ -1,13 +1,14 @@
 // Programmes on the board (docs/board.md, "Programmes"): one per `pm/<slug>` plan, derived at each read from the
 // plan's front matter, the braid cards, the programme's open request, T3 and the broke clock. Pure apart from the
 // clock, which the step after the derivation keeps. A programme isn't a braid: it never sits in a lane, it sits in the panel.
-import { age, type Request } from "../braids/requests.js";
+import { age, askerOf, type Request } from "../braids/requests.js";
 import { reasonOf, type Pause } from "../braids/pauses.js";
 import type { Hold, PlanRow, PlanState } from "../braids/plan.js";
 import { linkOfThread, needOfAsk, needOfForward, raiseTo, type Alarm, type BraidCard, type Lane, type Need, type NudgeTarget, type Raise, type Signals } from "./model.js";
 import { clock as hhmmOf, pauseView, usage } from "./pause.js";
 import { GONE, routeOf, throughPm } from "./pm.js";
 import type { PlanRead } from "./plans.js";
+import { openItemRequests } from "./record.js";
 import type { T3 } from "./t3.js";
 
 /** Where a programme shows: `needs` (it asks you, or it stalled), `working` (the rest that runs or is held), null (done or stopped: off the panel). */
@@ -156,6 +157,12 @@ function requestsOfCard(card: BraidCard): Forward[] {
   return items.flatMap(({ id, title, need, pmAsk }) => [need?.by === undefined ? need : null, pmAsk].flatMap((n) => (n?.code === undefined ? [] : [{ id, title, need: n }])));
 }
 
+/** The coordinators' requests forwarded to the user through the PM, the newest per item; a newer one still with the PM doesn't hide it. */
+function forwardedOf(sig: Signals, t3: T3, read: PlanRead): Request[] {
+  const forwarded = openItemRequests(sig).filter((r) => askerOf(r) === "coordinator" && throughPm(r, routeOf(r, sig.now, t3, sig.pauses?.has(r.id.slice(0, 4)) === true), [read]));
+  return [...new Map(forwarded.map((r) => [r.id, r])).values()];
+}
+
 /** The title of an item (a braid or one of its strands) from the board's cards; the id when the card isn't there. */
 const titleOf = (cards: ReadonlyMap<string, BraidCard>, id: string): string => {
   const card = cards.get(id.slice(0, 4));
@@ -198,9 +205,8 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
   // What the PM forwarded to the user from its braids: the PM asks you, whoever's braid it was.
   const forwards: Forward[] = over
     ? []
-    : [...sig.requests.values()].flatMap((r) => {
-        const routed = routeOf(r, sig.now, t3, sig.pauses?.has(r.id.slice(0, 4)) === true);
-        return braids.includes(r.id.slice(0, 4)) && throughPm(r, routed, [read]) ? [{ id: r.id, title: titleOf(cards, r.id), need: needOfForward(r, sig.now, t3, sig.unblocks?.(r) ?? []), ...(r.head === undefined ? {} : { head: r.head }), ...(r.note === undefined ? {} : { note: r.note }) }] : [];
+    : forwardedOf(sig, t3, read).flatMap((r) => {
+        return braids.includes(r.id.slice(0, 4)) ? [{ id: r.id, title: titleOf(cards, r.id), need: needOfForward(r, sig.now, t3, sig.unblocks?.(r) ?? []), ...(r.head === undefined ? {} : { head: r.head }), ...(r.note === undefined ? {} : { note: r.note }) }] : [];
       });
   const holds = over || held || asked !== null || forwards.length > 0 ? false : t3ok && ghOk ? !(pmRunning || mine.some((c) => busy(c, t3)) || checking) : null;
   // The PM thread, known and idle, is nudged once before the stall shows; without one the stall shows after ten minutes as before.

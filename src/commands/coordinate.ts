@@ -157,8 +157,9 @@ function requestLines(w: World, card: StrandCard | BraidCard): string[] {
     shown.add(handle);
     return `${handle}  `;
   };
-  // The card's quiet PM line is about the coordinator's newest question, as the board reads it.
-  const handled = card.pm === null ? undefined : own.findLast((r) => askerOf(r) === "coordinator" && !isWait(r));
+  // The card's quiet PM line names the request it is about: the one sent (or forwarded) at its time.
+  const line = card.pm;
+  const handled = line === null ? undefined : own.findLast((r) => askerOf(r) === "coordinator" && !isWait(r) && (line.forwarded === true ? (r.forwarded ?? r.at) : r.at) === line.since);
   const pm = card.pm === null ? [] : [`    🧭 ${named(handled === undefined ? undefined : handleOf(handled))}${card.pm.text} (to the PM ${card.pm.age} ago)`];
   const need = card.need === null ? [] : [`    ${named(card.need.handle)}${needLine(card.need)}`];
   // The PM's own request, when the need line is another one (the coordinator's).
