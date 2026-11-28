@@ -1,0 +1,11 @@
+{
+  "id": "0087/A",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-28T09:02:35.398Z",
+      "thread": "mcp:launch:fffd5f02ce052d9915b025a9bbb0d285506d76a00cd6509ede003cfdcda47587",
+      "branch": "braid/0087/A-the-quick-gate-runs-only-the-affected"
+    }
+  ]
+}
