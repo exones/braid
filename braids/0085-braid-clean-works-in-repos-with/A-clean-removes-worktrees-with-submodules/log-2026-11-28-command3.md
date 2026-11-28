@@ -13,3 +13,7 @@ Finding: the regression test failed with deinit in place. `git submodule deinit 
 Decided (data, the safer side; reported to the coordinator): clean runs no deinit at all. `git worktree remove --force` after the checks removes a worktree with submodules and their git dirs under .git/worktrees/<name>/modules. The brief's Change and Failure modes are adjusted; D121 records it.
 
 Tests consolidated into one fixture with subtests: the machine is heavily loaded (one fixture test took 9 min), each fixture costs many git runs.
+
+## 2026-11-28 12:01Z checkpoint
+
+done: safe removal (no deinit, linked-worktree guard, recursive submodule checks) in all four clean sites; braid branch merged (with 0077, at c9140b9d); test/clean-submodules.test.ts passes (12/12, one fixture); start-clean messages updated; docs/cli.md and D121 updated; brief has the binding addition. next: run the gate once (stopped by the restart hold, result unknown; start-clean.test.ts and reviews.test.ts not yet run on the new code), fix what fails, tick boxes, write report.md, push, PR into braid/0085-braid-clean-works-in-repos-with. open: none.
