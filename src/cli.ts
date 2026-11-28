@@ -8,6 +8,7 @@ import { checkBraids } from "./braids/check.js";
 import { boardUrl, runBoard } from "./commands/board.js";
 import { serviceCommand } from "./commands/service.js";
 import { notifyCommand } from "./commands/notify.js";
+import { t3Command } from "./commands/t3.js";
 import { projectsCommand } from "./commands/projects.js";
 import { ProjectsFileError } from "./projects/list.js";
 import { GitError } from "./braids/numbers.js";
@@ -84,6 +85,10 @@ export function helpText(version: string): string {
     "  board service <sub>         Windows: the board as a Task Scheduler task of yours, started at logon, again every 5 minutes if it stopped, no window: install [--port <n>, default 8765] [--host tailscale] (from your checkout), remove, restart [--if-installed: nothing when no task], status (state, last result (the previous run's while it runs, shown as previous run:), port, address, the running board's version against this one, the acting leases it and other boards hold, its log ~/.braid/board-<port>.log); elsewhere it points to the systemd recipe in docs/board.md",
     "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends a push, then one it clears, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
     "  notify send <line> --thread <id>  The PM's own push, sent at once without the board: the line (200 characters at most), opening the thread (--programme <slug>; a newer line of a programme replaces the older; off or not set up: says why, exit 0)",
+    "  t3 login [--url <origin>]   Sign the board in to T3's MCP at Full access: opens T3's approval page, takes the answer on a one-off 127.0.0.1 port and keeps the token only in the OS secret store (5 minutes to approve; --url: T3's address, local only unless braid t3 set --local-only off, then https only)",
+    "  t3 logout                   Sign the board out of T3: revokes \"braid board\" in T3 and deletes the sign-in here (if T3 can't be reached: deleted here, revoke it in T3's Settings)",
+    "  t3 status                   Whether the board is signed in to T3, at which address and until when, and the two settings in ~/.braid/t3.json; never the token",
+    "  t3 set [--access auto|cli] [--local-only on|off]  The two T3 settings: access auto (the sign-in when signed in, else the t3 command line) or cli (always the command line); local only on (a local T3 address only) or off (also https elsewhere)",
     "  projects add [<path>]       Add a project to this machine's list in ~/.braid/projects.json (its main checkout; --name <n>, --port <n>) and print its readiness",
     "  projects remove <name>      Remove a project from the list",
     "  projects list               Each listed project: name, path, port and readiness (GitHub not checked)",
@@ -321,6 +326,20 @@ async function main(argv: readonly string[]): Promise<void> {
   if (argv[0] === "notify") {
     try {
       process.stdout.write(await notifyCommand(argv.slice(1)));
+    } catch (error) {
+      if (error instanceof UsageError) {
+        process.stderr.write(`error: ${error.message}
+`);
+        process.exitCode = 1;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "t3") {
+    try {
+      process.stdout.write(await t3Command(argv.slice(1)));
     } catch (error) {
       if (error instanceof UsageError) {
         process.stderr.write(`error: ${error.message}

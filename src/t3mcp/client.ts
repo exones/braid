@@ -44,9 +44,11 @@ export function mcpClient(endpoint: string, token: TokenSource, options: McpOpti
   return {
     call,
     async callTool(name, args = {}) {
-      const result = obj(await call("tools/call", { name, arguments: args }));
+      // The token is read once per call: the same value signs the request and is scrubbed from a failure's text.
+      const secret = await token();
+      const result = obj(await callMcp(endpoint, "tools/call", { name, arguments: args }, () => secret, options));
       if (result?.["isError"] === true) {
-        throw await toolFailure(name, result, token);
+        throw toolFailure(name, result, secret);
       }
       const structured = result?.["structuredContent"];
       if (structured === undefined) {
@@ -138,7 +140,7 @@ function parseReply(type: string, text: string): Record<string, unknown> | undef
 }
 
 /** T3 returns a failed tool as `isError` with `{ _tag, code, message }`, as structured content and as JSON text. */
-async function toolFailure(name: string, result: Record<string, unknown>, token: TokenSource): Promise<McpError> {
+function toolFailure(name: string, result: Record<string, unknown>, secret: string): McpError {
   const content = result["content"];
   const first = Array.isArray(content) ? obj(content[0])?.["text"] : undefined;
   const text = typeof first === "string" ? first : undefined;
@@ -147,7 +149,7 @@ async function toolFailure(name: string, result: Record<string, unknown>, token:
   const detail = obj(failure?.["error"]) ?? failure;
   const message = typeof detail?.["message"] === "string" ? detail["message"] : (text ?? "failed");
   const code = detail?.["code"];
-  return new McpError("error", clean(`T3 MCP tool ${name}: ${message}`, await token()), typeof code === "string" ? code : undefined);
+  return new McpError("error", clean(`T3 MCP tool ${name}: ${message}`, secret), typeof code === "string" ? code : undefined);
 }
 
 function reason(error: unknown, timeoutMs: number): string {

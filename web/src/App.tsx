@@ -5,6 +5,7 @@ import { Md } from "./Md.tsx";
 import { TAG_COLOURS } from "./palette.ts";
 import { copyText, type CopyEnv } from "../../src/board/copy.ts";
 import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
+import { T3Button } from "./T3.tsx";
 import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
@@ -2327,6 +2328,8 @@ export function App() {
   const pauseNotes = shown.filter((i) => i.pausesNote !== null);
   const resolved = resolveProject(route.project, selected, served);
   const limits = all.state === "ready" && all.data.limits !== null && all.data.limits.providers.length > 0 ? all.data.limits : null;
+  const t3 = all.state === "ready" ? (all.data.t3SignIn ?? null) : null;
+  const remoteNow = all.state === "ready" && all.data.remote;
   const [limitsOpen, setLimitsOpen] = useState(false);
   const toggleLimits = () => setLimitsOpen(!limitsOpen);
   const now = new Date();
@@ -2342,6 +2345,12 @@ export function App() {
           {several && <span className="text-slate-500 max-md:hidden">Each braid sits in the lane where it needs you most.</span>}
           <span className="flex-1" />
           {limits !== null && <LimitChips view={limits} now={now} onOpen={toggleLimits} />}
+          {t3 != null && (
+            <span className="flex items-center gap-1.5 max-md:hidden">
+              {limits !== null && <span aria-hidden className="h-[22px] w-px bg-slate-200" />}
+              <T3Button view={t3} remote={remoteNow} now={now} />
+            </span>
+          )}
           {all.state === "ready" && <InboxChip inbox={inbox} on={route.inbox} />}
           <label className="flex cursor-pointer items-center gap-1.5 text-xs" title="Show the line on each card saying what is needed; off moves the text into the icon's tooltip">
             <input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details
@@ -2360,7 +2369,7 @@ export function App() {
             Refresh
           </button>
         </header>
-        {limits !== null && <LimitsStrip view={limits} now={now} onOpen={toggleLimits} />}
+        {(limits !== null || t3 != null) && <LimitsStrip view={limits} now={now} onOpen={toggleLimits} lead={t3 == null ? undefined : <T3Button view={t3} remote={remoteNow} now={now} phone />} />}
         {limitsOpen && limits !== null && <LimitsPanel view={limits} now={now} onClose={() => setLimitsOpen(false)} />}
         {several && <ProjectsBar infos={infos} selected={selected} onSelect={setSelected} />}
         {single !== undefined && single.problems.length > 0 && (

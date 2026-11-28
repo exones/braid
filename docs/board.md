@@ -358,7 +358,7 @@ The reads are cheap by design: the Done dates of all Done items come from one `g
 
 ## Actions and the session token
 
-The board can also act, but only through `POST /api/action/<name>`, and only for the page this `braid board` run opened. Actions are registered by name in `src/commands/board.ts` (`Sources.action`); the endpoint itself adds none that changes anything. Today there are four, `merge`, `start`, `promote` and `open` (`open` on the local listener only; the first three below). On the local listener a request is refused with 403 unless it carries this run's token in the `x-braid-token` header, its `Host` is `127.0.0.1:<port>` and any `Origin` it sends is `http://127.0.0.1:<port>`. Unknown names give 404, a body that isn't JSON 400, a body over 64 KB 413, and other methods 405 as before. The 403 body's `error` says which check failed and what to do, and never echoes the token: no token (open the URL `braid board` printed, or the one `braid board --url` prints), a token from another `braid board` run (a second tab or a tab kept across a restart; open the printed URL now, or `braid board --url`'s), a Host or Origin that isn't this board's page, and on the Tailscale listener a missing `x-braid-request` header. The page shows that text in the dialog. The Tailscale listener of `braid board --host` checks identity instead of the token ([On Tailscale](#on-tailscale)); its whois/Host refusal is a 403 too: for an `/api/` path a JSON body whose `error` says the board couldn't confirm through Tailscale who is asking (or that the Host isn't this listener's) and that refreshing asks again; for any other path a terse plain-text `forbidden`. The page never shows a JSON parse error for a non-JSON error body: it shows the status and text.
+The board can also act, but only through `POST /api/action/<name>`, and only for the page this `braid board` run opened. Actions are registered by name in `src/commands/board.ts` (`Sources.action`); the endpoint itself adds none that changes anything. Today there are four, `merge`, `start`, `promote` and `open` (`open` on the local listener only; the first three below). The [T3 sign-in](#the-t3-button)'s `POST /api/t3/login|cancel|logout` pass the same checks; its `GET /t3/callback` is the one route without the token. On the local listener a request is refused with 403 unless it carries this run's token in the `x-braid-token` header, its `Host` is `127.0.0.1:<port>` and any `Origin` it sends is `http://127.0.0.1:<port>`. Unknown names give 404, a body that isn't JSON 400, a body over 64 KB 413, and other methods 405 as before. The 403 body's `error` says which check failed and what to do, and never echoes the token: no token (open the URL `braid board` printed, or the one `braid board --url` prints), a token from another `braid board` run (a second tab or a tab kept across a restart; open the printed URL now, or `braid board --url`'s), a Host or Origin that isn't this board's page, and on the Tailscale listener a missing `x-braid-request` header. The page shows that text in the dialog. The Tailscale listener of `braid board --host` checks identity instead of the token ([On Tailscale](#on-tailscale)); its whois/Host refusal is a 403 too: for an `/api/` path a JSON body whose `error` says the board couldn't confirm through Tailscale who is asking (or that the Host isn't this listener's) and that refreshing asks again; for any other path a terse plain-text `forbidden`. The page never shows a JSON parse error for a non-JSON error body: it shows the status and text.
 
 **Every request on the local listener**, the page, the board data, the refresh events and the actions alike, needs `Host: 127.0.0.1:<port>` or `localhost:<port>` with this board's own port; anything else gets 403 before anything is read (D78). A page on another name that resolves to `127.0.0.1` (DNS rebinding) so reads no board data of any listed project. Actions are stricter still, as above: only `127.0.0.1:<port>`, plus the token. The Tailscale listener has its own Host check ([On Tailscale](#on-tailscale)).
 
@@ -426,6 +426,46 @@ On the Tailscale listener every request, the page, the board data, the refresh e
 **Remote.** `GET /api/board` carries `remote: true` on this listener and `false` on the local one; the page decides from it, not from its address, whether to offer the server-side Open thread button. A local board opened as `http://localhost:<port>` keeps that button (its actions are still refused for that Host).
 
 Start and Merge work over Tailscale as on the PC. The `open` action is refused (403): it would open T3 on the machine running the board. On a page that came over Tailscale, Open thread is only the thread's `t3code://threads/<env>/<thread>` app link, at every width, opened by the T3 app on the phone; a thread link of another shape shows nothing there. T3's mobile app registers the `t3code` scheme and routes `threads/:environmentId/:threadId` to the thread, so the link opens the thread when the phone's T3 app is connected to this machine's T3 environment.
+
+## T3 sign-in
+
+The board can sign in to T3's MCP once, so later items can stop threads and read events through one connection instead of a `t3` process per call (D110). Signed out, refused, or on a host without a secret store, it works as before, through the `t3` command line.
+
+**Signing in.** `braid t3 login` in a terminal, or the T3 button on the board ([below](#the-t3-button)), runs T3's own OAuth sign-in for outside agents: braid reads T3's metadata, registers as "braid board", makes a fresh `state` and PKCE verifier (S256), and opens T3's approval page in the browser without a shell. There you approve "braid board" at **Full access**: T3 refuses an outside agent acting on a thread whose mode ranks above its level, and braid's threads run at the project's default, some at Full access. T3 sends the browser back to a loopback address with a code, `state` and `iss`; braid checks `state` and `iss`, exchanges the code with the verifier, and refuses (revoking it at once) a sign-in whose scopes are below Full access. The sign-in lasts T3's fixed 30 days and isn't renewed.
+
+**Where the token lives.** Only in the OS secret store (Windows Credential Manager, macOS Keychain, Linux Secret Service): one entry, service `braid`, account `t3`, holding the token, its end, T3's address and the client id, through `@napi-rs/keyring`, braid's one runtime dependency, loaded only when needed. On Linux it is pinned to Secret Service, so a headless host without one counts as having no store. With no store there is no sign-in: no file, environment variable or prompt stands in for it. The token never goes on a command line, in a file, a log, the board's page or API, a push or chat. The board reads the entry at its start, at most once a minute and right after T3 refuses it, and keeps the token in memory only. It makes no T3 call on a timer for the sign-in; T3 is asked only when you sign in or out.
+
+**The two settings**, in `~/.braid/t3.json` (machine-level, like `notify.json`; no secret in it), set with `braid t3 set` and shown by `braid t3 status`:
+
+- `access`: `auto` (the default) uses the sign-in when signed in, else the `t3` command line; `cli` always uses the command line, even when signed in.
+- `localOnly`: on (the default) signs in only to a local T3 (`localhost`, `127.0.0.1`); off also allows another address, over `https` only.
+
+A missing or unreadable file means the defaults.
+
+**Refused and ended.** When T3 answers 401 (revoked in T3's Settings → Sharing & access, or ended), the board is signed out, stops using that token and doesn't retry it; it is signed in again only once the store holds a different token (a new sign-in). A connection error is T3 down, not signed out: the button keeps its state, and the header's "T3 unavailable" note says so. At the end date the board stops using the sign-in too.
+
+**Pushes.** Two, each once per sign-in (their keys in `~/.braid/t3-notified.json`), through [Notifications](#notifications) when they are set up: 5 days before the end, `braid: T3 sign-in ends on <date>`, and on a 401, `braid: T3 refused the board's sign-in`. Signing out yourself sends none.
+
+**Signing out.** `braid t3 logout`, or Sign out of T3 on the board (from the PC or the phone: it only takes access away), revokes "braid board" in T3, then deletes the entry. If T3 can't be reached, the entry is deleted anyway and braid says to revoke "braid board" in T3's Settings → Sharing & access.
+
+### The T3 button
+
+Top right, after the provider chips, behind a thin divider (on the phone, first in the chip strip, 44 px): a "T3" monogram with a state dot, icon only, the words in its tooltip.
+
+| Look | Tooltip |
+| --- | --- |
+| Dashed grey, hollow dot | `Sign in to T3`: not signed in; the board uses the t3 command line. |
+| Green | `T3 sign-in: signed in · Full access · until <date>` |
+| Amber, from 5 days before the end | `T3 sign-in ends on <date>; run braid t3 login` |
+| Red | `Signed out: T3 refused the sign-in (revoked in T3)`, or `Signed out: the T3 sign-in ended on <date>` |
+| Faint dashed, no dot, not clickable | `Signed out: no secret store on this host` |
+| Blue | Waiting for T3's approval, at most 5 minutes |
+
+A click opens a small panel (a sheet at the bottom on the phone). Signed in, it shows T3's address, the level, the end, which way the board talks to T3 (`access`) and Sign out of T3, which asks first. Ending soon it adds Sign in again; signed out, Sign in to T3. A sign-in from the button is a board action, token-checked like every other ([Actions](#actions-and-the-session-token)): `POST /api/t3/login` starts the same steps as `braid t3 login` in the board process, the page opens T3's approval page in a new tab, and T3 sends the browser back to the board's own `GET /t3/callback`; the panel shows the wait with Open the approval page again and Cancel (`POST /api/t3/cancel`). Sign out is `POST /api/t3/logout`.
+
+**The callback** is the one board route without the board's token, and it does nothing without a live sign-in from a click: it answers only on the local listener, only to a GET carrying the `state` that click made, once, within 5 minutes; anything else (another or no `state`, a reused or expired one, a cancelled sign-in, the Tailscale listener) gets 404. The code it takes is exchanged with that click's PKCE verifier. Neither the code nor the token appears in a log or on the page the tab shows.
+
+**From the phone** (the Tailscale listener) a sign-in starts nothing: `POST /api/t3/login` answers 403, and the panel says "Sign in from the board on the PC, or run `braid t3 login`", because T3's approval page has to open where T3 runs. `/api/all` carries the state as `t3SignIn` (no token); `braid board` prints it at the start (`T3 sign-in: signed in at … · Full access · until …`).
 
 ## Notifications
 

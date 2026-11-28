@@ -217,3 +217,53 @@ test("the token is in no error, even when fetch or the server would quote it", a
   const echoed = await failure(client().callTool(MOCK_TOKEN));
   assert.match(echoed.message, /Tool '\[token\]' not found/);
 });
+
+/** A one-off server answering every request with `reply`; returns its URL and the paths it was asked for. */
+async function plainServer(reply: (res: import("node:http").ServerResponse) => void) {
+  const { createServer } = await import("node:http");
+  const paths: string[] = [];
+  const server = createServer((req, res) => {
+    paths.push(req.url ?? "");
+    reply(res);
+  });
+  await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+  const { port } = server.address() as import("node:net").AddressInfo;
+  return { url: `http://127.0.0.1:${port}/mcp`, paths, close: () => new Promise<void>((done) => server.close(() => done())) };
+}
+
+test("a redirect is refused: the call goes nowhere else and fails as unreachable", async () => {
+  const target = await plainServer((res) => res.writeHead(200, { "content-type": "application/json" }).end("{}"));
+  const redirecting = await plainServer((res) => res.writeHead(307, { location: target.url }).end());
+  try {
+    const refused = await failure(mcpClient(redirecting.url, () => MOCK_TOKEN, { timeoutMs: 5_000 }).callTool("t3_thread_list"));
+    assert.equal(refused.kind, "unreachable");
+    assert.equal(redirecting.paths.length, 1);
+    assert.deepEqual(target.paths, [], "the redirect was followed");
+  } finally {
+    await redirecting.close();
+    await target.close();
+  }
+});
+
+test("a bare 5xx without a JSON-RPC answer is unreachable with its status", async () => {
+  const broken = await plainServer((res) => res.writeHead(503, { "content-type": "text/plain" }).end("Service Unavailable"));
+  try {
+    const down = await failure(mcpClient(broken.url, () => MOCK_TOKEN, { timeoutMs: 5_000 }).callTool("t3_thread_list"));
+    assert.equal(down.kind, "unreachable");
+    assert.equal(down.code, 503);
+  } finally {
+    await broken.close();
+  }
+});
+
+test("a tool call reads the token once, a failed one too", async () => {
+  let reads = 0;
+  const counted = mcpClient(mock.url, () => {
+    reads += 1;
+    return MOCK_TOKEN;
+  });
+  await counted.callTool("t3_thread_list");
+  assert.equal(reads, 1);
+  await failure(counted.callTool("no_such_tool"));
+  assert.equal(reads, 2);
+});

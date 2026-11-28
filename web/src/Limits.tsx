@@ -1,4 +1,5 @@
 // The provider limits on the page (docs/board.md, "Provider limits"): the header chips, the phone strip and the limits panel.
+import type { ReactNode } from "react";
 import { Dialog } from "radix-ui";
 import { percent } from "../../src/braids/percent.ts";
 import { actingText, agentsText, badgeText, blindReason, chipNote, chipTitle, resetText, STATE_TONE, repliesLine } from "../../src/board/limits-view.ts";
@@ -80,8 +81,13 @@ export function LimitChips({ view, now, onOpen }: { view: LimitsView; now: Date;
 }
 
 /** On the phone the chips sit in a strip under the header, scrolling sideways; a tap opens the panel full-screen. */
-export function LimitsStrip({ view, now, onOpen }: { view: LimitsView; now: Date; onOpen: () => void }) {
-  return <div className="flex gap-1.5 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2 md:hidden">{[...view.providers].sort((a, b) => Number(b.state === "blind") - Number(a.state === "blind")).map((p) => <Chip key={p.instanceId} p={p} now={now} onOpen={onOpen} />)}</div>;
+export function LimitsStrip({ view, now, onOpen, lead }: { view: LimitsView | null; now: Date; onOpen: () => void; lead?: ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2 md:hidden">
+      {lead}
+      {[...(view?.providers ?? [])].sort((a, b) => Number(b.state === "blind") - Number(a.state === "blind")).map((p) => <Chip key={p.instanceId} p={p} now={now} onOpen={onOpen} />)}
+    </div>
+  );
 }
 
 function WindowRow({ w, tone, now }: { w: WindowReading; tone: Tone; now: Date }) {

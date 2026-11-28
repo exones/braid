@@ -8,6 +8,7 @@ export type { BoardData, BraidCard, ItemDetail, Lane, CoordinatorInfo, MergeInfo
 export type { PullRequest } from "../../src/board/github.ts";
 export type { LimitsView, ProviderView } from "../../src/board/limits.ts";
 export type { WindowReading } from "../../src/braids/limits.ts";
+export type { SignInView } from "../../src/t3/words.ts";
 export type { AllBoard, ProjectInfo, TaggedCard, TaggedProgramme } from "../../src/board/combined.ts";
 
 export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
@@ -36,6 +37,16 @@ export async function postAction<T = unknown>(name: string, body: object = {}): 
     // x-braid-request: a header a cross-site page can't send without a CORS preflight; the Tailscale listener requires it (D60).
     headers: { "content-type": "application/json", "x-braid-token": sessionToken() ?? "", "x-braid-request": "1" },
     body: JSON.stringify(body),
+  });
+  return readReply<T>(response);
+}
+
+/** Runs a T3 sign-in action (`login`, `cancel`, `logout`) with the session token, gated like every board action. */
+export async function postT3<T = unknown>(verb: "login" | "cancel" | "logout"): Promise<T> {
+  const response = await fetch(`/api/t3/${verb}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-braid-token": sessionToken() ?? "", "x-braid-request": "1" },
+    body: "{}",
   });
   return readReply<T>(response);
 }
