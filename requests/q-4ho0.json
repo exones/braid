@@ -18,6 +18,12 @@
       "event": "opened",
       "at": "2026-11-28T16:40:21.709Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T16:40:59.131Z",
+      "by": "user",
+      "text": "A. Option one"
     }
   ]
 }
