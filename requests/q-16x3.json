@@ -1,0 +1,20 @@
+{
+  "code": "q-16x3",
+  "item": "0080",
+  "kind": "action",
+  "text": "Live-check the T3 sign-in now that 0080 is in main: braid t3 login, status, a hold, revoke, logout",
+  "context": "0080 is in main and installed; the board service runs it. Your live check (docs/board.md \"First sign-in and checking it\"):\n1. braid t3 login  -> approve \"braid board\" at Full access in T3.\n2. braid t3 status -> signed in, Full access; the board's T3 button (top right) turns green.\n3. Hold a scratch braid with a running thread: it stops within ~30 s.\n4. In T3 Settings -> Sharing & access, revoke \"braid board\": the button turns red, one push arrives.\n5. braid t3 logout -> the button turns dashed grey.\nTell the PM what works and what doesn't.",
+  "words": "purple magnet",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T16:17:21.000Z",
+      "by": "pm"
+    }
+  ]
+}
