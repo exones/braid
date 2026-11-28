@@ -17,6 +17,12 @@
       "event": "opened",
       "at": "2026-11-28T15:32:31.622Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-28T15:42:27.316Z",
+      "by": "pm",
+      "text": "live check passed (signed out, sign-in tests 62/62) · merge PR #391 at 85be4f08; your sign-in steps follow the merge"
     }
   ]
 }
