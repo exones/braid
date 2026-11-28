@@ -50,11 +50,11 @@ What a user can try at the end: start two gates at once (two worktrees, `braid g
 ## Completion
 
 - [ ] With two gates running at once on one machine, the board's `/api/session` and page answer within a second, measured and written in the final report
-- [ ] `braid board --url` finds a running board on a busy machine, and says "busy" rather than "no board" when one listens but answers late
-- [ ] No synchronous git or gh call runs in the board process, and a test fails if one is added
-- [ ] At most two `braid gate` runs on one machine run at once; a third waits
-- [ ] The programme card's running count follows the user's rule (started, not Done, coordinator alive or the PM handling it)
-- [ ] Docs updated by the docs strand
+- [x] `braid board --url` finds a running board on a busy machine, and says "busy" rather than "no board" when one listens but answers late
+- [x] No synchronous git or gh call runs in the board process, and a test fails if one is added
+- [x] At most two `braid gate` runs on one machine run at once; a third waits
+- [x] The programme card's running count follows the user's rule (started, not Done, coordinator alive or the PM handling it)
+- [x] Docs updated by the docs strand
 
 ## Autonomy
 
