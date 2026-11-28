@@ -25,7 +25,8 @@ Expected size: about 400 lines in 10 files, tests included.
 ## Change
 
 - Signals hold every open request per item and asker, and per programme, not one.
-- The card and the details panel show every open question, as the approved mockups do. The lane rule doesn't change: any open question puts the item in Needs You, a `review` in To Review, as today.
+- The card and the details panel show the open questions as the approved mockups do: a card shows the oldest open question plus "+N more"; a folded braid card the most urgent strand's plus "+N more in strands"; with Details off the ? icon shows a count.
+- The lane rule changes in one point (amends D46): an item with an open `review` request and an open question is in Needs You, the merge line and Merge button kept above the questions. Otherwise lanes are as today.
 - The Questions panel lists each open question as its own row, answered on its own; ranking as today.
 - The programmes panel shows every open `pm/<slug>` question.
 - Each question is pushed on its own, and clearing one leaves the others' pushes.
@@ -36,6 +37,8 @@ Expected size: about 400 lines in 10 files, tests included.
 - Read the braid brief `braids/0084-several-open-questions-per-item/brief.md` "Already decided": it is binding.
 - 0084/A changed the record and the CLI; the record format is unchanged.
 - The look is the user's approval of 0084/B; anything the mockups leave open goes to the coordinator before it is built.
+- The user's verdict on 0084/B (lazy-cloud-560n, 2026-11-28): "1. A card with several questions shows the oldest open question plus \"+N more\". Not every question in full. 2. As proposed: the folded braid card shows the most urgent strand plus \"+N more in strands\". 3. As proposed: a PR handover with open questions goes to Needs You, with the Merge button kept above the questions. This amends D46. 4. As proposed: with details off, the ? icon shows a count."
+- `requestLines` in `src/commands/coordinate.ts` picks the PM line's handle with `own.findLast`; once signals hold several requests, match the PM's own request instead (0084/A review suggestion 2).
 
 ## Out of scope
 
@@ -44,9 +47,10 @@ Expected size: about 400 lines in 10 files, tests included.
 
 ## Completion
 
-- [ ] With three open questions on one item the board's API and page show all three on the card, in the details and in the Questions panel, and answering one from the board leaves the other two (tests)
+- [ ] With three open questions on one item the board's API holds all three, the card shows the oldest plus "+2 more", the details and the Questions panel show all three, and answering one from the board leaves the other two (tests)
 - [ ] A programme with two open `pm/<slug>` questions shows both in the programmes panel and the Questions panel (test)
 - [ ] Each question gets its own push, and closing one clears only its own (test)
+- [ ] An item with an open review request and an open question is in Needs You with its Merge button (test)
 - [ ] `braid board --demo` shows an item with three open questions; screens in the item folder match the approved mockups
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
