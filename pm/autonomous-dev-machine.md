@@ -3,7 +3,7 @@ programme: autonomous-dev-machine
 title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
-limit: 6
+limit: 2
 state: running
 hold: ""
 next: "running: 0078 (M, then L, N), 0080 (D), 0084 (E, C, D), 0085 (A), 0087 (A; D gets the wait-once skill rule), 0088 (P35, plan approved, A); limit 6; held: 0086 (gets the Long turn mark and fewer nudges); P34 parked; the user: everix4 ref prune (prune-refs.ps1), T3 upstream write-up"
@@ -172,6 +172,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28 13:18: user "Sorry, I leave only 78 and 80 the rest. Pause, please": 0084, 0085, 0087, 0088 held (braid pause --hold, coordinators forward to working subagents); 0078 and 0080 run; limit 2.
 - 2026-11-28: user restarted the PC; Go ("restart what you paused"): 0078, 0080, 0084, 0085, 0087, 0088 resumed; the board service did not start at logon, PM started it (running on 7800). little-parrot-ex9y (0085: no deinit, forced remove after checks) answered A by the PM.
 - 2026-11-28 12:59: user "Please pause all the work I have to restart": braid pause --hold on 0078, 0080, 0084, 0085, 0087, 0088; hold sent to each coordinator, to forward to every working subagent.
 - 2026-11-28: 0088 (P35) plan approved by the PM (sleepy-basket-w8mb): strands A fsmonitor off, B fewer t3 CLI calls, C skills settle finished threads, D prune-refs (dry run default), E tidy list, F docs; C and F change skills, so the user merges the final PR. 0083 closed. User "A": a helper archives the 569 orphaned settled subagents (parent deleted); their refs get pruned after.
