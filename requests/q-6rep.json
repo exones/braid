@@ -29,6 +29,12 @@
       "by": "pm",
       "text": "A. Remove both",
       "reason": "No data is lost: old requests.json files and old-folder worktrees stay on disk and in git, and a revert brings the read paths back; nothing found on this machine. Cheap to reverse, so removed instead of kept indefinitely."
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T15:32:37.160Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
