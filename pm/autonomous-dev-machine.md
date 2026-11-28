@@ -172,6 +172,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28: user B on crunchy-cactus-tcwc: merges into main stay the user's explicit word each time (AGENTS.md unchanged); passed PRs wait in To Review.
 - 2026-11-28: PM live check of #384 (0078/L lock fix into main) passed; user: "If it's safe to merge you can merge actually" (giant-pickle-juvv): merged 764eb9d5, braid installed from main, board service restarted.
 - 2026-11-28: user A on noisy-kitten-amem: 0084 resumed (limit 3), Acknowledge button sent into 0084/C; the skill guard "every ✋ has an open request" goes into 0087/D on its Go.
 - 2026-11-28 14:05: user: reread the PM skill, the sign-in was not on the board. Opened sticky-ladder-4x27 (action, 0080). From now on: every question to the user is a braid ask (with options), live checks are titled pm check and recorded with braid review, passed handovers are braid forward-ed to the user, digests go out with braid notify.
