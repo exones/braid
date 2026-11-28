@@ -37,8 +37,8 @@ function sender() {
   return { t3, sent, failNext: (n: number) => (fail = n) };
 }
 
-/** The T3 read the action asks for the archived threads. */
-const reads = (archived: string[] = []) => ({ t3: () => Promise.resolve({ states: new Map(archived.map((t) => [t, "archived"])) }) });
+/** The thread states of the board's last T3 read, as the action takes them. */
+const reads = (archived: string[] = []) => () => new Map([[ASKER, "completed"], ...archived.map((t): [string, string] => [t, "archived"])]);
 
 /** A board's good read, as far as the wake reads it. */
 const good = (paused: string[] = []): any => ({
@@ -130,6 +130,30 @@ test("a paused asking braid is woken only once it resumes; an archived asker is 
   await wake({ root: w.root, good: good() }, NOW, warn);
   await wake({ root: w.root, good: good() }, NOW, warn);
   assert.deepEqual(s.sent.map((x) => x.thread), [ASKER], "sent once after it resumed; the archived one never");
+});
+
+test("an answer reads no thread list: the board's last read gives the asker's state, else one thread show of that thread alone", async () => {
+  const w = world();
+  const calls: string[] = [];
+  const t3 = (_root: string, args: readonly string[]) => {
+    calls.push(args.slice(0, 3).join(" "));
+    const out = args[1] === "list" ? [{ threadId: ASKER, status: "completed" }] : { thread: { status: "completed", archived: args[2] === "archived-child-0000" } };
+    return Promise.resolve({ status: 0, stdout: args[1] === "send" ? "" : JSON.stringify(out), stderr: "" });
+  };
+  const src = Board.repoSources(w.root, w.opts.gh, t3);
+  const answer = async (id: string, thread: string) => {
+    const code = codeOf(Cmd.askCommand(w.root, [id, "Go on?", "--thread", thread], w.opts));
+    calls.length = 0;
+    return src.action("answer")({ handle: code, text: "Yes" });
+  };
+  // Before any read, and for a subagent `thread list` leaves out: one show.
+  const child = await answer("0001", "archived-child-0000");
+  assert.match(child.wake, /archived/);
+  assert.deepEqual(calls, ["thread show archived-child-0000"]);
+  await src.t3();
+  const listed = await answer("0002", ASKER);
+  assert.equal(listed.woken, true);
+  assert.deepEqual(calls, [`thread send ${ASKER}`], "the last read names the thread: no show");
 });
 
 // --- the guard: the answer action through the board server, on the local and the Tailscale listener

@@ -1,11 +1,11 @@
 // `braid handover`, `braid ask`, `braid answer`, `braid withdraw` and `braid requests`: the coordinator
 // records that it needs someone (a request), and closes it again. The record is src/braids/requests.ts.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { threadShort } from "../braids/logs.js";
 import { braidAt, loadKnownBraids } from "../braids/branches.js";
-import { fetchBranch, git } from "../braids/gitbranch.js";
+import { fetchBranch, fetchBranchAsync, git } from "../braids/gitbranch.js";
 import { readFileSync } from "node:fs";
-import { addEvent, age, askerOf, BRAID_TO, closing, CODE, CONTEXT_MAX, conditionEnding, endRequest, OPTION_LETTERS, optionAnswer, optionLines, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
+import { addEvent, age, askerOf, BRAID_TO, closing, CODE, CONTEXT_MAX, conditionEnding, endRequest, endRequestAsync, OPTION_LETTERS, optionAnswer, optionLines, forwardRequest, handleOf, resolveName, isTimedWait, isWait, holding, KINDS, loadRecord, loadRecordAsync, loadRequests, openRequest, programmeOf, REQUESTS, unblocksOf, type Asker, type Conditions, type Ending, type Kind, type PrNow, type Request, type Who } from "../braids/requests.js";
 import type { Braid } from "../braids/store.js";
 import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
 import { readGithub, runGh, type GhRunner, type PullRequest } from "../board/github.js";
@@ -225,7 +225,7 @@ export async function handoverCommand(root: string, args: readonly string[], opt
 
 /** Whether the project has this `pm/<slug>` branch, local or on `origin`. */
 function programmeBranch(root: string, slug: string): boolean {
-  return ["refs/heads", "refs/remotes/origin"].some((ns) => spawnSync("git", ["rev-parse", "--verify", "--quiet", `${ns}/pm/${slug}`], { cwd: root }).status === 0);
+  return ["refs/heads", "refs/remotes/origin"].some((ns) => gitSync(root, ["rev-parse", "--verify", "--quiet", `${ns}/pm/${slug}`]).status === 0);
 }
 
 /** `--by coordinator|pm`: who asks. A programme id (`pm/<slug>`) is always the PM's. */
@@ -426,7 +426,12 @@ function codeOf(root: string, raw: string, command: string): string | null {
     return code;
   }
   fetchBranch(root, REQUESTS);
-  const found = resolveName(raw, loadRecord(root).requests);
+  return matched(loadRecord(root).requests, raw, command);
+}
+
+/** The code of the request `raw` names among `requests`; null when none, a refusal when several. */
+function matched(requests: readonly Request[], raw: string, command: string): string | null {
+  const found = resolveName(raw, requests);
   if (found === null) {
     return null;
   }
@@ -490,9 +495,13 @@ function target(root: string, raw: string, values: Parameters<typeof str>[0], co
 
 /** Closes the request `target` found; a request already closed is refused, naming its state and who closed it. */
 function end(root: string, found: { code: string; id: string }, command: string, ending: Ending | ((r: Request) => Ending)): { request: Request; warning: string | null } {
-  const done = endRequest(root, found.code, ending);
+  return ended(endRequest(root, found.code, ending), found.code, command);
+}
+
+/** What `end` makes of the write's result: no such request, or one already closed, is refused. */
+function ended(done: ReturnType<typeof endRequest>, code: string, command: string): { request: Request; warning: string | null } {
   if (done === null) {
-    throw new UsageError(`${command}: no request ${found.code} on ${REQUESTS.branch}; nothing changed`);
+    throw new UsageError(`${command}: no request ${code} on ${REQUESTS.branch}; nothing changed`);
   }
   if (!done.ended) {
     const last = closing(done.request);
@@ -617,19 +626,24 @@ export const BOARD_ANSWER_MAX = 500;
  * The board's `answer` action (0082/D): the user's answer from the board's page, recorded as `braid answer <handle> <text>`
  * records it (`by: user`, a lone letter as its option). `handle` names a request of this project's record (its name or code);
  * a wait, which asks no one, and a request already answered, withdrawn or met are refused with the reason. A UsageError
- * is the refusal the page shows.
+ * is the refusal the page shows. Runs in the board process, so every `git` call is asynchronous.
  */
-export function boardAnswer(root: string, handle: string, text: string): { readonly request: Request; readonly warning: string | null } {
+export async function boardAnswer(root: string, handle: string, text: string): Promise<{ readonly request: Request; readonly warning: string | null }> {
   const answer = text.trim();
   if (answer === "" || /[\r\n]/.test(answer) || answer.length > BOARD_ANSWER_MAX) {
     throw new UsageError(`Answer: one line of text or an option letter, at most ${BOARD_ANSWER_MAX} characters`);
   }
-  const code = codeOf(root, handle.trim(), "Answer") ?? fail(`Answer: no request ${handle} in this project; nothing changed`);
-  const r = loadRecord(root).requests.find((x) => x.code === code);
+  const name = handle.trim();
+  let code = strictCode(name);
+  if (code === null) {
+    await fetchBranchAsync(root, REQUESTS);
+    code = matched((await loadRecordAsync(root)).requests, name, "Answer") ?? fail(`Answer: no request ${handle} in this project; nothing changed`);
+  }
+  const r = (await loadRecordAsync(root)).requests.find((x) => x.code === code);
   if (r !== undefined && r.state === "open" && isWait(r)) {
     throw new UsageError(`Answer: ${handleOf(r)} (${r.id}) is a wait, which asks no one: it ends when its condition holds; nothing changed`);
   }
-  return end(root, { code, id: r?.id ?? "" }, "Answer", answerEnding("user", answer, undefined));
+  return ended(await endRequestAsync(root, code, answerEnding("user", answer, undefined)), code, "Answer");
 }
 
 /** `braid withdraw <code>|<id> --why <reason>`: the asker no longer needs it; it stays on the record as withdrawn. */

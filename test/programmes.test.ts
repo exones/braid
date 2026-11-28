@@ -175,6 +175,29 @@ test("a programme is Working while its PM runs or one of its braids runs", () =>
   assert.deepEqual([working.done, working.total, working.running, working.status], [1, 2, 1, "1 braid running"]);
 });
 
+test("N running counts every live braid: a coordinator working or waiting, or the PM handling it; not a dead or missing one", () => {
+  const coordinator = { id: "c-1", link: null, provider: null, model: null };
+  const idle = (state: string): any => t3("idle", { idleCoordinators: new Map([["0001", coordinator]]), states: new Map([[PM, "idle"], ["c-1", state]]) });
+  const count = (t: any, extra: object = {}): number => one({ t3: t, cards: [card("0001", extra)] }).p.running;
+  const handling = { pm: { text: "The PM is checking: PR #1", age: "1m", since: ago(1), kind: "review" } };
+
+  assert.equal(count(t3("idle", { coordinators: new Map([["0001", coordinator]]) })), 1, "a running coordinator");
+  assert.equal(count(idle("completed"), { lane: "Waiting" }), 1, "an idle coordinator waiting on a PR");
+  assert.equal(count(idle("idle")), 1, "an idle coordinator");
+  assert.equal(count(idle("failed")), 0, "a failed coordinator");
+  assert.equal(count(idle("error")), 0, "a coordinator in error");
+  assert.equal(count(idle("archived")), 0, "an archived coordinator");
+  assert.equal(count(t3("idle")), 0, "no coordinator thread");
+  assert.equal(count(idle("idle"), { lane: "Done" }), 0, "Done");
+  assert.equal(count(idle("idle"), { lane: "To Do" }), 0, "not started");
+  assert.equal(count(t3("idle"), handling), 1, "the PM handles it, with no live coordinator");
+  assert.equal(count(idle("failed"), handling), 1, "the PM handles it, its coordinator failed");
+  assert.equal(count(t3("idle"), { pm: { ...handling.pm, forwarded: true } }), 0, "forwarded to you: the PM isn't handling it");
+
+  const stalled = one({ t3: idle("idle"), cards: [card("0001")], seen: afterNudge() }).p;
+  assert.deepEqual([stalled.running, stalled.need?.kind], [1, "stalled"], "a waiting coordinator counts, and doesn't hide the programme's stall");
+});
+
 test("a programme with neither its PM nor a braid running reads stalled after ten minutes, once, and clears when one runs", () => {
   const first = one();
   assert.equal(first.p.section, "working", "not yet: the clock starts");

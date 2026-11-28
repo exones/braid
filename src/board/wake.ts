@@ -17,12 +17,12 @@
 // An answer the user gave on the board's page (0082/D, the `answer` action) wakes the asking thread at once, whoever the
 // request was for, with the same message and the same mark. A send that fails, or an asking braid held or paused, leaves
 // the request in this board's list of its page's answers; the waker sends it at a later refresh, once.
-import { braidAt } from "../braids/branches.js";
+import { braidAt, braidAtAsync } from "../braids/branches.js";
 import { gitAsync } from "../braids/gitio.js";
-import { loadLifecycle, withStatuses } from "../braids/lifecycle.js";
+import { loadLifecycle, loadLifecycleAsync, withStatuses } from "../braids/lifecycle.js";
 import { loadPauses } from "../braids/pauses.js";
 import type { PullRequest } from "./github.js";
-import { answerWoken, askerOf, closing, conditionEnding, endRequest, handleOf, loadRecord, markAnswerWoken, programmeOf, type Ending, type Request, type RequestEvent } from "../braids/requests.js";
+import { answerWoken, askerOf, closing, conditionEnding, endRequestAsync, handleOf, loadRecordAsync, markAnswerWokenAsync, programmeOf, type Ending, type Request, type RequestEvent } from "../braids/requests.js";
 import type { PlanRead } from "./plans.js";
 import type { Good } from "./feed.js";
 import { prOf } from "./signals.js";
@@ -41,6 +41,17 @@ export function braidDoneOn(root: string, main: string, prs: () => ReadonlyMap<s
     }
     return memo.get(number) ?? null;
   };
+}
+
+/** `braidDoneOn` for the board: the braids are read first, without blocking, and the answer is then a plain lookup. */
+export async function braidsDoneOn(root: string, main: string, numbers: readonly string[], prs: () => ReadonlyMap<string, PullRequest> | null): Promise<(number: string) => boolean | null> {
+  const done = new Map<string, boolean | null>();
+  const lifecycle = numbers.length === 0 ? new Map() : await loadLifecycleAsync(root);
+  for (const number of new Set(numbers)) {
+    const b = await braidAtAsync(root, `origin/${main}`, number);
+    done.set(number, b === null ? null : withStatuses(b, lifecycle, prs() ?? new Map()).brief.status === "Done");
+  }
+  return (number) => done.get(number) ?? null;
 }
 
 /** The braid a request's asker works on (`0042` of `0042/B`); null for a programme's request. */
@@ -153,7 +164,7 @@ export async function wakePageAnswer(t3: T3Runner, root: string, r: Request, at:
     return { woken: false, why: `the wake failed (${out.stderr.trim().split("\n")[0] || "t3 failed"}); the board tries again at each refresh` };
   }
   try {
-    markAnswerWoken(root, r.code, at.toISOString());
+    await markAnswerWokenAsync(root, r.code, at.toISOString());
     pageAnswers.delete(key);
   } catch {
     // Sent, not marked: the waker writes the mark at the next refresh without sending again.
@@ -181,7 +192,7 @@ export function waker(t3: T3Runner): Waker {
     const held = good.sig.pauses ?? new Map();
     const live = (r: Request): boolean => !held.has(askingBraid(r) ?? "") && !programmeHeld(r, good.sig.plans, held);
     const archived = (r: Request): boolean => r.thread !== null && good.t3.states?.get(r.thread) === "archived";
-    const record = loadRecord(root).requests;
+    const record = (await loadRecordAsync(root)).requests;
     const open = record.filter((r) => r.state === "open" && live(r));
     if (open.length > 0) {
       const main = good.start.main;
@@ -189,7 +200,9 @@ export function waker(t3: T3Runner): Waker {
       if (open.some((r) => r.doneWhen.startsWith("braid:"))) {
         await gitAsync(root, ["fetch", "-q", "origin", main]).catch(() => undefined);
       }
-      const check = { pr: (n: number) => prOf(good.github, n), braidDone: braidDoneOn(root, main, () => (good.github.status.state === "ok" ? good.github.prs : null)), now: at };
+      const waiting = open.flatMap((r) => (r.doneWhen.startsWith("braid:") ? [r.doneWhen.slice("braid:".length).trim()] : []));
+      const braidDone = await braidsDoneOn(root, main, waiting, () => (good.github.status.state === "ok" ? good.github.prs : null));
+      const check = { pr: (n: number) => prOf(good.github, n), braidDone, now: at };
       for (const r of open) {
         const e = conditionEnding(r, check);
         if (e === null) {
@@ -197,7 +210,7 @@ export function waker(t3: T3Runner): Waker {
         }
         if (e.state === "met" && r.thread !== null && !archived(r) && !sent.has(r.code)) {
           // Right before the send, the record is read again: a second board of the project may have woken it a moment ago.
-          if (loadRecord(root).requests.find((x) => x.code === r.code)?.state !== "open") {
+          if ((await loadRecordAsync(root)).requests.find((x) => x.code === r.code)?.state !== "open") {
             continue;
           }
           if (!(await send(root, r, wakeMessage(r, e), warn))) {
@@ -205,7 +218,7 @@ export function waker(t3: T3Runner): Waker {
           }
         }
         try {
-          endRequest(root, r.code, { ...e, at: at.toISOString() });
+          await endRequestAsync(root, r.code, { ...e, at: at.toISOString() });
           sent.delete(r.code);
         } catch (error) {
           warn(`${r.code} (${r.id}) couldn't be recorded as ${e.state} (${error instanceof Error ? error.message : String(error)}); retrying at each refresh`, `record ${r.code}`);
@@ -233,7 +246,7 @@ export function waker(t3: T3Runner): Waker {
       }
       if (!sent.has(r.code)) {
         // Right before the send, the record is read again: a second board of the project may have woken it a moment ago.
-        const now = loadRecord(root).requests.find((x) => x.code === r.code);
+        const now = (await loadRecordAsync(root)).requests.find((x) => x.code === r.code);
         if (now === undefined || answerWoken(now)) {
           continue;
         }
@@ -242,7 +255,7 @@ export function waker(t3: T3Runner): Waker {
         }
       }
       try {
-        markAnswerWoken(root, r.code, at.toISOString());
+        await markAnswerWokenAsync(root, r.code, at.toISOString());
         sent.delete(r.code);
         pageAnswers.delete(pageKey(root, r.code));
         sentPage.delete(pageKey(root, r.code));
