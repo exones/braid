@@ -20,6 +20,12 @@
       "at": "2026-11-26T00:39:51.027Z",
       "by": "pm",
       "text": "T3 sign-in button mockups (q-nxp6): PM recommends 1a, 2a, 3a"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T08:37:53.263Z",
+      "by": "user",
+      "text": "A. The mockups as proposed, with all four proposals:\n1. Sign-out allowed from the phone (sign-in stays PC-only).\n2. A \"waiting for T3\" state with Cancel while the approval page is open, 5 minutes at most.\n3. T3 down: the button keeps its state; the existing \"T3 unavailable\" note says so.\n4. No push when the user signs out themselves."
     }
   ]
 }
