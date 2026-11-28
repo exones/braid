@@ -1,0 +1,22 @@
+{
+  "code": "q-n660",
+  "item": "0084/F",
+  "kind": "review",
+  "text": "review PR #388 at 7add3f2",
+  "words": "jolly mitten",
+  "by": "coordinator",
+  "thread": "mcp:launch:fb5fcd743ad7d6c3cb1795e068f1d43a36e1e52e42fd421781fe11b7d4603838",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:388",
+  "pr": 388,
+  "head": "7add3f24af2049e6249e9e7e8109c1d7103e4cf6",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T15:15:11.195Z",
+      "by": "coordinator"
+    }
+  ]
+}
