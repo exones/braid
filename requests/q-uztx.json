@@ -1,0 +1,21 @@
+{
+  "code": "q-uztx",
+  "item": "0084/C",
+  "kind": "action",
+  "text": "Phone test: press A and Dismiss on the demo board from the phone, then report what showed",
+  "context": "Phone test for 0084/C (why answer presses on the phone never recorded, shiny-monkey-mo72): open http://exon-pc.tailf59262.ts.net:7810/ (a demo board from PR #393 head 84351855, sample data, each action takes 11 s) on the same phone, browser and network as when it failed; tap Requests; open \"Approve the plan: 3 strands, A to C\" and press A; don't reload, wait 30 s and note the line under the buttons; press Dismiss on another request, wait 30 s; then say the phone's OS and browser, tab or home-screen icon or in-app browser, other board tabs open, and whether a red line appeared at the top of the Questions panel on the live board.",
+  "words": "snowy garden",
+  "by": "coordinator",
+  "thread": "mcp:launch:fb5fcd743ad7d6c3cb1795e068f1d43a36e1e52e42fd421781fe11b7d4603838",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T16:55:38.322Z",
+      "by": "coordinator"
+    }
+  ]
+}
