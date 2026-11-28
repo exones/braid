@@ -43,7 +43,8 @@ Fixed whatever the cause: every action is logged (arrived, done, refused or fail
 - New suite `test/board-acknowledge-dismiss.test.ts` (CLI, board action, wake once or never, three questions and their pushes, a programme's two, Decided, the demo). Existing tests updated where they expected one request per item, the newest request, or per-item push IDs.
 - Demo board driven in headless Edge at 1900 px and 390 px: the screens above; the last tab survives a reload; no horizontal overflow; no page errors.
 - `test/board-sends.test.ts`: the stages of a send, the list across a reload, the refusal naming who and what, the action log without token or text.
-- Gate on the commits before the sending fix: `npm run verify` on Windows, exit 0: 878 tests, 877 passed, 1 skipped, none failed (node tests 774 s). **Not yet run on the sending fix** (typecheck, build and the touched suites pass).
+- Gate: `npm run verify` on Windows on the final code (7e2541ee, in a separate temporary checkout, because the demo board for the phone test serves this worktree's `dist/`): exit 0, 883 tests, 882 passed, 1 skipped, none failed.
+- CI was red at 84351855 on both platforms: the refusal naming the answer had changed `braid answer`'s message too; only the board's refusal carries it now.
 
 ## Docs
 
