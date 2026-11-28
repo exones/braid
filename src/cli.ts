@@ -8,6 +8,7 @@ import { checkBraids } from "./braids/check.js";
 import { boardUrl, runBoard } from "./commands/board.js";
 import { serviceCommand } from "./commands/service.js";
 import { notifyCommand } from "./commands/notify.js";
+import { t3Command } from "./commands/t3.js";
 import { gateCommand } from "./commands/gate.js";
 import { projectsCommand } from "./commands/projects.js";
 import { ProjectsFileError } from "./projects/list.js";
@@ -50,7 +51,7 @@ export function helpText(version: string): string {
     "  autonomy <number>           Print the autonomy preset a braid runs on, where its name and text come from, and the brief's ## Autonomy section (--list: the presets available here)",
     "  limits [<instance>]         Whether an agent may be launched on each provider in BRAID.md models, from T3's usage caches: windows, usage, verdict ok|pause|unknown, for pause the resume time (--role <role> [--tier <T>] [--kind <k>] narrows, e.g. --role worker --kind story; --json; exit 3 on pause)",
     "  pause <number> --provider <instance> --thread <id>  Record that a braid waits for a provider's usage window in .braid/pauses.json: window, usage and resume time from braid limits (refused unless its verdict is pause; --window <id> picks the window, --until <iso> sets the resume time and pauses anyway), --task <id> the scheduled resume task, --by coordinator|pm|board; refused on a held braid. The board and status show it",
-    "  pause <number> --hold \"<words>\" --thread <id>  Record a deliberate hold (yours or the PM's): no provider, no resume time, never stalled; shows paused with your words until braid resume (--by coordinator|pm)",
+    "  pause <number> --hold \"<words>\" --thread <id>  Record a deliberate hold (yours or the PM's): no provider, no resume time, never stalled; shows paused with your words until braid resume (--by coordinator|pm); a running board signed in to T3 stops the braid's working threads (not --thread's) and sends them the words",
     "  resume <number>             Clear a braid's pause and print what was cleared; --limit resumes a limit pause only, never a hold: the board's record is cleared and each paused agent gets its resume text by code (a send that fails stays pending and the board retries it); --limit --all: every board pause of the repository, a PM-run braid by one message to its PM",
     "  brief <id> <section>       Set a section of brief.md from --file <path>, --file - or --text",
     "  log <id> <text>             Append an entry to this thread's log and git add it (--thread, --checkpoint, --file)",
@@ -88,6 +89,10 @@ export function helpText(version: string): string {
     "  board service <sub>         Windows: the board as a Task Scheduler task of yours, started at logon, again every 5 minutes if it stopped, no window: install [--port <n>, default 8765] [--host tailscale] (from your checkout), remove, restart [--if-installed: nothing when no task], status (state, last result (the previous run's while it runs, shown as previous run:), port, address, the running board's version against this one or busy, the acting leases it and other boards hold, its log ~/.braid/board-<port>.log); elsewhere it points to the systemd recipe in docs/board.md",
     "  notify [setup|test|off]     Phone pushes from the running board over ntfy: setup [--topic <t>] [--server <url>] [--new-topic] once per machine, test sends a push, then one it clears, off stops them; alone: the state (token only from BRAID_NTFY_TOKEN)",
     "  notify send <line> --thread <id>  The PM's own push, sent at once without the board: the line (200 characters at most), opening the thread (--programme <slug>; a newer line of a programme replaces the older; off or not set up: says why, exit 0)",
+    "  t3 login [--url <origin>]   Sign the board in to T3's MCP at Full access: opens T3's approval page, takes the answer on a one-off 127.0.0.1 port and keeps the token only in the OS secret store (5 minutes to approve; --url: T3's address, local only unless braid t3 set --local-only off, then https only)",
+    "  t3 logout                   Sign the board out of T3: revokes \"braid board\" in T3 and deletes the sign-in here (if T3 can't be reached: deleted here, revoke it in T3's Settings)",
+    "  t3 status                   Whether the board is signed in to T3, at which address and until when, and the two settings in ~/.braid/t3.json; never the token",
+    "  t3 set [--access auto|cli] [--local-only on|off]  The two T3 settings: access auto (the sign-in when signed in, else the t3 command line) or cli (always the command line); local only on (a local T3 address only) or off (also https elsewhere)",
     "  projects add [<path>]       Add a project to this machine's list in ~/.braid/projects.json (its main checkout; --name <n>, --port <n>) and print its readiness",
     "  projects remove <name>      Remove a project from the list",
     "  projects list               Each listed project: name, path, port and readiness (GitHub not checked)",
@@ -346,6 +351,20 @@ async function main(argv: readonly string[]): Promise<void> {
   if (argv[0] === "notify") {
     try {
       process.stdout.write(await notifyCommand(argv.slice(1)));
+    } catch (error) {
+      if (error instanceof UsageError) {
+        process.stderr.write(`error: ${error.message}
+`);
+        process.exitCode = 1;
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+  if (argv[0] === "t3") {
+    try {
+      process.stdout.write(await t3Command(argv.slice(1)));
     } catch (error) {
       if (error instanceof UsageError) {
         process.stderr.write(`error: ${error.message}

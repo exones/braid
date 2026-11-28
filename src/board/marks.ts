@@ -13,7 +13,7 @@ export const LANE_LABEL: Readonly<Record<Lane, string>> = {
   Done: "Done",
 };
 
-export type ReasonKind = "question" | "checks" | "stalled" | "ask" | "plan" | "look" | "limit";
+export type ReasonKind = "question" | "checks" | "stalled" | "ask" | "plan" | "look" | "limit" | `failed-${NonNullable<Need["failure"]>["kind"]}`;
 
 export interface ReasonIcon {
   readonly kind: ReasonKind;
@@ -61,7 +61,7 @@ export function leadOf(need: Pick<Need, "text" | "by">): { readonly lead: string
 
 /** "asked 35 min ago" for a request, "for 14 min" for a broke alarm; empty when the time isn't known. */
 export function ageText(need: Need): string {
-  return need.age === null ? "" : need.verb === "asked" ? `asked ${span(need.age)} ago` : `for ${span(need.age)}`;
+  return need.age === null ? "" : need.verb === "asked" ? `asked ${span(need.age)} ago` : `${need.failure === undefined ? "" : "stalled "}for ${span(need.age)}`;
 }
 
 /** The line `braid status` prints under an item: the text, with the strand and the age when known. */
@@ -135,6 +135,11 @@ function ofRow(row: Row, details: boolean, braid: boolean): { reasons: ReasonIco
     } else if (review !== null) {
       review = tip;
     }
+  }
+  // A failed thread: the stall's icon is its reason's, and the tooltip T3's whole error.
+  const failure = row.need?.failure;
+  if (row.reason === "stalled" && failure !== undefined && reasons[0] !== undefined) {
+    reasons[0] = { kind: `failed-${failure.kind}`, tooltip: failure.full };
   }
   return { reasons, review };
 }

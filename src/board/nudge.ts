@@ -51,8 +51,10 @@ export function nudger(t3: T3Runner): Waker {
       { all: stalls.due(), key: nudgedKey, target: (n: Nudge) => n.thread, message: nudgeMessage, what: "nudge" },
       { all: stalls.escalate(), key: escalatedKey, target: (n: Nudge) => n.pm, message: escalationNote, what: "escalation" },
     ];
+    // The limit clash (0080/E): a thread whose last run failed on a usage limit counts as paused; only the resume reaches it.
+    const limited = (n: Nudge): boolean => good.sig.failures?.get(n.thread)?.kind === "limit";
     for (const job of jobs) {
-      for (const [thread, group] of groups(job.all, root, job.key, job.target)) {
+      for (const [thread, group] of groups(job.all.filter((n) => !limited(n)), root, job.key, job.target)) {
         const names = group.map((n) => n.who).join(", ");
         if (!group.every((n) => sent.has(job.key(n.id)))) {
           const out = await t3(root, ["thread", "send", thread, job.message(group)]);

@@ -8,6 +8,9 @@
 //   3. pause: per provider over its threshold, claim a record per braid with a working agent under the lock, then send each target
 //      its text by code (`t3 thread send`, ids from T3's own output) and each PM one summary;
 //   4. wake: each project's open requests whose "done when" holds are closed and their askers woken (src/board/wake.ts).
+// Signed in to T3 (0080/E, src/board/stop.ts), step 3 and the hold step (a hold record the board hasn't acted on: its texts, counted
+// as a pause's) first stop the braid's working top-level threads with `stop: true`, and for 10 minutes after a stop the card shows the
+// threads still working (one push at 2 minutes): one live-only MCP list per tick, one interrupt per working top-level thread.
 // No LLM sits in the path and no thread is started (0074/C). With several boards on one machine, a tick acts only for the keys whose
 // lease this board holds (src/board/acting.ts, 0074/B): steps 1-3 and the blind push per provider account, step 4 and the pending limit pushes per
 // repository. A board that holds none still reads and shows. Only `.braid/pauses.json`, `notified.json` and (the wake)
@@ -16,12 +19,15 @@ import { join } from "node:path";
 import { percent } from "../braids/percent.js";
 import { providerKey, repoLease, type ActingBoard } from "./acting.js";
 import { LimitsError, readLimits, readModelLines, readProvider, t3Home, type ModelLine, type ProviderReading } from "../braids/limits.js";
-import { claimPauses, clearPause, loadPauses, patchPauses, reasonOf, resumedAt, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
+import { byBoard, claimPauses, clearPause, loadPauses, patchPauses, reasonOf, resumedAt, type NoAnswer, type Pause, type Replies, type Stop } from "../braids/pauses.js";
+import type { McpClient } from "../t3mcp/client.js";
+import { failureOf } from "./failure.js";
 import type { Good } from "./feed.js";
 import { blindReason } from "./limits-view.js";
 import { clock } from "./pause.js";
 import { resumePauses } from "./resume.js";
-import { blindPush, coordinatorPause, escalation, limitPush, overWindow, pausedLine, pmsOf, pmSummary, targetsOf, weeklyPause, workerPause, type LimitEvent, type LimitPush, type PmThread } from "./steer.js";
+import { blindPush, coordinatorPause, escalation, heldLine, HOLD_HEAD, holdText, limitPush, overWindow, pausedLine, pmsOf, pmSummary, targetsOf, weeklyPause, workerPause, type LimitEvent, type LimitPush, type PmThread } from "./steer.js";
+import { STILL_PUSH_MS, stillPush, stillWorking, stopTargets, tickMcp, type TickMcp } from "./stop.js";
 import { working, type T3Runner } from "./t3.js";
 import type { Waker } from "./wake.js";
 
@@ -58,6 +64,13 @@ export interface SteererOptions {
   readonly wake?: Waker;
   /** The leases of this board (0074/B); absent: it acts for every key (a single board, tests). */
   readonly acting?: ActingBoard;
+  /**
+   * The T3 sign-in's MCP client (0080/E), asked once per tick: while it gives one, the pause and the hold stop the braid's working
+   * threads before their texts. Absent or null: today's CLI path only, and a hold stays a record.
+   */
+  readonly mcp?: () => McpClient | null;
+  /** The board's shared live thread list (0080/F); absent: the tick lists the live threads itself. */
+  readonly live?: () => Promise<readonly Record<string, unknown>[]>;
 }
 
 export interface Steerer {
@@ -147,16 +160,22 @@ export function steerer(opts: SteererOptions): Steerer {
     return read === null ? null : readProvider(caches, provider, read.lines.filter((l) => l.instanceId === provider), read.limits, at);
   };
   const boardRecords = (seen: readonly Seen[]): Held[] => seen.flatMap((s) => loadPauses(s.project.root).pauses.filter((p) => p.by === "board").map((pause) => ({ at: s, pause })));
-  /** Applies `change` to these records, each in its own project's file. */
+  /** The holds (0080/E): the board adds its targets, replies and stop to them, as to its own records. */
+  const isHold = (p: Pause): boolean => reasonOf(p) === "hold";
+  const kindOf = (p: Pause): ((q: Pause) => boolean) => (isHold(p) ? isHold : byBoard);
+  /** Applies `change` to these records (the board's, or holds), each in its own project's file. */
   const patch = (held: readonly Held[], change: (p: Pause) => Pause): Pause[] => {
-    const byRoot = new Map<string, { root: string; braids: string[] }>();
+    const byRoot = new Map<string, { root: string; braids: string[]; hold: boolean }>();
     for (const h of held) {
-      const e = byRoot.get(h.at.project.root) ?? { root: h.at.project.root, braids: [] };
+      const key = `${h.at.project.root}\n${isHold(h.pause) ? "hold" : "board"}`;
+      const e = byRoot.get(key) ?? { root: h.at.project.root, braids: [], hold: isHold(h.pause) };
       e.braids.push(h.pause.braid);
-      byRoot.set(h.at.project.root, e);
+      byRoot.set(key, e);
     }
-    return [...byRoot.values()].flatMap((e) => patchPauses(e.root, e.braids, change));
+    return [...byRoot.values()].flatMap((e) => patchPauses(e.root, e.braids, change, e.hold ? isHold : byBoard));
   };
+  /** The record as the file holds it now. */
+  const fresh = (h: Held): Held => ({ at: h.at, pause: loadPauses(h.at.project.root).pauses.find((p) => p.braid === h.pause.braid && kindOf(h.pause)(p)) ?? h.pause });
 
   /** Sends `text` to a thread by code (on standard input: no shell quoting), up to PAUSE_TRIES times; whether it went through. */
   const send = async (root: string, thread: string, text: string): Promise<boolean> => {
@@ -185,11 +204,29 @@ export function steerer(opts: SteererOptions): Steerer {
     if (working(t)) {
       return "working";
     }
+    // The limit clash (0080/E): a thread whose last run failed on a usage limit counts as paused; only the resume reaches it.
+    if (failureOf(str(out["error"]), { status: str(t["status"]) })?.kind === "limit") {
+      return "answered";
+    }
     const messages = (Array.isArray(out["messages"]) ? (out["messages"] as unknown[]) : []).map(obj).filter((m): m is Json => m !== null);
     // Only what came after the board's text counts: an older `Paused:` line (an earlier pause) is no answer to this one.
-    const sentAt = messages.findLastIndex((m) => m["role"] === "user" && /^\s*Pause for /.test(str(m["text"]) ?? ""));
+    const sentAt = messages.findLastIndex((m) => m["role"] === "user" && new RegExp(`^\\s*(?:Pause for |${HOLD_HEAD})`).test(str(m["text"]) ?? ""));
     const last = messages.slice(sentAt + 1).filter((m) => m["role"] !== "user").at(-1);
-    return last !== undefined && pausedLine(str(last["text"]) ?? "") ? "answered" : "no line";
+    const text = str(last?.["text"]) ?? "";
+    return last !== undefined && (pausedLine(text) || heldLine(text)) ? "answered" : "no line";
+  };
+
+  /** A record's replies once counted: who answered, and why the others didn't. */
+  const outcomeOf = (p: Pause, r: Replies, why: Map<string, NoAnswer["why"]>, reason: string | null): Replies => {
+    const counted = (p.targets ?? []).filter((x) => x.kind !== "pm");
+    const noAnswer = counted.filter((x) => !r.got.includes(x.thread)).map((x): NoAnswer => ({ item: x.item, thread: x.thread, link: x.link ?? null, why: r.failed.includes(x.thread) ? "send failed" : (why.get(x.thread) ?? "working") }));
+    const outcome: Replies["outcome"] = noAnswer.length === 0 ? "paused" : r.got.length === 0 && r.failed.length === counted.length ? "failed" : "partial";
+    return { ...r, outcome, answered: counted.length - noAnswer.length, total: counted.length, noAnswer, reason: outcome === "failed" ? (reason ?? "every send failed") : null };
+  };
+
+  /** Settles holds: their replies only. The card shows them; the still-working push (2 minutes after the stop) is a hold's alarm. */
+  const settleHolds = (held: readonly Held[], why: Map<string, NoAnswer["why"]>, reason: string | null): void => {
+    patch(held, (p) => (p.replies === undefined || p.replies.outcome !== "pausing" ? p : { ...p, replies: outcomeOf(p, p.replies, why, reason) }));
   };
 
   /** Settles these records (one pause of one provider): the push, and for a partial or failed one the PM's (else the coordinator's) message. */
@@ -202,10 +239,7 @@ export function steerer(opts: SteererOptions): Steerer {
           return p; // settled already (another tick): nothing twice
         }
         moved.add(p.braid);
-        const counted = (p.targets ?? []).filter((x) => x.kind !== "pm");
-        const noAnswer = counted.filter((x) => !r.got.includes(x.thread)).map((x): NoAnswer => ({ item: x.item, thread: x.thread, link: x.link ?? null, why: r.failed.includes(x.thread) ? "send failed" : (why.get(x.thread) ?? "working") }));
-        const outcome: Replies["outcome"] = noAnswer.length === 0 ? "paused" : r.got.length === 0 && r.failed.length === counted.length ? "failed" : "partial";
-        return { ...p, replies: { ...r, outcome, answered: counted.length - noAnswer.length, total: counted.length, noAnswer, reason: outcome === "failed" ? (reason ?? "every send failed") : null } };
+        return { ...p, replies: outcomeOf(p, r, why, reason) };
       }),
     );
     const settled = done.filter((p) => moved.has(p.braid));
@@ -237,6 +271,10 @@ export function steerer(opts: SteererOptions): Steerer {
     }
   };
 
+  /** The holds of the repositories this board acts for. */
+  const holdRecords = (seen: readonly Seen[], repos: ReadonlySet<string>): Held[] =>
+    seen.filter((s) => repos.has(s.project.root)).flatMap((s) => loadPauses(s.project.root).pauses.filter(isHold).map((pause) => ({ at: s, pause })));
+
   /** Done as the board reads it (a merged PR too), not only a stored Done. */
   const isDone = (s: Seen, b: Good["braids"][number]): boolean => b.brief.status === "Done" || s.good.board.braids.find((c) => c.id === b.number)?.status === "Done";
 
@@ -251,10 +289,11 @@ export function steerer(opts: SteererOptions): Steerer {
   };
 
   /** 1. Pauses still counting: read each target that hasn't answered; settle when all answered or failed, or at 10 minutes. */
-  const count = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean): Promise<void> => {
+  const count = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean, repos: ReadonlySet<string>): Promise<void> => {
     const groups = new Map<string, Held[]>();
-    for (const h of boardRecords(seen).filter((x) => acts(x.pause.provider ?? null) && x.pause.replies?.outcome === "pausing")) {
-      const key = `${h.pause.provider ?? ""} ${h.pause.replies?.sent ?? ""}`;
+    // The board's limit records under the provider's lease, and holds the board stopped (0080/E) under the repository's.
+    for (const h of [...boardRecords(seen).filter((x) => acts(x.pause.provider ?? null)), ...holdRecords(seen, repos)].filter((x) => x.pause.replies?.outcome === "pausing")) {
+      const key = `${isHold(h.pause) ? "hold" : (h.pause.provider ?? "")} ${h.pause.replies?.sent ?? ""}`;
       groups.set(key, [...(groups.get(key) ?? []), h]);
     }
     for (const held of groups.values()) {
@@ -279,8 +318,12 @@ export function steerer(opts: SteererOptions): Steerer {
         }
       }
       if (open === 0 || over) {
-        const now = held.map((h) => ({ at: h.at, pause: loadPauses(h.at.project.root).pauses.find((p) => p.braid === h.pause.braid && p.by === "board") ?? h.pause }));
-        await settle(now, at, why, null);
+        const now = held.map(fresh);
+        if (now.every((h) => isHold(h.pause))) {
+          settleHolds(now, why, null);
+        } else {
+          await settle(now, at, why, null);
+        }
       }
     }
   };
@@ -380,7 +423,7 @@ ${c.pause.provider ?? ""}`;
   };
 
   /** 3. Providers over their threshold: a record per braid with a working agent on it and no record yet, then the texts, sent by code. */
-  const pause = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean): Promise<void> => {
+  const pause = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean, mcp: TickMcp): Promise<void> => {
     const over = new Set(seen.flatMap((s) => (s.good.board.limits?.providers ?? []).filter((p) => p.windows.some((w) => w.over) && acts(p.instanceId)).map((p) => p.instanceId)));
     for (const provider of over) {
       const wanted: { at: Seen; records: Pause[]; reading: ProviderReading }[] = [];
@@ -422,6 +465,8 @@ ${c.pause.provider ?? ""}`;
         const w = overWindow(first.reading);
         const window = w?.label ?? first.reading.pauseWindow ?? "window";
         const resume = clock(first.reading.resumeAt ?? at.toISOString(), at);
+        // Signed in (0080/E): the working threads are stopped first, so the text doesn't wait behind a busy turn.
+        await stopAll(claimed, at, `braid board: pause for ${provider} ${window}`, mcp);
         const failed: string[] = [];
         const done = new Set<string>();
         for (const h of claimed) {
@@ -459,15 +504,101 @@ ${c.pause.provider ?? ""}`;
         }
         // Every send failed: nothing to count, so it settles now (loudly).
         if (failed.length > 0 && claimed.every((h) => (h.pause.targets ?? []).filter((x) => x.kind !== "pm").every((x) => failed.includes(x.thread)))) {
-          await settle(
-            claimed.map((h) => ({ at: h.at, pause: loadPauses(h.at.project.root).pauses.find((p) => p.braid === h.pause.braid && p.by === "board") ?? h.pause })),
-            at,
-            new Map(),
-            "every send failed",
-          );
+          await settle(claimed.map(fresh), at, new Map(), "every send failed");
         }
       } catch (error) {
         warn(`the pause of ${provider} failed after its records were written (${error instanceof Error ? error.message : String(error)}); the count settles them`, `claimed ${provider} ${at.toISOString()}`);
+      }
+    }
+  };
+
+  /**
+   * Signed in (0080/E): stops each record's working top-level targets with `stop: true` and records what came of it on the record.
+   * Not known which threads are live (signed out, the list failed): nothing is stopped or recorded, and the texts go as today.
+   */
+  const stopAll = async (held: readonly Held[], at: Date, reason: string, mcp: TickMcp): Promise<void> => {
+    for (const h of held) {
+      const out = await stopTargets(mcp, (h.pause.targets ?? []).filter((x) => x.kind !== "pm"), reason);
+      if (out === null) {
+        return;
+      }
+      const stop: Stop = { at: at.toISOString(), stopped: out.stopped, refused: out.refused, still: [], pushed: false };
+      patch([h], (p) => ({ ...p, stop }));
+    }
+  };
+
+  /**
+   * 2b. Holds (0080/E): signed in, a hold the board hasn't acted on (no replies yet) in a repository it acts for gets the braid's
+   * working threads (every provider) as its targets; they are stopped, then each gets the hold text, and the replies are counted as a
+   * pause's. The thread that ran `braid pause --hold` is left alone. Signed out, a hold stays a record only.
+   */
+  const hold = async (seen: readonly Seen[], at: Date, repos: ReadonlySet<string>, mcp: TickMcp): Promise<void> => {
+    for (const h of holdRecords(seen, repos).filter((x) => x.pause.replies === undefined)) {
+      const b = h.at.good.braids.find((x) => x.number === h.pause.braid);
+      if (b === undefined || isDone(h.at, b)) {
+        continue;
+      }
+      // Signed out (also by a 401 this tick), or the live threads not known: tried at a later refresh.
+      if (!mcp.signedIn() || (await mcp.live()) === null) {
+        return;
+      }
+      const targets = targetsOf(h.pause.braid, null, h.at.good.t3, h.at.project.folder()).filter((t) => t.thread !== h.pause.thread);
+      const replies: Replies = { sent: at.toISOString(), outcome: targets.length === 0 ? "paused" : "pausing", answered: 0, total: targets.length, got: [], failed: [], noAnswer: [], reason: null };
+      const mine = patch([h], (p) => (p.replies !== undefined ? p : { ...p, targets, replies })).find((p) => p.replies === replies || p.replies?.sent === replies.sent);
+      if (mine === undefined || targets.length === 0) {
+        continue;
+      }
+      const held: Held = { at: h.at, pause: mine };
+      try {
+        await stopAll([held], at, `braid board: hold of braid ${h.pause.braid}`, mcp);
+        const failed: string[] = [];
+        for (const x of targets) {
+          if (!(await send(h.at.project.root, x.thread, holdText(h.pause.braid, h.pause.words ?? "")))) {
+            failed.push(x.thread);
+          }
+        }
+        if (failed.length > 0) {
+          patch([held], (p) => (p.replies === undefined ? p : { ...p, replies: { ...p.replies, failed } }));
+        }
+        if (failed.length === targets.length) {
+          settleHolds([fresh(held)], new Map(), "every send failed");
+        }
+      } catch (error) {
+        warn(`the hold of ${h.pause.braid} failed after its record was written (${error instanceof Error ? error.message : String(error)}); the count settles it`, `hold ${h.pause.braid} ${at.toISOString()}`);
+      }
+    }
+  };
+
+  /**
+   * 1b. After a stop (0080/E): for 10 minutes, while replies are counted or a thread still runs, the braid's threads still working,
+   * from the tick's one live list (targets that haven't answered, and their live children). One push if any still work at 2 minutes.
+   */
+  const still = async (seen: readonly Seen[], at: Date, acts: (provider: string | null) => boolean, repos: ReadonlySet<string>, mcp: TickMcp): Promise<void> => {
+    const open = [...boardRecords(seen).filter((x) => acts(x.pause.provider ?? null)), ...holdRecords(seen, repos)].filter((x) => {
+      const s = x.pause.stop;
+      return s !== undefined && at.getTime() - Date.parse(s.at) < COUNT_MS && (x.pause.replies?.outcome === "pausing" || s.still.length > 0);
+    });
+    if (open.length === 0) {
+      return;
+    }
+    const live = await mcp.live();
+    if (live === null) {
+      return;
+    }
+    for (const h of open) {
+      const s = h.pause.stop as Stop;
+      const targets = (h.pause.targets ?? []).filter((x) => x.kind !== "pm");
+      const now = stillWorking(live, targets, h.pause.replies?.got ?? []);
+      const due = !s.pushed && now.length > 0 && at.getTime() - Date.parse(s.at) >= STILL_PUSH_MS;
+      if (due) {
+        try {
+          opts.push?.(h.at.project.root, stillPush(h.pause.braid, isHold(h.pause), now, targets, s.at));
+        } catch {
+          // a push never stops the pause
+        }
+      }
+      if (due || JSON.stringify(now) !== JSON.stringify(s.still)) {
+        patch([h], (p) => (p.stop === undefined ? p : { ...p, stop: { ...p.stop, still: now, pushed: p.stop.pushed || due } }));
       }
     }
   };
@@ -533,11 +664,15 @@ ${c.pause.provider ?? ""}`;
       }
     }
     const at = now();
+    // One MCP view per tick (0080/E): at most one live list, and a 401 turns the rest of the tick to the CLI.
+    const mcp = tickMcp(opts.mcp?.() ?? null, warn, opts.live);
     try {
       clearDone(seen, acts);
-      await count(seen, at, acts);
+      await count(seen, at, acts, repos);
+      await still(seen, at, acts, repos, mcp);
       await resume(seen, at, acts);
-      await pause(seen, at, acts);
+      await hold(seen, at, repos, mcp);
+      await pause(seen, at, acts, mcp);
       blind(seen, at, acts);
     } catch (error) {
       warn(`the limits pause failed this refresh (${error instanceof Error ? error.message : String(error)})`, "tick");

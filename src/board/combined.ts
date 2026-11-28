@@ -9,6 +9,7 @@ import type { Programme } from "./programme.js";
 import { mergeLimits, type LimitsView } from "./limits.js";
 import { rankQuestions } from "./question-list.js";
 import type { Decided, Question } from "./questions.js";
+import type { SignInView } from "../t3/words.js";
 
 /** What the board knows about one served project, besides its cards. */
 export interface ProjectInfo {
@@ -63,6 +64,8 @@ export interface AllBoard {
   readonly missing: readonly string[];
   /** The providers' limits of those projects as one list (a provider spans projects); null when none was read. */
   readonly limits: LimitsView | null;
+  /** The board's T3 sign-in (docs/board.md, "T3 sign-in"), added by the server; null or absent: the board has none. Never the token. */
+  readonly t3SignIn?: SignInView | null;
 }
 
 /** One project as the server holds it: its name, its last good board (or none) and how its reads went. */

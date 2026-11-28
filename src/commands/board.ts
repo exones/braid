@@ -24,6 +24,8 @@ import { limitPusher } from "../notify/notifier.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
 import { coordinatorWarning, mergeOf, toCard, toDetail, withUnblocks, type BoardData, type StartContext } from "../board/model.js";
+import { failureReader, type Failure } from "../board/failure.js";
+import { boardT3, type T3Hub } from "../board/t3-mcp.js";
 import { readInputs, readStartContext } from "../board/inputs.js";
 
 export { readStartContext };
@@ -43,7 +45,13 @@ import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, showThread, typ
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
 import { normaliseId, UsageError } from "./braids.js";
 import { notifyLine } from "./notify.js";
-import { readConfig } from "../notify/config.js";
+import { readConfig, tokenOf } from "../notify/config.js";
+import { ntfySender } from "../notify/sender.js";
+import { callbackPage, SignInError } from "../t3/oauth.js";
+import { keyringStore, NoSecretStore } from "../t3/secret.js";
+import { readSettings } from "../t3/settings.js";
+import { boardSignIn, demoSignIn, type BoardSignIn } from "../t3/signin.js";
+import { statusLine, type T3Push } from "../t3/words.js";
 import { readProjects, type Project } from "../projects/list.js";
 import { notifier } from "../notify/notifier.js";
 import { liveAddresses, PROBE_MS, removeAddress, SESSION_PATH, VERSION_HEADER, writeAddress, type Probe } from "../board/address.js";
@@ -83,6 +91,8 @@ export interface Sources {
   github(): Github | Promise<Github>;
   t3(): Promise<T3>;
   signals(github: Github): ReadSignals | Promise<ReadSignals>;
+  /** Why idle threads of open items failed, by thread id; absent: none. A failed read gives none. */
+  failures?(t3: T3, braids: readonly Braid[]): Promise<ReadonlyMap<string, Failure>>;
   /** Fetches `braid-requests` from origin; the board calls it only on a fresh read (the Refresh button), alongside GitHub and T3, and reads the local refs otherwise. Absent: never fetched. */
   fetchRequests?(): Promise<unknown>;
   /** The plans of the project's programmes (`pm/*` branches); absent: none. A failed read gives none. */
@@ -90,6 +100,8 @@ export interface Sources {
   tree(item: Item): Tree;
   /** A folder whose changes refresh the page; null for none. */
   readonly watch: string | null;
+  /** The signed-in T3 read (0080/F): told of a change under `watch`, and told how to refresh the project on T3's events. */
+  readonly live?: { stale(): void; subscribe(refresh: () => void): () => void };
   /** What BRAID.md says about the main branch and the coordinator's model. */
   start(): StartContext;
   /** The providers' usage against their thresholds, from T3's caches (no `t3` call); absent: not shown. */
@@ -555,9 +567,12 @@ export function answerAction(states: () => ReadonlyMap<string, string> | undefin
   };
 }
 
-export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
+export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3, hub?: T3Hub): Sources {
   // The main checkout is found with git once per root and cached: asked here, when the project is set up, so no read, wake or action runs that git.
   mainCheckout(root);
+  // Signed in to T3, the reads go over MCP (src/board/t3-mcp.ts); signed out, or with no hub, by the t3 command line.
+  const signed = hub?.project(root);
+  const cli = (): Promise<T3> => readT3(root, { run: t3 });
   // The working tree as the last read saw it: one read serves the braids, the readiness check and the item pages.
   let working: Promise<WorkingFiles> | undefined;
   let seen: WorkingFiles | undefined;
@@ -568,10 +583,12 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     repo: titleRepoName(root),
     braids: () => loadLiveBraidsAsync(root, undefined, readTree()),
     github: () => readGithubAsync(root, gh),
-    t3: () => readT3(root, { run: t3 }).then((read) => (read.status.state === "ok" ? (lastT3 = read) : read)),
+    t3: () => (signed?.read(cli) ?? cli()).then((read) => (read.status.state === "ok" ? (lastT3 = read) : read)),
     signals: (github) => readSignalsAsync(root, github),
     fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
+    failures: failureReader(t3, root, signed?.errorOf),
+    ...(signed === undefined ? {} : { live: signed }),
     limits: (threads, pauses) => readLimitsView(root, threads, pauses),
     // An item page is asked for only after a good read, so the working tree's files are there already.
     tree: (item) => (item.source === null && seen !== undefined ? seen : treeOf(root, item)),
@@ -715,23 +732,9 @@ type Pick = (body: unknown) => { readonly src: Sources; readonly board: () => Pr
  * a board page on it. The body's `project` names the project the action is for (`pick` resolves it among the served ones).
  */
 async function postAction(req: IncomingMessage, url: URL, listener: Listener, pick: Pick): Promise<Reply> {
-  const host = req.headers.host;
-  const origin = req.headers.origin;
-  if (!hostOk(listener, host) || (origin !== undefined && origin.toLowerCase() !== `http://${(host ?? "").toLowerCase()}`)) {
-    return json(403, { error: HOST_REFUSED });
-  }
-  if (listener.kind === "tailnet") {
-    if (req.headers[REQUEST_HEADER] !== "1") {
-      return json(403, { error: `The request is missing the ${REQUEST_HEADER} header that this board's page sends, so the board refused it. Reload the board page.` });
-    }
-  } else {
-    const given = req.headers[TOKEN_HEADER];
-    if (typeof given !== "string" || given === "") {
-      return json(403, { error: "This page has no token for this board run. Open the URL that `braid board` printed (it ends in #token=...), or the one `braid board --url` prints." });
-    }
-    if (!tokenMatches(given, listener.token)) {
-      return json(403, { error: "This page's token is from another `braid board` run (a second tab, or a tab kept across a board restart). Open the URL that `braid board` printed now, or the one `braid board --url` prints." });
-    }
+  const refusal = actionRefused(req, listener);
+  if (refusal !== null) {
+    return refusal;
   }
   const name = decodeURIComponent(url.pathname.slice("/api/action/".length));
   if (listener.kind === "tailnet" && name === "open") {
@@ -765,8 +768,72 @@ async function postAction(req: IncomingMessage, url: URL, listener: Listener, pi
   }
 }
 
+/** Why an action request may not run (the board's own page only: Host, Origin, and the run's token or the Tailscale request header); null when it may. */
+function actionRefused(req: IncomingMessage, listener: Listener): Reply | null {
+  const host = req.headers.host;
+  const origin = req.headers.origin;
+  if (!hostOk(listener, host) || (origin !== undefined && origin.toLowerCase() !== `http://${(host ?? "").toLowerCase()}`)) {
+    return json(403, { error: HOST_REFUSED });
+  }
+  if (listener.kind === "tailnet") {
+    if (req.headers[REQUEST_HEADER] !== "1") {
+      return json(403, { error: `The request is missing the ${REQUEST_HEADER} header that this board's page sends, so the board refused it. Reload the board page.` });
+    }
+  } else {
+    const given = req.headers[TOKEN_HEADER];
+    if (typeof given !== "string" || given === "") {
+      return json(403, { error: "This page has no token for this board run. Open the URL that `braid board` printed (it ends in #token=...), or the one `braid board --url` prints." });
+    }
+    if (!tokenMatches(given, listener.token)) {
+      return json(403, { error: "This page's token is from another `braid board` run (a second tab, or a tab kept across a board restart). Open the URL that `braid board` printed now, or the one `braid board --url` prints." });
+    }
+  }
+  return null;
+}
+
+/** The board's T3 sign-in routes. */
+export const T3_CALLBACK_PATH = "/t3/callback";
+
+/**
+ * `POST /api/t3/<login|cancel|logout>` (docs/board.md, "T3 sign-in"): gated like every action. `login` starts a sign-in
+ * from the host only (the approval page must open where T3 runs); from the Tailscale listener it starts nothing. `logout`
+ * works from both: it only takes access away. The reply never holds the token.
+ */
+async function t3Action(req: IncomingMessage, url: URL, listener: Listener, signin: BoardSignIn, origin: string): Promise<Reply> {
+  const refusal = actionRefused(req, listener);
+  if (refusal !== null) {
+    return refusal;
+  }
+  const verb = url.pathname.slice("/api/t3/".length);
+  try {
+    switch (verb) {
+      case "login":
+        if (listener.kind === "tailnet") {
+          return json(403, { error: "Sign in from the board on the PC, or run braid t3 login: T3's approval page has to open where T3 runs." });
+        }
+        return json(200, { ...(await signin.start(`${origin}${T3_CALLBACK_PATH}`)), view: signin.view() });
+      case "cancel":
+        signin.cancel();
+        return json(200, { view: signin.view() });
+      case "logout": {
+        const out = await signin.signOut();
+        return json(200, { ...out, view: signin.view() });
+      }
+      default:
+        return json(404, { error: `no T3 action ${verb}` });
+    }
+  } catch (error) {
+    if (error instanceof SignInError || error instanceof NoSecretStore) {
+      return json(400, { error: error.message, view: signin.view() });
+    }
+    throw error;
+  }
+}
+
 /** How often open pages are told to refresh. */
 export const REFRESH_MS = 30_000;
+/** The stop step takes the live list of the refresh that just ran (0080/E, 0080/F). */
+const LIVE_FOR_STOP_MS = 10_000;
 /** How long `Started.close()` waits for the server's close event. */
 const CLOSE_TIMEOUT_MS = 10_000;
 
@@ -845,6 +912,7 @@ export function startBoardWith(
   tailnet?: TailnetListen,
   fixedPort = 0,
   timeoutMs: number = READ_TIMEOUT_MS,
+  signin?: BoardSignIn,
 ): Promise<Started> {
   const base = resolve(webDir);
   const single: readonly Member[] = typeof served === "function" ? [] : [{ name: served.repo, src: served }];
@@ -859,7 +927,7 @@ export function startBoardWith(
       c.write("data: refresh\n\n");
     }
   };
-  type Entry = { readonly feed: Feed; watcher?: FSWatcher; debounce?: NodeJS.Timeout };
+  type Entry = { readonly feed: Feed; watcher?: FSWatcher; debounce?: NodeJS.Timeout; unsubscribe?: () => void };
   let feeds = new Map<string, Entry>();
   const watchFolder = (entry: Entry): void => {
     const folder = entry.feed.src.watch;
@@ -868,6 +936,7 @@ export function startBoardWith(
     }
     try {
       const changed = (): void => {
+        entry.feed.src.live?.stale();
         clearTimeout(entry.debounce);
         entry.debounce = setTimeout(() => void entry.feed.refresh(), 200);
         entry.debounce.unref();
@@ -894,6 +963,7 @@ export function startBoardWith(
     entry.feed.close();
     clearTimeout(entry.debounce);
     entry.watcher?.close();
+    entry.unsubscribe?.();
   };
   /** Takes the roster as it is now: new projects start reading, removed ones stop (a read still running stores and sends nothing). */
   const sync = (): void => {
@@ -918,6 +988,10 @@ export function startBoardWith(
       }
       const entry: Entry = { feed: feed(m.src, { timeoutMs, changed: push }) };
       watchFolder(entry);
+      // T3's events (0080/F) refresh the project at once; the feed runs one read at a time and queues at most one more.
+      if (m.src.live !== undefined) {
+        entry.unsubscribe = m.src.live.subscribe(() => void entry.feed.refresh());
+      }
       next.set(m.name, entry);
     }
     for (const [name, entry] of feeds) {
@@ -951,7 +1025,7 @@ export function startBoardWith(
       const now = Date.now();
       const all = await Promise.all(chosen.map(([n, f]) => held(n, f)));
       return url.pathname === "/api/all"
-        ? json(200, combine(all, remote, (asked ?? []).filter((n) => !feeds.has(n)), now))
+        ? json(200, { ...combine(all, remote, (asked ?? []).filter((n) => !feeds.has(n)), now), t3SignIn: signin?.view() ?? null })
         : json(200, { remote, projects: all.map((h) => projectInfo(h, now)) });
     }
     if (url.pathname !== "/api/board" && url.pathname !== "/api/item") {
@@ -1033,6 +1107,24 @@ export function startBoardWith(
         return;
       }
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
+      if (req.method === "POST" && url.pathname.startsWith("/api/t3/")) {
+        const out = signin === undefined ? json(404, { error: "this board has no T3 sign-in" }) : await t3Action(req, url, listener, signin, origin);
+        res.writeHead(out.status, { "content-type": TYPES[".json"] ?? "", "cache-control": "no-store" }).end(out.body);
+        push();
+        return;
+      }
+      if (url.pathname === T3_CALLBACK_PATH) {
+        // T3's answer to a sign-in from the button: loopback only and no board token (T3 redirects the browser here); the
+        // pending click's own state is the check, once, within 5 minutes. Anything else is 404. Nothing of it is logged.
+        const answer = listener.kind === "local" && signin !== undefined && req.method === "GET" ? await signin.callback(url.searchParams) : ({ status: 404 } as const);
+        if (answer.status === 404) {
+          res.writeHead(404, { "content-type": "text/plain", "cache-control": "no-store" }).end("not found");
+          return;
+        }
+        res.writeHead(answer.status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer" }).end(callbackPage(answer.ok, answer.words));
+        push();
+        return;
+      }
       if (req.method === "POST" && url.pathname.startsWith("/api/action/")) {
         const out = await postAction(req, url, listener, pick);
         res.writeHead(out.status, { "content-type": TYPES[".json"] ?? "", "cache-control": "no-store" }).end(out.body);
@@ -1081,6 +1173,7 @@ export function startBoardWith(
   const stop = (): void => {
     closed = true;
     clearInterval(timer);
+    signin?.close();
     for (const entry of feeds.values()) {
       drop(entry);
     }
@@ -1166,6 +1259,20 @@ export interface Runners {
   readonly notifier?: (root: string) => (board: BoardData) => void;
   /** This board's acting leases (0074/B); `actingBoard` in `~/.braid/acting` unless given. */
   readonly acting?: ActingBoard;
+  /** The board's T3 sign-in; null for none. Unless given, a real run reads the OS secret store, and a run with an injected `t3` (tests) has none. */
+  readonly signin?: BoardSignIn | null;
+}
+
+/** Sends a T3 sign-in push through `braid notify`'s settings; with notifications off or not set up there is nothing to send. */
+export function t3Pusher(): (push: T3Push) => Promise<void> {
+  const send = ntfySender();
+  return async (push) => {
+    const config = readConfig();
+    if (config === null || !config.enabled) {
+      return;
+    }
+    await send(config, { title: push.title, body: push.body, tags: ["key"], priority: "high", click: null, sequence: "braid-t3-signin" }, tokenOf());
+  };
 }
 
 /** The four sample projects of `braid board --demo`: the full sample (`demo`), a small one (`api`), one whose reads fail after the first (`mail`) and one that isn't ready (`notes`). */
@@ -1278,9 +1385,15 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   // One acting board per provider account and per repository on this machine (0074/B): the leases in ~/.braid/acting.
   let port: number | null = null;
   const leases = pausing ? (run.acting ?? actingBoard({ staleMs: ACTING_STALE_MS, port: () => port })) : null;
+  // The T3 sign-in, made further down: signed in, the board reads T3 over MCP and hears its events (0080/F), and the pause and the
+  // hold stop the braid's working threads first (0080/E). One hub: one live list per refresh, one set of event readers.
+  let signedIn: BoardSignIn | undefined;
+  const hub = boardT3({ client: () => signedIn?.client() ?? null, ready: () => signedIn?.read() ?? Promise.resolve() });
   const steer = pausing
     ? steerer({
         t3,
+        mcp: () => signedIn?.client() ?? null,
+        live: () => hub.live(LIVE_FOR_STOP_MS),
         wake: steps(waker(t3), reminder(t3), nudger(t3)),
         ...(leases === null ? {} : { acting: leases }),
         ...(run.notifier === undefined
@@ -1306,7 +1419,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   };
   let served: Sources | Roster;
   if (!several) {
-    served = printing("", act(titleRepoName(root), root, { ...repoSources(root, gh, t3), notify: notifierOf(root) }));
+    served = printing("", act(titleRepoName(root), root, { ...repoSources(root, gh, t3, hub), notify: notifierOf(root) }));
   } else if (demo) {
     const members = demoMembers(t3Down, notReady).filter((m) => only === undefined || m.name === only).map((m) => ({ ...m, src: printing(m.name, m.src) }));
     served = () => members;
@@ -1336,7 +1449,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
         .filter((p) => only === undefined || p.name === only)
         .map((p) => {
           const key = `${p.name}\0${p.path}`;
-          const member = cache.get(key) ?? { name: p.name, src: ((s: Sources) => (first ? printing(p.name, s) : s))(act(p.name, p.path, withNotify(p, repoSources(p.path, gh, t3)))) };
+          const member = cache.get(key) ?? { name: p.name, src: ((s: Sources) => (first ? printing(p.name, s) : s))(act(p.name, p.path, withNotify(p, repoSources(p.path, gh, t3, hub)))) };
           next.set(key, member);
           return member;
         });
@@ -1358,7 +1471,13 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
       return current;
     };
   }
-  const listening = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  // The T3 sign-in (docs/board.md, "T3 sign-in"): the OS store read at the start and at most once a minute; no T3 call on a timer.
+  const signin = demo ? demoSignIn() : run.signin !== undefined ? (run.signin ?? undefined) : run.t3 === undefined ? boardSignIn({ store: keyringStore(), settings: () => readSettings(), send: t3Pusher() }) : undefined;
+  signedIn = signin;
+  const listening = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort, READ_TIMEOUT_MS, signin).catch((e: unknown) => {
+    signin?.close();
+    throw e;
+  });
   port = Number(new URL(listening.url).port);
   // A board that stops gives its leases up at once, so another board acts from its next refresh.
   const started: Started =
@@ -1410,6 +1529,10 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   }
   process.stdout.write(demo ? "Notifications: none in the demo\n" : `${notifyLine(readConfig())}\n`);
   process.stdout.write(`${limitsLine(demo ? "demo" : pausing ? "on" : "off")}\n`);
+  if (signin !== undefined) {
+    await signin.read(true).catch(() => {});
+    process.stdout.write(`${statusLine(signin.view(), new Date())}${demo ? " (demo)" : ""}\n`);
+  }
   process.stdout.write("Press Ctrl+C to stop.\n");
   if (!args.includes("--no-open")) {
     openBrowser(url);

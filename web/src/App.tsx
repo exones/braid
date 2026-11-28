@@ -5,6 +5,7 @@ import { Md } from "./Md.tsx";
 import { TAG_COLOURS } from "./palette.ts";
 import { copyText, type CopyEnv } from "../../src/board/copy.ts";
 import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
+import { T3Button } from "./T3.tsx";
 import { LANE_LABEL, ageText, cardMarks, leadOf, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
@@ -79,8 +80,19 @@ function LaneDot({ lane }: { lane: Lane }) {
   return <span className={`size-2 flex-none rounded-full ${LANE_DOT[lane]}`} />;
 }
 
+/** A long hover text (T3's error) wraps instead of running off the screen. */
+const WRAP = "max-w-sm break-words whitespace-pre-wrap";
+
+/** The icons of a failed thread's reasons (docs/board.md, "Why a thread failed"). */
+const FAILURE_ICON = {
+  limit: <><path d="M4 18a8.5 8.5 0 1 1 16 0" /><path d="M12 15l4.5-5" /><circle cx="12" cy="16" r="1.5" /></>,
+  provider: <><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.3 9.6 4.2 4.2 0 0 0 7 18z" /><path d="M12 9v4M12 15.8v.2" /></>,
+  stopped: <><circle cx="12" cy="12" r="9" /><rect x="9" y="9" width="6" height="6" fill="currentColor" /></>,
+  other: <><path d="M12 4L2.5 20h19z" /><path d="M12 10v4M12 17v.2" /></>,
+} as const;
+
 /** A small round icon with a hover text; the text is also the aria-label. */
-function Icon({ tip, children, className = "" }: { tip: string; children: ReactNode; className?: string }) {
+function Icon({ tip, children, className = "", wrap = false }: { tip: string; children: ReactNode; className?: string; wrap?: boolean }) {
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
@@ -89,7 +101,7 @@ function Icon({ tip, children, className = "" }: { tip: string; children: ReactN
         </span>
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">
+        <Tooltip.Content sideOffset={4} className={`z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white ${wrap ? WRAP : ""}`}>
           {tip}
         </Tooltip.Content>
       </Tooltip.Portal>
@@ -114,6 +126,13 @@ function ReasonMark({ kind, tooltip }: { kind: string; tooltip: string }) {
     return (
       <Icon tip={tooltip} className="text-red-600">
         <svg {...svg} strokeWidth={2.2}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+      </Icon>
+    );
+  }
+  if (kind.startsWith("failed-")) {
+    return (
+      <Icon tip={tooltip} className="text-red-600" wrap>
+        <svg {...svg} strokeWidth={2.2}>{FAILURE_ICON[kind.slice(7) as keyof typeof FAILURE_ICON]}</svg>
       </Icon>
     );
   }
@@ -225,6 +244,23 @@ function PmLine({ pm }: { pm: PmHandling }) {
 
 const toneOf = (need: Need): string => NEED_TONE[need.kind === "review" ? "review" : need.kind === "checks failed" || need.kind === "stalled" || (need.kind === "limit" && need.text.startsWith("Pause failed")) ? "bad" : "wait"];
 
+/** A failed thread's reason on the card: its icon and few words, T3's whole error on hover. */
+function FailureWords({ kind, short, full }: { kind: keyof typeof FAILURE_ICON; short: string; full: string }) {
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <span tabIndex={0} aria-label={`${short}: ${full}`} className="flex items-start gap-1">
+          <svg {...svg} width={13} height={13} strokeWidth={2.2} className="mt-0.5 flex-none text-red-700">{FAILURE_ICON[kind]}</svg>
+          <b className="font-semibold">{short}</b>
+        </span>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content sideOffset={4} className={`z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white ${WRAP}`}>{full}</Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
+
 /** One line saying what the user needs to do, with its age; on a braid card also which strand it comes from. */
 function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?: boolean; className?: string }) {
   const parts = [
@@ -235,7 +271,7 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
   return (
     <div className={`mt-1.5 rounded-md border-l-[3px] px-1.5 py-1 text-[12.5px] leading-snug ${toneOf(need)} ${className}`}>
       {need.code !== undefined && <><CodeChip code={need.handle ?? need.code} />{" "}<BlockLine blocks={need.blocks} act={need.act} /><br /></>}
-      {need.text}
+      {need.failure === undefined ? need.text : <FailureWords kind={need.failure.kind} short={need.text} full={need.failure.full} />}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {parts.length > 0 && <small className="mt-px block text-[11px] text-slate-500">{parts.join(" · ")}</small>}
       {need.also !== undefined && <NeedLine need={need.also} />}
@@ -2402,6 +2438,8 @@ export function App() {
   const pauseNotes = shown.filter((i) => i.pausesNote !== null);
   const resolved = resolveProject(route.project, selected, served);
   const limits = all.state === "ready" && all.data.limits !== null && all.data.limits.providers.length > 0 ? all.data.limits : null;
+  const t3 = all.state === "ready" ? (all.data.t3SignIn ?? null) : null;
+  const remoteNow = all.state === "ready" && all.data.remote;
   const [limitsOpen, setLimitsOpen] = useState(false);
   const toggleLimits = () => setLimitsOpen(!limitsOpen);
   const now = new Date();
@@ -2417,6 +2455,12 @@ export function App() {
           {several && <span className="text-slate-500 max-md:hidden">Each braid sits in the lane where it needs you most.</span>}
           <span className="flex-1" />
           {limits !== null && <LimitChips view={limits} now={now} onOpen={toggleLimits} />}
+          {t3 != null && (
+            <span className="flex items-center gap-1.5 max-md:hidden">
+              {limits !== null && <span aria-hidden className="h-[22px] w-px bg-slate-200" />}
+              <T3Button view={t3} remote={remoteNow} now={now} />
+            </span>
+          )}
           {all.state === "ready" && <InboxChip inbox={inbox} on={route.inbox} />}
           <label className="flex cursor-pointer items-center gap-1.5 text-xs" title="Show the line on each card saying what is needed; off moves the text into the icon's tooltip">
             <input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Details
@@ -2438,7 +2482,7 @@ export function App() {
             <span className="md:hidden">Refresh</span>
           </button>
         </header>
-        {limits !== null && <LimitsStrip view={limits} now={now} onOpen={toggleLimits} />}
+        {(limits !== null || t3 != null) && <LimitsStrip view={limits} now={now} onOpen={toggleLimits} lead={t3 == null ? undefined : <T3Button view={t3} remote={remoteNow} now={now} phone />} />}
         {limitsOpen && limits !== null && <LimitsPanel view={limits} now={now} onClose={() => setLimitsOpen(false)} />}
         {several && <ProjectsBar infos={infos} selected={selected} onSelect={setSelected} />}
         {single !== undefined && single.problems.length > 0 && (

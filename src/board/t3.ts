@@ -117,7 +117,7 @@ export const runT3: T3Runner = (root, args, input) =>
     child.stdin?.end(input ?? "");
   });
 
-type Json = Record<string, unknown>;
+export type Json = Record<string, unknown>;
 const obj = (v: unknown): Json | null => (typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Json) : null);
 const str = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
 
@@ -146,6 +146,8 @@ export interface Where {
   readonly provider: string | null;
   /** T3's link to the thread (`<base>/<env>/<thread>`). */
   readonly link: string | null;
+  /** The latest run's error once it ended without completing; null otherwise. */
+  readonly error: string | null;
 }
 
 /** How long after its record a recorded PM checker is read for: each run of it is a separate task the PM starts, and between runs T3 shows it `completed`, so the record stays until the thread is archived or this passes (bounds the `thread show` reads). Docs: board.md. */
@@ -179,6 +181,7 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
       parent: str(t["parentThreadId"]),
       provider: str(t["providerInstanceId"]),
       link: str(t["link"]),
+      error: str(top?.["error"]),
     };
   } catch {
     return null;
@@ -236,7 +239,7 @@ export async function parentsCheckout(run: T3Runner, root: string, parent: strin
 }
 
 /** Runs `work` over `items`, a few at a time. */
-async function pool<T, R>(items: readonly T[], work: (item: T) => Promise<R>, size = 6): Promise<R[]> {
+export async function pool<T, R>(items: readonly T[], work: (item: T) => Promise<R>, size = 6): Promise<R[]> {
   const out: R[] = new Array<R>(items.length);
   let next = 0;
   await Promise.all(
@@ -284,7 +287,7 @@ export function working(t: Json): boolean {
 }
 
 /** A thread's status as the board reads it: `archived` for an archived one, `running` for one that works (`working`), else T3's status. */
-function statusOf(t: Json): string | null {
+export function statusOf(t: Json): string | null {
   return archived(t) ? "archived" : working(t) ? "running" : str(t["status"]);
 }
 
@@ -311,6 +314,37 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   }
   const all = Array.isArray(raw) ? raw : (obj(raw)?.["threads"] ?? []);
   const named = (Array.isArray(all) ? all : []).map(obj).filter((t): t is Json => t !== null);
+  return snapshotOf({
+    root,
+    named,
+    show: (id) => showThread(run, root, id),
+    ask: (records, states) => toShow(records, states, now.getTime()),
+    seen: (r, where) => remember(r, where, now.getTime()),
+    agents,
+    reviews,
+    now,
+  });
+}
+
+/** What a read (the CLI's or the MCP one, src/board/t3-mcp.ts) gives the one assembly of the snapshot. */
+export interface SnapshotReads {
+  readonly root: string;
+  /** The threads of the project, newest first, as `thread list` gives them (subagents left out). */
+  readonly named: readonly Json[];
+  /** One thread as `thread show` gives it; null when it isn't known. */
+  show(id: string): Promise<Where | null>;
+  /** The recorded reviewers to ask about now. */
+  ask(records: readonly ReviewRecord[], states: ReadonlyMap<string, string>): readonly ReviewRecord[];
+  /** What was said of a record asked about. */
+  seen(record: ReviewRecord, where: Where | null): void;
+  readonly agents: string | readonly string[];
+  readonly reviews: readonly ReviewRecord[];
+  readonly now: Date;
+}
+
+/** The snapshot the lanes read, from the listed threads and what each is asked. */
+export async function snapshotOf(reads: SnapshotReads): Promise<T3> {
+  const { root, named, agents, reviews, now } = reads;
   const states = new Map<string, string>();
   const links = new Map<string, string>();
   const providers = new Map<string, string>();
@@ -354,7 +388,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     let where: Where | null = null;
     let key: string | null = null;
     if (running) {
-      where = await showThread(run, root, id);
+      where = await reads.show(id);
       // A steering thread (0064) belongs to no item, wherever it runs.
       key = parseSteeringTitle(str(t["title"]) ?? "") !== null ? null : (ownerOf(where?.worktreePath ?? null)?.key ?? null);
     } else {
@@ -372,9 +406,9 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   });
   // A recorded child thread is its item's reviewer (or its worker or researcher, by the record's role) while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
   // One seen finished is skipped (`toShow`): a read's calls don't grow with the records a project has gathered.
-  const reviewing = await pool(toShow(reviews.filter((r) => !r.id.startsWith("pm/")), states, now.getTime()), async (r) => {
-    const where = await showThread(run, root, r.thread);
-    remember(r, where, now.getTime());
+  const reviewing = await pool(reads.ask(reviews.filter((r) => !r.id.startsWith("pm/")), states), async (r) => {
+    const where = await reads.show(r.thread);
+    reads.seen(r, where);
     if (where?.status !== "running") {
       return null;
     }
@@ -408,7 +442,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
   // Each run of it is a task the PM starts and T3 shows it `completed` between runs, so the record is kept (uncounted) until the thread is archived or 24 h pass since the record (0075/A, fwoa).
   const ended: string[] = [];
   const recordedChecks = await pool(reviews.filter((r) => r.id.startsWith("pm/")), async (r) => {
-    const where = await showThread(run, root, r.thread);
+    const where = await reads.show(r.thread);
     const what = where === null ? "kept" : checkerRecord(where, r.at, now);
     if (what === "counts") {
       return [r.id];

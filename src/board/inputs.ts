@@ -4,6 +4,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Braid } from "../braids/store.js";
+import type { Failure } from "./failure.js";
 import type { Github } from "./github.js";
 import type { StartContext } from "./model.js";
 import type { PlanRead } from "./plans.js";
@@ -17,6 +18,8 @@ export interface InputSources {
   github(): Github | Promise<Github>;
   t3(): Promise<T3>;
   signals(github: Github): ReadSignals | Promise<ReadSignals>;
+  /** Why idle threads of open items failed, by thread id; absent: none. A failed read gives none. */
+  failures?(t3: T3, braids: readonly Braid[]): Promise<ReadonlyMap<string, Failure>>;
   /** Fetches `braid-requests` from origin; called only on a fresh read (the Refresh button), alongside GitHub and T3. Absent: never. */
   fetchRequests?(): Promise<unknown>;
   /** The plans of the project's programmes (`pm/*` branches); absent: none. A failed read gives none. */
@@ -57,6 +60,13 @@ export async function readInputs(src: InputSources, fetch = false, timed: <T>(na
         throw error;
       }
     });
+    const failures = await timed("failures", async () => {
+      try {
+        return (await src.failures?.(threads, braids)) ?? new Map<string, Failure>();
+      } catch {
+        return new Map<string, Failure>(); // the cards then say only that they stalled
+      }
+    });
     const plans = await timed("plans", async () => {
       try {
         return (await src.plans?.()) ?? [];
@@ -67,7 +77,8 @@ export async function readInputs(src: InputSources, fetch = false, timed: <T>(na
     await requests;
     const read = await timed("signals", () => src.signals(gh));
     // A held plan holds its braids too: those without a pause record of their own read as held by the PM.
-    const sig: ReadSignals = plans.length === 0 ? read : { ...read, plans, pauses: heldPauses(plans, read.pauses ?? new Map(), read.now) };
+    const held: ReadSignals = plans.length === 0 ? read : { ...read, plans, pauses: heldPauses(plans, read.pauses ?? new Map(), read.now) };
+    const sig: ReadSignals = failures.size === 0 ? held : { ...held, failures };
     await timed("done dates", () => sig.prepare?.(braids));
     return { braids, github: gh, t3: threads, sig, start: src.start() };
   } finally {
