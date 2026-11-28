@@ -17,14 +17,16 @@ Screens (demo data): [card and programmes](screens/desktop-card-and-programmes.p
 
 ## Presses that did nothing on the phone (shiny-monkey-mo72)
 
-**Cause not yet found; it needs the user's phone.** The presses recorded nothing (the user then answered in chat). What the code shows:
+**Open: why the presses on the live board recorded nothing.** The user then answered in chat; the live board (`main`, port 7800) logs no actions, so those presses left no trace. What is known:
 
-- The server cuts nothing at about 11 s, and the page sends its header and same-origin request as a desktop does (the PM's desktop press over Tailscale recorded).
-- One answer can take far longer than a phone browser waits: a fetch of the record, up to 60 s for its lock, the write and its push, then the wake of the asking thread.
-- Any unexpected error in an action answered a bare `500 error` and was **logged nowhere**, which fits "the board log shows nothing".
-- On `main`'s page (the live one) an error shows only at the top of the Questions panel, off screen on a phone; the buttons otherwise just grey.
+- The route from the phone works: on this branch's demo board over Tailscale the user's press of A arrived from 100.106.113.74 and was done after 11.0 s (2026-11-28 17:08).
+- The server cuts nothing at 11 s; a real answer can take far longer (record fetch, up to 60 s for its lock, write, push, wake of the asker).
+- Any unexpected error in an action answered a bare `500 error` and was logged nowhere, and `main`'s page shows an error only at the top of the Questions panel, off screen on a phone.
 
-Fixed whatever the cause: every action is logged (arrived, done, refused or failed with the reason, page gone, with listener and peer), an error answers in words, and the page shows each send in place (below). The cause itself is still open.
+Once a board with this change runs, the next real press says which it is in `board-<port>.err.log`: no "arrived" line (it never reached the board), "refused <status> … <reason>", "failed after N s: <error>" (the record write), "the page went away after N s" (the phone gave up), or "done after N s".
+
+**Found by the phone test: the "sent" line vanished.** On success the tall card collapsed and the next question opened, and for a request that closed the only line was at the top of the panel, off screen. Now the card keeps its line until a read drops the request, the line is scrolled into view, and a closed request's line is pinned to the bottom of the window ([sent](screens/phone-sent.png), [sent and closed](screens/phone-sent-and-closed.png); the "closes" case was driven by rewriting the board's data in the browser).
+Fixed whatever the cause: every action is logged (arrived, done, refused or failed with the reason, page gone, with listener and peer), an error answers in words, and the page shows each send in place (below). 
 
 - **While sending** (`src/board/sends.ts`, `web/src/sends.ts`): "Sending…" on the pressed button, "still sending (the record is being written)" after 5 s, errors in words, "already answered by …: …" instead of buttons, the send kept across a reload, the "sent" line until a read drops the request.
 - Screens at 390 px with an 11 s fake write (`BRAID_DEMO_ACTION_MS`): [sending](screens/phone-sending.png), [still sending](screens/phone-still-sending.png), [after a reload](screens/phone-sending-after-reload.png), [already answered](screens/phone-already-answered.png) (that refusal was faked in the browser).

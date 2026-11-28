@@ -7,7 +7,7 @@ import { OUTCOME_LABEL, RANK_LABEL, nextAfter, outcomeText, splitQuestions, type
 import { CLOSED_PAGE } from "../../src/board/record.ts";
 import type { TaggedDecided, TaggedQuestion } from "../../src/board/combined.ts";
 import { ANSWER_MAX } from "./api.ts";
-import { CloseButton, SendLine, SendNotices, Sending, useRequestSend } from "./Close.tsx";
+import { CloseButton, SendLine, Sending, useRequestSend } from "./Close.tsx";
 import { submit } from "./sends.ts";
 import { openedAfter, sendKey, type After, type Closed } from "../../src/board/sends.ts";
 import { Md } from "./Md.tsx";
