@@ -27,6 +27,12 @@
       "by": "pm",
       "text": "A. Merge now",
       "reason": "Additive fields in pauses.json, read both ways (test shows old and new), nothing migrated or deleted; merge into the braid branch only, reversible. The live check with the user covers it before main."
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T13:40:42.635Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
