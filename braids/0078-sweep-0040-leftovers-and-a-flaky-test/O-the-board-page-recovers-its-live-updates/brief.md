@@ -36,11 +36,18 @@ Expected size: about 60 to 120 lines in 2 to 4 files.
 
 - The server's event stream; other board views.
 
+## Plan
+
+1. `src/board/live.ts`: the reconnect, resume, poll and silent-stream logic with an injected environment (testable without a DOM).
+2. `web/src/api.ts`: wire it to `EventSource` and the page events; keep the shown data when a refetch gets no reply; note when a read last answered.
+3. `web/src/App.tsx`: the stale marker in the header.
+4. `test/board-live.test.ts` (fake stream and timers), docs/board.md, a live check on a phone viewport against a temp HOME.
+
 ## Completion
 
-- [ ] The page reopens a dropped or closed stream with backoff, and refreshes on becoming visible, online or shown again, tested where feasible
-- [ ] A fallback poll runs only while visible with the stream down, and a stale marker shows after 90 s without a refresh
-- [ ] Live-checked on a phone-sized viewport (backgrounded, offline, board restart), recorded in report.md
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The page reopens a dropped or closed stream with backoff, and refreshes on becoming visible, online or shown again, tested where feasible
+- [x] A fallback poll runs only while visible with the stream down, and a stale marker shows after 90 s without a refresh
+- [x] Live-checked on a phone-sized viewport (backgrounded, offline, board restart), recorded in report.md
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
