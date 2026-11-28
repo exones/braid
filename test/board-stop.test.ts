@@ -236,7 +236,7 @@ test("threads still working 2 minutes after a stop show on the card and push onc
   setPause(x.root, holdOf());
   await x.tick();
   await x.tick(later(1));
-  assert.deepEqual(x.pushes, [], "not before 2 minutes");
+  assert.equal(x.pushes.length, 0, "not before 2 minutes");
   x.mock.switches.threads = [{ threadId: WORK, status: "running", parentThreadId: COORD }];
   await x.tick(later(2));
   assert.equal(x.pushes.length, 1);
