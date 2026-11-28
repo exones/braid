@@ -1,8 +1,8 @@
 // Removing one worktree of this repository without losing work, also when it has checked-out submodules
 // (`git worktree remove` refuses those). The checks come first; `--force` only after they passed.
-import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { gitSync } from "./gitio.js";
 import { normPath as norm } from "./worktrees.js";
 
 interface Out {
@@ -12,7 +12,7 @@ interface Out {
 }
 
 function git(cwd: string, args: readonly string[]): Out {
-  const r = spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd, encoding: "utf8", windowsHide: true });
+  const r = gitSync(cwd, args);
   return { status: r.error === undefined ? r.status : null, stdout: r.stdout ?? "", stderr: r.stderr ?? (r.error?.message ?? "") };
 }
 

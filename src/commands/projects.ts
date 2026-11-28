@@ -1,7 +1,7 @@
 // `braid projects add|remove|list`: the per-machine list of projects one board serves (`~/.braid/projects.json`),
 // each shown with its readiness. GitHub is not asked here (one `gh` call per project would make `list` slow);
 // the board checks it when it serves the project.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { existsSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { mainCheckout } from "../board/t3.js";
@@ -48,7 +48,7 @@ function mainCheckoutOf(path: string): string {
   if (!existsSync(path)) {
     throw new UsageError(`${path} does not exist`);
   }
-  const top = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: path, encoding: "utf8" });
+  const top = gitSync(path, ["rev-parse", "--show-toplevel"]);
   if (top.status !== 0 || top.stdout.trim() === "") {
     throw new UsageError(`${path} is not in a Git repository`);
   }

@@ -26,10 +26,16 @@ export interface Tree {
   read(file: string): string | null;
 }
 
-/** The working tree under `root`. */
-export function fsTree(root: string): Tree {
+/** A `Tree` of files on disk, which can also say whether `braids`, `backlog` or `BRAID.md` is there. */
+export interface WorkingFiles extends Tree {
+  exists(path: string): boolean;
+}
+
+/** The working tree under `root`, read as asked (blocking; the board reads it with `readWorkingTree`). */
+export function fsTree(root: string): WorkingFiles {
   return {
     source: null,
+    exists: (path) => existsSync(join(root, path)),
     list(dir) {
       const path = join(root, dir);
       if (!existsSync(path) || !statSync(path).isDirectory()) {

@@ -1,10 +1,9 @@
 // Autonomy presets: one Markdown file each, with front matter for what the CLI can enforce and a
 // table of the stop cases for the agents. The CLI checks the table's shape, never its meaning.
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { PRESET_NAME } from "./brief.js";
 import { FormatError, parseFrontMatter } from "./frontmatter.js";
 import { DEFAULT_PRESET, SHIPPED_PRESETS } from "./presets.js";
+import { fsTree, type Tree } from "./store.js";
 
 /** The stop-case keys of the braid skill's stop-cases.md, in its order. */
 export const STOP_CASES = ["security", "dependency", "architecture", "data", "process", "outward", "scope", "quality"] as const;
@@ -156,25 +155,21 @@ export interface PresetSource {
 }
 
 /** The project's preset files, `autonomy/*.md` at the root, by name. Other files are ignored. */
-export function projectPresetFiles(root: string): Map<string, PresetSource> {
-  const dir = join(root, "autonomy");
+export function projectPresetFiles(root: string, tree: Tree = fsTree(root)): Map<string, PresetSource> {
   const found = new Map<string, PresetSource>();
-  if (!existsSync(dir) || !statSync(dir).isDirectory()) {
-    return found;
-  }
-  for (const entry of readdirSync(dir).sort()) {
-    const path = join(dir, entry);
-    if (entry.endsWith(".md") && statSync(path).isFile()) {
+  for (const { name: entry, isDir } of tree.list("autonomy")) {
+    const text = entry.endsWith(".md") && !isDir ? tree.read(`autonomy/${entry}`) : null;
+    if (text !== null) {
       const name = entry.slice(0, -3);
-      found.set(name, { name, from: `autonomy/${entry}`, text: readFileSync(path, "utf8") });
+      found.set(name, { name, from: `autonomy/${entry}`, text });
     }
   }
   return found;
 }
 
 /** Every preset available here: the shipped ones, each replaced by a project file of the same name, then the project's own. */
-export function availablePresets(root: string): Map<string, PresetSource> {
-  const project = projectPresetFiles(root);
+export function availablePresets(root: string, tree: Tree = fsTree(root)): Map<string, PresetSource> {
+  const project = projectPresetFiles(root, tree);
   const all = new Map<string, PresetSource>();
   for (const [name, text] of SHIPPED_PRESETS) {
     all.set(name, project.get(name) ?? { name, from: "shipped", text });
@@ -186,12 +181,12 @@ export function availablePresets(root: string): Map<string, PresetSource> {
 }
 
 /** The `autonomy` key of BRAID.md's front matter, or null when it has none. */
-export function projectDefault(root: string): string | null {
-  const file = join(root, "BRAID.md");
-  if (!existsSync(file)) {
+export function projectDefault(root: string, tree: Tree = fsTree(root)): string | null {
+  const text = tree.read("BRAID.md");
+  if (text === null) {
     return null;
   }
-  const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
+  const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? "";
   const raw = /^autonomy:[ \t]*(.*?)[ \t]*$/m.exec(front)?.[1];
   return raw === undefined ? null : raw.replace(/^(["'])(.*)\1$/, "$2");
 }

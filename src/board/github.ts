@@ -1,6 +1,7 @@
 // What GitHub knows about braid and strand branches: one `gh pr list` call per refresh.
 // A PR belongs to a braid or strand by its head branch (`braid/0006-<slug>`, `braid/0006/A-<slug>`).
 import { execFile, spawnSync } from "node:child_process";
+import { callFailure, CALL_TIMEOUT_MS } from "./timeout.js";
 import { BRAID_BRANCH, STRAND_BRANCH } from "../braids/branches.js";
 
 export type Checks = "passing" | "failing" | "pending" | "none";
@@ -49,7 +50,7 @@ export interface GhResult {
 export type GhRunner = (root: string, args: readonly string[]) => GhResult;
 
 export const runGh: GhRunner = (root, args) => {
-  const r = spawnSync("gh", args, { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 30_000 });
+  const r = spawnSync("gh", args, { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: CALL_TIMEOUT_MS });
   return { status: r.status, stdout: r.stdout, stderr: r.stderr, error: r.error };
 };
 
@@ -58,7 +59,7 @@ export type GhRunnerAsync = (root: string, args: readonly string[]) => GhResult 
 
 export const runGhAsync: GhRunnerAsync = (root, args) =>
   new Promise((done) => {
-    execFile("gh", [...args], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 30_000, windowsHide: true }, (error, stdout, stderr) => {
+    execFile("gh", [...args], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: CALL_TIMEOUT_MS, windowsHide: true }, (error, stdout, stderr) => {
       const code = error !== null && typeof (error as { code?: unknown }).code === "number" ? (error as { code: number }).code : error === null ? 0 : null;
       done({ status: code, stdout, stderr, error: error !== null && code === null ? error : undefined });
     });
@@ -156,7 +157,7 @@ function list(run: GhRunner, root: string, state: "open" | "all"): RawPr[] | str
 
 function parsed(r: GhResult): RawPr[] | string {
   if (r.error !== undefined) {
-    return "gh is not installed or not on PATH";
+    return callFailure("GitHub", "gh", r.error);
   }
   if (r.status !== 0) {
     if (/gh auth login|not logged in/i.test(r.stderr)) {
@@ -188,19 +189,13 @@ export function readGithub(root: string, run: GhRunner = runGh, ttlMs: number = 
 }
 
 /** Same as `readGithub`, with `gh` run without blocking the process. */
-export async function readGithubAsync(root: string, run: GhRunnerAsync = runGhAsync, ttlMs: number = SHARE_MS): Promise<Github> {
-  const shared = recent.get(root);
-  if (shared !== undefined && clock() - shared.at < ttlMs) {
-    return shared.github;
-  }
+export async function readGithubAsync(root: string, run: GhRunnerAsync = runGhAsync): Promise<Github> {
   const mem = memoryOf(root);
   let fetched = parsed(await run(root, listArgs(firstRead(mem) ? "all" : "open")));
   if (typeof fetched !== "string" && vanished(mem, fetched)) {
     fetched = parsed(await run(root, listArgs("all")));
   }
-  const github = assemble(root, mem, fetched);
-  recent.set(root, { at: clock(), github });
-  return github;
+  return assemble(root, mem, fetched);
 }
 
 const memoryOf = (root: string): Memory => memory.get(root) ?? { merged: new Map<number, RawPr>(), closed: new Map<number, RawPr>(), open: new Set<number>() };

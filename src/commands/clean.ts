@@ -2,7 +2,7 @@
 // PR is merged, and of merged planning branches (`plan/<slug>`). A dry run unless `--yes`. It keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
 // changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay. A worktree goes through `removeWorktree`: with submodules too, once
 // neither it nor any submodule has uncommitted, untracked or unpushed work (`worktreeKept`, which a dry run also asks). The one exception is a recorded subagent's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { loadLiveBraids } from "../braids/branches.js";
@@ -22,7 +22,7 @@ interface Worktree {
 }
 
 function git(root: string, args: readonly string[]) {
-  return spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd: root, encoding: "utf8" });
+  return gitSync(root, args);
 }
 
 function worktrees(root: string): Worktree[] {
