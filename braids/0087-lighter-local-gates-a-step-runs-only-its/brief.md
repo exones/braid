@@ -20,7 +20,7 @@ What a user can try at the end: a one-file strand's `npm run verify` takes minut
 - A: the quick gate (`npm run verify`) picks the test files that import the changed files, directly or through src modules, read from import lines; everything when shared parts change, no tests for docs-only changes; tests for the picker.
 - B: every test that makes a temp repo removes it, even when it fails; temp repos run with pinned git settings (no fsmonitor, no auto-gc, `core.fscache`/`core.preloadindex`).
 - C: fewer git processes in the fixtures where cheap: one repo per suite instead of per test, `git -c` instead of separate `git config` runs; measured.
-- D: docs, and BRAID.md saying which gate a worker runs when.
+- D: docs, BRAID.md saying which gate a worker runs when, and the waiting rule for long commands in the braid-worker and braid skills.
 
 ## Autonomy
 
@@ -32,6 +32,7 @@ PM-run (thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b): security, data and outward
 - The full gate (`npm run verify:full`) stays for a braid's final PR and for releases. CI keeps running the full suite on every PR; green CI still gates every merge (D104). A test the picker misses is caught by CI, not locally.
 - BRAID.md says which gate a worker runs when. That is a BRAID.md change, so the user merges it (AGENTS.md): 0087/D is handed over, not merged under the preset.
 - The PM folded its CPU findings (2026-11-28) into this goal: strands B and C.
+- The user added, 2026-11-28 ("I agree with your propositions", through the PM): a rule in the braid-worker and braid skills on waiting for long commands, to cut tiny turns (each makes T3 take a git snapshot). In 0087/D, which the user merges.
 - Keep the load light while working: one worker at a time.
 - Related to 0077 (The board stays fast under load, on `braid/0077-the-board-stays-fast-under-load`): it adds `scripts/Test-Node.ps1` (`npm run test`, node --test capped at half the cores), `braid gate` (at most two gates per machine) and edits test/support. 0077 merges into main first; the coordinator merges main into this braid branch as soon as it lands, and before the final PR. A strand that starts before 0077 lands keeps its edits to `package.json`'s `test` script and to test/support small, so the merge conflicts only by line.
 - Related to 0078 (Sweep: 0040 leftovers and a flaky test, on `braid/0078-sweep-0040-leftovers-and-a-flaky-test`): 0078/A rewrote parts of `scripts/Verify.ps1` and `scripts/Test-DocsGate.ps1` (the OIDC guard and the fixture harnesses moved to Pester), and 0078/E edits test/cli.test.ts and test/done-merge.test.ts. They share files and conflict only by line; whichever merges into main second merges main and keeps both sides.
@@ -40,7 +41,7 @@ PM-run (thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b): security, data and outward
 
 - CI: its workflows and its full suite stay as they are.
 - Rewriting tests to not spawn the CLI or not make git repos; making the product itself faster.
-- Changes to the braid skills or AGENTS.md.
+- Changes to AGENTS.md, and to skills other than the waiting rule in braid-worker and braid (0087/D).
 
 ## Completion
 
@@ -50,4 +51,5 @@ PM-run (thread 9b3a8157-f696-45de-ac39-f35a4a90cf9b): security, data and outward
 - [ ] After a gate run %TEMP% has no new `braid-*` folders and no new `git fsmonitor--daemon` processes
 - [ ] The fixtures start measurably fewer git processes per gate run, before and after in the final report
 - [ ] BRAID.md says which gate a worker runs when (merged by the user)
+- [ ] The braid-worker and braid skills say how to wait for a long command: once, with a time limit, no polling (merged by the user)
 - [ ] The docs from BRAID.md `docs` describe the quick and full gates as they now are
