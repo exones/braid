@@ -28,6 +28,12 @@
       "by": "pm",
       "text": "A. Approve",
       "reason": "Plan matches the P33 sketch and the user decisions: run only affected tests, a new braid, performance first. B and C carry the CPU findings of 2026-11-28; D edits BRAID.md so it goes to the user."
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T09:45:00.929Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
