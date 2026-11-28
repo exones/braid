@@ -1,0 +1,26 @@
+{
+  "code": "q-vgr3",
+  "item": "0087",
+  "kind": "plan",
+  "text": "Approve the plan of 0087 Lighter local gates",
+  "context": "0087 Lighter local gates, four strands: A the quick gate runs only the affected tests (M); B test repos clean up and pin git settings (M, from the PM's CPU findings); C fewer git processes in the fixtures (M, after B); D docs and BRAID.md (L, handed over to the user, not merged under the preset). Preset free with the PM-run exceptions. Branch plan/lighter-local-gates, unpushed.",
+  "options": [
+    "Approve",
+    "Change something",
+    "Show me the briefs"
+  ],
+  "words": "shiny muffin",
+  "by": "coordinator",
+  "thread": "mcp:launch:fffd5f02ce052d9915b025a9bbb0d285506d76a00cd6509ede003cfdcda47587",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T08:47:28.464Z",
+      "by": "coordinator"
+    }
+  ]
+}
