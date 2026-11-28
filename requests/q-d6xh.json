@@ -1,0 +1,23 @@
+{
+  "code": "q-d6xh",
+  "item": "0080",
+  "kind": "decision",
+  "text": "Sign-in live check: steps 1-2 passed (signed in, Full access). Should the PM run step 3 (a hold stopping a scratch thread) for you?",
+  "options": [
+    "Yes, PM runs step 3, then I revoke and log out",
+    "Skip step 3, I do revoke and logout"
+  ],
+  "words": "hungry feather",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T16:51:14.805Z",
+      "by": "pm"
+    }
+  ]
+}
