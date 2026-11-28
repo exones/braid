@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>0084/B mockups: several open questions on the board</title>
+<style>
+:root{--page:#e8edf3;--board:#f1f5f9;--fg:#0f172a;--bg:#fff;--line:#e2e8f0;--soft:#f8fafc;--lane:#e2e8f0b3;--mut:#64748b;--ink:#334155;--chip:#e2e8f0;
+--amber:#fffbeb;--amberfg:#78350f;--amberline:#f59e0b;--red:#fef2f2;--redfg:#7f1d1d;--redline:#dc2626;--green:#f0fdf4;--greenline:#16a34a;--blue:#2563eb;--teal:#0f766e;--tealbg:#f0fdfa;--tealfg:#134e4a;--violet:#f5f3ff;--violetfg:#4c1d95;--violetline:#7c3aed}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--page:#020617;--board:#0b1222;--fg:#e2e8f0;--bg:#0f172a;--line:#334155;--soft:#1e293b;--lane:#1e293bcc;--mut:#94a3b8;--ink:#cbd5e1;--chip:#334155;
+--amber:#33280c;--amberfg:#fde68a;--red:#3b1517;--redfg:#fecaca;--green:#0f2a1b;--blue:#60a5fa;--teal:#2dd4bf;--tealbg:#0c2a29;--tealfg:#99f6e4;--violet:#251a45;--violetfg:#ddd6fe}}
+:root[data-theme=dark]{--page:#020617;--board:#0b1222;--fg:#e2e8f0;--bg:#0f172a;--line:#334155;--soft:#1e293b;--lane:#1e293bcc;--mut:#94a3b8;--ink:#cbd5e1;--chip:#334155;
+--amber:#33280c;--amberfg:#fde68a;--red:#3b1517;--redfg:#fecaca;--green:#0f2a1b;--blue:#60a5fa;--teal:#2dd4bf;--tealbg:#0c2a29;--tealfg:#99f6e4;--violet:#251a45;--violetfg:#ddd6fe}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--page);color:var(--fg);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1{font-size:19px;margin:0 0 4px}
+h2{font-size:15px;margin:34px 0 4px}
+.intro,.note{color:var(--mut);max-width:100ch;font-size:13px;margin:0 0 10px}
+.note b,.intro b{color:var(--fg)}
+button{font:inherit;color:inherit}
+.theme{float:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 10px;cursor:pointer}
+.cols{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.col{width:290px;max-width:100%}
+.col.w{width:416px}
+.col.xw{width:720px}
+.col>h4{margin:0 0 6px;font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.lane{background:var(--lane);border-radius:12px;padding:8px}
+.lane h3{display:flex;justify-content:space-between;margin:2px 4px 8px;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.lane h3 i,.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--amberline)}
+.card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;box-shadow:0 1px 2px #0000000d}
+.card+.card{margin-top:8px}
+.card .t{font-weight:600;margin:4px 0}
+.line{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sp{flex:1}
+.mut{color:var(--mut);font-size:12px}
+.tag{font-size:11px;font-weight:600;border-radius:9px;padding:0 7px;background:var(--chip)}
+.ptag{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:0 6px;font-size:11px;font-weight:600;color:#4f46e5;background:var(--bg)}
+.ptag i{width:8px;height:8px;border-radius:50%;background:#4f46e5}
+.bar{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)}.bar span{flex:1;height:6px;border-radius:4px;background:var(--chip)}
+.strands{margin-top:8px;border-top:1px dashed var(--line);padding-top:4px}
+.sr{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 0;font-size:13px}
+.sr .id{width:52px;flex:none;font-size:12px;color:var(--mut)}
+.sr .nm{flex:1}
+.sr>.stack{flex-basis:100%;margin-left:22px}
+.need{margin-top:6px;border-left:3px solid var(--amberline);background:var(--amber);color:var(--amberfg);border-radius:6px;padding:4px 6px;font-size:12.5px;line-height:1.35}
+.need.esc,.need.bad{border-color:var(--redline);background:var(--red);color:var(--redfg)}
+.need.rev{border-color:var(--violetline);background:var(--violet);color:var(--violetfg)}
+.need.teal{border-color:var(--teal);background:var(--tealbg);color:var(--tealfg)}
+.need small,.foot-s{display:block;color:var(--mut);font-size:11px}
+.foot-s{margin:3px 0 0 9px}
+.chip{display:inline-block;background:#0f172a;color:#fde68a;border-radius:4px;padding:0 6px;font:600 11.5px ui-monospace,Consolas,monospace;white-space:nowrap}
+:root[data-theme=dark] .chip{background:#020617}
+.act{font-size:10.5px;font-weight:700;text-transform:uppercase;border-radius:9px;padding:0 6px;background:#00000018}
+:root[data-theme=dark] .act{background:#ffffff1f}
+.link{display:inline-block;border:1px solid var(--line);background:var(--bg);color:var(--blue);border-radius:5px;padding:0 6px;font-size:11.5px;white-space:nowrap}
+.q-ic{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--amberline);color:#fff;font-size:11px;font-weight:800;position:relative}
+.q-ic sup{position:absolute;left:11px;top:-7px;min-width:14px;height:14px;border-radius:7px;background:var(--bg);border:1px solid var(--amberline);color:var(--fg);font-size:9.5px;line-height:12px;text-align:center}
+.tip{background:#1e293b;color:#fff;border-radius:6px;padding:6px 8px;font-size:12px;margin:6px 0;box-shadow:0 2px 8px #0005}
+.tip div+div{margin-top:5px;border-top:1px solid #ffffff2b;padding-top:5px}
+.tip small{display:block;color:#cbd5e1;margin-top:5px}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:13px}
+.ib.sm{width:22px;height:22px;font-size:11px}
+.ib.merge{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.ib.go{background:var(--blue);border-color:var(--blue);color:#fff}
+.more{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:4px;font-size:12px;color:var(--mut)}
+.more b{color:var(--blue)}
+/* details panel */
+.panel{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+.banner{margin:12px 0;max-width:75ch;border-left:3px solid var(--amberline);background:var(--amber);color:var(--amberfg);border-radius:8px;padding:10px 14px}
+.banner h5{margin:0 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.banner .one{padding:7px 0;border-bottom:1px solid #f59e0b55}
+.tabs2{display:flex;gap:16px;border-bottom:1px solid var(--line);margin-bottom:6px;font-size:13px;color:var(--mut);flex-wrap:wrap}
+.tabs2 span{padding:6px 0}.tabs2 .on{color:var(--fg);font-weight:600;border-bottom:2px solid var(--blue)}
+.sech{margin:14px 0 4px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.req{margin:8px 0;max-width:75ch;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13.5px}
+.pill{font-size:11px;font-weight:600;border-radius:9px;padding:0 8px;background:#fef3c7;color:#92400e}
+/* Questions panel */
+.qp{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px}
+.sec{display:flex;align-items:center;gap:6px;margin:12px 2px 6px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.sec i{width:8px;height:8px;border-radius:50%;background:var(--amberline)}
+.q{border:1px solid var(--line);border-left:3px solid var(--amberline);border-radius:8px;padding:7px 10px;margin-bottom:7px;background:var(--bg)}
+.q.esc{border-color:var(--redline);background:var(--red)}
+.q .txt{margin:3px 0;font-weight:600;font-size:13.5px}
+.wait{margin-left:auto;font-size:11.5px;color:var(--mut);white-space:nowrap}
+.escm{font-size:10.5px;font-weight:700;text-transform:uppercase;border-radius:9px;padding:0 7px;background:var(--redline);color:#fff}
+.big{border:1px solid var(--blue);border-radius:12px;padding:14px 16px;margin-bottom:8px;line-height:1.5}
+.big .qq{font-size:15.5px;font-weight:650;margin:10px 0 12px}
+.ctx{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-top:10px;background:var(--soft);color:var(--ink)}
+.ctx b{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+.opt{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:9px 12px;margin-top:7px}
+.opt b{font-size:12px;border:1px solid var(--mut);border-radius:5px;padding:0 6px}
+.sent{display:flex;gap:8px;align-items:center;border:1px solid var(--greenline);background:var(--green);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:12.5px}
+/* programmes */
+.prog{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+.pc{border:1px solid #fbbf24;border-radius:8px;padding:10px}
+.pc ul{list-style:none;margin:2px 0 0;padding-left:4px}
+.rail{width:56px;background:var(--bg);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0}
+.badge{position:absolute;right:-6px;top:-6px;min-width:16px;height:16px;border-radius:9px;background:var(--amberline);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+/* phone */
+.phone{width:390px;max-width:100%;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--board)}
+.top{background:var(--bg);border-bottom:1px solid var(--line);padding:9px 14px;font-weight:700}
+.tabs{display:flex;background:var(--bg);border-bottom:1px solid var(--line)}
+.tabs span{flex:1;text-align:center;font-size:11px;color:var(--mut);padding:6px 0}.tabs b{display:block;color:var(--fg);font-size:15px}
+.tabs span.on{border-bottom:3px solid var(--amberline);color:var(--fg)}
+.phone .link{min-height:28px;line-height:26px}
+</style>
+</head>
+<body>
+<button class="theme" id="theme" type="button" title="Switch light and dark">◐</button>
+<h1>0084/B mockups: several open questions on the board</h1>
+<p class="intro">Test data only. Since 0084/A a new question no longer withdraws an open one, so one item can hold several. Strand <b>0009/A</b> has three open questions of its coordinator (the oldest escalated); strand <b>0009/B</b> has one of the coordinator and one of the PM; programme <b>working-product</b> has two <code>pm/&lt;slug&gt;</code> questions. Strands have no card of their own on the board: a strand shows as a row of its braid's card. <b>Approved by the user (lazy-cloud-560n, 2026-11-28), variant B: a card shows the item's oldest open question plus "+N more".</b> The details, the Questions panel and the programmes panel show every question. The page follows your system theme; ◐ switches it. The board today is light only.</p>
+
+<h2>1. Strands open on the braid card: three questions on one row, coordinator and PM on another</h2>
+<p class="note"><b>New:</b> under the strand's row, the oldest open question in today's box, then "+N more" with the other names, whoever asked (coordinator or PM); a click opens the item's Requests tab. With <b>Details off</b> the boxes hide as today; the one <b>?</b> icon gets a count when there are several, and its tooltip lists them all (drawn open).</p>
+<div class="cols">
+  <div class="col"><h4>Details on</h4><div id="s1on"></div></div>
+  <div class="col"><h4>Compact (Details off)</h4><div id="s1off"></div></div>
+</div>
+
+<h2>2. The braid card, strands folded: it shows the strand's questions</h2>
+<p class="note">As today the card shows the most urgent item only: its oldest question and "+2 more". The line under it says which strand, and <b>+1 more in strands</b> still counts other <i>strands</i> that ask (here 0009/B), not questions. A strand's PM question shows under it, as today.</p>
+  <div class="cols">
+  <div class="col"><h4>Details on</h4><div id="s2on"></div></div>
+  <div class="col"><h4>Compact (Details off)</h4><div id="s2off"></div></div>
+</div>
+
+<h2>3. How much the card lists: B, approved</h2>
+<p class="note"><b>B (approved):</b> the oldest open question in full, then "+2 more" with the other names. A (every question in full) was not chosen and stays here as the record.</p>
+<div class="cols">
+  <div class="col"><h4>B. Oldest and "+2 more" ✓ approved</h4><div id="vB"></div></div>
+  <div class="col" style="opacity:.55"><h4>A. Every question (not chosen)</h4><div id="vA"></div></div>
+</div>
+
+<h2>4. A handover and a question open together</h2>
+<p class="note">Possible since 0084/A: a question stays open beside the coordinator's <code>review</code> request. <b>Approved:</b> the card is in Needs You (a question stops work), with the violet merge line and its Merge button above the questions. This amends D46.</p>
+<div class="cols"><div class="col"><div id="s4"></div></div></div>
+
+<h2>5. The details panel of strand 0009/A: the banner and the Requests tab</h2>
+<p class="note"><b>New:</b> one "Needs you · 3 open" banner above the brief with the questions separated by a line and one closing sentence, not three banners. A PM question keeps its own "from the PM" banner, as today. The Requests tab already lists every request; its order (newest first) stays.</p>
+<div class="cols">
+  <div class="col xw"><h4>Above the brief</h4><div id="s5a"></div></div>
+  <div class="col xw"><h4>Requests tab, three open</h4><div id="s5b"></div></div>
+</div>
+
+<h2>6. The Questions panel: three rows from one item</h2>
+<p class="note">No change to the panel or its ranking (D118): each question is its own row, answered on its own. The escalated one ranks in the top group; the other two stay oldest first in theirs. Answering one leaves the others. The list is cut to one other braid's question.</p>
+<div class="cols">
+  <div class="col w"><h4>The list</h4><div class="qp" id="s6a"></div></div>
+  <div class="col w"><h4>After answering the first: the next one opens</h4><div class="qp" id="s6b"></div></div>
+</div>
+
+<h2>7. The programmes panel: two open pm/&lt;slug&gt; questions</h2>
+<p class="note"><b>New:</b> one box per programme question, oldest first, then its braids' questions as today. The ? mark, the rail icon and its badge don't change (one programme that needs you). The programme's details and the phone strip show the same boxes.</p>
+<div class="cols">
+  <div class="col" style="width:320px"><h4>The panel</h4><div id="s7"></div></div>
+  <div><h4 class="mut">Rail</h4><div class="rail"><span class="ib">»</span><span class="ib" style="width:36px;height:36px;background:var(--amber);border-color:var(--amberline);position:relative" title="working-product: the PM asks you">?<span class="badge">1</span></span></div></div>
+</div>
+
+<h2>8. At phone width (390 px)</h2>
+<p class="note">The same card (variant B), one lane at a time. The tab counts stay counts of cards (one card here asks); the Questions panel below the board counts questions.</p>
+<div class="phone" id="s8"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const chip = (h) => `<span class="chip" title="Copy ${h}">${h}</span>`;
+const ptag = '<span class="ptag"><i></i>sample</span>';
+const ASK = '<span class="link">↗ Open asking thread</span>';
+
+const A = [
+  { h: "calm-otter-7k2m", age: "41 min", esc: true, text: "Should the report totals include refunds?", say: "Escalated to you: Should the report totals include refunds? (the PM hasn't answered for 21 min)",
+    options: ["No, refunds are a separate line", "Yes, net of refunds"], ctx: "The totals model sums paid orders today. Netting refunds changes every stored total." },
+  { h: "amber-lynx-4qpm", age: "22 min", text: "Round each line, or only the sum?", options: ["Round each line, as the invoices do", "Round only the sum"], ctx: "The two differ by a few cents on long reports." },
+  { h: "yellow-bear-5asx", age: "6 min", text: "Which time zone closes a day: the shop's or UTC?", options: ["The shop's", "UTC"] },
+];
+const B = { h: "quiet-lark-2fhn", age: "15 min", text: "Page the report, or scroll it all?" };
+const BPM = { h: "tiny-tractor-3i2b", age: "9 min", text: "The PM asks you to: send one month of the real ledger as a sample.", act: "do" };
+
+const box = (q, id, o = {}) => `<div class="need ${q.esc ? "esc" : ""}">${chip(q.h)} <b>blocks ${id}</b> · <span class="act">${q.act || "decide"}</span><br>${q.say || q.text}<br>${ASK}${o.age === false ? "" : `<small>asked ${q.age} ago</small>`}</div>`;
+const stack = (qs, id) => `<div class="stack">${lead(qs, id)}</div>`;
+// Variant B: the oldest open question, then the names of the others.
+const lead = (qs, id) => box(qs[0], id) + (qs.length > 1 ? `<div class="more"><b>+${qs.length - 1} more</b> ${qs.slice(1).map((q) => chip(q.h)).join(" ")}</div>` : "");
+const icon = (n) => `<span class="q-ic">?${n > 1 ? `<sup>${n}</sup>` : ""}</span>`;
+const tip = (qs, foot) => `<div class="tip">${qs.map((q) => `<div><b>${q.h}</b> ${q.say || q.text} — asked ${q.age} ago</div>`).join("")}${foot ? `<small>${foot}</small>` : ""}</div>`;
+const acts = '<span class="ib" title="Open thread">🖥</span>';
+const strandRow = (letter, name, body, n, icons) => `<div class="sr"><span class="dot"></span><span class="id">0009/${letter}</span><span class="nm">${name}</span>${n ? icon(n) : ""}${icons || ""}${body}</div>`;
+const restRow = '<div class="sr"><span class="dot" style="background:#cbd5e1"></span><span class="id">0009/C</span><span class="nm">CSV export</span></div>';
+const head = (n, open, extra = "") => `<div class="line"><span class="mut">0009</span><span class="tag">tier:M</span>${ptag}${n ? icon(n) : ""}<span class="sp"></span><span class="mut">${open ? "▾" : "▸"} strands</span></div>
+  <div class="t">Report totals</div><div class="bar"><span></span>0/3</div>${extra}`;
+const bottom = '<div class="line" style="margin-top:8px"><span class="sp"></span><span class="ib" title="Open coordinator">🧠</span></div>';
+const card = (inner) => `<div class="card">${inner}</div>`;
+const lane = (inner, label = "Needs You", n = 1) => `<div class="lane"><h3><span><i></i>${label}</span><span>${n}</span></h3>${inner}</div>`;
+
+const openCard = (details) => card(head(details ? 0 : 3, true) + `<div class="strands">
+  ${strandRow("A", "Totals model", details ? stack(A, "0009/A") : `<div class="stack">${tip(A)}</div>`, details ? 0 : 3, acts)}
+  ${strandRow("B", "Report page", details ? stack([B, BPM], "0009/B") : `<div class="stack">${tip([B, BPM])}</div>`, details ? 0 : 2, acts)}
+  ${restRow}</div>` + bottom);
+$("s1on").innerHTML = lane(openCard(true));
+$("s1off").innerHTML = lane(openCard(false));
+
+const WHERE = "+1 more in strands · strand 0009/A";
+const folded = (list) => card(head(0, false) + list + bottom);
+const listB = lead(A, "0009/A") + `<small class="foot-s">${WHERE}</small>`;
+const listAonly = A.map((q) => box(q, "0009/A")).join("") + `<small class="foot-s">${WHERE}</small>`;
+const listFolded = listB + box(BPM, "0009/B");
+// The braid card also shows the PM's question of a strand, as today.
+$("s2on").innerHTML = lane(folded(listFolded));
+$("s2off").innerHTML = lane(card(head(3, false) + tip(A, WHERE) + bottom));
+
+$("vB").innerHTML = lane(folded(listB));
+$("vA").innerHTML = lane(folded(listAonly));
+
+$("s4").innerHTML = lane(card(`<div class="line"><span class="mut">0011</span><span class="tag">tier:S</span>${ptag}<span class="link">PR #21</span>${icon(2)}</div><div class="t">Report e-mail</div>
+  <div class="need rev">${chip("gold-seal-1m9x")} <b>blocks 0011</b> · <span class="act">merge</span><br>Merge PR #21<br><span class="line">${ASK}<span class="sp"></span><span class="ib sm merge" title="Merge">⇥</span></span><small>asked 30 min ago</small></div>
+  ${lead([{ h: "plain-wren-3t7d", age: "12 min", text: "Send the e-mail on Monday or on the 1st?" }, { h: "mellow-ibis-5r8k" }], "0011")}
+  <div class="line" style="margin-top:8px"><span class="sp"></span><span class="ib" title="Open coordinator">🧠</span></div>`));
+
+const detHead = '<div class="line"><span class="mut">0009/A</span> <b>Totals model</b> ' + icon(3) + '<span class="sp"></span>' + acts + "</div>";
+$("s5a").innerHTML = `<div class="panel">${detHead}
+  <div class="banner"><h5>Needs you · 3 open · oldest 41 min</h5>${A.map((q) => `<div class="one">${chip(q.h)} <b>blocks 0009/A</b> · <span class="act">decide</span> <span class="mut">· asked ${q.age} ago</span><br>${q.say || q.text}<br>${ASK}</div>`).join("")}
+  <div class="mut" style="margin-top:7px">Answer in the Questions panel or the coordinator thread. Say a question's name in any thread to refer to it.</div></div>
+  <div class="tabs2"><span class="on">Brief</span><span>Report</span><span>Logs</span><span>Requests (4)</span></div><div class="mut">… the brief …</div></div>`;
+const req = (q) => `<div class="req"><div class="line">${chip(q.h)}<span class="pill">open</span><span class="tag">question</span><span class="mut">blocks 0009/A · <span class="act">decide</span></span><span class="sp"></span>${ASK}</div>
+  <div style="margin-top:4px" class="${q.esc ? "need" : ""}">${q.say || q.text}</div><div class="mut" style="margin-top:4px">0009/A · asked today (${q.age} ago) · done when answered</div></div>`;
+$("s5b").innerHTML = `<div class="panel">${detHead}<div class="tabs2" style="margin-top:10px"><span>Brief</span><span>Report</span><span>Logs</span><span class="on">Requests (4)</span></div>
+  <div class="sech">Open · 3</div>${[...A].reverse().map(req).join("")}
+  <div class="sech">Decided · 1 · newest first</div><div class="req"><div class="line">${chip("swift-moth-2c4v")}<span class="pill" style="background:#dcfce7;color:#166534">decided by you</span><span class="sp"></span><span class="mut">today 09:10</span></div><div style="margin-top:4px">Which currency do the totals use?</div><div class="mut"><b>Answer:</b> The shop's.</div></div></div>`;
+
+const WHO = "coordinator of 0009 Report totals";
+const row = (q) => `<div class="q ${q.esc ? "esc" : ""}"><div class="line">${chip(q.h)}${q.esc ? '<span class="escm">⚠ escalated</span>' : ""}<span class="wait">${q.age}</span></div>
+  <div class="txt">${q.text}</div><div class="line mut">${ptag}<span>${q.who || WHO}</span></div><div style="font-size:12px;margin-top:2px"><b>${q.blocks || "blocks 0009/A"}</b> · <span class="act">${q.act || "decide"}</span></div></div>`;
+const sec = (t, red) => `<div class="sec"><i${red ? ' style="background:var(--redline)"' : ""}></i>${t}</div>`;
+const qhead = (n) => `<div class="line"><span>❓</span><b style="font-size:15px">Questions</b><span class="mut">${n}</span><span class="sp"></span><span class="ib">»</span></div>`;
+const other = { h: "windy-maple-8h2c", age: "18 min", text: "Skip rows with an unknown currency, or stop the import?", who: "coordinator of 0007 Import", blocks: "blocks 0007/B" };
+const big = (q) => `<div class="big"><div class="line">${chip(q.h)}<span class="wait">${q.age}</span><span class="ib sm">▴</span></div><div class="line mut" style="margin-top:5px">${ptag}<span>${WHO}</span></div>
+  <div style="font-size:12px"><b>blocks 0009/A</b> · <span class="act">decide</span></div><div class="ctx"><b>Context</b>${q.ctx}</div><div class="qq">${q.text}</div>
+  ${q.options.map((o, i) => `<button class="opt" type="button"><b>${"ABCD"[i]}</b><span>${o}</span></button>`).join("")}<div class="line" style="margin-top:10px"><span class="ib">✎</span>${ASK}</div></div>`;
+$("s6a").innerHTML = qhead(4) + sec("Escalated to you", true) + row(A[0]) + sec("Blocks one item") + row(A[1]) + row(other) + row(A[2]);
+$("s6b").innerHTML = qhead(3) + `<div class="sent">✓ <span>${chip(A[0].h)} <b>A</b> · No, refunds are a separate line<br><span class="mut">sent</span></span></div>` + sec("Blocks one item") + big(A[1]) + row(other) + row(A[2]);
+
+const pq = (h, age, text, options, from) => `<div class="need">${chip(h)} ${from ? `<b>blocks ${from}</b> · ` : ""}<span class="act">decide</span><br><b>The ${from ? "coordinator" : "PM"} asks you:</b> ${text} ${ASK}
+  ${options ? `<ul>${options.map((o) => `<li>${o}</li>`).join("")}</ul>` : ""}<small>${from ? `from ${from}` : "programme"} · asked ${age} ago · answer in the Questions panel or the PM thread</small></div>`;
+const programme = `<div class="pc"><div class="line">${ptag}<b>🧭 working-product</b><span class="sp"></span>${icon(1)}</div><div class="mut">A working product per the specs: sign in, search, export and bill</div>
+  ${pq("giant-spoon-4k2d", "35 min", "P17: Should the export ship before billing?", ["A. Yes: export first, billing after", "B. No: billing first"])}
+  ${pq("silver-fern-8m1c", "8 min", "P18: Run the inbox sweep now, or after billing?", ["A. Now, beside billing", "B. After billing"])}
+  ${pq("quiet-lark-2fhn", "15 min", B.text, null, "0009/B")}
+  <div class="bar" style="margin-top:8px"><span></span>3/6 done · 3 running</div><div style="font-size:13px;margin-top:4px">Next: P19 Notifications</div>
+  <div class="line" style="margin-top:8px"><span class="link">🧭 PM thread</span><span class="ib">◎</span><span class="ib">≡</span></div></div>`;
+$("s7").innerHTML = `<div class="prog"><div class="line">🧭 <b style="font-size:15px">Programmes</b><span class="mut">1</span></div>${sec("Needs you · 1")}${programme}</div>`;
+
+$("s8").innerHTML = `<div class="top">braid · attention board</div><div class="tabs">${[["1", "Needs you"], ["0", "Review"], ["2", "Working"], ["1", "To Do"], ["14", "Done"]].map(([n, l], i) => `<span class="${i ? "" : "on"}"><b>${n}</b>${l}</span>`).join("")}</div>
+  <div style="padding:10px">${folded(listFolded)}</div>
+  <div class="qp" style="border-radius:0;border-width:2px 0 0">${qhead(6).replace('<span class="ib">»</span>', "")}${sec("Escalated to you", true)}${row(A[0])}${sec("Blocks one item")}${row(A[1])}<div class="mut" style="text-align:center">… 4 more …</div></div>`;
+
+$("theme").onclick = () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme:dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+};
+// For screenshots: ?theme=dark or ?theme=light.
+const wanted = new URLSearchParams(location.search).get("theme");
+if (wanted) document.documentElement.dataset.theme = wanted;
+</script>
+</body>
+</html>
