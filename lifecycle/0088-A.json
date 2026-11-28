@@ -1,0 +1,11 @@
+{
+  "id": "0088/A",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-28T11:39:06.524Z",
+      "thread": "mcp:launch:57e70b712b9ff52ac0482fc5b35d6dab4de62c4818d1f27b6036b9adb8914aeb",
+      "branch": "braid/0088/A-braid-s-git-calls-start-no-fsmonitor"
+    }
+  ]
+}
