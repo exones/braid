@@ -27,6 +27,12 @@
       "at": "2026-11-28T08:22:40.836Z",
       "by": "user",
       "text": "C. Change something: 1 changes, 2-4 as recommended.\n1. A card with several questions shows the oldest open question plus \"+N more\" (not every question in full).\n2. As proposed: the folded braid card shows the most urgent strand's question plus \"+N more in strands\".\n3. As proposed: a PR handover with open questions goes to Needs You, Merge button kept above the questions (amends D46).\n4. As proposed: with details off, the ? icon shows a count."
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T09:45:00.929Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
