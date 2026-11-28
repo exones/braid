@@ -1,0 +1,25 @@
+{
+  "code": "q-mku2",
+  "item": "0080/D",
+  "kind": "decision",
+  "text": "0080/D sign-in reviewed, not blocking: merge into the braid branch now and do the user's live sign-in check before the final PR, or live check first?",
+  "options": [
+    "Merge now, live check later",
+    "Live check first, then merge"
+  ],
+  "words": "giant pebble",
+  "key": "security",
+  "by": "coordinator",
+  "thread": "mcp:launch:dd3b6dc3e3dfa3c9a1515a11da6c5a321a852f1a03d3476d761e87ada6709510",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T12:25:01.192Z",
+      "by": "coordinator"
+    }
+  ]
+}
