@@ -118,7 +118,7 @@ Cheapest call per need:
 
 ## 5. Can old checkpoint refs be removed safely, and what does T3 lose? (added)
 
-**Answer:** yes, for settled threads. Removing a settled thread's refs costs that thread's turn diffs and its rewind to old turns. Both fail cleanly, and nothing else breaks. Live threads should keep theirs. The PM pruned 3,652 refs of 435 settled threads in agento at about 09:58. `git for-each-ref refs/t3` went from 340–1,070 ms to 77–81 ms, and the whole-repo listing from 107–2,184 ms to 78–86 ms.
+**Answer:** yes, for settled threads. Removing a settled thread's refs costs that thread's turn diffs and its rewind to old turns. Both fail cleanly, and nothing else breaks. Live threads should keep theirs. The PM pruned 3,652 refs of 435 settled threads in agento at about 09:58. `git for-each-ref refs/t3` went from 340–1,070 ms to 77–81 ms, and the whole-repo listing from 107–444 ms to 78–86 ms (saved rows).
 
 **What reads the refs** (read [S19] `orchestration-v2/CheckpointService.ts`, [S20] `checkpointing/CheckpointDiffQuery.ts`, [S21] `ws.ts`, at 0.1.13; bundle `runtimeLayer-bHa_wuNB.mjs`, `server-B8LwMtOy.mjs`):
 
@@ -130,7 +130,7 @@ Cheapest call per need:
 | Restore, rewind, revert (S19 859–863, 877–898) | checks the ref, snapshots the folder as `…/pre-rewind`, restores | refuses: "Checkpoint ref is unavailable." (bundle 36066, 36094); the folder isn't touched |
 | T3's own cleanup (S22 `storageCleanup.ts` 2006–2105) | lists refs and deletes those of **deleted** threads | — |
 
-- read [S19] 877–898: a `…/pre-rewind` ref left by a failed rewind is "the only copy of how the folder was". Never prune one. agento had none.
+- read [S19] 877–898; bundle `runtimeLayer-bHa_wuNB.mjs` 36095–36105: a rewind first snapshots the folder as `…/pre-rewind`. If the rewind fails and putting that snapshot back fails too, T3 logs "A failed rewind left a folder partly restored" and keeps the `pre-rewind` ref. Otherwise it deletes the ref. A `pre-rewind` ref that still exists is therefore the record of a partly restored folder: never prune one. agento had none.
 - not checked: whether the live working-tree Changes panel (`review.gitDiffPreview`) reads checkpoint refs.
 - inferred: a live thread doesn't break without its refs, but it degrades. It gets one more baseline snapshot, one turn without a file list, and no rewind to older turns. That is why the rule below keeps live threads and the children of live parents.
 - inferred (Git): deleting refs doesn't shrink `.git` by itself. The snapshot objects go at the next `git gc`.
@@ -150,7 +150,7 @@ Cheapest call per need:
 
 | When | Refs under `refs/t3` | `git for-each-ref refs/t3` | All refs | Whole-repo `git for-each-ref` | `packed-refs` | CPU |
 | --- | --- | --- | --- | --- | --- | --- |
-| 09:40:06 before | 5,643 | 886 ms | 6,010 | 2,184 ms | 784,688 B | 52–68% |
+| 09:40:06 before (taken by hand, not saved in `refs.tsv`; left out of the ranges) | 5,643 | 886 ms | 6,010 | 2,184 ms | 784,688 B | 52–68% |
 | 09:40:36 before | 5,643 | 473 ms | 6,010 | 444 ms | 784,688 B | 71% |
 | 09:44:39 before | 5,648 | 340 ms | 6,016 | 107 ms | 784,688 B | 85% |
 | 09:48:43 before | 5,652 | 1,070 ms | 6,020 | 135 ms | 784,688 B | 8% |
@@ -162,7 +162,7 @@ Cheapest call per need:
 
 My clock reads a few minutes behind the PM's: the PM's "about 09:58" falls between 09:48:43 and 09:54:38 on mine. The count rises by about 4 refs a minute: one per finished turn.
 
-- inferred: `for-each-ref` cost follows the ref count and the `packed-refs` size (785 KB to 300 KB). After the prune, listings are 4–25× faster, and their variance under load is gone. `vcs.listRefs` and `vcs.refreshBranch` run the same listing (finding 2 below), so they should gain likewise. Not measured inside T3.
+- inferred: `for-each-ref` cost follows the ref count and the `packed-refs` size (785 KB to 300 KB). After the prune, listings are about 1.3–14× faster (saved rows), and their variance under load is gone. `vcs.listRefs` and `vcs.refreshBranch` run the same listing (finding 2 below), so they should gain likewise. Not measured inside T3.
 
 **The 1,065 refs that matched no listed thread** (measured: `unmatched.mjs`, a read-only select of T3's scope and thread tables plus one live-only `t3_thread_list` MCP call, at about 09:55):
 - All 371 segments left (2,006 refs) have a scope in the store, and all are `root` scopes. The 358 the PM couldn't match are **75 archived threads**, which `t3 thread list` leaves out, and **283 subagent threads**, which `t3 thread list` drops on the client ([S1] 880–916).
@@ -244,7 +244,7 @@ Two sets of findings [S29], cited as given: "T3 trace logs, 2026-11-28, read by 
 | A `threadIds` filter on `t3_thread_list` | One call for N known thread ids (braid's records) | [S6] has no such field |
 | Prune revoked and expired `auth_sessions` | 405,159 rows, growing by one per CLI call | measured; no `DELETE FROM auth_sessions` in v0.1.12 [S4] |
 | An optional retention policy: archive settled threads after N days | Active lists are filtered by `archived_at IS NULL`; 1,526 of 1,626 threads are active | [S8], [S12], measured |
-| Prune checkpoint refs of settled and archived threads (after N days, keeping `pre-rewind`), not only of deleted ones | 5,643 refs in agento before the PM's prune; listings went from up to 2.2 s to under 0.1 s after it | part 5; [S22] 2006–2037 |
+| Prune checkpoint refs of settled and archived threads (after N days, keeping `pre-rewind`), not only of deleted ones | 5,643 refs in agento before the PM's prune; listings went from up to 1.1 s to under 0.1 s after it (saved rows) | part 5; [S22] 2006–2037 |
 | A setting to turn off or thin per-turn checkpoints (per project, or for agent threads) | about 1,500 git processes in 31 minutes; capture-lock waits up to 294 s (PM) | finding 1; [S19] 40–43, 405–410 |
 | A cap or a summary for submodule diffs in the Changes panel and in checkpoint scopes | `review.gitDiffPreview` past 15 s on about 1.4M deleted lines (PM) | finding 3; [S25] 118–129 |
 | Size and age limits for `logs/provider/` event logs, as the traces have | 513 MB of the 726 MB in `logs` | finding 4 (measured); [S26] 246–247 |

@@ -15,3 +15,7 @@ Brief: added question 5 to the Goal ("Can old checkpoint refs be removed safely,
 Finding: checkpoint ref segment = base64url(sha256_hex(scopeId)[0:32]), with scopeId = checkpoint-scope:thread:<enc threadId>:name:<enc name>. Checked against all 1,544 scopes and 5,647 refs in agento. Removing a settled thread's refs loses its turn diffs and its rewind; both fail cleanly. T3 prunes only deleted threads' refs.
 Finding: after the PM's prune (3,652 refs), for-each-ref refs/t3 went from 340-1,070 ms to 77-81 ms, and the whole repo from 107-2,184 ms to 78-86 ms. The 358 unmatched segments are 75 archived threads and 283 subagent threads. By the rule (not live, parent not live), 316 segments (938 refs) are safe to prune.
 Decided: T3 is now 0.1.13. Question 5 and the log findings cite v0.1.13; questions 1-4 stay on 0.1.12, with the 0.1.13 diff noted (no read path changed).
+
+## 2026-11-28 10:25Z
+
+Review fixes on #378: (1) The pre-rewind claim now cites what the bundle code does (runtimeLayer-bHa_wuNB.mjs 36095-36105): it logs "A failed rewind left a folder partly restored" and keeps the ref when recovery fails. This replaces a quote that the bundle does not contain. (2) The 09:40:06 before row was taken by hand and not saved in refs.tsv. It is now marked that way and left out of the ranges, which come from the saved rows: the whole repo 107-444 ms (not 107-2,184), refs/t3 at most 1.1 s, and the speed-up about 1.3-14x. This corrects the earlier log line.
