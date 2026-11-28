@@ -2,7 +2,7 @@
 // What it copies from T3: one stateless JSON-RPC POST to /mcp per call; 403 for a request with an Origin; 401 for a
 // wrong token; the `mcp-method`, `mcp-name` and `mcp-protocol-version` checks; `events/poll` as MilestoneHub reads
 // (cursor "<epoch>.<seq>", null starts from now, `truncated` after eviction or a restart); and for `tools/call` a
-// failed tool as `isError` with `{ _tag, code, message }`. The two tools are stubs.
+// failed tool as `isError` with `{ _tag, code, message }`. The two tools are stubs (the list's threads settable).
 // Not copied: events/list, events/stream, events/subscribe, maxAgeMs, OAuth.
 import { createServer, type IncomingHttpHeaders, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -78,6 +78,10 @@ export async function startT3Mock(options: { readonly kept?: number } = {}) {
     sse: false,
     /** `t3_thread_interrupt` on these answers `runtime_mode_escalation_denied`: they run above the caller's level. */
     aboveLevel: new Set<string>(),
+    /** What `t3_thread_list` answers (0080/E: the live threads, children with their parent); null: the one-thread stub. */
+    threads: null as { threadId: string; status: string; parentThreadId?: string | null }[] | null,
+    /** `t3_thread_interrupt` on these answers 401, as T3 does to a revoked sign-in. */
+    revokeOn: new Set<string>(),
   };
 
   async function handle(req: IncomingMessage, res: ServerResponse) {
@@ -101,6 +105,10 @@ export async function startT3Mock(options: { readonly kept?: number } = {}) {
     if (req.headers.origin !== undefined) {
       res.writeHead(403);
       return res.end();
+    }
+    const asked = (body.params?.["arguments"] ?? {}) as { threadId?: string };
+    if (body.method === "tools/call" && body.params?.["name"] === "t3_thread_interrupt" && switches.revokeOn.has(asked.threadId ?? "")) {
+      switches.unauthorized = true;
     }
     if (switches.unauthorized || req.headers.authorization !== `Bearer ${MOCK_TOKEN}`) {
       return json(401, { error: "invalid_mcp_credential", message: "A valid T3 Code MCP credential is required." });
@@ -126,7 +134,7 @@ export async function startT3Mock(options: { readonly kept?: number } = {}) {
       const text = (value: unknown) => [{ type: "text", text: JSON.stringify(value) }];
       const done = (value: unknown) => reply({ result: { isError: false, structuredContent: value, content: text(value) } });
       if (p["name"] === "t3_thread_list") {
-        return done({ projectId: "p1", currentThreadId: null, threads: [{ threadId: "t1", title: "one", status: "running" }], nextCursor: null });
+        return done({ projectId: "p1", currentThreadId: null, threads: switches.threads ?? [{ threadId: "t1", title: "one", status: "running" }], nextCursor: null });
       }
       if (p["name"] === "t3_thread_interrupt") {
         if (switches.aboveLevel.has(args.threadId ?? "")) {

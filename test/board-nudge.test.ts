@@ -304,3 +304,16 @@ test("0074/F: a strandless braid with a running coordinator never reads stalled;
     assert.equal(card.running, false, "the coordinator is not an agent of the card");
   }
 });
+
+test("the limit clash (0080/E): a coordinator whose last run failed on a usage limit counts as paused and isn't nudged", async () => {
+  const w = world();
+  const s = sender();
+  const step = nudger(s.t3);
+  const failures = new Map([[CO7, { kind: "limit", short: "Usage limit", full: "You've hit your usage limit" }]]);
+  refresh(w.root, at(0), lone, T3());
+  const r = refresh(w.root, at(10), lone, T3());
+  await step({ root: w.root, good: { sig: { ...r.sig, failures } } }, at(10), warn);
+  assert.equal(s.sent.length, 0, "only the resume reaches it");
+  await step({ root: w.root, good: { sig: r.sig } }, at(10), warn);
+  assert.equal(s.sent.length, 1, "without the limit failure it is nudged as before");
+});

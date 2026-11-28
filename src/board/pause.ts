@@ -1,7 +1,7 @@
 // What a braid's pause looks like on the board and in `braid status`: its phase by the clock and its texts.
 // Pure (no Node.js), so the page uses it too. The record comes from src/braids/pauses.ts.
 import { percent } from "../braids/percent.js";
-import { reasonOf, type NoAnswer, type Pause, type Replies } from "../braids/pauses.js";
+import { reasonOf, type NoAnswer, type Pause, type PauseTarget, type Replies, type StopThread } from "../braids/pauses.js";
 import type { Lane } from "./model.js";
 
 /** Past `resumeAt` by this much with the record still there, the mark says the resume was due. */
@@ -107,10 +107,37 @@ function resumingView(p: Pause, phase: PausePhase, now: Date): PauseView | null 
 /** `Held: “Please freeze work”`: a hold shows the words it was given; with none (a plan's `state: held`) it says so. */
 const heldText = (p: Pause): string => ((p.words ?? "").trim() === "" ? "Held: the plan says held" : `Held: “${p.words}”`);
 
+/** `0080/E`, or `0080/E (child 1a2b3c4d)` for a delegated child that isn't a target itself: a still-working thread as the card and the push name it. */
+export function stopItem(s: StopThread, targets: readonly PauseTarget[]): string {
+  return targets.some((t) => t.thread === s.thread) ? s.item : `${s.item} (child ${s.thread.slice(-8)})`;
+}
+
+/**
+ * What the board's stop left (0080/E), for the card's note: the threads still working after it and the stops T3 refused, with why.
+ * Empty when it stopped nothing or all went quiet.
+ */
+export function stopNote(p: Pause): string {
+  const s = p.stop;
+  if (s === undefined) {
+    return "";
+  }
+  const still = s.still.length === 0 ? "" : ` · still working: ${s.still.map((x) => stopItem(x, p.targets ?? [])).join(", ")}`;
+  const refused = s.refused.length === 0 ? "" : ` · stop refused: ${s.refused.map((x) => `${x.item} (${x.why ?? "refused"})`).join(", ")}`;
+  return `${still}${refused}`;
+}
+
 export function pauseView(p: Pause, now: Date): PauseView {
+  const v = baseView(p, now);
+  const extra = stopNote(p);
+  return extra === "" ? v : { ...v, note: `${v.note}${extra}` };
+}
+
+function baseView(p: Pause, now: Date): PauseView {
   const phase = phaseOf(p, now);
   if (reasonOf(p) === "hold") {
-    return { state: "paused", phase, text: heldText(p), note: `held by ${who(p)} since ${clock(p.at, now)}`, record: p };
+    const r = p.replies;
+    const replies = r === undefined || r.total === 0 ? "" : r.outcome === "pausing" ? ` · ${r.got.length} of ${agentsWord(r.total)} answered so far` : ` · ${repliesText(r).replace(/^paused/, "held")}`;
+    return { state: r?.outcome === "partial" || r?.outcome === "failed" ? "due" : "paused", phase, text: heldText(p), note: `held by ${who(p)} since ${clock(p.at, now)}${replies}`, record: p };
   }
   const resuming = resumingView(p, phase, now);
   if (resuming !== null) {

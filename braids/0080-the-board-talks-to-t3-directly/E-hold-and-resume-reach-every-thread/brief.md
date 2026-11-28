@@ -45,14 +45,25 @@ Expected size: about 450 lines in 6 to 8 files.
 
 - The Hold/Go buttons, the Held lane, Hold all (P5); events (0080/F); settling threads (P35).
 
+## Plan
+
+1. `src/board/stop.ts` (new): the stop by MCP. `liveThreads(client)` is one `t3_thread_list {allProjects, includeSubagents, statuses: the 5 live, limit: 100}` per tick, shared by every braid; `stopTargets` interrupts each live top-level target with `stop: true` (children are left to their parent), notes refusals with their reason, and turns an `unauthorized` into "CLI for the rest of the tick"; `stillWorking` reads the braid's threads and their live children off the same list.
+2. `src/braids/pauses.ts`: a record's optional `stop` part (`at`, `stopped`, `refused`, `still`, `pushed`); `patchPauses` takes which records it may change, so a hold (by coordinator or PM) can carry `targets`, `replies` and `stop`.
+3. `src/board/steer.ts`: `targetsOf` with `provider: null` (a hold: every provider), the fixed hold text, `heldLine`.
+4. `src/board/steerer.ts`: an `mcp` getter in the options; step 3 stops the claimed braids' threads before the texts; a new hold step (repository lease) acts once on a hold record without `replies`; the count reads `Held:` too and counts a thread whose last run failed on a usage limit as answered; a still-working step each tick for 10 minutes after a stop, one push at 2 minutes if any thread still works.
+5. `src/board/pause.ts`: the card's note shows "still working: …" and "stop refused: … (why)".
+6. Limit clash: `nudge.ts` and `remind.ts` skip a thread whose failure is `limit`.
+7. `src/commands/board.ts`: the steerer gets `mcp: () => signin.client()`.
+8. Tests (`test/board-stop.test.ts`) on the mock T3 (`test/fixtures/t3-mcp-mock.ts` gets a settable thread list); docs/board.md.
+
 ## Completion
 
-- [ ] Signed in, a limit pause and a hold stop each working top-level thread of the braid with `stop: true` before sending the text; idle threads get the text only
-- [ ] The card shows threads still working after the stop and refused stops with their reason; one push if threads still work after 2 minutes
-- [ ] A thread whose last run failed on a usage limit counts as paused (no nudge, not missing a reply)
-- [ ] Signed out or `access: cli`, behaviour is unchanged (tests prove it)
-- [ ] Tests cover the cases under Change against the mock T3, with no synchronous call and nothing on the request path
-- [ ] Live check (with 0080/D's, before the final PR, the user signed in): a hold on a scratch braid with a scratch coordinator thread and one delegated child stops both; or report.md says what is left
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Signed in, a limit pause and a hold stop each working top-level thread of the braid with `stop: true` before sending the text; idle threads get the text only
+- [x] The card shows threads still working after the stop and refused stops with their reason; one push if threads still work after 2 minutes
+- [x] A thread whose last run failed on a usage limit counts as paused (no nudge, not missing a reply)
+- [x] Signed out or `access: cli`, behaviour is unchanged (tests prove it)
+- [x] Tests cover the cases under Change against the mock T3, with no synchronous call and nothing on the request path
+- [x] Live check (with 0080/D's, before the final PR, the user signed in): a hold on a scratch braid with a scratch coordinator thread and one delegated child stops both; or report.md says what is left
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
