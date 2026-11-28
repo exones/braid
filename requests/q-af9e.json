@@ -33,6 +33,12 @@
       "at": "2026-11-28T18:00:31.383Z",
       "by": "user",
       "text": "A. Merge as is (owner one-click close, peer addresses in the board log)"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T18:00:34.995Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
