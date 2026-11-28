@@ -32,7 +32,7 @@ The script copies `.agents/skills/braid` and `.agents/skills/braid-*` from that 
 - An installed braid skill that is no longer in the ref (such as the old `braid-coordinate`) is removed.
 - `-Target` replaces the default folders.
 
-**Updating from a braid before the request record** (braid 0070). Requests opened with an older `braid` sit in `.braid/requests.json` of the main checkout. The first command that reads or writes requests (`braid requests`, `braid ask`, `braid answer`, the board) carries them over once onto the branch `braid-requests`, each with a new code and its original time, and renames the file `requests.migrated.json`. A read commits the carry-over locally; the next write pushes it. Nothing else is needed.
+**Updating from a braid before the request record** (braid 0070). Requests opened with such an older `braid` sit in `.braid/requests.json` of the main checkout. `braid` no longer reads that file (0078/F): open what still matters again with `braid ask` or `braid handover`, then delete the file.
 
 ## BRAID.md
 

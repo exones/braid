@@ -12,7 +12,7 @@ import { callFailure, CALL_TIMEOUT_MS } from "./timeout.js";
 import { mainCheckout as baseMainCheckout } from "../braids/repo.js";
 import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
 import { itemOfFolder, normPath, repoNameOf } from "../braids/worktrees.js";
-import { agentsDirs } from "../braids/worktree-folders.js";
+import { agentsDir } from "../braids/worktree-folders.js";
 
 export interface T3Thread {
   readonly id: string;
@@ -253,7 +253,7 @@ async function pool<T, R>(items: readonly T[], work: (item: T) => Promise<R>, si
 export interface T3Options {
   readonly run?: T3Runner;
   /** The folder holding the worktrees braid created (`<worktrees>/<repo>`); derived from the repository when not given. */
-  readonly agents?: string | readonly string[];
+  readonly agents?: string;
   /** The T3 project folder; the main checkout when not given. */
   readonly project?: string;
   /** The recorded review threads; read from `.braid/reviews.json` of the main checkout when not given. */
@@ -267,7 +267,7 @@ export interface T3Options {
  * `unavailable` with the reason, never an error.
  */
 export function readT3(root: string, options: T3Options = {}): Promise<T3> {
-  return readFresh(root, options.run ?? runT3, options.agents ?? agentsDirs(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root), options.now ?? new Date());
+  return readFresh(root, options.run ?? runT3, options.agents ?? agentsDir(root), options.project ?? mainCheckout(root), options.reviews ?? loadReviews(root), options.now ?? new Date());
 }
 
 /** T3's statuses of a thread whose turn is under way: `running`, or `waiting` (its turn waits on a background task it awaits). */
@@ -293,7 +293,7 @@ function archived(t: Json): boolean {
   return t["archived"] === true || (t["archivedAt"] !== undefined && t["archivedAt"] !== null) || t["status"] === "archived";
 }
 
-async function readFresh(root: string, run: T3Runner, agents: string | readonly string[], project: string, reviews: readonly ReviewRecord[], now: Date): Promise<T3> {
+async function readFresh(root: string, run: T3Runner, agents: string, project: string, reviews: readonly ReviewRecord[], now: Date): Promise<T3> {
   const down = (reason: string): T3 => ({ status: { state: "unavailable", reason }, threads: new Map() });
   const listed = await run(root, ["thread", "list", "--project", project, "--json"]);
   if (listed.error !== undefined) {
@@ -334,12 +334,11 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     .filter((x): x is { t: Json; id: string } => x.id !== null)
     .map((x) => ({ ...x, running: working(x.t) }));
 
-  const mine = (typeof agents === "string" ? [agents] : agents).map(norm);
+  const mine = norm(agents);
   // Only a worker's worktree directly inside the braid worktree folder, named for an item, is an agent's; a leftover `-review` checkout is no one's.
   const ownerOf = (path: string | null) => {
     const folder = path === null ? null : norm(path);
-    const dir = folder === null ? undefined : mine.find((m) => folder.startsWith(`${m}/`));
-    return path !== null && folder !== null && dir !== undefined && !folder.slice(dir.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
+    return path !== null && folder !== null && folder.startsWith(`${mine}/`) && !folder.slice(mine.length + 1).includes("/") ? itemOfFolder(basename(resolve(path))) : null;
   };
   const repos = new Set([titleRepoName(root), repoNameOf(root) ?? basename(root)]);
   // The title of a braid thread of this repository (`<emoji> <repo> <id> <role>: <title>`); other titles are no braid thread's.

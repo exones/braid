@@ -3,12 +3,9 @@
 // reminders and `answer` action) through the shared data branch code (src/braids/gitbranch.ts). Its fields are fixed when it opens; every later change is an
 // event appended to `events`, and its state is read from them. Nothing is ever deleted.
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, renameSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { catBatch, catBatchSync } from "./gitio.js";
 import { currentFiles, currentFilesAsync, lockedBranch, lockedBranchAsync, tips, tipsAsync, writeBranchUnlocked, writeBranchUnlockedAsync, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
 import { mergeLifecycle } from "./lifecycle.js";
-import { mainCheckout } from "./state.js";
 import { handleOf, pickWords, WORDS } from "./words.js";
 
 export { ensureStateDir, LockError, locked, mainCheckout, takeOverStale } from "./state.js";
@@ -302,31 +299,6 @@ function viewAll(view: BranchView): { requests: Request[]; problems: RecordProbl
   return parseAll(new Map(paths.flatMap((p, i) => (texts[i] === null || texts[i] === undefined ? [] : [[p, texts[i]] as const]))));
 }
 
-/** The old local store, carried over once. */
-export function legacyFile(root: string): string {
-  let main = mains.get(root);
-  if (main === undefined) {
-    main = mainCheckout(root);
-    mains.set(root, main);
-  }
-  return join(main, ".braid", "requests.json");
-}
-
-/** The main checkout of each root asked for: it doesn't change, and the board asks on every read. */
-const mains = new Map<string, string>();
-
-/** The name the old store keeps after it was carried over. */
-export const MIGRATED = "requests.migrated.json";
-
-function readLegacy(file: string): Record<string, unknown>[] {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
-    return Array.isArray(parsed) ? parsed.filter(isObj) : [];
-  } catch {
-    return [];
-  }
-}
-
 /** A new code, unused on the branch. */
 function newCode(taken: (code: string) => boolean): string {
   for (let size = 4; ; size++) {
@@ -341,104 +313,8 @@ function newCode(taken: (code: string) => boolean): string {
 
 const pathOf = (code: string): string => `${FOLDER}/${code}.json`;
 
-/** The one commit that carries the old store's open requests onto the branch; `carried` counts them once `change` ran. */
-function carryOver(file: string): { readonly old: number; readonly change: (view: BranchView) => { files: Map<string, string>; message: string }; carried(): number } {
-  const old = readLegacy(file);
-  let carried = 0;
-  const change = (view: BranchView): { files: Map<string, string>; message: string } => {
-    const known = new Set(viewAll(view).requests.map((r) => `${r.id} ${askerOf(r)} ${r.at}`));
-    const files = new Map<string, string>();
-    for (const o of old) {
-      const id = o["id"];
-      const at = o["at"];
-      const by: Asker = o["by"] === "pm" ? "pm" : "coordinator";
-      if (typeof id !== "string" || typeof at !== "string" || known.has(`${id} ${by} ${at}`)) {
-        continue;
-      }
-      known.add(`${id} ${by} ${at}`);
-      const code = newCode((c) => view.has(pathOf(c)) || files.has(pathOf(c)));
-      const forwarded = typeof o["forwarded"] === "string" ? o["forwarded"] : undefined;
-      const note = typeof o["note"] === "string" ? o["note"] : undefined;
-      const kind = KINDS.includes(o["kind"] as Kind) ? (o["kind"] as Kind) : "question";
-      const pr = typeof o["pr"] === "number" ? o["pr"] : undefined;
-      const r: Request = {
-        code,
-        id,
-        ...(by === "pm" ? { by } : {}),
-        kind,
-        text: typeof o["text"] === "string" ? o["text"] : "",
-        ...(typeof o["key"] === "string" ? { key: o["key"] } : {}),
-        at,
-        thread: typeof o["thread"] === "string" ? o["thread"] : null,
-        ...(pr === undefined ? {} : { pr }),
-        ...(typeof o["head"] === "string" ? { head: o["head"] } : {}),
-        ...(o["to"] === "pm" ? { to: "pm" as const } : {}),
-        ...(typeof o["pm"] === "string" ? { pm: o["pm"] } : {}),
-        doneWhen: pr === undefined ? "answered" : `pr:${pr}`,
-        eta: null,
-        state: "open",
-        events: [
-          { event: "opened", at, by },
-          ...(forwarded === undefined ? [] : [{ event: "forwarded" as const, at: forwarded, by: "pm" as const, ...(note === undefined ? {} : { text: note }) }]),
-        ],
-      };
-      files.set(pathOf(code), serialise(r));
-    }
-    carried = files.size;
-    return { files, message: `docs(requests): carry over ${files.size} from .braid/requests.json` };
-  };
-  return { old: old.length, change, carried: () => carried };
-}
-
-const retire = (file: string): void => renameSync(file, join(dirname(file), MIGRATED));
-
-/**
- * Carries the open requests of an old `.braid/requests.json` onto the branch, once: each one opened with a
- * code and its original times, in one commit; then the file is renamed `requests.migrated.json`. A record
- * already on the branch (same item, asker and opening time, as a run that died before the rename left it)
- * isn't added again. With `push: false` (the board's read) the commit stays local until the next write.
- * Returns how many it carried over.
- */
-export function migrate(root: string, options: { push?: boolean } = {}): number {
-  const file = legacyFile(root);
-  if (!existsSync(file)) {
-    return 0;
-  }
-  return lockedBranch(root, REQUESTS, () => {
-    if (!existsSync(file)) {
-      return 0;
-    }
-    const over = carryOver(file);
-    if (over.old > 0) {
-      writeBranchUnlocked(root, REQUESTS, over.change, options);
-    }
-    retire(file);
-    return over.carried();
-  });
-}
-
-/** `migrate` for the board: the same commit, without blocking the process. */
-export async function migrateAsync(root: string, options: { push?: boolean } = {}): Promise<number> {
-  const file = legacyFile(root);
-  if (!existsSync(file)) {
-    return 0;
-  }
-  return lockedBranchAsync(root, REQUESTS, async () => {
-    if (!existsSync(file)) {
-      return 0;
-    }
-    const over = carryOver(file);
-    if (over.old > 0) {
-      await writeBranchUnlockedAsync(root, REQUESTS, over.change, options);
-    }
-    retire(file);
-    return over.carried();
-  });
-}
-
 /** The whole record from the local refs (no fetch): every request, open or closed, and the files that can't be read. */
-export function loadRecord(root: string, options: { push?: boolean } = {}): { requests: Request[]; problems: RecordProblem[] } {
-  migrate(root, { push: options.push ?? false });
+export function loadRecord(root: string): { requests: Request[]; problems: RecordProblem[] } {
   // The refs are one process; the files are read again only when a tip moved.
   const at = tips(root, REQUESTS);
   const key = `${at.local ?? "-"} ${at.remote ?? "-"}`;
@@ -454,8 +330,7 @@ export function loadRecord(root: string, options: { push?: boolean } = {}): { re
 }
 
 /** `loadRecord` for the board: the same record, read without blocking the process. */
-export async function loadRecordAsync(root: string, options: { push?: boolean } = {}): Promise<{ requests: Request[]; problems: RecordProblem[] }> {
-  await migrateAsync(root, { push: options.push ?? false }); // a no-op unless an old local store is still there, once
+export async function loadRecordAsync(root: string): Promise<{ requests: Request[]; problems: RecordProblem[] }> {
   const at = await tipsAsync(root, REQUESTS);
   const key = `${at.local ?? "-"} ${at.remote ?? "-"}`;
   const cached = records.get(root);
@@ -477,15 +352,13 @@ export function loadRequests(root: string): Request[] {
   return loadRecord(root).requests.filter((r) => r.state === "open");
 }
 
-/** One write to the record, holding its lock; an old local store is carried over first. */
+/** One write to the record, holding its lock. */
 function writeRecord(root: string, change: (view: BranchView) => { files: Map<string, string>; message: string }): WriteResult {
-  migrate(root);
   return lockedBranch(root, REQUESTS, () => writeBranchUnlocked(root, REQUESTS, change));
 }
 
 /** `writeRecord` for the board: waits for the lock and runs every `git` call without blocking the process. */
 async function writeRecordAsync(root: string, change: (view: BranchView) => { files: Map<string, string>; message: string }): Promise<WriteResult> {
-  await migrateAsync(root);
   return lockedBranchAsync(root, REQUESTS, () => writeBranchUnlockedAsync(root, REQUESTS, change));
 }
 

@@ -9,7 +9,7 @@ import { UsageError } from "./braids.js";
 import { readGithub, runGh, type Github } from "../board/github.js";
 import { read, type Sources } from "./coordinate.js";
 import { normPath as norm, reviewFolder } from "../braids/worktrees.js";
-import { agentsDirs } from "../braids/worktree-folders.js";
+import { agentsDir } from "../braids/worktree-folders.js";
 import { childRole, dropReviews, loadReviews } from "../braids/reviews.js";
 import { parentsCheckout, runT3, showThread, type T3, type T3Runner } from "../board/t3.js";
 import { repoName } from "./start.js";
@@ -247,8 +247,7 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
   const numbers = only === null ? loadLiveBraids(root).map((b) => b.number) : [only.number];
 
   repoName(root);
-  // The project's folder, and the folder named for the checkout where worktrees made before 0053/B still are.
-  const folders = agentsDirs(root, env).map(norm);
+  const worktreesRoot = norm(agentsDir(root, env));
   const listed = worktrees(root);
   const here = norm(root);
   const lines: string[] = [];
@@ -271,8 +270,8 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
       }
       await reviewThreads(root, yes, item.id, item.card.pr.number, item.card.pr.head, w.t3.status.state === "ok", src.t3 ?? runT3, listed, held, lines);
       // A leftover reviewer checkout from before 0039 (`braid start <id> --review`, detached at the PR head) goes with the merged item.
-      const revPaths = folders.map((f) => norm(join(f, reviewFolder(number, item.letter))));
-      const rev = listed.find((t) => revPaths.includes(norm(t.path)));
+      const revPath = norm(join(worktreesRoot, reviewFolder(number, item.letter)));
+      const rev = listed.find((t) => norm(t.path) === revPath);
       if (rev !== undefined) {
         const what = `${item.id}: review checkout ${rev.path} (PR #${item.card.pr.number} merged)`;
         const why = held(rev.path, null);
@@ -305,7 +304,7 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
         } else if (git(root, ["merge-base", "--is-ancestor", ref.branch, "HEAD"]).status !== 0) {
           // `git branch -d` also accepts a branch merged into its upstream; that is not enough here.
           skip = "merged on GitHub, but its commits are not in this checkout's HEAD: pull first, or if it was squash-merged, delete it by hand";
-        } else if (tree !== undefined && !named && !folders.some((f) => norm(tree.path).startsWith(`${f}/`))) {
+        } else if (tree !== undefined && !named && !norm(tree.path).startsWith(`${worktreesRoot}/`)) {
           skip = `its worktree ${tree.path} is not in the braid worktree folder (name the strand to clean it)`;
         } else if (tree !== undefined && yes && !free(tree.path)) {
           skip = "still in use, retry later";

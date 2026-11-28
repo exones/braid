@@ -38,9 +38,17 @@ Expected size: about 700 lines removed and 100 added in 10 to 15 files.
 
 ## Completion
 
-- [ ] The requests.json carry-over no longer runs a check on every read, and its commit is pushed or documented as local, tested
-- [ ] Each old shape is removed or kept, with the evidence in report.md
-- [ ] import-backlog is removed with its tests, fixtures and docs, or kept with the project that needs it named
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The requests.json carry-over no longer runs a check on every read, and its commit is pushed or documented as local, tested
+- [x] Each old shape is removed or kept, with the evidence in report.md
+- [x] import-backlog is removed with its tests, fixtures and docs, or kept with the project that needs it named
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Search the projects on this machine (`braid projects`, the T3 project list, `C:\code\*`) for the data each shim reads.
+2. Carry-over: remove it if no `.braid/requests.json` holds a request.
+3. Old shapes: remove those with no data left (`done` alias, pre-0053 worktree folders), keep those still found.
+4. import-backlog: keep it if a project has `backlog/` without `braids/`.
+5. Tests and docs, the gate, report.md.

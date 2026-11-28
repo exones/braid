@@ -8,7 +8,7 @@ import type { BranchRef } from "../braids/branches.js";
 import { loadLifecycle, recordEvent } from "../braids/lifecycle.js";
 import { closeRequest, type Ending } from "../braids/requests.js";
 import { normPath, repoNameOf, workFolder, worktreesDir } from "../braids/worktrees.js";
-import { agentsDirs } from "../braids/worktree-folders.js";
+import { agentsDir } from "../braids/worktree-folders.js";
 import { UsageError } from "./braids.js";
 import { notReady, read, type Sources, type World } from "./coordinate.js";
 
@@ -102,12 +102,9 @@ base ${b.base}
 ${b.warnings}`;
   }
   repoName(root);
-  const [dir = "", ...old] = agentsDirs(root, env);
-  const folder = join(dir, t.folder);
-  // Worktrees made before 0053/B are under the folder named for the checkout and stay there.
-  const earlier = old.map((d) => join(d, t.folder));
+  const folder = join(agentsDir(root, env), t.folder);
   // A retry: the item is already started as asked, so say so before the ready check (its branch is pushed now).
-  const again = alreadyStarted(root, id, tip(w.refs.filter((r) => r.number === number && r.letter === letter)), folder, earlier, letter === null ? undefined : tip(w.refs.filter((r) => r.number === number && r.letter === null)));
+  const again = alreadyStarted(root, id, tip(w.refs.filter((r) => r.number === number && r.letter === letter)), folder, letter === null ? undefined : tip(w.refs.filter((r) => r.number === number && r.letter === null)));
   if (again !== null) {
     // A first run that made the worktree but couldn't record the start records it now.
     const has = loadLifecycle(root).get(id)?.events.some((e) => e.kind === "started") ?? false;
@@ -249,7 +246,7 @@ function worktrees(root: string): { path: string; branch: string | null; head: s
  * other commits, fails and says what was found. No branch, or a branch without a worktree, is left to the normal start.
  * A strand's branch must contain the braid branch's tip. A story has no base check: `main` moves on while it runs.
  */
-function alreadyStarted(root: string, id: string, own: BranchRef | undefined, wanted: string, earlier: readonly string[], braidTip: BranchRef | undefined): string | null {
+function alreadyStarted(root: string, id: string, own: BranchRef | undefined, folder: string, braidTip: BranchRef | undefined): string | null {
   if (own === undefined) {
     return null;
   }
@@ -258,8 +255,6 @@ function alreadyStarted(root: string, id: string, own: BranchRef | undefined, wa
   if (at === undefined) {
     return null;
   }
-  // The folder a worktree of this item may be in: the new one, or one made before 0053/B.
-  const folder = [wanted, ...earlier].find((f) => normPath(f) === normPath(at.path)) ?? wanted;
   if (normPath(at.path) !== normPath(folder)) {
     throw new UsageError(`${id} already has the branch ${name}, checked out in a worktree at ${at.path}, not in ${folder}; nothing was created`);
   }
