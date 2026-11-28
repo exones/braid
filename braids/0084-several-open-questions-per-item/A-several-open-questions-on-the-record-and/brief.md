@@ -37,6 +37,16 @@ Expected size: about 250 lines in 6 files, tests included.
 - `closeRequest` (used by `braid start`, `braid accept`, `braid done`) keeps closing every open request of the item.
 - The board still keeps one request per item in `src/board/signals.ts` until 0084/C; don't change the board here.
 
+## Plan
+
+Written when the work resumed after a hold; the code part was already in `0fce7cb9`.
+
+1. `replaces` in `src/braids/requests.ts`: only a wait to the same braid, a timed wait or a `review` replaces its like.
+2. An id alone with several open lists each name with whose it is and its kind (`src/commands/requests.ts`).
+3. `braid forward` takes a name or an id, and refuses an id with several questions still with the PM (accepted by the coordinator).
+4. `braid status` lists every open request of an item, each with its name, without touching the board's code (`src/commands/coordinate.ts`).
+5. Old tests follow the new rule; new ones in `test/requests-several.test.ts`. Then CLI help, `docs/`, the gate.
+
 ## Out of scope
 
 - The board, its pushes and the Questions panel (0084/C).
@@ -44,11 +54,11 @@ Expected size: about 250 lines in 6 files, tests included.
 
 ## Completion
 
-- [ ] A test asks three questions on one item (one asker) and finds three open; each is answered by its handle and the others stay open
-- [ ] The same for `pm/<slug>` and for `--by pm` on a braid
-- [ ] A wait still replaces its asker's wait to the same braid, a timed wait a timed wait, a `review` request an older `review` (tests), and a `review` leaves open questions open
-- [ ] `braid answer <id>` and `braid withdraw <id>` with several open list their handles and change nothing (tests)
-- [ ] `braid status` shows every open request of an item (test)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A test asks three questions on one item (one asker) and finds three open; each is answered by its handle and the others stay open
+- [x] The same for `pm/<slug>` and for `--by pm` on a braid
+- [x] A wait still replaces its asker's wait to the same braid, a timed wait a timed wait, a `review` request an older `review` (tests), and a `review` leaves open questions open
+- [x] `braid answer <id>` and `braid withdraw <id>` with several open list their handles and change nothing (tests)
+- [x] `braid status` shows every open request of an item (test)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
