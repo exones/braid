@@ -21,6 +21,12 @@
       "event": "opened",
       "at": "2026-11-28T17:50:17.682Z",
       "by": "coordinator"
+    },
+    {
+      "event": "forwarded",
+      "at": "2026-11-28T17:50:42.676Z",
+      "by": "pm",
+      "text": "Security, so yours: PM recommends A (no new access; the log holds only your own devices' addresses, never the token)"
     }
   ]
 }
