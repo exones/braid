@@ -4,9 +4,9 @@ title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 5
-state: held
-hold: "2026-11-28T01:30Z the user: Hold everything. I have some issues with Claude"
-next: "all held: 0077 (L), 0083, 0084 (A), 0085, 0086, 0078, 0080; on Go: 0077, 0083, 0084 first, then 0085 and 0086 once 0077 is in main"
+state: running
+hold: ""
+next: "running: 0077 (L, measurement, final PR), 0084 (A); held: 0083, 0085, 0086 (until 0077 is in main), 0078, 0080"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -168,6 +168,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28: user "start faster board and multiple questions": 0077 and 0084 resumed (braid resume, Go to coordinators); 0083, 0085, 0086, 0078, 0080 stay held. Limits ok (weekly 2%).
 - 2026-11-28: user: hold goes via the coordinators (they run the subagents); added to P5 · 0086 (E, F, H): stop at a clean point, forward to every working subagent incl. background tasks, Held only after their replies. Until 0086 lands the PM, on each hold, also checks subagents for running turns or background tasks and asks the coordinator to forward to any it missed.
 - 2026-11-28 01:30: user "Hold everything. I have some issues with Claude": 0077, 0083, 0084 held (braid pause --hold), coordinators told to stop their agents at a clean point; programme state held.
 - 2026-11-28: user "Can you pause one more braid": 0085 held (braid pause --hold) until 0077 is in main.
