@@ -14,16 +14,16 @@ import type { T3 } from "./t3.js";
 /** What the lanes are read from: the pieces of `Sources` (the board's) that `braid status` fills from its own runners. */
 export interface InputSources {
   braids(): Braid[] | Promise<Braid[]>;
-  github(fresh: boolean): Github | Promise<Github>;
-  t3(fresh: boolean): Promise<T3>;
-  signals(github: Github): ReadSignals;
+  github(): Github | Promise<Github>;
+  t3(): Promise<T3>;
+  signals(github: Github): ReadSignals | Promise<ReadSignals>;
   /** Fetches `braid-requests` from origin; called only on a fresh read (the Refresh button), alongside GitHub and T3. Absent: never. */
   fetchRequests?(): Promise<unknown>;
   /** The plans of the project's programmes (`pm/*` branches); absent: none. A failed read gives none. */
   plans?(): Promise<PlanRead[]>;
   start(): StartContext;
   /** What stops the folder from working as a braid project; a braid that can't be read then gives none instead of an error. */
-  readiness?(github: Github | null): readonly { readonly key: string }[];
+  readiness?(github: Github | null): readonly { readonly key: string }[] | Promise<readonly { readonly key: string }[]>;
 }
 
 export interface LaneInputs {
@@ -39,8 +39,8 @@ export interface LaneInputs {
  * (the Refresh button); `timed` wraps each read (the board's timings).
  */
 export async function readInputs(src: InputSources, fetch = false, timed: <T>(name: string, read: () => T | Promise<T>) => Promise<T> = (_name, read) => Promise.resolve().then(read)): Promise<LaneInputs> {
-  const github = timed("github", () => src.github(true));
-  const t3 = timed("t3", () => src.t3(true));
+  const github = timed("github", () => src.github());
+  const t3 = timed("t3", () => src.t3());
   const requests = fetch && src.fetchRequests !== undefined ? timed("requests fetch", () => src.fetchRequests?.()).catch(() => {}) : Promise.resolve();
   github.catch(() => {}); // their failure is reported when they are awaited below
   t3.catch(() => {});
@@ -51,7 +51,7 @@ export async function readInputs(src: InputSources, fetch = false, timed: <T>(na
       try {
         return await src.braids();
       } catch (error) {
-        if (src.readiness?.(gh).some((p) => p.key === "check") === true) {
+        if ((await src.readiness?.(gh))?.some((p) => p.key === "check") === true) {
           return [];
         }
         throw error;

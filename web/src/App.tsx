@@ -5,13 +5,15 @@ import { Md } from "./Md.tsx";
 import { TAG_COLOURS } from "./palette.ts";
 import { copyText, type CopyEnv } from "../../src/board/copy.ts";
 import { LimitChips, LimitsPanel, LimitsStrip } from "./Limits.tsx";
-import { LANE_LABEL, ageText, cardMarks, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
+import { LANE_LABEL, ageText, cardMarks, leadOf, splitId, strandMarks, t3codeUrl, threadEmoji, type Marks } from "../../src/board/marks.ts";
 import { closeMode, hashFor, openMode, parseHash, programmeHash, pushedAfter, type Route } from "../../src/board/route.ts";
 import { filterSearch, parseFilter, parseProgramme, programmeSearch, resolveProject, toggleProject } from "../../src/board/filter.ts";
-import { DONE_PAGE, doneNewestFirst } from "../../src/board/model.ts";
-import { pauseBox, type PauseView } from "../../src/board/pause.ts";
+import { DONE_PAGE, doneAsks, doneNewestFirst, stillAsks } from "../../src/board/model.ts";
+import { askWho, clock as clockAt, pauseBox, resumeMode, resumeOnCard, usage,type PauseView } from "../../src/board/pause.ts";
+import type { ProgrammeResume } from "../../src/board/programme.ts";
 import type { PmLine as PmHandling } from "../../src/board/pm.ts";
-import { CLOSED_PAGE, type RequestRow, type RequestsView } from "../../src/board/record.ts";
+import { CLOSED_PAGE, requestCount, type RequestRow, type RequestsView } from "../../src/board/record.ts";
+import { QuestionsPanel } from "./Questions.tsx";
 import { postAction, useAll, useItem, useTick, type MergeInfo, type StartInfo, type Tick, type InboxEntry, type BraidCard, type ItemDetail, type Lane, type Loaded, type Need, type PullRequest, type ThreadRole, type StrandCard, type ProjectInfo, type TaggedCard, type TaggedProgramme } from "./api.ts";
 
 /** Whether the open details were pushed as a history entry (so closing can go back) or arrived with the page. */
@@ -117,6 +119,14 @@ function ReasonMark({ kind, tooltip }: { kind: string; tooltip: string }) {
   }
   if (kind === "limit") {
     return <Icon tip={tooltip} className="text-amber-500">⚖</Icon>;
+  }
+  if (kind === "look") {
+    // A look request or an FYI blocks nothing: a quiet eye, not the amber of a question.
+    return (
+      <Icon tip={tooltip} className="text-slate-500">
+        <svg {...svg} strokeWidth={2.2}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+      </Icon>
+    );
   }
   if (kind === "plan") {
     return (
@@ -224,7 +234,7 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
   ].filter((p) => p !== null);
   return (
     <div className={`mt-1.5 rounded-md border-l-[3px] px-1.5 py-1 text-[12.5px] leading-snug ${toneOf(need)} ${className}`}>
-      {need.code !== undefined && <><CodeChip code={need.code} />{" "}</>}
+      {need.code !== undefined && <><CodeChip code={need.handle ?? need.code} />{" "}<BlockLine blocks={need.blocks} act={need.act} /><br /></>}
       {need.text}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {parts.length > 0 && <small className="mt-px block text-[11px] text-slate-500">{parts.join(" · ")}</small>}
@@ -233,8 +243,21 @@ function NeedLine({ need, braid = false, className = "" }: { need: Need; braid?:
   );
 }
 
-/** A request's code (`q-7f3k`), the name to use for it in any thread. A click, tap or Enter copies it and says "copied" for a moment; the card under it stays as it is. */
-function CodeChip({ code }: { code: string }) {
+/** What answering a request unblocks and what the user does, on one line: `blocks 0072/B, 0072/C · decide`; just `decide` when nothing waits on it. */
+export function BlockLine({ blocks, act }: { blocks: readonly string[] | undefined; act: string | undefined }) {
+  if (act === undefined) {
+    return null;
+  }
+  return (
+    <span className="whitespace-nowrap">
+      {blocks !== undefined && blocks.length > 0 && <b className="font-semibold">blocks {blocks.join(", ")} · </b>}
+      <b className="rounded-full bg-black/10 px-1.5 text-[10.5px] font-bold uppercase">{act}</b>
+    </span>
+  );
+}
+
+/** A request's handle (`yellow-bear-5asx`), the name to use for it in any thread. A click, tap or Enter copies it and says "copied" for a moment; the card under it stays as it is. */
+export function CodeChip({ code }: { code: string }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -260,7 +283,7 @@ function CodeChip({ code }: { code: string }) {
 }
 
 /** "Open asking thread": the T3 app link of the thread that asked; nothing when T3 doesn't list it. */
-function AskingLink({ link }: { link: string | null }) {
+export function AskingLink({ link }: { link: string | null }) {
   const app = link === null ? null : t3codeUrl(link);
   if (app === null) {
     return null;
@@ -290,7 +313,7 @@ function WaitLine({ row }: { row: RequestRow }) {
   const timed = row.to === "self";
   return (
     <div className="mt-1.5 rounded-md border-l-[3px] border-slate-300 bg-slate-50 px-1.5 py-1 text-[12.5px] leading-snug text-slate-700">
-      {timed ? `Waiting until ${untilText(row.doneWhen)}` : `Waiting on braid ${row.to}`}: <CodeChip code={row.code} /> {row.text}
+      {timed ? `Waiting until ${untilText(row.doneWhen)}` : `Waiting on braid ${row.to}`}: <CodeChip code={row.handle} /> {row.text}
       <small className="mt-px block text-[11px] text-slate-500">
         {timed ? "the board wakes it then" : doneWhenText(row.doneWhen)} · {row.item} {timed ? "waits since" : "asked"} {row.age} ago
         <AskingLink link={row.link} />
@@ -341,7 +364,7 @@ const EMOJI_BUTTON = "text-[13px] leading-none max-md:text-xl";
 const Label = ({ children }: { children: ReactNode }) => <span className="md:hidden">{children}</span>;
 
 /** The project the item being drawn belongs to: every action sends it. */
-const ProjectContext = createContext("");
+export const ProjectContext = createContext("");
 
 /** The projects served (in served order) and whether the page tells them apart; one project served looks as it always did. */
 interface Scope {
@@ -365,7 +388,7 @@ function ageOf(ms: number | null): string {
 }
 
 /** A project's name with its colour; a ⚠ when its latest read failed (the card shows the older board). */
-function ProjectTag({ name }: { name: string }) {
+export function ProjectTag({ name }: { name: string }) {
   const entry = useContext(ScopeContext).projects.get(name);
   const c = colourOf(entry?.index ?? 0);
   const failed = entry?.info.failure != null;
@@ -455,7 +478,7 @@ const CHECK_MARK = { passing: "text-green-600", failing: "text-red-600", pending
  * over. Off, with its reason in the tooltip, when there is no open review request or coordinator thread,
  * the checks aren't green, or the coordinator was already asked for this head.
  */
-function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
+export function MergeButton({ id, merge }: { id: string; merge: MergeInfo | null }) {
   const project = useContext(ProjectContext);
   const key = `${project}/${id}`;
   const [open, setOpen] = useState(false);
@@ -643,6 +666,141 @@ function StartButton({ id, start, onLaunched }: { id: string; start: StartInfo; 
   );
 }
 
+const RetryIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+    <path d="M20 12a8 8 0 1 1-2.3-5.7" />
+    <path d="M20 4v5h-5" />
+  </svg>
+);
+
+/**
+ * Resume now (0074/D): an icon-only button (▶, ↻ while a resume is pending) with its words in the tooltip, and a confirmation that
+ * says what is sent. The server marks the records; the acting board sends through the one resume path.
+ */
+function ResumeButton({ tip, retry, title, sub, rows, foot, confirm, body }: { tip: string; retry: boolean; title: string; sub: string; rows: readonly (readonly [string, ReactNode])[]; foot: string; confirm: string; body: object }) {
+  const project = useContext(ProjectContext);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const go = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await postAction("resume", { project, ...body });
+      setOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Dialog.Root open={open} onOpenChange={(o) => { setOpen(o); setError(null); }}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <Dialog.Trigger asChild>
+            <button type="button" aria-label={tip} onClick={(e) => e.stopPropagation()} className={`${BUTTON} cursor-pointer border-sky-600 bg-sky-600 text-white hover:bg-sky-700`}>
+              {retry ? <RetryIcon /> : <StartIcon />}
+            </button>
+          </Dialog.Trigger>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content sideOffset={4} className="z-[60] rounded bg-slate-800 px-2 py-1 text-xs text-white">{tip}</Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/40" />
+        <Dialog.Content onClick={(e) => e.stopPropagation()} className="fixed left-1/2 top-1/2 z-50 w-[460px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-xl">
+          <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
+          <Dialog.Description className="mb-3 text-slate-500">{sub}</Dialog.Description>
+          <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+            {rows.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt className="text-slate-500">{k}</dt>
+                <dd>{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-xs text-slate-500">{foot}</p>
+          {error !== null && <p role="alert" className="mt-3 rounded-md border-l-[3px] border-red-600 bg-red-50 px-2.5 py-1.5 text-[13px] text-red-900">{error}</p>}
+          <div className="mt-4 flex justify-end gap-2">
+            <Dialog.Close className="cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 hover:border-blue-600">Cancel</Dialog.Close>
+            <button type="button" disabled={busy} onClick={() => void go()} className="flex cursor-pointer items-center gap-1.5 rounded-md border border-sky-600 bg-sky-600 px-3 py-1 font-semibold text-white hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60">
+              {retry ? <RetryIcon /> : <StartIcon />} {busy ? "Sending…" : confirm}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+/** A paused braid's Resume now: directly without a PM, through the PM on a PM-run braid; ↻ while a send is pending. None on a hold. */
+function BraidResume({ id, pause }: { id: string; pause: PauseView }) {
+  const p = pause.record;
+  const mode = resumeMode(p);
+  if (mode === null) {
+    return null;
+  }
+  const now = new Date();
+  const r = p.resuming;
+  const retry = r?.failedSince != null;
+  const ask = mode !== "direct";
+  const who = askWho(p);
+  const tip = retry ? "Retry the resume now" : ask ? (r?.askedAt != null ? `Ask ${who} again to resume` : `Ask ${who} to resume`) : "Resume now";
+  const agents = (p.targets ?? []).filter((t) => t.kind !== "pm");
+  const rows: [string, ReactNode][] = [
+    ["Paused for", `${usage(p)} since ${clockAt(p.at, now)}`],
+    [
+      "Sends to",
+      ask ? (
+        `${who}, one message`
+      ) : (
+        <>
+          {agents.map((t) => (
+            <div key={t.thread}>
+              {t.item} {t.kind} · <code className="text-xs">{t.thread.slice(0, 12)}…</code>
+            </div>
+          ))}
+        </>
+      ),
+    ],
+    ["Then", ask ? `nothing else: ${who} resumes it with braid resume ${id} --limit` : `clears the board's record for ${id}`],
+  ];
+  return (
+    <ResumeButton
+      tip={tip}
+      retry={retry}
+      title={ask ? `Ask ${who} to resume ${id}?` : `Resume ${id} now?`}
+      sub={retry ? `Resume pending since ${clockAt(r?.failedSince ?? p.at, now)}` : `Paused since ${clockAt(p.at, now)}`}
+      rows={rows}
+      foot={ask ? `${who === "the PM" ? "The PM" : "The coordinator"} gets one message naming the paused braid and the command that resumes it. A send T3 can't take is retried at each refresh.` : "Each thread gets its resume text by code, the same path as the board's timer and braid resume --limit. A thread T3 can't reach stays pending and is retried at each refresh."}
+      confirm={ask ? `Ask ${who}` : retry ? "Retry now" : "Resume now"}
+      body={{ braid: id }}
+    />
+  );
+}
+
+/** A paused programme's Resume now: one message asks the PM to resume its braids in its order. */
+function ProgrammeResumeButton({ slug, resume }: { slug: string; resume: ProgrammeResume }) {
+  const tip = resume.pending ? "Retry the resume now" : resume.askedAt !== null ? "Ask the PM again to resume" : "Ask the PM to resume";
+  return (
+    <ResumeButton
+      tip={tip}
+      retry={resume.pending}
+      title={`Ask the PM to resume ${slug}?`}
+      sub={`${resume.braids.length} braid${resume.braids.length === 1 ? "" : "s"} paused for a limit`}
+      rows={[
+        ["Paused braids", resume.braids.join(", ")],
+        ["Sends to", "the PM, one message"],
+      ]}
+      foot="The PM resumes each with braid resume <number> --limit, in its order. A send T3 can't take is retried at each refresh."
+      confirm="Ask the PM"
+      body={{ programme: slug }}
+    />
+  );
+}
+
 /** Open thread where the item has a thread, Coordinator on a braid with a coordinator thread; Start on a To Do braid; Merge on In Review items. */
 function Actions({ id, lane, thread, threadRole = null, coordinator = null, merge, start = null, onLaunched }: { id: string; lane: Lane; thread: string | null; threadRole?: ThreadRole | null; coordinator?: string | null; merge: MergeInfo | null; start?: StartInfo | null; onLaunched?: (l: Launched) => void }) {
   return (
@@ -688,6 +846,9 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
   const [open, setOpen] = useState(false);
   const [launched, setLaunched] = useState<Launched | null>(null);
   const tier = braid.labels.filter((l) => l.startsWith("tier:"));
+  // The Done strands that still ask: their lines show with Details off too, and not twice.
+  const asking = doneAsks(braid);
+  const asksDone = (who: string | null) => asking.some((s) => s.id === who);
   const stale = scope.projects.get(braid.project)?.info.failure != null;
   return (
     <ProjectContext value={braid.project}>
@@ -733,8 +894,14 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
           </span>
         </div>
       )}
-      {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
-      {details && !open && braid.pmAsk !== null && braid.need?.by !== "pm" && <NeedLine need={braid.pmAsk} />}
+      {details && !open && braid.need !== null && (braid.lane === "Waiting" || braid.lane === "In Review") && !asksDone(braid.need.who) && <NeedLine need={braid.need} braid={braid.total > 0 || braid.need.who !== null} />}
+      {details && !open && braid.pmAsk !== null && braid.need?.by !== "pm" && !asksDone(braid.pmAsk.who) && <NeedLine need={braid.pmAsk} />}
+      {!open && asking.map((s) => (
+        <div key={s.id}>
+          {s.need !== null && <NeedLine need={{ ...s.need, who: s.id }} braid />}
+          {s.pmAsk !== null && s.need?.by !== "pm" && <NeedLine need={{ ...s.pmAsk, who: s.id }} braid />}
+        </div>
+      ))}
       {details && !open && braid.pm !== null && <PmLine pm={braid.pm} />}
       {details && !open && braid.waits.map((w) => <WaitLine key={w.code} row={w} />)}
       {details && !open && braid.pause !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PauseLine pause={braid.pause} />}
@@ -766,7 +933,8 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
         </div>
       )}
       {(braid.coordinator?.warning ?? launched?.warning ?? null) !== null && <Warn>{braid.coordinator?.warning ?? launched?.warning}</Warn>}
-      <div className="mt-2 flex min-h-6 justify-end">
+      <div className="mt-2 flex min-h-6 items-center justify-end gap-1.5">
+        {resumeOnCard(braid.pause, braid.lane) && <span onClick={(e) => e.stopPropagation()}><BraidResume id={braid.id} pause={braid.pause} /></span>}
         <Actions id={braid.id} lane={braid.total === 0 || braid.merge !== null ? braid.lane : "Done"} thread={braid.total === 0 ? braid.thread : null} threadRole={braid.threadRole} coordinator={braid.coordinator?.link ?? null} merge={braid.merge} start={braid.lane === "To Do" ? braid.start : null} onLaunched={setLaunched} />
       </div>
     </div>
@@ -1013,7 +1181,7 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
   return (
     <div>
       <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:min-h-11 md:hidden">
-        <span aria-hidden>{open ? "▾" : "▸"}</span> {open ? "Hide" : "Show"} done
+        <span aria-hidden>{open ? "▾" : "▸"}</span> {open ? "Hide" : "Show"} done{!open && cards.some(stillAsks) ? ` · ${cards.filter(stillAsks).length} asking you` : ""}
       </button>
       {open && (
         <button type="button" aria-expanded onClick={() => setOpen(false)} className="mb-1 flex min-h-6 w-full cursor-pointer items-center gap-1 rounded-md px-1 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase max-md:hidden">
@@ -1023,7 +1191,8 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
       {open && (
         <div>
           {rows.slice(0, shown).map((b) => (
-            <button key={`${b.project}/${b.id}`} type="button" data-opens-details onClick={() => go(b.id, "brief", b.project)} className="flex w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-slate-300/60 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
+            <div key={`${b.project}/${b.id}`} className="border-b border-slate-300/60">
+            <button type="button" data-opens-details onClick={() => go(b.id, "brief", b.project)} className="flex w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 px-1 py-1.5 text-left text-[13px] hover:underline max-md:min-h-11">
               <LaneDot lane="Done" />
               <span className="w-10 flex-none text-xs text-slate-500"><Id id={b.id} /></span>
               {tagged && <ProjectTag name={b.project} />}
@@ -1031,6 +1200,17 @@ function DoneLane({ cards, open, setOpen }: { cards: readonly TaggedCard[]; open
               <span className="min-w-24 flex-1">{b.title}</span>
               <span className="ml-auto flex-none text-[11px] whitespace-nowrap text-slate-500">{dayOf(b.doneAt)}</span>
             </button>
+            {/* An open question stays with its Done braid, whatever the Details setting: it isn't lost. */}
+            {stillAsks(b) && (
+              <ProjectContext value={b.project}>
+                <div className="px-1 pb-1.5">
+                  {b.need !== null && <NeedLine need={b.need} braid={b.total > 0 || b.need.who !== null} />}
+                  {b.pmAsk !== null && b.need?.by !== "pm" && <NeedLine need={b.pmAsk} />}
+                </div>
+              </ProjectContext>
+            )}
+            {b.pm !== null && <div className="px-1 pb-1.5"><PmLine pm={b.pm} /></div>}
+            </div>
           ))}
           {rows.length > shown && (
             <button type="button" onClick={() => setShown(shown + DONE_PAGE)} className="mt-2 w-full cursor-pointer rounded-md border border-slate-200 bg-white py-1.5 text-xs hover:border-blue-600 max-md:min-h-11 max-md:text-sm">
@@ -1099,6 +1279,7 @@ function Board({ data, details }: { data: { readonly lanes: readonly Lane[]; rea
                 <button type="button" aria-expanded={false} onClick={() => setDoneOpen(true)} className="flex min-h-48 w-full cursor-pointer flex-col items-center gap-2 rounded-xl bg-slate-200/70 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 hover:bg-slate-300/70 max-md:hidden">
                   <LaneDot lane={lane} />
                   <span>{cards.length}</span>
+                  {cards.some(stillAsks) && <span title="Done braids with an open question" className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">? {cards.filter(stillAsks).length}</span>}
                   <span className="[writing-mode:vertical-rl]">{LANE_LABEL[lane]}</span>
                 </button>
                 <div className="md:hidden"><DoneLane cards={cards} open={false} setOpen={setDoneOpen} /></div>
@@ -1152,17 +1333,17 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
       {item.need !== null && (
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.need)}`}>
           <b className="mb-0.5 block text-xs uppercase tracking-wide">{item.lane === "In Review" ? "To review" : "Needs you"}{ageText(item.need) === "" ? "" : ` · ${ageText(item.need)}`}</b>
-          {item.need.code !== undefined && <><CodeChip code={item.need.code} />{" "}</>}
+          {item.need.code !== undefined && <><CodeChip code={item.need.handle ?? item.need.code} />{" "}<BlockLine blocks={item.need.blocks} act={item.need.act} /><br /></>}
           {item.need.text}
           {item.need.also !== undefined && <div className={`mt-2 rounded-md border-l-[3px] px-1.5 py-1 ${toneOf(item.need.also)}`}>{item.need.also.text}</div>}
-          {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.code}</b> in any thread to refer to it.</span></div>}
-          <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
+          {item.need.code !== undefined && <div className="mt-2 flex flex-wrap items-center gap-1.5"><AskingLink link={item.need.asking ?? null} /><span className="text-[11px] text-slate-500">Say <b>{item.need.handle ?? item.need.code}</b> in any thread to refer to it.</span></div>}
+          <div className="mt-1.5 text-[11px] text-slate-500">{item.need.by === "pm" ? "Answer in the PM thread; the card leaves Needs You when the PM closes the request." : item.lane === "In Review" ? "Merge the PR, or ask the coordinator for changes." : item.need.kind !== "limit" && item.lane === "Done" ? "This item is Done, but the request is still open: answer it in the coordinator thread." : item.need.kind === "limit" ? (item.need.text.startsWith("Pause failed") ? "Check which agents still run on the provider, then resume the braid." : "Wait for the reset, or move the role to another model in BRAID.md and resume the braid.") : "Answer in the coordinator thread; the card leaves Needs You when the coordinator acts."}</div>
         </div>
       )}
       {item.pmAsk !== null && item.need?.by !== "pm" && (
         <div className={`my-3.5 max-w-[75ch] rounded-lg border-l-[3px] px-3.5 py-2.5 ${toneOf(item.pmAsk)}`}>
           <b className="mb-0.5 block text-xs uppercase tracking-wide">Needs you · from the PM{ageText(item.pmAsk) === "" ? "" : ` · ${ageText(item.pmAsk)}`}</b>
-          {item.pmAsk.code !== undefined && <><CodeChip code={item.pmAsk.code} />{" "}</>}
+          {item.pmAsk.code !== undefined && <><CodeChip code={item.pmAsk.handle ?? item.pmAsk.code} />{" "}<BlockLine blocks={item.pmAsk.blocks} act={item.pmAsk.act} /><br /></>}
           {item.pmAsk.text}
           {item.pmAsk.code !== undefined && <div className="mt-2"><AskingLink link={item.pmAsk.asking ?? null} /></div>}
           <div className="mt-1.5 text-[11px] text-slate-500">Answer in the PM thread; the card leaves Needs You when the PM closes the request.</div>
@@ -1197,7 +1378,7 @@ function Detail({ item, tab }: { item: ItemDetail; tab: string }) {
           <Tabs.Trigger value="brief" className={trigger}>Brief</Tabs.Trigger>
           <Tabs.Trigger value="report" className={trigger}>Report</Tabs.Trigger>
           <Tabs.Trigger value="logs" className={trigger}>Logs ({item.logs.length})</Tabs.Trigger>
-          <Tabs.Trigger value="requests" className={trigger}>Requests ({item.requests.open.length + item.requests.waiting.length + item.requests.closed.length})</Tabs.Trigger>
+          <Tabs.Trigger value="requests" className={trigger}>Requests ({requestCount(item.requests)})</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="brief"><Md text={item.brief} empty="This brief has no text." /></Tabs.Content>
         <Tabs.Content value="report"><Md text={item.report} empty="No report yet." /></Tabs.Content>
@@ -1235,28 +1416,32 @@ const when = (at: string): string => new Date(at).toLocaleString([], { dateStyle
 function RequestCard({ row }: { row: RequestRow }) {
   const end = row.closed;
   const state = REQUEST_STATE[row.state];
-  const label = end !== null && row.state === "answered" ? `answered by ${WHO[end.by] ?? end.by}` : state.label;
+  // A wait (to a braid, or timed) is nobody's decision.
+  const wait = /^\d{4}$/.test(row.to) || row.to === "self";
+  const label = end !== null && row.state === "answered" && !wait ? `decided by ${WHO[end.by] ?? end.by}` : state.label;
   return (
     <div className="my-2 max-w-[75ch] rounded-lg border border-slate-200 px-3 py-2 text-[13.5px]">
       <div className="flex flex-wrap items-center gap-1.5">
-        <CodeChip code={row.code} />
+        <CodeChip code={row.handle} />
         <span className={`rounded-full px-2 py-px text-[11px] font-semibold ${state.tone}`}>{label}</span>
-        <Badge>{row.kind}</Badge>
-        {/^\d{4}$/.test(row.to) && <Badge>to braid {row.to}</Badge>}
-        {row.to === "self" && <Badge>waiting until {untilText(row.doneWhen)}</Badge>}
+        {!wait && <Badge>{row.kind}</Badge>}
+        {row.state === "open" && !wait && <span className="text-xs"><BlockLine blocks={row.blocks} act={row.act} /></span>}
+        {wait && <Badge>{row.act}</Badge>}
         <span className="flex-1" />
         {end !== null ? <span className="text-xs text-slate-500">{when(end.at)}</span> : <AskingLink link={row.link} />}
       </div>
-      <div className="mt-1">{row.text}</div>
+      <div className={`mt-1 ${row.mark === null ? "" : `rounded-md border-l-[3px] px-1.5 py-1 ${NEED_TONE.wait}`}`}>
+        {row.mark === null ? row.text : `${row.mark.words} ${row.text}${row.mark.why}`}
+      </div>
       {end?.text != null && (
         <div className={`mt-1.5 rounded border-l-[3px] bg-slate-50 px-2 py-1 text-[13px] ${row.state === "answered" ? "border-green-600" : "border-slate-400 text-slate-700"}`}>
-          {row.state !== "answered" && <b>{row.state === "met" ? "Met: " : `Withdrawn by ${WHO[end.by] ?? end.by}: `}</b>}
+          <b>{row.state === "answered" ? "Answer: " : row.state === "met" ? "Met: " : `Withdrawn by ${WHO[end.by] ?? end.by}: `}</b>
           {end.text}
         </div>
       )}
       {end?.reason != null && (
         <div className="mt-1.5 rounded border-l-[3px] border-slate-400 bg-slate-50 px-2 py-1 text-[13px] text-slate-700">
-          <b>Reason:</b> {end.reason}
+          <b>{row.state === "answered" && end.by === "pm" ? "PM's reason:" : "Reason:"}</b> {end.reason}
         </div>
       )}
       <div className="mt-1 text-[11.5px] text-slate-500">
@@ -1290,17 +1475,29 @@ function RequestHistory({ row }: { row: RequestRow }) {
   );
 }
 
-/** The Requests tab: open, waiting on another braid, then the closed ones newest first, ten at first. */
+/** The Requests tab: open, waiting on another braid, decided (answered), then the withdrawn and met ones, newest first, ten at first. */
 function RequestsTab({ view }: { view: RequestsView }) {
   const [shown, setShown] = useState(CLOSED_PAGE);
+  const [decidedShown, setDecidedShown] = useState(CLOSED_PAGE);
   const heading = (text: string) => <h3 className="mb-1 mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">{text}</h3>;
-  if (view.open.length + view.waiting.length + view.closed.length === 0) {
+  if (requestCount(view) === 0) {
     return <p className="text-slate-500">No requests yet.</p>;
   }
   return (
     <div>
       {view.open.length > 0 && <>{heading(`Open · ${view.open.length}`)}{view.open.map((r) => <RequestCard key={r.code} row={r} />)}</>}
       {view.waiting.length > 0 && <>{heading(`Waiting · ${view.waiting.length}`)}{view.waiting.map((r) => <RequestCard key={r.code} row={r} />)}</>}
+      {view.decided.length > 0 && (
+        <>
+          {heading(`Decided · ${view.decided.length} · newest first`)}
+          {view.decided.slice(0, decidedShown).map((r) => <RequestCard key={r.code} row={r} />)}
+          {view.decided.length > decidedShown && (
+            <button type="button" onClick={() => setDecidedShown(decidedShown + CLOSED_PAGE)} className="cursor-pointer rounded border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 hover:border-blue-600">
+              Show more ({view.decided.length - decidedShown})
+            </button>
+          )}
+        </>
+      )}
       {view.closed.length > 0 && (
         <>
           {heading(`Closed · ${view.closed.length} · newest first`)}
@@ -1631,31 +1828,75 @@ function ProjectsBar({ infos, selected, onSelect }: { infos: readonly ProjectInf
 // ---- Programmes (docs/board.md, "Programmes"): the panel left of the lanes, its rail, the filter, the details, the phone strip.
 
 const PANEL_KEY = "braid-programmes-open";
+const QUESTIONS_KEY = "braid-questions-open";
+/** The side panel opened last: the one that stays open where only one fits. */
+const LAST_KEY = "braid-side-panel";
 
-/** Whether the programmes panel is open (not the rail): open until collapsed, then remembered in this browser (local storage). */
-function usePanelOpen(): [boolean, (on: boolean) => void] {
-  const [open, setOpen] = useState(() => {
+/** Below this width the two side panels don't both fit: opening one collapses the other (D118). */
+const NARROW = "(max-width: 1599px)";
+
+/** A value remembered in this browser (local storage), kept for the page when storage is off. */
+function useRemembered(key: string, fallback: string): [string, (value: string) => void] {
+  const [value, setValue] = useState(() => {
     try {
-      return localStorage.getItem(PANEL_KEY) !== "0";
+      return localStorage.getItem(key) ?? fallback;
     } catch {
-      return true;
+      return fallback;
     }
   });
-  return [open, (on) => {
+  return [value, (next) => {
     try {
-      localStorage.setItem(PANEL_KEY, on ? "1" : "0");
+      localStorage.setItem(key, next);
     } catch {
       // not remembered: still applied
     }
-    setOpen(on);
+    setValue(next);
   }];
+}
+
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(() => matchMedia(NARROW).matches);
+  useEffect(() => {
+    const query = matchMedia(NARROW);
+    const onChange = () => setNarrow(query.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+  return narrow;
+}
+
+type SidePanel = "programmes" | "questions";
+
+/**
+ * Whether the programmes panel and the Questions panel are open (not a rail): open until collapsed, then remembered. On a
+ * narrow desktop only one is open, the one opened last; `programmes` false: there is no programmes panel to share with.
+ */
+function useSidePanels(programmes: boolean): { readonly open: Readonly<Record<SidePanel, boolean>>; readonly set: (panel: SidePanel, on: boolean) => void } {
+  const narrow = useNarrow();
+  const [prog, setProg] = useRemembered(PANEL_KEY, "1");
+  const [questions, setQuestions] = useRemembered(QUESTIONS_KEY, "1");
+  const [last, setLast] = useRemembered(LAST_KEY, "questions");
+  const both = narrow && programmes && prog !== "0" && questions !== "0";
+  return {
+    open: { programmes: prog !== "0" && !(both && last !== "programmes"), questions: questions !== "0" && !(both && last === "programmes") },
+    set: (panel, on) => {
+      const [mine, other] = panel === "programmes" ? [setProg, setQuestions] : [setQuestions, setProg];
+      mine(on ? "1" : "0");
+      if (on) {
+        setLast(panel);
+        if (narrow && programmes) {
+          other("0");
+        }
+      }
+    },
+  };
 }
 
 /** The programme filter of the page: the key `?programme=` narrows the lanes to, and the setter (null shows all). */
 const FilterContext = createContext<{ readonly key: string | null; readonly set: (key: string | null) => void }>({ key: null, set: () => {} });
 
 /** Opens a programme's details over the board, as `go` opens an item's. */
-function goProgramme(key: string): void {
+export function goProgramme(key: string): void {
   const target = programmeHash(key);
   if (openMode(location.hash) === "push") {
     pushedOpen = true;
@@ -1668,7 +1909,8 @@ function goProgramme(key: string): void {
 /** Needs you first (oldest ask first, across projects), then Working in project order, then slug. */
 function programmeOrder(list: readonly TaggedProgramme[], order: ReadonlyMap<string, number>): { needs: TaggedProgramme[]; working: TaggedProgramme[] } {
   const live = list.filter((p) => p.section !== null);
-  const needs = live.filter((p) => p.section === "needs").sort((a, b) => (a.need?.since ?? "").localeCompare(b.need?.since ?? ""));
+  const oldest = (p: TaggedProgramme): string => [p.need?.since, ...asked(p).map((f) => f.need.since)].filter((s) => s != null).sort()[0] ?? "";
+  const needs = live.filter((p) => p.section === "needs").sort((a, b) => oldest(a).localeCompare(oldest(b)));
   const working = live.filter((p) => p.section === "working").sort((a, b) => (order.get(a.project) ?? 0) - (order.get(b.project) ?? 0) || a.slug.localeCompare(b.slug));
   return { needs, working };
 }
@@ -1718,15 +1960,15 @@ function OnlyThese({ p, short = false, icon = false }: { p: TaggedProgramme; sho
       type="button"
       aria-pressed={on}
       aria-label={on ? "Show every braid" : `Only the braids of ${p.slug}`}
-      title={on ? "Show every braid again" : "Show only this programme's braids in the lanes"}
+      title={on ? "Show every braid again" : "Only these: show only this programme's braids in the lanes"}
       onClick={(e) => {
         e.stopPropagation();
         filter.set(on ? null : p.key);
       }}
       className={`inline-flex cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-md border px-2 py-0.5 text-[12.5px] max-md:min-h-11 max-md:min-w-11 ${on ? "border-teal-700 bg-teal-700 font-semibold text-white" : "border-slate-200 bg-white text-slate-700 hover:border-blue-600"}`}
     >
-      <span aria-hidden>◎</span> {icon ? "" : short ? "Only" : "Only these"}
-      {on && !short && <span aria-hidden> · ✕</span>}
+      <span aria-hidden>◎</span>
+      {!icon && <span className="md:hidden">{short ? "Only" : "Only these"}</span>}
     </button>
   );
 }
@@ -1737,13 +1979,16 @@ function optionLines(text: string): { head: string; options: string[] } {
   return { head: parts[0] ?? "", options: parts.slice(1) };
 }
 
-/** A programme's need: the PM's request with its options, or the stall with what the board saw. */
+/** The requests of a programme's braids that are the user's, forwarded or not, oldest first. */
+const asked = (p: TaggedProgramme) => [...p.forwards, ...p.requests].sort((a, b) => (a.need.since ?? "").localeCompare(b.need.since ?? ""));
+
+/** A programme's need: the PM's request with its options, or the stall with what the board saw; then its braids' requests. */
 function ProgrammeNeed({ p }: { p: TaggedProgramme }) {
   return (
     <>
       {p.need !== null && <OneNeed p={p} need={p.need} />}
-      {p.forwards.map((f) => (
-        <OneNeed key={f.id} p={p} need={f.need} item={f.id} />
+      {asked(p).map((f) => (
+        <OneNeed key={`${f.id} ${f.need.code}`} p={p} need={f.need} item={f.id} />
       ))}
     </>
   );
@@ -1758,12 +2003,12 @@ function OneNeed({ p, need, item }: { p: TaggedProgramme; need: Need; item?: str
       </div>
     );
   }
-  const words = /^(The PM asks you(?: to)?:)\s*(.*)$/s.exec(need.text);
-  const { head, options } = optionLines(words?.[2] ?? need.text);
+  const { lead, rest } = leadOf(need);
+  const { head, options } = optionLines(rest);
   return (
     <div className="mt-1.5 rounded-md border-l-[3px] border-amber-500 bg-amber-50 px-2 py-1.5 text-[13px] leading-snug text-amber-950">
-      {need.code !== undefined && <><CodeChip code={need.code} />{" "}</>}
-      <b>{words?.[1] ?? "The PM asks you:"}</b> {head}
+      {need.code !== undefined && <><CodeChip code={need.handle ?? need.code} />{" "}<BlockLine blocks={need.blocks} act={need.act} /><br /></>}
+      <b>{lead}</b> {head}
       {need.code !== undefined && <AskingLink link={need.asking ?? null} />}
       {options.length > 0 && (
         <ul className="mt-0.5 list-none pl-1">
@@ -1772,16 +2017,16 @@ function OneNeed({ p, need, item }: { p: TaggedProgramme; need: Need; item?: str
           ))}
         </ul>
       )}
-      <small className="mt-0.5 block text-[11px] text-slate-500">{item === undefined ? "programme" : `from ${item}`} · {ageText(need)} · answer in the PM thread</small>
+      <small className="mt-0.5 block text-[11px] text-slate-500">{item === undefined ? "programme" : `from ${item}`} · {ageText(need)} · answer in the Questions panel or the PM thread</small>
     </div>
   );
 }
 
 /** The mark at the top right of a programme card: ? asks, ⏳ stalled, ⏸ held. */
 function ProgrammeMark({ p }: { p: TaggedProgramme }) {
-  if (p.need !== null || p.forwards.length > 0) {
+  if (p.need !== null || p.forwards.length > 0 || p.requests.length > 0) {
     return (
-      <span title={p.need?.kind === "stalled" ? "Stalled" : "The PM asks you"} className="flex size-5 flex-none items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
+      <span title={p.need?.kind === "stalled" ? "Stalled" : p.need !== null || p.forwards.length > 0 ? "The PM asks you" : "A question for you"} className="flex size-5 flex-none items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
         {p.need?.kind === "stalled" ? "⏳" : "?"}
       </span>
     );
@@ -1820,14 +2065,25 @@ function ProgrammeCard({ p }: { p: TaggedProgramme }) {
           </span>
         </div>
       )}
-      {p.error === null && p.hold !== null && <div className="mt-1.5 rounded-md border-l-[3px] border-sky-600 bg-sky-50 px-2 py-1 text-[12.5px] leading-snug text-sky-900">⏸ {p.status}</div>}
+      {p.error === null && p.hold !== null && (
+        <div className={`mt-1.5 rounded-md border-l-[3px] px-2 py-1 text-[12.5px] leading-snug ${p.resume?.pending === true ? "border-amber-500 bg-amber-50 text-amber-900" : "border-sky-600 bg-sky-50 text-sky-900"}`}>
+          ⏸ {p.status}
+          {p.resume !== null && <small className="mt-px block text-[11px] text-slate-500">{p.resume.note}</small>}
+        </div>
+      )}
       {p.error === null && p.hold === null && <div className="mt-1 text-[13px] leading-snug text-slate-700">{p.need?.kind === "stalled" ? "No braid running" : p.status}</div>}
       <div className="mt-2 flex flex-wrap gap-1">
         <PmThread p={p} />
         <OnlyThese p={p} />
-        <button type="button" data-opens-details onClick={() => goProgramme(p.key)} className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[12.5px] text-slate-700 hover:border-blue-600 max-md:min-h-11">
-          <span aria-hidden>≡</span> Plan
+        <button type="button" data-opens-details aria-label={`Plan of ${p.slug}`} title="Plan: open the programme's details" onClick={() => goProgramme(p.key)} className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[12.5px] text-slate-700 hover:border-blue-600 max-md:min-h-11">
+          <span aria-hidden>≡</span> <span className="md:hidden">Plan</span>
         </button>
+        {p.error === null && p.resume !== null && (
+          <>
+            <span className="flex-1" />
+            <ProgrammeResumeButton slug={p.slug} resume={p.resume} />
+          </>
+        )}
       </div>
     </div>
   );
@@ -1843,9 +2099,8 @@ function SectionHead({ label, count, tone }: { label: string; count: number; ton
 }
 
 /** The desktop panel left of the lanes: Needs you and Working, or (collapsed) the rail of icons. */
-function ProgrammesPanel({ list }: { list: readonly TaggedProgramme[] }) {
+function ProgrammesPanel({ list, open, setOpen }: { list: readonly TaggedProgramme[]; open: boolean; setOpen: (open: boolean) => void }) {
   const scope = useContext(ScopeContext);
-  const [open, setOpen] = usePanelOpen();
   const order = new Map([...scope.projects].map(([name, { index }]) => [name, index]));
   const { needs, working } = programmeOrder(list, order);
   if (!open) {
@@ -2135,8 +2390,11 @@ export function App() {
   const shown = infos.filter((i) => selected.includes(i.name));
   const programmes = all.state === "ready" ? all.data.programmes.filter((p) => selected.includes(p.project)) : [];
   const only = programmes.find((p) => p.key === programme) ?? null;
+  const questions = all.state === "ready" ? all.data.questions.filter((q) => selected.includes(q.project)) : [];
+  const decided = all.state === "ready" ? all.data.decided.filter((d) => selected.includes(d.project)) : [];
   const board = all.state === "ready" ? { lanes: all.data.lanes, braids: all.data.braids.filter((b) => selected.includes(b.project) && (only === null || (b.project === only.project && only.braids.includes(b.id)))) } : null;
   const panel = programmes.some((p) => p.section !== null) || only !== null;
+  const sides = useSidePanels(panel);
   const inbox = mergeInbox(shown);
   // One project served keeps the page as it was: its notes in the header, its problems in a banner.
   const single = infos.length === 1 ? infos[0] : undefined;
@@ -2171,10 +2429,13 @@ export function App() {
           </span>
           <button
             type="button"
+            aria-label="Refresh"
+            title="Refresh"
             onClick={refresh}
-            className="cursor-pointer rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 hover:border-blue-600"
+            className="flex size-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:border-blue-600 max-md:size-auto max-md:min-h-11 max-md:px-3 max-md:text-xs"
           >
-            Refresh
+            <span className="max-md:hidden"><RetryIcon /></span>
+            <span className="md:hidden">Refresh</span>
           </button>
         </header>
         {limits !== null && <LimitsStrip view={limits} now={now} onOpen={toggleLimits} />}
@@ -2203,13 +2464,14 @@ export function App() {
           <Status loaded={all}>
             {() =>
               board === null ? null : (
-                <div className="flex items-stretch">
-                  {panel && <ProgrammesPanel list={programmes} />}
+                <div className="flex items-stretch max-md:flex-col">
+                  {panel && <ProgrammesPanel list={programmes} open={sides.open.programmes} setOpen={(on) => sides.set("programmes", on)} />}
                   <div className="min-w-0 flex-1">
                     {panel && <PhoneProgrammes list={programmes} />}
                     {only !== null && <FilterBar p={only} count={board.braids.length} />}
                     <Board data={board} details={details} />
                   </div>
+                  <QuestionsPanel questions={questions} decided={decided} open={sides.open.questions} setOpen={(on) => sides.set("questions", on)} refresh={refresh} />
                 </div>
               )
             }

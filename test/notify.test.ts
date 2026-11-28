@@ -550,7 +550,7 @@ test("merges forwarded by one PM are one push, updated in place under one sequen
   await run(withProg(forward("0001", 7), forward("0002", 8)));
   assert.equal(f.sent.length, 2);
   assert.equal(at(1).title, "agento: 2 merges wait for you");
-  assert.equal(at(1).body, "0001 PR #7\n0002 PR #8");
+  assert.equal(at(1).body, "0001 Title 0001\nPR #7 at aaaaaaa\n\n0002 Title 0002\nPR #8 at aaaaaaa");
   assert.equal(at(1).sequence, at(0).sequence);
   assert.deepEqual([at(1).priority, at(1).tags], ["high", ["eyes"]]);
   // A head moves: sent again, still in place.

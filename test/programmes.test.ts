@@ -146,7 +146,7 @@ test("readPlans reads each pm/* branch's plan, a local branch before origin's, a
 
 // ---- The panel's sections and the stall
 
-const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, ...extra });
+const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, need: null, pmAsk: null, strands: [], ...extra });
 const t3 = (pm: string | null, extra: object = {}): any => ({ status: { state: "ok" }, threads: new Map(), states: new Map(pm === null ? [] : [[PM, pm]]), links: new Map([[PM, LINK]]), ...extra });
 const gh = (): any => ({ status: { state: "ok" }, prs: new Map() });
 const read = (lines: string[] = []): any => planOf("working-product", "pm/working-product", plan(["programme: working-product", "title: W", "goal: G", `thread: ${PM}`, ...(lines.some((l) => l.startsWith("state:")) ? [] : ["state: running"]), ...lines, "rows:", "  - P1 | 0001 | One | running", "  - P2 | 0002 | Two | running"]));
@@ -173,6 +173,29 @@ test("a programme is Working while its PM runs or one of its braids runs", () =>
   assert.equal(one({ t3: t3("idle", { pmChecks: ["PR #12 of 0002, live"] }), seen: long }).p.section, "working", "the PM's checker runs");
   const working = one({ t3: t3("running"), cards: [card("0001", { running: true }), card("0002", { lane: "Done" })] }).p;
   assert.deepEqual([working.done, working.total, working.running, working.status], [1, 2, 1, "1 braid running"]);
+});
+
+test("N running counts every live braid: a coordinator working or waiting, or the PM handling it; not a dead or missing one", () => {
+  const coordinator = { id: "c-1", link: null, provider: null, model: null };
+  const idle = (state: string): any => t3("idle", { idleCoordinators: new Map([["0001", coordinator]]), states: new Map([[PM, "idle"], ["c-1", state]]) });
+  const count = (t: any, extra: object = {}): number => one({ t3: t, cards: [card("0001", extra)] }).p.running;
+  const handling = { pm: { text: "The PM is checking: PR #1", age: "1m", since: ago(1), kind: "review" } };
+
+  assert.equal(count(t3("idle", { coordinators: new Map([["0001", coordinator]]) })), 1, "a running coordinator");
+  assert.equal(count(idle("completed"), { lane: "Waiting" }), 1, "an idle coordinator waiting on a PR");
+  assert.equal(count(idle("idle")), 1, "an idle coordinator");
+  assert.equal(count(idle("failed")), 0, "a failed coordinator");
+  assert.equal(count(idle("error")), 0, "a coordinator in error");
+  assert.equal(count(idle("archived")), 0, "an archived coordinator");
+  assert.equal(count(t3("idle")), 0, "no coordinator thread");
+  assert.equal(count(idle("idle"), { lane: "Done" }), 0, "Done");
+  assert.equal(count(idle("idle"), { lane: "To Do" }), 0, "not started");
+  assert.equal(count(t3("idle"), handling), 1, "the PM handles it, with no live coordinator");
+  assert.equal(count(idle("failed"), handling), 1, "the PM handles it, its coordinator failed");
+  assert.equal(count(t3("idle"), { pm: { ...handling.pm, forwarded: true } }), 0, "forwarded to you: the PM isn't handling it");
+
+  const stalled = one({ t3: idle("idle"), cards: [card("0001")], seen: afterNudge() }).p;
+  assert.deepEqual([stalled.running, stalled.need?.kind], [1, "stalled"], "a waiting coordinator counts, and doesn't hide the programme's stall");
 });
 
 test("a programme with neither its PM nor a braid running reads stalled after ten minutes, once, and clears when one runs", () => {
@@ -300,7 +323,7 @@ test("a programme's request is pushed from the panel; a braid it runs sends no D
   const board = model.toBoard("agento", [braid("0001"), braid("0009")], gh(), t3("idle"), sig);
   const pushes = message.pushesOf(board);
   const ask = pushes.find((p: any) => p.item === "pm/working-product#pm");
-  assert.deepEqual([ask.title, ask.body, ask.priority], ["agento working-product: the PM asks", "The PM asks you to: protect main", "high"]);
+  assert.deepEqual([ask.title, ask.body, ask.priority], ["agento working-product: the PM asks", "do\nThe PM asks you to: protect main", "high"]);
   assert.equal(pushes.find((p: any) => p.item === "0001"), undefined, "run by the programme: the PM handles what follows");
   assert.equal(pushes.find((p: any) => p.item === "0009").priority, "default");
 });

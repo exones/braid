@@ -23,10 +23,8 @@ export const { statusCommand } = (await load("../../dist/commands/coordinate.js"
   statusCommand: (root: string, args: string[], src: object) => Promise<string>;
 };
 export const { resetGithubMemory } = (await load("../../dist/board/github.js")) as { resetGithubMemory: () => void };
-export const { resetT3Memory } = (await load("../../dist/board/t3.js")) as { resetT3Memory: () => void };
 beforeEach(() => {
   resetGithubMemory();
-  resetT3Memory();
 });
 
 export const git = (cwd: string, ...args: string[]) => {
@@ -140,8 +138,14 @@ export function world(preset = "", ci = "[verify]") {
   };
   let threads: object[] = [];
   let t3Down = false;
+  // `thread show` answers of recorded child threads (never listed), by thread id.
+  let shown: Record<string, object> = {};
   // A thread's `_at` is the folder of its worktree under braid's worktrees for this repository.
   const t3 = (_r: string, args: readonly string[]) => {
+    const child = shown[args[2] ?? ""];
+    if (child !== undefined && !t3Down && args[1] === "show") {
+      return Promise.resolve(ok({ thread: child }));
+    }
     const at = (threads as { threadId: string; _at?: string }[]).find((t) => t.threadId === args[2])?._at ?? "elsewhere";
     return Promise.resolve(t3Down ? { status: 1, stdout: "", stderr: "t3 is not running" } : args[1] === "list" ? ok(threads) : ok({ thread: { worktreePath: join(process.env.BRAID_WORKTREES_DIR as string, "proj", at), pendingRequestCount: 0 } }));
   };
@@ -157,6 +161,7 @@ export function world(preset = "", ci = "[verify]") {
     opts,
     headOf,
     setThreads: (t: object[]) => (threads = t),
+    setShown: (s: Record<string, object>) => (shown = s),
     setT3Down: (d: boolean) => (t3Down = d),
     /** A file on a remote branch. */
     show: (branch: string, path: string) => git(root, "--git-dir", remote, "show", `${branch}:${path}`),

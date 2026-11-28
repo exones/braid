@@ -11,7 +11,7 @@ Read this whenever the braid's preset is not `careful`. A preset's front matter 
 
 Merge a PR yourself only when its kind is in `merge` (`strands`: a strand's PR into the braid branch; `all`: also a story's or the final PR into `main`) and all seven hold:
 
-1. The worker reported green.
+1. The worker's last run ended with its report at this PR.
 2. On the PR branch every Completion box is ticked and `report.md` is present.
 3. An independent `braid-reviewer` review found nothing blocking (tier S too; under `reviewer-with-bots: L-only`, the review bots' review with every thread resolved for S and M), and for tier L any re-check is finished.
 4. `gh pr checks` is green on the head commit for the `ci` names.

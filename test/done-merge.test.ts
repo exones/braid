@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { acceptCommand, brief, git, resetGithubMemory, statusCommand, world } from "./support/done-fixtures.ts";
+
+const { recordReview } = (await import(pathToFileURL(fileURLToPath(new URL("../dist/braids/reviews.js", import.meta.url))).href)) as { recordReview: (root: string, id: string, thread: string, at?: string, where?: null, role?: string) => boolean };
 
 // `braid accept` of strands, and `--merge --preset`. The story and refusal tests are in done.test.ts.
 
@@ -57,6 +60,12 @@ test("a strand's open PR is refused without --merge, and for each failed conditi
   w.setThreads([{ threadId: "mcp:launch:abcd1234ef", title: "Coordinator", status: "running", _at: "0001" }, { threadId: "workerthread1", title: "Worker A", status: "running", _at: "0001-A" }]);
   await refuse(merge, /still running \(workerthread1, "Worker A"\)/);
   w.setThreads([]);
+  // A recorded worker child (never listed by T3) that runs blocks the accept as a worktree worker does; one that finished doesn't.
+  const kid = "thread:delegated-task:command%3Amcp%3Aaaaa%3Adelegate-task%3Abbbb";
+  recordReview(w.root, "0001/A", kid, undefined, null, "worker");
+  w.setShown({ [kid]: { status: "running", relationshipToParent: "subagent", pendingRequestCount: 0 } });
+  await refuse(merge, /a worker thread for 0001\/A is still running \(thread:delegated-task/);
+  w.setShown({ [kid]: { status: "completed", relationshipToParent: "subagent", pendingRequestCount: 0 } });
   w.setT3Down(true);
   await refuse(merge, /T3 could not be read .* a running worker can't be ruled out/);
   w.setT3Down(false);

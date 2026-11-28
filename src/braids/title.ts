@@ -1,7 +1,8 @@
 // The title of a braid thread: `<emoji> <repo> <id> <role>: <title>`. One builder, one parser.
-import { spawnSync } from "node:child_process";
-import { basename } from "node:path";
-import { repoNameOf } from "./worktrees.js";
+import { originRepoName } from "./repo.js";
+
+/** The GitHub repository's name from `origin`'s URL; the checkout's folder name when there is no `origin`; cached per root. */
+export const titleRepoName = originRepoName;
 
 import { ROLES, STEERING_EMOJI, type TitleRole } from "./roles.js";
 
@@ -25,20 +26,8 @@ export function parseThreadTitle(text: string): ParsedTitle | null {
   return m === null ? null : { repo: m[1] ?? "", id: m[2] ?? "", role: m[3] as TitleRole, title: m[4] ?? "" };
 }
 
-/** The GitHub repository's name from `origin`'s URL; the checkout's folder name (`repoNameOf`) when there is no `origin`. */
-export function titleRepoName(root: string): string {
-  const r = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
-  const url = r.status === 0 ? r.stdout.trim() : "";
-  const name = /[/:]([^/:]+?)(?:\.git)?\/?$/.exec(url)?.[1];
-  return name ?? repoNameOf(root) ?? basename(root);
-}
 
-/** The title of the board's steering thread: `🚦 <repo> steering: <what>`. It has no item id, so no item reads it as one of its agents. */
-export function steeringTitle(repo: string, what: string): string {
-  return `${STEERING_EMOJI} ${repo} steering: ${what}`;
-}
-
-/** A steering thread's title read back; the 🚦 is required, so no other thread with a similar title is taken for it. Null for any other title. */
+/** An older board steering thread's title (`🚦 <repo> steering: <what>`, 0064; none starts since 0074/C) read back, so it is never taken for an item's agent; the 🚦 is required, so no other thread with a similar title is taken for it. Null for any other title. */
 export function parseSteeringTitle(text: string): { readonly repo: string; readonly what: string } | null {
   const m = new RegExp(`^${STEERING_EMOJI}\\s+(\\S+) steering: (.*)$`).exec(text);
   return m === null ? null : { repo: m[1] ?? "", what: m[2] ?? "" };

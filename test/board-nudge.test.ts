@@ -2,7 +2,7 @@
 // and the card shows the stall only if it still holds ten minutes after; a stall that ends and comes back is nudged again; a held
 // or paused braid or programme is never nudged; two boards on one record send each wake, reminder and nudge once.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { load, world } from "./support/done-fixtures.ts";
@@ -174,7 +174,7 @@ test("a held or paused braid is never nudged, and a held programme's braid is he
 
 // ---- The PM
 
-const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, ...extra });
+const card = (id: string, extra: object = {}): any => ({ id, title: `B ${id}`, lane: "In Progress", running: false, activity: null, pause: null, pm: null, need: null, pmAsk: null, strands: [], ...extra });
 function pmRefresh(root: string, now: Date, pm: string | null, state = "running") {
   const read = planOf("p", "pm/p", ["---", "programme: p", "title: P", "goal: G", `thread: ${PM}`, `state: ${state}`, "rows:", "  - P1 | 0001 | One | running", "---", ""].join("\n"));
   const sig = signals.readSignals(root, GH, now);
@@ -255,7 +255,7 @@ test("a second board that reads the record again right before a send skips a wak
   // While this board's wake of the first request is on its way, the other board wakes and records the second.
   // (Whichever the board takes first, the other is the one the other board woke.)
   s.onSend((text) => {
-    Rec.endRequest(w.root, text.includes(first) ? second : first, { state: "met", who: "board", text: "its time came", at: at(6).toISOString() });
+    Rec.endRequest(w.root, text.includes(first.slice(2)) ? second : first, { state: "met", who: "board", text: "its time came", at: at(6).toISOString() });
   });
   await waker(s.t3)({ root: w.root, good: wakeGood() }, at(6), warn);
   assert.equal(s.sent.length, 1, "only one: the other was woken by the other board");
@@ -285,9 +285,22 @@ test("a second board that reads the record again right before a reminder skips o
   const b = wait("C", "second?");
   const s = sender();
   s.onSend((text) => {
-    Rec.addEvent(w.root, text.includes(a) ? b : a, { event: "reminded", at: at(60).toISOString(), by: "board", text: "sent to the 0002 coordinator" });
+    Rec.addEvent(w.root, text.includes(a.slice(2)) ? b : a, { event: "reminded", at: at(60).toISOString(), by: "board", text: "sent to the 0002 coordinator" });
   });
   const g = { sig: { pauses: new Map(), plans: [] }, t3: { status: { state: "ok" }, threads: new Map(), coordinators: new Map(), idleCoordinators: new Map([["0002", { id: CO7 }]]), states: new Map([[CO7, "idle"]]) } };
   await reminder(s.t3)({ root: w.root, good: g }, at(60), warn);
   assert.equal(s.sent.length, 1, "only one: the other was reminded by the other board");
+});
+
+test("0074/F: a strandless braid with a running coordinator never reads stalled; idle, it still does; a braid with strands is unchanged", () => {
+  for (const [b, co, held] of [[lone, "running", false], [lone, "idle", true], [braided, "idle", true], [braided, "running", false]] as const) {
+    const w = world();
+    const t3 = T3({ coordinator: co });
+    const card = refresh(w.root, at(0), b, t3).card;
+    // An idle coordinator is nudged before the card shows the stall, so the stall clock says whether it holds.
+    const key = b === lone ? "0007" : "0007 coordinator";
+    const clocks = existsSync(join(w.root, ".braid", "broke.json")) ? brokeOf(w.root) : {};
+    assert.equal(`${key} stalled` in clocks, held, `${b === lone ? "strandless" : "with strands"}, coordinator ${co}`);
+    assert.equal(card.running, false, "the coordinator is not an agent of the card");
+  }
 });

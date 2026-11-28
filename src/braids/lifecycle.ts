@@ -4,8 +4,8 @@
 // so a code branch's head never moves for bookkeeping. Done is no event: it is read from the merged PR (`statusOf`).
 import type { PullRequest } from "../board/github.js";
 import type { Status } from "./brief.js";
-import { catBatchSync } from "./gitio.js";
-import { currentFiles, tips, writeBranch, type WriteResult } from "./gitbranch.js";
+import { catBatch, catBatchSync } from "./gitio.js";
+import { currentFiles, currentFilesAsync, tips, tipsAsync, writeBranch, type WriteResult } from "./gitbranch.js";
 import { LIFECYCLE_FOLDER, REQUESTS } from "./requests.js";
 
 export { LIFECYCLE_FOLDER };
@@ -92,6 +92,32 @@ export function loadLifecycle(root: string): ReadonlyMap<string, Lifecycle> {
   }
   const files = [...currentFiles(root, REQUESTS, at)].filter(([path]) => path.startsWith(`${LIFECYCLE_FOLDER}/`));
   const texts = catBatchSync(root, files.map(([, blob]) => blob));
+  const map = new Map<string, Lifecycle>();
+  files.forEach(([path], i) => {
+    const l = texts[i] == null ? null : parseLifecycle(path, texts[i]);
+    if (l !== null) {
+      map.set(l.id, l);
+    }
+  });
+  cache.set(root, { key, map });
+  return map;
+}
+
+/** `loadLifecycle` for the board, read without blocking the process. */
+export async function loadLifecycleAsync(root: string): Promise<ReadonlyMap<string, Lifecycle>> {
+  let at: Awaited<ReturnType<typeof tipsAsync>>;
+  try {
+    at = await tipsAsync(root, REQUESTS);
+  } catch {
+    return new Map();
+  }
+  const key = `${at.local ?? "-"} ${at.remote ?? "-"}`;
+  const cached = cache.get(root);
+  if (cached !== undefined && cached.key === key) {
+    return cached.map;
+  }
+  const files = [...(await currentFilesAsync(root, REQUESTS, at))].filter(([path]) => path.startsWith(`${LIFECYCLE_FOLDER}/`));
+  const texts = await catBatch(root, files.map(([, blob]) => blob));
   const map = new Map<string, Lifecycle>();
   files.forEach(([path], i) => {
     const l = texts[i] == null ? null : parseLifecycle(path, texts[i]);

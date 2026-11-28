@@ -205,6 +205,18 @@ test("a paused braid isn't stalled: it stays Working with its pause until 25 min
   assert.equal(over.need.age, "5m");
 });
 
+test("a board pause that didn't reach everyone makes the braid's card Needs You (limit), naming each silent agent with its thread link", () => {
+  const replies = { sent: NOW.toISOString(), outcome: "partial", answered: 1, total: 2, got: ["c-1"], failed: [], noAnswer: [{ item: "0026/A", thread: "w-1", link: "http://t3/w-1", why: "working" }], reason: null };
+  const board = (r: typeof replies | Record<string, unknown>) => record({ braid: "0026", by: "board", thread: "", task: null, targets: [{ thread: "w-1", kind: "worker", item: "0026/A", link: "http://t3/w-1" }], replies: r });
+  const p = board(replies);
+  const now = new Date(Date.parse(p.resumeAt) - 30 * 60_000);
+  const c = card(now, p);
+  assert.equal(c.reason, "limit");
+  assert.equal(c.need.text, "Pause for claude_session_over: paused 1/2; no answer: 0026/A (http://t3/w-1). Those may still be running: open their threads, or pause by hand");
+  const full = card(now, board({ ...replies, outcome: "paused", answered: 2, noAnswer: [] }));
+  assert.notEqual(full.reason, "limit", "a full pause needs nothing");
+});
+
 test("marks: the pause icon on a Working card and its strands, never on a card on the user's side", () => {
   const p = record({ braid: "0026" });
   const at = (min: number) => new Date(Date.parse(p.resumeAt) + min * 60_000);

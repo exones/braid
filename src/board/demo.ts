@@ -195,14 +195,14 @@ const MIN = 60_000;
 export function demoPauses(now: Date = new Date()): Pause[] {
   const at = (minutes: number): string => new Date(now.getTime() + minutes * MIN).toISOString();
   const pause = (braid: string, resume: number, task: string): Pause => ({ braid, provider: "Claude_Everix", window: "five_hour", label: "Session", usedPercent: 97, resetsAt: at(resume - 5), resumeAt: at(resume), task, thread: "demo-coordinator-thread", by: "coordinator", at: at(-36) });
-  // 0025: the board's pause (0064), through a steering thread on codex that every agent answered.
+  // 0025: the board's pause (0064, 0074/C): its texts sent by code, and every agent answered.
   const board: Pause = {
     ...pause("0025", 18, ""),
     task: null,
-    thread: "demo-steering-thread",
+    thread: "",
     by: "board",
     targets: [{ thread: "demo-coordinator-thread", kind: "coordinator", item: "0025" }, { thread: "demo-worker-thread", kind: "worker", item: "0025/C" }],
-    steering: { thread: "demo-steering-thread", link: null, provider: "codex", model: "gpt-6-luna", started: at(-36), outcome: "paused", answered: 2, total: 2, children: [], noAnswer: [], reason: null, self: false },
+    replies: { sent: at(-36), outcome: "paused", answered: 2, total: 2, got: ["demo-coordinator-thread", "demo-worker-thread"], failed: [], noAnswer: [], reason: null },
   };
   return [board, pause("0026", -20, "demo-task-2"), pause("0027", -42, "demo-task-3")];
 }
@@ -222,9 +222,9 @@ export function demoLimits(t3: T3, pauses: ReadonlyMap<string, Pause>, now: Date
   const reading = (instanceId: string, roles: string[], models: string[], windows: WindowReading[]): ProviderReading => {
     const over = windows.filter((w) => w.over);
     const latest = over.at(0);
-    return { instanceId, roles, models, verdict: latest === undefined ? "ok" : "pause", reason: latest === undefined ? null : `${latest.label} (${latest.id}) is at ${latest.usedPercent}%, threshold ${latest.threshold}%`, checkedAt, windows, pauseWindow: latest?.id ?? null, resumeAt: latest === undefined ? null : new Date(Date.parse(latest.resetsAt ?? "") + DEFAULT_LIMITS.buffer * MIN).toISOString() };
+    return { instanceId, roles, models, verdict: latest === undefined ? "ok" : "pause", reason: latest === undefined ? null : `${latest.label} (${latest.id}) is at ${latest.usedPercent}%, threshold ${latest.threshold}%`, checkedAt, windows, pauseWindow: latest?.id ?? null, resumeAt: latest === undefined ? null : new Date(Date.parse(latest.resetsAt ?? "") + DEFAULT_LIMITS.buffer * MIN).toISOString(), blindSince: null };
   };
-  const cursor: ProviderReading = { instanceId: "cursor", roles: ["reviewer"], models: ["grok-4.6"], verdict: "unknown", reason: `${NOT_MEASURED} (unsupported)`, checkedAt: null, windows: [], pauseWindow: null, resumeAt: null };
+  const cursor: ProviderReading = { instanceId: "cursor", roles: ["reviewer"], models: ["grok-4.6"], verdict: "unknown", reason: `${NOT_MEASURED} (unsupported)`, checkedAt: null, windows: [], pauseWindow: null, resumeAt: null, blindSince: null };
   return buildView([reading("Claude_Everix", ["coordinator", "worker.story", "researcher"], ["claude-opus-5-5", "claude-sonnet-5-5"], claude), reading("codex", ["worker.task"], ["gpt-6-luna"], codex), cursor], DEFAULT_LIMITS, t3, pauses, now);
 }
 
@@ -242,9 +242,12 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     request("0001/B", "review", "review PR #12 at 0000012", 120, { pr: 12, head: demoHead(12), thread: "demo-coordinator" }),
     request("0003/B", "decision", "Decide: approve the PDF layout (approve-layout)", 60, { key: "approve-layout" }),
     request("0003/C", "review", "review PR #17 at 0000011", 180, { pr: 17, head: demoHead(17) }),
-    request("0004/B", "question", "Which rounding rule should refunds use, half-up or banker's?", 35),
+    request("0004/B", "question", "Which rounding rule should refunds use, half-up or banker's?", 35, { context: "Refunds are rounded to cents. The invoices round **half-up**; banker's rounding would make a refund differ from its invoice by a cent now and then.", options: ["Half-up, as the invoices do", "Banker's rounding"] }),
     request("0006", "decision", "Decide: which spike option to build (spike-direction)", 120, { key: "spike-direction" }),
-    request("0007", "plan", "Approve the plan: 3 strands, A to C", 20),
+    request("0007", "plan", "Approve the plan: 3 strands, A to C", 20, {
+      context: "Sample import needs three pieces, in order:\n\n- **A** the parser\n- **B** the mapper\n- **C** the report page\n\nAbout 900 lines in 14 files. Nothing runs until you answer.",
+      options: ["Approve the plan as it is", "Approve, but drop strand C (the report page)", "Don't start yet: I want to read the plan"],
+    }),
     // A question the PM answers first: the card keeps its lane and shows the teal "The PM is handling" line, with 🧭.
     request("0009/A", "question", "Should the report totals include refunds?", 3, { to: "pm", pm: "demo-pm-1" }),
   ];
@@ -266,6 +269,8 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     closed("0003/A", "Wait for the search index", 1500, 1400, { state: "met", by: "board", text: "PR #31 merged" }, { to: "0002", doneWhen: "pr:31" }),
   ];
   const programmes: Request[] = [request("pm/working-product", "decision", "Should the export ship before billing? A. Yes: export first, billing after B. No: billing first C. Both at once, with the limit raised to 3", 12, { by: "pm", thread: "demo-pm-1" })];
+  // Decided lists a programme's answered requests too: no item's Requests tab does.
+  ended.push(closed("pm/working-product", "Should billing wait for the export?", 900, 880, { state: "answered", by: "user", text: "A. Yes: export first, billing after" }, { by: "pm", thread: "demo-pm-1" }));
   const began: Readonly<Record<string, number>> = { "0002/B": 14, "0004/A": 25, "demo/inbox-sweep pm": 14 };
   return {
     now,
@@ -398,8 +403,8 @@ export function apiPlans(): PlanRead[] {
 export function apiSignals(now: Date = new Date()): ReadSignals {
   const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
   const requests: Request[] = [
-    newRecord({ id: "0001/B", kind: "question", text: "Send Retry-After in seconds or as a date?", at: at(15), thread: null }),
-    newRecord({ id: "0002", kind: "review", text: "review PR #43 at 000002b", at: at(50), thread: null, pr: 43, head: demoHead(43) }),
+    newRecord({ id: "0001/B", kind: "question", text: "Send Retry-After in seconds or as a date?", at: at(15), thread: null, code: "q-a001", options: ["Seconds", "An HTTP date"], context: "`Retry-After` may be either. Seconds need no clock on the client." }),
+    newRecord({ id: "0002", kind: "review", text: "review PR #43 at 000002b", at: at(50), thread: "api-coordinator", code: "q-a002", pr: 43, head: demoHead(43) }),
   ];
   return {
     now,
@@ -407,6 +412,44 @@ export function apiSignals(now: Date = new Date()): ReadSignals {
     alarm: () => null,
     doneAt: (folder) => (folder.startsWith("braids/0004-") ? new Date(now.getTime() - 2 * 86_400_000).toISOString() : null),
     commit() {},
+  };
+}
+
+/** What only the `api` member adds for the Questions panel: a braid whose strands depend on each other, and one Done strand. */
+const API_PANEL_FILES: Readonly<Record<string, string>> = {
+  ...API_FILES,
+  "braids/0005-search/brief.md": brief("0005", "Search", "In Progress", "labels:\n  - tier:M\n"),
+  "braids/0005-search/A-index/brief.md": brief("0005/A", "Search index", "In Progress", "order: 1\n"),
+  "braids/0005-search/B-query/brief.md": brief("0005/B", "Search query", "To Do", "order: 2\ndependencies:\n  - 0005/A\n"),
+  "braids/0005-search/C-page/brief.md": brief("0005/C", "Search page", "To Do", "order: 3\ndependencies:\n  - 0005/A\n"),
+  "braids/0005-search/D-accents/brief.md": brief("0005/D", "Accented letters", "In Progress", "order: 4\n"),
+  "braids/0005-search/E-spike/brief.md": brief("0005/E", "Spike: search engines", "Done", "order: 5\n"),
+};
+
+export function apiPanelTree(): Tree {
+  return filesTree(API_PANEL_FILES);
+}
+
+/** `apiSignals` and the Questions panel's other ranks: escalated, several items, nothing waiting (a Done strand), a look; and Decided with the PM's reason. */
+export function apiPanelSignals(now: Date = new Date()): ReadSignals {
+  const base = apiSignals(now);
+  const at = (minutes: number): string => new Date(now.getTime() - minutes * MIN).toISOString();
+  const ask = (code: string, words: string, id: string, kind: Request["kind"], text: string, minutes: number, extra: Partial<NewRequest> = {}): Request => newRecord({ id, kind, text, at: at(minutes), thread: "api-coordinator", code, words, ...extra });
+  const open = [
+    ask("q-9d3h", "brave fox", "0005/D", "question", "Should search match accented letters (café finds cafe)?", 24, { to: "pm", pm: "api-pm-1", context: "The index stores words as typed. Folding accents changes the index and the query, and means one rebuild.", options: ["Yes: fold accents in the index and the query", "No: exact letters only", "Only for French and German"] }),
+    ask("q-7k2m", "calm otter", "0005/A", "decision", "Keep the search index in memory or in a file?", 9, { context: "The API runs as one process today. A file lets a restart skip the rebuild, and is one more thing to back up.", options: ["In memory, rebuilt at start", "In a file beside the database"] }),
+    ask("q-2fhn", "quiet lark", "0005/E", "question", "Keep the spike's benchmark scripts in the repository?", 190),
+    ask("q-1m9x", "gold seal", "0003", "look", "Token rotation goes next; the OpenAPI docs wait unless you say otherwise.", 300),
+  ];
+  const answered = (r: Request, minutes: number, by: "user" | "pm", text: string, reason?: string): Request => ({ ...r, state: "answered", events: [...r.events, { event: "answered", at: at(minutes), by, text, ...(reason === undefined ? {} : { reason }) }] });
+  return {
+    ...base,
+    requests: new Map([...base.requests, ...open.map((r) => [r.id, r] as const)]),
+    closed: [
+      answered(ask("q-2c4v", "swift moth", "0002", "question", "How long does an old token keep working?", 1100), 1050, "user", "24 hours, and log each use"),
+      answered(ask("q-5r8k", "mellow ibis", "0001/B", "question", "Should a limited request count against the key?", 200), 190, "pm", "No: only accepted requests count.", "the goal says limits protect the backend, which a refused request never reaches"),
+      answered(ask("q-3i2b", "tiny tractor", "pm/working-product", "decision", "Should the docs ship before token rotation?", 400, { by: "pm", thread: "api-pm-1" }), 380, "user", "No: rotation first"),
+    ],
   };
 }
 

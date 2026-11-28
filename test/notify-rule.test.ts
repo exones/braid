@@ -73,16 +73,16 @@ test("the thread is the request's, else the braid's coordinator, else one built 
 test("a request to the PM is no push while the PM handles it; escalated, it opens the asking thread", () => {
   assert.deepEqual(pushes(boardOf([request("question", 3, { to: "pm", pm: PM })])), []);
   const [t] = pushes(boardOf([request("question", 30, { to: "pm", pm: PM })]));
-  assert.deepEqual([t.title, t.click], ["agento 0001: Needs You (escalated)", url(ASKER)]);
+  assert.deepEqual([t.title, t.click], ["agento 0001: Escalated to you", url(ASKER)]);
   const gone = pushes(boardOf([request("question", 3, { to: "pm", pm: PM })], { t3: t3({ states: new Map([[PM, "archived"]]) }) }));
-  assert.deepEqual([gone[0].title, gone[0].click], ["agento 0001: Needs You (escalated)", url(ASKER)]);
+  assert.deepEqual([gone[0].title, gone[0].click], ["agento 0001: Escalated to you", url(ASKER)]);
 });
 
 test("a request the PM forwarded is the PM asking: 🧭, high, the PM's thread (a braid no programme lists)", () => {
   const [p, ...rest] = pushes(boardOf([request("question", 5, { to: "user", pm: PM, forwarded: ago(1), note: "your call" })]));
   assert.equal(rest.length, 0);
   assert.deepEqual([p.title, p.tags, p.priority, p.click], ["agento 0001: the PM asks", ["compass"], "high", url(PM)]);
-  assert.equal(p.body, "B0001\nThe PM asks you: a question text — your call");
+  assert.equal(p.body, "B0001\nblocks 0001 · decide\nThe PM asks you: a question text — your call");
 });
 
 test("the PM's own request and a programme's stall push, opening the PM's thread", () => {
@@ -183,7 +183,7 @@ test("under a PM an escalation by timeout or a gone PM thread still puts the car
   assert.equal(timeout.braids[0].lane, "Waiting");
   assert.equal(timeout.braids[0].need.via, "timeout");
   assert.equal(timeout.programmes[0].forwards.length, 0);
-  assert.deepEqual(pushes(timeout).map((p) => [p.title, p.click]), [["agento 0001: Needs You (escalated)", url(ASKER)]]);
+  assert.deepEqual(pushes(timeout).map((p) => [p.title, p.click]), [["agento 0001: Escalated to you", url(ASKER)]]);
   const gone = boardOf([request("question", 3, { to: "pm", pm: PM })], { plans: [plan()], t3: t3({ states: new Map([[PM, "failed"]]) }) });
   assert.equal(gone.braids[0].lane, "Waiting");
   assert.equal(gone.braids[0].need.via, "gone");
@@ -202,7 +202,7 @@ test("under a PM merges forwarded to the user are one push opening the PM's thre
   assert.deepEqual(prog.forwards.map((f: any) => [f.id, f.title, f.need.text, f.head]), [["0001", "B0001", "The PM asks you: merge PR #7", head], ["0002", "B0002", "The PM asks you: merge PR #8", head]]);
   const out = pushes(b);
   assert.equal(out.length, 1);
-  assert.deepEqual([out[0].title, out[0].body, out[0].tags, out[0].priority, out[0].click], ["agento: 2 merges wait for you", "0001 PR #7\n0002 PR #8", ["eyes"], "high", url(PM)]);
+  assert.deepEqual([out[0].title, out[0].body, out[0].tags, out[0].priority, out[0].click], ["agento: 2 merges wait for you", "0001 B0001\nPR #7 at aaaaaaa · blocks 0001\n\n0002 B0002\nPR #8 at aaaaaaa · blocks 0002", ["eyes"], "high", url(PM)]);
   // One merge: the single title.
   const one = pushes(boardOf([forwarded("0001", 7)], { plans: [two], github, braids: [braid("Done", "0001")] }));
   assert.equal(one[0].title, "agento 0001: merge PR #7");
@@ -215,4 +215,78 @@ test("under a PM merges forwarded to the user are one push opening the PM's thre
   // Without a PM the coordinator's handover keeps its own push, and its key still names the lane.
   const alone = pushes(boardOf([forwarded("0001", 7)], { github }));
   assert.deepEqual([alone[0].title, alone[0].key.split("|")[1]], ["agento 0001: the PM asks", "In Review"]);
+});
+
+// 0072/C: a push and a programme's card carry the whole question.
+
+const marks: any = await load("../dist/board/marks.js");
+const named = (id: string, code: string, words: string, kind: string, minutes: number, extra: object = {}): any => ({ ...request(kind, minutes, extra), id, code, words });
+const strands = (): any => ({
+  ...braid(),
+  strands: [
+    { letter: "A", brief: { id: "0001/A", title: "Export presets", status: "In Progress", labels: [], dependencies: [] } },
+    { letter: "B", brief: { id: "0001/B", title: "Share presets", status: "To Do", labels: [], dependencies: ["0001/A"] } },
+  ],
+});
+
+test("a need push says the handle, what it unblocks and decide or do; an escalation says so in its title only", () => {
+  const body = (r: any, extra: object = {}) => pushes(boardOf([r], { braids: [strands()], ...extra }))[0];
+  assert.equal(body(named("0001/A", "q-5asx", "yellow bear", "question", 3)).body, "yellow-bear-5asx · Export presets\nblocks 0001/A, 0001/B · decide\na question text");
+  assert.equal(body(named("0001/B", "q-q2ra", "calm heron", "action", 3)).body, "calm-heron-q2ra · Share presets\nblocks 0001/B · do\nThe coordinator asks you to: a action text");
+  const escalated = body(named("0001/A", "q-vvb7", "amber fox", "question", 30, { to: "pm", pm: PM }));
+  assert.equal(escalated.title, "agento 0001/A: Escalated to you");
+  assert.equal(escalated.body, "amber-fox-vvb7 · Export presets\nblocks 0001/A, 0001/B · decide\na question text (the PM hasn't answered for 30 min)");
+});
+
+test("the PM's requests push what they unblock, a programme's with the act word beside its handle", () => {
+  const sig = {
+    now: NOW,
+    requests: new Map(),
+    alarm: () => null,
+    plans: [plan()],
+    programmes: [named("pm/working-product", "q-h7p2", "tidy lynx", "action", 1, { by: "pm", thread: PM })],
+    asks: new Map([["0001/A", named("0001/A", "q-4f2a", "quiet otter", "question", 1, { by: "pm", thread: PM })]]),
+  };
+  const out = pushes(model.toBoard("agento", [strands()], gh(), t3(), sig));
+  assert.deepEqual(out.map((p) => p.body), [
+    "tidy-lynx-h7p2 · do\nThe PM asks you to: a action text",
+    "quiet-otter-4f2a · Export presets\nblocks 0001/A, 0001/B · decide\nThe PM asks you: a question text",
+  ]);
+});
+
+test("a forwarded merge's push names the handle, braid, PR, head, what it blocks and the PM's note; an unchanged one keeps its key", () => {
+  const head = "4f16c7f" + "0".repeat(33);
+  const merge = (note?: string) => named("0001", "q-4f2a", "quiet otter", "review", 5, { to: "user", pm: PM, forwarded: ago(1), pr: 7, head, ...(note === undefined ? {} : { note }) });
+  const of = (note?: string) => pushes(boardOf([merge(note)], { plans: [plan()], github: gh({ ...PR, head }) }))[0];
+  assert.equal(of("live check passed").body, "quiet-otter-4f2a · 0001 B0001\nPR #7 at 4f16c7f · blocks 0001\nPM: live check passed");
+  assert.equal(of().body, "quiet-otter-4f2a · 0001 B0001\nPR #7 at 4f16c7f · blocks 0001");
+  assert.equal(of("live check passed").key, of().key, "the text alone doesn't send it again");
+});
+
+test("a programme lists its braids' requests that are the user's and is in Needs you while one is open", () => {
+  const programmeOf = (requests: any[], extra: object = {}) => boardOf(requests, { plans: [plan()], braids: [strands()], ...extra });
+  const quiet = programmeOf([named("0001/A", "q-vvb7", "amber fox", "question", 3, { to: "pm", pm: PM })], { t3: t3({ states: new Map([[PM, "running"]]) }) });
+  assert.deepEqual([quiet.programmes[0].requests, quiet.programmes[0].section], [[], "working"], "the PM still handles it");
+  for (const extra of [{ to: "pm", pm: PM }, {}]) {
+    const board = programmeOf([named("0001/A", "q-vvb7", "amber fox", "question", 30, extra)]);
+    const [p] = board.programmes;
+    assert.equal(p.section, "needs");
+    assert.deepEqual(p.requests.map((r: any) => [r.id, r.need.handle, r.need.blocks, r.need.act]), [["0001/A", "amber-fox-vvb7", ["0001/A", "0001/B"], "decide"]]);
+    assert.deepEqual(p.forwards, []);
+    assert.equal(pushes(board).length, 1, "the card's push only, none from the panel");
+  }
+  // A forwarded one stays in forwards, once, with what it unblocks.
+  const [forwarded] = programmeOf([named("0001/A", "q-vvb7", "amber fox", "question", 5, { to: "user", pm: PM, forwarded: ago(1), note: "your call" })]).programmes;
+  assert.deepEqual([forwarded.requests, forwarded.forwards.map((f: any) => [f.need.blocks, f.note])], [[], [[["0001/A", "0001/B"], "your call"]]]);
+  // A story's own request and the PM's on the same item both show.
+  const sig = { now: NOW, requests: new Map([["0001", named("0001", "q-aaaa", "red fox", "decision", 3)]]), asks: new Map([["0001", named("0001", "q-bbbb", "blue owl", "action", 1, { by: "pm", thread: PM })]]), alarm: () => null, plans: [plan()] };
+  const [both] = model.toBoard("agento", [braid()], gh(), t3(), sig).programmes;
+  assert.deepEqual(both.requests.map((r: any) => r.need.code), ["q-aaaa", "q-bbbb"]);
+});
+
+test("a programme's need box leads with who asks", () => {
+  assert.deepEqual(marks.leadOf({ text: "Escalated to you: keep it?" }), { lead: "Escalated to you:", rest: "keep it?" });
+  assert.deepEqual(marks.leadOf({ text: "The coordinator asks you to: add the secret" }), { lead: "The coordinator asks you to:", rest: "add the secret" });
+  assert.deepEqual(marks.leadOf({ text: "Which rule?" }), { lead: "The coordinator asks you:", rest: "Which rule?" });
+  assert.deepEqual(marks.leadOf({ text: "The PM asks you: merge PR #7", by: "pm" }), { lead: "The PM asks you:", rest: "merge PR #7" });
 });

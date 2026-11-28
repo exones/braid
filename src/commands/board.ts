@@ -1,49 +1,53 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { gitAsync } from "../braids/gitio.js";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
+import { stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
-import type { Braid, Item, Tree } from "../braids/store.js";
-import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
+import type { Braid, Item, Tree, WorkingFiles } from "../braids/store.js";
+import { loadTree } from "../braids/store.js";
+import { readWorkingTree } from "../braids/worktree.js";
+import { apiBraids, apiGithub, apiPanelSignals, apiPanelTree, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
 import { steerer, type Steerer } from "../board/steerer.js";
-import { steps, waker } from "../board/wake.js";
+import { ACTING_STALE_MS, actingBoard, providerKey, repoLease, type ActingBoard } from "../board/acting.js";
+import { steps, wakePageAnswer, waker } from "../board/wake.js";
 import { nudger } from "../board/nudge.js";
 import { reminder } from "../board/remind.js";
-import { steeringLines } from "../board/steer.js";
-import { LimitsError, readModelLines } from "../braids/limits.js";
-import { STEERING_EMOJI } from "../braids/roles.js";
 import { limitPusher } from "../notify/notifier.js";
 import { inboxOfAsync, type InboxData } from "../board/inbox.js";
 import { readGithubAsync, runGhAsync, type Github, type GhRunnerAsync } from "../board/github.js";
-import { coordinatorWarning, mergeOf, toCard, toDetail, type BoardData, type StartContext } from "../board/model.js";
+import { coordinatorWarning, mergeOf, toCard, toDetail, withUnblocks, type BoardData, type StartContext } from "../board/model.js";
 import { readInputs, readStartContext } from "../board/inputs.js";
 
 export { readStartContext };
 import { t3codeUrl } from "../board/marks.js";
-import { problemLine, readiness, type Problem } from "../braids/readiness.js";
+import { problemLine, readinessAsync, type Problem } from "../braids/readiness.js";
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
-import { readSignals, type ReadSignals } from "../board/signals.js";
+import { readSignalsAsync, type ReadSignals } from "../board/signals.js";
 import { fetchBranchAsync } from "../braids/gitbranch.js";
-import { REQUESTS } from "../braids/requests.js";
+import { closing, handleOf, REQUESTS } from "../braids/requests.js";
+import { boardAnswer } from "./requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
-import type { Pause } from "../braids/pauses.js";
+import { loadPauses, markResumed, patchPause, reasonOf, type Pause } from "../braids/pauses.js";
+import { resumeMode } from "../board/pause.js";
 import { readPlans, type PlanRead } from "../board/plans.js";
-import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
+import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, showThread, type T3, type T3Runner } from "../board/t3.js";
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
 import { normaliseId, UsageError } from "./braids.js";
 import { notifyLine } from "./notify.js";
 import { readConfig } from "../notify/config.js";
 import { readProjects, type Project } from "../projects/list.js";
 import { notifier } from "../notify/notifier.js";
-import { liveAddresses, removeAddress, SESSION_PATH, writeAddress, type Probe } from "../board/address.js";
+import { liveAddresses, PROBE_MS, removeAddress, SESSION_PATH, VERSION_HEADER, writeAddress, type Probe } from "../board/address.js";
 import { readVersion } from "../version.js";
-import { serviceLog, stopWithConsole, VERSION_HEADER } from "./service.js";
+import { serviceLog, stopWithConsole } from "./service.js";
 
 const TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8",
@@ -75,9 +79,9 @@ export interface Sources {
   /** A stored last-good read the feed starts from (the demo's failing `mail` project); the first real read runs after it. */
   readonly seed?: Sources;
   braids(): Braid[] | Promise<Braid[]>;
-  github(fresh: boolean): Github | Promise<Github>;
-  t3(fresh: boolean): Promise<T3>;
-  signals(github: Github): ReadSignals;
+  github(): Github | Promise<Github>;
+  t3(): Promise<T3>;
+  signals(github: Github): ReadSignals | Promise<ReadSignals>;
   /** Fetches `braid-requests` from origin; the board calls it only on a fresh read (the Refresh button), alongside GitHub and T3, and reads the local refs otherwise. Absent: never fetched. */
   fetchRequests?(): Promise<unknown>;
   /** The plans of the project's programmes (`pm/*` branches); absent: none. A failed read gives none. */
@@ -94,7 +98,7 @@ export interface Sources {
   /** The T3 project folder (the main checkout). */
   project(): string;
   /** What stops the folder from working as a braid project, given the GitHub read (null: GitHub unchecked); absent: nothing does (the demo shows its own). */
-  readiness?(github: Github | null): Problem[];
+  readiness?(github: Github | null): Problem[] | Promise<Problem[]>;
   /** The action registered under `name`, or undefined. `POST /api/action/<name>` runs it. */
   action(name: string): Action | undefined;
   /** Hands each complete snapshot to the notifier (docs/board.md, "Notifications"); returns at once. Absent: no pushes (the demo). */
@@ -180,19 +184,19 @@ export interface GitResult {
   readonly stdout: string;
   readonly stderr: string;
 }
-/** Runs `git` in a folder; Start's fetch and branch checks go through it. */
-export type GitRunner = (root: string, args: readonly string[]) => GitResult;
-export const runGit: GitRunner = (root, args) => {
-  const r = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: 60_000 });
-  return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr || r.error?.message || "" };
+/** Runs `git` in a folder; Start's fetch and branch checks go through it. It may answer later: the board keeps serving while `git` runs. */
+export type GitRunner = (root: string, args: readonly string[]) => GitResult | Promise<GitResult>;
+export const runGit: GitRunner = async (root, args) => {
+  const r = await gitAsync(root, args);
+  return { status: r.status, stdout: r.stdout, stderr: r.stderr };
 };
 
 const firstLine = (r: GitResult): string => r.stderr.trim().split("\n")[0] || "git failed";
 
 /** Every branch name, local and on origin. A listing that fails is a `Start: <reason>` refusal: a name is never guessed free. */
-function takenBranches(git: GitRunner, root: string, who = "Start"): Set<string> {
-  const local = git(root, ["branch", "--list", "--format=%(refname:short)"]);
-  const remote = git(root, ["ls-remote", "--heads", "origin"]);
+async function takenBranches(git: GitRunner, root: string, who = "Start"): Promise<Set<string>> {
+  const local = await git(root, ["branch", "--list", "--format=%(refname:short)"]);
+  const remote = await git(root, ["ls-remote", "--heads", "origin"]);
   if (local.status !== 0 || remote.status !== 0) {
     throw new UsageError(`${who}: branches can't be listed (${firstLine(local.status !== 0 ? local : remote)})`);
   }
@@ -226,20 +230,20 @@ export function startAction(src: Sources, root: string, t3: T3Runner, git: GitRu
     if (card.start.reason !== null) {
       throw new UsageError(`Start: ${card.start.reason}`);
     }
-    const fetched = git(root, ["fetch", "origin"]);
+    const fetched = await git(root, ["fetch", "origin"]);
     if (fetched.status !== 0) {
       throw new UsageError(`Start: git fetch failed (${firstLine(fetched)})`);
     }
     // A braid branch only this checkout has can't come from origin; the main branch must.
     let base = card.start.base;
-    if (git(root, ["rev-parse", "--verify", "--quiet", base]).status !== 0) {
+    if ((await git(root, ["rev-parse", "--verify", "--quiet", base])).status !== 0) {
       const local = base.replace(/^origin\//, "");
-      if (!card.start.planned || git(root, ["rev-parse", "--verify", "--quiet", local]).status !== 0) {
+      if (!card.start.planned || (await git(root, ["rev-parse", "--verify", "--quiet", local])).status !== 0) {
         throw new UsageError(`Start: ${base} not found after the fetch`);
       }
       base = local;
     }
-    const taken = takenBranches(git, root);
+    const taken = await takenBranches(git, root);
     let branch = card.start.branch;
     for (let n = 2; taken.has(branch); n++) {
       branch = `${card.start.branch}-${n}`;
@@ -303,7 +307,7 @@ export function promoteAction(src: Sources, root: string, t3: T3Runner, git: Git
     if (idea === undefined) {
       throw new UsageError(`Promote: no open idea ${raw}${inbox.leftovers.some((l) => l.id === raw) ? " (it is a leftover; leftovers go through sweeps)" : ""}`);
     }
-    const state = await src.t3(true);
+    const state = await src.t3();
     if (state.status.state !== "ok") {
       throw new UsageError(`Promote: T3 isn't reachable (${state.status.reason})`);
     }
@@ -312,14 +316,14 @@ export function promoteAction(src: Sources, root: string, t3: T3Runner, git: Git
     }
     const ctx = src.start();
     const base = `origin/${ctx.main}`;
-    const fetched = git(root, ["fetch", "origin"]);
+    const fetched = await git(root, ["fetch", "origin"]);
     if (fetched.status !== 0) {
       throw new UsageError(`Promote: git fetch failed (${firstLine(fetched)})`);
     }
-    if (git(root, ["rev-parse", "--verify", "--quiet", base]).status !== 0) {
+    if ((await git(root, ["rev-parse", "--verify", "--quiet", base])).status !== 0) {
       throw new UsageError(`Promote: ${base} not found after the fetch`);
     }
-    const taken = takenBranches(git, root, "Promote");
+    const taken = await takenBranches(git, root, "Promote");
     const wanted = `${IDEA_BRANCH}${idea.id}`;
     let branch = wanted;
     for (let n = 2; taken.has(branch); n++) {
@@ -383,7 +387,7 @@ async function openIdea(src: Sources, idea: unknown, snapshot: Parameters<Action
   // The link comes from the snapshot, else from T3 read again; a client never passes one.
   let link = (await snapshot?.())?.inbox.ideas.find((i) => i.id === idea)?.planning?.link ?? null;
   if (link === null) {
-    link = ideaPlanning(await src.t3(true), idea)?.link ?? null;
+    link = ideaPlanning(await src.t3(), idea)?.link ?? null;
   }
   if (link === null) {
     throw new UsageError(`Open thread: no coordinator is planning idea ${idea}`);
@@ -480,55 +484,143 @@ export function openAction(src: Sources, open: Opener = openWithOs): Action {
   };
 }
 
+/**
+ * Resume now (0074/D): the button on a paused braid's card (`{ braid }`) or a paused programme's card (`{ programme }`). It marks each
+ * limit record of it with a resume asked for (`resuming`, not yet tried); the acting board sends it through the one resume path at
+ * once (this board is poked) or at its next refresh: a braid without a PM resumes directly, a PM-run braid or a programme asks the
+ * PM. A hold is never touched: the action refuses a braid that is held. A later Go (P5's holds) reuses this action with its reason.
+ */
+export function resumeAction(root: string, now: () => Date = () => new Date()): Action {
+  return async (body, board) => {
+    const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const why = typeof b["reason"] === "string" && b["reason"] !== "" ? b["reason"] : "now";
+    let braids: string[];
+    if (typeof b["braid"] === "string" && /^\d{4}$/.test(b["braid"])) {
+      braids = [b["braid"]];
+    } else if (typeof b["programme"] === "string" && b["programme"] !== "") {
+      const data = board === undefined ? null : await board();
+      const p = data?.programmes.find((x) => x.slug === b["programme"]);
+      if (p === undefined) {
+        throw new UsageError(`Resume now: no programme ${String(b["programme"])}`);
+      }
+      braids = [...p.braids];
+    } else {
+      throw new UsageError("resume needs { braid } (a braid number) or { programme } (a programme's slug)");
+    }
+    const records = loadPauses(root).pauses.filter((p) => braids.includes(p.braid));
+    if (records.some((p) => reasonOf(p) === "hold") && braids.length === 1) {
+      throw new UsageError(`Resume now: ${braids[0] ?? ""} is held, not paused for a limit; a hold is lifted by its own Go`);
+    }
+    const at = now().toISOString();
+    const marked = records
+      .filter((p) => reasonOf(p) === "limit")
+      .flatMap((p) => {
+        const direct = typeof b["programme"] === "string" ? false : resumeMode(p) === "direct";
+        const r = patchPause(root, p.braid, (q) => ({ ...q, resuming: { why, at, direct, askedAt: null, failedSince: q.resuming?.failedSince ?? null, lastTry: null, error: q.resuming?.error ?? null } }));
+        return r === null ? [] : [r];
+      });
+    if (marked.length === 0) {
+      throw new UsageError(`Resume now: ${braids.join(", ")} ${braids.length === 1 ? "is" : "are"} not paused for a limit`);
+    }
+    // The board pauses these providers again only on a reading checked after this click: a cache from before a reset can't undo it.
+    markResumed(root, [...new Set(marked.flatMap((p) => (p.provider === null ? [] : [p.provider])))], new Date(at));
+    return { ok: true, braids: marked.map((p) => p.braid), mode: marked.every((p) => p.resuming?.direct === true) ? "direct" : "pm" };
+  };
+}
+
+/**
+ * Answer (0082/D): the user answers an open request from the board's page, `{ handle, text }` (a request of the project the
+ * body names; `text` an option letter or one line). Recorded as `braid answer <handle> <text>` records it, as the user's
+ * answer (`boardAnswer`), then the asking thread is woken at once, whoever the request was for (`wakePageAnswer`). A request
+ * no longer open, a wait, or a handle this project's record doesn't have is refused with the reason. Both listeners, no
+ * confirmation (the user, 2026-11-27).
+ *
+ * Whether the asking thread is archived comes from the states of the board's last T3 read (`states`), else, for a thread
+ * that read doesn't name, from one `thread show` of it: a whole read on the request path can take a minute (0077/J).
+ */
+export function answerAction(states: () => ReadonlyMap<string, string> | undefined, root: string, t3: T3Runner, now: () => Date = () => new Date()): Action {
+  return async (body) => {
+    const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    if (typeof b["handle"] !== "string" || b["handle"].trim() === "" || typeof b["text"] !== "string") {
+      throw new UsageError("answer needs { handle, text }: the request's name or code and an option letter or one line of text");
+    }
+    const done = await boardAnswer(root, b["handle"], b["text"]);
+    const r = done.request;
+    const state = r.thread === null ? null : (states()?.get(r.thread) ?? (await showThread(t3, root, r.thread).catch(() => null))?.status);
+    const wake = await wakePageAnswer(t3, root, r, now(), state === "archived");
+    return { ok: true, handle: handleOf(r), id: r.id, answer: closing(r)?.text ?? "", woken: wake.woken, wake: wake.why, warning: done.warning };
+  };
+}
+
 export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
+  // The main checkout is found with git once per root and cached: asked here, when the project is set up, so no read, wake or action runs that git.
+  mainCheckout(root);
+  // The working tree as the last read saw it: one read serves the braids, the readiness check and the item pages.
+  let working: Promise<WorkingFiles> | undefined;
+  let seen: WorkingFiles | undefined;
+  const readTree = (): Promise<WorkingFiles> => (working = readWorkingTree(root).then((tree) => (seen = tree)));
+  // The last good T3 read, for the answer action.
+  let lastT3: T3 | undefined;
   const src: Sources = {
     repo: titleRepoName(root),
-    braids: () => loadLiveBraidsAsync(root),
-    github: (fresh) => readGithubAsync(root, gh, fresh ? 0 : undefined),
-    t3: (fresh) => readT3(root, { run: t3, ...(fresh ? { ttlMs: 0 } : {}) }),
-    signals: (github) => readSignals(root, github),
+    braids: () => loadLiveBraidsAsync(root, undefined, readTree()),
+    github: () => readGithubAsync(root, gh),
+    t3: () => readT3(root, { run: t3 }).then((read) => (read.status.state === "ok" ? (lastT3 = read) : read)),
+    signals: (github) => readSignalsAsync(root, github),
     fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
     limits: (threads, pauses) => readLimitsView(root, threads, pauses),
-    tree: (item) => treeOf(root, item),
+    // An item page is asked for only after a good read, so the working tree's files are there already.
+    tree: (item) => (item.source === null && seen !== undefined ? seen : treeOf(root, item)),
     watch: join(root, "braids"),
     start: () => readStartContext(root),
     inbox: (fetch) => inboxOfAsync(root, fetch),
     project: () => mainCheckout(root),
-    readiness: (github) => readiness(root, github),
+    readiness: (github) => readinessAsync(root, github, working ?? readTree()),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src), resume: resumeAction(root), answer: answerAction(() => lastT3?.states, root, t3) };
   return src;
 }
 
 /** The notifier of a repository's board, with the per-user settings; a no-op when the main checkout can't be found. Only `runBoard` adds it, so tests of the board never read `~/.braid`. */
-/** The board's limits pause of one project: its snapshots go to the board-wide steerer. */
-function acting(name: string, root: string, own: Sources, steer: Steerer): Sources {
-  return { ...own, act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
+/** The board's limits pause of one project: its snapshots go to the board-wide steerer, and its limits say which board acts (0074/B). */
+function acting(name: string, root: string, own: Sources, steer: Steerer, leases: ActingBoard | null): Sources {
+  const inner = own.limits;
+  const limits =
+    inner === undefined || leases === null
+      ? inner
+      : (threads: T3, pauses: ReadonlyMap<string, Pause>): LimitsView | null => {
+          const view = inner(threads, pauses);
+          if (view === null) {
+            return null;
+          }
+          const repo = repoLease(root);
+          return { ...view, acting: leases.lines([{ key: repo.key, label: own.repo }, ...view.providers.map((p) => ({ key: providerKey(p.instanceId), label: p.instanceId }))]) };
+        };
+  // Resume now goes out at once: the steerer is poked after the action marks the records (it acts only for the providers it holds).
+  const action = (name: string): Action | undefined => {
+    const a = own.action(name);
+    return a === undefined || name !== "resume"
+      ? a
+      : async (body, board) => {
+          const out = await a(body, board);
+          steer.poke();
+          return out;
+        };
+  };
+  return { ...own, ...(limits === undefined ? {} : { limits }), action, act: (good) => steer.observe({ name, root, repo: own.repo, folder: () => own.project() }, good) };
 }
 
-/** The start line of the limits pause: which mode is on, and the steering lines (or why there are none). */
-export function limitsLine(mode: "demo" | "off" | "on", projects: readonly { readonly name: string; readonly root: string }[]): string {
+/** The start line of the limits pause: which mode is on. */
+export function limitsLine(mode: "demo" | "off" | "on"): string {
   if (mode === "demo") {
     return "Limits: shown only (demo: nothing is paused)";
   }
   if (mode === "off") {
-    return "Limits: shown only (--no-pause: the board pauses and resumes nothing)";
+    return "Limits: shown only (--no-pause: the board pauses and resumes nothing, and sends no wake, reminder or nudge)";
   }
-  const parts = projects.map((p) => {
-    let lines: ReturnType<typeof steeringLines> = null;
-    try {
-      lines = steeringLines(readModelLines(p.root));
-    } catch (error) {
-      if (!(error instanceof LimitsError)) {
-        throw error;
-      }
-    }
-    const who = projects.length > 1 ? `${p.name}: ` : "";
-    return lines === null ? `${who}BRAID.md has no models.steering, so nothing is paused` : `${who}steering ${lines.map((l) => `${l.instanceId} / ${l.model ?? "default"}`).join(", then ")}`;
-  });
-  return `Limits: pauses agents over a threshold through a ${STEERING_EMOJI} steering thread and resumes them after the reset (--no-pause turns this off); ${parts.join("; ")}`;
+  return "Limits: pauses the working agents over a threshold by sending each its pause text, counts their replies and resumes them after the reset (--no-pause turns this off, and the wakes, reminders and nudges)";
 }
 
 export function boardNotifier(root: string): (board: BoardData) => void {
@@ -711,14 +803,6 @@ function listen(server: Server, address: string, port: number, strict = false): 
 const inUse = (port: number, address: string, e: unknown): Error =>
   (e as NodeJS.ErrnoException).code === "EADDRINUSE" ? new UsageError(`--port ${port} is already in use on ${address}; pick another port`) : e instanceof Error ? e : new Error(String(e));
 
-const isFolder = (path: string): boolean => {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-};
-
 /** One project the board serves: its name (from the project list, else the repository's) and where its data comes from. */
 export interface Member {
   readonly name: string;
@@ -780,14 +864,18 @@ export function startBoardWith(
       return;
     }
     try {
-      const watcher = watch(folder, { recursive: true }, (event, name) => {
-        // Reading the braids can report a change of a folder itself (Windows); that is no edit: an edit also reports its file.
-        if (event === "change" && name !== null && isFolder(join(folder, name))) {
-          return;
-        }
+      const changed = (): void => {
         clearTimeout(entry.debounce);
         entry.debounce = setTimeout(() => void entry.feed.refresh(), 200);
         entry.debounce.unref();
+      };
+      const watcher = watch(folder, { recursive: true }, (event, name) => {
+        // Reading the braids can report a change of a folder itself (Windows); that is no edit: an edit also reports its file.
+        if (event === "change" && name !== null) {
+          void stat(join(folder, name)).then((s) => (s.isDirectory() ? undefined : changed()), changed);
+          return;
+        }
+        changed();
       });
       watcher.on("error", () => {});
       watcher.unref();
@@ -843,7 +931,7 @@ export function startBoardWith(
     }
   };
   sync();
-  const held = (name: string, f: Feed): Held => ({ name, repo: f.src.repo, board: f.good()?.board, readAt: f.readAt(), failure: f.failure(), problems: f.good() === undefined ? (f.src.readiness?.(null) ?? []) : [] });
+  const held = async (name: string, f: Feed): Promise<Held> => ({ name, repo: f.src.repo, board: f.good()?.board, readAt: f.readAt(), failure: f.failure(), problems: f.good() === undefined ? ((await f.src.readiness?.(null)) ?? []) : [] });
   /** Answers `/api/board`, `/api/item`, `/api/all` and `/api/projects` from the snapshots: nothing is read from GitHub or T3 here. */
   const answer = async (url: URL, remote: boolean): Promise<Reply> => {
     const fresh = url.searchParams.get("fresh") === "1";
@@ -858,7 +946,7 @@ export function startBoardWith(
       });
       await Promise.all(chosen.map(([, f]) => f.ready(fresh)));
       const now = Date.now();
-      const all = chosen.map(([n, f]) => held(n, f));
+      const all = await Promise.all(chosen.map(([n, f]) => held(n, f)));
       return url.pathname === "/api/all"
         ? json(200, combine(all, remote, (asked ?? []).filter((n) => !feeds.has(n)), now))
         : json(200, { remote, projects: all.map((h) => projectInfo(h, now)) });
@@ -894,7 +982,7 @@ export function startBoardWith(
       if (braid === undefined || item === undefined) {
         return json(404, { error: `no item ${id}` });
       }
-      return json(200, toDetail(entry.feed.src.tree(item), braid, item, good.github, good.t3, good.sig, good.start));
+      return json(200, toDetail(entry.feed.src.tree(item), braid, item, good.github, good.t3, withUnblocks(good.braids, good.github, good.sig), good.start));
     } catch (error) {
       if (error instanceof UsageError) {
         return json(400, { error: error.message });
@@ -1073,6 +1161,8 @@ export interface Runners {
   readonly projects?: () => readonly Project[];
   /** A project's notifier, given its main checkout; `boardNotifier` unless given. */
   readonly notifier?: (root: string) => (board: BoardData) => void;
+  /** This board's acting leases (0074/B); `actingBoard` in `~/.braid/acting` unless given. */
+  readonly acting?: ActingBoard;
 }
 
 /** The four sample projects of `braid board --demo`: the full sample (`demo`), a small one (`api`), one whose reads fail after the first (`mail`) and one that isn't ready (`notes`). */
@@ -1107,7 +1197,7 @@ export function demoMembers(t3Down = false, notReady = false): Member[] {
   };
   return [
     { name: "demo", src: demoSources(t3Down, notReady) },
-    { name: "api", src: small("api", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null, apiPlans) },
+    { name: "api", src: small("api", () => loadTree(apiPanelTree()), apiGithub, () => apiPanelSignals(), apiPanelTree, () => null, apiPlans) },
     { name: "mail", src: mail },
     { name: "notes", src: small("notes", () => [], () => ({ status: { state: "ok" }, prs: new Map() }), () => ({ ...apiSignals(), requests: new Map() }), apiTree, notesProblems) },
   ];
@@ -1176,28 +1266,30 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
   // The limits pause and the wake (the click-only rule's exceptions): never in the demo, off with --no-pause. The pause's pushes go through each project's notified.json.
   const pausing = !demo && !args.includes("--no-pause");
   const pushers = new Map<string, ReturnType<typeof limitPusher>>();
+  const pusherOf = (root: string): ReturnType<typeof limitPusher> => {
+    const file = join(mainCheckout(root), ".braid", "notified.json");
+    const pusher = pushers.get(file) ?? limitPusher({ file });
+    pushers.set(file, pusher);
+    return pusher;
+  };
+  // One acting board per provider account and per repository on this machine (0074/B): the leases in ~/.braid/acting.
+  let port: number | null = null;
+  const leases = pausing ? (run.acting ?? actingBoard({ staleMs: ACTING_STALE_MS, port: () => port })) : null;
   const steer = pausing
     ? steerer({
         t3,
         wake: steps(waker(t3), reminder(t3), nudger(t3)),
+        ...(leases === null ? {} : { acting: leases }),
         ...(run.notifier === undefined
           ? {
-              push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => {
-                const file = join(mainCheckout(root), ".braid", "notified.json");
-                const pusher = pushers.get(file) ?? limitPusher({ file });
-                pushers.set(file, pusher);
-                pusher(p);
-              },
-              retry: () => {
-                for (const pusher of pushers.values()) {
-                  pusher.retry();
-                }
-              },
+              push: (root: string, p: Parameters<ReturnType<typeof limitPusher>>[0]) => pusherOf(root)(p),
+              // The failed pushes wait in each project's notified.json; the repository's acting board sends them (also after a restart).
+              retry: (root: string) => pusherOf(root).retry(),
             }
           : {}),
       })
     : null;
-  const act = (name: string, root: string, own: Sources): Sources => (steer === null ? own : acting(name, root, own, steer));
+  const act = (name: string, root: string, own: Sources): Sources => (steer === null ? own : acting(name, root, own, steer, leases));
   // The problems printed at startup are each first snapshot's own: no second read of GitHub.
   const firsts: { name: string; problems: Promise<Problem[]> }[] = [];
   const printing = (name: string, own: Sources): Sources => {
@@ -1207,7 +1299,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
     }
     let found: (problems: Problem[]) => void = () => {};
     firsts.push({ name, problems: new Promise<Problem[]>((done) => (found = done)) });
-    return { ...own, readiness: (github) => { const problems = inner(github); found(problems); return problems; } };
+    return { ...own, readiness: async (github) => { const problems = await inner(github); found(problems); return problems; } };
   };
   let served: Sources | Roster;
   if (!several) {
@@ -1263,7 +1355,41 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
       return current;
     };
   }
-  const started = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  const listening = await startBoardWith(served, webDir, REFRESH_MS, undefined, tailnet, fixedPort);
+  port = Number(new URL(listening.url).port);
+  // A board that stops gives its leases up at once, so another board acts from its next refresh.
+  const started: Started =
+    leases === null
+      ? listening
+      : (() => {
+          const release = (): void => leases.release();
+          // On a stop signal the leases go too; the signal is raised again only when no other handler (keepAddress's) does it.
+          const onSignal = (signal: NodeJS.Signals): void => {
+            detach();
+            release();
+            if (process.listenerCount(signal) === 0) {
+              process.kill(process.pid, signal);
+            }
+          };
+          const detach = (): void => {
+            process.off("exit", release);
+            for (const s of STOP_SIGNALS) {
+              process.off(s, onSignal);
+            }
+          };
+          process.once("exit", release);
+          for (const s of STOP_SIGNALS) {
+            process.once(s, onSignal);
+          }
+          return {
+            ...listening,
+            close: async () => {
+              detach();
+              release();
+              await listening.close();
+            },
+          };
+        })();
   // The token rides in the fragment, which the browser sends neither to a server nor in a Referer.
   const url = `${started.url}#token=${started.token}`;
   // A real run also leaves its address in ~/.braid for a board with no console (D94); the demo writes nothing.
@@ -1280,7 +1406,7 @@ export async function runBoard(root: string, args: readonly string[], tailscale:
     process.stdout.write(`On Tailscale: ${started.tailnet.url}\nOnly ${tailnet.owner}'s own devices (no tagged nodes) may open it; Open thread there uses the T3 app on the phone.\n`);
   }
   process.stdout.write(demo ? "Notifications: none in the demo\n" : `${notifyLine(readConfig())}\n`);
-  process.stdout.write(`${limitsLine(demo ? "demo" : pausing ? "on" : "off", several ? list.filter((p) => only === undefined || p.name === only).map((p) => ({ name: p.name, root: p.path })) : [{ name: "", root }])}\n`);
+  process.stdout.write(`${limitsLine(demo ? "demo" : pausing ? "on" : "off")}\n`);
   process.stdout.write("Press Ctrl+C to stop.\n");
   if (!args.includes("--no-open")) {
     openBrowser(url);
@@ -1361,5 +1487,6 @@ export async function boardUrl(args: readonly string[], home?: string, probe?: P
   if (live.length === 0) {
     return { code: 1, stdout: "", stderr: `no braid board is running${port === undefined ? "" : ` on port ${port}`} for this user; start one with braid board\n` };
   }
-  return { code: 0, stdout: live.map((a) => `${a.url}\n`).join(""), stderr: "" };
+  const slow = live.filter((a) => a.state === "busy").map((a) => `the board on port ${a.port} answers slowly (no answer within ${PROBE_MS / 1000} s)\n`);
+  return { code: 0, stdout: live.map((a) => `${a.url}\n`).join(""), stderr: slow.join("") };
 }

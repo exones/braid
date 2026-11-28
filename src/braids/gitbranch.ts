@@ -1,14 +1,11 @@
 // A data branch (`braid-inbox`, `braid-requests`): read without a checkout, and written with Git's
-// low-level commands (hash-object, a temporary index, commit-tree, update-ref), so no checkout, index or
-// current branch ever changes. Writes push at once as a fast-forward and never force; a refused push is
-// fetched and redone on top. Offline, the commit stays on the local branch and the next write pushes it.
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+// low-level commands (fast-import, update-ref), so no checkout, index or current branch ever changes.
+// Writes push at once as a fast-forward and never force; a refused push is fetched and redone on top.
+// Offline, the commit stays on the local branch and the next write pushes it.
+import { catBatch, catBatchSync, gitAsync, gitSync } from "./gitio.js";
 import { join } from "node:path";
 import { GitError } from "./numbers.js";
-import { catBatchSync, gitAsync } from "./gitio.js";
-import { locked, mainCheckout } from "./state.js";
+import { locked, lockedAsync, mainCheckout } from "./state.js";
 
 export const REMOTE = "origin";
 /** How many times a refused push is fetched and redone. */
@@ -36,32 +33,79 @@ const tracking = (b: BranchSpec): string => `refs/remotes/${REMOTE}/${b.branch}`
 
 type Options = { input?: string; env?: NodeJS.ProcessEnv };
 
-export function git(root: string, args: readonly string[], options: Options = {}) {
-  return spawnSync("git", ["-c", "core.quotePath=false", ...args], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-    windowsHide: true,
-    ...(options.input === undefined ? {} : { input: options.input }),
-    ...(options.env === undefined ? {} : { env: { ...process.env, ...options.env } }),
-  });
+// The algorithms below are written once, as generators that yield each `git` call they need, and run by one of two
+// drivers: `drive` (the CLI commands: each call blocks) or `driveAsync` (the board: each call is awaited, so the
+// server keeps answering). The commits, pushes and their order are the same either way.
+interface GitStepOut {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly error?: Error | undefined;
+}
+type Step = { readonly kind: "git"; readonly args: readonly string[]; readonly options: Options } | { readonly kind: "load"; readonly blobs: readonly string[] };
+type Gen<T> = Generator<Step, T, GitStepOut | Map<string, string> | undefined>;
+
+function* gitG(args: readonly string[], options: Options = {}): Gen<GitStepOut> {
+  return (yield { kind: "git", args, options }) as GitStepOut;
 }
 
-export function must(root: string, args: readonly string[], options: Options = {}): string {
-  const r = git(root, args, options);
+function* mustG(args: readonly string[], options: Options = {}): Gen<string> {
+  const r = yield* gitG(args, options);
   if (r.status !== 0) {
     throw new GitError(`git ${args[0] ?? ""} failed: ${(r.stderr || r.stdout || String(r.error ?? "")).trim()}`);
   }
   return r.stdout.trim();
 }
 
-export function refCommit(root: string, ref: string): string | null {
-  const r = git(root, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+/** Runs the algorithm with blocking `git` calls. */
+function drive<T>(root: string, gen: Gen<T>): T {
+  let step = gen.next();
+  while (step.done !== true) {
+    const s = step.value;
+    // `load` is a prefetch only the asynchronous driver does; the blocking view reads on demand.
+    step = gen.next(s.kind === "git" ? gitSync(root, s.args, { maxBuffer: 64 * 1024 * 1024, ...s.options }) : undefined);
+  }
+  return step.value;
+}
+
+/** Runs the algorithm with `git` calls that don't block the process. */
+async function driveAsync<T>(root: string, gen: Gen<T>): Promise<T> {
+  let step = gen.next();
+  while (step.done !== true) {
+    const s = step.value;
+    if (s.kind === "git") {
+      step = gen.next(await gitAsync(root, s.args, s.options.env, s.options.input));
+    } else {
+      const texts = await catBatch(root, s.blobs);
+      step = gen.next(new Map(s.blobs.flatMap((blob, i) => (texts[i] === null || texts[i] === undefined ? [] : [[blob, texts[i] as string] as const]))));
+    }
+  }
+  return step.value;
+}
+
+export function git(root: string, args: readonly string[], options: Options = {}) {
+  return gitSync(root, args, { maxBuffer: 64 * 1024 * 1024, ...options });
+}
+
+export function must(root: string, args: readonly string[], options: Options = {}): string {
+  return drive(root, mustG(args, options));
+}
+
+function* refCommitG(ref: string): Gen<string | null> {
+  const r = yield* gitG(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
   return r.status === 0 ? r.stdout.trim() : null;
 }
 
+export function refCommit(root: string, ref: string): string | null {
+  return drive(root, refCommitG(ref));
+}
+
+function* isAncestorG(a: string, b: string): Gen<boolean> {
+  return (yield* gitG(["merge-base", "--is-ancestor", a, b])).status === 0;
+}
+
 export function isAncestor(root: string, a: string, b: string): boolean {
-  return git(root, ["merge-base", "--is-ancestor", a, b]).status === 0;
+  return drive(root, isAncestorG(a, b));
 }
 
 export function firstLine(text: string): string {
@@ -71,36 +115,29 @@ export function firstLine(text: string): string {
 /** What a fetch found: the remote has the branch (`present`), has none (`absent`), or couldn't be reached. */
 export type FetchResult = { readonly state: "present" | "absent" } | { readonly state: "offline"; readonly why: string };
 
-/** Fetches the branch from origin into its remote-tracking ref. */
-export function fetchBranch(root: string, b: BranchSpec): FetchResult {
-  if (git(root, ["remote", "get-url", REMOTE]).status !== 0) {
+function* fetchBranchG(b: BranchSpec): Gen<FetchResult> {
+  if ((yield* gitG(["remote", "get-url", REMOTE])).status !== 0) {
     return { state: "offline", why: `no remote ${REMOTE}` };
   }
-  const ls = git(root, ["ls-remote", "--exit-code", REMOTE, local(b)]);
+  const ls = yield* gitG(["ls-remote", "--exit-code", REMOTE, local(b)]);
   if (ls.status === 2) {
     return { state: "absent" };
   }
   if (ls.status !== 0) {
-    return { state: "offline", why: firstLine(ls.stderr || String(ls.error ?? "")) };
+    return { state: "offline", why: firstLine(ls.stderr || String(ls.error ?? "") || ls.stdout) };
   }
-  const f = git(root, ["fetch", "--quiet", "--no-tags", REMOTE, `+${local(b)}:${tracking(b)}`]);
+  const f = yield* gitG(["fetch", "--quiet", "--no-tags", REMOTE, `+${local(b)}:${tracking(b)}`]);
   return f.status === 0 ? { state: "present" } : { state: "offline", why: firstLine(f.stderr) };
 }
 
+/** Fetches the branch from origin into its remote-tracking ref. */
+export function fetchBranch(root: string, b: BranchSpec): FetchResult {
+  return drive(root, fetchBranchG(b));
+}
+
 /** `fetchBranch` without blocking the process. */
-export async function fetchBranchAsync(root: string, b: BranchSpec): Promise<FetchResult> {
-  if ((await gitAsync(root, ["remote", "get-url", REMOTE])).status !== 0) {
-    return { state: "offline", why: `no remote ${REMOTE}` };
-  }
-  const ls = await gitAsync(root, ["ls-remote", "--exit-code", REMOTE, local(b)]);
-  if (ls.status === 2) {
-    return { state: "absent" };
-  }
-  if (ls.status !== 0) {
-    return { state: "offline", why: firstLine(ls.stderr || ls.stdout) };
-  }
-  const f = await gitAsync(root, ["fetch", "--quiet", "--no-tags", REMOTE, `+${local(b)}:${tracking(b)}`]);
-  return f.status === 0 ? { state: "present" } : { state: "offline", why: firstLine(f.stderr) };
+export function fetchBranchAsync(root: string, b: BranchSpec): Promise<FetchResult> {
+  return driveAsync(root, fetchBranchG(b));
 }
 
 /** Parses `git ls-tree -r -z` into path to blob. */
@@ -115,19 +152,26 @@ export function parseTree(out: string): Map<string, string> {
   return map;
 }
 
+function* filesAtG(b: BranchSpec, commit: string): Gen<Map<string, string>> {
+  return parseTree(yield* mustG(["ls-tree", "-r", "-z", commit, "--", ...b.folders]));
+}
+
 /** The branch's files at a commit: path to blob. */
 export function filesAt(root: string, b: BranchSpec, commit: string): Map<string, string> {
-  return parseTree(must(root, ["ls-tree", "-r", "-z", commit, "--", ...b.folders]));
+  return drive(root, filesAtG(b, commit));
+}
+
+function* pendingCommitsG(localCommit: string, remote: string): Gen<string[]> {
+  return (yield* mustG(["rev-list", "--reverse", localCommit, `^${remote}`])).split(/\s+/).filter((c) => c !== "");
 }
 
 /** The commits on `local` that `remote` lacks, oldest first. */
 export function pendingCommits(root: string, localCommit: string, remote: string): string[] {
-  return must(root, ["rev-list", "--reverse", localCommit, `^${remote}`]).split(/\s+/).filter((c) => c !== "");
+  return drive(root, pendingCommitsG(localCommit, remote));
 }
 
-/** The branch's files a commit adds or changes: path to blob. */
-export function changesOf(root: string, b: BranchSpec, commit: string): Map<string, string> {
-  const out = must(root, ["diff-tree", "-r", "-z", "--no-commit-id", "--root", commit, "--", ...b.folders]);
+function* changesOfG(b: BranchSpec, commit: string): Gen<Map<string, string>> {
+  const out = yield* mustG(["diff-tree", "-r", "-z", "--no-commit-id", "--root", commit, "--", ...b.folders]);
   const parts = out.split("\0");
   const map = new Map<string, string>();
   for (let i = 0; i + 1 < parts.length; i += 2) {
@@ -139,22 +183,28 @@ export function changesOf(root: string, b: BranchSpec, commit: string): Map<stri
   return map;
 }
 
-/** The local branch and its remote-tracking ref, as they are now. */
-export function tips(root: string, b: BranchSpec): { readonly local: string | null; readonly remote: string | null } {
+/** The branch's files a commit adds or changes: path to blob. */
+export function changesOf(root: string, b: BranchSpec, commit: string): Map<string, string> {
+  return drive(root, changesOfG(b, commit));
+}
+
+function* tipsG(b: BranchSpec): Gen<Tips> {
   // One process for both: the board reads this on every page load.
-  const out = must(root, ["for-each-ref", "--format=%(refname) %(objectname)", local(b), tracking(b)]);
+  const out = yield* mustG(["for-each-ref", "--format=%(refname) %(objectname)", local(b), tracking(b)]);
   const sha = (ref: string): string | null => out.split("\n").map((l) => l.trim()).find((l) => l.startsWith(`${ref} `))?.slice(ref.length + 1) ?? null;
   return { local: sha(local(b)), remote: sha(tracking(b)) };
 }
 
+type Tips = { readonly local: string | null; readonly remote: string | null };
+
+/** The local branch and its remote-tracking ref, as they are now. */
+export function tips(root: string, b: BranchSpec): Tips {
+  return drive(root, tipsG(b));
+}
+
 /** `tips` without blocking the process. */
-export async function tipsAsync(root: string, b: BranchSpec): Promise<{ readonly local: string | null; readonly remote: string | null }> {
-  const ref = async (name: string): Promise<string | null> => {
-    const r = await gitAsync(root, ["rev-parse", "--verify", "--quiet", `${name}^{commit}`]);
-    return r.status === 0 ? r.stdout.trim() : null;
-  };
-  const [l, r] = await Promise.all([ref(local(b)), ref(tracking(b))]);
-  return { local: l, remote: r };
+export function tipsAsync(root: string, b: BranchSpec): Promise<Tips> {
+  return driveAsync(root, tipsG(b));
 }
 
 /**
@@ -163,32 +213,43 @@ export async function tipsAsync(root: string, b: BranchSpec): Promise<{ readonly
  */
 export type Reading = { readonly commit: string | null } | { readonly commit: string; readonly ours: string; readonly pending: ReadonlySet<string> };
 
-export function reading(root: string, b: BranchSpec, t: { readonly local: string | null; readonly remote: string | null }): Reading {
+function* readingG(b: BranchSpec, t: Tips): Gen<Reading> {
   const { local: l, remote: r } = t;
-  if (l === null || r === null || l === r || isAncestor(root, l, r)) {
+  if (l === null || r === null || l === r || (yield* isAncestorG(l, r))) {
     return { commit: r ?? l };
   }
-  if (isAncestor(root, r, l)) {
+  if (yield* isAncestorG(r, l)) {
     return { commit: l };
   }
-  return { commit: r, ours: l, pending: new Set(pendingCommits(root, l, r).flatMap((c) => [...changesOf(root, b, c).keys()])) };
+  const pending = new Set<string>();
+  for (const c of yield* pendingCommitsG(l, r)) {
+    for (const path of (yield* changesOfG(b, c)).keys()) {
+      pending.add(path);
+    }
+  }
+  return { commit: r, ours: l, pending };
 }
 
-/**
- * The branch's files from the refs, path to blob: the descendant's, or when they have diverged the
- * remote's with the files the local-only commits add or change on top, as the next write replays them.
- */
-export function currentFiles(root: string, b: BranchSpec, at: { readonly local: string | null; readonly remote: string | null } = tips(root, b)): Map<string, string> {
-  const r = reading(root, b, at);
+export function reading(root: string, b: BranchSpec, t: Tips): Reading {
+  return drive(root, readingG(b, t));
+}
+
+/** `reading` without blocking the process. */
+export function readingAsync(root: string, b: BranchSpec, t: Tips): Promise<Reading> {
+  return driveAsync(root, readingG(b, t));
+}
+
+function* currentFilesG(b: BranchSpec, at: Tips): Gen<Map<string, string>> {
+  const r = yield* readingG(b, at);
   if (r.commit === null) {
     return new Map();
   }
-  const files = filesAt(root, b, r.commit);
+  const files = yield* filesAtG(b, r.commit);
   if ("ours" in r) {
-    const mine = filesAt(root, b, r.ours);
+    const mine = yield* filesAtG(b, r.ours);
     // A file the remote changed too is merged as the next write's replay merges it, so a read shows both sides.
-    const mb = b.merge === undefined ? null : git(root, ["merge-base", r.ours, r.commit]);
-    const old = mb !== null && mb.status === 0 ? filesAt(root, b, mb.stdout.trim()) : new Map<string, string>();
+    const mb = b.merge === undefined ? null : yield* gitG(["merge-base", r.ours, r.commit]);
+    const old = mb !== null && mb.status === 0 ? yield* filesAtG(b, mb.stdout.trim()) : new Map<string, string>();
     for (const path of r.pending) {
       const blob = mine.get(path);
       if (blob === undefined) {
@@ -196,13 +257,26 @@ export function currentFiles(root: string, b: BranchSpec, at: { readonly local: 
       }
       const other = files.get(path);
       if (b.merge !== undefined && other !== undefined && other !== blob && other !== old.get(path)) {
-        files.set(path, hash(root, b.merge(path, must(root, ["cat-file", "blob", blob]), must(root, ["cat-file", "blob", other]))));
+        files.set(path, yield* hashG(b.merge(path, yield* mustG(["cat-file", "blob", blob]), yield* mustG(["cat-file", "blob", other]))));
       } else {
         files.set(path, blob);
       }
     }
   }
   return files;
+}
+
+/**
+ * The branch's files from the refs, path to blob: the descendant's, or when they have diverged the
+ * remote's with the files the local-only commits add or change on top, as the next write replays them.
+ */
+export function currentFiles(root: string, b: BranchSpec, at: Tips = tips(root, b)): Map<string, string> {
+  return drive(root, currentFilesG(b, at));
+}
+
+/** `currentFiles` without blocking the process. */
+export function currentFilesAsync(root: string, b: BranchSpec, at: Tips): Promise<Map<string, string>> {
+  return driveAsync(root, currentFilesG(b, at));
 }
 
 /** What a write sees of the branch before it changes it. */
@@ -229,106 +303,182 @@ export interface WriteResult {
   readonly warning: string | null;
 }
 
-function viewAt(root: string, b: BranchSpec, commit: string | null): BranchView {
-  const map = commit === null ? new Map<string, string>() : filesAt(root, b, commit);
+/** The view of the branch at a commit. Under the blocking driver a view reads on demand; under the async one every file is read first (one process), so `change` never runs `git`. */
+function* viewAtG(root: string, b: BranchSpec, commit: string | null): Gen<BranchView> {
+  const map = commit === null ? new Map<string, string>() : yield* filesAtG(b, commit);
+  const loaded = (yield { kind: "load", blobs: [...new Set(map.values())] }) as Map<string, string> | undefined;
+  const text = (blob: string): string | null => (loaded === undefined ? must(root, ["cat-file", "blob", blob]) : (loaded.get(blob) ?? null));
   return {
     has: (path) => map.has(path),
     read: (path) => {
       const blob = map.get(path);
-      return blob === undefined ? null : must(root, ["cat-file", "blob", blob]);
+      return blob === undefined ? null : text(blob);
     },
     paths: () => [...map.keys()],
     readMany: (paths) => {
       const blobs = paths.map((p) => map.get(p));
-      const known = blobs.filter((b): b is string => b !== undefined);
+      if (loaded !== undefined) {
+        return blobs.map((blob) => (blob === undefined ? null : text(blob)));
+      }
+      const known = blobs.filter((blob): blob is string => blob !== undefined);
       const texts = catBatchSync(root, known);
       let i = 0;
-      return blobs.map((b) => (b === undefined ? null : (texts[i++] ?? null)));
+      return blobs.map((blob) => (blob === undefined ? null : (texts[i++] ?? null)));
     },
   };
 }
 
-/** A new commit on `parent` with `changes` (path to blob) applied, built in a temporary index. */
-function commitOn(root: string, parent: string | null, changes: ReadonlyMap<string, string>, message: string, env: NodeJS.ProcessEnv = {}): string {
-  const dir = mkdtempSync(join(tmpdir(), "braid-branch-"));
-  try {
-    const index = { ...env, GIT_INDEX_FILE: join(dir, "index") };
-    must(root, parent === null ? ["read-tree", "--empty"] : ["read-tree", parent], { env: index });
-    if (changes.size > 0) {
-      must(root, ["update-index", "--index-info"], { env: index, input: [...changes].map(([path, blob]) => `100644 blob ${blob}\t${path}\n`).join("") });
-    }
-    const tree = must(root, ["write-tree"], { env: index });
-    const args = ["commit-tree", tree, ...(parent === null ? [] : ["-p", parent]), "-m", message];
-    const r = git(root, args, { env: index });
-    if (r.status === 0) {
-      return r.stdout.trim();
-    }
-    // No Git identity on this machine (a fresh CI runner): the record is still written, as braid.
-    if (!/identity unknown|tell me who you are/i.test(r.stderr)) {
-      throw new GitError(`git commit-tree failed: ${r.stderr.trim()}`);
-    }
-    const braid = { GIT_AUTHOR_NAME: "braid", GIT_AUTHOR_EMAIL: "braid@localhost", GIT_COMMITTER_NAME: "braid", GIT_COMMITTER_EMAIL: "braid@localhost" };
-    return must(root, args, { env: { ...braid, ...index } });
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
+/** What a commit puts at a path: new text, or a blob already in the repository. */
+type Content = { readonly text: string } | { readonly blob: string };
+
+/** The ref `git fast-import` wants a commit to be on; reset before the stream ends, so it is never written. */
+const BUILD_REF = "refs/braid/build";
+
+/** The author and committer a commit made now would carry, resolved by `git var` as `git commit-tree` resolves them. */
+function* identsG(env: NodeJS.ProcessEnv): Gen<{ author: string; committer: string; env: NodeJS.ProcessEnv }> {
+  const author = yield* gitG(["var", "GIT_AUTHOR_IDENT"], { env });
+  const committer = author.status === 0 ? yield* gitG(["var", "GIT_COMMITTER_IDENT"], { env }) : author;
+  if (committer.status === 0) {
+    return { author: author.stdout.trim(), committer: committer.stdout.trim(), env };
   }
+  // No Git identity on this machine (a fresh CI runner): the record is still written, as braid.
+  if (!/identity unknown|tell me who you are/i.test(committer.stderr)) {
+    throw new GitError(`git var failed: ${committer.stderr.trim()}`);
+  }
+  const braid = { GIT_AUTHOR_NAME: "braid", GIT_AUTHOR_EMAIL: "braid@localhost", GIT_COMMITTER_NAME: "braid", GIT_COMMITTER_EMAIL: "braid@localhost" };
+  const as = { ...braid, ...env };
+  return { author: yield* mustG(["var", "GIT_AUTHOR_IDENT"], { env: as }), committer: yield* mustG(["var", "GIT_COMMITTER_IDENT"], { env: as }), env: as };
 }
 
-const hash = (root: string, text: string): string => must(root, ["hash-object", "-w", "--stdin"], { input: text });
+/** The `encoding` line `git commit-tree` writes: `i18n.commitEncoding` as set; none when unset or UTF-8. */
+function* encodingG(env: NodeJS.ProcessEnv): Gen<string> {
+  const r = yield* gitG(["config", "--get", "i18n.commitEncoding"], { env });
+  const name = r.stdout.replace(/\r?\n$/, "");
+  return r.status !== 0 || /^utf-?8$/i.test(name) ? "" : `encoding ${name}\n`;
+}
+
+/** A length-prefixed `data` command of `git fast-import`. */
+const data = (text: string): string => `data ${Buffer.byteLength(text)}\n${text}\n`;
+
+/**
+ * A new commit on `parent` with `changes` applied: its blobs, trees and commit are written by one
+ * `git fast-import`, with no index and no ref. It is the commit `git commit-tree -m` would make.
+ */
+function* commitOnG(parent: string | null, changes: ReadonlyMap<string, Content>, message: string, env: NodeJS.ProcessEnv = {}): Gen<string> {
+  const who = yield* identsG(env);
+  const encoding = yield* encodingG(env);
+  const files = [...changes].map(([path, c]) => ("blob" in c ? `M 100644 ${c.blob} ${path}\n` : `M 100644 inline ${path}\n${data(c.text)}`));
+  const stream = [
+    "feature done\n",
+    `commit ${BUILD_REF}\nmark :1\nauthor ${who.author}\ncommitter ${who.committer}\n${encoding}`,
+    data(message.endsWith("\n") ? message : `${message}\n`),
+    parent === null ? "" : `from ${parent}\n`,
+    ...files,
+    `\nget-mark :1\nreset ${BUILD_REF}\n\ndone\n`,
+  ].join("");
+  return yield* mustG(["fast-import", "--quiet"], { input: stream, env: who.env });
+}
+
+function* hashG(text: string): Gen<string> {
+  return yield* mustG(["hash-object", "-w", "--stdin"], { input: text });
+}
 
 /**
  * The base for a new commit: the remote tip with the local commits it lacks replayed on top (their files
  * and messages, author kept). A file the remote changed too is merged with `b.merge` when given.
  */
-function rebase(root: string, b: BranchSpec, l: string | null, r: string | null): string | null {
+function* rebaseG(b: BranchSpec, l: string | null, r: string | null): Gen<string | null> {
   if (l === null || r === null || l === r) {
     return r ?? l;
   }
-  if (isAncestor(root, r, l)) {
+  // One process for the usual case, a local branch that is only behind.
+  const pending = yield* pendingCommitsG(l, r);
+  if (pending.length === 0) {
+    return r;
+  }
+  if (yield* isAncestorG(r, l)) {
     return l;
   }
   // Unrelated histories (two branches started apart, one offline) have no common commit.
-  const mb = b.merge === undefined ? null : git(root, ["merge-base", l, r]);
+  const mb = b.merge === undefined ? null : yield* gitG(["merge-base", l, r]);
   const since = mb !== null && mb.status === 0 ? mb.stdout.trim() : null;
   let base = r;
-  for (const commit of pendingCommits(root, l, r)) {
-    const [name = "", email = "", date = "", ...message] = must(root, ["log", "-1", "--format=%an%x00%ae%x00%aI%x00%B", commit]).split("\0");
-    const changes = changesOf(root, b, commit);
+  for (const commit of pending) {
+    const [name = "", email = "", date = "", ...message] = (yield* mustG(["log", "-1", "--format=%an%x00%ae%x00%aI%x00%B", commit])).split("\0");
+    const blobs = yield* changesOfG(b, commit);
+    const changes = new Map<string, Content>([...blobs].map(([path, blob]) => [path, { blob }]));
     if (b.merge !== undefined) {
-      const theirs = filesAt(root, b, base);
-      const old = since === null ? new Map<string, string>() : filesAt(root, b, since);
-      for (const [path, blob] of changes) {
+      const theirs = yield* filesAtG(b, base);
+      const old = since === null ? new Map<string, string>() : yield* filesAtG(b, since);
+      for (const [path, blob] of blobs) {
         const other = theirs.get(path);
         if (other !== undefined && other !== blob && other !== old.get(path)) {
-          changes.set(path, hash(root, b.merge(path, must(root, ["cat-file", "blob", blob]), must(root, ["cat-file", "blob", other]))));
+          changes.set(path, { text: b.merge(path, yield* mustG(["cat-file", "blob", blob]), yield* mustG(["cat-file", "blob", other])) });
         }
       }
     }
-    base = commitOn(root, base, changes, message.join("\0").trim(), { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_AUTHOR_DATE: date });
+    base = yield* commitOnG(base, changes, message.join("\0").trim(), { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_AUTHOR_DATE: date });
   }
   return base;
 }
 
-function moveLocal(root: string, b: BranchSpec, commit: string, old: string | null): void {
-  must(root, ["update-ref", "-m", `braid ${b.branch}`, local(b), commit, old ?? "0".repeat(40)]);
+function* moveLocalG(b: BranchSpec, commit: string, old: string | null): Gen<void> {
+  yield* mustG(["update-ref", "-m", `braid ${b.branch}`, local(b), commit, old ?? "0".repeat(40)]);
 }
 
-/** Refuses a write while a worktree has the branch checked out: moving it would leave that worktree showing newer files as staged deletions. */
-function refuseCheckedOut(root: string, b: BranchSpec): void {
-  const r = git(root, ["worktree", "list", "--porcelain"]);
-  if (r.status !== 0) {
-    return;
+/** After a push: the local branch and the remote-tracking ref move together, in one process. */
+function* movePushedG(b: BranchSpec, commit: string, old: string | null): Gen<void> {
+  const input = `update ${local(b)} ${commit} ${old ?? "0".repeat(40)}\nupdate ${tracking(b)} ${commit}\n`;
+  if ((yield* gitG(["update-ref", "-m", `braid ${b.branch}`, "--stdin"], { input })).status !== 0) {
+    // A fetch elsewhere may hold the tracking ref: the local branch must still move, the tracking ref may wait.
+    yield* moveLocalG(b, commit, old);
+    yield* gitG(["update-ref", tracking(b), commit]);
   }
-  for (const block of r.stdout.split(/\r?\n\r?\n/)) {
-    const lines = block.split(/\r?\n/);
-    const path = lines.find((l) => l.startsWith("worktree "))?.slice("worktree ".length);
-    if (path !== undefined && lines.includes(`branch ${local(b)}`)) {
-      throw new GitError(
-        `${b.branch} is checked out in the worktree ${path}; a write would move it under that worktree and leave newer entries staged for deletion. ` +
-          `Leave it first (in that worktree: git switch --detach, or remove it with git worktree remove), then run the command again. Nothing was changed.`,
-      );
+}
+
+const checkedOut = (b: BranchSpec, path: string): GitError =>
+  new GitError(
+    `${b.branch} is checked out in the worktree ${path}; a write would move it under that worktree and leave newer entries staged for deletion. ` +
+      `Leave it first (in that worktree: git switch --detach, or remove it with git worktree remove), then run the command again. Nothing was changed.`,
+  );
+
+/**
+ * The two tips for a write, with one process, refusing the write while a worktree has the branch checked out:
+ * moving it would leave that worktree showing newer files as staged deletions.
+ */
+function* writeTipsG(b: BranchSpec): Gen<Tips> {
+  const out = yield* mustG(["for-each-ref", "--format=%(refname)%00%(objectname)%00%(worktreepath)", local(b), tracking(b)]);
+  const rows = out.split("\n").map((l) => l.trim().split("\0"));
+  const row = (ref: string) => rows.find((r) => r[0] === ref);
+  const mine = row(local(b));
+  if (mine !== undefined && (mine[2] ?? "") !== "") {
+    throw checkedOut(b, mine[2] as string);
+  }
+  if (mine === undefined) {
+    // A worktree on the branch before its first commit (`switch --orphan`) has no ref to list.
+    const list = yield* gitG(["worktree", "list", "--porcelain"]);
+    for (const block of list.status === 0 ? list.stdout.split(/\r?\n\r?\n/) : []) {
+      const lines = block.split(/\r?\n/);
+      const path = lines.find((l) => l.startsWith("worktree "))?.slice("worktree ".length);
+      if (path !== undefined && lines.includes(`branch ${local(b)}`)) {
+        throw checkedOut(b, path);
+      }
     }
   }
+  return { local: mine?.[1] ?? null, remote: row(tracking(b))?.[1] ?? null };
+}
+
+/** `fetchBranchG` for a write: one process when the fetch works; the remote is asked what is wrong only when it fails. */
+function* fetchForWriteG(b: BranchSpec): Gen<FetchResult> {
+  // `LC_ALL=C`: Git's message for a branch the remote doesn't have is matched below.
+  const f = yield* gitG(["fetch", "--quiet", "--no-tags", REMOTE, `+${local(b)}:${tracking(b)}`], { env: { LC_ALL: "C" } });
+  if (f.status === 0) {
+    return { state: "present" };
+  }
+  if ((yield* gitG(["remote", "get-url", REMOTE])).status !== 0) {
+    return { state: "offline", why: `no remote ${REMOTE}` };
+  }
+  return f.stderr.includes("couldn't find remote ref") ? { state: "absent" } : { state: "offline", why: firstLine(f.stderr || String(f.error ?? "") || f.stdout) };
 }
 
 /** How long a writer waits for the branch's lock: a write fetches and pushes, so a queue of them takes longer than a local file's. */
@@ -339,43 +489,54 @@ export function lockedBranch<T>(root: string, b: BranchSpec, fn: () => T): T {
   return locked(join(mainCheckout(root), ".braid", b.lock), fn, b.what, undefined, BRANCH_LOCK_WAIT_MS);
 }
 
+/** `lockedBranch` that waits for the lock without blocking the process. */
+export function lockedBranchAsync<T>(root: string, b: BranchSpec, fn: () => Promise<T>): Promise<T> {
+  return lockedAsync(join(mainCheckout(root), ".braid", b.lock), fn, b.what, undefined, BRANCH_LOCK_WAIT_MS);
+}
+
+function* writeBranchG(root: string, b: BranchSpec, change: (current: BranchView) => BranchChange, options: { push?: boolean }): Gen<WriteResult> {
+  const push = options.push !== false;
+  for (let attempt = 1; ; attempt++) {
+    const fetched: FetchResult = push ? yield* fetchForWriteG(b) : { state: "offline", why: "not pushed" };
+    const { local: l, remote } = yield* writeTipsG(b);
+    // A branch deleted on the remote is pushed again from the local copy, or the last fetched one.
+    const r = fetched.state === "absent" ? null : remote;
+    const base = yield* rebaseG(b, l ?? (fetched.state === "absent" ? remote : null), r);
+    const next = change(yield* viewAtG(root, b, base));
+    if (next.files.size === 0) {
+      return { commit: null, pushed: false, warning: null };
+    }
+    const commit = yield* commitOnG(base, new Map([...next.files].map(([path, text]) => [path, { text }])), next.message);
+    if (fetched.state === "offline") {
+      yield* moveLocalG(b, commit, l);
+      return { commit, pushed: false, warning: push ? `can't reach ${REMOTE} (${fetched.why}); the ${b.noun} is on the local ${b.branch} branch and the next write pushes it` : null };
+    }
+    const pushed = yield* gitG(["push", "--porcelain", REMOTE, `${commit}:${local(b)}`]);
+    if (pushed.status === 0) {
+      yield* movePushedG(b, commit, l);
+      return { commit, pushed: true, warning: null };
+    }
+    const rejected = pushed.stdout.split(/\r?\n/).some((line) => line.startsWith("!") && line.includes(local(b)));
+    if (!rejected || attempt >= TRIES) {
+      yield* moveLocalG(b, commit, l);
+      const why = rejected ? `the push was refused ${TRIES} times` : `the push failed: ${firstLine(pushed.stderr || pushed.stdout)}`;
+      return { commit, pushed: false, warning: `${why}; the ${b.noun} is on the local ${b.branch} branch and the next write pushes it` };
+    }
+  }
+}
+
 /**
  * Commits one change to the branch and pushes it. `change` sees the branch as it is and returns the files
  * to write; after a refused push it runs again on the fetched tip. With `push: false` nothing is fetched or
  * pushed: the commit goes on the local branch, and the next write pushes it. Call it holding `lockedBranch`.
  */
 export function writeBranchUnlocked(root: string, b: BranchSpec, change: (current: BranchView) => BranchChange, options: { push?: boolean } = {}): WriteResult {
-  refuseCheckedOut(root, b);
-  const push = options.push !== false;
-  for (let attempt = 1; ; attempt++) {
-    const fetched: FetchResult = push ? fetchBranch(root, b) : { state: "offline", why: "not pushed" };
-    const l = refCommit(root, local(b));
-    // A branch deleted on the remote is pushed again from the local copy, or the last fetched one.
-    const r = fetched.state === "absent" ? null : refCommit(root, tracking(b));
-    const base = rebase(root, b, l ?? (fetched.state === "absent" ? refCommit(root, tracking(b)) : null), r);
-    const next = change(viewAt(root, b, base));
-    if (next.files.size === 0) {
-      return { commit: null, pushed: false, warning: null };
-    }
-    const blobs = new Map([...next.files].map(([path, text]) => [path, hash(root, text)]));
-    const commit = commitOn(root, base, blobs, next.message);
-    if (fetched.state === "offline") {
-      moveLocal(root, b, commit, l);
-      return { commit, pushed: false, warning: push ? `can't reach ${REMOTE} (${fetched.why}); the ${b.noun} is on the local ${b.branch} branch and the next write pushes it` : null };
-    }
-    const pushed = git(root, ["push", "--porcelain", REMOTE, `${commit}:${local(b)}`]);
-    if (pushed.status === 0) {
-      moveLocal(root, b, commit, l);
-      git(root, ["update-ref", tracking(b), commit]);
-      return { commit, pushed: true, warning: null };
-    }
-    const rejected = pushed.stdout.split(/\r?\n/).some((line) => line.startsWith("!") && line.includes(local(b)));
-    if (!rejected || attempt >= TRIES) {
-      moveLocal(root, b, commit, l);
-      const why = rejected ? `the push was refused ${TRIES} times` : `the push failed: ${firstLine(pushed.stderr || pushed.stdout)}`;
-      return { commit, pushed: false, warning: `${why}; the ${b.noun} is on the local ${b.branch} branch and the next write pushes it` };
-    }
-  }
+  return drive(root, writeBranchG(root, b, change, options));
+}
+
+/** `writeBranchUnlocked` without blocking the process. Call it holding `lockedBranchAsync`. */
+export function writeBranchUnlockedAsync(root: string, b: BranchSpec, change: (current: BranchView) => BranchChange, options: { push?: boolean } = {}): Promise<WriteResult> {
+  return driveAsync(root, writeBranchG(root, b, change, options));
 }
 
 /** `writeBranchUnlocked` holding the branch's lock. */
