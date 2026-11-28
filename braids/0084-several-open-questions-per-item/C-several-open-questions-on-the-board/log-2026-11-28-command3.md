@@ -28,3 +28,7 @@ Correction from the user (via the coordinator): shiny-monkey-mo72 was answered i
 ## 2026-11-28 17:14Z checkpoint
 
 Phone test (via the coordinator, demo board 7810, 84351855): the user's press of A arrived over Tailscale (100.106.113.74) and was done after 11.0 s; "it showed progress for some time, then disappeared". Found: on success the card collapsed and the next opened, and a closed request's line sat at the top of the panel, off screen (reproduced at 390 px). Fixed: the card keeps its line until a read drops the request, then the next opens; the closed line is pinned to the bottom of the window. CI red on 84351855 (both platforms): my refusal text changed braid answer's pinned CLI message; the answer text is now added only to the board's refusal. The original real-board failure stays unexplained: main logs nothing; the next press on a board with this change will say. Gate runs in a temporary checkout while the demo board serves this worktree's dist.
+
+## 2026-11-28 17:51Z
+
+Review of 757c1063 blocking on docs: board.md still described the old Questions-panel answering. Rewrote that paragraph, the action log lines (including the refusals logged without "arrived" and the unlogged local Host refusal), the lane rule 2 (a question beside a handover is Needs You) and the phone sentence about the panel below the board. cli.md: no line made untrue.
