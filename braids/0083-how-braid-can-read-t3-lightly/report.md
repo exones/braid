@@ -1,3 +1,5 @@
+> **Draft, held** (2026-11-28): the user put this spike on hold through the PM. The research is complete. Not done: the gate run (stopped mid-test) and the PR.
+
 **Research: How can braid read what it needs from T3 without loading T3's whole store?** — answered
 
 **Answer:** T3 doesn't load its store to answer braid. Every read behind `t3 thread list`, `t3 thread show` and the MCP tools is filtered SQL on indexed columns. It builds the costly per-thread "shells" only for the page asked, and it reads no transcripts beyond the page of items asked. On the server, a `t3_thread_list` page costs about 85 ms and a `t3_thread_read` about 20 ms (p50). What costs 7–24 s is the `t3` process itself. Each call starts the Electron runtime as Node, loads about 10 MB of JavaScript, opens the 3.1 GB database in its own process, writes a new auth session row and revokes it, and only then makes its MCP calls. The call that needs no server at all took 9–19 s. So the lever is fewer `t3` processes, not lighter queries: one long-lived MCP client (0080) asking live-only lists. Confidence in the basis: high for the code paths (read in the source at the installed commit and in the installed bundle). Medium for the split between start-up and server time: one evening's sample, two runs per call, on a loaded machine.
@@ -187,7 +189,7 @@ The board's T3 read timed out at 60 s under load (0077). The user asked to resea
 
 - Every code claim is cited to upstream v0.1.12 (`ca81b7b9`, the installed build's commit) and, where it runs here, to the installed bundle's file and line.
 - Timings were run here (commands, times and load above). Server costs come from T3's own trace.
-- The gate (`npm run verify`) passed: see the PR.
+- The gate (`npm run verify`) has not passed yet: it was stopped mid-test by the hold. No PR is open.
 
 ## Docs
 

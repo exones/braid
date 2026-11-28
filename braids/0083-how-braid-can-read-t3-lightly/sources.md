@@ -1,3 +1,5 @@
+> **Draft, held** (2026-11-28).
+
 # Sources for 0083
 
 All accessed 2026-11-28. "Upstream" is `github.com/pingdotgg/t3code` at tag `v0.1.12`, commit `ca81b7b97a1c4b91e5ac25768d0f6629f37732fd`, the commit the installed app names in `app.asar/package.json` (`"version": "0.1.12"`, `"t3codeCommitHash": "ca81b7b97a1c"`). "Bundle" is the installed `C:\Users\exon\AppData\Local\Programs\t3code\resources\server.asar` (271,539,378 bytes, dated 2026-11-25), `apps/server/dist/` extracted read-only to the scratchpad. The bundle is not minified. Every bundle passage cited below was compared with the upstream passage and matches in substance. Upstream paths are relative to `apps/server/src/` unless they say otherwise.
