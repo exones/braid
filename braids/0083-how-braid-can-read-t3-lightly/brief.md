@@ -75,7 +75,7 @@ Expected size: report.md and sources.md, about 300 lines in 2 files; no product 
 - [x] report.md says how the live store was touched (read-only CLI calls only, a read-only open for schema and plans, or a read-only copy: when, the free space on C: checked first, and its deletion), and that nothing was written to it
 - [x] No docs from BRAID.md `docs` are edited (a spike edits no docs); report.md names any the findings may make untrue, as follow-ups
 - [x] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
 - [x] report.md written: what changed, why, validation, anything open
 
 ## Autonomy
