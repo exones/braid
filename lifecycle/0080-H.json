@@ -1,0 +1,11 @@
+{
+  "id": "0080/H",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-28T14:35:31.474Z",
+      "thread": "mcp:launch:dd3b6dc3e3dfa3c9a1515a11da6c5a321a852f1a03d3476d761e87ada6709510",
+      "branch": "braid/0080/H-docs-the-board-talks-to-t3-directly"
+    }
+  ]
+}
