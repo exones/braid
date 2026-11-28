@@ -1,13 +1,14 @@
 // Programmes on the board (docs/board.md, "Programmes"): one per `pm/<slug>` plan, derived at each read from the
 // plan's front matter, the braid cards, the programme's open request, T3 and the broke clock. Pure apart from the
 // clock, which the step after the derivation keeps. A programme isn't a braid: it never sits in a lane, it sits in the panel.
-import { age, type Request } from "../braids/requests.js";
+import { age, askerOf, type Request } from "../braids/requests.js";
 import { reasonOf, type Pause } from "../braids/pauses.js";
 import type { Hold, PlanRow, PlanState } from "../braids/plan.js";
 import { linkOfThread, needOfAsk, needOfForward, raiseTo, type Alarm, type BraidCard, type Lane, type Need, type NudgeTarget, type Raise, type Signals } from "./model.js";
 import { clock as hhmmOf, pauseView, usage } from "./pause.js";
 import { GONE, routeOf, throughPm } from "./pm.js";
 import type { PlanRead } from "./plans.js";
+import { openItemRequests } from "./record.js";
 import type { T3 } from "./t3.js";
 
 /** Where a programme shows: `needs` (it asks you, or it stalled), `working` (the rest that runs or is held), null (done or stopped: off the panel). */
@@ -47,8 +48,10 @@ export interface Programme {
   readonly total: number;
   /** Its braids that are live: started, not Done, with an agent, pending checks, a coordinator working or waiting, or the PM handling it. */
   readonly running: number;
-  /** The open programme request, or the stall; null otherwise. */
+  /** The oldest open programme request, or the stall; null otherwise. */
   readonly need: Need | null;
+  /** Every open request of the programme (`pm/<slug>`), oldest first (0084/C). */
+  readonly asks: readonly Need[];
   /** What the PM forwarded to the user from its braids (a forwarded merge handover too): the PM asking you, each opening the PM's thread. Item, lane its card would sit in, and the need. */
   readonly forwards: readonly Forward[];
   /** The other open requests of its braids that are the user's (escalated, or addressed to the user, the PM's own too), as their cards push them. */
@@ -134,9 +137,9 @@ const hhmm = (iso: string): string => new Date(iso).toLocaleTimeString("en-GB", 
  */
 export function toProgrammes(repo: string, plans: readonly PlanRead[], cards: readonly BraidCard[], t3: T3, sig: Signals, gh: { readonly status: { readonly state: string } }, alarms: Alarm[] = []): Programme[] {
   const byId = new Map(cards.map((c) => [c.id, c]));
-  const requests = new Map((sig.programmes ?? []).map((r) => [r.id, r] as const));
+  const requests = (slug: string): Request[] => (sig.programmes ?? []).filter((r) => r.id === `pm/${slug}`).sort((a, b) => a.at.localeCompare(b.at));
   const live = plans.filter((p) => p.plan === null || p.plan.state === "running" || p.plan.state === "held").length;
-  return plans.map((read) => programmeOf(repo, read, byId, requests.get(`pm/${read.slug}`), t3, sig, gh.status.state === "ok", live === 1, raiseTo(sig, alarms)));
+  return plans.map((read) => programmeOf(repo, read, byId, requests(read.slug), t3, sig, gh.status.state === "ok", live === 1, raiseTo(sig, alarms)));
 }
 
 /**
@@ -152,9 +155,11 @@ function requestsOfCard(card: BraidCard): Forward[] {
   if (card.lane === "Done") {
     return [];
   }
-  const items = [{ id: card.id, title: card.title, need: card.need?.who === null ? card.need : null, pmAsk: card.pmAsk?.who === null ? card.pmAsk : null }, ...card.strands.filter((s) => s.lane !== "Done")];
-  return items.flatMap(({ id, title, need, pmAsk }) => [need?.by === undefined ? need : null, pmAsk].flatMap((n) => (n?.code === undefined ? [] : [{ id, title, need: n }])));
+  return [card, ...card.strands.filter((s) => s.lane !== "Done")].flatMap(({ id, title, asks }) => asks.map((need) => ({ id, title, need })));
 }
+
+/** Every coordinator request forwarded to the user through the PM; a newer one still with the PM doesn't hide it. */
+const forwardedOf = (sig: Signals, t3: T3, read: PlanRead): Request[] => openItemRequests(sig).filter((r) => askerOf(r) === "coordinator" && throughPm(r, routeOf(r, sig.now, t3, sig.pauses?.has(r.id.slice(0, 4)) === true), [read]));
 
 /** The title of an item (a braid or one of its strands) from the board's cards; the id when the card isn't there. */
 const titleOf = (cards: ReadonlyMap<string, BraidCard>, id: string): string => {
@@ -162,15 +167,17 @@ const titleOf = (cards: ReadonlyMap<string, BraidCard>, id: string): string => {
   return (id.includes("/") ? card?.strands.find((s) => s.id === id)?.title : card?.title) ?? id;
 };
 
-function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, BraidCard>, request: Request | undefined, t3: T3, sig: Signals, ghOk: boolean, only: boolean, raise: Raise): Programme {
+function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, BraidCard>, requests: readonly Request[], t3: T3, sig: Signals, ghOk: boolean, only: boolean, raise: Raise): Programme {
   const clock = `${repo}/${read.slug} pm`;
   const plan = read.plan;
-  const asked = request === undefined ? null : needOfAsk(request, sig.now, t3);
+  const asks = requests.map((r) => needOfAsk(r, sig.now, t3));
+  const asked = asks[0] ?? null;
+  const request = requests[0];
   if (plan === null) {
     raise(clock, "stalled", false);
     return {
       slug: read.slug, branch: read.branch, title: read.slug, goal: null, state: null, section: asked === null ? "working" : "needs", thread: request?.thread ?? null, link: asked?.link ?? null, pmState: null,
-      hold: null, paused: false, resume: null, next: null, digest: null, limit: null, rows: [], braids: [], done: 0, total: 0, running: 0, need: asked, forwards: [], requests: [],
+      hold: null, paused: false, resume: null, next: null, digest: null, limit: null, rows: [], braids: [], done: 0, total: 0, running: 0, need: asked, asks, forwards: [], requests: [],
       status: `plan unreadable: ${read.error ?? "unknown"}`, handling: [], seen: null, error: `plan unreadable: ${read.error ?? "unknown"}`,
     };
   }
@@ -198,9 +205,8 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
   // What the PM forwarded to the user from its braids: the PM asks you, whoever's braid it was.
   const forwards: Forward[] = over
     ? []
-    : [...sig.requests.values()].flatMap((r) => {
-        const routed = routeOf(r, sig.now, t3, sig.pauses?.has(r.id.slice(0, 4)) === true);
-        return braids.includes(r.id.slice(0, 4)) && throughPm(r, routed, [read]) ? [{ id: r.id, title: titleOf(cards, r.id), need: needOfForward(r, sig.now, t3, sig.unblocks?.(r) ?? []), ...(r.head === undefined ? {} : { head: r.head }), ...(r.note === undefined ? {} : { note: r.note }) }] : [];
+    : forwardedOf(sig, t3, read).flatMap((r) => {
+        return braids.includes(r.id.slice(0, 4)) ? [{ id: r.id, title: titleOf(cards, r.id), need: needOfForward(r, sig.now, t3, sig.unblocks?.(r) ?? []), ...(r.head === undefined ? {} : { head: r.head }), ...(r.note === undefined ? {} : { note: r.note }) }] : [];
       });
   const holds = over || held || asked !== null || forwards.length > 0 ? false : t3ok && ghOk ? !(pmRunning || mine.some((c) => busy(c, t3)) || checking) : null;
   // The PM thread, known and idle, is nudged once before the stall shows; without one the stall shows after ten minutes as before.
@@ -247,6 +253,7 @@ function programmeOf(repo: string, read: PlanRead, cards: ReadonlyMap<string, Br
     total: counted.length,
     running,
     need,
+    asks: over ? [] : asks,
     forwards,
     requests: theirs,
     status,

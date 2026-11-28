@@ -103,6 +103,35 @@ button{font:inherit;color:inherit}
 .tabs span{flex:1;text-align:center;font-size:11px;color:var(--mut);padding:6px 0}.tabs b{display:block;color:var(--fg);font-size:15px}
 .tabs span.on{border-bottom:3px solid var(--amberline);color:var(--fg)}
 .phone .link{min-height:28px;line-height:26px}
+/* 0084/C: Acknowledge, Dismiss, the phone switch */
+.btn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:1px 8px;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer}
+.btn.ack{border-color:var(--greenline);background:var(--green);color:var(--fg)}
+.acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
+.acts .sp{flex:1}
+.q.look,.big.look{border-left-color:var(--mut)}
+.need.lk{border-color:var(--mut);background:var(--soft);color:var(--ink)}
+.mark{font-size:10.5px;font-weight:700;text-transform:uppercase;border-radius:9px;padding:0 7px;background:var(--mut);color:var(--bg)}
+.fold{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--mut);padding:6px 10px;margin:10px 0 6px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.dec{border:1px solid var(--line);border-left:3px solid var(--greenline);border-radius:8px;padding:7px 10px;margin-bottom:7px}
+.dec.dis{border-left-color:var(--mut)}
+.dec .txt{margin:3px 0;font-weight:600}
+.dec .ans{border-left:3px solid var(--greenline);background:var(--soft);border-radius:4px;padding:2px 8px;margin-top:4px}
+.dec.dis .ans{border-left-color:var(--mut);color:var(--ink)}
+.by{font-size:11px;font-weight:600;border-radius:9px;padding:0 8px;background:#dcfce7;color:#166534}
+.by.dis{background:var(--chip);color:var(--ink)}
+.toast{display:flex;gap:8px;align-items:center;border:1px solid var(--greenline);background:var(--green);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:12.5px}
+.switch{display:flex;margin:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--chip);padding:3px;gap:3px}
+.switch>span{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border-radius:8px;font-weight:700;color:var(--mut)}
+.switch>span.on{background:var(--bg);color:var(--fg);box-shadow:0 1px 3px #00000026}
+.count{min-width:20px;height:20px;border-radius:10px;background:var(--amberline);color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
+.count.red{background:var(--redline)}
+.picker{display:flex;align-items:center;gap:8px;margin:10px 14px 0;border:1px solid var(--line);border-radius:12px;background:var(--bg);padding:0 14px;min-height:48px;font-weight:700}
+.picker small{margin-left:auto;font-weight:400;color:var(--mut)}
+.ph .btn{min-height:44px;padding:0 14px;font-size:13px}
+.ph .qp{border-radius:0;border:0;background:transparent;padding:0 14px 14px}
+.ph .q,.ph .dec{background:var(--bg)}
+.ph .big{background:var(--bg)}
+.ph .opt{min-height:44px}
 </style>
 </head>
 <body>
@@ -157,8 +186,38 @@ button{font:inherit;color:inherit}
 </div>
 
 <h2>8. At phone width (390 px)</h2>
-<p class="note">The same card (variant B), one lane at a time. The tab counts stay counts of cards (one card here asks); the Questions panel below the board counts questions.</p>
+<p class="note">The same card (variant B), one lane at a time. The tab counts stay counts of cards (one card here asks); the Questions panel below the board counts questions. <b>Section 11 below replaces the panel-under-the-board part.</b></p>
 <div class="phone" id="s8"></div>
+
+<section id="c9">
+<h2>9. 0084/C, for your look: Acknowledge and Dismiss</h2>
+<p class="note"><b>Not approved yet.</b> <b>Dismiss</b> is on every open request: it closes it without an answer and tells the asking thread once. <b>Acknowledge</b> is on looks and FYIs only: it closes it as seen and wakes nobody. One click each, no confirmation. Buttons carry words, so Dismiss can't be taken for the ✕ or ▴ that only close a card.</p>
+<div class="cols">
+  <div class="col w"><h4>Questions panel: rows</h4><div class="qp" id="s9a"></div></div>
+  <div class="col w"><h4>Questions panel: an opened question, an opened FYI</h4><div class="qp" id="s9b"></div></div>
+  <div class="col"><h4>Board card (Details on)</h4><div id="s9c"></div><p class="note">The buttons act on the question shown; "+1 more" opens the others. With Details off the card has no boxes, so no buttons: use the panel. The board card has no Answer button today and gets none.</p></div>
+  <div class="col"><h4>Alternative: icons only</h4><div class="qp" id="s9d"></div><p class="note">Not recommended: ✓ and ⊘ with tooltips, the panel's icon style. Shorter, but a one-click action with no words is easy to hit by mistake, most of all on a phone.</p></div>
+</div>
+</section>
+
+<section id="c10">
+<h2>10. 0084/C, for your look: where they end up</h2>
+<p class="note">Both show under <b>Decided</b>: an acknowledged one as "acknowledged by you"; a dismissed one, greyed, as "dismissed by you" with no answer. The green line after a click says what happens next. The details' Requests tab lists both under Decided too.</p>
+<div class="cols">
+  <div class="col w"><h4>Panel, after Dismiss then Acknowledge</h4><div class="qp" id="s10a"></div></div>
+  <div class="col xw"><h4>Details, Requests tab</h4><div class="panel" id="s10b"></div></div>
+</div>
+</section>
+
+<section id="c11">
+<h2>11. 0084/C, for your look: the phone's Board | Requests switch (390 px)</h2>
+<p class="note">A two-way switch right under the project selector (with one project served there is no selector: it sits under the header). <b>Requests</b> is the Questions panel, full screen; <b>Board</b> is the programmes strip, the lane tabs and the cards, with no panel at the bottom. The count on Requests is what waits on you (open questions; looks and FYIs not counted), red when one is escalated, gone at zero. <b>Which tab opens:</b> the last one you used on this device; the first time, Requests if something waits, else Board. Desktop is unchanged.</p>
+<div class="cols">
+  <div><h4 class="mut">Requests</h4><div class="phone ph" id="s11a"></div></div>
+  <div><h4 class="mut">Requests, a question opened</h4><div class="phone ph" id="s11b"></div></div>
+  <div><h4 class="mut">Board</h4><div class="phone ph" id="s11c"></div></div>
+</div>
+</section>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -250,6 +309,48 @@ $("s7").innerHTML = `<div class="prog"><div class="line">🧭 <b style="font-siz
 $("s8").innerHTML = `<div class="top">braid · attention board</div><div class="tabs">${[["1", "Needs you"], ["0", "Review"], ["2", "Working"], ["1", "To Do"], ["14", "Done"]].map(([n, l], i) => `<span class="${i ? "" : "on"}"><b>${n}</b>${l}</span>`).join("")}</div>
   <div style="padding:10px">${folded(listFolded)}</div>
   <div class="qp" style="border-radius:0;border-width:2px 0 0">${qhead(6).replace('<span class="ib">»</span>', "")}${sec("Escalated to you", true)}${row(A[0])}${sec("Blocks one item")}${row(A[1])}<div class="mut" style="text-align:center">… 4 more …</div></div>`;
+
+// ---- 0084/C: Acknowledge, Dismiss, Decided, the phone switch ----
+const DIS = (cls = "") => `<button class="btn ${cls}" type="button" title="Close without an answer; the asking thread is told">⊘ Dismiss</button>`;
+const ACK = '<button class="btn ack" type="button" title="Close as seen; nobody is woken">✓ Acknowledge</button>';
+const ANS = '<button class="btn" type="button" title="Open to answer">✎ Answer</button>';
+const FYI = { h: "misty-heron-6qzd", age: "5 h", text: "Token rotation goes next; the OpenAPI docs wait unless you say otherwise.", who: "PM", blocks: "stops nothing" };
+const FYI2 = { h: "copper-finch-1w8n", age: "2 h", text: "The export is live on the test site; look when you like.", who: WHO, blocks: "blocks nothing" };
+const lookRow = (q, btns = ACK + ANS + DIS()) => `<div class="q look"><div class="line">${chip(q.h)}<span class="mark">look</span><span class="wait">${q.age}</span></div>
+  <div class="txt">${q.text}</div><div class="line mut">${ptag}<span>${q.who}</span></div><div class="acts">${btns}</div></div>`;
+const actRow = (q, btns = ANS + DIS()) => row(q).replace(/<\/div>$/, `<div class="acts">${btns}</div></div>`);
+const looks = (n, open) => `<div class="fold">${open ? "▾" : "▸"} Look and FYI · ${n}</div>`;
+$("s9a").innerHTML = qhead(4) + sec("Escalated to you", true) + actRow(A[0]) + sec("Blocks one item") + actRow(A[1]) + actRow(other) + looks(2, true) + lookRow(FYI) + lookRow(FYI2) + `<div class="fold">▸ Decided · 4</div>`;
+const openedLook = `<div class="big look"><div class="line">${chip(FYI.h)}<span class="mark">look</span><span class="wait">${FYI.age}</span><span class="ib sm">▴</span></div><div class="line mut" style="margin-top:5px">${ptag}<span>PM</span></div>
+  <div class="ctx"><b>Context</b>The PM ordered the next strands after the auth work.</div><div class="qq">${FYI.text}</div>
+  <div class="acts" style="justify-content:flex-start">${ACK}<button class="btn" type="button">✎ Answer</button><span class="sp"></span>${DIS()}</div><div style="margin-top:8px">${ASK}</div></div>`;
+const openedQ = big(A[1]).replace(`<div class="line" style="margin-top:10px"><span class="ib">✎</span>${ASK}</div>`, `<div class="acts"><span class="ib">✎</span><span class="sp"></span>${DIS()}</div><div style="margin-top:8px">${ASK}</div>`);
+$("s9b").innerHTML = openedQ + openedLook;
+const needBtns = (q, id, btns) => box(q, id).replace(ASK, `${ASK}<span class="acts">${btns}</span>`);
+const lookNeed = `<div class="need lk">${chip(FYI2.h)} <span class="act">look</span><br>${FYI2.text}${ASK}<span class="acts">${ACK}${DIS()}</span><small>asked 2 h ago</small></div>`;
+$("s9c").innerHTML = lane(card(head(0, false) + needBtns(A[0], "0009/A", DIS()) + `<div class="more"><b>+2 more</b> ${chip(A[1].h)}</div>` + bottom) + card('<div class="line"><span class="mut">0012</span><span class="tag">tier:S</span>' + ptag + '</div><div class="t">Export to the test site</div>' + lookNeed + bottom), "Needs You", 2);
+const IACK = '<span class="ib sm" title="Acknowledge">✓</span>';
+const IDIS = '<span class="ib sm" title="Dismiss">⊘</span>';
+$("s9d").innerHTML = actRow(A[1], IDIS) + lookRow(FYI, IACK + IDIS);
+
+const dec = (q, how, extra = "") => {
+  const by = { dis: ['dis', 'dismissed by you', 'No answer. The asking thread is told once: "' + q.h + ' dismissed by the user without an answer; if you still need it, ask again with what changed."'], ack: ['', 'acknowledged by you', "Seen. Nobody was woken."], ans: ['', 'decided by you', "<b>Answer:</b> " + extra] }[how];
+  return `<div class="dec ${how === "dis" ? "dis" : ""}"><div class="line">${chip(q.h)}<span class="by ${by[0]}">${by[1]}</span><span class="wait">today ${how === "ans" ? "09:10" : "11:42"}</span></div>
+  <div class="txt">${q.text}</div><div class="ans">${by[2]}</div><div class="line mut" style="margin-top:4px">${ptag}<span>${q.who || WHO}</span></div></div>`;
+};
+const swift = { h: "swift-moth-2c4v", text: "Which currency do the totals use?" };
+const decided = dec(FYI, "ack") + dec(other, "dis") + dec(swift, "ans", "The shop's.");
+$("s10a").innerHTML = qhead(3) + `<div class="toast">⊘ <span>${chip(other.h)} dismissed<br><span class="mut">the asking thread is told</span></span></div><div class="toast">✓ <span>${chip(FYI.h)} acknowledged<br><span class="mut">nobody is woken</span></span></div>` + sec("Escalated to you", true) + actRow(A[0]) + sec("Blocks one item") + actRow(A[1]) + actRow(A[2]) + looks(1, false) + `<div class="fold">▾ Decided · 6 · newest first</div>` + decided;
+$("s10b").innerHTML = `<div class="tabs2"><span>Brief</span><span>Report</span><span>Logs</span><span class="on">Requests (3)</span></div><div class="sech">Decided · 3 · newest first</div>${dec(FYI, "ack")}${dec({ ...other, who: "0007/B · asked today" }, "dis")}${dec(swift, "ans", "The shop's.")}`;
+
+const phTop = '<div class="top">braid · attention board</div><div class="picker"><i class="dot" style="background:#4f46e5"></i><i class="dot" style="background:#0d9488"></i>All projects<small>2 of 2 ▾</small></div>';
+const swBar = (on, n = 4) => `<div class="switch"><span class="${on === "b" ? "on" : ""}">Board</span><span class="${on === "r" ? "on" : ""}">Requests <span class="count red">${n}</span></span></div>`;
+const list = sec("Escalated to you", true) + actRow(A[0]) + sec("Blocks one item") + actRow(A[1]) + actRow(other) + actRow(A[2]) + looks(2, true) + lookRow(FYI) + `<div class="fold">▸ Decided · 4</div>`;
+$("s11a").innerHTML = phTop + swBar("r") + `<div class="qp">${list}</div>`;
+$("s11b").innerHTML = phTop + swBar("r") + `<div class="qp">${openedQ}${row(other)}${row(A[2])}</div>`;
+const tabsBar = [["1", "Needs you"], ["0", "Review"], ["2", "Working"], ["1", "To Do"], ["14", "Done"]].map(([n, l], i) => `<span class="${i ? "" : "on"}"><b>${n}</b>${l}</span>`).join("");
+const strip = '<div style="margin:0 14px;border:1px solid var(--amberline);background:var(--amber);color:var(--amberfg);border-radius:12px;min-height:48px;display:flex;align-items:center;gap:8px;padding:0 14px">🧭 <b>1 needs you</b> <span class="mut">· 1 working</span></div>';
+$("s11c").innerHTML = phTop + swBar("b") + strip + `<div class="tabs" style="margin-top:10px">${tabsBar}</div><div style="padding:10px 14px 14px">${folded(listB.replace(ASK, `${ASK}<span class="acts">${DIS()}</span>`))}</div>`;
 
 $("theme").onclick = () => {
   const root = document.documentElement;

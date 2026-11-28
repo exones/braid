@@ -29,7 +29,7 @@ interface Card extends Strand {
   strands: Strand[];
 }
 interface Marks {
-  reasons: { kind: string; tooltip: string }[];
+  reasons: { kind: string; tooltip: string; count?: number }[];
   review: string | null;
   activities: { kind: string; tooltip: string }[];
   done: boolean;
@@ -114,7 +114,11 @@ test("the request line carries its text, age and strand", () => {
 test("with Details off the text moves into the icon's tooltip", () => {
   assert.equal(marks.cardMarks(card("0004"), false).reasons[0]?.tooltip, "Stalled: nobody is working and nothing was asked — strand 0004/A · for 25 min (+1 more in strands)");
   assert.equal(marks.cardMarks(card("0007"), false).reasons[0]?.tooltip, "Approve the plan: 3 strands, A to C — braid, no strand involved · asked 20 min ago");
-  assert.equal(marks.strandMarks(strand("0004/B"), false).reasons[0]?.tooltip, "Which rounding rule should refunds use, half-up or banker's? — asked 35 min ago");
+  // 0004/B has three open requests: the icon counts them and its tooltip lists each.
+  const several = marks.strandMarks(strand("0004/B"), false).reasons[0];
+  assert.equal(several?.count, 3);
+  assert.deepEqual(several?.tooltip.split("\n"), ["q-d004 Which rounding rule should refunds use, half-up or banker's? — asked 35 min ago", "q-d008 Does a refund of a partly paid order go to the card or to credit? — asked 20 min ago", "q-d009 The PM asks you to: install the runner on the build machine — asked 8 min ago"]);
+  assert.equal(marks.strandMarks(strand("0001/B"), false).review, "Merge PR #12 — asked 2 h ago");
   assert.equal(marks.cardMarks(card("0001"), false).review, "Merge PR #12 — strand 0001/B · asked 2 h ago");
 });
 

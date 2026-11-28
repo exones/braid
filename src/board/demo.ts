@@ -2,7 +2,7 @@
 // reason shows. Nothing here reads the repository, `gh` or `t3`, and nothing is written.
 import { loadTree, type Braid, type Tree } from "../braids/store.js";
 import { GITHUB_TODO, type Problem } from "../braids/readiness.js";
-import { newRecord, type NewRequest, type Request } from "../braids/requests.js";
+import { ACKNOWLEDGED, DISMISSED, newRecord, type NewRequest, type Request } from "../braids/requests.js";
 import type { Pause } from "../braids/pauses.js";
 import type { InboxData } from "./inbox.js";
 import type { Github } from "./github.js";
@@ -251,6 +251,8 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     // A question the PM answers first: the card keeps its lane and shows the teal "The PM is handling" line, with 🧭.
     request("0009/A", "question", "Should the report totals include refunds?", 3, { to: "pm", pm: "demo-pm-1" }),
   ];
+  // 0004/B has three open requests: the question above, this one and the PM's.
+  requests.push(request("0004/B", "question", "Does a refund of a partly paid order go to the card or to credit?", 20));
   const asks: Request[] = [request("0004/B", "action", "install the runner on the build machine", 8, { by: "pm" })];
   // A request to another braid's coordinator: not the user's; the asking braid's card shows it quietly, with its "done when".
   // The wait was reminded once, and 0002's coordinator gave an estimate: the Requests tab lists both.
@@ -268,7 +270,14 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     closed("0004/B", "Which locale for the invoice dates?", 200, 190, { state: "withdrawn", by: "coordinator", text: "the brief already says en-GB" }),
     closed("0003/A", "Wait for the search index", 1500, 1400, { state: "met", by: "board", text: "PR #31 merged" }, { to: "0002", doneWhen: "pr:31" }),
   ];
-  const programmes: Request[] = [request("pm/working-product", "decision", "Should the export ship before billing? A. Yes: export first, billing after B. No: billing first C. Both at once, with the limit raised to 3", 12, { by: "pm", thread: "demo-pm-1" })];
+  const programmes: Request[] = [
+    request("pm/working-product", "decision", "Should the export ship before billing? A. Yes: export first, billing after B. No: billing first C. Both at once, with the limit raised to 3", 12, { by: "pm", thread: "demo-pm-1" }),
+    request("pm/working-product", "question", "Run the inbox sweep now, or after billing?", 5, { by: "pm", thread: "demo-pm-1" }),
+  ];
+  // Closed without an answer: one dismissed, one acknowledged; both read under Decided.
+  ended.push(closed("0004/B", "Should refunds show on the invoice PDF?", 330, 320, { state: "withdrawn", by: "user", text: DISMISSED }));
+  const seen = closed("0006", "The spike's notes are in its report; read them when you like.", 400, 380, { state: "answered", by: "user", text: ACKNOWLEDGED });
+  ended.push({ ...seen, kind: "look" });
   // Decided lists a programme's answered requests too: no item's Requests tab does.
   ended.push(closed("pm/working-product", "Should billing wait for the export?", 900, 880, { state: "answered", by: "user", text: "A. Yes: export first, billing after" }, { by: "pm", thread: "demo-pm-1" }));
   const began: Readonly<Record<string, number>> = { "0002/B": 14, "0004/A": 25, "demo/inbox-sweep pm": 14 };
@@ -276,6 +285,7 @@ export function demoSignals(now: Date = new Date()): ReadSignals {
     now,
     requests: new Map(requests.map((r) => [r.id, r])),
     asks: new Map(asks.map((r) => [r.id, r])),
+    open: [...requests, ...asks].sort((a, b) => a.at.localeCompare(b.at)),
     programmes,
     waits,
     closed: ended,

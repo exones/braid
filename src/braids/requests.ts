@@ -538,7 +538,29 @@ export interface Ending {
   /** The PM's reason, when the PM answered for the user. */
   readonly reason?: string;
   readonly at?: string;
+  /** Also record the answer's wake as delivered (`ANSWER_WOKEN`), in the same write: nobody is to be woken (an acknowledgement). */
+  readonly woken?: true;
 }
+
+/** The answer an acknowledged look or FYI records: seen by the user, nothing to say (0084/C). */
+export const ACKNOWLEDGED = "Acknowledged";
+/** The reason a request the user dismissed without an answer is withdrawn with (0084/C). */
+export const DISMISSED = "dismissed by the user without an answer";
+
+/** How the user closed a request without answering it: acknowledged (a look, seen) or dismissed; null for any other ending. */
+export function outcomeOf(r: Pick<Request, "state" | "kind" | "events">): "acknowledged" | "dismissed" | null {
+  const e = closing(r);
+  if (e === null || e.by !== "user") {
+    return null;
+  }
+  return r.state === "answered" && r.kind === "look" && e.text === ACKNOWLEDGED ? "acknowledged" : r.state === "withdrawn" && e.text === DISMISSED ? "dismissed" : null;
+}
+
+/** The user dismisses a request: withdrawn, with no answer. The asking thread is told once (src/board/wake.ts). */
+export const dismissEnding = (): Ending => ({ state: "withdrawn", who: "user", text: DISMISSED });
+
+/** The user acknowledges a look or an FYI: answered, and no one is woken. Any other kind is refused by the caller. */
+export const acknowledgeEnding = (): Ending => ({ state: "answered", who: "user", text: ACKNOWLEDGED, woken: true });
 
 /** The event an ending appends. */
 const endEvent = (e: Ending, at: string): RequestEvent => ({ event: e.state, at: e.at ?? at, by: e.who, ...(e.text === undefined ? {} : { text: e.text }), ...(e.reason === undefined ? {} : { reason: e.reason }) });
@@ -593,7 +615,8 @@ function endJob(code: string, end: Ending | ((r: Request) => Ending)): { change:
         return { files: new Map(), message: "" };
       }
       const e = typeof end === "function" ? end(found) : end;
-      const next = serialise(withEvent(found, endEvent(e, new Date().toISOString())));
+      const closed = withEvent(found, endEvent(e, new Date().toISOString()));
+      const next = serialise(e.woken === true ? withEvent(closed, { event: "reminded", at: e.at ?? new Date().toISOString(), by: "board", text: ANSWER_WOKEN }) : closed);
       found = parseRecord(pathOf(code), next) as Request;
       return { files: new Map([[pathOf(code), next]]), message: `docs(requests): ${found.id} ${code} ${e.state}` };
     },
@@ -652,9 +675,9 @@ export const ANSWER_WOKEN = "answer sent to the asking thread";
 export const answerWoken = (r: Pick<Request, "events">): boolean => r.events.some((e) => e.event === "reminded" && e.text === ANSWER_WOKEN);
 
 /**
- * Records that the board delivered an answered request's wake: a `reminded` event by `board` (a kind older braid versions
- * read; on a closed request nothing but the history reads it). Checked again inside the write: a request that isn't
- * answered, or already carries the mark, is left and returned with `added: false`. Null: no such code.
+ * Records that the board delivered an answered or dismissed request's wake: a `reminded` event by `board` (a kind older braid
+ * versions read; on a closed request nothing but the history reads it). Checked again inside the write: a request that is
+ * neither, or already carries the mark, is left and returned with `added: false`. Null: no such code.
  */
 export function markAnswerWoken(root: string, code: string, at: string): { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null {
   const job = wokenJob(code, at);
@@ -675,7 +698,7 @@ function wokenJob(code: string, at: string): { change: Change; outcome: (r: Writ
       const text = view.read(pathOf(code));
       const r = text === null ? null : parseRecord(pathOf(code), text);
       found = r === null || isRecordProblem(r) ? null : r;
-      added = found !== null && found.state === "answered" && !answerWoken(found);
+      added = found !== null && (found.state === "answered" || outcomeOf(found) === "dismissed") && !answerWoken(found);
       if (found === null || !added) {
         return { files: new Map(), message: "" };
       }

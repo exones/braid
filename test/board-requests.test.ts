@@ -65,12 +65,12 @@ PM-run (thread ${PM}): security always ask.
   const ask = codeOf(Cmd.askCommand(w.root, ["0001/A", "Install the runner", "--by", "pm", "--kind", "action", "--thread", PM]));
   const b = boardOf(w.root, github());
   const pushes = message.pushesOf(b);
-  const forwarded = pushes.find((p: any) => p.item === "0001");
+  const forwarded = pushes.find((p: any) => p.item.startsWith("0001#"));
   assert.match(forwarded.body, new RegExp(`^[a-z-]*${fwd.slice(2)} · B0001\n`));
   assert.equal(forwarded.click, url(PM), "the push opens the PM's thread");
   const need = b.braids.find((c: any) => c.id === "0001").need;
   assert.deepEqual([need.code, need.link, need.asking], [fwd, base + PM, base + ASKER], "the link the page shows stays the coordinator's");
-  const byPm = pushes.find((p: any) => p.item.endsWith("#pm"));
+  const byPm = pushes.find((p: any) => p.item.startsWith("0001/A#"));
   assert.match(byPm.body, new RegExp(`^[a-z-]*${ask.slice(2)} · `));
 });
 

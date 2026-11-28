@@ -53,15 +53,25 @@ Expected size: about 800 lines in 14 files, tests included.
 
 ## Completion
 
-- [ ] With three open questions on one item the board's API holds all three, the card shows the oldest plus "+2 more", the details and the Questions panel show all three, and answering one from the board leaves the other two (tests)
-- [ ] A programme with two open `pm/<slug>` questions shows both in the programmes panel and the Questions panel (test)
-- [ ] Each question gets its own push, and closing one clears only its own (test)
-- [ ] An item with an open review request and an open question is in Needs You with its Merge button (test)
-- [ ] Acknowledge on a `look` request (board button, phone, and `braid answer <name> --ack`) closes it as answered by the user with no wake of the asker, and it shows under Decided (tests)
-- [ ] Dismiss on any request (board button, phone, and `braid answer <name> --dismiss`) closes it as withdrawn by the user, wakes the asker once with the dismissed line, and it shows under Decided marked dismissed (tests)
-- [ ] At phone width the Board | Requests switch sits under the project selector; Requests shows the Questions panel full-screen with a count badge, Board the lanes without the panel; the last tab is kept per device (tests or screens)
-- [ ] The user approved the look of the two buttons and the phone switch in the mockups before they were built
-- [ ] `braid board --demo` shows an item with three open questions; screens in the item folder match the approved mockups
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] With three open questions on one item the board's API holds all three, the card shows the oldest plus "+2 more", the details and the Questions panel show all three, and answering one from the board leaves the other two (tests)
+- [x] A programme with two open `pm/<slug>` questions shows both in the programmes panel and the Questions panel (test)
+- [x] Each question gets its own push, and closing one clears only its own (test)
+- [x] An item with an open review request and an open question is in Needs You with its Merge button (test)
+- [x] Acknowledge on a `look` request (board button, phone, and `braid answer <name> --ack`) closes it as answered by the user with no wake of the asker, and it shows under Decided (tests)
+- [x] Dismiss on any request (board button, phone, and `braid answer <name> --dismiss`) closes it as withdrawn by the user, wakes the asker once with the dismissed line, and it shows under Decided marked dismissed (tests)
+- [x] At phone width the Board | Requests switch sits under the project selector; Requests shows the Questions panel full-screen with a count badge, Board the lanes without the panel; the last tab is kept per device (tests or screens)
+- [x] The user approved the look of the two buttons and the phone switch in the mockups before they were built
+- [x] `braid board --demo` shows an item with three open questions; screens in the item folder match the approved mockups
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Mockups (converge loop): add Acknowledge, Dismiss, Decided and the phone's Board | Requests switch to 0084/B's `mockups.html`, push, screenshots, stop for the user's look.
+2. After the approval, build:
+   - `src/board/signals.ts`, `programme.ts`, `model.ts`: every open request per item, asker and programme (compatible with `requestOf` and `openItemRequests` from 0084/F's PR #388); the card shows the oldest open question plus "+N more", the lane rule for review plus question (amends D46).
+   - `src/notify/`: a push ID per request.
+   - `src/braids/requests.ts`, `src/commands/requests.ts`: `braid answer --ack` and `--dismiss`; board server actions; `src/board/wake.ts` wakes the asker once on a dismissal.
+   - `web/`: the card, details, Questions panel, programmes panel, the two buttons and the phone switch; demo data in `src/board/demo.ts`.
+   - Tests, `docs/board.md`, `docs/cli.md`, `docs/decisions.md`; the gate; report.
