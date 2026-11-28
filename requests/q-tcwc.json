@@ -1,0 +1,23 @@
+{
+  "code": "q-tcwc",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "Standing rule? PM merges a PR into main itself when CI is green, the review isn't blocking and its live check passed (skill/BRAID.md changes stay yours)",
+  "options": [
+    "Yes, from now on",
+    "Only when I say so, each time"
+  ],
+  "words": "crunchy cactus",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T14:12:21.568Z",
+      "by": "pm"
+    }
+  ]
+}
