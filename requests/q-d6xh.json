@@ -18,6 +18,12 @@
       "event": "opened",
       "at": "2026-11-28T16:51:14.805Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T16:51:58.404Z",
+      "by": "user",
+      "text": "B. Skip step 3, I do revoke and logout"
     }
   ]
 }
