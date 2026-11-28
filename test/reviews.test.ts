@@ -508,8 +508,7 @@ test("a fresh board with 31 finished records at 10 s a call recovers by itself: 
   assert.equal(READ_TIMEOUT_MS, 60_000);
   await until(30_000);
   void board.refresh(); // the board's 30 s interval, while the first read still runs: it queues one read
-  await until(70_000);
-  await board.idle();
+  await until(70_000); // no `board.idle()`: with nothing remembered, read 2 waits on timers nobody advances
   assert.deepEqual(reads, [
     // Read 1: over the limit. Its calls go on, six at a time, and are remembered; its snapshot is dropped.
     { at: 60_000, shows: 31, good: false, failure: "the read took longer than 60 s" },
