@@ -287,3 +287,19 @@ test("a signed-in pause starts no synchronous process: the stop is MCP calls and
   assert.equal(x.interrupts().length, 2);
   assert.deepEqual(calls, []);
 });
+
+test("stored format: a hold with targets, replies and stop reads cleanly, and an old hold without them is acted on", async () => {
+  const x = await setup();
+  cache(x.caches, 10);
+  x.mock.switches.threads = LIVE;
+  // The old shape (as `braid pause --hold` writes it, and as every hold before 0080/E): the board acts on it.
+  setPause(x.root, holdOf());
+  assert.equal(x.record().replies, undefined);
+  await x.tick();
+  // The new shape: the record reader, unchanged since 0074 (so an older braid reads the same), keeps it and leaves nothing out.
+  const read = loadPauses(x.root);
+  assert.equal(read.note, null, "no record left out");
+  const r = read.pauses.find((p: any) => p.braid === "0070");
+  assert.deepEqual([r.reason, r.words, r.targets.length, r.replies.outcome, r.stop.stopped], ["hold", "Freeze for the release", 3, "pausing", [COORD, REV]]);
+  assert.equal(pauseView(r, NOW).text, "Held: “Freeze for the release”");
+});

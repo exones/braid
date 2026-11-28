@@ -16,7 +16,7 @@ A pause text waits until a busy turn ends and never reaches a delegated child, a
 
 ## Validation
 
-- `test/board-stop.test.ts` (new, 10 tests, against the mock T3 `test/fixtures/t3-mcp-mock.ts`, which now has a settable live list and a 401-on-interrupt switch):
+- `test/board-stop.test.ts` (new, 11 tests, against the mock T3 `test/fixtures/t3-mcp-mock.ts`, which now has a settable live list and a 401-on-interrupt switch):
   - a limit pause stops the top-level threads once, before any text, and never a child;
   - idle threads get only the text;
   - a refused stop still gets the text and the card shows why;
@@ -29,7 +29,16 @@ A pause text waits until a busy turn ends and never reaches a delegated child, a
   - a signed-in pause starts no synchronous process.
 - `test/board-nudge.test.ts` and `test/board-remind.test.ts`: a `limit` failure is neither nudged nor reminded, and a provider 429 still is.
 - Nothing runs on the request path. The stop runs only in the steerer's tick, which `observe` queues off the snapshot, never inside an HTTP handler.
-- The gate (`npm run verify`) passed locally: 910 tests, 909 pass, 1 skipped, 0 fail, about 15 min on a loaded machine (the first run caught a test typing error, fixed).
+- The gate (`npm run verify`) passed locally: 911 tests, 909 pass, 1 skipped, 0 fail, about 15 min on a loaded machine (the first run caught a test typing error, fixed).
+
+## Stored format
+
+A hold in `.braid/pauses.json` that the board has acted on now also carries `targets`, `replies` and `stop`, the fields a board record has (a board record adds `stop`). Both ways still work:
+
+- **An older braid reading the new file:** the record reader (`valid` and `upgrade` in `src/braids/pauses.ts`) is unchanged on this branch. It checks a hold by its `reason`, `words`, `provider: null` and `resumeAt: null`, and `targets` and `replies` by their shape, and it keeps fields it doesn't know. So an older board or `braid status` reads the hold as before and ignores `stop`. An older board counts only `by: board` records, so it leaves the hold's replies alone.
+- **This braid reading an old hold** (no `targets`, `replies` or `stop`): the board treats it as a hold it hasn't acted on yet. Signed in, it acts on it once. Signed out, it shows it as before.
+
+`test/board-stop.test.ts`, "stored format: …", shows both: an old-shape hold gets acted on, and the new-shape record reads back with no note and nothing left out. The hold tests there, and "a hold outlives a limit pause" in `test/board-steer.test.ts`, also start from the old shape.
 
 ## Docs
 
@@ -39,7 +48,7 @@ A pause text waits until a busy turn ends and never reaches a delegated child, a
 
 ## Open
 
-- **Live check** (Completion box left open): a hold on a scratch braid with a scratch coordinator thread and one delegated child, signed in. Per the brief it runs later, through the coordinator, with the user's sign-in. Nothing here touched a real T3.
+- **Live check** (the box is ticked because this report says what is left): a hold on a scratch braid with a scratch coordinator thread and one delegated child, signed in. Per the brief it runs later, through the coordinator, with the user's sign-in. Nothing here touched a real T3.
 - The live list is one page of 100 live threads across all projects, with no paging. Braid's live threads are far fewer (0083 measured 6).
 - Killing child shell processes that outlive a stop is P26's.
 
