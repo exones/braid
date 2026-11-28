@@ -1,0 +1,11 @@
+{
+  "id": "0084/G",
+  "events": [
+    {
+      "kind": "started",
+      "at": "2026-11-28T18:06:28.724Z",
+      "thread": "mcp:launch:fb5fcd743ad7d6c3cb1795e068f1d43a36e1e52e42fd421781fe11b7d4603838",
+      "branch": "braid/0084/G-requests-always-reach-their-reader"
+    }
+  ]
+}
