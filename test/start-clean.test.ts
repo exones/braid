@@ -50,7 +50,7 @@ test("clean keeps a worktree with changes and a branch with commits that are not
   writeFileSync(join(a, "scratch.txt"), "x");
   git(join(wt, "proj", "0001-B"), "commit", "-q", "--allow-empty", "-m", "unpushed work");
   const out = await cleanCommand(root, ["0001", "--yes"], src(prs), env);
-  assert.match(out, /skip 0001\/A: .*worktree not removed/);
+  assert.match(out, /skip 0001\/A: .*its worktree has uncommitted changes or untracked files/);
   assert.ok(existsSync(a));
   assert.match(out, /skip 0001\/B: .*merged on GitHub, but its commits are not in this checkout/);
   assert.equal(gone(root, "braid/0001/B-second-one"), false);
@@ -156,7 +156,7 @@ test("clean removes a merged plan/ branch and its clean worktree, and skips a di
   const prs = [merged(30, "plan/gone"), merged(31, "plan/dirty"), { ...merged(32, "plan/open"), state: "OPEN", mergedAt: null }];
   const dry = await cleanCommand(root, [], src(prs), env);
   assert.match(dry, /would remove planning branch plan\/gone and worktree .*plan-gone \(PR #30 merged\)/);
-  assert.match(dry, /skip planning branch plan\/dirty .*: its worktree has changes/);
+  assert.match(dry, /skip planning branch plan\/dirty .*: its worktree has uncommitted changes or untracked files/);
   assert.doesNotMatch(dry, /plan\/open/);
   assert.ok(existsSync(join(wt, "plan-gone")));
   const out = await cleanCommand(root, ["--yes"], src(prs), env);

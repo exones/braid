@@ -1,5 +1,5 @@
 // Removing one worktree of this repository without losing work, also when it has checked-out submodules
-// (`git worktree remove` refuses those). The checks come first; `--force` only after they passed.
+// (`git worktree remove` refuses those without `--force`). The checks come first; `--force` only after they passed.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { gitSync } from "./gitio.js";
@@ -16,11 +16,11 @@ function git(cwd: string, args: readonly string[]): Out {
   return { status: r.error === undefined ? r.status : null, stdout: r.stdout ?? "", stderr: r.stderr ?? (r.error?.message ?? "") };
 }
 
-/** Makes a step of the removal fail, for tests: `deinit` or `remove`. */
-let fault: ((step: "deinit" | "remove", path: string) => boolean) | undefined;
+/** Makes `git worktree remove` fail for a path, for tests. */
+let fault: ((path: string) => boolean) | undefined;
 
-/** Sets or clears the test hook that makes a removal step fail. */
-export function failRemovalForTest(hook: ((step: "deinit" | "remove", path: string) => boolean) | undefined): void {
+/** Sets or clears the test hook that makes the removal fail. */
+export function failRemovalForTest(hook: ((path: string) => boolean) | undefined): void {
   fault = hook;
 }
 
@@ -41,10 +41,6 @@ function submodules(dir: string): string[] | string {
 
 /** The reason to keep the submodule at `dir` (shown as `name`) and those inside it, or null when nothing in them would be lost. */
 function submoduleUnsafe(dir: string, name: string): string | null {
-  const status = git(dir, ["status", "--porcelain", "--ignore-submodules=none"]);
-  if (status.status !== 0) {
-    return `submodule ${name} can't be read (${first(status)})`;
-  }
   const nested = submodules(dir);
   if (typeof nested === "string") {
     return `submodule ${name} can't be read (${nested})`;
@@ -55,6 +51,10 @@ function submoduleUnsafe(dir: string, name: string): string | null {
     if (why !== null) {
       return why;
     }
+  }
+  const status = git(dir, ["status", "--porcelain", "--ignore-submodules=none"]);
+  if (status.status !== 0) {
+    return `submodule ${name} can't be read (${first(status)})`;
   }
   if (status.stdout.trim() !== "") {
     return `submodule ${name} has uncommitted changes or untracked files`;
@@ -76,10 +76,7 @@ function submoduleUnsafe(dir: string, name: string): string | null {
  * A submodule that can't be read counts as unsafe.
  */
 export function worktreeUnsafe(root: string, path: string, safe: readonly string[] = []): string | null {
-  const status = git(path, ["status", "--porcelain", "--ignore-submodules=none"]);
-  if (status.status !== 0) {
-    return `its worktree can't be read (${first(status)})`;
-  }
+  // Submodules first: the worktree's own status fails on a broken one, and the line should name it.
   const subs = submodules(path);
   if (typeof subs === "string") {
     return `its worktree can't be read (${subs})`;
@@ -89,6 +86,10 @@ export function worktreeUnsafe(root: string, path: string, safe: readonly string
     if (why !== null) {
       return why;
     }
+  }
+  const status = git(path, ["status", "--porcelain", "--ignore-submodules=none"]);
+  if (status.status !== 0) {
+    return `its worktree can't be read (${first(status)})`;
   }
   if (status.stdout.trim() !== "") {
     return "its worktree has uncommitted changes or untracked files";
@@ -106,7 +107,7 @@ export function worktreeUnsafe(root: string, path: string, safe: readonly string
 /**
  * Why `path` is not a linked worktree of the repository at `root` that may be removed, or null when it is one: listed by
  * `git worktree list` but not first (the main checkout), not `root` itself (the caller's checkout), its own top level (so git run there
- * can't walk up into another checkout), with its own git dir under the same common dir as `root`. Deinit and forced removal run only after this.
+ * can't walk up into another checkout), with its own git dir under the same common dir as `root`. The forced removal runs only after this.
  */
 export function notLinkedWorktree(root: string, path: string): string | null {
   const p = norm(path);
@@ -137,24 +138,19 @@ export function worktreeKept(root: string, path: string, safe: readonly string[]
 export type Removal = { readonly removed: true } | { readonly removed: false; readonly why: string };
 
 /**
- * Removes the linked worktree at `path` once `notLinkedWorktree` and `worktreeUnsafe` find nothing against it: deinits its submodules (when it has initialised
- * ones), then `git worktree remove --force` and `git worktree prune`. "removed" only when the folder is gone; a step that fails keeps it
- * and says which, and a later run checks again and finishes.
+ * Removes the linked worktree at `path` once `notLinkedWorktree` and `worktreeUnsafe` find nothing against it: `git worktree remove --force`
+ * (which takes the worktree's submodules and their git dirs under `.git/worktrees/<name>/modules` with it), then `git worktree prune`.
+ * No `git submodule deinit`: it edits `submodule.<name>.*` in the repository's shared config, which de-registers the submodule in the main
+ * checkout and every other worktree too. "removed" only when the folder is gone; a failure keeps it with the reason, and a later run checks
+ * again and finishes.
  */
 export function removeWorktree(root: string, path: string, safe: readonly string[] = []): Removal {
   const why = worktreeKept(root, path, safe);
   if (why !== null) {
     return { removed: false, why };
   }
-  const subs = submodules(path);
-  if (Array.isArray(subs) && subs.length > 0) {
-    // Only here, with the cwd at the one worktree verified above: never the main checkout or another worktree.
-    const d = fault?.("deinit", path) === true ? { status: 1, stdout: "", stderr: "deinit failed (test)" } : git(path, ["submodule", "deinit", "--all", "--force"]);
-    if (d.status !== 0) {
-      return { removed: false, why: `its submodules could not be deinitialised (${first(d)})` };
-    }
-  }
-  const r = fault?.("remove", path) === true ? { status: 1, stdout: "", stderr: "remove failed (test)" } : git(root, ["worktree", "remove", "--force", path]);
+  // Run from `root` on the one worktree verified above; nothing runs inside another checkout.
+  const r = fault?.(path) === true ? { status: 1, stdout: "", stderr: "remove failed (test)" } : git(root, ["worktree", "remove", "--force", path]);
   git(root, ["worktree", "prune"]);
   if (r.status !== 0) {
     return { removed: false, why: `worktree not removed (${first(r)})` };
