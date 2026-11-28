@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 5
 state: running
 hold: ""
-next: "running: 0077 (L, measurement, final PR), 0084 (A); held: 0083, 0085, 0086 (until 0077 is in main), 0078, 0080"
+next: "running: 0077 (L, measurement, final PR), 0084 (A); when 0077 is in main: resume 0078, launch P33, resume 0085 and 0086; held: 0083, 0080"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -170,6 +170,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28: user "when 77 finished, launch 78": 0078 resumes as soon as 0077 is in main (with P33, 0085, 0086).
 - 2026-11-28: user "A": P33 "Lighter local gates: a step runs only its tests" added, launched right after 0077 is in main.
 - 2026-11-28: T3 showed "5 requests waiting longer than 15s"; 11 `t3 thread show` processes alive, all from the installed board (pre-0077/J). User "kill the board": PM stopped and disabled the "braid board" scheduled task (Disable-ScheduledTask, re-enable with Enable-ScheduledTask then Start-ScheduledTask) and killed its process; no board wakes or pushes until 0077 is in main; the PM relays answers by hand.
 - 2026-11-28: user "start faster board and multiple questions": 0077 and 0084 resumed (braid resume, Go to coordinators); 0083, 0085, 0086, 0078, 0080 stay held. Limits ok (weekly 2%).
