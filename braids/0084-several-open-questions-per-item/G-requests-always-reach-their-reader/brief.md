@@ -11,7 +11,7 @@ order: 35
 
 Two request bugs, reported by another programme's PM on 2026-11-28, so that a request always reaches whoever has to read it: `braid accept` must not close a request the user still has to answer, and every recorded answer must reach the asking thread, or say on the board that it didn't.
 
-Expected size: about 250 lines in 6 files, tests included.
+Expected size: about 320 lines in 7 files, tests included.
 
 ## Start here
 
@@ -24,7 +24,8 @@ Expected size: about 250 lines in 6 files, tests included.
 - `braid accept <item>` (with or without `--merge`) refuses while a request on the item that isn't the coordinator's own is open (one the PM forwarded to the user, or one the PM asked, `by: pm`): it names each one (name, kind, who holds it) and changes nothing. It still closes the coordinator's own unforwarded requests as stale, as today. `braid start` (same `closeRequest`): keep such requests open and name them rather than refuse, since a start blocks no merge; say which you chose in report.md.
 - The answer wake: find each answer path that can end without a wake (the CLI with no board running, the `since` window after a board restart, an archived or unknown thread, anything else you find) and name them in report.md. Make every answered request either get its wake once a board runs, at any later time, or a recorded reason why it couldn't (a `reminded` event with the reason), never silence.
 - The board shows an answered request whose wake wasn't delivered as "answer not delivered" (in the Questions panel's Decided and the details' Requests tab) with a Retry action that sends the wake again and records it.
-- Tests for both: the forwarded and PM-owned requests survive `braid accept --merge`; an answer recorded while no board runs is woken by the next board start; a wake that fails shows "answer not delivered" and Retry sends it.
+- The forwarder sees the answer (the user, 2026-11-28; seen on another project, request windy-blanket-7l00, forwarded by its PM): an answer, Acknowledge or Dismiss on a request the PM forwarded also wakes the forwarding thread (the PM's) once, with one line: "<name> answered by the user: <answer> (the asker <thread> has it too)". The same for a PM's own request asked for a braid (`--by pm`) that a coordinator's thread also follows, if any. The asker's wake stays as it is. Delivery follows the rule above (woken, or a recorded reason).
+- Tests for all three: the forwarded and PM-owned requests survive `braid accept --merge`; an answer recorded while no board runs is woken by the next board start; a wake that fails shows "answer not delivered" and Retry sends it.
 
 ## Already decided
 
@@ -43,6 +44,7 @@ Expected size: about 250 lines in 6 files, tests included.
 - [ ] report.md names every answer path that could skip the wake and how each now ends
 - [ ] An answer recorded while no board runs is woken by the next board run (test)
 - [ ] An undelivered answer shows "answer not delivered" on the board with a Retry that sends the wake and records it (tests)
+- [ ] An answer, Acknowledge or Dismiss on a forwarded request wakes the forwarding thread once with the answer line, and the asker as before (test)
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
