@@ -1,0 +1,23 @@
+{
+  "code": "q-5v2l",
+  "item": "pm/autonomous-dev-machine",
+  "kind": "decision",
+  "text": "Add a 5-line per-turn checklist to the top of the braid-pm skill (via 0087/D, your merge)?",
+  "options": [
+    "Yes, add the checklist",
+    "No, leave the skill as is"
+  ],
+  "words": "polite puppy",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T15:30:10.972Z",
+      "by": "pm"
+    }
+  ]
+}
