@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 3
 state: running
 hold: ""
-next: "running: 0078 (O phone live updates, then G, H, I), 0084 (C: buttons, phone switch; then D); waiting on the user: 0080 sign-in live check; held: 0085, 0086, 0087, 0088; P34 parked"
+next: "running: 0078 (O phone live updates, then G, H, I), 0084 (C: buttons, phone switch; then D); held: 0085, 0086, 0087, 0088; P34 parked"
 digest: "14:05 · 2 done (0077, 0083) · 2 running (0078, 0080) · 9 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -172,6 +172,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28 17:50: user signed in to T3 (Full access, until 2026-12-28) and answered purple-magnet-16x3 "done"; the board reads T3 over MCP now. Hold/revoke/logout steps not run; the user stays signed in.
 - 2026-11-28: two request bugs from the sfil-v5 PM (accept withdraws forwarded requests; an answer that never woke its asker) go into 0084 as one strand; user A on yellow-lantern-xejq: accept refuses and names pending forwarded/user-held requests.
 - 2026-11-28: user merged #391 from the board (0080 done, 1c335c0b) after the PM re-check at 4de79cc3 (with #388); braid installed from main, board service restarted; action request for the user's sign-in live check opened.
 - 2026-11-28: user merged #388 (0084/F, several open questions per item, c369711c) via the board; PM installed braid from main, restarted the board, told every agento coordinator and the other PMs (everix SFIL, dctl-studio, everix4 audit, Everix Cloud) to rebook stacked questions. polite-puppy-5v2l A: PM checklist goes into 0087/D on its Go. noisy-ribbon-05gq A (0084/C mockups approved).
