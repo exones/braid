@@ -6,7 +6,7 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 3
 state: running
 hold: ""
-next: "running: 0078 (N, then E-I; #384 to main), 0080 (F; live check waits on sticky-ladder-4x27), 0084 (E, C with Acknowledge, D); held: 0085, 0086, 0087 (D gets the ✋ guard), 0088; P34 parked"
+next: "running: 0078 (N, then E-I), 0080 (F; live check waits on sticky-ladder-4x27), 0084 (E, C with Acknowledge, D); held: 0085, 0086, 0087 (D gets the ✋ guard), 0088; P34 parked"
 digest: "14:05 · 2 done (0077, 0083) · 2 running (0078, 0080) · 9 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -172,6 +172,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28: PM live check of #384 (0078/L lock fix into main) passed; user: "If it's safe to merge you can merge actually" (giant-pickle-juvv): merged 764eb9d5, braid installed from main, board service restarted.
 - 2026-11-28: user A on noisy-kitten-amem: 0084 resumed (limit 3), Acknowledge button sent into 0084/C; the skill guard "every ✋ has an open request" goes into 0087/D on its Go.
 - 2026-11-28 14:05: user: reread the PM skill, the sign-in was not on the board. Opened sticky-ladder-4x27 (action, 0080). From now on: every question to the user is a braid ask (with options), live checks are titled pm check and recorded with braid review, passed handovers are braid forward-ed to the user, digests go out with braid notify.
 - 2026-11-28: user asked for an Acknowledge button on FYI (look) requests: closes as seen without waking an agent, moves to Decided; goes into 0084/C on its Go (idea iy7b).
