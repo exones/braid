@@ -20,3 +20,12 @@ Picked files per one-file change (of 78): start.ts 47, done.ts 45, requests.ts 3
 
 next: on Go, re-run those 3 files (pwsh scripts/Test-Node.ps1 test/board-async.test.ts test/board-projects.test.ts test/inbox.test.ts), no second full gate; tick boxes; write report.md (For later items: name-based signal, e.g. start.test.ts for src/commands/start.ts; Needs the user: scope, since a hub-module change still picks most files and takes far more than minutes under load); open the PR into braid/0087-lighter-local-gates-a-step-runs-only-its.
 open: no PR yet.
+
+## 2026-11-28 12:20Z checkpoint
+
+done: after the restart, re-ran only the 3 files that failed in the full gate (test/board-async, board-projects, inbox) with scripts/Test-Node.ps1 on a build of 64b0c0e0: 31/31 pass in 163 s. So the full gate's 3 failures were load flakes.
+
+Quick gate time split, from the logs (total minus node --test duration): launch.ts 979 s = 104 s fixed steps + 875 s tests; requests.ts 2466 s = 87 s fixed + 2379 s tests. README only (docs gate and OIDC guard, no typecheck or build): 95 s. All under the load of other braids.
+
+next: on Go, no more test runs needed; tick the Completion boxes, write report.md (timings and split, pick counts, store.ts 65 of 78 as the scope point, For later items: name-based signal), open the PR into braid/0087-lighter-local-gates-a-step-runs-only-its (its 3 new commits are braids/ only).
+open: no report.md, no PR.
