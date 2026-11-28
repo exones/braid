@@ -214,3 +214,49 @@ test("braid ask --to self: a timed wait needs a time, opens as one, and braid re
   const open = Rec.loadRecord(w.root).requests.filter((x: any) => x.state === "open");
   assert.deepEqual(open.map((x: any) => [x.to ?? "user", x.text]).sort(), [["self", "idle a bit longer"], ["user", "Which name?"]]);
 });
+
+// 0078/N (the everix 0035/A case): a strand parked behind its coordinator's work or a sibling it depends on is not stalled.
+const T3none = (): any => ({ status: { state: "ok" }, threads: new Map(), coordinators: new Map(), idleCoordinators: new Map(), states: new Map(), links: new Map() });
+
+/** Strand A depends on strand B; reads the board at minute 0 and 25, past both ten-minute clocks, and returns the last card. */
+function parked(a: string, b: string, t3: any = T3none()): any {
+  const w = world();
+  const [first, second] = base.strands;
+  const strands = [
+    { ...first, brief: { ...first.brief, status: a, dependencies: [`0007/${second.letter}`] } },
+    { ...second, brief: { ...second.brief, status: b, dependencies: [] } },
+  ];
+  let card: any;
+  for (const m of [0, 25]) {
+    const sig = signals.readSignals(w.root, GH, at(m));
+    card = model.toCard({ ...braided, strands }, GH, t3, sig);
+    sig.commit(card.alarms);
+  }
+  return card;
+}
+const dep = `0007/${base.strands[1].letter}`;
+
+test("a strand whose coordinator works doesn't read stalled", async () => {
+  const w = world();
+  const list = [{ threadId: CO7, status: "completed", pendingBackgroundTasks: [{ taskId: "w", kind: "subagent" }], title: `🧠 ${titleRepoName(w.root)} 0007 coordinator: Seven` }];
+  const t3 = await readFrom(w.root, list, {});
+  const card = parked("In Progress", "Done", t3);
+  assert.deepEqual([card.strands[0].reason, card.strands[0].need, card.strands[0].waitingOn, card.reason], [null, null, null, null]);
+});
+
+test("a strand behind a sibling that isn't Done reads as waiting on it, not stalled", () => {
+  const card = parked("In Progress", "In Progress", { ...T3none(), threads: new Map([[dep, [{ id: "t", role: "worker", pending: 0, link: null }]]]) });
+  assert.deepEqual([card.strands[0].lane, card.strands[0].reason, card.strands[0].need, card.strands[0].waitingOn], ["In Progress", null, null, dep]);
+  assert.equal(card.reason, null);
+});
+
+test("real stalls stay: no unfinished dependency stalls the strand; behind a sibling nobody started, the idle coordinator's braid reads stalled", () => {
+  const free = parked("In Progress", "Done");
+  assert.deepEqual([free.strands[0].reason, free.strands[0].waitingOn], ["stalled", null]);
+  // The sibling in progress with nobody on it is the one that stalls, not the strand behind it.
+  const behind = parked("In Progress", "In Progress");
+  assert.deepEqual(behind.strands.map((s: any) => s.reason), [null, "stalled"]);
+  const unstarted = parked("In Progress", "To Do");
+  assert.deepEqual([unstarted.strands[0].reason, unstarted.strands[0].waitingOn, unstarted.reason], [null, dep, "stalled"]);
+  assert.equal(unstarted.need.text, "Stalled: the coordinator stopped and nothing was asked");
+});

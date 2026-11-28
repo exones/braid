@@ -322,6 +322,15 @@ function WaitLine({ row }: { row: RequestRow }) {
   );
 }
 
+/** The quiet line of a strand parked behind a sibling it depends on. */
+function ParkedLine({ strand, name = false, className = "mt-1.5" }: { strand: StrandCard; name?: boolean; className?: string }) {
+  return (
+    <div className={`rounded-md border-l-[3px] border-slate-300 bg-slate-50 px-1.5 py-1 text-[12.5px] leading-snug text-slate-700 ${className}`}>
+      {name ? `${strand.id} waiting` : "Waiting"} on {strand.waitingOn}
+    </div>
+  );
+}
+
 function Badge({ children, tone = "bg-slate-200 text-slate-700" }: { children: ReactNode; tone?: string }) {
   return <span className={`rounded-full px-2 py-px text-[11px] ${tone}`}>{children}</span>;
 }
@@ -904,6 +913,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
       ))}
       {details && !open && braid.pm !== null && <PmLine pm={braid.pm} />}
       {details && !open && braid.waits.map((w) => <WaitLine key={w.code} row={w} />)}
+      {details && !open && braid.strands.filter((s) => s.waitingOn !== null).map((s) => <ParkedLine key={s.id} strand={s} name />)}
       {details && !open && braid.pause !== null && (braid.lane === "In Progress" || braid.lane === "To Do") && <PauseLine pause={braid.pause} />}
       {open && (
         <div className="mt-2 border-t border-dashed border-slate-200 pt-1">
@@ -926,6 +936,7 @@ function Card({ braid, details }: { braid: TaggedCard; details: boolean }) {
               <PrLink pr={s.pr} />
               <Marks marks={strandMarks(s, details)} />
               <span onClick={(e) => e.stopPropagation()}><Actions id={s.id} lane={s.lane} thread={s.thread} threadRole={s.threadRole} merge={s.merge} /></span>
+              {details && s.waitingOn !== null && <ParkedLine strand={s} className="ml-[34px] basis-full" />}
               {details && s.need !== null && <NeedLine need={s.need} className="ml-[34px] basis-full" />}
               {details && s.pmAsk !== null && s.need?.by !== "pm" && <NeedLine need={s.pmAsk} className="ml-[34px] basis-full" />}
             </div>
