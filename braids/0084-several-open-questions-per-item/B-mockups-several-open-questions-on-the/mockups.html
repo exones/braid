@@ -108,31 +108,31 @@ button{font:inherit;color:inherit}
 <body>
 <button class="theme" id="theme" type="button" title="Switch light and dark">◐</button>
 <h1>0084/B mockups: several open questions on the board</h1>
-<p class="intro">Test data only. Since 0084/A a new question no longer withdraws an open one, so one item can hold several. Strand <b>0009/A</b> has three open questions of its coordinator (the oldest escalated); strand <b>0009/B</b> has one of the coordinator and one of the PM; programme <b>working-product</b> has two <code>pm/&lt;slug&gt;</code> questions. Strands have no card of their own on the board: a strand shows as a row of its braid's card. <b>The proposal (variant A): repeat today's request box once per open question, oldest first. No new component.</b> The page follows your system theme; ◐ switches it. The board today is light only.</p>
+<p class="intro">Test data only. Since 0084/A a new question no longer withdraws an open one, so one item can hold several. Strand <b>0009/A</b> has three open questions of its coordinator (the oldest escalated); strand <b>0009/B</b> has one of the coordinator and one of the PM; programme <b>working-product</b> has two <code>pm/&lt;slug&gt;</code> questions. Strands have no card of their own on the board: a strand shows as a row of its braid's card. <b>Approved by the user (lazy-cloud-560n, 2026-11-28), variant B: a card shows the item's oldest open question plus "+N more".</b> The details, the Questions panel and the programmes panel show every question. The page follows your system theme; ◐ switches it. The board today is light only.</p>
 
 <h2>1. Strands open on the braid card: three questions on one row, coordinator and PM on another</h2>
-<p class="note"><b>New:</b> one box per open question under the strand's row, oldest first; the coordinator's come first, then the PM's (as today with one each). With <b>Details off</b> the boxes hide as today; the one <b>?</b> icon gets a count when there are several, and its tooltip lists them all (drawn open).</p>
+<p class="note"><b>New:</b> under the strand's row, the oldest open question in today's box, then "+N more" with the other names, whoever asked (coordinator or PM); a click opens the item's Requests tab. With <b>Details off</b> the boxes hide as today; the one <b>?</b> icon gets a count when there are several, and its tooltip lists them all (drawn open).</p>
 <div class="cols">
   <div class="col"><h4>Details on</h4><div id="s1on"></div></div>
   <div class="col"><h4>Compact (Details off)</h4><div id="s1off"></div></div>
 </div>
 
 <h2>2. The braid card, strands folded: it shows the strand's questions</h2>
-<p class="note">As today the card shows the most urgent item only, now with all of that item's questions. The line under the group says which strand, and <b>+1 more in strands</b> still counts other <i>strands</i> that ask (here 0009/B), not questions. A strand's PM question shows under it, as today.</p>
-<div class="cols">
+<p class="note">As today the card shows the most urgent item only: its oldest question and "+2 more". The line under it says which strand, and <b>+1 more in strands</b> still counts other <i>strands</i> that ask (here 0009/B), not questions. A strand's PM question shows under it, as today.</p>
+  <div class="cols">
   <div class="col"><h4>Details on</h4><div id="s2on"></div></div>
   <div class="col"><h4>Compact (Details off)</h4><div id="s2off"></div></div>
 </div>
 
-<h2>3. The one real choice: how much the card lists</h2>
-<p class="note"><b>A (recommended):</b> every question in full. You read them without a click, it matches the programmes panel, and open questions are rare enough that tall cards stay the exception. <b>B:</b> the oldest in full, then "+2 more" with the other names; a click opens the item's Requests tab. Shorter, but the other questions can't be read on the card.</p>
+<h2>3. How much the card lists: B, approved</h2>
+<p class="note"><b>B (approved):</b> the oldest open question in full, then "+2 more" with the other names. A (every question in full) was not chosen and stays here as the record.</p>
 <div class="cols">
-  <div class="col"><h4>A. Every question listed (recommended)</h4><div id="vA"></div></div>
-  <div class="col"><h4>B. The first and "+2 more"</h4><div id="vB"></div></div>
+  <div class="col"><h4>B. Oldest and "+2 more" ✓ approved</h4><div id="vB"></div></div>
+  <div class="col" style="opacity:.55"><h4>A. Every question (not chosen)</h4><div id="vA"></div></div>
 </div>
 
 <h2>4. A handover and a question open together</h2>
-<p class="note">Possible since 0084/A: a question stays open beside the coordinator's <code>review</code> request. <b>Proposed:</b> the card is in Needs You (a question stops work), keeps the violet merge line first and its Merge button, with the questions under it. This is what the board does today for a handover next to a PM question.</p>
+<p class="note">Possible since 0084/A: a question stays open beside the coordinator's <code>review</code> request. <b>Approved:</b> the card is in Needs You (a question stops work), with the violet merge line and its Merge button above the questions. This amends D46.</p>
 <div class="cols"><div class="col"><div id="s4"></div></div></div>
 
 <h2>5. The details panel of strand 0009/A: the banner and the Requests tab</h2>
@@ -157,7 +157,7 @@ button{font:inherit;color:inherit}
 </div>
 
 <h2>8. At phone width (390 px)</h2>
-<p class="note">The same card, one lane at a time. The tab counts stay counts of cards (one card here asks); the Questions panel below the board counts questions.</p>
+<p class="note">The same card (variant B), one lane at a time. The tab counts stay counts of cards (one card here asks); the Questions panel below the board counts questions.</p>
 <div class="phone" id="s8"></div>
 
 <script>
@@ -176,7 +176,9 @@ const B = { h: "quiet-lark-2fhn", age: "15 min", text: "Page the report, or scro
 const BPM = { h: "tiny-tractor-3i2b", age: "9 min", text: "The PM asks you to: send one month of the real ledger as a sample.", act: "do" };
 
 const box = (q, id, o = {}) => `<div class="need ${q.esc ? "esc" : ""}">${chip(q.h)} <b>blocks ${id}</b> · <span class="act">${q.act || "decide"}</span><br>${q.say || q.text}<br>${ASK}${o.age === false ? "" : `<small>asked ${q.age} ago</small>`}</div>`;
-const stack = (qs, id) => `<div class="stack">${qs.map((q) => box(q, id)).join("")}</div>`;
+const stack = (qs, id) => `<div class="stack">${lead(qs, id)}</div>`;
+// Variant B: the oldest open question, then the names of the others.
+const lead = (qs, id) => box(qs[0], id) + (qs.length > 1 ? `<div class="more"><b>+${qs.length - 1} more</b> ${qs.slice(1).map((q) => chip(q.h)).join(" ")}</div>` : "");
 const icon = (n) => `<span class="q-ic">?${n > 1 ? `<sup>${n}</sup>` : ""}</span>`;
 const tip = (qs, foot) => `<div class="tip">${qs.map((q) => `<div><b>${q.h}</b> ${q.say || q.text} — asked ${q.age} ago</div>`).join("")}${foot ? `<small>${foot}</small>` : ""}</div>`;
 const acts = '<span class="ib" title="Open thread">🖥</span>';
@@ -197,20 +199,20 @@ $("s1off").innerHTML = lane(openCard(false));
 
 const WHERE = "+1 more in strands · strand 0009/A";
 const folded = (list) => card(head(0, false) + list + bottom);
-const listA = () => A.map((q) => box(q, "0009/A")).join("") + `<small class="foot-s">${WHERE}</small>` + box(BPM, "0009/B") ;
+const listB = lead(A, "0009/A") + `<small class="foot-s">${WHERE}</small>`;
 const listAonly = A.map((q) => box(q, "0009/A")).join("") + `<small class="foot-s">${WHERE}</small>`;
+const listFolded = listB + box(BPM, "0009/B");
 // The braid card also shows the PM's question of a strand, as today.
-$("s2on").innerHTML = lane(folded(listA()));
+$("s2on").innerHTML = lane(folded(listFolded));
 $("s2off").innerHTML = lane(card(head(3, false) + tip(A, WHERE) + bottom));
 
+$("vB").innerHTML = lane(folded(listB));
 $("vA").innerHTML = lane(folded(listAonly));
-$("vB").innerHTML = lane(folded(box(A[0], "0009/A") + `<div class="more"><b>+2 more questions</b> ${chip(A[1].h)} ${chip(A[2].h)}</div><small class="foot-s">${WHERE}</small>`));
 
 $("s4").innerHTML = lane(card(`<div class="line"><span class="mut">0011</span><span class="tag">tier:S</span>${ptag}<span class="link">PR #21</span>${icon(2)}</div><div class="t">Report e-mail</div>
-  <div class="need rev">${chip("gold-seal-1m9x")} <b>blocks 0011</b> · <span class="act">merge</span><br>Merge PR #21<br>${ASK}<small>asked 30 min ago</small></div>
-  ${box({ h: "plain-wren-3t7d", age: "12 min", text: "Send the e-mail on Monday or on the 1st?" }, "0011")}
-  ${box({ h: "mellow-ibis-5r8k", age: "4 min", text: "Attach the CSV, or only link it?" }, "0011")}
-  <div class="line" style="margin-top:8px"><span class="sp"></span><span class="ib merge" title="Merge">⇥</span><span class="ib" title="Open coordinator">🧠</span></div>`));
+  <div class="need rev">${chip("gold-seal-1m9x")} <b>blocks 0011</b> · <span class="act">merge</span><br>Merge PR #21<br><span class="line">${ASK}<span class="sp"></span><span class="ib sm merge" title="Merge">⇥</span></span><small>asked 30 min ago</small></div>
+  ${lead([{ h: "plain-wren-3t7d", age: "12 min", text: "Send the e-mail on Monday or on the 1st?" }, { h: "mellow-ibis-5r8k" }], "0011")}
+  <div class="line" style="margin-top:8px"><span class="sp"></span><span class="ib" title="Open coordinator">🧠</span></div>`));
 
 const detHead = '<div class="line"><span class="mut">0009/A</span> <b>Totals model</b> ' + icon(3) + '<span class="sp"></span>' + acts + "</div>";
 $("s5a").innerHTML = `<div class="panel">${detHead}
@@ -246,7 +248,7 @@ const programme = `<div class="pc"><div class="line">${ptag}<b>🧭 working-prod
 $("s7").innerHTML = `<div class="prog"><div class="line">🧭 <b style="font-size:15px">Programmes</b><span class="mut">1</span></div>${sec("Needs you · 1")}${programme}</div>`;
 
 $("s8").innerHTML = `<div class="top">braid · attention board</div><div class="tabs">${[["1", "Needs you"], ["0", "Review"], ["2", "Working"], ["1", "To Do"], ["14", "Done"]].map(([n, l], i) => `<span class="${i ? "" : "on"}"><b>${n}</b>${l}</span>`).join("")}</div>
-  <div style="padding:10px">${folded(listA())}</div>
+  <div style="padding:10px">${folded(listFolded)}</div>
   <div class="qp" style="border-radius:0;border-width:2px 0 0">${qhead(6).replace('<span class="ib">»</span>', "")}${sec("Escalated to you", true)}${row(A[0])}${sec("Blocks one item")}${row(A[1])}<div class="mut" style="text-align:center">… 4 more …</div></div>`;
 
 $("theme").onclick = () => {

@@ -54,4 +54,4 @@ Expected size: about 400 lines in one HTML file.
 - [x] `mockups.html` in the item folder shows the screens listed under Change on test data, readable in light and dark and at phone width
 - [x] report.md lists the screens, any variant with its recommendation, and the questions for the user
 - [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
+- [x] The gate command from BRAID.md passes
