@@ -35,8 +35,17 @@ Expected size: about 80 lines in 3 files (about 200 if a fix is needed).
 
 ## Completion
 
-- [ ] A test shows a fresh board with 31 finished records at 10 s per call recovering: a read within the limit by the second (or a stated) read, with timings in report.md
-- [ ] If it didn't recover on the base, the fix and a test that failed before it
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md, Refresh), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A test shows a fresh board with 31 finished records at 10 s per call recovering: a read within the limit by the second (or a stated) read, with timings in report.md
+- [x] If it didn't recover on the base, the fix and a test that failed before it (not needed: it recovered on the base)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/board.md, Refresh), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+From the code, the base should recover by the second read: the feed drops a late snapshot, but the read still runs to its end and `remember()` in `src/board/t3.ts` fills the process's memory as each `thread show` answers.
+
+1. Add a test through `feed` and the real `readT3` in test/reviews.test.ts: 31 finished records, a fake T3 (`thread list` at once, `thread show` after 10 s), the real 60 s limit, mocked timers and clock. A second refresh is asked at 30 s, as the board's interval does.
+2. Measure the same with real timers (a script in the artifacts folder, temporary folders, fake T3).
+3. Only if it doesn't recover: fix it. Otherwise no product change; report.md says so.
+

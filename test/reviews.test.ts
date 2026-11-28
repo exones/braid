@@ -34,6 +34,11 @@ const { loadReviews, reviewsFile, recordReview } = (await load("../dist/braids/r
 const t3mod = (await load("../dist/board/t3.js")) as {
   readT3: (root: string, o: object) => Promise<{ status: { state: string }; threads: Map<string, Thread[]>; idle?: Map<string, Thread[]>; pmChecks?: string[] }>;
 };
+const { feed, READ_TIMEOUT_MS } = (await load("../dist/board/feed.js")) as {
+  READ_TIMEOUT_MS: number;
+  feed: (src: object, o: { changed: () => void }) => { refresh: () => Promise<void>; idle: () => Promise<void>; good: () => unknown; failure: () => string | null; close: () => void };
+};
+const { demoSources } = (await load("../dist/commands/board.js")) as { demoSources: () => object };
 const model = (await load("../dist/board/model.js")) as {
   derive: (status: string, labels: string[], key: string, gh: unknown, t3: unknown, sig: unknown) => { lane: string; reason: string | null; activity: string | null };
 };
@@ -469,6 +474,47 @@ test("finished records that come due together are re-checked a few per read, and
   assert.equal(await read("10:06:00"), 6);
   assert.equal(await read("10:06:30"), 4, "the rest");
   assert.equal(await read("10:07:00"), 0, "unanswered ones wait for the next interval");
+});
+
+// 0077/L: after a board start the memory is empty, so the first read asks every record; under load that read alone passes the limit.
+test("a fresh board with 31 finished records at 10 s a call recovers by itself: the first read times out, the second succeeds", async (t) => {
+  const { root } = repo();
+  for (let i = 0; i < 31; i++) {
+    recordReview(root, "0001/B", `thread:fresh-${i}`);
+  }
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const began = Date.now();
+  const at = () => Date.now() - began;
+  let shows = 0;
+  // `thread list` answers at once (10 ms, as a process does), each `thread show` after 10 s.
+  const run: T3Run = (_root, args) =>
+    new Promise((done) => {
+      const list = args[1] === "list";
+      shows += list ? 0 : 1;
+      setTimeout(() => done(ok(list ? [] : { thread: { status: "completed" } })), list ? 10 : 10_000);
+    });
+  const reads: { at: number; shows: number; good: boolean; failure: string | null }[] = [];
+  const board = feed(
+    { ...demoSources(), t3: () => t3mod.readT3(root, { run, agents: join(scratch, "none"), project: root }) },
+    { changed: () => reads.push({ at: at(), shows, good: board.good() !== undefined, failure: board.failure() }) },
+  );
+  t.after(() => board.close());
+  const until = async (ms: number) => {
+    while (at() < ms) {
+      t.mock.timers.tick(10);
+      await new Promise((done) => setImmediate(done));
+    }
+  };
+  assert.equal(READ_TIMEOUT_MS, 60_000);
+  await until(30_000);
+  void board.refresh(); // the board's 30 s interval, while the first read still runs: it queues one read
+  await until(70_000); // no `board.idle()`: with nothing remembered, read 2 waits on timers nobody advances
+  assert.deepEqual(reads, [
+    // Read 1: over the limit. Its calls go on, six at a time, and are remembered; its snapshot is dropped.
+    { at: 60_000, shows: 31, good: false, failure: "the read took longer than 60 s" },
+    // Read 2 starts when read 1 ends (60 010 ms) and takes only `thread list`: 10 ms, no `thread show`.
+    { at: 60_020, shows: 31, good: true, failure: null },
+  ]);
 });
 
 // 0060/B: a recorded `worker` child (`braid launch`) is its item's worker, seen as a worktree worker is.
