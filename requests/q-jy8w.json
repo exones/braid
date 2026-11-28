@@ -1,0 +1,22 @@
+{
+  "code": "q-jy8w",
+  "item": "0077",
+  "kind": "review",
+  "text": "review PR #375 at fe19e2f",
+  "words": "silly monkey",
+  "by": "coordinator",
+  "thread": "mcp:launch:90866b96cd9d1f3df0e696ca84e6a89e03158132a8a9cd664a6abeada0094837",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:375",
+  "pr": 375,
+  "head": "fe19e2feddfdeff37fef92db4ad4f75cc0315f27",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T08:44:39.063Z",
+      "by": "coordinator"
+    }
+  ]
+}
