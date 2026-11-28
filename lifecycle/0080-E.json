@@ -6,6 +6,13 @@
       "at": "2026-11-28T12:32:11.323Z",
       "thread": "mcp:launch:dd3b6dc3e3dfa3c9a1515a11da6c5a321a852f1a03d3476d761e87ada6709510",
       "branch": "braid/0080/E-hold-and-resume-reach-every-thread"
+    },
+    {
+      "kind": "accepted",
+      "at": "2026-11-28T13:41:14.648Z",
+      "head": "3608e6dd478cbbecb65ac03a759a8d78550c2e56",
+      "review": "https://github.com/exones/braid/pull/383#issuecomment-7240089865",
+      "thread": "mcp:launch:dd3b6dc3e3dfa3c9a1515a11da6c5a321a852f1a03d3476d761e87ada6709510"
     }
   ]
 }
