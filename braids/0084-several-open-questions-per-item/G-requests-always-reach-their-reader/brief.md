@@ -25,7 +25,8 @@ Expected size: about 320 lines in 7 files, tests included.
 - The answer wake: find each answer path that can end without a wake (the CLI with no board running, the `since` window after a board restart, an archived or unknown thread, anything else you find) and name them in report.md. Make every answered request either get its wake once a board runs, at any later time, or a recorded reason why it couldn't (a `reminded` event with the reason), never silence.
 - The board shows an answered request whose wake wasn't delivered as "answer not delivered" (in the Questions panel's Decided and the details' Requests tab) with a Retry action that sends the wake again and records it.
 - The forwarder sees the answer (the user, 2026-11-28; seen on another project, request windy-blanket-7l00, forwarded by its PM): an answer, Acknowledge or Dismiss on a request the PM forwarded also wakes the forwarding thread (the PM's) once, with one line: "<name> answered by the user: <answer> (the asker <thread> has it too)". The same for a PM's own request asked for a braid (`--by pm`) that a coordinator's thread also follows, if any. The asker's wake stays as it is. Delivery follows the rule above (woken, or a recorded reason).
-- Tests for all three: the forwarded and PM-owned requests survive `braid accept --merge`; an answer recorded while no board runs is woken by the next board start; a wake that fails shows "answer not delivered" and Retry sends it.
+- A request's context always shows on the board (the user, 2026-11-28: windy-violin-af9e, a security question, reached the user with only its title after `braid forward`, and they couldn't understand it): the card, the Questions panel and the forwarded view show the stored context, the forward's note beside it, never in place of it. `braid ask --kind decision` or `--key <case>` without `--context`/`--context-file` prints a warning (the request still opens).
+- Tests for all four: the forwarded and PM-owned requests survive `braid accept --merge`; an answer recorded while no board runs is woken by the next board start; a wake that fails shows "answer not delivered" and Retry sends it.
 
 ## Already decided
 
@@ -45,6 +46,7 @@ Expected size: about 320 lines in 7 files, tests included.
 - [ ] An answer recorded while no board runs is woken by the next board run (test)
 - [ ] An undelivered answer shows "answer not delivered" on the board with a Retry that sends the wake and records it (tests)
 - [ ] An answer, Acknowledge or Dismiss on a forwarded request wakes the forwarding thread once with the answer line, and the asker as before (test)
+- [ ] A forwarded request shows its stored context on the board; `braid ask` of a decision or a stop case without context warns (tests)
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
