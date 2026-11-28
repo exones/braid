@@ -1,0 +1,26 @@
+{
+  "code": "q-05gq",
+  "item": "0084/C",
+  "kind": "look",
+  "text": "Look at 0084/C mockups (Acknowledge, Dismiss, phone Board | Requests) and answer 4 questions",
+  "context": "0084/C mockups, sections 9-11 of braids/0084-several-open-questions-per-item/B-mockups-several-open-questions-on-the/mockups.html on branch braid/0084/C-several-open-questions-on-the-board (head 0fa92a07): 9 Dismiss on every open request and Acknowledge on looks/FYIs (panel rows, opened panel cards, board card); 10 Decided with an acknowledged and a dismissed request (Questions panel, Requests tab); 11 phone Board | Requests switch under the project selector (both tabs, an opened question). Screenshots in C:\\Users\\exon\\.braid\\artifacts\\agento\\0084\\C-9-buttons.png, C-9-buttons-dark.png, C-10-decided.png, C-11-phone.png, C-11-phone-dark.png.\nQuestions: 1) buttons with words (recommended: a one-click Dismiss as an icon is easy to hit by mistake) or icons only? 2) board card: Dismiss/Acknowledge inside the question box enough (recommended), or also an Answer button opening the question in the panel? 3) details Requests tab without buttons (recommended), or Dismiss/Acknowledge there too? 4) phone opens the last tab used on the device, first time Requests if something waits (recommended), or always Requests whenever something waits? Requests badge counts open questions (not looks/FYIs), red when escalated, hidden at zero.",
+  "options": [
+    "As recommended: words, buttons in the box, none in Requests tab, last tab",
+    "As recommended, but always Requests when something waits",
+    "Change something"
+  ],
+  "words": "noisy ribbon",
+  "by": "coordinator",
+  "thread": "mcp:launch:fb5fcd743ad7d6c3cb1795e068f1d43a36e1e52e42fd421781fe11b7d4603838",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T15:20:47.672Z",
+      "by": "coordinator"
+    }
+  ]
+}
