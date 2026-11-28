@@ -1,0 +1,25 @@
+{
+  "code": "q-w8mb",
+  "item": "0088",
+  "kind": "plan",
+  "text": "Approve the plan",
+  "options": [
+    "Approve",
+    "Change something",
+    "Show me the briefs"
+  ],
+  "words": "sleepy basket",
+  "by": "coordinator",
+  "thread": null,
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T11:25:47.888Z",
+      "by": "coordinator"
+    }
+  ]
+}
