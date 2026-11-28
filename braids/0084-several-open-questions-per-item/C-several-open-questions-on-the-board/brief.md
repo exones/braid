@@ -65,3 +65,13 @@ Expected size: about 800 lines in 14 files, tests included.
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. Mockups (converge loop): add Acknowledge, Dismiss, Decided and the phone's Board | Requests switch to 0084/B's `mockups.html`, push, screenshots, stop for the user's look.
+2. After the approval, build:
+   - `src/board/signals.ts`, `programme.ts`, `model.ts`: every open request per item, asker and programme (compatible with `requestOf` and `openItemRequests` from 0084/F's PR #388); the card shows the oldest open question plus "+N more", the lane rule for review plus question (amends D46).
+   - `src/notify/`: a push ID per request.
+   - `src/braids/requests.ts`, `src/commands/requests.ts`: `braid answer --ack` and `--dismiss`; board server actions; `src/board/wake.ts` wakes the asker once on a dismissal.
+   - `web/`: the card, details, Questions panel, programmes panel, the two buttons and the phone switch; demo data in `src/board/demo.ts`.
+   - Tests, `docs/board.md`, `docs/cli.md`, `docs/decisions.md`; the gate; report.
