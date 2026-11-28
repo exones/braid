@@ -466,3 +466,18 @@ test("0075/B fix round: a strand stamped Done by an older CLI whose PR the looku
   // Without the request, the stored Done reads Done, as before.
   assert.equal(model.toCard(braid, gh(), t3(), sig([])).strands[0].lane, "Done");
 });
+
+test("0078/G: a stored Done whose PR the lookup missed, its review with the PM or forwarded under a programme: a braid with strands reads Working, a story To Do", () => {
+  const brief = (id: string, status: string) => ({ id, title: "T", status, labels: [], dependencies: [], related: [], order: 1, delivery: "epic", autonomy: null, sections: [] });
+  const goal: any = { number: "0001", folder: "braids/0001-x", source: null, brief: brief("0001", "Done"), strands: [{ letter: "A", folder: "braids/0001-x/A-a", source: null, brief: brief("0001/A", "Done") }] };
+  const story: any = { ...goal, strands: [] };
+  const withPm = request("review", 5, { id: "0001", pr: 7 });
+  const forwarded = { ...withPm, to: "user", forwarded: ago(1) };
+  const underProgramme = { ...sig([forwarded]), plans: [{ plan: { slug: "w", state: "active", rows: [{ braid: "0001" }] } }] };
+  for (const s of [sig([withPm]), underProgramme]) {
+    for (const [braid, lane] of [[goal, "In Progress"], [story, "To Do"]]) {
+      const card = model.toCard(braid, gh(), t3(), s);
+      assert.deepEqual([card.lane, card.need, card.pm !== null], [lane, null, true]);
+    }
+  }
+});

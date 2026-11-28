@@ -150,7 +150,7 @@ function needPush(repo: string, id: string, title: string, lane: Lane, need: Nee
 /**
  * The merges the PM forwarded to the user, one push per PM thread: `<repo>: <n> merges wait for you` (one: `<repo> <id>: merge PR #<n>`),
  * per PR its handle, braid and title, head and what it blocks, and the PM's note; high, 👀, opening the PM's thread. Its key holds the set of PRs and their heads and its sequence ID is the PM thread's,
- * so a merge joining or leaving (or a moved head) sends it again in place of the old one; when none is left the notifier clears it.
+ * so a merge joining or leaving (or a moved head) sends it again in place of the old one (quiet when merges only left, `shrankFrom`); when none is left the notifier clears it.
  */
 function mergesPush(repo: string, thread: string, items: readonly Forward[], link: string | null): Push {
   const click = clickOf(link);
@@ -174,6 +174,21 @@ function mergesPush(repo: string, thread: string, items: readonly Forward[], lin
     click,
     sequence: sequenceOf(repo, item),
   };
+}
+
+/**
+ * Whether the merges group of key `newer` is that of `older` with merges left out and none added or moved: the same PM
+ * thread, its PRs and heads a strict subset. False for any other key. Such a push is news of nothing to do, so it goes quiet.
+ */
+export function shrankFrom(newer: string, older: string): boolean {
+  const [item = "", set = ""] = newer.split("|");
+  const [wasItem, wasSet = ""] = older.split("|");
+  if (!item.startsWith("merges#") || item !== wasItem) {
+    return false;
+  }
+  const now = set.split(",");
+  const was = new Set(wasSet.split(","));
+  return now.length < was.size && now.every((m) => was.has(m));
 }
 
 /** The lane a request puts its item in: a review is To Review, any other request Needs You. */

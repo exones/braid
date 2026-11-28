@@ -33,11 +33,17 @@ Expected size: about 120 lines in 4 to 7 files.
 
 - Other push contents and lanes.
 
+## Plan
+
+1. cbe9: `message.ts` gets `shrankFrom(newer, older)` over merges-group keys (the same PM thread, the PRs and heads a strict subset). `notifier.ts` sends such a push at priority low, and keeps the superseded key until the quiet push is sent, so a retry stays quiet.
+2. cft5: reproduce on the current code (`heldReview` was removed by 0075/B). The card is right for what is left of it, so fix lane rule 1 in docs/board.md and pin the behaviour with a test.
+3. uanu: docs/board.md names the handover push title `To Review`.
+
 ## Completion
 
-- [ ] A shrink-only merges-group update is quiet, a grown one alerts, tested
-- [ ] The card and lane rule 1 agree for the cft5 case, tested if code changed
-- [ ] docs/board.md says `To Review` for the handover push title
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A shrink-only merges-group update is quiet, a grown one alerts, tested
+- [x] The card and lane rule 1 agree for the cft5 case, tested if code changed
+- [x] docs/board.md says `To Review` for the handover push title
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
