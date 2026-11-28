@@ -11,7 +11,7 @@ order: 30
 
 The board shows every open question of an item, on the card, in the details panel, in the Questions panel and in the programmes panel, as 0084/B's approved mockups show them, and each is answered on its own. Pushes and wakes treat each question on its own.
 
-Expected size: about 550 lines in 12 files, tests included.
+Expected size: about 650 lines in 13 files, tests included.
 
 ## Start here
 
@@ -32,7 +32,8 @@ Expected size: about 550 lines in 12 files, tests included.
 - Each question is pushed on its own, and clearing one leaves the others' pushes.
 - The demo (`braid board --demo`) has an item with three open questions and a programme with two.
 - **Acknowledge** (the user, 2026-11-28, idea 2026-11-28-iy7b): an Acknowledge button next to Answer on FYI requests (kind `look`), in the Questions panel, on the card and on the phone. One click closes the request as seen by the user, recorded in braid with no agent turn (no wake, no thread message); it then shows under Decided. Matching CLI: `braid answer <name> --ack`.
-- First step, before building: add the Acknowledge button to 0084/B's `mockups.html` (the panel row, the card, the phone), push, and stop for the user's look through the coordinator; build only after the approval.
+- **Dismiss** (the user, 2026-11-28: "I also want the button dismiss on all requests … dismissed by user. Meaning that I close this request without an answer. And if the coordinator still thinks I have to answer, it should raise again. … Sometimes some requests become obsolete after other requests are answered, so I just want to dismiss them."): a Dismiss button on every request, every kind, in the Questions panel, on the card and on the phone, next to Answer (and Acknowledge on FYIs). One click closes the request with no answer, recorded as dismissed by the user; it shows under Decided marked dismissed. Unlike Acknowledge it wakes the asking thread once: "<handle> dismissed by the user without an answer; if you still need it, ask again with what changed." Anything it blocked stays blocked until the asker re-asks or decides otherwise. Matching CLI: `braid answer <name> --dismiss`.
+- First step, before building: add the Acknowledge and Dismiss buttons to 0084/B's `mockups.html` (the panel row, the card, the phone, Decided showing an acknowledged and a dismissed request), push, and stop for the user's look through the coordinator; build only after the approval.
 
 ## Already decided
 
@@ -40,6 +41,7 @@ Expected size: about 550 lines in 12 files, tests included.
 - 0084/A changed the record and the CLI; the record format is unchanged.
 - The look is the user's approval of 0084/B; anything the mockups leave open goes to the coordinator before it is built.
 - Acknowledge is recorded with no new state or event kind (programme rule): the request ends `answered`, by the user, with the text `Acknowledged`, and its `reminded` event "answer sent to the asking thread" (`markAnswerWoken`, `ANSWER_WOKEN` in `src/braids/requests.ts`) is written in the same write, so the board's wake (`src/board/wake.ts`) never wakes the asker. Only `look` requests take `--ack`; other kinds are refused.
+- Dismiss adds no new state either: the request ends `withdrawn`, by the user (`who: user`), with the text `dismissed by the user without an answer`; the board's wake sends the asker that line once, as it does for an answer recorded outside the asking thread. `--dismiss` and `--ack` are flags of `braid answer`, no new command ("don't overblow").
 - The user's verdict on 0084/B (lazy-cloud-560n, 2026-11-28): "1. A card with several questions shows the oldest open question plus \"+N more\". Not every question in full. 2. As proposed: the folded braid card shows the most urgent strand plus \"+N more in strands\". 3. As proposed: a PR handover with open questions goes to Needs You, with the Merge button kept above the questions. This amends D46. 4. As proposed: with details off, the ? icon shows a count."
 - `requestLines` in `src/commands/coordinate.ts` picks the PM line's handle with `own.findLast`; once signals hold several requests, match the PM's own request instead (0084/A review suggestion 2).
 
@@ -54,7 +56,9 @@ Expected size: about 550 lines in 12 files, tests included.
 - [ ] A programme with two open `pm/<slug>` questions shows both in the programmes panel and the Questions panel (test)
 - [ ] Each question gets its own push, and closing one clears only its own (test)
 - [ ] An item with an open review request and an open question is in Needs You with its Merge button (test)
-- [ ] Acknowledge on a `look` request (board button, phone, and `braid answer <name> --ack`) closes it as answered by the user with no wake of the asker, and it shows under Decided (tests); the user approved the button's look in the mockups first
+- [ ] Acknowledge on a `look` request (board button, phone, and `braid answer <name> --ack`) closes it as answered by the user with no wake of the asker, and it shows under Decided (tests)
+- [ ] Dismiss on any request (board button, phone, and `braid answer <name> --dismiss`) closes it as withdrawn by the user, wakes the asker once with the dismissed line, and it shows under Decided marked dismissed (tests)
+- [ ] The user approved the two buttons' look in the mockups before they were built
 - [ ] `braid board --demo` shows an item with three open questions; screens in the item folder match the approved mockups
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
