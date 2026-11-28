@@ -24,6 +24,12 @@
       "at": "2026-11-28T14:19:01.574Z",
       "by": "user",
       "text": "A. Ship A early, then tell coordinators"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T14:19:04.925Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
