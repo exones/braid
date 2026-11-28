@@ -29,7 +29,16 @@ Expected size: about 100 lines in 5 to 8 files.
 
 ## Completion
 
-- [ ] Docs from BRAID.md `docs` are true as a whole for everything 0080 changed
-- [ ] report.md lists each doc checked as updated or unchanged
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] Docs from BRAID.md `docs` are true as a whole for everything 0080 changed
+- [x] report.md lists each doc checked as updated or unchanged
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+Check each doc in BRAID.md docs against the braid's diff and the strand reports, then fill the gaps only:
+
+- docs/board.md: "First sign-in and checking it" and "T3's own settings" (auto-settle, auto-resume) in T3 sign-in; hold gating and what restarts; the board's own pushes.
+- docs/decisions.md: the stop step's decision (0080/E, no D entry yet), the auto-settle drop (q-htgo), D108's "not built".
+- docs/roadmap.md: braid 0080. docs/getting-started.md: a PM's hold, auto-settle, the installer's runtime dependency. README.md and docs/cli.md: small touches.
+- src/cli.ts help: what a hold does on a signed-in board.
