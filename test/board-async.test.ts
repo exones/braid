@@ -170,22 +170,3 @@ test("a gh call that times out reads as not answering within 30 s; only a missin
   const sync = github.readGithub("/nowhere-gh-c", () => ({ status: null, stdout: "", stderr: "", error: Object.assign(new Error("spawnSync gh ETIMEDOUT"), { code: "ETIMEDOUT" }) }));
   assert.equal(sync.status.reason, "GitHub didn't answer within 30 s; retrying");
 });
-
-test("an old .braid/requests.json is carried over by the board's read without a synchronous process", async () => {
-  const w = world();
-  const requests: any = await load("../../dist/braids/requests.js");
-  mkdirSync(join(w.root, ".braid"), { recursive: true });
-  writeFileSync(join(w.root, ".braid", "requests.json"), JSON.stringify([{ id: "0001", kind: "question", text: "carried", at: "2026-11-01T00:00:00Z", thread: ASKER }]));
-  // The main checkout is asked of Git once, when a project is set up.
-  requests.legacyFile(w.root);
-  board.repoSources(w.root, w.opts.gh, w.opts.t3);
-  const watch = watchSync();
-  let record: any;
-  try {
-    record = await requests.loadRecordAsync(w.root);
-  } finally {
-    watch.stop();
-  }
-  assert.deepEqual(watch.calls, [], `synchronous processes ran: ${JSON.stringify(watch.calls)}`);
-  assert.deepEqual(record.requests.map((r: any) => r.text), ["carried"]);
-});

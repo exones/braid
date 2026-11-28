@@ -78,7 +78,7 @@ export function repo(withStrands = true): { root: string; env: Record<string, st
 
 export const gone = (root: string, branch: string) => git(root, "branch", "--list", branch) === "";
 
-export const { agentsDirs } = (await load("../../dist/braids/worktree-folders.js")) as { agentsDirs: (root: string, env: Record<string, string>) => string[] };
+export const { agentsDir } = (await load("../../dist/braids/worktree-folders.js")) as { agentsDir: (root: string, env: Record<string, string>) => string };
 
 let homes = 0;
 /** Runs `body` with a project list in a scratch home (homedir() follows HOME and USERPROFILE). */

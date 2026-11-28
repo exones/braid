@@ -1,9 +1,8 @@
 // The request record on `braid-requests`: one file per request with a code and events that only grow,
-// written like the inbox (no checkout, pushed at once, a refused push redone, offline kept local), and the
-// old `.braid/requests.json` carried over once.
+// written like the inbox (no checkout, pushed at once, a refused push redone, offline kept local).
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
@@ -207,53 +206,18 @@ test("a request file that doesn't parse is reported and skipped; the others stil
   assert.equal(R.openRequest(root, q("0002")).warning, null, "a bad file doesn't stop writes");
 });
 
-const legacy = (root: string, list: object[]) => {
-  mkdirSync(dirname(R.legacyFile(root)), { recursive: true });
-  writeFileSync(R.legacyFile(root), `${JSON.stringify(list, null, 2)}\n`);
-};
-const OLD = [
-  { id: "0001", kind: "plan", text: "Approve?", at: "2026-11-20T09:00:00.000Z", thread: "mcp:launch:aaaaaaaa1111" },
-  { id: "0002/B", by: "pm", kind: "question", text: "Which?", at: "2026-11-21T09:00:00.000Z", thread: null, to: "pm", pm: "pm-thread", forwarded: "2026-11-21T10:00:00.000Z", note: "yours" },
-  { id: "0003", kind: "review", text: "review PR #9 at abcdef0", at: "2026-11-22T09:00:00.000Z", thread: null, pr: 9, head: "b".repeat(40) },
-];
-
-test("an old .braid/requests.json is carried over once, with codes and its times, and kept renamed", () => {
-  const { origin, clones } = world(1);
-  const root = clones[0] as string;
-  legacy(root, OLD);
-  const open = R.loadRequests(root);
-  assert.equal(open.length, 3);
-  assert.deepEqual(
-    open.map((r: any) => [r.id, r.by ?? "coordinator", r.at, r.state]),
-    [
-      ["0001", "coordinator", "2026-11-20T09:00:00.000Z", "open"],
-      ["0002/B", "pm", "2026-11-21T09:00:00.000Z", "open"],
-      ["0003", "coordinator", "2026-11-22T09:00:00.000Z", "open"],
-    ],
-  );
-  const pm = open.find((r: any) => r.id === "0002/B");
-  assert.deepEqual([pm.to, pm.forwarded, pm.note], ["user", "2026-11-21T10:00:00.000Z", "yours"]);
-  assert.deepEqual([open[2].pr, open[2].doneWhen], [9, "pr:9"]);
-  assert.ok(open.every((r: any) => /^q-[a-z0-9]{4}$/.test(r.code)));
-  assert.equal(existsSync(R.legacyFile(root)), false);
-  assert.deepEqual(JSON.parse(readFileSync(join(root, ".braid", R.MIGRATED), "utf8")), OLD, "the old file is kept, renamed");
-  // The board's read commits locally; the next write pushes it.
-  R.openRequest(root, q("0004"));
-  assert.equal(onOrigin(origin).length, 4);
-  assert.equal(R.migrate(root), 0, "once");
-});
-
-test("a migration that died before the rename doesn't duplicate what it wrote", () => {
+test("an old .braid/requests.json is not read: nothing is carried over, committed or renamed", () => {
   const { clones } = world(1);
   const root = clones[0] as string;
-  // The first record made it onto the branch, then the process died: the file is still there.
-  R.openRequest(root, OLD[0]);
-  legacy(root, OLD);
-  assert.equal(R.migrate(root), 2);
-  assert.equal(R.loadRecord(root).requests.length, 3);
-  legacy(root, OLD);
-  assert.equal(R.migrate(root), 0, "everything already there");
-  assert.equal(R.loadRecord(root).requests.length, 3);
+  const file = join(root, ".braid", "requests.json");
+  mkdirSync(dirname(file), { recursive: true });
+  const old = JSON.stringify([{ id: "0001", kind: "question", text: "old", at: "2026-11-20T09:00:00.000Z", thread: null }]);
+  writeFileSync(file, old);
+  assert.deepEqual(R.loadRecord(root).requests, []);
+  assert.equal(git(root, "for-each-ref", "refs/heads/braid-requests"), "");
+  R.openRequest(root, q("0002"));
+  assert.deepEqual(R.loadRequests(root).map((r: any) => r.id), ["0002"]);
+  assert.equal(readFileSync(file, "utf8"), old);
 });
 
 test("readers list from the local refs without fetching", () => {

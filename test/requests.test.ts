@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, realpathSync, utimesSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, utimesSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, beforeEach, test } from "node:test";
@@ -20,11 +20,10 @@ const { handoverCommand, askCommand, requestsCommand, answerCommand } = (await l
 const { startCommand } = (await load("../dist/commands/start.js")) as { startCommand: (root: string, args: string[], src: object, env: object) => Promise<string> };
 const { acceptCommand } = (await load("../dist/commands/done.js")) as { acceptCommand: Cmd };
 const { resetGithubMemory } = (await load("../dist/board/github.js")) as { resetGithubMemory: () => void };
-const { loadRequests, loadRecord, legacyFile, openRequest, holding, filterLive, age, locked, handleOf } = (await load("../dist/braids/requests.js")) as {
+const { loadRequests, loadRecord, openRequest, holding, filterLive, age, locked, handleOf } = (await load("../dist/braids/requests.js")) as {
   loadRequests: (root: string) => { id: string; kind: string; text: string; head?: string }[];
   handleOf: (r: { code: string }) => string;
   loadRecord: (root: string) => { requests: { code: string; id: string; state: string; events: { event: string; at: string; by: string; text?: string }[] }[] };
-  legacyFile: (root: string) => string;
   openRequest: (root: string, request: object) => { code: string };
   holding: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => Map<string, { state: string }>;
   filterLive: (requests: object[], prOf: (n: number) => { state: string; headRefOid: string } | null) => object[];
@@ -52,7 +51,7 @@ interface Pr {
 }
 
 /** The lock file the record's writers take turns with, in the main checkout's `.braid/`. */
-const lockOf = (root: string) => join(dirname(legacyFile(root)), "requests.lock");
+const lockOf = (root: string) => join(root, ".braid", "requests.lock");
 
 /** A repository with braid 0001 (strand A, PR #5 on its branch), a bare remote, and a second worktree of it. */
 function world() {
@@ -109,7 +108,6 @@ test("ask opens a request that every worktree shares; a new ask replaces it; ans
   const code = `q-${handle.slice(-4)}`;
   assert.ok(git(w.root, "ls-tree", "-r", "--name-only", "origin/braid-requests").split("\n").includes(`requests/${code}.json`), "pushed to the record's branch");
   assert.equal(existsSync(join(w.other, ".braid")), false, "nothing is kept in the worktree");
-  assert.equal(realpathSync.native(dirname(dirname(legacyFile(w.other)))), realpathSync.native(w.root), "found from any worktree");
   const listed = (await requestsCommand(w.other, [], { gh: w.gh, now: () => new Date("2026-11-15T12:30:00Z") })) as string;
   assert.equal(listed, `${handle}  0001/A  decision  30m  blocks 0001/A · decide  Which name should it have?\n`);
   askCommand(w.other, ["0001/A", "Plan ok?", "--kind", "plan"], { now: w.clock });
@@ -417,7 +415,7 @@ for (let i = 0; i < 3; i++) openRequest(root, { id: id + i, kind: "question", te
 test("the state folder ignores itself, so it never shows as untracked", () => {
   const w = world();
   openRequest(w.root, req("0001"));
-  assert.equal(readFileSync(join(dirname(legacyFile(w.root)), ".gitignore"), "utf8"), "*\n");
+  assert.equal(readFileSync(join(w.root, ".braid", ".gitignore"), "utf8"), "*\n");
   assert.equal(git(w.root, "status", "--porcelain", "--untracked-files=all"), "");
 });
 
