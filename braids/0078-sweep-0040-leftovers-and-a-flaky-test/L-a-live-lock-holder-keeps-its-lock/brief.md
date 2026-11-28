@@ -55,10 +55,10 @@ Expected size: about 80 to 150 lines in 2 to 4 files.
 
 ## Completion
 
-- [ ] A live holder slower than the stale time keeps its lock, tested
-- [ ] A dead holder's lock is still taken over, tested
-- [ ] Release deletes only our own lock, and a taken-over holder doesn't write, tested
-- [ ] The separate-process writers test prints a failing writer's stderr
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/braids-format.md on the lock), or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] A live holder slower than the stale time keeps its lock, tested
+- [x] A dead holder's lock is still taken over, tested
+- [x] Release deletes only our own lock, and a taken-over holder doesn't write, tested
+- [x] The separate-process writers test prints a failing writer's stderr
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated (docs/braids-format.md on the lock), or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
