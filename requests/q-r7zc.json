@@ -22,6 +22,13 @@
       "event": "opened",
       "at": "2026-11-28T00:01:57.570Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T00:03:06.809Z",
+      "by": "pm",
+      "text": "A. Approve, with the close as a request record. The hold record's new optional fields with `by` kept in today's values are approved; show the older-reader check in the report. 0086/H's PR comes to me for the user's merge.",
+      "reason": "approve with the close as a request record, because only the PM then writes pm/<slug> and the user's close is on record with who and when, instead of the CLI committing state: done (two writers on one branch)"
     }
   ]
 }
