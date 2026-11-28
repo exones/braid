@@ -17,14 +17,21 @@ export interface PlanRead {
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-/** The newest plans of every `pm/*` branch of the repository at `root`, slug order. */
+/** The last plans read per root, with the refs and their commits they were read at. */
+const last = new Map<string, { readonly key: string; readonly plans: readonly PlanRead[] }>();
+
+/** The newest plans of every `pm/*` branch of the repository at `root`, slug order; read again only when a tip moved. */
 export async function readPlans(root: string): Promise<PlanRead[]> {
-  const refs = await gitAsync(root, ["for-each-ref", "--format=%(refname)", "refs/heads/pm/", "refs/remotes/origin/pm/"]);
+  const refs = await gitAsync(root, ["for-each-ref", "--format=%(refname) %(objectname)", "refs/heads/pm/", "refs/remotes/origin/pm/"]);
   if (refs.status !== 0) {
     return [];
   }
+  const had = last.get(root);
+  if (had?.key === refs.stdout) {
+    return [...had.plans];
+  }
   const chosen = new Map<string, string>();
-  for (const ref of refs.stdout.split("\n").map((l) => l.trim()).filter((l) => l !== "")) {
+  for (const ref of refs.stdout.split("\n").map((l) => l.split(" ")[0] ?? "").filter((l) => l !== "")) {
     const local = /^refs\/heads\/pm\/(.+)$/.exec(ref)?.[1];
     const remote = /^refs\/remotes\/origin\/pm\/(.+)$/.exec(ref)?.[1];
     const slug = local ?? remote;
@@ -43,7 +50,11 @@ export async function readPlans(root: string): Promise<PlanRead[]> {
   } catch {
     texts = slugs.map(() => null);
   }
-  return slugs.map((slug, i) => planOf(slug, chosen.get(slug) ?? `pm/${slug}`, texts[i] ?? null));
+  const plans = slugs.map((slug, i) => planOf(slug, chosen.get(slug) ?? `pm/${slug}`, texts[i] ?? null));
+  if (texts.every((t) => t !== null)) {
+    last.set(root, { key: refs.stdout, plans });
+  }
+  return [...plans];
 }
 
 /** One plan as the board shows it. */

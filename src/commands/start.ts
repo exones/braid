@@ -1,7 +1,7 @@
 // `braid start <id>`: what a coordinator does before launching a worker, in one command: the
 // item's branch from its base, pushed, and a worktree for the worker. The first step that fails
 // stops it; nothing is rolled back beyond what was never created.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import type { BranchRef } from "../braids/branches.js";
@@ -23,7 +23,7 @@ export { worktreesDir };
 const REMOTE = "origin";
 
 function git(root: string, args: readonly string[]) {
-  return spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd: root, encoding: "utf8" });
+  return gitSync(root, args);
 }
 
 function must(root: string, args: readonly string[], what: string): string {

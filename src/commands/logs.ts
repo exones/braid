@@ -1,6 +1,6 @@
 // braid log and braid report: record a strand's life. `braid log` stages its file
 // with git add and never commits.
-import { spawnSync } from "node:child_process";
+import { gitSync } from "../braids/gitio.js";
 import { join, resolve } from "node:path";
 import { appendLog, now, threadShort, writeReport } from "../braids/logs.js";
 import { GitError } from "../braids/numbers.js";
@@ -47,7 +47,7 @@ export function logEntry(root: string, cwd: string, args: readonly string[]): st
   const text = input("braid log", values, cwd, positionals[1]);
   const name = appendLog(join(root, item.folder), short, text, values["checkpoint"] === true, now());
   const path = `${item.folder}/${name}`;
-  const add = spawnSync("git", ["add", "--", path], { cwd: root, encoding: "utf8" });
+  const add = gitSync(root, ["add", "--", path]);
   if (add.status !== 0) {
     throw new GitError(`wrote ${path} but git add failed: ${(add.stderr || String(add.error ?? "")).trim()}`);
   }
