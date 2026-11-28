@@ -21,9 +21,11 @@ test("a strand with an open PR: --merge merges the reviewed green head, records 
   // No status is written into the brief: Done comes from the merge.
   assert.match(w.show("braid/0001-alpha", "braids/0001-alpha/A-first/brief.md"), /^status: In Progress$/m);
   assert.equal(git(w.root, "--git-dir", w.remote, "log", "-1", "--format=%s", "braid/0001-alpha"), "docs(braids): 0001/A accepted");
-  assert.equal(git(w.root, "--git-dir", w.remote, "diff", "--name-only", "braid/0001-alpha~1", "braid/0001-alpha"), `braids/0001-alpha/log-${new Date().toISOString().slice(0, 10)}-abcdef01.md`);
+  // Any date: the command dates the file, and midnight UTC can pass before this line.
+  const logName = git(w.root, "--git-dir", w.remote, "diff", "--name-only", "braid/0001-alpha~1", "braid/0001-alpha");
+  assert.match(logName, /^braids\/0001-alpha\/log-\d{4}-\d{2}-\d{2}-abcdef01\.md$/);
   assert.equal(git(w.root, "--git-dir", w.remote, "log", "-1", "--format=%s", "braid-requests"), "docs(record): 0001/A accepted");
-  const logText = w.show("braid/0001-alpha", "braids/0001-alpha/log-" + new Date().toISOString().slice(0, 10) + "-abcdef01.md");
+  const logText = w.show("braid/0001-alpha", logName);
   assert.match(logText, /0001\/A merged: PR #5\./);
   const line = `Accepted: 0001/A at ${head.slice(0, 7)}; review: https://x/pr/5#c1; coordinator thread mcp:launch:abcdef0123.`;
   assert.ok(logText.includes(line), logText);

@@ -435,9 +435,12 @@ async function main(argv: readonly string[]): Promise<void> {
   process.exitCode = out.code;
 }
 
-try {
-  await main(process.argv.slice(2));
-} catch {
-  process.stderr.write("error: unexpected failure\n");
-  process.exitCode = 5;
+// Only as the entry point: importing this module (a test) must run no command.
+if (import.meta.main) {
+  try {
+    await main(process.argv.slice(2));
+  } catch {
+    process.stderr.write("error: unexpected failure\n");
+    process.exitCode = 5;
+  }
 }

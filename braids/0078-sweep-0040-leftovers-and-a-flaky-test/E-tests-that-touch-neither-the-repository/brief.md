@@ -35,8 +35,14 @@ Expected size: about 150 lines in 3 to 6 files.
 
 ## Completion
 
-- [ ] The help-command test runs in a temporary repository and doesn't run `main` on import, and covers the commands `main` dispatches (a test that a help entry nothing runs fails it)
-- [ ] No test builds an expected date after the command it checks (a fake clock or a date taken before shows it)
-- [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] The help-command test runs in a temporary repository and doesn't run `main` on import, and covers the commands `main` dispatches (a test that a help entry nothing runs fails it)
+- [x] No test builds an expected date after the command it checks (a fake clock or a date taken before shows it)
+- [x] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+- `src/cli.ts`: run `main` only under `if (import.meta.main)`, so a test can import `run`, `helpText` and `boardHelp`.
+- `test/cli.test.ts`: every braid spawn and `run` call works in a temporary Git repository with a temporary home. The help test asks `run` first and spawns the built CLI for what `run` calls unknown (no skip list); a made-up help entry must be reported; importing `dist/cli.js` prints nothing.
+- `test/done-merge.test.ts`: match `log-<any date>-abcdef01.md` from the pushed diff and read that file; no clock in the test.
