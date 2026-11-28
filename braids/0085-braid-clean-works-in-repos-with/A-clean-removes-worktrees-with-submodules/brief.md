@@ -48,6 +48,13 @@ Expected size: about 200 lines in 3 files, tests included.
 - One line per kept worktree outside the items clean cleans, and the sweep without a number: 0085/B. Requests for the user: 0085/C.
 - Sharing submodules between worktrees; disk-use display.
 
+## Plan
+
+1. New module `src/braids/remove-worktree.ts`: `worktreeUnsafe(root, path)` returns the reason to keep a worktree or null (its own status with `--ignore-submodules=none`, its HEAD in this checkout's HEAD or on a remote-tracking ref, then every gitlink from `git ls-files -s` whose folder has a `.git`, recursively: status, `rev-list HEAD --not --remotes`, unreadable counts as unsafe; the line names the submodule path). `removeWorktree(root, path)` runs those checks, then `submodule deinit --all --force` when the worktree has initialised submodules, `worktree remove --force`, `worktree prune`, and reports "removed" only when the folder is gone. A test-only fault hook makes deinit or remove fail.
+2. `clean.ts`: the four sites (plans, reviewThreads, old review checkout, item loop) call `worktreeUnsafe` in their skip chain (so a dry run names the reason too) and `removeWorktree` under `--yes`, behind their existing checks.
+3. Tests in `test/clean-submodules.test.ts` on fixture repos with one submodule that has a nested one (`file://`, `protocol.file.allow=always`): every case under "Failure modes"; update the old messages in `start-clean.test.ts`.
+4. Docs: `docs/cli.md` clean section; decision record if one is needed.
+
 ## Completion
 
 - [ ] `braid clean --yes` removes a merged item's worktree with checked-out submodules (fixture repo, test)

@@ -1,6 +1,7 @@
 // `braid clean [<number>|<id>] [--yes]`: removes the worktrees and local branches of items whose
 // PR is merged, and of merged planning branches (`plan/<slug>`). A dry run unless `--yes`. It keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
-// changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay. The one exception is a recorded subagent's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
+// changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay. A worktree goes through `removeWorktree`: with submodules too, once
+// neither it nor any submodule has uncommitted, untracked or unpushed work (`worktreeUnsafe`, which a dry run also asks). The one exception is a recorded subagent's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
 import { spawnSync } from "node:child_process";
 import { existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
@@ -13,6 +14,7 @@ import { agentsDirs } from "../braids/worktree-folders.js";
 import { childRole, dropReviews, loadReviews } from "../braids/reviews.js";
 import { parentsCheckout, runT3, showThread, type T3, type T3Runner } from "../board/t3.js";
 import { repoName } from "./start.js";
+import { removeWorktree, worktreeUnsafe } from "../braids/remove-worktree.js";
 
 interface Worktree {
   readonly path: string;
@@ -108,8 +110,8 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
       skip = why;
     } else if (git(root, ["merge-base", "--is-ancestor", branch, "HEAD"]).status !== 0) {
       skip = "merged on GitHub, but its commits are not in this checkout's HEAD: pull first, or delete it by hand";
-    } else if (tree !== undefined && existsSync(tree.path) && git(tree.path, ["status", "--porcelain"]).stdout.trim() !== "") {
-      skip = "its worktree has changes";
+    } else if (tree !== undefined && existsSync(tree.path) && !yes && (skip = worktreeUnsafe(root, tree.path)) !== null) {
+      // set in the condition: a dry run names what --yes would keep
     } else if (tree !== undefined && existsSync(tree.path) && yes && !free(tree.path)) {
       skip = "still in use, retry later";
     }
@@ -119,9 +121,9 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
       lines.push(`would remove ${what}`);
     } else {
       if (tree !== undefined && existsSync(tree.path)) {
-        const r = git(root, ["worktree", "remove", tree.path]);
-        if (r.status !== 0) {
-          lines.push(`skip ${what}: worktree not removed (${(r.stderr || r.stdout).trim().split("\n")[0] ?? ""})`);
+        const r = removeWorktree(root, tree.path);
+        if (!r.removed) {
+          lines.push(`skip ${what}: ${r.why}`);
           continue;
         }
       } else if (tree !== undefined) {
@@ -144,6 +146,8 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
  */
 async function reviewThreads(root: string, yes: boolean, id: string, pr: number, head: string | undefined, t3Ok: boolean, run: T3Runner, listed: readonly Worktree[], held: Held, lines: string[]): Promise<void> {
   const records = loadReviews(root).filter((r) => r.id === id);
+  // The merged PR's head is in the repository's history: a checkout sitting there loses nothing.
+  const safeHeads = head === undefined ? [] : [head];
   const drop: string[] = [];
   for (const r of records) {
     const label = `${id}: ${childRole(r)} thread ${r.thread}`;
@@ -199,6 +203,8 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
       skip = "the folder is not a worktree of this repository";
     } else if (held(folder, null, r.thread) !== null) {
       skip = held(folder, null, r.thread);
+    } else if (tree !== undefined && !yes && existsSync(tree.path) && (skip = worktreeUnsafe(root, tree.path, safeHeads)) !== null) {
+      // set in the condition: a dry run names what --yes would keep
     } else if (tree !== undefined && yes && existsSync(tree.path) && !free(tree.path)) {
       skip = "still in use, retry later";
     }
@@ -213,9 +219,9 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
       continue;
     }
     if (tree !== undefined && existsSync(tree.path)) {
-      const rm = git(root, ["worktree", "remove", tree.path]);
-      if (rm.status !== 0) {
-        lines.push(`skip ${what}: not removed (${(rm.stderr || rm.stdout).trim().split("\n")[0] ?? ""})`);
+      const rm = removeWorktree(root, tree.path, safeHeads);
+      if (!rm.removed) {
+        lines.push(`skip ${what}: ${rm.why}`);
         continue;
       }
     } else if (tree !== undefined) {
@@ -275,7 +281,8 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
       const rev = listed.find((t) => revPaths.includes(norm(t.path)));
       if (rev !== undefined) {
         const what = `${item.id}: review checkout ${rev.path} (PR #${item.card.pr.number} merged)`;
-        const why = held(rev.path, null);
+        const safeHeads = item.card.pr.head === undefined ? [] : [item.card.pr.head];
+        const why = held(rev.path, null) ?? (!yes && existsSync(rev.path) ? worktreeUnsafe(root, rev.path, safeHeads) : null);
         if (why !== null) {
           lines.push(`skip ${what}: ${why}`);
         } else if (!yes) {
@@ -286,8 +293,8 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
           git(root, ["worktree", "prune"]);
           lines.push(`removed ${what}`);
         } else {
-          const r = git(root, ["worktree", "remove", rev.path]);
-          lines.push(r.status === 0 ? `removed ${what}` : `skip ${what}: not removed (${(r.stderr || r.stdout).trim().split("\n")[0] ?? ""})`);
+          const r = removeWorktree(root, rev.path, safeHeads);
+          lines.push(r.removed ? `removed ${what}` : `skip ${what}: ${r.why}`);
         }
       }
       for (const ref of w.refs.filter((r) => r.local && r.number === number && r.letter === item.letter)) {
@@ -307,6 +314,8 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
           skip = "merged on GitHub, but its commits are not in this checkout's HEAD: pull first, or if it was squash-merged, delete it by hand";
         } else if (tree !== undefined && !named && !folders.some((f) => norm(tree.path).startsWith(`${f}/`))) {
           skip = `its worktree ${tree.path} is not in the braid worktree folder (name the strand to clean it)`;
+        } else if (tree !== undefined && !yes && existsSync(tree.path) && (skip = worktreeUnsafe(root, tree.path)) !== null) {
+          // set in the condition: a dry run names what --yes would keep
         } else if (tree !== undefined && yes && !free(tree.path)) {
           skip = "still in use, retry later";
         }
@@ -320,9 +329,9 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
           continue;
         }
         if (tree !== undefined && existsSync(tree.path)) {
-          const r = git(root, ["worktree", "remove", tree.path]);
-          if (r.status !== 0) {
-            lines.push(`skip ${what}: worktree not removed (${(r.stderr || r.stdout).trim().split("\n")[0] ?? ""})`);
+          const r = removeWorktree(root, tree.path);
+          if (!r.removed) {
+            lines.push(`skip ${what}: ${r.why}`);
             continue;
           }
         } else if (tree !== undefined) {
