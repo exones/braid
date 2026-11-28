@@ -18,6 +18,12 @@
       "event": "opened",
       "at": "2026-11-28T15:30:10.972Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T15:36:11.746Z",
+      "by": "user",
+      "text": "A. Yes, add the checklist"
     }
   ]
 }
