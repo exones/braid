@@ -18,6 +18,12 @@
       "event": "opened",
       "at": "2026-11-28T14:12:21.568Z",
       "by": "pm"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T14:14:48.963Z",
+      "by": "user",
+      "text": "B. Only when I say so, each time"
     }
   ]
 }
