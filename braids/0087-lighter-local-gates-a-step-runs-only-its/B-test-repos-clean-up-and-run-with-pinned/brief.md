@@ -31,6 +31,7 @@ Expected size: about 200 lines across test/support and the test files that make 
 
 - The settings come from the PM's investigation and 0057/A: no fsmonitor, no auto-gc or auto-maintenance, `core.fscache`, `core.preloadindex`.
 - Don't kill or clean up the existing leftover folders or daemons on the machine; this strand stops new ones.
+- The PM removed the machine's old leftovers on 2026-11-28 at about 09:55 (96 fsmonitor daemons, 1,754 `braid-*` folders; 10 newer ones kept), so the counts start near zero: measure what one full gate run adds (new folders, new daemons) before and after this change, not the totals.
 - Related to 0077 (edits test/support and the `test` script) and 0078/E (test/cli.test.ts, test/done-merge.test.ts): see the braid brief; merge main first if 0077 has landed, keep edits in shared files small.
 
 ## Out of scope
@@ -43,7 +44,7 @@ Expected size: about 200 lines across test/support and the test files that make 
 - [ ] After `npm run verify:full` on this machine, the temp dir has no new `braid-*` folders, also after a test that failed (shown with a deliberately failing test, not committed)
 - [ ] After a gate run there are no new `git fsmonitor--daemon` processes, with a machine whose global git config turns fsmonitor on
 - [ ] The pinned settings apply when one test file is run directly
-- [ ] report.md lists the before and after counts (folders, daemons) and how the check keeps it so
+- [ ] report.md lists what one full gate run adds (folders, daemons) before and after this change, and how the check keeps it so
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
