@@ -29,6 +29,12 @@
       "by": "pm",
       "text": "A. Approve: no deinit, forced remove after checks",
       "reason": "Follows the user binding rule that clean never touches the main checkout or another worktree submodules; the test shows deinit in a linked worktree rewrites the shared .git/config, which is that damage. Forced remove only after the no-work checks."
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T12:17:19.836Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
