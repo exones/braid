@@ -5,8 +5,8 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { catBatchSync } from "./gitio.js";
-import { currentFiles, lockedBranch, tips, writeBranchUnlocked, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
+import { catBatch, catBatchSync } from "./gitio.js";
+import { currentFiles, currentFilesAsync, lockedBranch, lockedBranchAsync, tips, tipsAsync, writeBranchUnlocked, writeBranchUnlockedAsync, type BranchSpec, type BranchView, type WriteResult } from "./gitbranch.js";
 import { mergeLifecycle } from "./lifecycle.js";
 import { mainCheckout } from "./state.js";
 import { handleOf, pickWords, WORDS } from "./words.js";
@@ -341,6 +341,57 @@ function newCode(taken: (code: string) => boolean): string {
 
 const pathOf = (code: string): string => `${FOLDER}/${code}.json`;
 
+/** The one commit that carries the old store's open requests onto the branch; `carried` counts them once `change` ran. */
+function carryOver(file: string): { readonly old: number; readonly change: (view: BranchView) => { files: Map<string, string>; message: string }; carried(): number } {
+  const old = readLegacy(file);
+  let carried = 0;
+  const change = (view: BranchView): { files: Map<string, string>; message: string } => {
+    const known = new Set(viewAll(view).requests.map((r) => `${r.id} ${askerOf(r)} ${r.at}`));
+    const files = new Map<string, string>();
+    for (const o of old) {
+      const id = o["id"];
+      const at = o["at"];
+      const by: Asker = o["by"] === "pm" ? "pm" : "coordinator";
+      if (typeof id !== "string" || typeof at !== "string" || known.has(`${id} ${by} ${at}`)) {
+        continue;
+      }
+      known.add(`${id} ${by} ${at}`);
+      const code = newCode((c) => view.has(pathOf(c)) || files.has(pathOf(c)));
+      const forwarded = typeof o["forwarded"] === "string" ? o["forwarded"] : undefined;
+      const note = typeof o["note"] === "string" ? o["note"] : undefined;
+      const kind = KINDS.includes(o["kind"] as Kind) ? (o["kind"] as Kind) : "question";
+      const pr = typeof o["pr"] === "number" ? o["pr"] : undefined;
+      const r: Request = {
+        code,
+        id,
+        ...(by === "pm" ? { by } : {}),
+        kind,
+        text: typeof o["text"] === "string" ? o["text"] : "",
+        ...(typeof o["key"] === "string" ? { key: o["key"] } : {}),
+        at,
+        thread: typeof o["thread"] === "string" ? o["thread"] : null,
+        ...(pr === undefined ? {} : { pr }),
+        ...(typeof o["head"] === "string" ? { head: o["head"] } : {}),
+        ...(o["to"] === "pm" ? { to: "pm" as const } : {}),
+        ...(typeof o["pm"] === "string" ? { pm: o["pm"] } : {}),
+        doneWhen: pr === undefined ? "answered" : `pr:${pr}`,
+        eta: null,
+        state: "open",
+        events: [
+          { event: "opened", at, by },
+          ...(forwarded === undefined ? [] : [{ event: "forwarded" as const, at: forwarded, by: "pm" as const, ...(note === undefined ? {} : { text: note }) }]),
+        ],
+      };
+      files.set(pathOf(code), serialise(r));
+    }
+    carried = files.size;
+    return { files, message: `docs(requests): carry over ${files.size} from .braid/requests.json` };
+  };
+  return { old: old.length, change, carried: () => carried };
+}
+
+const retire = (file: string): void => renameSync(file, join(dirname(file), MIGRATED));
+
 /**
  * Carries the open requests of an old `.braid/requests.json` onto the branch, once: each one opened with a
  * code and its original times, in one commit; then the file is renamed `requests.migrated.json`. A record
@@ -357,59 +408,31 @@ export function migrate(root: string, options: { push?: boolean } = {}): number 
     if (!existsSync(file)) {
       return 0;
     }
-    const old = readLegacy(file);
-    let carried = 0;
-    if (old.length > 0) {
-      writeBranchUnlocked(
-        root,
-        REQUESTS,
-        (view) => {
-          const known = new Set(viewAll(view).requests.map((r) => `${r.id} ${askerOf(r)} ${r.at}`));
-          const files = new Map<string, string>();
-          for (const o of old) {
-            const id = o["id"];
-            const at = o["at"];
-            const by: Asker = o["by"] === "pm" ? "pm" : "coordinator";
-            if (typeof id !== "string" || typeof at !== "string" || known.has(`${id} ${by} ${at}`)) {
-              continue;
-            }
-            known.add(`${id} ${by} ${at}`);
-            const code = newCode((c) => view.has(pathOf(c)) || files.has(pathOf(c)));
-            const forwarded = typeof o["forwarded"] === "string" ? o["forwarded"] : undefined;
-            const note = typeof o["note"] === "string" ? o["note"] : undefined;
-            const kind = KINDS.includes(o["kind"] as Kind) ? (o["kind"] as Kind) : "question";
-            const pr = typeof o["pr"] === "number" ? o["pr"] : undefined;
-            const r: Request = {
-              code,
-              id,
-              ...(by === "pm" ? { by } : {}),
-              kind,
-              text: typeof o["text"] === "string" ? o["text"] : "",
-              ...(typeof o["key"] === "string" ? { key: o["key"] } : {}),
-              at,
-              thread: typeof o["thread"] === "string" ? o["thread"] : null,
-              ...(pr === undefined ? {} : { pr }),
-              ...(typeof o["head"] === "string" ? { head: o["head"] } : {}),
-              ...(o["to"] === "pm" ? { to: "pm" as const } : {}),
-              ...(typeof o["pm"] === "string" ? { pm: o["pm"] } : {}),
-              doneWhen: pr === undefined ? "answered" : `pr:${pr}`,
-              eta: null,
-              state: "open",
-              events: [
-                { event: "opened", at, by },
-                ...(forwarded === undefined ? [] : [{ event: "forwarded" as const, at: forwarded, by: "pm" as const, ...(note === undefined ? {} : { text: note }) }]),
-              ],
-            };
-            files.set(pathOf(code), serialise(r));
-          }
-          carried = files.size;
-          return { files, message: `docs(requests): carry over ${files.size} from .braid/requests.json` };
-        },
-        options,
-      );
+    const over = carryOver(file);
+    if (over.old > 0) {
+      writeBranchUnlocked(root, REQUESTS, over.change, options);
     }
-    renameSync(file, join(dirname(file), MIGRATED));
-    return carried;
+    retire(file);
+    return over.carried();
+  });
+}
+
+/** `migrate` for the board: the same commit, without blocking the process. */
+export async function migrateAsync(root: string, options: { push?: boolean } = {}): Promise<number> {
+  const file = legacyFile(root);
+  if (!existsSync(file)) {
+    return 0;
+  }
+  return lockedBranchAsync(root, REQUESTS, async () => {
+    if (!existsSync(file)) {
+      return 0;
+    }
+    const over = carryOver(file);
+    if (over.old > 0) {
+      await writeBranchUnlockedAsync(root, REQUESTS, over.change, options);
+    }
+    retire(file);
+    return over.carried();
   });
 }
 
@@ -430,6 +453,22 @@ export function loadRecord(root: string, options: { push?: boolean } = {}): { re
   return record;
 }
 
+/** `loadRecord` for the board: the same record, read without blocking the process. */
+export async function loadRecordAsync(root: string, options: { push?: boolean } = {}): Promise<{ requests: Request[]; problems: RecordProblem[] }> {
+  await migrateAsync(root, { push: options.push ?? false }); // a no-op unless an old local store is still there, once
+  const at = await tipsAsync(root, REQUESTS);
+  const key = `${at.local ?? "-"} ${at.remote ?? "-"}`;
+  const cached = records.get(root);
+  if (cached !== undefined && cached.key === key) {
+    return cached.record;
+  }
+  const files = [...(await currentFilesAsync(root, REQUESTS, at))].filter(([path]) => isRequestPath(path));
+  const texts = await catBatch(root, files.map(([, blob]) => blob));
+  const record = parseAll(new Map(files.flatMap(([path], i) => (texts[i] === null || texts[i] === undefined ? [] : [[path, texts[i]] as const]))));
+  records.set(root, { key, record });
+  return record;
+}
+
 /** The last record read per root, with the tips it was read at. */
 const records = new Map<string, { key: string; record: { requests: Request[]; problems: RecordProblem[] } }>();
 
@@ -442,6 +481,12 @@ export function loadRequests(root: string): Request[] {
 function writeRecord(root: string, change: (view: BranchView) => { files: Map<string, string>; message: string }): WriteResult {
   migrate(root);
   return lockedBranch(root, REQUESTS, () => writeBranchUnlocked(root, REQUESTS, change));
+}
+
+/** `writeRecord` for the board: waits for the lock and runs every `git` call without blocking the process. */
+async function writeRecordAsync(root: string, change: (view: BranchView) => { files: Map<string, string>; message: string }): Promise<WriteResult> {
+  await migrateAsync(root);
+  return lockedBranchAsync(root, REQUESTS, () => writeBranchUnlockedAsync(root, REQUESTS, change));
 }
 
 /** An open request with its `opened` event, as `openRequest` writes it; `code` given or empty, `words` when given. Also for demos and tests. */
@@ -523,23 +568,40 @@ export function closeRequest(root: string, id: string, by: Asker | undefined, en
  * someone else meanwhile, too) is left as it is and returned with `ended: false`. Null: no such code.
  */
 export function endRequest(root: string, code: string, end: Ending | ((r: Request) => Ending)): { readonly request: Request; readonly ended: boolean; readonly warning: string | null } | null {
+  const job = endJob(code, end);
+  return job.outcome(writeRecord(root, job.change));
+}
+
+/** `endRequest` for the board: the same write, without blocking the process. */
+export async function endRequestAsync(root: string, code: string, end: Ending | ((r: Request) => Ending)): Promise<{ readonly request: Request; readonly ended: boolean; readonly warning: string | null } | null> {
+  const job = endJob(code, end);
+  return job.outcome(await writeRecordAsync(root, job.change));
+}
+
+type Change = (view: BranchView) => { files: Map<string, string>; message: string };
+
+function endJob(code: string, end: Ending | ((r: Request) => Ending)): { change: Change; outcome: (r: WriteResult) => { readonly request: Request; readonly ended: boolean; readonly warning: string | null } | null } {
   let found: Request | null = null;
   let ended = false;
-  const result = writeRecord(root, (view) => {
-    const text = view.read(pathOf(code));
-    const r = text === null ? null : parseRecord(pathOf(code), text);
-    found = r === null || isRecordProblem(r) ? null : r;
-    ended = found !== null && found.state === "open";
-    if (found === null || !ended) {
-      return { files: new Map(), message: "" };
-    }
-    const e = typeof end === "function" ? end(found) : end;
-    const next = serialise(withEvent(found, endEvent(e, new Date().toISOString())));
-    found = parseRecord(pathOf(code), next) as Request;
-    return { files: new Map([[pathOf(code), next]]), message: `docs(requests): ${found.id} ${code} ${e.state}` };
-  });
-  const request: Request | null = found;
-  return request === null ? null : { request, ended, warning: result.warning };
+  return {
+    change: (view) => {
+      const text = view.read(pathOf(code));
+      const r = text === null ? null : parseRecord(pathOf(code), text);
+      found = r === null || isRecordProblem(r) ? null : r;
+      ended = found !== null && found.state === "open";
+      if (found === null || !ended) {
+        return { files: new Map(), message: "" };
+      }
+      const e = typeof end === "function" ? end(found) : end;
+      const next = serialise(withEvent(found, endEvent(e, new Date().toISOString())));
+      found = parseRecord(pathOf(code), next) as Request;
+      return { files: new Map([[pathOf(code), next]]), message: `docs(requests): ${found.id} ${code} ${e.state}` };
+    },
+    outcome: (result) => {
+      const request: Request | null = found;
+      return request === null ? null : { request, ended, warning: result.warning };
+    },
+  };
 }
 
 /** The event that closed a request, or null while it is open. */
@@ -550,22 +612,37 @@ export const closing = (r: Pick<Request, "events">): RequestEvent | null => r.ev
  * an `eta` event. Checked again inside the write: a closed request is left and returned with `added: false`. Null: no such code.
  */
 export function addEvent(root: string, code: string, event: RequestEvent): { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null {
+  const job = addJob(code, event);
+  return job.outcome(writeRecord(root, job.change));
+}
+
+/** `addEvent` for the board: the same write, without blocking the process. */
+export async function addEventAsync(root: string, code: string, event: RequestEvent): Promise<{ readonly request: Request; readonly added: boolean; readonly warning: string | null } | null> {
+  const job = addJob(code, event);
+  return job.outcome(await writeRecordAsync(root, job.change));
+}
+
+function addJob(code: string, event: RequestEvent): { change: Change; outcome: (r: WriteResult) => { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null } {
   let found: Request | null = null;
   let added = false;
-  const result = writeRecord(root, (view) => {
-    const text = view.read(pathOf(code));
-    const r = text === null ? null : parseRecord(pathOf(code), text);
-    found = r === null || isRecordProblem(r) ? null : r;
-    added = found !== null && found.state === "open";
-    if (found === null || !added) {
-      return { files: new Map(), message: "" };
-    }
-    const next = withEvent(event.event === "eta" && event.text !== undefined ? { ...found, eta: event.text } : found, event);
-    found = next;
-    return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} ${event.event}` };
-  });
-  const request: Request | null = found;
-  return request === null ? null : { request, added, warning: result.warning };
+  return {
+    change: (view) => {
+      const text = view.read(pathOf(code));
+      const r = text === null ? null : parseRecord(pathOf(code), text);
+      found = r === null || isRecordProblem(r) ? null : r;
+      added = found !== null && found.state === "open";
+      if (found === null || !added) {
+        return { files: new Map(), message: "" };
+      }
+      const next = withEvent(event.event === "eta" && event.text !== undefined ? { ...found, eta: event.text } : found, event);
+      found = next;
+      return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} ${event.event}` };
+    },
+    outcome: (result) => {
+      const request: Request | null = found;
+      return request === null ? null : { request, added, warning: result.warning };
+    },
+  };
 }
 
 /** The text of the `reminded` event that says the board delivered an answer's wake to the asking thread (src/board/wake.ts). */
@@ -580,22 +657,37 @@ export const answerWoken = (r: Pick<Request, "events">): boolean => r.events.som
  * answered, or already carries the mark, is left and returned with `added: false`. Null: no such code.
  */
 export function markAnswerWoken(root: string, code: string, at: string): { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null {
+  const job = wokenJob(code, at);
+  return job.outcome(writeRecord(root, job.change));
+}
+
+/** `markAnswerWoken` for the board: the same write, without blocking the process. */
+export async function markAnswerWokenAsync(root: string, code: string, at: string): Promise<{ readonly request: Request; readonly added: boolean; readonly warning: string | null } | null> {
+  const job = wokenJob(code, at);
+  return job.outcome(await writeRecordAsync(root, job.change));
+}
+
+function wokenJob(code: string, at: string): { change: Change; outcome: (r: WriteResult) => { readonly request: Request; readonly added: boolean; readonly warning: string | null } | null } {
   let found: Request | null = null;
   let added = false;
-  const result = writeRecord(root, (view) => {
-    const text = view.read(pathOf(code));
-    const r = text === null ? null : parseRecord(pathOf(code), text);
-    found = r === null || isRecordProblem(r) ? null : r;
-    added = found !== null && found.state === "answered" && !answerWoken(found);
-    if (found === null || !added) {
-      return { files: new Map(), message: "" };
-    }
-    const next = withEvent(found, { event: "reminded", at, by: "board", text: ANSWER_WOKEN });
-    found = next;
-    return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} answer woken` };
-  });
-  const request: Request | null = found;
-  return request === null ? null : { request, added, warning: result.warning };
+  return {
+    change: (view) => {
+      const text = view.read(pathOf(code));
+      const r = text === null ? null : parseRecord(pathOf(code), text);
+      found = r === null || isRecordProblem(r) ? null : r;
+      added = found !== null && found.state === "answered" && !answerWoken(found);
+      if (found === null || !added) {
+        return { files: new Map(), message: "" };
+      }
+      const next = withEvent(found, { event: "reminded", at, by: "board", text: ANSWER_WOKEN });
+      found = next;
+      return { files: new Map([[pathOf(code), serialise(next)]]), message: `docs(requests): ${next.id} ${code} answer woken` };
+    },
+    outcome: (result) => {
+      const request: Request | null = found;
+      return request === null ? null : { request, added, warning: result.warning };
+    },
+  };
 }
 
 /** Hands the item's request to the user (`braid forward`): a `forwarded` event with the note. Null when there is no open request. */
