@@ -1,7 +1,7 @@
 ---
 id: '0084'
 title: "Several open questions per item"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L", "ui", "ask:process"]
 dependencies: []
 related: ['0077', '0082']
