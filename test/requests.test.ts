@@ -259,13 +259,26 @@ test("holding writes nothing: a void request stays open on the record", () => {
   assert.deepEqual(loadRequests(w.root).map((r) => r.id), ["0001/A"], "still open");
 });
 
+/** Runs one writer process; a non-zero exit prints the writer's stderr, so a failure says why. */
+const writer = (script: string, root: string, id: string) =>
+  new Promise<number | null>((done) => {
+    const child = spawn(process.execPath, [script, root, id]);
+    let err = "";
+    child.stderr.on("data", (chunk: Buffer) => (err += chunk.toString()));
+    child.on("close", (code) => {
+      if (code !== 0) console.error(`writer ${id} exited ${code}:
+${err}`);
+      done(code);
+    });
+  });
+
 test("overlapping writers in separate processes lose no update", async () => {
   const w = world();
   const script = join(scratch, "writer.mjs");
   writeFileSync(script, `import { openRequest } from ${JSON.stringify(pathToFileURL(fileURLToPath(new URL("../dist/braids/requests.js", import.meta.url))).href)};
 const [root, id] = process.argv.slice(2);
 for (let i = 0; i < 4; i++) openRequest(root, { id: id + i, kind: "question", text: "x", at: "2026-11-15T12:00:00Z", thread: null });`);
-  const run = (id: string) => new Promise<number | null>((done) => spawn(process.execPath, [script, w.root, id]).on("close", done));
+  const run = (id: string) => writer(script, w.root, id);
   const codes = await Promise.all(["0001/A", "0002/B", "0003/C", "0004/D"].map(run));
   assert.deepEqual(codes, [0, 0, 0, 0]);
   assert.equal(loadRequests(w.root).length, 16);
@@ -394,7 +407,7 @@ test("overlapping writers in separate processes lose no update when they start o
   writeFileSync(script, `import { openRequest } from ${JSON.stringify(pathToFileURL(fileURLToPath(new URL("../dist/braids/requests.js", import.meta.url))).href)};
 const [root, id] = process.argv.slice(2);
 for (let i = 0; i < 3; i++) openRequest(root, { id: id + i, kind: "question", text: "x", at: "2026-11-15T12:00:00Z", thread: null });`);
-  const run = (id: string) => new Promise<number | null>((done) => spawn(process.execPath, [script, w.root, id]).on("close", done));
+  const run = (id: string) => writer(script, w.root, id);
   const codes = await Promise.all(["0001/A", "0002/B", "0003/C", "0004/D", "0005/E", "0006/F"].map(run));
   assert.deepEqual(codes, [0, 0, 0, 0, 0, 0]);
   assert.equal(loadRequests(w.root).length, 18);
