@@ -68,7 +68,7 @@ function project(): string {
 }
 const opts = { now: () => NOW };
 
-test("the store keys by item and asker: both open, each replaced and closed on its own, old records are the coordinator's", () => {
+test("the store keys by item and asker: all stay open, each asker's closed on its own, old records are the coordinator's", () => {
   const root = project();
   const old = { id: "0001", kind: "question", text: "old record", at: ago(5), thread: null };
   openRequest(root, old);
@@ -77,10 +77,10 @@ test("the store keys by item and asker: both open, each replaced and closed on i
   openRequest(root, ask("0001", "plan", 3));
   openRequest(root, { ...old, text: "newer coordinator" });
   const open = loadRequests(root);
-  assert.deepEqual(open.map((r: any) => [r.by ?? "coordinator", r.kind, r.text]).sort(), [["coordinator", "question", "newer coordinator"], ["pm", "plan", "a plan text"]]);
+  assert.deepEqual(open.map((r: any) => [r.by ?? "coordinator", r.kind, r.text]).sort(), [["coordinator", "question", "newer coordinator"], ["coordinator", "question", "old record"], ["pm", "decision", "a decision text"], ["pm", "plan", "a plan text"]]);
   assert.equal(closeRequest(root, "0001", "pm", { state: "answered", who: "pm" }).found, true);
   assert.equal(closeRequest(root, "0001", "pm", { state: "answered", who: "pm" }).found, false);
-  assert.equal(loadRequests(root).length, 1);
+  assert.equal(loadRequests(root).length, 2, "closing by asker closes all of that asker's");
   openRequest(root, ask("0001", "plan", 3));
   assert.equal(closeRequest(root, "0001", undefined, { state: "withdrawn", who: "coordinator" }).found, true, "without an asker both close (start and accept)");
   assert.equal(loadRequests(root).length, 0);
@@ -179,9 +179,11 @@ state: running
   assert.equal(pushes[0].priority, "high");
   assert.deepEqual(pushes[0].tags, ["compass"]);
   assert.equal(pushes[0].click, `t3code://threads/env1/${PM}`);
-  // A programme action reads "to:"; one request per programme: the new one replaces the old.
+  // A second programme request leaves the first open; with it answered, the action reads "to:".
+  const first = loadRequests(root)[0].code;
   askCommand(root, ["pm/working-product", "protect main", "--kind", "action", "--thread", PM], opts);
-  assert.equal(loadRequests(root).length, 1);
+  assert.equal(loadRequests(root).length, 2);
+  answerCommand(root, root, [first]);
   const again = model.toBoard("agento", [], gh(), t3(), { ...signals.readSignals(root, gh(), NOW), now: NOW, plans: planned });
   assert.equal(again.programmes[0].need.text, "The PM asks you to: protect main");
 });
@@ -213,7 +215,7 @@ test("braid requests and braid answer name which request; a forward touches only
   assert.match(answerCommand(root, root, ["pm/working-product"]), /^[a-z]+-[a-z]+-[a-z0-9]{4} pm\/working-product: answered by the user/);
   askCommand(root, ["0001/A", "again", "--by", "pm", "--thread", PM], opts);
   // Both askers have one open: the id alone names both codes and changes nothing.
-  assert.throws(() => answerCommand(root, root, ["0001/A"]), /0001\/A has 2 open requests: [a-z]+-[a-z]+-[a-z0-9]{4} \(the coordinator's\), [a-z]+-[a-z]+-[a-z0-9]{4} \(the PM's\); give the code, or --by coordinator\|pm; nothing changed/);
+  assert.throws(() => answerCommand(root, root, ["0001/A"]), /0001\/A has 2 open requests: [a-z]+-[a-z]+-[a-z0-9]{4} \(the coordinator's question\), [a-z]+-[a-z]+-[a-z0-9]{4} \(the PM's question\); give the name, or --by coordinator\|pm; nothing changed/);
   assert.equal(loadRequests(root).length, 2);
   assert.match(answerCommand(root, root, ["0001/A", "--by", "coordinator"]), /answered by the user/);
   assert.equal(loadRequests(root).length, 1, "the PM's stays open when the coordinator's is answered");

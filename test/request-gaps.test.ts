@@ -1,4 +1,4 @@
-// 0082/B: every place the user reads a request names it and marks it the same way: handles for a replaced request and in
+// 0082/B: every place the user reads a request names it and marks it the same way: handles for a replaced wait and in
 // decisions, a wait's own words, the escalated mark on the Requests tab, and an open request that stays with its Done item.
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -34,16 +34,19 @@ const open = (id: string, kind: string, text: string, extra: object = {}): any =
 const sigOf = (requests: any[], extra: object = {}): any => ({ now, requests: new Map(requests.map((r) => [r.id, r])), alarm: () => null, ...extra });
 const board = (b: any, sig: any): any => model.toBoard("agento", [b], github, t3, sig);
 
-test("a replaced request and braid decisions name requests by their handle, and braid ask says which one it replaced", () => {
+test("a replaced wait and braid decisions name requests by their handle, and braid ask says which one it replaced", () => {
   const w = world();
-  const first = handleIn(Cmd.askCommand(w.root, ["0001/A", "Which name?"]));
-  const out = Cmd.askCommand(w.root, ["0001/A", "Which name, really?"]);
+  const until = (hours: number) => `time:${new Date(Date.now() + hours * 3_600_000).toISOString()}`;
+  const first = handleIn(Cmd.askCommand(w.root, ["0001/A", "CI is slow", "--to", "self", "--done-when", until(1)]));
+  const out = Cmd.askCommand(w.root, ["0001/A", "CI is slower", "--to", "self", "--done-when", until(2)]);
   const second = handleIn(out);
-  assert.match(out, new RegExp(`^${second} 0001/A: question request opened, replacing ${first}: Which name, really\\?\\n`));
+  assert.match(out, new RegExp(`^${second} 0001/A: timed wait opened, replacing ${first}, waiting until `));
   const old = Rec.loadRecord(w.root).requests.find((r: any) => Rec.handleOf(r) === first);
   assert.equal(old.events.at(-1).text, `replaced by ${second}`);
-  Cmd.answerCommand(w.root, w.root, [second]);
-  assert.match(decisionsCommand(w.root, ["0001"]), new RegExp(`${second} answered by the user: Which name, really\\?`));
+  const asked = handleIn(Cmd.askCommand(w.root, ["0001/A", "Which name?"]));
+  assert.doesNotMatch(Cmd.askCommand(w.root, ["0001/A", "Which name, really?"]), /replacing/);
+  Cmd.answerCommand(w.root, w.root, [asked]);
+  assert.match(decisionsCommand(w.root, ["0001"]), new RegExp(`${asked} answered by the user: Which name\\?`));
 });
 
 test("a wait reads what it waits for, never decide or question", () => {

@@ -100,27 +100,33 @@ test("codes are unique on the branch, and a review's done-when is its PR", () =>
   assert.equal(R.loadRequests(root).find((r: any) => r.code === code).doneWhen, "pr:7");
 });
 
-test("a new request from the same asker on the same item withdraws the open one; the other asker's stays", () => {
+test("a question withdraws nothing: any number stay open per item, of both askers and beside waits (rf9z)", () => {
   const { clones } = world(1);
   const root = clones[0] as string;
-  const first = R.openRequest(root, q("0003")).code;
+  const first = R.openRequest(root, q("0003", { to: "pm", pm: "pm-thread-1234" })).code;
   const pm = R.openRequest(root, q("0003", { by: "pm" })).code;
-  const { code: second, handle } = R.openRequest(root, q("0003", { at: "2026-11-23T11:00:00.000Z" }));
-  const all = new Map(R.loadRecord(root).requests.map((r: any) => [r.code, r]));
-  assert.deepEqual([(all.get(first) as any).state, (all.get(pm) as any).state, (all.get(second) as any).state], ["withdrawn", "open", "open"]);
-  assert.deepEqual((all.get(first) as any).events.at(-1), { event: "withdrawn", at: "2026-11-23T11:00:00.000Z", by: "coordinator", text: `replaced by ${handle}` });
+  const wait = R.openRequest(root, q("0003", { to: "0004", doneWhen: "braid:0004", at: "2026-11-23T10:05:00.000Z" })).code;
+  const second = R.openRequest(root, q("0003", { kind: "plan", at: "2026-11-23T10:10:00.000Z" }));
+  assert.deepEqual(second.replaced, []);
+  assert.deepEqual(R.loadRequests(root).map((r: any) => r.code).sort(), [first, pm, wait, second.code].sort());
 });
 
-test("a wait doesn't withdraw its asker's open question on the item, nor a question a wait (rf9z)", () => {
+test("a timed wait replaces only a timed wait; a review only its asker's older review, and questions stay beside it", () => {
   const { clones } = world(1);
   const root = clones[0] as string;
-  const question = R.openRequest(root, q("0003", { to: "pm", pm: "pm-thread-1234" })).code;
-  const wait = R.openRequest(root, q("0003", { to: "0004", doneWhen: "braid:0004", at: "2026-11-23T10:05:00.000Z" })).code;
-  const other = R.openRequest(root, q("0003", { to: "0005", doneWhen: "braid:0005", at: "2026-11-23T10:06:00.000Z" })).code;
-  const { code: user, handle } = R.openRequest(root, q("0003", { at: "2026-11-23T10:10:00.000Z" }));
-  const state = () => new Map(R.loadRecord(root).requests.map((r: any) => [r.code, r.state]));
-  assert.deepEqual([question, wait, other, user].map((c) => state().get(c)), ["withdrawn", "open", "open", "open"], "the question to the user replaced the one to the PM; both waits stay");
-  assert.equal(R.loadRecord(root).requests.find((r: any) => r.code === question).events.at(-1).text, `replaced by ${handle}`);
+  const open = (extra: object) => R.openRequest(root, q("0003", extra));
+  const timed = (hour: string) => ({ to: "self", doneWhen: `time:2026-11-24T${hour}:00:00.000Z` });
+  const question = open({}).code;
+  const firstTimed = open(timed("01")).code;
+  const secondTimed = open(timed("02")).code;
+  const review = open({ kind: "review", pr: 7, head: "a".repeat(40) }).code;
+  const pmReview = open({ by: "pm", kind: "review", pr: 8, head: "b".repeat(40) }).code;
+  const asked = open({ kind: "decision" }).code;
+  const again = open({ kind: "review", pr: 7, head: "c".repeat(40) });
+  const all = new Map<string, any>(R.loadRecord(root).requests.map((r: any) => [r.code, r]));
+  const states = [question, firstTimed, secondTimed, review, pmReview, asked, again.code].map((c) => all.get(c).state);
+  assert.deepEqual(states, ["open", "withdrawn", "open", "withdrawn", "open", "open", "open"]);
+  assert.equal(all.get(review).events.at(-1).text, `replaced by ${again.handle}`);
 });
 
 test("a wait replaces only its asker's wait to the same braid", () => {

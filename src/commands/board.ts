@@ -32,7 +32,8 @@ import { problemLine, readinessAsync, type Problem } from "../braids/readiness.j
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignalsAsync, type ReadSignals } from "../board/signals.js";
 import { fetchBranchAsync } from "../braids/gitbranch.js";
-import { closing, handleOf, REQUESTS } from "../braids/requests.js";
+import { askerOf, closing, handleOf, REQUESTS } from "../braids/requests.js";
+import { openItemRequests } from "../board/record.js";
 import { boardAnswer } from "./requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
 import { loadPauses, markResumed, patchPause, reasonOf, type Pause } from "../braids/pauses.js";
@@ -131,7 +132,9 @@ export function mergeAction(src: Sources, root: string, t3: T3Runner): Action {
     const id = normaliseId(b["id"]);
     const shown = b["head"];
     const { github, t3: read, sig } = await readInputs(src);
-    const merge = mergeOf(id, github, sig, read);
+    // The review itself: a question asked after it hides it from the card, not from the Questions panel's Merge.
+    const review = openItemRequests(sig).find((r) => r.id === id && r.kind === "review" && askerOf(r) === "coordinator");
+    const merge = mergeOf(id, github, sig, read, review);
     if (merge === null) {
       throw new UsageError(`Merge: ${id} has no open review request`);
     }
@@ -142,7 +145,7 @@ export function mergeAction(src: Sources, root: string, t3: T3Runner): Action {
     if (current === undefined || current === null || !current.startsWith(shown)) {
       throw new UsageError(`Not merged: the PR head moved. You confirmed ${shown.slice(0, 7)}, the PR is now ${(current ?? "unknown").slice(0, 7)}. Check the new commit, then ask again.`);
     }
-    const thread = sig.requests.get(id)?.thread ?? null;
+    const thread = review?.thread ?? null;
     if (thread === null) {
       throw new UsageError("Merge: no coordinator thread on the review request");
     }
