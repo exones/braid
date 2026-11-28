@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ItemDetail } from "../../src/board/model.ts";
-import { readReply } from "../../src/board/reply.ts";
+import { failedRead, readReply, readUrl, type Loaded, type Shown } from "../../src/board/reply.ts";
+import { keepLive, type LiveEnv } from "../../src/board/live.ts";
 import type { AllBoard } from "../../src/board/combined.ts";
 
 export type { InboxData, InboxEntry } from "../../src/board/inbox.ts";
@@ -11,11 +12,9 @@ export type { WindowReading } from "../../src/braids/limits.ts";
 export type { SignInView } from "../../src/t3/words.ts";
 export type { AllBoard, ProjectInfo, TaggedCard, TaggedProgramme } from "../../src/board/combined.ts";
 
-export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
+export type { Loaded } from "../../src/board/reply.ts";
 
-async function get<T>(url: string): Promise<T> {
-  return readReply<T>(await fetch(url));
-}
+const get = <T>(url: string): Promise<T> => readUrl<T>(url, (u) => fetch(u));
 
 const TOKEN_KEY = "braid-token";
 
@@ -86,16 +85,15 @@ export interface Tick {
 
 /** Loads `url` and again on each tick; a null `url` fetches nothing and stays loading. */
 function useLoad<T>(url: string | null, tick: Tick): Loaded<T> {
-  const [result, setResult] = useState<{ url: string; value: Loaded<T> } | null>(null);
+  const [result, setResult] = useState<Shown<T> | null>(null);
   useEffect(() => {
     if (url === null) {
       return;
     }
     let live = true;
     get<T>(tick.fresh ? `${url}${url.includes("?") ? "&" : "?"}fresh=1` : url).then(
-      (data) => live && setResult({ url, value: { state: "ready", data } }),
-      (error: unknown) =>
-        live && setResult({ url, value: { state: "error", message: error instanceof Error ? error.message : String(error) } }),
+      (data) => live && setResult({ url, value: { state: "ready", data, at: Date.now() } }),
+      (error: unknown) => live && setResult((shown) => failedRead(shown, url, error)),
     );
     return () => {
       live = false;
@@ -110,13 +108,37 @@ export const useAll = (tick: Tick): Loaded<AllBoard> => useLoad<AllBoard>("/api/
 export const useItem = (id: string, project: string | null, tick: Tick): Loaded<ItemDetail> =>
   useLoad<ItemDetail>(project === null ? null : `/api/item?project=${encodeURIComponent(project)}&id=${encodeURIComponent(id)}`, tick);
 
-/** The reload requests: the server pushes one every 30 s and when a braid file changes; `refresh` is the button. */
+/** The browser's side of `keepLive`. */
+const browser: LiveEnv = {
+  openStream: (on) => {
+    const events = new EventSource("/api/events");
+    events.onopen = on.open;
+    events.onmessage = on.message;
+    events.onerror = on.error;
+    return { closed: () => events.readyState === EventSource.CLOSED, close: () => events.close() };
+  },
+  now: () => Date.now(),
+  visible: () => document.visibilityState === "visible",
+  onResume: (resume) => {
+    const visibility = () => void (document.visibilityState === "visible" && resume());
+    // A first load also fires `pageshow`; only a page brought back from the back-forward cache needs it.
+    const shown = (event: PageTransitionEvent) => void (event.persisted && resume());
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("online", resume);
+    window.addEventListener("pageshow", shown);
+    return () => {
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("online", resume);
+      window.removeEventListener("pageshow", shown);
+    };
+  },
+  setTimeout: (run, ms) => window.setTimeout(run, ms),
+  clearTimeout: (timer) => window.clearTimeout(timer as number | undefined),
+};
+
+/** The reload requests: the server pushes one every 30 s and when a braid file changes, and the page asks one itself when it resumes or polls (src/board/live.ts); `refresh` is the button. */
 export function useTick(): { tick: Tick; refresh: () => void } {
   const [tick, setTick] = useState<Tick>({ n: 0, fresh: false });
-  useEffect(() => {
-    const events = new EventSource("/api/events");
-    events.onmessage = () => setTick((t) => ({ n: t.n + 1, fresh: false }));
-    return () => events.close();
-  }, []);
+  useEffect(() => keepLive(browser, (fresh) => setTick((t) => ({ n: t.n + 1, fresh }))), []);
   return { tick, refresh: () => setTick((t) => ({ n: t.n + 1, fresh: true })) };
 }

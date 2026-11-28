@@ -31,3 +31,25 @@ export async function readReply<T>(response: ReplyLike): Promise<T> {
   const detail = text.trim().slice(0, 200) || response.statusText;
   throw new Error(`${response.status} ${detail}`.trim());
 }
+
+export type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T; at: number };
+/** What a URL last gave. */
+export type Shown<T> = { url: string; value: Loaded<T> };
+
+/** A request that got no reply at all: the phone is offline or the board isn't there. */
+export class Unreached extends Error {}
+
+export async function readUrl<T>(url: string, request: (url: string) => Promise<Parameters<typeof readReply>[0]>): Promise<T> {
+  const response = await request(url).catch((error: unknown) => {
+    throw new Unreached(error instanceof Error ? error.message : String(error));
+  });
+  return readReply<T>(response);
+}
+
+/** What to show after a read of `url` failed: with no reply, what is shown stays, under the stale marker. */
+export function failedRead<T>(shown: Shown<T> | null, url: string, error: unknown): Shown<T> {
+  if (error instanceof Unreached && shown?.url === url && shown.value.state === "ready") {
+    return shown;
+  }
+  return { url, value: { state: "error", message: error instanceof Error ? error.message : String(error) } };
+}
