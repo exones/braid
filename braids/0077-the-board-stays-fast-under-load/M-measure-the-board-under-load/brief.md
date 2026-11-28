@@ -41,10 +41,19 @@ Expected size: report.md only, plus any measuring script kept in the item folder
 
 - Any code change.
 
+## Plan
+
+1. Build the branch; run `braid board` on port 7811 over the three real projects, with a preload that gives it a temporary home, sends its `.braid/` writes to a temporary copy and refuses writing commands.
+2. Sample `/api/session` and the page every second; keep the board's timings, its event loop delay and a CPU profile.
+3. Three runs: a short trial, 15 minutes under two gates, and one without them; each from a fresh start.
+4. Stop everything, compare the projects' state with before, write report.md.
+
+(Written after the runs, not before.)
+
 ## Completion
 
-- [ ] report.md has per-project read times (per source) and `/api/session` median, p95 and max under two gates and three projects, over at least 10 minutes
-- [ ] report.md says plainly whether each target held (read under 60 s, `/api/session` under 1 s), and the cause of any miss
-- [ ] report.md has a fresh start's first and second read per project
-- [ ] Nothing real was touched, and everything started was stopped
-- [ ] report.md written: what was run, how, results, anything open
+- [x] report.md has per-project read times (per source) and `/api/session` median, p95 and max under two gates and three projects, over at least 10 minutes
+- [x] report.md says plainly whether each target held (read under 60 s, `/api/session` under 1 s), and the cause of any miss
+- [x] report.md has a fresh start's first and second read per project
+- [x] Nothing real was touched, and everything started was stopped
+- [x] report.md written: what was run, how, results, anything open
