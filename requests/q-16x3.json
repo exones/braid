@@ -21,6 +21,12 @@
       "at": "2026-11-28T16:51:24.090Z",
       "by": "user",
       "text": "done"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T16:51:29.990Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
