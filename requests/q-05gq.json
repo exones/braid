@@ -33,6 +33,12 @@
       "at": "2026-11-28T15:33:30.333Z",
       "by": "user",
       "text": "A. As recommended: words, buttons in the box, none in Requests tab, last tab"
+    },
+    {
+      "event": "reminded",
+      "at": "2026-11-28T15:33:36.595Z",
+      "by": "board",
+      "text": "answer sent to the asking thread"
     }
   ]
 }
