@@ -52,15 +52,30 @@ Expected size: report.md and sources.md, about 300 lines in 2 files; no product 
 - Changing T3's settings or data, deleting or archiving threads, or running any T3 maintenance command found (the report names it and what it would do; the user decides).
 - Contacting T3 upstream.
 
+## Plan
+
+1. Frame the question: the decision, sub-questions 1–4, and the candidates (load-then-filter in memory, filtered SQL with a per-call overhead, a mix), with what would settle each.
+2. Read braid's T3 call sites (on `main` and on the 0077 branch) and the skills.
+3. Extract the installed `server.asar` read-only and clone upstream at the installed commit (v0.1.12, `ca81b7b9`). Trace `list`, `show`, `read`, `search` and `task_status` from the CLI down to the SQL, citing both.
+4. Measure:
+   - spaced CLI timings, two rounds;
+   - baselines that split process start from server work;
+   - T3's own span trace;
+   - one live-only MCP list and one minimal read;
+   - a read-only open for the pragmas, the schema and the query plans.
+   No copy while the machine is under load.
+5. Answer question 4 from `DatabaseStorage`, `ProjectionMaintenance`, `doctor` and T3's storage docs.
+6. Write `report.md` and `sources.md`, run the gate, and open the PR.
+
 ## Completion
 
-- [ ] report.md answers questions 1 to 4, each with T3 source citations (repository or bundle, file and line) and, for 2, commands with their timings and the machine's load at the time
-- [ ] report.md has the table of braid's T3 calls today (call, where in braid, how often, cost), a recommendation (which calls and options, how often, what to cache), and a list of things to ask T3 upstream
-- [ ] report.md says how the live store was touched (read-only CLI calls only, a read-only open for schema and plans, or a read-only copy: when, the free space on C: checked first, and its deletion), and that nothing was written to it
-- [ ] No docs from BRAID.md `docs` are edited (a spike edits no docs); report.md names any the findings may make untrue, as follow-ups
-- [ ] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
+- [x] report.md answers questions 1 to 4, each with T3 source citations (repository or bundle, file and line) and, for 2, commands with their timings and the machine's load at the time
+- [x] report.md has the table of braid's T3 calls today (call, where in braid, how often, cost), a recommendation (which calls and options, how often, what to cache), and a list of things to ask T3 upstream
+- [x] report.md says how the live store was touched (read-only CLI calls only, a read-only open for schema and plans, or a read-only copy: when, the free space on C: checked first, and its deletion), and that nothing was written to it
+- [x] No docs from BRAID.md `docs` are edited (a spike edits no docs); report.md names any the findings may make untrue, as follow-ups
+- [x] `sources.md` in the item folder (per source: id, link, version, access date, how it was read (whole, part, search result only), what it says, adopted or not and why), and `report.md` cites source ids for its claims
 - [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] report.md written: what changed, why, validation, anything open
 
 ## Autonomy
 
