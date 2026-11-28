@@ -1,7 +1,7 @@
 // `braid clean [<number>|<id>] [--yes]`: removes the worktrees and local branches of items whose
 // PR is merged, and of merged planning branches (`plan/<slug>`). A dry run unless `--yes`. It keeps anything whose commits aren't in this checkout's HEAD: a worktree that is in use or has
 // changes is kept, a branch is deleted with `git branch -d` only, and remote branches stay. A worktree goes through `removeWorktree`: with submodules too, once
-// neither it nor any submodule has uncommitted, untracked or unpushed work (`worktreeUnsafe`, which a dry run also asks). The one exception is a recorded subagent's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
+// neither it nor any submodule has uncommitted, untracked or unpushed work (`worktreeKept`, which a dry run also asks). The one exception is a recorded subagent's `t3/…` branch whose tip is the merged PR's head or on `origin`: nothing is lost, so it is forced.
 import { spawnSync } from "node:child_process";
 import { existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
@@ -14,7 +14,7 @@ import { agentsDirs } from "../braids/worktree-folders.js";
 import { childRole, dropReviews, loadReviews } from "../braids/reviews.js";
 import { parentsCheckout, runT3, showThread, type T3, type T3Runner } from "../board/t3.js";
 import { repoName } from "./start.js";
-import { removeWorktree, worktreeUnsafe } from "../braids/remove-worktree.js";
+import { removeWorktree, worktreeKept } from "../braids/remove-worktree.js";
 
 interface Worktree {
   readonly path: string;
@@ -110,7 +110,7 @@ function plans(root: string, yes: boolean, src: Sources, github: Github | undefi
       skip = why;
     } else if (git(root, ["merge-base", "--is-ancestor", branch, "HEAD"]).status !== 0) {
       skip = "merged on GitHub, but its commits are not in this checkout's HEAD: pull first, or delete it by hand";
-    } else if (tree !== undefined && existsSync(tree.path) && !yes && (skip = worktreeUnsafe(root, tree.path)) !== null) {
+    } else if (tree !== undefined && existsSync(tree.path) && !yes && (skip = worktreeKept(root, tree.path)) !== null) {
       // set in the condition: a dry run names what --yes would keep
     } else if (tree !== undefined && existsSync(tree.path) && yes && !free(tree.path)) {
       skip = "still in use, retry later";
@@ -203,7 +203,7 @@ async function reviewThreads(root: string, yes: boolean, id: string, pr: number,
       skip = "the folder is not a worktree of this repository";
     } else if (held(folder, null, r.thread) !== null) {
       skip = held(folder, null, r.thread);
-    } else if (tree !== undefined && !yes && existsSync(tree.path) && (skip = worktreeUnsafe(root, tree.path, safeHeads)) !== null) {
+    } else if (tree !== undefined && !yes && existsSync(tree.path) && (skip = worktreeKept(root, tree.path, safeHeads)) !== null) {
       // set in the condition: a dry run names what --yes would keep
     } else if (tree !== undefined && yes && existsSync(tree.path) && !free(tree.path)) {
       skip = "still in use, retry later";
@@ -282,7 +282,7 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
       if (rev !== undefined) {
         const what = `${item.id}: review checkout ${rev.path} (PR #${item.card.pr.number} merged)`;
         const safeHeads = item.card.pr.head === undefined ? [] : [item.card.pr.head];
-        const why = held(rev.path, null) ?? (!yes && existsSync(rev.path) ? worktreeUnsafe(root, rev.path, safeHeads) : null);
+        const why = held(rev.path, null) ?? (!yes && existsSync(rev.path) ? worktreeKept(root, rev.path, safeHeads) : null);
         if (why !== null) {
           lines.push(`skip ${what}: ${why}`);
         } else if (!yes) {
@@ -314,7 +314,7 @@ export async function cleanCommand(root: string, args: readonly string[], src: S
           skip = "merged on GitHub, but its commits are not in this checkout's HEAD: pull first, or if it was squash-merged, delete it by hand";
         } else if (tree !== undefined && !named && !folders.some((f) => norm(tree.path).startsWith(`${f}/`))) {
           skip = `its worktree ${tree.path} is not in the braid worktree folder (name the strand to clean it)`;
-        } else if (tree !== undefined && !yes && existsSync(tree.path) && (skip = worktreeUnsafe(root, tree.path)) !== null) {
+        } else if (tree !== undefined && !yes && existsSync(tree.path) && (skip = worktreeKept(root, tree.path)) !== null) {
           // set in the condition: a dry run names what --yes would keep
         } else if (tree !== undefined && yes && !free(tree.path)) {
           skip = "still in use, retry later";

@@ -3,6 +3,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { normPath as norm } from "./worktrees.js";
 
 interface Out {
   readonly status: number | null;
@@ -102,20 +103,52 @@ export function worktreeUnsafe(root: string, path: string, safe: readonly string
   return null;
 }
 
+/**
+ * Why `path` is not a linked worktree of the repository at `root` that may be removed, or null when it is one: listed by
+ * `git worktree list` but not first (the main checkout), not `root` itself (the caller's checkout), its own top level (so git run there
+ * can't walk up into another checkout), with its own git dir under the same common dir as `root`. Deinit and forced removal run only after this.
+ */
+export function notLinkedWorktree(root: string, path: string): string | null {
+  const p = norm(path);
+  if (p === norm(root)) {
+    return "it is this checkout";
+  }
+  const listed = [...git(root, ["worktree", "list", "--porcelain"]).stdout.matchAll(/^worktree (.+)$/gm)].map((m) => norm(m[1] ?? ""));
+  if (listed[0] === p) {
+    return "it is the main checkout";
+  }
+  if (!listed.includes(p)) {
+    return "it is not a worktree of this repository";
+  }
+  const here = git(path, ["rev-parse", "--path-format=absolute", "--show-toplevel", "--git-dir", "--git-common-dir"]);
+  const own = git(root, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+  const [top, dir, common] = here.stdout.trim().split(/\r?\n/).map(norm);
+  if (here.status !== 0 || own.status !== 0 || top !== p || dir === undefined || common === undefined || dir === common || common !== norm(own.stdout.trim())) {
+    return "its folder is not a linked worktree of this repository (git there answers for another checkout)";
+  }
+  return null;
+}
+
+/** Why `removeWorktree` would keep the worktree at `path`, or null when it would remove it; read-only, for a dry run. */
+export function worktreeKept(root: string, path: string, safe: readonly string[] = []): string | null {
+  return notLinkedWorktree(root, path) ?? worktreeUnsafe(root, path, safe);
+}
+
 export type Removal = { readonly removed: true } | { readonly removed: false; readonly why: string };
 
 /**
- * Removes the worktree at `path` once `worktreeUnsafe` finds nothing that would be lost: deinits its submodules (when it has initialised
+ * Removes the linked worktree at `path` once `notLinkedWorktree` and `worktreeUnsafe` find nothing against it: deinits its submodules (when it has initialised
  * ones), then `git worktree remove --force` and `git worktree prune`. "removed" only when the folder is gone; a step that fails keeps it
  * and says which, and a later run checks again and finishes.
  */
 export function removeWorktree(root: string, path: string, safe: readonly string[] = []): Removal {
-  const why = worktreeUnsafe(root, path, safe);
+  const why = worktreeKept(root, path, safe);
   if (why !== null) {
     return { removed: false, why };
   }
   const subs = submodules(path);
   if (Array.isArray(subs) && subs.length > 0) {
+    // Only here, with the cwd at the one worktree verified above: never the main checkout or another worktree.
     const d = fault?.("deinit", path) === true ? { status: 1, stdout: "", stderr: "deinit failed (test)" } : git(path, ["submodule", "deinit", "--all", "--force"]);
     if (d.status !== 0) {
       return { removed: false, why: `its submodules could not be deinitialised (${first(d)})` };

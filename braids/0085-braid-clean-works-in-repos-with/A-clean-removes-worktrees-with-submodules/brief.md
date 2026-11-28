@@ -34,6 +34,7 @@ Expected size: about 200 lines in 3 files, tests included.
 - Data loss is a stop case: no `--force` before the checks. Ignored files (build output) are not work: they go with the worktree, as with a worktree without submodules today.
 - Stashes are shared by every worktree of a repository: removing a worktree loses none, so they are not checked.
 - Tests build fixture repositories with submodules in temp folders (a superproject and one or two submodule repos, `file://` remotes, `-c protocol.file.allow=always`), never real ones; `C:\code\everix4` is read-only. The tests run in the gate, so CI runs them on Windows and Linux.
+- `git submodule deinit` (and any forced removal) never runs against the main checkout and never touches another worktree's submodules: it runs only with the cwd set to the one worktree being removed, after that worktree's path was verified to be a linked worktree (not the main checkout, not the caller's checkout). Why: everix4's main checkout had its docs and data submodules emptied on disk (cause unknown); the user restored them. (The user via the PM, 2026-11-28.)
 
 ## Failure modes and required regression tests
 
@@ -42,6 +43,7 @@ Expected size: about 200 lines in 3 files, tests included.
 - Kept: an uncommitted change in the worktree itself (as today).
 - A failed `deinit` or `worktree remove` leaves a kept line, never a half-removed folder reported as removed; a second `braid clean --yes` finishes or names it again.
 - A dry run (no `--yes`) changes nothing and says "would remove" for the submodule worktree.
+- After `braid clean --yes` removes a linked worktree with submodules, the main checkout's submodules and a second, kept linked worktree's submodules are untouched: still initialised, their files on disk and `git submodule status` unchanged.
 
 ## Out of scope
 
@@ -60,6 +62,7 @@ Expected size: about 200 lines in 3 files, tests included.
 - [ ] `braid clean --yes` removes a merged item's worktree with checked-out submodules (fixture repo, test)
 - [ ] It keeps, with a line naming the submodule and reason, every case under "Failure modes", each with a test
 - [ ] Every removal site in clean uses the safe removal
+- [ ] deinit and forced removal never touch the main checkout or another worktree's submodules, with a test
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
