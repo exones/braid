@@ -17,7 +17,7 @@ export type ChipState = "ok" | "near" | "over" | "paused" | "unknown" | "blind" 
 export interface LimitAgent {
   /** The item (`0025/B`) or braid (`0025`) it works on. */
   readonly id: string;
-  readonly role: "coordinator" | "worker" | "reviewer";
+  readonly role: "coordinator" | "worker" | "reviewer" | "researcher";
   /** `running` on it now, or `paused` by a pause record (the braid's agents stop with the record). */
   readonly state: "running" | "paused";
   /** The served project's name, set when several projects are combined; null for one. */

@@ -34,9 +34,15 @@ Expected size: the merge itself, plus about 50 lines of resolution.
 
 - New behaviour.
 
+## Plan
+
+1. Merge origin/main as one merge commit and resolve the 13 conflicted files, keeping both sides (src/board/t3.ts and src/braids/reviews.ts as 0077/J's report says).
+2. Move what main added on the board path (the `answer` action and its wake) onto the async git runners; cover it in test/board-async.test.ts.
+3. Typecheck, focused tests, the gate; report and PR into the braid branch.
+
 ## Completion
 
-- [ ] origin/main is merged, with every conflict resolved, and the resolution of each file is listed in report.md
-- [ ] test/board-async.test.ts and main's new tests pass
-- [ ] The gate command from BRAID.md passes
-- [ ] report.md written: what changed, why, validation, anything open
+- [x] origin/main is merged, with every conflict resolved, and the resolution of each file is listed in report.md
+- [x] test/board-async.test.ts and main's new tests pass
+- [x] The gate command from BRAID.md passes
+- [x] report.md written: what changed, why, validation, anything open

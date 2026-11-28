@@ -61,6 +61,8 @@ test("a full board read, the wake, the reminders, the nudges and an action start
   writeFileSync(join(scratch, "plan-four", "braids", "0004-planned", "brief.md"), brief("0004", "To Do"));
   git(join(scratch, "plan-four"), "add", "-A");
   git(join(scratch, "plan-four"), "commit", "-q", "-m", "docs: plan 0004");
+  // An open question the board's page answers.
+  const question = /^\S+/.exec(Cmd.askCommand(w.root, ["0002", "Ship it?", "--option", "Yes", "--thread", ASKER]))?.[0] ?? "";
   const sent: string[] = [];
   const t3 = (_root: string, args: readonly string[]) => {
     if (args[1] === "list") {
@@ -83,6 +85,8 @@ test("a full board read, the wake, the reminders, the nudges and an action start
     await nudger(t3)({ root: w.root, good: snap }, at, warn);
     await src.inbox(true);
     await src.action("start")({ id: "0003" });
+    const answered = await src.action("answer")({ handle: question, text: "a" });
+    assert.deepEqual([answered.answer, answered.woken], ["A. Yes", true]);
     assert.ok(sent.length > 0, "the wake sent something, so the record write ran");
   } finally {
     watch.stop();

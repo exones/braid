@@ -94,13 +94,13 @@ test("who answered and the PM's reason round-trip, and show in the history, deci
   assert.match(shown, new RegExp(`^${nameOf(w.root, code)}  0002  decision  answered\\nShip the CLI flag as --from\\?\\nasked by the coordinator; for the user; done when answered\\n`));
   assert.match(shown, /\d{4}-\d{2}-\d{2} \d{2}:\d{2}Z {2}opened {5}the coordinator\n/);
   assert.match(shown, /answered {3}the PM: Yes, --from\. \(reason: the user chose names like this before\)\n$/);
-  assert.match(decisionsCommand(w.root, ["0002"]), new RegExp(`0002  ${code} answered by the PM: Ship the CLI flag as --from\\? -> Yes, --from\\. \\(reason: the user chose names like this before\\)`));
+  assert.match(decisionsCommand(w.root, ["0002"]), new RegExp(`0002  ${nameOf(w.root, code)} answered by the PM: Ship the CLI flag as --from\\? -> Yes, --from\\. \\(reason: the user chose names like this before\\)`));
   const recap = await recapCommand(w.root, ["0002"], { gh: w.opts.gh });
-  assert.match(recap, new RegExp(`- \\d{4}-\\d{2}-\\d{2} 0002: ${code} answered by the PM`));
+  assert.match(recap, new RegExp(`- \\d{4}-\\d{2}-\\d{2} 0002: ${nameOf(w.root, code)} answered by the PM`));
   // An answer without text is still the user's decision.
   const other = codeOf(R.askCommand(w.root, ["0001", "Start it?"]));
   R.answerCommand(w.root, w.root, [other]);
-  assert.match(decisionsCommand(w.root, ["0001"]), new RegExp(`0001  ${other} answered by the user: Start it\\?\\n`));
+  assert.match(decisionsCommand(w.root, ["0001"]), new RegExp(`0001  ${nameOf(w.root, other)} answered by the user: Start it\\?\\n`));
 });
 
 test("an id with two open requests names both codes and changes nothing; withdraw keeps the record and lists it as closed", () => {
@@ -140,7 +140,7 @@ test("ask --to a braid number and --done-when: stored, shown; a pr: condition is
   assert.throws(() => R.askCommand(w.root, ["0001", "x", "--done-when", "soon"]), /--done-when is answered, pr:<n>, braid:<number> or time:<iso>/);
   const listed = R.requestsCommand(w.root, [], { gh: w.opts.gh });
   assert.match(listed, /0001  question  \d+[mhd]  blocks 0001\/A · decide  done when pr:5  Wait for strand A's PR/);
-  assert.match(listed, /0001\/A  question  \d+[mhd]  (blocks [^·]+ · )?decide  to braid 0002  done when braid:0002  Does 0002/);
+  assert.match(listed, /0001\/A  question  \d+[mhd]  (blocks [^·]+ · )?waits for 0002  to braid 0002  done when braid:0002  Does 0002/);
   // Not the user's: the board neither shows it as theirs nor pushes it.
   const sig = readSignals(w.root, { status: { state: "unavailable", reason: "test" }, prs: new Map() });
   assert.deepEqual([sig.requests.has("0001/A"), sig.requests.has("0001")], [false, true]);

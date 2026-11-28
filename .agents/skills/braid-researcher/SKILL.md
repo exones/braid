@@ -32,7 +32,7 @@ Say how much of each source you read (whole, part, search result only); a title 
 
 ## Report
 
-End with this as your last chat message; your host returns it to the caller. Only when the first message names a thread to send your result to, also send it there with `t3_thread_send`.
+End with this as your last chat message; your host returns it to the caller; send nothing with `t3_thread_send`.
 
 ```markdown
 **Research: <question>** — answered | partly answered | not answered

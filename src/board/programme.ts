@@ -152,7 +152,7 @@ function requestsOfCard(card: BraidCard): Forward[] {
   if (card.lane === "Done") {
     return [];
   }
-  const items = [{ id: card.id, title: card.title, need: card.need?.who === null ? card.need : null, pmAsk: card.pmAsk?.who === null ? card.pmAsk : null }, ...card.strands];
+  const items = [{ id: card.id, title: card.title, need: card.need?.who === null ? card.need : null, pmAsk: card.pmAsk?.who === null ? card.pmAsk : null }, ...card.strands.filter((s) => s.lane !== "Done")];
   return items.flatMap(({ id, title, need, pmAsk }) => [need?.by === undefined ? need : null, pmAsk].flatMap((n) => (n?.code === undefined ? [] : [{ id, title, need: n }])));
 }
 

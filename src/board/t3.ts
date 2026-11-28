@@ -7,20 +7,20 @@ import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
-import { dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
+import { childRole, dropEndedChecks, loadReviews, type ReviewRecord } from "../braids/reviews.js";
 import { callFailure, CALL_TIMEOUT_MS } from "./timeout.js";
 import { mainCheckout as baseMainCheckout } from "../braids/repo.js";
 import { parseSteeringTitle, parseThreadTitle, titleRepoName } from "../braids/title.js";
-import { itemOfFolder, repoNameOf } from "../braids/worktrees.js";
+import { itemOfFolder, normPath, repoNameOf } from "../braids/worktrees.js";
 import { agentsDirs } from "../braids/worktree-folders.js";
 
 export interface T3Thread {
   readonly id: string;
-  /** `worker` in the item's own worktree, `reviewer` for a running thread recorded with `braid review`. */
-  readonly role: "worker" | "reviewer";
+  /** `worker` in the item's own worktree or a running worker child recorded by `braid launch`, `researcher` for a recorded research child, `reviewer` for any other running thread recorded with `braid review`. */
+  readonly role: "worker" | "reviewer" | "researcher";
   /** Questions and approvals the agent waits on. */
   readonly pending: number;
-  /** The T3 link to open; null for a subagent reviewer, which shows inside its coordinator's thread. */
+  /** The T3 link to open (T3's own `link`, also for a recorded subagent); null when T3 gave none. */
   readonly link: string | null;
   /** The thread's title, when T3 lists one. */
   readonly title?: string | undefined;
@@ -64,6 +64,8 @@ export interface T3 {
   readonly providers?: ReadonlyMap<string, string>;
   /** What each running PM checker thread of this repository checks: the text after `🧭 <repo> pm check: `. A programme whose checker runs is running. */
   readonly pmChecks?: readonly string[];
+  /** The checkout and branch of every running thread read, braid's or not: `braid clean` leaves them alone. */
+  readonly occupied?: readonly { readonly id: string; readonly folder: string | null; readonly branch: string | null }[];
 }
 
 export const IDEA_BRANCH = "coordinator/idea-";
@@ -138,6 +140,8 @@ export interface Where {
   readonly pending: number;
   /** `subagent` for a delegated task's child thread; null for a top-level thread. */
   readonly relationshipToParent: string | null;
+  /** The thread that delegated a child; null when T3 gives none. */
+  readonly parent: string | null;
   /** The provider instance the thread runs on. */
   readonly provider: string | null;
   /** T3's link to the thread (`<base>/<env>/<thread>`). */
@@ -172,6 +176,7 @@ export async function showThread(run: T3Runner, root: string, id: string): Promi
       branch: str(t["branch"]),
       pending: typeof pending === "number" ? pending : 0,
       relationshipToParent: str(t["relationshipToParent"]),
+      parent: str(t["parentThreadId"]),
       provider: str(t["providerInstanceId"]),
       link: str(t["link"]),
     };
@@ -218,6 +223,16 @@ function remember(r: ReviewRecord, where: Where | null, now: number): void {
   } else {
     finished.delete(r.thread);
   }
+}
+
+/**
+ * Why a checkout isn't a child's own: T3 gives its folder or branch to the thread that delegated the child too (a `shared` child).
+ * Null when it doesn't, when the child has no parent, or when T3 can't show the parent.
+ */
+export async function parentsCheckout(run: T3Runner, root: string, parent: string | null, folder: string, branch: string | null): Promise<string | null> {
+  const p = parent === null ? null : await showThread(run, root, parent);
+  const same = (p?.worktreePath != null && normPath(p.worktreePath) === normPath(folder)) || (branch !== null && p?.branch === branch);
+  return same ? `its parent thread ${parent} has the same checkout or branch` : null;
 }
 
 /** Runs `work` over `items`, a few at a time. */
@@ -333,6 +348,7 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     return p !== null && repos.has(p.repo) ? p : null;
   };
   const ideaThreads = new Map<string, T3Coordinator>();
+  const occupied: { id: string; folder: string | null; branch: string | null }[] = [];
   // Running threads are shown (`t3 thread show`: worktree and pending questions). An idle thread is placed by its worker title alone.
   const found = await pool(wanted, async ({ t, id, running }) => {
     let where: Where | null = null;
@@ -347,18 +363,24 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     }
     if (running) {
       const branch = where?.branch ?? null;
+      occupied.push({ id, folder: where?.worktreePath ?? str(t["worktreePath"]), branch: branch ?? str(t["branch"]) });
       if (branch !== null && branch.startsWith(IDEA_BRANCH) && !ideaThreads.has(branch)) {
         ideaThreads.set(branch, { id, link: str(t["link"]), provider: str(t["providerInstanceId"]), model: str(t["model"]) });
       }
     }
     return key === null ? null : { key, running, thread: { id, role: "worker", pending: where?.pending ?? 0, link: str(t["link"]), title: str(t["title"]) ?? undefined, provider: str(t["providerInstanceId"]) ?? where?.provider ?? null } satisfies T3Thread };
   });
-  // A recorded review thread is its item's reviewer while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
+  // A recorded child thread is its item's reviewer (or its worker or researcher, by the record's role) while T3 says it runs; one that has ended, or that T3 doesn't know, counts for nothing.
   // One seen finished is skipped (`toShow`): a read's calls don't grow with the records a project has gathered.
   const reviewing = await pool(toShow(reviews.filter((r) => !r.id.startsWith("pm/")), states, now.getTime()), async (r) => {
     const where = await showThread(run, root, r.thread);
     remember(r, where, now.getTime());
-    return where?.status === "running" ? { key: r.id, running: true, thread: { id: r.thread, role: "reviewer", pending: where.pending, link: null, provider: where.provider } satisfies T3Thread } : null;
+    if (where?.status !== "running") {
+      return null;
+    }
+    occupied.push({ id: r.thread, folder: where.worktreePath, branch: where.branch });
+    const role = ({ worker: "worker", review: "reviewer", research: "researcher" } as const)[childRole(r)];
+    return { key: r.id, running: true, thread: { id: r.thread, role, pending: where.pending, link: where.link, provider: where.provider } satisfies T3Thread };
   });
   const coordinators = new Map<string, T3Coordinator>();
   const idleCoordinators = new Map<string, T3Coordinator>();
@@ -404,5 +426,5 @@ async function readFresh(root: string, run: T3Runner, agents: string | readonly 
     }
   }
   const pmChecks = [...listedChecks, ...recordedChecks.flat()];
-  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, providers, pmChecks };
+  return { status: { state: "ok" }, threads, coordinators, idle, idleCoordinators, ideaThreads, states, links, providers, pmChecks, occupied };
 }

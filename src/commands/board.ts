@@ -10,13 +10,14 @@ import { fileURLToPath } from "node:url";
 import { loadLiveBraidsAsync, treeOf } from "../braids/branches.js";
 import { FormatError } from "../braids/frontmatter.js";
 import type { Braid, Item, Tree, WorkingFiles } from "../braids/store.js";
+import { loadTree } from "../braids/store.js";
 import { readWorkingTree } from "../braids/worktree.js";
-import { apiBraids, apiGithub, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
+import { apiBraids, apiGithub, apiPanelSignals, apiPanelTree, apiPlans, apiSignals, apiT3, apiTree, DEMO_START, demoBraids, demoGithub, demoInbox, demoLimits, demoPlans, demoProblems, demoSignals, demoT3, demoTree, EMPTY_INBOX, notesProblems } from "../board/demo.js";
 import { combine, projectInfo, projectsParam, tagProgrammes, type Held } from "../board/combined.js";
 import { feed, READ_TIMEOUT_MS, type Feed, type Good } from "../board/feed.js";
 import { steerer, type Steerer } from "../board/steerer.js";
 import { ACTING_STALE_MS, actingBoard, providerKey, repoLease, type ActingBoard } from "../board/acting.js";
-import { steps, waker } from "../board/wake.js";
+import { steps, wakePageAnswer, waker } from "../board/wake.js";
 import { nudger } from "../board/nudge.js";
 import { reminder } from "../board/remind.js";
 import { limitPusher } from "../notify/notifier.js";
@@ -31,12 +32,13 @@ import { problemLine, readinessAsync, type Problem } from "../braids/readiness.j
 import { ROLES, threadTitle, titleRepoName } from "../braids/title.js";
 import { readSignalsAsync, type ReadSignals } from "../board/signals.js";
 import { fetchBranchAsync } from "../braids/gitbranch.js";
-import { REQUESTS } from "../braids/requests.js";
+import { closing, handleOf, REQUESTS } from "../braids/requests.js";
+import { boardAnswer } from "./requests.js";
 import { readLimitsView, type LimitsView } from "../board/limits.js";
 import { loadPauses, markResumed, patchPause, reasonOf, type Pause } from "../braids/pauses.js";
 import { resumeMode } from "../board/pause.js";
 import { readPlans, type PlanRead } from "../board/plans.js";
-import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, type T3, type T3Runner } from "../board/t3.js";
+import { IDEA_BRANCH, ideaPlanning, mainCheckout, readT3, runT3, showThread, type T3, type T3Runner } from "../board/t3.js";
 import { readTailnet, runTailscale, tailnetAddress, tailnetHosts, whoisGate, type Gate, type TailscaleRunner } from "../board/tailnet.js";
 import { normaliseId, UsageError } from "./braids.js";
 import { notifyLine } from "./notify.js";
@@ -526,6 +528,30 @@ export function resumeAction(root: string, now: () => Date = () => new Date()): 
   };
 }
 
+/**
+ * Answer (0082/D): the user answers an open request from the board's page, `{ handle, text }` (a request of the project the
+ * body names; `text` an option letter or one line). Recorded as `braid answer <handle> <text>` records it, as the user's
+ * answer (`boardAnswer`), then the asking thread is woken at once, whoever the request was for (`wakePageAnswer`). A request
+ * no longer open, a wait, or a handle this project's record doesn't have is refused with the reason. Both listeners, no
+ * confirmation (the user, 2026-11-27).
+ *
+ * Whether the asking thread is archived comes from the states of the board's last T3 read (`states`), else, for a thread
+ * that read doesn't name, from one `thread show` of it: a whole read on the request path can take a minute (0077/J).
+ */
+export function answerAction(states: () => ReadonlyMap<string, string> | undefined, root: string, t3: T3Runner, now: () => Date = () => new Date()): Action {
+  return async (body) => {
+    const b = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    if (typeof b["handle"] !== "string" || b["handle"].trim() === "" || typeof b["text"] !== "string") {
+      throw new UsageError("answer needs { handle, text }: the request's name or code and an option letter or one line of text");
+    }
+    const done = await boardAnswer(root, b["handle"], b["text"]);
+    const r = done.request;
+    const state = r.thread === null ? null : (states()?.get(r.thread) ?? (await showThread(t3, root, r.thread).catch(() => null))?.status);
+    const wake = await wakePageAnswer(t3, root, r, now(), state === "archived");
+    return { ok: true, handle: handleOf(r), id: r.id, answer: closing(r)?.text ?? "", woken: wake.woken, wake: wake.why, warning: done.warning };
+  };
+}
+
 export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3Runner = runT3): Sources {
   // The main checkout is found with git once per root and cached: asked here, when the project is set up, so no read, wake or action runs that git.
   mainCheckout(root);
@@ -533,11 +559,13 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
   let working: Promise<WorkingFiles> | undefined;
   let seen: WorkingFiles | undefined;
   const readTree = (): Promise<WorkingFiles> => (working = readWorkingTree(root).then((tree) => (seen = tree)));
+  // The last good T3 read, for the answer action.
+  let lastT3: T3 | undefined;
   const src: Sources = {
     repo: titleRepoName(root),
     braids: () => loadLiveBraidsAsync(root, undefined, readTree()),
     github: () => readGithubAsync(root, gh),
-    t3: () => readT3(root, { run: t3 }),
+    t3: () => readT3(root, { run: t3 }).then((read) => (read.status.state === "ok" ? (lastT3 = read) : read)),
     signals: (github) => readSignalsAsync(root, github),
     fetchRequests: () => fetchBranchAsync(root, REQUESTS),
     plans: () => readPlans(root),
@@ -551,7 +579,7 @@ export function repoSources(root: string, gh: GhRunnerAsync = runGhAsync, t3: T3
     readiness: (github) => readinessAsync(root, github, working ?? readTree()),
     action: (name) => (Object.hasOwn(actions, name) ? actions[name] : undefined),
   };
-  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src), resume: resumeAction(root) };
+  const actions: Readonly<Record<string, Action>> = { merge: mergeAction(src, root, t3), start: startAction(src, root, t3), promote: promoteAction(src, root, t3), open: openAction(src), resume: resumeAction(root), answer: answerAction(() => lastT3?.states, root, t3) };
   return src;
 }
 
@@ -590,9 +618,9 @@ export function limitsLine(mode: "demo" | "off" | "on"): string {
     return "Limits: shown only (demo: nothing is paused)";
   }
   if (mode === "off") {
-    return "Limits: shown only (--no-pause: the board pauses and resumes nothing)";
+    return "Limits: shown only (--no-pause: the board pauses and resumes nothing, and sends no wake, reminder or nudge)";
   }
-  return "Limits: pauses the working agents over a threshold by sending each its pause text, counts their replies and resumes them after the reset (--no-pause turns this off)";
+  return "Limits: pauses the working agents over a threshold by sending each its pause text, counts their replies and resumes them after the reset (--no-pause turns this off, and the wakes, reminders and nudges)";
 }
 
 export function boardNotifier(root: string): (board: BoardData) => void {
@@ -1169,7 +1197,7 @@ export function demoMembers(t3Down = false, notReady = false): Member[] {
   };
   return [
     { name: "demo", src: demoSources(t3Down, notReady) },
-    { name: "api", src: small("api", apiBraids, apiGithub, () => apiSignals(), apiTree, () => null, apiPlans) },
+    { name: "api", src: small("api", () => loadTree(apiPanelTree()), apiGithub, () => apiPanelSignals(), apiPanelTree, () => null, apiPlans) },
     { name: "mail", src: mail },
     { name: "notes", src: small("notes", () => [], () => ({ status: { state: "ok" }, prs: new Map() }), () => ({ ...apiSignals(), requests: new Map() }), apiTree, notesProblems) },
   ];
