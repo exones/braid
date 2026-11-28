@@ -7,7 +7,7 @@ import { linkOfThread, mergeOf, type BraidCard, type MergeInfo, type Signals } f
 import { routeOf, viaNote } from "./pm.js";
 import { programmeOfBraid, type Programme } from "./programme.js";
 import { rankQuestions, type Rank } from "./question-list.js";
-import { CLOSED_KEPT } from "./record.js";
+import { CLOSED_KEPT, openItemRequests } from "./record.js";
 import type { T3 } from "./t3.js";
 
 export interface Question {
@@ -115,7 +115,7 @@ function rankOf(r: Request, escalated: boolean, blocks: readonly string[], cards
 export function questionsOf(cards: readonly BraidCard[], programmes: readonly Programme[], t3: T3, sig: Signals, gh: Github): Question[] {
   const byId = new Map(cards.map((c) => [c.id, c]));
   const tags = programmeOfBraid(programmes);
-  const open = [...sig.requests.values(), ...(sig.asks?.values() ?? []), ...(sig.programmes ?? [])].filter((r) => !isWait(r));
+  const open = [...openItemRequests(sig), ...(sig.programmes ?? [])].filter((r) => !isWait(r));
   const out = open.flatMap((r): Question[] => {
     const slug = programmeOf(r.id);
     // A programme's request and the PM's own are the user's; a coordinator's goes where the cards send it.
@@ -148,7 +148,7 @@ export function questionsOf(cards: readonly BraidCard[], programmes: readonly Pr
       options: r.options ?? [],
       link: linkOfThread(t3, r.thread),
       pr: review === null ? null : { number: review, url: [...gh.prs.values()].find((p) => p.number === review)?.url ?? null },
-      merge: review === null || askerOf(r) === "pm" ? null : mergeOf(r.id, gh, sig, t3),
+      merge: review === null || askerOf(r) === "pm" ? null : mergeOf(r.id, gh, sig, t3, r),
     }];
   });
   return rankQuestions(out);

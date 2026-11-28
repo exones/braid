@@ -98,6 +98,9 @@ export function rowOf(r: Request, now: Date, t3: T3, blocks: readonly string[] =
 /** The number on the Requests tab: all of the item's requests, the decided ones too. */
 export const requestCount = (view: RequestsView): number => view.open.length + view.waiting.length + view.decided.length + view.closed.length;
 
+/** Every open request on an item, of both askers, waits aside: several may be open on one. */
+export const openItemRequests = (sig: Pick<Signals, "open" | "requests" | "asks">): readonly Request[] => sig.open ?? [...sig.requests.values(), ...(sig.asks?.values() ?? [])];
+
 /** The requests of the items `match` keeps: its open ones, the ones waiting on another braid, and the closed ones, newest first. */
 export function requestsOf(match: (id: string) => boolean, sig: Signals, t3: T3): RequestsView {
   const rows = (rs: readonly Request[]): RequestRow[] => rs.filter((r) => match(r.id) && programmeOf(r.id) === null).map((r) => rowOf(r, sig.now, t3, sig.unblocks?.(r) ?? [], sig.pauses?.has(r.id.slice(0, 4)) === true));
@@ -105,7 +108,7 @@ export function requestsOf(match: (id: string) => boolean, sig: Signals, t3: T3)
   // A wait is nobody's decision, however it ended (an old record may read "answered by the user").
   const decided = (r: RequestRow): boolean => r.state === "answered" && !isWait(r);
   return {
-    open: rows([...sig.requests.values(), ...(sig.asks?.values() ?? [])]).sort((a, b) => (a.at < b.at ? 1 : -1)),
+    open: rows(openItemRequests(sig)).sort((a, b) => (a.at < b.at ? 1 : -1)),
     waiting: rows(sig.waits ?? []).sort((a, b) => (a.at < b.at ? 1 : -1)),
     decided: ended.filter(decided).slice(0, CLOSED_KEPT),
     closed: ended.filter((r) => !decided(r)).slice(0, CLOSED_KEPT),
