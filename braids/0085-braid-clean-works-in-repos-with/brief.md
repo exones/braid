@@ -1,7 +1,7 @@
 ---
 id: '0085'
 title: "braid clean works in repos with submodules"
-status: To Do
+status: In Progress
 labels: ["kind:story", "tier:L"]
 dependencies: []
 related: ['0077']
