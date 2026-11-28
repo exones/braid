@@ -73,13 +73,13 @@ The user signs the board in to T3 once, at Full access; the token lives in the O
 
 ## Completion
 
-- [ ] The user approved the sign-in design (0080/A) before it was built
-- [ ] The board signs in at Full access (the user's q-b146), keeps the token only in the OS secret store and warns before expiry; signed out it works as before (0080/D)
-- [ ] Hold and a limit pause stop running threads and their delegated children; a thread whose last run failed on `usage_limit` counts as paused (0080/E)
-- [ ] Signed in, the board refreshes on T3 events, reads everything after `truncated`, and keeps a slow full read (0080/F)
-- [ ] Stalled cards say why a thread failed (0080/C)
-- [ ] Auto-settle: dropped by the user (q-htgo, "M. B"), since T3 v0.1.12 lets no agent turn it off; the docs say it is a manual T3 setting (0080/H)
-- [ ] Docs are true as a whole (0080/H)
+- [x] The user approved the sign-in design (0080/A) before it was built
+- [x] The board signs in at Full access (the user's q-b146), keeps the token only in the OS secret store and warns before expiry; signed out it works as before (0080/D)
+- [x] Hold and a limit pause stop running threads and their delegated children; a thread whose last run failed on `usage_limit` counts as paused (0080/E)
+- [x] Signed in, the board refreshes on T3 events, reads everything after `truncated`, and keeps a slow full read (0080/F)
+- [x] Stalled cards say why a thread failed (0080/C)
+- [x] Auto-settle: dropped by the user (q-htgo, "M. B"), since T3 v0.1.12 lets no agent turn it off; the docs say it is a manual T3 setting (0080/H)
+- [x] Docs are true as a whole (0080/H)
 
 ## Autonomy
 
