@@ -1,0 +1,22 @@
+{
+  "code": "q-vz5f",
+  "item": "0083",
+  "kind": "review",
+  "text": "review PR #378 at 59afef5",
+  "words": "noisy anchor",
+  "by": "coordinator",
+  "thread": "mcp:launch:278bde206cc6c5dcba7a550fd202794be83ea389f2bcdd96dca4b9f8e69d9d06",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "pr:378",
+  "pr": 378,
+  "head": "59afef50faae8fd65f7cbf016e47bbd6e7f1ef6e",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T10:38:57.223Z",
+      "by": "coordinator"
+    }
+  ]
+}
