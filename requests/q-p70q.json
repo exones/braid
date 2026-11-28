@@ -22,6 +22,12 @@
       "event": "opened",
       "at": "2026-11-28T02:37:00.421Z",
       "by": "coordinator"
+    },
+    {
+      "event": "answered",
+      "at": "2026-11-28T08:26:33.724Z",
+      "by": "user",
+      "text": "B. Ship, follow-up braid"
     }
   ]
 }
