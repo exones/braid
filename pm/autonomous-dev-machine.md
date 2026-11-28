@@ -3,10 +3,10 @@ programme: autonomous-dev-machine
 title: Autonomous dev machine
 goal: An autonomous agentic software development machine that the user plans with and then leaves to work
 thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
-limit: 5
+limit: 6
 state: running
 hold: ""
-next: "running: 0077 (PR #375 at fe19e2fe, PM live check running), 0084 (C, D), 0087 (P33, plan approved, A), 0083 (after timings, report), 0080 (D, sign-in); when 0077 is in main: install, re-enable the board service, resume 0078, then 0085 and 0086; P34 parked"
+next: "running: 0077 (PR #375 at fe19e2fe, PM live check running), 0084 (C, D), 0087 (P33, plan approved, A), 0083 (after timings, report), 0080 (D, sign-in); when 0077 is in main: install, re-enable the board service, resume 0078, then 0086; 0085 running; P34 parked"
 digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
@@ -171,6 +171,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28 ~10:15: user "A": everix4 core.fsmonitor off (the user; it was set in everix4's .git/config, shared by 82 worktrees), PM stopped the daemons again; 0085 resumed with the deinit guard; limit 6 while 0083 finishes. Settling: only 58 unsettled threads across T3 (agento 15, all live or the user's own), nothing worth settling now.
 - 2026-11-28 ~10:00: user "A" on cleanup: PM stopped 96 orphaned git fsmonitor daemons and everix 0020/H,I pf.sh port-forward loops (12 processes), deleted 1,754 braid-* temp folders older than 1 h (idea qb86 on tearing down background processes). Pruned T3 checkpoint refs of the 435 settled agento threads (3,652 refs; 5,652 -> 2,000) with 0083's mapping (sha256 of the checkpoint scope id); 358 unmatched segments kept for 0083's rule. 0087 plan (shiny-muffin-vgr3) approved by the PM; CPU findings folded into 0087/B and C. 0077 final PR #375 (silly-monkey-jy8w): PM live check started; coordinator marks the 1 s box as moved to P34.
 - 2026-11-28: user "A" (performance first): q-nxp6 answered (0080/D as proposed, 1-4); P33 launched now instead of after 0077 (0077 merges first, P33 merges main before its final PR); 0083 and 0080 resumed; the PM prunes T3 checkpoint refs of settled threads in agento once 0083 says how refs map to threads and that it is safe (everix4: a command for the user). T3 logs left alone: 718 MB, rotated by T3 in 10 MB files, no speed gain.
 - 2026-11-28: user: the 1 s target does not matter for now, landing things in the next days does: P34 parked until the user asks.
