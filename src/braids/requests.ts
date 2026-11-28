@@ -59,7 +59,7 @@ export const REQUESTS_BRANCH = "braid-requests";
 const FOLDER = "requests";
 /** The items' lifecycle files on the same branch (src/braids/lifecycle.ts). */
 export const LIFECYCLE_FOLDER = "lifecycle";
-/** `q-` and four lowercase letters or digits. */
+/** `q-` and four lowercase letters or digits; a new one has a letter (`newCode`), an older one may not. */
 export const CODE = /^q-[a-z0-9]{4,}$/;
 
 export interface Request {
@@ -299,12 +299,15 @@ function viewAll(view: BranchView): { requests: Request[]; problems: RecordProbl
   return parseAll(new Map(paths.flatMap((p, i) => (texts[i] === null || texts[i] === undefined ? [] : [[p, texts[i]] as const]))));
 }
 
-/** A new code, unused on the branch. */
-function newCode(taken: (code: string) => boolean): string {
+/**
+ * A new code, unused on the branch, with at least one letter: four digits would read as a braid number.
+ * `random` is replaced in tests.
+ */
+export function newCode(taken: (code: string) => boolean, random: (size: number) => Uint8Array = randomBytes): string {
   for (let size = 4; ; size++) {
     for (let tries = 0; tries < 20; tries++) {
-      const code = `q-${[...randomBytes(size)].map((b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("")}`;
-      if (!taken(code)) {
+      const code = `q-${[...random(size)].map((b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("")}`;
+      if (/[a-z]/.test(code.slice(2)) && !taken(code)) {
         return code;
       }
     }

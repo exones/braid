@@ -105,16 +105,16 @@ test("the Done lane lists the braids that still ask first, then newest first", (
   assert.deepEqual(model.doneNewestFirst(cards).map((c: any) => c.id), ["0001", "0003", "0002"]);
 });
 
-test("a need carries the request's handle; a q-code of four digits is taken as q-0123 or with its words, 0123 alone is an item", () => {
+test("a need carries the request's handle; a q-code of four digits is taken as q-0123, with its words or, when no item has the number, as 0123", () => {
   const need = board(braid("In Progress"), sigOf([open("0072", "question", "Which?", { code: "q-0123" })])).braids[0].need;
   assert.deepEqual([need.code, need.handle], ["q-0123", "yellow-bear-0123"]);
   const w = world();
-  for (const name of ["q-0123", "Q-0123.", "yellow bear 0123", "yellow-bear-0123"]) {
+  for (const name of ["q-0123", "Q-0123.", "yellow bear 0123", "yellow-bear-0123", "0123"]) {
     const r = Rec.newRecord({ id: "0001", kind: "question", text: "x", at: new Date().toISOString(), thread: null, code: "q-0123", words: "yellow bear" });
     const { id, events, state: _state, eta, at: _at, ...file } = r;
     B.writeBranch(w.root, Rec.REQUESTS, () => ({ files: new Map([["requests/q-0123.json", `${JSON.stringify({ ...file, item: id, by: "coordinator", to: "user", eta, events }, null, 2)}\n`]]), message: "test: q-0123" }));
-    assert.throws(() => Cmd.withdrawCommand(w.root, ["0123", "--why", "x"]), /0123/);
-    assert.equal(Rec.loadRequests(w.root).length, 1, "0123 alone names no request");
+    assert.throws(() => Cmd.withdrawCommand(w.root, ["0124", "--why", "x"]), /0124/);
+    assert.equal(Rec.loadRequests(w.root).length, 1, "digits that are no request's code name none");
     assert.match(Cmd.withdrawCommand(w.root, [name, "--why", "no"]), /^yellow-bear-0123 0001: withdrawn: no\n/, name);
   }
 });
