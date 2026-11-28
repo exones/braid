@@ -1,0 +1,23 @@
+{
+  "code": "q-xejq",
+  "item": "0084",
+  "kind": "decision",
+  "text": "braid accept with a forwarded/user-owned request still open on the item: refuse and name it, or accept and keep it open?",
+  "options": [
+    "Refuse and name the pending requests",
+    "Accept, keep those requests open"
+  ],
+  "words": "yellow lantern",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T16:26:41.329Z",
+      "by": "pm"
+    }
+  ]
+}
