@@ -1,0 +1,20 @@
+{
+  "code": "q-4x27",
+  "item": "0080",
+  "kind": "action",
+  "text": "Sign in to T3 for 0080's live check: run 'braid t3 login' (branch build) and 'braid t3 status', then tell the PM",
+  "context": "0080 (the board talks to T3 directly): steps D (sign-in) and E (Hold reaches every thread) are merged into the braid branch. Before the final PR into main they need one live check with your real T3 sign-in; a checker does everything else on scratch copies (scratch home, test board on port 7850, scratch threads).\n1. Run: node C:\\worktrees\\agento\\plan-board-t3\\dist\\cli.js t3 login  -> approve \"braid board\" at Full access in T3's page; the terminal says \"Signed in to T3 ... until <date>\".\n2. Run: node C:\\worktrees\\agento\\plan-board-t3\\dist\\cli.js t3 status  -> \"signed in ... Full access ... (in 30 d)\".\n3. Tell the PM \"signed in\". Later, when asked: revoke \"braid board\" in T3 Settings -> Sharing & access, then run \"... t3 logout\".\nThe token goes only into Windows' secret store.",
+  "words": "sticky ladder",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T13:45:11.044Z",
+      "by": "pm"
+    }
+  ]
+}
