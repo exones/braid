@@ -3,7 +3,7 @@ id: '0084/D'
 title: "Docs: Several open questions per item"
 status: To Do
 labels: ["kind:task", "tier:L", "ask:process"]
-dependencies: ['0084/A', '0084/B', '0084/C']
+dependencies: ['0084/A', '0084/B', '0084/C', '0084/E']
 order: 40
 ---
 

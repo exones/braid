@@ -3,7 +3,7 @@ id: '0084/C'
 title: "Several open questions on the board"
 status: To Do
 labels: ["kind:story", "tier:M", "ui"]
-dependencies: ['0084/A', '0084/B']
+dependencies: ['0084/A', '0084/B', '0084/E']
 order: 30
 ---
 
