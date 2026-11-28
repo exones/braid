@@ -6,8 +6,8 @@ thread: 9b3a8157-f696-45de-ac39-f35a4a90cf9b
 limit: 2
 state: running
 hold: ""
-next: "running: 0078 (M, then L, N), 0080 (D), 0084 (E, C, D), 0085 (A), 0087 (A; D gets the wait-once skill rule), 0088 (P35, plan approved, A); limit 6; held: 0086 (gets the Long turn mark and fewer nudges); P34 parked; the user: everix4 ref prune (prune-refs.ps1), T3 upstream write-up"
-digest: "24 Nov · 7 done · 2 running (0075, P23) · 0075 hotfixes A, E, F in main · 17 PM decisions"
+next: "running: 0078 (N, then E, F, G, H, I; #384 lock fix to main), 0080 (F; live check of D+E waits on the user sign-in sticky-ladder-4x27); held: 0084, 0085, 0086, 0087, 0088; P34 parked"
+digest: "14:05 · 2 done (0077, 0083) · 2 running (0078, 0080) · 9 PM decisions"
 rows:
   - P0 | 0068 | Coordinators stop waiting in the foreground | done
   - P1 | 0064 | The board watches provider limits | done
@@ -172,6 +172,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28 14:05: user: reread the PM skill, the sign-in was not on the board. Opened sticky-ladder-4x27 (action, 0080). From now on: every question to the user is a braid ask (with options), live checks are titled pm check and recorded with braid review, passed handovers are braid forward-ed to the user, digests go out with braid notify.
 - 2026-11-28: user asked for an Acknowledge button on FYI (look) requests: closes as seen without waking an agent, moves to Decided; goes into 0084/C on its Go (idea iy7b).
 - 2026-11-28 13:18: user "Sorry, I leave only 78 and 80 the rest. Pause, please": 0084, 0085, 0087, 0088 held (braid pause --hold, coordinators forward to working subagents); 0078 and 0080 run; limit 2.
 - 2026-11-28: user restarted the PC; Go ("restart what you paused"): 0078, 0080, 0084, 0085, 0087, 0088 resumed; the board service did not start at logon, PM started it (running on 7800). little-parrot-ex9y (0085: no deinit, forced remove after checks) answered A by the PM.
