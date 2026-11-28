@@ -55,3 +55,9 @@ Expected size: one self-contained HTML file of about 800 lines, plus `report.md`
 - [ ] Docs from BRAID.md `docs` that this change makes untrue are updated, or report.md says none are affected
 - [ ] The gate command from BRAID.md passes
 - [ ] report.md written: what changed, why, validation, anything open
+
+## Plan
+
+1. One self-contained `mockups.html` (style and format of 0082/A's page, light and dark, ◐ switch) with frames 1 to 9, all drawn from one inline test-data script: projects `sample` and `api` (names and braids from `src/board/demo.ts`), providers as BRAID.md names them.
+2. Recommended design drawn, alternatives named as lettered options in `report.md`.
+3. Check the page in `html_preview` (light, dark, narrow), run `npm run verify`, commit and push; end the run with no PR (converge loop).
