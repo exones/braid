@@ -172,6 +172,7 @@ After each braid of this programme merges into `main` (the user's merge), the PM
 After P0 · 0068 or P1 · 0064 merges: install, restart the board, and wait for the user ("After each merge"). On the user's go: P2 Precise notifications and P7 · 0067 Board as a Windows service (both need 0064's code on `main`). Then P3, P5.
 
 ## Change log
+- 2026-11-28: user B on thirsty-pillow-1dkg: the board keeps answering only after the full write (no background push/wake) for now. Phone test orange-window-6b7a opened for 0084/C (why phone answer presses never recorded).
 - 2026-11-28 17:50: user signed in to T3 (Full access, until 2026-12-28) and answered purple-magnet-16x3 "done"; the board reads T3 over MCP now. Hold/revoke/logout steps not run; the user stays signed in.
 - 2026-11-28: two request bugs from the sfil-v5 PM (accept withdraws forwarded requests; an answer that never woke its asker) go into 0084 as one strand; user A on yellow-lantern-xejq: accept refuses and names pending forwarded/user-held requests.
 - 2026-11-28: user merged #391 from the board (0080 done, 1c335c0b) after the PM re-check at 4de79cc3 (with #388); braid installed from main, board service restarted; action request for the user's sign-in live check opened.
