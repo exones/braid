@@ -1,7 +1,7 @@
 ---
 id: '0088'
 title: "braid tidies up after itself in T3"
-status: To Do
+status: In Progress
 labels: []
 dependencies: []
 related: ['0080', '0083', '0085', '0087']
