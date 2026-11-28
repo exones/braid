@@ -1,0 +1,20 @@
+{
+  "code": "q-6b7a",
+  "item": "0084",
+  "kind": "action",
+  "text": "Phone test (2 min): on the demo board http://exon-pc.tailf59262.ts.net:7810/ press A on 'Approve the plan', wait 30 s, then Dismiss one; tell the PM what you saw",
+  "context": "Why your phone's answer presses never recorded (shiny-monkey-mo72). A demo board (sample data only, every action takes 11 s on purpose, logs each press):\nhttp://exon-pc.tailf59262.ts.net:7810/\nOn the same phone, browser and network as when it failed:\n1. Open the URL, tap Requests.\n2. Tap \"Approve the plan: 3 strands, A to C\", press A.\n3. Don't reload; wait 30 s; note or screenshot the line under the buttons.\n4. Press Dismiss on any other request; wait 30 s again.\n5. Tell the PM: phone OS and browser; browser tab, home-screen icon or in-app browser; other board tabs open?; did a red line appear at the top of the Questions panel on the live board?",
+  "words": "orange window",
+  "by": "pm",
+  "thread": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "to": "user",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T16:55:39.269Z",
+      "by": "pm"
+    }
+  ]
+}
