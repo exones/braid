@@ -1,0 +1,26 @@
+{
+  "code": "q-560n",
+  "item": "0084/B",
+  "kind": "decision",
+  "text": "Look at 0084/B mockups (several questions per card) and answer 4 questions",
+  "context": "0084/B mockups of the board with several open questions on one item (branch braid/0084/B-mockups-several-open-questions-on-the at 942829a4): braids/0084-several-open-questions-per-item/B-mockups-several-open-questions-on-the/mockups.html, report.md beside it. Screens: strand rows on a braid card (3 coordinator questions; coordinator + PM), folded braid card, the two card variants, a merge handover beside two questions, details banner and Requests tab, Questions panel (3 rows from one item; ranking unchanged), programmes panel with 2 pm/<slug> questions, phone width.\nQuestions: 1) card lists every question (A, recommended) or the first and \"+2 more\" (B)? 2) folded braid card with several strands asking: most urgent strand's questions plus \"+1 more in strands\" (recommended) or every strand's? 3) a PR waiting for merge with questions open on the same item: Needs You with the merge line and Merge button kept above the questions (recommended; amends D46's \"open review = To Review\" first match), or To Review as D46 says? 4) Details off: the ? icon shows a count (recommended yes)?",
+  "options": [
+    "As recommended: 1A, 2 most urgent +N more, 3 Needs You, 4 count",
+    "As recommended, but 3: keep To Review",
+    "Change something"
+  ],
+  "words": "lazy cloud",
+  "by": "coordinator",
+  "thread": "mcp:launch:fb5fcd743ad7d6c3cb1795e068f1d43a36e1e52e42fd421781fe11b7d4603838",
+  "to": "pm",
+  "pm": "9b3a8157-f696-45de-ac39-f35a4a90cf9b",
+  "doneWhen": "answered",
+  "eta": null,
+  "events": [
+    {
+      "event": "opened",
+      "at": "2026-11-28T03:12:12.069Z",
+      "by": "coordinator"
+    }
+  ]
+}
